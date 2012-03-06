@@ -30,7 +30,11 @@ import org.apache.jackrabbit.mk.util.IOUtils;
 
 /**
  * Revision garbage collector that copies reachable revisions from a "from" revision
- * store to a "to" revision store. 
+ * store to a "to" revision store. It assumes that both stores share the same blob
+ * store.
+ * 
+ * TODO: Ensure the integrity of the parental relationship when copying revisions
+ *       in a GC cycle (because there may be missing intermediate commits).
  */
 public class CopyingGC implements RevisionStore, Closeable {
     
@@ -77,7 +81,7 @@ public class CopyingGC implements RevisionStore, Closeable {
     public void stop() {
         running = false;
         
-        // TODO: swap rsFrom/rsTo and re-initialize
+        // TODO: swap rsFrom/rsTo and reset them
         rsFrom = rsTo;
         rsTo = null;
     }
