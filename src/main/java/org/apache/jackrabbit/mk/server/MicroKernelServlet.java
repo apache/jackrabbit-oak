@@ -146,9 +146,10 @@ class MicroKernelServlet {
             
             String fromRevisionId = request.getParameter("from_revision_id", headRevision);
             String toRevisionId = request.getParameter("to_revision_id", headRevision);
+            String filter = request.getParameter("filter", "");
 
             response.setContentType("application/json");
-            String json = mk.getJournal(fromRevisionId, toRevisionId);
+            String json = mk.getJournal(fromRevisionId, toRevisionId, filter);
             if (request.getHeaders().containsKey("User-Agent")) {
                 json = JsopBuilder.prettyPrint(json);
             }
@@ -165,10 +166,10 @@ class MicroKernelServlet {
 
             String fromRevisionId = request.getParameter("from_revision_id", headRevision);
             String toRevisionId = request.getParameter("to_revision_id", headRevision);
-            String path = request.getParameter("path", "/");
+            String filter = request.getParameter("filter", "");
 
             response.setContentType("application/json");
-            String json = mk.diff(fromRevisionId, toRevisionId, path);
+            String json = mk.diff(fromRevisionId, toRevisionId, filter);
             if (request.getHeaders().containsKey("User-Agent")) {
                 json = JsopBuilder.prettyPrint(json);
             }
@@ -218,9 +219,10 @@ class MicroKernelServlet {
             int depth = request.getParameter("depth", 1);
             long offset = request.getParameter("offset", 0L);
             int count = request.getParameter("count", -1);
-            
+            String filter = request.getParameter("filter", "");
+
             response.setContentType("application/json");
-            String json = mk.getNodes(path, revisionId, depth, offset, count);
+            String json = mk.getNodes(path, revisionId, depth, offset, count, filter);
             if (request.getHeaders().containsKey("User-Agent")) {
                 json = JsopBuilder.prettyPrint(json);
             }

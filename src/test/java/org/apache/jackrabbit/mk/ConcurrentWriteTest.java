@@ -77,7 +77,7 @@ public class ConcurrentWriteTest extends TestCase {
         System.out.println("duration: " + (t1 - t0) + "ms");
 
         String head = mk.getHeadRevision();
-        mk.getNodes("/", head, Integer.MAX_VALUE, 0, -1);
+        mk.getNodes("/", head, Integer.MAX_VALUE, 0, -1, null);
         // System.out.println(json);
         System.out.println("new HEAD: " + head);
         System.out.println();
@@ -87,7 +87,7 @@ public class ConcurrentWriteTest extends TestCase {
         System.out.println(history);
         System.out.println();
 
-        mk.getJournal(oldHead, head);
+        mk.getJournal(oldHead, head, null);
         // System.out.println("Journal:");
         // System.out.println(journal);
         // System.out.println();

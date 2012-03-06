@@ -165,7 +165,7 @@ public class Client implements MicroKernel {
         }
     }
 
-    public synchronized String getJournal(String fromRevisionId, String toRevisionId)
+    public synchronized String getJournal(String fromRevisionId, String toRevisionId, String filter)
             throws MicroKernelException {
         
         Request request = null;
@@ -174,6 +174,7 @@ public class Client implements MicroKernel {
             request = createRequest("getJournal");
             request.addParameter("from_revision_id", fromRevisionId);
             request.addParameter("to_revision_id", toRevisionId);
+            request.addParameter("filter", filter);
             return request.getString();
         } catch (IOException e) {
             throw toMicroKernelException(e);
@@ -182,7 +183,7 @@ public class Client implements MicroKernel {
         }
     }
 
-    public synchronized String diff(String fromRevisionId, String toRevisionId, String path)
+    public synchronized String diff(String fromRevisionId, String toRevisionId, String filter)
             throws MicroKernelException {
         Request request = null;
 
@@ -190,7 +191,7 @@ public class Client implements MicroKernel {
             request = createRequest("diff");
             request.addParameter("from_revision_id", fromRevisionId);
             request.addParameter("to_revision_id", toRevisionId);
-            request.addParameter("path", path);
+            request.addParameter("filter", filter);
             return request.getString();
         } catch (IOException e) {
             throw toMicroKernelException(e);
@@ -236,11 +237,11 @@ public class Client implements MicroKernel {
     public synchronized String getNodes(String path, String revisionId)
             throws MicroKernelException {
 
-        return getNodes(path, revisionId, 1, 0, -1);
+        return getNodes(path, revisionId, 1, 0, -1, null);
     }
 
     public synchronized String getNodes(String path, String revisionId, int depth,
-            long offset, int count) throws MicroKernelException {
+            long offset, int count, String filter) throws MicroKernelException {
         
         Request request = null;
 
@@ -251,6 +252,7 @@ public class Client implements MicroKernel {
             request.addParameter("depth", depth);
             request.addParameter("offset", offset);
             request.addParameter("count", count);
+            request.addParameter("filter", filter);
             return request.getString();
         } catch (IOException e) {
             throw toMicroKernelException(e);

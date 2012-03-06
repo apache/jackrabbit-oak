@@ -42,10 +42,10 @@ public class ConcurrentTest extends MultiMkTestBase {
                 int i = id.getAndIncrement();
                 String newRev = mk.commit("/", "+\"" + i + "\":{\"x\": " + i + "}", rev, "");
                 Assert.assertTrue(!newRev.equals(rev));
-                mk.getJournal(rev, newRev);
+                mk.getJournal(rev, newRev, null);
                 mk.getRevisions(start, 100);
                 mk.getNodes("/" + i, newRev);
-                mk.getNodes("/" + i, newRev, 0, 0, 0);
+                mk.getNodes("/" + i, newRev, 0, 0, 0, null);
                 Assert.assertFalse(mk.nodeExists("/" + i, rev));
                 Assert.assertTrue(mk.nodeExists("/" + i, newRev));
                 rev = newRev;

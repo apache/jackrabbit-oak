@@ -61,7 +61,7 @@ public class ManyRevisionsTest extends MultiMkTestBase {
             String n = mk.getNodes("/test", rev);
             NodeImpl node = NodeImpl.parse(n);
             assertEquals(i, Integer.parseInt(node.getProperty("id")));
-            String journal = mk.getJournal(last, rev);
+            String journal = mk.getJournal(last, rev, null);
             JsopArray array = (JsopArray) Jsop.parse(journal);
             assertEquals(last + ".." + rev + ": " + journal,
                     2, array.size());

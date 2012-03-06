@@ -142,9 +142,9 @@ public class IndexWrapper extends WrapperBase implements MicroKernel {
         return null;
     }
 
-    public JsopReader getNodesStream(String path, String revisionId, int depth, long offset, int count) {
+    public JsopReader getNodesStream(String path, String revisionId, int depth, long offset, int count, String filter) {
         if (!path.startsWith(INDEX_PATH)) {
-            return mk.getNodesStream(path, revisionId, depth, offset, count);
+            return mk.getNodesStream(path, revisionId, depth, offset, count, filter);
         }
         String index = PathUtils.relativize(INDEX_PATH, path);
         int idx = index.indexOf('?');
@@ -198,16 +198,16 @@ public class IndexWrapper extends WrapperBase implements MicroKernel {
         return s;
     }
 
-    public JsopReader diffStream(String fromRevisionId, String toRevisionId, String path) {
-        return mk.diffStream(fromRevisionId, toRevisionId, path);
+    public JsopReader diffStream(String fromRevisionId, String toRevisionId, String filter) {
+        return mk.diffStream(fromRevisionId, toRevisionId, filter);
     }
 
-    public JsopReader getJournalStream(String fromRevisionId, String toRevisionId) {
-        return mk.getJournalStream(fromRevisionId, toRevisionId);
+    public JsopReader getJournalStream(String fromRevisionId, String toRevisionId, String filter) {
+        return mk.getJournalStream(fromRevisionId, toRevisionId, filter);
     }
 
     public JsopReader getNodesStream(String path, String revisionId) {
-        return getNodesStream(path, revisionId, 1, 0, -1);
+        return getNodesStream(path, revisionId, 1, 0, -1, null);
     }
 
     public JsopReader getRevisionsStream(long since, int maxEntries) {

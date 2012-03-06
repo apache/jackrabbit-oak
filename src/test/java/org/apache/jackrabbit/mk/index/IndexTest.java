@@ -225,7 +225,7 @@ public class IndexTest extends MultiMkTestBase {
 
     static void print(MicroKernel mk, BTree tree) {
         String head = mk.getHeadRevision();
-        String t = mk.getNodes("/index", head, 100, 0, -1);
+        String t = mk.getNodes("/index", head, 100, 0, -1, null);
         log(JsopTest.format(t));
         Cursor c = tree.findFirst("0");
         StringBuilder buff = new StringBuilder();

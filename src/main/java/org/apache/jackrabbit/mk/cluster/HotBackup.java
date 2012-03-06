@@ -70,7 +70,7 @@ public class HotBackup {
     public void sync() {
         String headRev = source.getHeadRevision();
         if (lastRev != headRev) {
-            JsopArray journal = (JsopArray) Jsop.parse(source.getJournal(lastRev, headRev));
+            JsopArray journal = (JsopArray) Jsop.parse(source.getJournal(lastRev, headRev, null));
             for (int i = 0; i < journal.size(); i++) {
                 JsopObject record = (JsopObject) journal.get(i);
                 String diff = (String) record.get("changes");
@@ -86,7 +86,8 @@ public class HotBackup {
         String parent = PathUtils.getParentPath(path);
         String name = PathUtils.getName(path);
         
-        JsopObject props = (JsopObject) Jsop.parse(mk.getNodes(parent, mk.getHeadRevision(), -1, 0, -1));
+        // todo use filter parameter for specifying the property?
+        JsopObject props = (JsopObject) Jsop.parse(mk.getNodes(parent, mk.getHeadRevision(), -1, 0, -1, null));
         return (String) props.get(name);
     }
 

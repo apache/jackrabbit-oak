@@ -421,7 +421,7 @@ public class SimpleKernelImpl extends WrapperBase implements MicroKernel {
         return gate.waitForCommit(oldHeadRevision, maxWaitMillis);
     }
 
-    public JsopReader getJournalStream(String fromRevisionId, String toRevisionId) {
+    public JsopReader getJournalStream(String fromRevisionId, String toRevisionId, String filter) {
         long fromRev = Revision.parseId(fromRevisionId);
         long toRev = Revision.parseId(toRevisionId);
         NodeImpl node = getRoot();
@@ -485,7 +485,7 @@ public class SimpleKernelImpl extends WrapperBase implements MicroKernel {
     }
 
 
-    public JsopReader diffStream(String fromRevisionId, String toRevisionId, String path) {
+    public JsopReader diffStream(String fromRevisionId, String toRevisionId, String filter) {
         // TODO implement if required
         return new JsopStream();
     }
@@ -501,10 +501,10 @@ public class SimpleKernelImpl extends WrapperBase implements MicroKernel {
      * @return the json string
      */
     public JsopReader getNodesStream(String path, String revisionId) {
-        return getNodesStream(path, revisionId, 1, 0, -1);
+        return getNodesStream(path, revisionId, 1, 0, -1, null);
     }
 
-    public JsopReader getNodesStream(String path, String revisionId, int depth, long offset, int count) {
+    public JsopReader getNodesStream(String path, String revisionId, int depth, long offset, int count, String filter) {
         // TODO offset > 0 should mean the properties are not included
         if (count < 0) {
             count = nodeMap.getMaxMemoryChildren();

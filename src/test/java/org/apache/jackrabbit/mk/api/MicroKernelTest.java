@@ -70,7 +70,7 @@ public class MicroKernelTest extends MultiMkTestBase {
     public void getNodes() {
         String head = mk.getHeadRevision();
 
-        String json = mk.getNodes("/test", head, 0, 0, -1);
+        String json = mk.getNodes("/test", head, 0, 0, -1, null);
         assertTrue(json.contains("stringProp"));
     }
 
@@ -163,7 +163,7 @@ public class MicroKernelTest extends MultiMkTestBase {
                         "^\"" + node + "/child1/grandchild11/prop3\" : 43",
                 head, "");
 
-        String json = mk.getNodes('/' + node, head, 3, 0, -1);
+        String json = mk.getNodes('/' + node, head, 3, 0, -1, null);
         assertEquals("{\"prop1\":41,\":childNodeCount\":2," +
                 "\"child1\":{\"prop2\":42,\":childNodeCount\":1," +
                 "\"grandchild11\":{\"prop3\":43,\":childNodeCount\":0}}," +
