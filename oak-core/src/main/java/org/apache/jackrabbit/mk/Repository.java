@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.mk;
 
+import java.io.Closeable;
 import java.io.File;
 
 import org.apache.jackrabbit.mk.model.ChildNodeEntry;
@@ -27,6 +28,7 @@ import org.apache.jackrabbit.mk.model.StoredNode;
 import org.apache.jackrabbit.mk.store.DefaultRevisionStore;
 import org.apache.jackrabbit.mk.store.NotFoundException;
 import org.apache.jackrabbit.mk.store.RevisionStore;
+import org.apache.jackrabbit.mk.util.IOUtils;
 import org.apache.jackrabbit.mk.util.PathUtils;
 
 /**
@@ -36,7 +38,7 @@ public class Repository {
 
     private final String homeDir;
     private boolean initialized;
-    private final DefaultRevisionStore rs;
+    private RevisionStore rs;
 
     public Repository(String homeDir) throws Exception {
         File home = new File(homeDir == null ? "." : homeDir, ".mk");
@@ -44,8 +46,6 @@ public class Repository {
             home.mkdirs();
         }
         this.homeDir = home.getCanonicalPath();
-
-        rs = new DefaultRevisionStore();
     }
     
     /**
@@ -53,7 +53,7 @@ public class Repository {
      * 
      * @param rs revision store, already initialized
      */
-    public Repository(DefaultRevisionStore rs) {
+    public Repository(RevisionStore rs) {
         this.homeDir = null;
         this.rs = rs;
         
@@ -64,7 +64,9 @@ public class Repository {
         if (initialized) {
             return;
         }
+        DefaultRevisionStore rs = new DefaultRevisionStore();
         rs.initialize(new File(homeDir));
+        this.rs = rs;
 
         initialized = true;
     }
@@ -73,9 +75,9 @@ public class Repository {
         if (!initialized) {
             return;
         }
-
-        rs.close();
-
+        if (rs instanceof Closeable) {
+            IOUtils.closeQuietly((Closeable) rs);
+        }
         initialized = false;
     }
 

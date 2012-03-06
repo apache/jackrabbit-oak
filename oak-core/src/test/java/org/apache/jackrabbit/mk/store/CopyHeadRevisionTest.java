@@ -16,21 +16,16 @@
  */
 package org.apache.jackrabbit.mk.store;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
 import java.io.File;
-import java.util.Iterator;
 
 import org.apache.jackrabbit.mk.MicroKernelImpl;
 import org.apache.jackrabbit.mk.Repository;
+import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.fs.FileUtils;
-import org.apache.jackrabbit.mk.json.fast.Jsop;
-import org.apache.jackrabbit.mk.json.fast.JsopArray;
-import org.apache.jackrabbit.mk.model.ChildNode;
-import org.apache.jackrabbit.mk.model.MutableCommit;
-import org.apache.jackrabbit.mk.model.MutableNode;
-import org.apache.jackrabbit.mk.model.Node;
-import org.apache.jackrabbit.mk.model.StoredCommit;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -57,72 +52,37 @@ public class CopyHeadRevisionTest {
     
     @Test
     public void testCopyHeadRevisionToNewStore() throws Exception {
+        String[] revs = new String[3];
+        
         DefaultRevisionStore rsFrom = new DefaultRevisionStore();
         rsFrom.initialize(new File("target/mk1"));
-                
-        MicroKernelImpl mkFrom = new MicroKernelImpl(new Repository(rsFrom));
-        mkFrom.commit("/",  "+\"a\" : { \"c\":{}, \"d\":{} }", mkFrom.getHeadRevision(), null);
-        mkFrom.commit("/",  "+\"b\" : {}", mkFrom.getHeadRevision(), null);
-        mkFrom.commit("/b", "+\"e\" : {}", mkFrom.getHeadRevision(), null);
 
         DefaultRevisionStore rsTo = new DefaultRevisionStore(); 
         rsTo.initialize(new File("target/mk2"));
 
-        copyHeadRevision(rsFrom, rsTo);
+        CopyingGC gc = new CopyingGC(rsFrom, rsTo);
+        
+        MicroKernelImpl mk = new MicroKernelImpl(new Repository(gc));
+        revs[0] = mk.commit("/",  "+\"a\" : { \"c\":{}, \"d\":{} }", mk.getHeadRevision(), null);
+        revs[1] = mk.commit("/",  "+\"b\" : {}", mk.getHeadRevision(), null);
 
-        MicroKernelImpl mkTo = new MicroKernelImpl(new Repository(rsTo));
+        // Simulate a GC cycle start
+        gc.start();
 
-        // Assert both old and new MK have same head revision
-        Assert.assertEquals(mkFrom.getHeadRevision(), mkTo.getHeadRevision());
+        revs[2] = mk.commit("/b", "+\"e\" : {}", mk.getHeadRevision(), null);
         
-        // Assert both old and new MK have same contents
-        Assert.assertEquals(
-                mkFrom.getNodes("/", mkFrom.getHeadRevision(), 2, 0, -1),
-                mkTo.getNodes("/", mkTo.getHeadRevision(), 2, 0, -1));
-
-        // Assert new MK has only 2 revisions (initial and head)
-        JsopArray revs = (JsopArray) Jsop.parse(mkTo.getRevisions(0, Integer.MAX_VALUE));
-        Assert.assertEquals(2, revs.size());
-    }
-    
-    /**
-     * Copy the head revision (commit and nodes) from a source provider to a
-     * target store.
-     * 
-     * @param from source provider
-     * @param to target store
-     * @throws Exception if an error occurs
-     */
-    private void copyHeadRevision(RevisionProvider from, RevisionStore to)
-            throws Exception {
+        // Simulate a GC cycle stop
+        gc.stop();
         
-        StoredCommit commitFrom = from.getHeadCommit();
+        // Assert head revision is contained after GC
+        assertEquals(mk.getHeadRevision(), revs[2]);
         
-        Node nodeFrom = from.getNode(commitFrom.getRootNodeId());
-        copy(nodeFrom, to);
-        
-        MutableCommit commitTo = new MutableCommit(commitFrom);
-        commitTo.setParentId(to.getHeadCommitId());
-        
-        String revId = to.putCommit(commitTo);
-        to.setHeadCommitId(revId);
-    }
-    
-    /**
-     * Copy a node and all its descendants into a target store
-     * @param node source node
-     * @param store target store
-     * @throws Exception if an error occurs
-     */
-    private void copy(Node node, RevisionStore store) 
-            throws Exception {
-
-        store.putNode(new MutableNode(node, store));
-        
-        Iterator<ChildNode> iter = node.getChildNodes(0, -1);
-        while (iter.hasNext()) {
-            ChildNode c = iter.next();
-            copy(c.getNode(), store);
+        // Assert unused revision was GCed
+        try {
+            mk.getNodes("/", revs[0]);
+            fail("Revision should have been GCed: "+ revs[0]);
+        } catch (MicroKernelException e) {
+            // ignore
         }
     }
 }

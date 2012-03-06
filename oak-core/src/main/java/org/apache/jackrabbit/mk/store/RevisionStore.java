@@ -18,7 +18,7 @@ package org.apache.jackrabbit.mk.store;
 
 import org.apache.jackrabbit.mk.model.ChildNodeEntriesMap;
 import org.apache.jackrabbit.mk.model.MutableCommit;
-import org.apache.jackrabbit.mk.model.Node;
+import org.apache.jackrabbit.mk.model.MutableNode;
 
 import java.io.InputStream;
 
@@ -27,7 +27,7 @@ import java.io.InputStream;
  */
 public interface RevisionStore extends RevisionProvider {
 
-    String /*id*/ putNode(Node node) throws Exception;
+    String /*id*/ putNode(MutableNode node) throws Exception;
     String /*id*/ putCommit(MutableCommit commit) throws Exception;
     String /*id*/ putCNEMap(ChildNodeEntriesMap map) throws Exception;
     void setHeadCommitId(String commitId) throws Exception;
