@@ -1,0 +1,43 @@
+<html>
+<head>
+<title>&micro;Kernel prototype: getNodes</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8"></meta>
+<link rel="stylesheet" type="text/css" href="main.css"></link>
+</head>
+
+<body>
+    <script src="header.js"></script>
+    <div class="content">
+        <h1>Read Operations: getNodes</h1>
+        <form method="POST" target="result">
+        <table class="formtable">
+            <tr>
+                <td>Path</td>
+                <td><input class="text" type="text" name="path" id="path" value="/"></td>
+            </tr>
+            <tr>
+                <td>Revision ID</td>
+                <td><input class="text" type="text" name="revision_id" id="revision_id" value=""></td>
+            </tr>
+            <tr>
+                <td>Depth</td>
+                <td><input class="text" type="text" name="depth" id="depth" value="1"></td>
+            </tr>
+            <tr>
+                <td>Offset</td>
+                <td><input class="text" type="text" name="offset" id="offset" value="0"></td>
+            </tr>
+            <tr>
+                <td>Count</td>
+                <td><input class="text" type="text" name="count" id="count" value="-1"></td>
+            </tr>
+            <tr><td>&nbsp;</td><td>
+            <input type="submit"><br></td></tr></table>
+        </form>
+        <p>
+            <iframe name="result" height="400" width="950" src="about:blank"></iframe>
+        </p>
+        <script src="footer.js"></script>
+    </div>
+</body>
+</html>
