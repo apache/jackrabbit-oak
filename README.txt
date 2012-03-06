@@ -18,6 +18,14 @@ Maven 3 and Java 5 (or higher) like this:
 
     mvn clean install
 
+The build consists of the following main components:
+
+    oak-parent - parent POM
+    oak-core   - main codebase (incl. unit tests)
+    oak-run    - runnable jar packaging
+    oak-it     - integration tests
+    oak-bench  - performance tests
+
 
 License (see also LICENSE.txt)
 ------------------------------
