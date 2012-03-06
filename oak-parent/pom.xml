@@ -60,16 +60,16 @@
         <plugin>
           <artifactId>maven-compiler-plugin</artifactId>
           <configuration>
-            <target>1.5</target>
-            <source>1.5</source>
+            <target>1.6</target>
+            <source>1.6</source>
           </configuration>
         </plugin>
         <plugin>
           <artifactId>maven-javadoc-plugin</artifactId>
           <configuration>
-            <source>1.5</source>
+            <source>1.6</source>
             <links>
-              <link>http://docs.oracle.com/javase/1.5.0/docs/api/</link>
+              <link>http://docs.oracle.com/javase/6/docs/api/</link>
             </links>
           </configuration>
         </plugin>
@@ -82,5 +82,15 @@
       </plugins>
     </pluginManagement>
   </build>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>junit</groupId>
+        <artifactId>junit</artifactId>
+        <version>4.10</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
 </project>
