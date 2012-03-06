@@ -58,11 +58,11 @@ public class LargeNodeTest extends MultiMkTestBase {
         head = mk.commit("/", "+\"x0\" : {\"x\": 0, \"x1\":{\"x\":1, \"x2\": {\"x\": -3}}}", head, null);
         String s = mk.getNodes("/x0", head);
         Assert.assertEquals("{\"x\":0,\":childNodeCount\":1,\"x1\":{\"x\":1,\":childNodeCount\":1,\"x2\":{}}}", s);
-        s = mk.getNodes("/x0", head, 1, 0, -1);
+        s = mk.getNodes("/x0", head, 1, 0, -1, null);
         Assert.assertEquals("{\"x\":0,\":childNodeCount\":1,\"x1\":{\"x\":1,\":childNodeCount\":1,\"x2\":{}}}", s);
-        s = mk.getNodes("/x0", head, 0, 0, -1);
+        s = mk.getNodes("/x0", head, 0, 0, -1, null);
         Assert.assertEquals("{\"x\":0,\":childNodeCount\":1,\"x1\":{}}", s);
-        s = mk.getNodes("/x0", head, 0, 0, 0);
+        s = mk.getNodes("/x0", head, 0, 0, 0, null);
         Assert.assertEquals("{\"x\":0,\":childNodeCount\":1}", s);
         head = mk.commit("/", "-\"x0\"", head, null);
     }
@@ -111,7 +111,7 @@ public class LargeNodeTest extends MultiMkTestBase {
         if (buff.length() > 0) {
             head = mk.commit("/", buff.toString(), head, "");
         }
-        Assert.assertEquals("{\":childNodeCount\":"+count+"}", mk.getNodes("/test", head, 1, 0, 0));
+        Assert.assertEquals("{\":childNodeCount\":"+count+"}", mk.getNodes("/test", head, 1, 0, 0, null));
     }
 
     private void log(String s) {
@@ -141,27 +141,27 @@ public class LargeNodeTest extends MultiMkTestBase {
                     "\"t14\":{\"x\":14,\":childNodeCount\":0}," +
                     "\"t15\":{\"x\":15,\":childNodeCount\":0}," +
                     "\"t16\":{\"x\":16,\":childNodeCount\":0}}",
-                    mk.getNodes("/", head, 1, 0, -1));
+                    mk.getNodes("/", head, 1, 0, -1, null));
             Assert.assertEquals("{\":childNodeCount\":101," +
                     "\"t0\":{\"x\":0,\":childNodeCount\":0}," +
                     "\"t1\":{\"x\":1,\":childNodeCount\":0}}",
-                    mk.getNodes("/", head, 1, 1, 2));
+                    mk.getNodes("/", head, 1, 1, 2, null));
             Assert.assertEquals("{\":childNodeCount\":101," +
                     "\"t17\":{\"x\":17,\":childNodeCount\":0}," +
                     "\"t18\":{\"x\":18,\":childNodeCount\":0}}",
-                    mk.getNodes("/", head, 1, 10, 2));
+                    mk.getNodes("/", head, 1, 10, 2, null));
             Assert.assertEquals("{\":childNodeCount\":101," +
                     "\"t26\":{\"x\":26,\":childNodeCount\":0}," +
                     "\"t27\":{\"x\":27,\":childNodeCount\":0}}",
-                    mk.getNodes("/", head, 1, 20, 2));
+                    mk.getNodes("/", head, 1, 20, 2, null));
             Assert.assertEquals("{\":childNodeCount\":101," +
                     "\"t44\":{\"x\":44,\":childNodeCount\":0}," +
                     "\"t45\":{\"x\":45,\":childNodeCount\":0}}",
-                    mk.getNodes("/", head, 1, 40, 2));
+                    mk.getNodes("/", head, 1, 40, 2, null));
             Assert.assertEquals("{\":childNodeCount\":101," +
                     "\"t9\":{\"x\":9,\":childNodeCount\":0}," +
                     "\"t90\":{\"x\":90,\":childNodeCount\":0}}",
-                    mk.getNodes("/", head, 1, 90, 2));
+                    mk.getNodes("/", head, 1, 90, 2, null));
         } else {
             Assert.assertEquals("{\":childNodeCount\":101,\"t\":{\":childNodeCount\":3,\"a\":{},\"b\":{},\"c\":{}}," +
                     "\"t0\":{\"x\":0,\":childNodeCount\":0}," +
@@ -173,27 +173,27 @@ public class LargeNodeTest extends MultiMkTestBase {
                     "\"t6\":{\"x\":6,\":childNodeCount\":0}," +
                     "\"t7\":{\"x\":7,\":childNodeCount\":0}," +
                     "\"t8\":{\"x\":8,\":childNodeCount\":0}}",
-                    mk.getNodes("/", head, 1, 0, -1));
+                    mk.getNodes("/", head, 1, 0, -1, null));
             Assert.assertEquals("{\":childNodeCount\":101," +
                     "\"t0\":{\"x\":0,\":childNodeCount\":0}," +
                     "\"t1\":{\"x\":1,\":childNodeCount\":0}}",
-                    mk.getNodes("/", head, 1, 1, 2));
+                    mk.getNodes("/", head, 1, 1, 2, null));
             Assert.assertEquals("{\":childNodeCount\":101," +
                     "\"t9\":{\"x\":9,\":childNodeCount\":0}," +
                     "\"t10\":{\"x\":10,\":childNodeCount\":0}}",
-                    mk.getNodes("/", head, 1, 10, 2));
+                    mk.getNodes("/", head, 1, 10, 2, null));
             Assert.assertEquals("{\":childNodeCount\":101," +
                     "\"t19\":{\"x\":19,\":childNodeCount\":0}," +
                     "\"t20\":{\"x\":20,\":childNodeCount\":0}}",
-                    mk.getNodes("/", head, 1, 20, 2));
+                    mk.getNodes("/", head, 1, 20, 2, null));
             Assert.assertEquals("{\":childNodeCount\":101," +
                     "\"t39\":{\"x\":39,\":childNodeCount\":0}," +
                     "\"t40\":{\"x\":40,\":childNodeCount\":0}}",
-                    mk.getNodes("/", head, 1, 40, 2));
+                    mk.getNodes("/", head, 1, 40, 2, null));
             Assert.assertEquals("{\":childNodeCount\":101," +
                     "\"t89\":{\"x\":89,\":childNodeCount\":0}," +
                     "\"t90\":{\"x\":90,\":childNodeCount\":0}}",
-                    mk.getNodes("/", head, 1, 90, 2));
+                    mk.getNodes("/", head, 1, 90, 2, null));
         }
     }
 
@@ -212,7 +212,7 @@ public class LargeNodeTest extends MultiMkTestBase {
     }
 
     private String getNode(String node, int depth, long offset, int count) {
-        String s = mk.getNodes(node, mk.getHeadRevision(), depth, offset, count);
+        String s = mk.getNodes(node, mk.getHeadRevision(), depth, offset, count, null);
         s = s.replaceAll("\"", "").replaceAll(":childNodeCount:.", "");
         s = s.replaceAll("\\{\\,", "\\{").replaceAll("\\,\\}", "\\}");
         s = s.replaceAll("\\:\\{\\}", "");

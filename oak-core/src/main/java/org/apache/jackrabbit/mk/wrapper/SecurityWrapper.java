@@ -115,9 +115,9 @@ public class SecurityWrapper extends WrapperBase implements MicroKernel {
         return mk.getHeadRevision();
     }
 
-    public JsopReader getJournalStream(String fromRevisionId, String toRevisionId) {
+    public JsopReader getJournalStream(String fromRevisionId, String toRevisionId, String filter) {
         rightsRevision = getHeadRevision();
-        JsopReader t = mk.getJournalStream(fromRevisionId, toRevisionId);
+        JsopReader t = mk.getJournalStream(fromRevisionId, toRevisionId, filter);
         if (admin) {
             return t;
         }
@@ -292,15 +292,15 @@ public class SecurityWrapper extends WrapperBase implements MicroKernel {
     }
 
     public JsopReader getNodesStream(String path, String revisionId) {
-        return getNodesStream(path, revisionId, 1, 0, -1);
+        return getNodesStream(path, revisionId, 1, 0, -1, null);
     }
 
-    public JsopReader getNodesStream(String path, String revisionId, int depth, long offset, int count) {
+    public JsopReader getNodesStream(String path, String revisionId, int depth, long offset, int count, String filter) {
         rightsRevision = getHeadRevision();
         if (!checkRights(path, false)) {
             throw ExceptionFactory.get("Node not found: " + path);
         }
-        JsopReader t = mk.getNodesStream(path, revisionId, depth, offset, count);
+        JsopReader t = mk.getNodesStream(path, revisionId, depth, offset, count, filter);
         if (admin) {
             return t;
         }
@@ -397,7 +397,7 @@ public class SecurityWrapper extends WrapperBase implements MicroKernel {
             NodeImpl n = cache.get(key);
             if (n == null) {
                 if (mk.nodeExists(path, rightsRevision)) {
-                    String json = mk.getNodes(path, rightsRevision, 0, 0, 0);
+                    String json = mk.getNodes(path, rightsRevision, 0, 0, 0, null);
                     JsopReader t = new JsopTokenizer(json);
                     t.read('{');
                     n = NodeImpl.parse(map, t, 0);

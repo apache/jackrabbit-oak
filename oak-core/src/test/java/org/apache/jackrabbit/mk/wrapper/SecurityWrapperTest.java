@@ -109,16 +109,16 @@ public class SecurityWrapperTest extends MultiMkTestBase {
         String toRevision = mkAdmin.commit("/", "+ \"test\": { \"data\": \"Hello\" }", head, "");
         toRevision = mkAdmin.commit("/", "^ \"test/data\": \"Hallo\"", toRevision, "");
         toRevision = mkAdmin.commit("/", "^ \"test/data\": null", toRevision, "");
-        String j2 = mkGuest.getJournal(fromRevision, toRevision);
+        String j2 = mkGuest.getJournal(fromRevision, toRevision, null);
         assertEquals("", filterJournal(j2));
         toRevision = mkAdmin.commit("/", "^ \":rights\": \"read\"", fromRevision, "");
-        String j3 = mkGuest.getJournal(fromRevision, toRevision);
+        String j3 = mkGuest.getJournal(fromRevision, toRevision, null);
         assertEquals(
                 "+\"/test\":{\"data\":\"Hello\"}\n" +
                 "^\"/test/data\":\"Hallo\"\n" +
                 "^\"/test/data\":null\n",
                 filterJournal(j3));
-        String journal = mkAdmin.getJournal(fromRevision, toRevision);
+        String journal = mkAdmin.getJournal(fromRevision, toRevision, null);
         assertEquals(
                 "+\"/test\":{\"data\":\"Hello\"}\n" +
                 "^\"/test/data\":\"Hallo\"\n" +

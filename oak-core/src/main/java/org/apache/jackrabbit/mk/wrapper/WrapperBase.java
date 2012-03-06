@@ -28,20 +28,20 @@ public abstract class WrapperBase implements MicroKernel, Wrapper {
         return commitStream(path, new JsopTokenizer(jsonDiff), revisionId, message);
     }
 
-    public final String getJournal(String fromRevisionId, String toRevisionId) {
-        return getJournalStream(fromRevisionId, toRevisionId).toString();
+    public final String getJournal(String fromRevisionId, String toRevisionId, String filter) {
+        return getJournalStream(fromRevisionId, toRevisionId, filter).toString();
     }
 
     public final String getNodes(String path, String revisionId) {
         return getNodesStream(path, revisionId).toString();
     }
 
-    public final String getNodes(String path, String revisionId, int depth, long offset, int count) {
-        return getNodesStream(path, revisionId, depth, offset, count).toString();
+    public final String getNodes(String path, String revisionId, int depth, long offset, int count, String filter) {
+        return getNodesStream(path, revisionId, depth, offset, count, filter).toString();
     }
 
-    public final String diff(String fromRevisionId, String toRevisionId, String path) {
-        return diffStream(fromRevisionId, toRevisionId, path).toString();
+    public final String diff(String fromRevisionId, String toRevisionId, String filter) {
+        return diffStream(fromRevisionId, toRevisionId, filter).toString();
     }
 
     public final String getRevisions(long since, int maxEntries) {
@@ -60,16 +60,16 @@ public abstract class WrapperBase implements MicroKernel, Wrapper {
                 return wrapped.commit(path, jsonDiff.toString(), revisionId, message);
             }
 
-            public JsopReader getJournalStream(String fromRevisionId, String toRevisionId) {
-                return new JsopTokenizer(wrapped.getJournal(fromRevisionId, toRevisionId));
+            public JsopReader getJournalStream(String fromRevisionId, String toRevisionId, String filter) {
+                return new JsopTokenizer(wrapped.getJournal(fromRevisionId, toRevisionId, filter));
             }
 
             public JsopReader getNodesStream(String path, String revisionId) {
                 return new JsopTokenizer(wrapped.getNodes(path, revisionId));
             }
 
-            public JsopReader getNodesStream(String path, String revisionId, int depth, long offset, int count) {
-                return new JsopTokenizer(wrapped.getNodes(path, revisionId, depth, offset, count));
+            public JsopReader getNodesStream(String path, String revisionId, int depth, long offset, int count, String filter) {
+                return new JsopTokenizer(wrapped.getNodes(path, revisionId, depth, offset, count, filter));
             }
 
             public JsopReader getRevisionsStream(long since, int maxEntries) {
@@ -96,8 +96,8 @@ public abstract class WrapperBase implements MicroKernel, Wrapper {
                 return wrapped.getHeadRevision();
             }
 
-            public String getJournal(String fromRevisionId, String toRevisionId) {
-                return wrapped.getJournal(fromRevisionId, toRevisionId);
+            public String getJournal(String fromRevisionId, String toRevisionId, String filter) {
+                return wrapped.getJournal(fromRevisionId, toRevisionId, filter);
             }
 
             public long getLength(String blobId) {
@@ -108,8 +108,8 @@ public abstract class WrapperBase implements MicroKernel, Wrapper {
                 return wrapped.getNodes(path, revisionId);
             }
 
-            public String getNodes(String path, String revisionId, int depth, long offset, int count) {
-                return wrapped.getNodes(path, revisionId, depth, offset, count);
+            public String getNodes(String path, String revisionId, int depth, long offset, int count, String filter) {
+                return wrapped.getNodes(path, revisionId, depth, offset, count, filter);
             }
 
             public String getRevisions(long since, int maxEntries) {

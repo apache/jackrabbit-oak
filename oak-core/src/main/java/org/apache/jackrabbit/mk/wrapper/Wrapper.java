@@ -24,14 +24,14 @@ public interface Wrapper extends MicroKernel {
 
     JsopReader getRevisionsStream(long since, int maxEntries) throws MicroKernelException;
 
-    JsopReader getJournalStream(String fromRevisionId, String toRevisionId) throws MicroKernelException;
+    JsopReader getJournalStream(String fromRevisionId, String toRevisionId, String filter) throws MicroKernelException;
 
     JsopReader getNodesStream(String path, String revisionId) throws MicroKernelException;
 
-    JsopReader getNodesStream(String path, String revisionId, int depth, long offset, int count) throws MicroKernelException;
+    JsopReader getNodesStream(String path, String revisionId, int depth, long offset, int count, String filter) throws MicroKernelException;
 
     String commitStream(String path, JsopReader jsonDiff, String revisionId, String message) throws MicroKernelException;
 
-    JsopReader diffStream(String fromRevisionId, String toRevisionId, String path);
+    JsopReader diffStream(String fromRevisionId, String toRevisionId, String filter);
 
 }

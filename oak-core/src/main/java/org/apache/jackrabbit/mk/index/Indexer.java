@@ -62,7 +62,7 @@ public class Indexer {
             jsop.tag('+').key(PathUtils.relativize("/", indexRootNode)).object().endObject();
             revision = mk.commit("/", jsop.toString(), revision, null);
         } else {
-            String node = mk.getNodes(indexRootNode, revision, 0, 0, Integer.MAX_VALUE);
+            String node = mk.getNodes(indexRootNode, revision, 0, 0, Integer.MAX_VALUE, null);
             JsopTokenizer t = new JsopTokenizer(node);
             t.read('{');
             HashMap<String, String> map = new HashMap<String, String>();
@@ -145,7 +145,7 @@ public class Indexer {
         if (page != null) {
             return page;
         }
-        String json = mk.getNodes(p, revision, 0, 0, 0);
+        String json = mk.getNodes(p, revision, 0, 0, 0, null);
         if (json == null) {
             page = new BTreeLeaf(tree, parent, name,
                     new String[0], new String[0]);
@@ -248,7 +248,7 @@ public class Indexer {
         } else {
             toRevision = mk.getHeadRevision();
         }
-        String journal = mk.getJournal(readRevision, toRevision);
+        String journal = mk.getJournal(readRevision, toRevision, null);
         JsopTokenizer t = new JsopTokenizer(journal);
         String lastRevision = readRevision;
         t.read('[');
@@ -405,7 +405,7 @@ public class Indexer {
             return;
         }
         // TODO remove: support large trees
-        String node = mk.getNodes(nodePath, lastRevision, Integer.MAX_VALUE, 0, Integer.MAX_VALUE);
+        String node = mk.getNodes(nodePath, lastRevision, Integer.MAX_VALUE, 0, Integer.MAX_VALUE, null);
         JsopTokenizer t = new JsopTokenizer(node);
         NodeMap map = new NodeMap();
         t.read('{');
@@ -439,7 +439,7 @@ public class Indexer {
             return;
         }
         // TODO move: support large trees
-        String node = mk.getNodes(sourcePath, lastRevision, Integer.MAX_VALUE, 0, Integer.MAX_VALUE);
+        String node = mk.getNodes(sourcePath, lastRevision, Integer.MAX_VALUE, 0, Integer.MAX_VALUE, null);
         JsopTokenizer t = new JsopTokenizer(node);
         NodeMap map = new NodeMap();
         t.read('{');
@@ -464,7 +464,7 @@ public class Indexer {
             return;
         }
         // TODO add: support large child node lists
-        String node = mk.getNodes(path, readRevision, 0, 0, Integer.MAX_VALUE);
+        String node = mk.getNodes(path, readRevision, 0, 0, Integer.MAX_VALUE, null);
         JsopTokenizer t = new JsopTokenizer(node);
         NodeMap map = new NodeMap();
         t.read('{');

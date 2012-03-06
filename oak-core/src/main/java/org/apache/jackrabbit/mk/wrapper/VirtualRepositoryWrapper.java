@@ -264,8 +264,8 @@ public class VirtualRepositoryWrapper extends WrapperBase implements MicroKernel
         return buff.toString();
     }
 
-    public JsopReader getJournalStream(String fromRevisionId, String toRevisionId) {
-        return mk.getJournalStream(fromRevisionId, toRevisionId);
+    public JsopReader getJournalStream(String fromRevisionId, String toRevisionId, String filter) {
+        return mk.getJournalStream(fromRevisionId, toRevisionId, filter);
     }
 
     public JsopReader diffStream(String fromRevisionId, String toRevisionId, String path) throws MicroKernelException {
@@ -277,17 +277,17 @@ public class VirtualRepositoryWrapper extends WrapperBase implements MicroKernel
     }
 
     public JsopReader getNodesStream(String path, String revisionId) {
-        return getNodesStream(path, revisionId, 1, 0, -1);
+        return getNodesStream(path, revisionId, 1, 0, -1, null);
     }
 
-    public JsopReader getNodesStream(String path, String revisionId, int depth, long offset, int count) {
+    public JsopReader getNodesStream(String path, String revisionId, int depth, long offset, int count, String filter) {
         String mount = getMount(path);
         if (mount == null) {
             throw ExceptionFactory.get("Not mapped: " + path);
         }
         String rev = getRevision(mount, revisionId);
         Wrapper mk = mounts.get(mount);
-        return mk.getNodesStream(path, rev, depth, offset, count);
+        return mk.getNodesStream(path, rev, depth, offset, count, filter);
     }
 
     private String getRevision(String mount, String revisionId) {

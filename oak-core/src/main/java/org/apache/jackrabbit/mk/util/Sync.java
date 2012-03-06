@@ -111,10 +111,10 @@ public class Sync {
         String target = PathUtils.concat(targetPath, relPath);
         NodeImpl s = null, t = null;
         if (sourceMk.nodeExists(source, sourceRev)) {
-            s = NodeImpl.parse(sourceMk.getNodes(source, sourceRev, 0, 0, childNodesPerBatch));
+            s = NodeImpl.parse(sourceMk.getNodes(source, sourceRev, 0, 0, childNodesPerBatch, null));
         }
         if (targetMk != null && targetMk.nodeExists(target, targetRev)) {
-            t = NodeImpl.parse(targetMk.getNodes(target, targetRev, 0, 0, childNodesPerBatch));
+            t = NodeImpl.parse(targetMk.getNodes(target, targetRev, 0, 0, childNodesPerBatch, null));
         }
         if (s == null || t == null) {
             if (s == t) {
@@ -195,7 +195,7 @@ public class Sync {
             }
 
             private void nextBatch() {
-                NodeImpl n = NodeImpl.parse(mk.getNodes(path, rev, 0, offset, batchSize));
+                NodeImpl n = NodeImpl.parse(mk.getNodes(path, rev, 0, offset, batchSize, null));
                 current = n.getChildNodeNames(Integer.MAX_VALUE);
                 offset += batchSize;
             }

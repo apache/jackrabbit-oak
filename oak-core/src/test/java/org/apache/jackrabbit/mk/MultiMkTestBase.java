@@ -104,7 +104,7 @@ public class MultiMkTestBase {
     }
 
     private static void cleanRepository(MicroKernel mk) {
-        String result = mk.getNodes("/", mk.getHeadRevision(), 0, 0, -1);
+        String result = mk.getNodes("/", mk.getHeadRevision(), 0, 0, -1, null);
         List<String> names = new ArrayList<String>();
         List<String> properties = new ArrayList<String>();
         JsopReader t = new JsopTokenizer(result);

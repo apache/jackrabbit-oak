@@ -62,7 +62,7 @@ public class DescendantCountTest extends MultiMkTestBase {
             c.setData(null);
             c.create();
             head = mk.getHeadRevision();
-            String json = JsopBuilder.prettyPrint(mk.getNodes("/test" + i, head, Integer.MAX_VALUE, 0, -1));
+            String json = JsopBuilder.prettyPrint(mk.getNodes("/test" + i, head, Integer.MAX_VALUE, 0, -1, null));
             NodeImpl n = NodeImpl.parse(json);
             long count = count(n);
             JsopObject o = (JsopObject) Jsop.parse(json);

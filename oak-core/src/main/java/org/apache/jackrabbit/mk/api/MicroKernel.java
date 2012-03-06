@@ -114,10 +114,14 @@ public interface MicroKernel {
      *
      * @param fromRevisionId first revision to be returned in journal
      * @param toRevisionId   last revision to be returned in journal, if null the current head revision is assumed
+     * @param filter         (optional) filter criteria
+     *                       (e.g. path, property names, etc);
+     *                       TODO specify format and semantics
      * @return a chronological list of revisions in JSON format
      * @throws MicroKernelException if an error occurs
      */
-    String /* jsonArray */ getJournal(String fromRevisionId, String toRevisionId)
+    String /* jsonArray */ getJournal(String fromRevisionId, String toRevisionId,
+                                      String filter)
             throws MicroKernelException;
 
     /**
@@ -134,13 +138,14 @@ public interface MicroKernel {
      *
      * @param fromRevisionId a revision
      * @param toRevisionId   another revision, if null the current head revision is assumed
-     * @param path consider only changes that affected the specified subtree at <code>path</code>;
-     *        if null the default "/" is assumed
+     * @param filter         (optional) filter criteria
+     *                       (e.g. path, property names, etc);
+     *                       TODO specify format and semantics
      * @return JSON diff representation of the changes
      * @throws MicroKernelException if an error occurs
      */
     String /* JSON diff */ diff(String fromRevisionId, String toRevisionId,
-                                String path)
+                                String filter)
             throws MicroKernelException;
 
     //-------------------------------------------------------------< READ ops >
@@ -199,10 +204,10 @@ public interface MicroKernel {
      * <li>If the value of <code>:childNodeCount</code> is larger than the list
      * of returned child nodes, then the node has more child nodes than those
      * included in the tree. Large number of child nodes can be retrieved in
-     * chunks using {@link #getNodes(String, String, int, long, int)}</li>
+     * chunks using {@link #getNodes(String, String, int, long, int, String)}</li>
      * </ul>
      * This method is a convenience method for
-     * <code>getNodes(path, revisionId, 1, 0, -1)</code>
+     * <code>getNodes(path, revisionId, 1, 0, -1, null)</code>
      *
      * @param path       path denoting root of node tree to be retrieved
      * @param revisionId revision, if null the current head revision is assumed
@@ -240,10 +245,13 @@ public interface MicroKernel {
      *                   beginning)
      * @param count      maximum number of child nodes to retrieve (-1 for as many as
      *                   possible)
+     * @param filter     (optional) filter criteria
+     *                   (e.g. names of properties to be included, etc);
+     *                   TODO specify format and semantics
      * @return node tree in JSON format
      * @throws MicroKernelException if an error occurs
      */
-    String /* jsonTree */ getNodes(String path, String revisionId, int depth, long offset, int count) throws MicroKernelException;
+    String /* jsonTree */ getNodes(String path, String revisionId, int depth, long offset, int count, String filter) throws MicroKernelException;
 
     //------------------------------------------------------------< WRITE ops >
 

@@ -81,10 +81,10 @@ public class LogWrapper implements MicroKernel {
         }
     }
 
-    public String getJournal(String fromRevisionId, String toRevisionId) {
+    public String getJournal(String fromRevisionId, String toRevisionId, String filter) {
         try {
             logMethod("getJournal", fromRevisionId, toRevisionId);
-            String result = mk.getJournal(fromRevisionId, toRevisionId);
+            String result = mk.getJournal(fromRevisionId, toRevisionId, filter);
             logResult(result);
             return result;
         } catch (Exception e) {
@@ -93,10 +93,10 @@ public class LogWrapper implements MicroKernel {
         }
     }
 
-    public String diff(String fromRevisionId, String toRevisionId, String path) {
+    public String diff(String fromRevisionId, String toRevisionId, String filter) {
         try {
-            logMethod("diff", fromRevisionId, toRevisionId, path);
-            String result = mk.diff(fromRevisionId, toRevisionId, path);
+            logMethod("diff", fromRevisionId, toRevisionId, filter);
+            String result = mk.diff(fromRevisionId, toRevisionId, filter);
             logResult(result);
             return result;
         } catch (Exception e) {
@@ -129,10 +129,10 @@ public class LogWrapper implements MicroKernel {
         }
     }
 
-    public String getNodes(String path, String revisionId, int depth, long offset, int count) {
+    public String getNodes(String path, String revisionId, int depth, long offset, int count, String filter) {
         try {
-            logMethod("getNodes", path, revisionId, depth, offset, count);
-            String result = mk.getNodes(path, revisionId, depth, offset, count);
+            logMethod("getNodes", path, revisionId, depth, offset, count, filter);
+            String result = mk.getNodes(path, revisionId, depth, offset, count, filter);
             logResult(result);
             return result;
         } catch (Exception e) {

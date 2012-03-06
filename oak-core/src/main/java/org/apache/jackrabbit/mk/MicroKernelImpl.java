@@ -135,7 +135,7 @@ public class MicroKernelImpl implements MicroKernel {
         return gate.waitForCommit(oldHeadRevision, maxWaitMillis);
     }
 
-    public String getJournal(String fromRevisionId, String toRevisionId) throws MicroKernelException {
+    public String getJournal(String fromRevisionId, String toRevisionId, String filter) throws MicroKernelException {
         if (rep == null) {
             throw new IllegalStateException("this instance has already been disposed");
         }
@@ -190,7 +190,7 @@ public class MicroKernelImpl implements MicroKernel {
                     key("msg").value(commit.getMsg());
             String diff = diffCache.get(commit.getId());
             if (diff == null) {
-                diff = diff(commit.getParentId(), commit.getId(), "/");
+                diff = diff(commit.getParentId(), commit.getId(), filter);
                 diffCache.put(commit.getId(), diff);
             }
             commitBuff.key("changes").value(diff).endObject();
@@ -198,10 +198,9 @@ public class MicroKernelImpl implements MicroKernel {
         return commitBuff.endArray().toString();
     }
 
-    public String diff(String fromRevisionId, String toRevisionId, String path) throws MicroKernelException {
-        if (path == null) {
-            path = "/";
-        }
+    public String diff(String fromRevisionId, String toRevisionId, String filter) throws MicroKernelException {
+        // TODO extract and evaluate filter criteria (such as e.g. 'path') specified in 'filter' parameter
+        String path = "/";
 
         toRevisionId = toRevisionId == null ? getHeadRevision() : toRevisionId;
 
@@ -402,15 +401,17 @@ public class MicroKernelImpl implements MicroKernel {
     }
 
     public String getNodes(String path, String revisionId) throws MicroKernelException {
-        return getNodes(path, revisionId, 1, 0, -1);
+        return getNodes(path, revisionId, 1, 0, -1, null);
     }
 
-    public String getNodes(String path, String revisionId, int depth, long offset, int count) throws MicroKernelException {
+    public String getNodes(String path, String revisionId, int depth, long offset, int count, String filter) throws MicroKernelException {
         if (rep == null) {
             throw new IllegalStateException("this instance has already been disposed");
         }
 
         revisionId = revisionId == null ? getHeadRevision() : revisionId;
+
+        // TODO extract and evaluate filter criteria (such as e.g. ':hash') specified in 'filter' parameter
 
         try {
             JsopBuilder buf = new JsopBuilder().object();

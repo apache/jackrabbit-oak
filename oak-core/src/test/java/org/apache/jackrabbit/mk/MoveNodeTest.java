@@ -331,7 +331,7 @@ public class MoveNodeTest extends MultiMkTestBase {
             } while (t.matches(','));
         }
         String head = mk.getHeadRevision();
-        String journal = mk.getJournal(journalRevision, head);
+        String journal = mk.getJournal(journalRevision, head, null);
         JsopTokenizer t = new JsopTokenizer(journal);
         StringBuilder buff = new StringBuilder();
         t.read('[');
