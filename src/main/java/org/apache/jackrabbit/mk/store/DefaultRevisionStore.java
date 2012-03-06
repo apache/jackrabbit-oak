@@ -20,7 +20,6 @@ import org.apache.jackrabbit.mk.blobs.BlobStore;
 import org.apache.jackrabbit.mk.blobs.FileBlobStore;
 import org.apache.jackrabbit.mk.model.ChildNodeEntriesMap;
 import org.apache.jackrabbit.mk.model.MutableCommit;
-import org.apache.jackrabbit.mk.model.Node;
 import org.apache.jackrabbit.mk.model.MutableNode;
 import org.apache.jackrabbit.mk.model.StoredCommit;
 import org.apache.jackrabbit.mk.model.StoredNode;
@@ -29,6 +28,7 @@ import org.apache.jackrabbit.mk.store.pm.PersistenceManager;
 import org.apache.jackrabbit.mk.util.SimpleLRUCache;
 import org.apache.jackrabbit.mk.util.StringUtils;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.InputStream;
 import java.util.Collections;
@@ -39,7 +39,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * Default revision store implementation, passing calls to a <code>PersistenceManager</code>
  * and a <code>BlobStore</code>, respectively and providing caching. 
  */
-public class DefaultRevisionStore implements RevisionStore {
+public class DefaultRevisionStore implements RevisionStore, Closeable {
 
     public static final String CACHE_SIZE = "mk.cacheSize";
     public static final int DEFAULT_CACHE_SIZE = 10000;
@@ -121,13 +121,13 @@ public class DefaultRevisionStore implements RevisionStore {
     }
 
     /**
-     * Convert a long value into a fixed-size byte array of size 16.
+     * Convert a long value into a fixed-size byte array of size 8.
      * 
      * @param value value
      * @return byte array
      */
-    static byte[] longToBytes(long value) {
-        byte[] result = new byte[16];
+    private static byte[] longToBytes(long value) {
+        byte[] result = new byte[8];
         
         for (int i = result.length - 1; i >= 0 && value != 0; i--) {
             result[i] = (byte) (value & 0xff);
@@ -135,10 +135,29 @@ public class DefaultRevisionStore implements RevisionStore {
         }
         return result;
     }
+
+    /**
+     * Convert a fixed-size byte array of size 8 into a long.
+     * 
+     * @param value byte array
+     * @return long
+     */
+    private static long bytesToLong(byte[] value) {
+        long result = 0;
+        
+        if (value.length != 8) {
+            throw new IllegalArgumentException("Value must be a byte array of size 8");
+        }
+        for (int i = 0; i < value.length; i++) {
+            result |= (value[i] & 0xff);
+            result <<= 8;
+        }
+        return result;
+    }
     
     //--------------------------------------------------------< RevisionStore >
 
-    public String putNode(Node node) throws Exception {
+    public String putNode(MutableNode node) throws Exception {
         verifyInitialized();
 
         PersistHook callback = null;
@@ -195,6 +214,7 @@ public class DefaultRevisionStore implements RevisionStore {
             id = StringUtils.convertBytesToHex(rawId);
         } else {
             rawId = StringUtils.convertHexToBytes(id);
+            headCounter = bytesToLong(rawId);
         }
         pm.writeCommit(rawId, commit);
 
