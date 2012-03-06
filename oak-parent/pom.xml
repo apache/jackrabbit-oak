@@ -24,47 +24,47 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>org.apache.jackrabbit</groupId>
-    <artifactId>oak-parent</artifactId>
-    <version>0.1-SNAPSHOT</version>
-    <relativePath>oak-parent/pom.xml</relativePath>
+    <groupId>org.apache</groupId>
+    <artifactId>apache</artifactId>
+    <version>10</version>
+    <relativePath/>
   </parent>
 
-  <artifactId>oak</artifactId>
-  <name>Jackrabbit Oak</name>
+  <groupId>org.apache.jackrabbit</groupId>
+  <artifactId>oak-parent</artifactId>
+  <name>Oak Parent POM</name>
+  <version>0.1-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <properties>
-    <skip.deployment>true</skip.deployment>
+    <skip.deployment>false</skip.deployment>
   </properties>
 
-  <modules>
-    <module>oak-parent</module>
-    <module>oak-core</module>
-    <module>oak-run</module>
-    <module>oak-it</module>
-    <module>oak-bench</module>
-  </modules>
+  <issueManagement>
+    <system>Jira</system>
+    <url>http://issues.apache.org/jira/browse/OAK</url>
+  </issueManagement>
 
-  <scm>
-    <connection>scm:svn:http://svn.apache.org/repos/asf/jackrabbit/oak/trunk</connection>
-    <developerConnection>scm:svn:https://svn.apache.org/repos/asf/jackrabbit/oak/trunk</developerConnection>
-    <url>http://svn.apache.org/viewvc/jackrabbit/oak/trunk</url>
-  </scm>
+  <url>http://jackrabbit.apache.org/</url>
+  <inceptionYear>2012</inceptionYear>
+  <description>
+    The goal of the Oak effort within the Apache Jackrabbit™ project is
+    to implement a scalable and performant hierarchical content repository
+    for use as the foundation of modern world-class web sites and other
+    demanding content applications.
+  </description>
 
   <build>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.rat</groupId>
-        <artifactId>apache-rat-plugin</artifactId>
-        <configuration>
-          <excludes>
-            <exclude>release.properties</exclude>
-            <exclude>.git/**</exclude>
-          </excludes>
-        </configuration>
-      </plugin>
-    </plugins>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <artifactId>maven-deploy-plugin</artifactId>
+          <configuration>
+            <skip>${skip.deployment}</skip>
+          </configuration>
+        </plugin>
+      </plugins>
+    </pluginManagement>
   </build>
 
 </project>
