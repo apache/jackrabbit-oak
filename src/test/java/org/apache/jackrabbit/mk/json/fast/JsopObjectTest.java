@@ -100,6 +100,11 @@ public class JsopObjectTest extends TestCase {
         } catch (IndexOutOfBoundsException e) {
             // expected
         }
+        String s = "";
+        for(Object o : a) {
+            s += o + ";";
+        }
+        assertEquals("1;null;Hello;[];{};", s);
     }
 
     public void testArrayLazyInit() {
