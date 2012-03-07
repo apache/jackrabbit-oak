@@ -19,7 +19,7 @@ package org.apache.jackrabbit.mk.store;
 import org.apache.jackrabbit.mk.model.ChildNodeEntriesMap;
 import org.apache.jackrabbit.mk.model.StoredCommit;
 import org.apache.jackrabbit.mk.model.StoredNode;
-import org.apache.jackrabbit.oak.tree.NodeState;
+import org.apache.jackrabbit.oak.model.NodeState;
 
 /**
  *

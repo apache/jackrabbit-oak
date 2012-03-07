@@ -21,9 +21,9 @@ import java.util.Iterator;
 import java.util.Map;
 
 import org.apache.jackrabbit.mk.model.StoredNode;
-import org.apache.jackrabbit.oak.tree.ChildNodeEntry;
-import org.apache.jackrabbit.oak.tree.NodeState;
-import org.apache.jackrabbit.oak.tree.PropertyState;
+import org.apache.jackrabbit.oak.model.ChildNodeEntry;
+import org.apache.jackrabbit.oak.model.NodeState;
+import org.apache.jackrabbit.oak.model.PropertyState;
 
 class StoredNodeAsState implements NodeState {
 
