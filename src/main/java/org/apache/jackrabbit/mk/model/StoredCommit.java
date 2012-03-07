@@ -26,14 +26,14 @@ public class StoredCommit extends AbstractCommit {
     private final String id;
 
     public static StoredCommit deserialize(String id, Binding binding) throws Exception {
-        String rootNodeId = binding.readStringValue("rootNodeId");
+        Id rootNodeId = new Id(binding.readBytesValue("rootNodeId"));
         long commitTS = binding.readLongValue("commitTS");
         String msg = binding.readStringValue("msg");
         String parentId = binding.readStringValue("parentId");
         return new StoredCommit(id, "".equals(parentId) ? null : parentId, commitTS, rootNodeId, "".equals(msg) ? null : msg);
     }
 
-    public StoredCommit(String id, String parentId, long commitTS, String rootNodeId, String msg) {
+    public StoredCommit(String id, String parentId, long commitTS, Id rootNodeId, String msg) {
         this.id = id;
         this.parentId = parentId;
         this.commitTS = commitTS;

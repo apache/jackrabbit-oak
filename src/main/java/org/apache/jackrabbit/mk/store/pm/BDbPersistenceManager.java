@@ -22,6 +22,7 @@ import java.io.File;
 
 import org.apache.jackrabbit.mk.model.ChildNodeEntriesMap;
 import org.apache.jackrabbit.mk.model.Commit;
+import org.apache.jackrabbit.mk.model.Id;
 import org.apache.jackrabbit.mk.model.Node;
 import org.apache.jackrabbit.mk.model.StoredCommit;
 import org.apache.jackrabbit.mk.store.BinaryBinding;
@@ -119,24 +120,25 @@ public class BDbPersistenceManager implements PersistenceManager {
         head.put(null, key, data);
     }
 
-    public Binding readNodeBinding(String id) throws NotFoundException, Exception {
-        DatabaseEntry key = new DatabaseEntry(StringUtils.convertHexToBytes(id));
+    public Binding readNodeBinding(Id id) throws NotFoundException, Exception {
+        DatabaseEntry key = new DatabaseEntry(id.getBytes());
         DatabaseEntry data = new DatabaseEntry();
 
         if (db.get(null, key, data, LockMode.DEFAULT) == OperationStatus.SUCCESS) {
             ByteArrayInputStream in = new ByteArrayInputStream(data.getData());
             return new BinaryBinding(in);
         } else {
-            throw new NotFoundException(id);
+            throw new NotFoundException(id.toString());
         }
     }
 
-    public String writeNode(Node node) throws Exception {
+    public Id writeNode(Node node) throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         node.serialize(new BinaryBinding(out));
         byte[] bytes = out.toByteArray();
-        byte[] rawId = idFactory.createContentId(bytes);
-        return persist(bytes, rawId);
+        Id id = new Id(idFactory.createContentId(bytes));
+        persist(id.getBytes(), bytes);
+        return id;
     }
 
     public StoredCommit readCommit(String id) throws NotFoundException, Exception {
@@ -155,39 +157,36 @@ public class BDbPersistenceManager implements PersistenceManager {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         commit.serialize(new BinaryBinding(out));
         byte[] bytes = out.toByteArray();
-        persist(bytes, rawId);
+        persist(rawId, bytes);
     }
 
-    public ChildNodeEntriesMap readCNEMap(String id) throws NotFoundException, Exception {
-        DatabaseEntry key = new DatabaseEntry(StringUtils.convertHexToBytes(id));
+    public ChildNodeEntriesMap readCNEMap(Id id) throws NotFoundException, Exception {
+        DatabaseEntry key = new DatabaseEntry(id.getBytes());
         DatabaseEntry data = new DatabaseEntry();
 
         if (db.get(null, key, data, LockMode.DEFAULT) == OperationStatus.SUCCESS) {
             ByteArrayInputStream in = new ByteArrayInputStream(data.getData());
             return ChildNodeEntriesMap.deserialize(new BinaryBinding(in));
         } else {
-            throw new NotFoundException(id);
+            throw new NotFoundException(id.toString());
         }
     }
 
-    public String writeCNEMap(ChildNodeEntriesMap map) throws Exception {
+    public Id writeCNEMap(ChildNodeEntriesMap map) throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         map.serialize(new BinaryBinding(out));
         byte[] bytes = out.toByteArray();
-        byte[] rawId = idFactory.createContentId(bytes);
-        return persist(bytes, rawId);
+        Id id = new Id(idFactory.createContentId(bytes));
+        persist(id.getBytes(), bytes);
+        return id;
     }
 
     //-------------------------------------------------------< implementation >
 
-    protected String persist(byte[] bytes, byte[] rawId) throws Exception {
-        String id = StringUtils.convertBytesToHex(rawId);
-
+    protected void persist(byte[] rawId, byte[] bytes) throws Exception {
         DatabaseEntry key = new DatabaseEntry(rawId);
         DatabaseEntry data = new DatabaseEntry(bytes);
 
         db.put(null, key, data);
-
-        return id;
     }
 }

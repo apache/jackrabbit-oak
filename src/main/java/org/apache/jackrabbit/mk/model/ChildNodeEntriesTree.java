@@ -515,7 +515,7 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
             if (index[i] instanceof Bucket) {
                 // dirty bucket
                 Bucket bucket = (Bucket) index[i];
-                String id = store.putCNEMap(bucket);
+                Id id = store.putCNEMap(bucket);
                 index[i] = new BucketInfo(id, bucket.getSize());
             }
         }
@@ -527,7 +527,7 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
         return (hash & 0x7FFFFFFF) % index.length;
     }
 
-    protected ChildNodeEntriesMap retrieveBucket(String id) {
+    protected ChildNodeEntriesMap retrieveBucket(Id id) {
         try {
             return revProvider.getCNEMap(id);
         } catch (Exception e) {
@@ -539,6 +539,7 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
     //------------------------------------------------< serialization support >
 
     public void serialize(Binding binding) throws Exception {
+        // TODO use binary instead of string serialization
         binding.write(":count", count);
         binding.writeMap(":index", index.length, new Binding.StringEntryIterator() {
             int pos = -1;
@@ -578,6 +579,7 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
     }
 
     static ChildNodeEntriesTree deserialize(RevisionProvider provider, Binding binding) throws Exception {
+        // TODO use binary instead of string serialization
         ChildNodeEntriesTree newInstance = new ChildNodeEntriesTree(provider);
         newInstance.count = binding.readIntValue(":count");
         Binding.StringEntryIterator iter = binding.readStringMap(":index");
@@ -596,14 +598,14 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
                 int i = value.indexOf(':');
                 String id = value.substring(0, i);
                 String name = value.substring(i + 1);
-                newInstance.index[pos] = new NodeInfo(name, id);
+                newInstance.index[pos] = new NodeInfo(name, Id.fromString(id));
             } else {
                 // "b<id>:<count>"
                 String value = entry.getValue().substring(1);
                 int i = value.indexOf(':');
                 String id = value.substring(0, i);
                 int count = Integer.parseInt(value.substring(i + 1));
-                newInstance.index[pos] = new BucketInfo(id, count);
+                newInstance.index[pos] = new BucketInfo(Id.fromString(id), count);
             }
         }
         return newInstance;
@@ -619,17 +621,17 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
     protected static class BucketInfo implements IndexEntry {
 
         // bucket id
-        private final String id;
+        private final Id id;
 
         // number of bucket entries
         private final int size;
 
-        protected BucketInfo(String id, int size) {
+        protected BucketInfo(Id id, int size) {
             this.id = id;
             this.size = size;
         }
 
-        public String getId() {
+        public Id getId() {
             return id;
         }
 
@@ -679,7 +681,7 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
 
     protected static class NodeInfo extends ChildNodeEntry implements IndexEntry {
 
-        public NodeInfo(String name, String id) {
+        public NodeInfo(String name, Id id) {
             super(name, id);
         }
 

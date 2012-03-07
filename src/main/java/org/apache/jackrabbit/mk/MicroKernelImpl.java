@@ -23,6 +23,7 @@ import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.mk.model.ChildNodeEntry;
 import org.apache.jackrabbit.mk.model.Commit;
 import org.apache.jackrabbit.mk.model.CommitBuilder;
+import org.apache.jackrabbit.mk.model.Id;
 import org.apache.jackrabbit.mk.model.StoredCommit;
 import org.apache.jackrabbit.mk.model.StoredNode;
 import org.apache.jackrabbit.mk.model.TraversingNodeDiffHandler;
@@ -209,8 +210,8 @@ public class MicroKernelImpl implements MicroKernel {
             // maps (key: id of target node, value: path/to/target)
             // for tracking added/removed nodes; this allows us
             // to detect 'move' operations
-            final HashMap<String, String> addedNodes = new HashMap<String, String>();
-            final HashMap<String, String> removedNodes = new HashMap<String, String>();
+            final HashMap<Id, String> addedNodes = new HashMap<Id, String>();
+            final HashMap<Id, String> removedNodes = new HashMap<Id, String>();
             StoredNode node1, node2;
             try {
                 node1 = rep.getNode(fromRevisionId, path);
@@ -361,7 +362,7 @@ public class MicroKernelImpl implements MicroKernel {
                 diffHandler.start(node1, node2, path);
 
                 // finally process moved nodes
-                for (Map.Entry<String, String> entry : addedNodes.entrySet()) {
+                for (Map.Entry<Id, String> entry : addedNodes.entrySet()) {
                     buff.tag('>').
                             // path/to/deleted/node
                             key(removedNodes.get(entry.getKey())).

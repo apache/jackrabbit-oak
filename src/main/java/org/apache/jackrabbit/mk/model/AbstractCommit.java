@@ -24,7 +24,7 @@ import org.apache.jackrabbit.mk.store.Binding;
 public abstract class AbstractCommit implements Commit {
 
     // id of root node associated with this commit
-    protected String rootNodeId;
+    protected Id rootNodeId;
 
     // commit timestamp
     protected long commitTS;
@@ -49,7 +49,7 @@ public abstract class AbstractCommit implements Commit {
         return parentId;
     }
 
-    public String getRootNodeId() {
+    public Id getRootNodeId() {
         return rootNodeId;
     }
 
@@ -62,7 +62,7 @@ public abstract class AbstractCommit implements Commit {
     }
 
     public void serialize(Binding binding) throws Exception {
-        binding.write("rootNodeId", rootNodeId);
+        binding.write("rootNodeId", rootNodeId.getBytes());
         binding.write("commitTS", commitTS);
         binding.write("msg", msg == null ? "" : msg);
         binding.write("parentId", parentId == null ? "" : parentId);

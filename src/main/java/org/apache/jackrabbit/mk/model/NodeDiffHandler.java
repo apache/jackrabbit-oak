@@ -31,5 +31,5 @@ public interface NodeDiffHandler {
 
     void childNodeDeleted(ChildNodeEntry deleted);
 
-    void childNodeChanged(ChildNodeEntry changed, String newId);
+    void childNodeChanged(ChildNodeEntry changed, Id newId);
 }

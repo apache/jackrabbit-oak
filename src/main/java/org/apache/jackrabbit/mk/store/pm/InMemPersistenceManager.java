@@ -28,6 +28,7 @@ import org.apache.jackrabbit.mk.blobs.BlobStore;
 import org.apache.jackrabbit.mk.blobs.MemoryBlobStore;
 import org.apache.jackrabbit.mk.model.ChildNodeEntriesMap;
 import org.apache.jackrabbit.mk.model.Commit;
+import org.apache.jackrabbit.mk.model.Id;
 import org.apache.jackrabbit.mk.model.Node;
 import org.apache.jackrabbit.mk.model.StoredCommit;
 import org.apache.jackrabbit.mk.store.BinaryBinding;
@@ -41,9 +42,9 @@ import org.apache.jackrabbit.mk.util.StringUtils;
  */
 public class InMemPersistenceManager implements PersistenceManager, BlobStore {
 
-    private final Map<String, byte[]> nodes = Collections.synchronizedMap(new HashMap<String, byte[]>());
+    private final Map<Id, byte[]> nodes = Collections.synchronizedMap(new HashMap<Id, byte[]>());
     private final Map<String, StoredCommit> commits = Collections.synchronizedMap(new HashMap<String, StoredCommit>());
-    private final Map<String, ChildNodeEntriesMap> cneMaps = Collections.synchronizedMap(new HashMap<String, ChildNodeEntriesMap>());
+    private final Map<Id, ChildNodeEntriesMap> cneMaps = Collections.synchronizedMap(new HashMap<Id, ChildNodeEntriesMap>());
     private final BlobStore blobs = new MemoryBlobStore();
 
     private String head;
@@ -66,20 +67,20 @@ public class InMemPersistenceManager implements PersistenceManager, BlobStore {
         head = id;
     }
 
-    public Binding readNodeBinding(String id) throws NotFoundException, Exception {
+    public Binding readNodeBinding(Id id) throws NotFoundException, Exception {
         byte[] bytes = nodes.get(id);
         if (bytes != null) {
             return new BinaryBinding(new ByteArrayInputStream(bytes));
         } else {
-            throw new NotFoundException(id);
+            throw new NotFoundException(id.toString());
         }
     }
 
-    public String writeNode(Node node) throws Exception {
+    public Id writeNode(Node node) throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         node.serialize(new BinaryBinding(out));
         byte[] bytes = out.toByteArray();
-        String id = StringUtils.convertBytesToHex(idFactory.createContentId(bytes));
+        Id id = new Id(idFactory.createContentId(bytes));
 
         if (!nodes.containsKey(id)) {
             nodes.put(id, bytes);
@@ -108,20 +109,20 @@ public class InMemPersistenceManager implements PersistenceManager, BlobStore {
         }
     }
 
-    public ChildNodeEntriesMap readCNEMap(String id) throws NotFoundException, Exception {
+    public ChildNodeEntriesMap readCNEMap(Id id) throws NotFoundException, Exception {
         ChildNodeEntriesMap map = cneMaps.get(id);
         if (map != null) {
             return map;
         } else {
-            throw new NotFoundException(id);
+            throw new NotFoundException(id.toString());
         }
     }
 
-    public String writeCNEMap(ChildNodeEntriesMap map) throws Exception {
+    public Id writeCNEMap(ChildNodeEntriesMap map) throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         map.serialize(new BinaryBinding(out));
         byte[] bytes = out.toByteArray();
-        String id = StringUtils.convertBytesToHex(idFactory.createContentId(bytes));
+        Id id = new Id(idFactory.createContentId(bytes));
 
         if (!cneMaps.containsKey(id)) {
             cneMaps.put(id, ChildNodeEntriesMap.deserialize(new BinaryBinding(new ByteArrayInputStream(bytes))));

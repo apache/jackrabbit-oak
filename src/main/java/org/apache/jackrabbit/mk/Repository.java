@@ -22,6 +22,7 @@ import java.io.File;
 import org.apache.jackrabbit.mk.model.ChildNodeEntry;
 import org.apache.jackrabbit.mk.model.Commit;
 import org.apache.jackrabbit.mk.model.CommitBuilder;
+import org.apache.jackrabbit.mk.model.Id;
 import org.apache.jackrabbit.mk.model.Node;
 import org.apache.jackrabbit.mk.model.StoredCommit;
 import org.apache.jackrabbit.mk.model.StoredNode;
@@ -134,7 +135,7 @@ public class Repository {
         }
 
         //return root.getNode(path.substring(1), pm);
-        String[] ids = resolvePath(revId, path);
+        Id[] ids = resolvePath(revId, path);
         return rs.getNode(ids[ids.length - 1]);
     }
 
@@ -177,7 +178,7 @@ public class Repository {
      * @throws NotFoundException if either path or revision doesn't exist
      * @throws Exception if another error occurs
      */
-    String[] /* array of node id's */ resolvePath(String revId, String nodePath) throws Exception {
+    Id[] /* array of node id's */ resolvePath(String revId, String nodePath) throws Exception {
         if (!PathUtils.isAbsolute(nodePath)) {
             throw new IllegalArgumentException("illegal path");
         }
@@ -185,10 +186,10 @@ public class Repository {
         Commit commit = rs.getCommit(revId);
 
         if (PathUtils.denotesRoot(nodePath)) {
-            return new String[]{commit.getRootNodeId()};
+            return new Id[]{commit.getRootNodeId()};
         }
         String[] names = PathUtils.split(nodePath);
-        String[] ids = new String[names.length + 1];
+        Id[] ids = new Id[names.length + 1];
 
         // get root node
         ids[0] = commit.getRootNodeId();

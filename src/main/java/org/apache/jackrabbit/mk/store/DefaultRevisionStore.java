@@ -19,6 +19,7 @@ package org.apache.jackrabbit.mk.store;
 import org.apache.jackrabbit.mk.blobs.BlobStore;
 import org.apache.jackrabbit.mk.blobs.FileBlobStore;
 import org.apache.jackrabbit.mk.model.ChildNodeEntriesMap;
+import org.apache.jackrabbit.mk.model.Id;
 import org.apache.jackrabbit.mk.model.MutableCommit;
 import org.apache.jackrabbit.mk.model.MutableNode;
 import org.apache.jackrabbit.mk.model.StoredCommit;
@@ -54,14 +55,14 @@ public class DefaultRevisionStore implements RevisionStore, Closeable {
     private BlobStore blobStore;
     private boolean blobStoreNeedsClose;
 
-    private Map<String, Object> cache;
+    private Map<Id, Object> cache;
 
     public void initialize(File homeDir) throws Exception {
         if (initialized) {
             throw new IllegalStateException("already initialized");
         }
 
-        cache = Collections.synchronizedMap(SimpleLRUCache.<String, Object>newInstance(determineInitialCacheSize()));
+        cache = Collections.synchronizedMap(SimpleLRUCache.<Id, Object>newInstance(determineInitialCacheSize()));
 
         pm = new H2PersistenceManager();
         //pm = new InMemPersistenceManager();
@@ -84,7 +85,7 @@ public class DefaultRevisionStore implements RevisionStore, Closeable {
             byte[] rawHeadId = longToBytes(++headCounter);
             headId = StringUtils.convertBytesToHex(rawHeadId);
             
-            String rootNodeId = pm.writeNode(new MutableNode(this));
+            Id rootNodeId = pm.writeNode(new MutableNode(this));
             MutableCommit initialCommit = new MutableCommit();
             initialCommit.setCommitTS(System.currentTimeMillis());
             initialCommit.setRootNodeId(rootNodeId);
@@ -158,7 +159,7 @@ public class DefaultRevisionStore implements RevisionStore, Closeable {
     
     //--------------------------------------------------------< RevisionStore >
 
-    public String putNode(MutableNode node) throws Exception {
+    public Id putNode(MutableNode node) throws Exception {
         verifyInitialized();
 
         PersistHook callback = null;
@@ -167,7 +168,7 @@ public class DefaultRevisionStore implements RevisionStore, Closeable {
             callback.prePersist(this);
         }
 
-        String id = pm.writeNode(node);
+        Id id = pm.writeNode(node);
         
         if (callback != null)  {
             callback.postPersist(this);
@@ -178,7 +179,7 @@ public class DefaultRevisionStore implements RevisionStore, Closeable {
         return id;
     }
 
-    public String putCNEMap(ChildNodeEntriesMap map) throws Exception {
+    public Id putCNEMap(ChildNodeEntriesMap map) throws Exception {
         verifyInitialized();
 
         PersistHook callback = null;
@@ -187,7 +188,7 @@ public class DefaultRevisionStore implements RevisionStore, Closeable {
             callback.prePersist(this);
         }
 
-       String id = pm.writeCNEMap(map);
+       Id id = pm.writeCNEMap(map);
 
         if (callback != null)  {
             callback.postPersist(this);
@@ -223,7 +224,8 @@ public class DefaultRevisionStore implements RevisionStore, Closeable {
             callback.postPersist(this);
         }
 
-        cache.put(id, new StoredCommit(id, commit));
+        // TODO fixme, String -> Id
+        cache.put(Id.fromString(id), new StoredCommit(id, commit));
 
         return id;
     }
@@ -260,7 +262,7 @@ public class DefaultRevisionStore implements RevisionStore, Closeable {
         return new StoredNodeAsState(node, this);
     }
 
-    public StoredNode getNode(String id) throws NotFoundException, Exception {
+    public StoredNode getNode(Id id) throws NotFoundException, Exception {
         verifyInitialized();
 
         StoredNode node = (StoredNode) cache.get(id);
@@ -276,7 +278,7 @@ public class DefaultRevisionStore implements RevisionStore, Closeable {
         return node;
     }
 
-    public ChildNodeEntriesMap getCNEMap(String id) throws NotFoundException, Exception {
+    public ChildNodeEntriesMap getCNEMap(Id id) throws NotFoundException, Exception {
         verifyInitialized();
 
         ChildNodeEntriesMap map = (ChildNodeEntriesMap) cache.get(id);
@@ -294,13 +296,14 @@ public class DefaultRevisionStore implements RevisionStore, Closeable {
     public StoredCommit getCommit(String id) throws NotFoundException, Exception {
         verifyInitialized();
 
-        StoredCommit commit = (StoredCommit) cache.get(id);
+        // TODO fixme, String -> Id
+        StoredCommit commit = (StoredCommit) cache.get(Id.fromString(id));
         if (commit != null) {
             return commit;
         }
 
         commit = pm.readCommit(id);
-        cache.put(id, commit);
+        cache.put(Id.fromString(id), commit);
 
         return commit;
     }

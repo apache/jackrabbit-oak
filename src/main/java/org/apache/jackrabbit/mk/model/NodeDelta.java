@@ -54,9 +54,9 @@ public class NodeDelta implements NodeDiffHandler {
     Map<String, String> removedProperties = new HashMap<String, String>();
     Map<String, String> changedProperties = new HashMap<String, String>();
 
-    Map<String, String> addedChildNodes = new HashMap<String, String>();
-    Map<String, String> removedChildNodes = new HashMap<String, String>();
-    Map<String, String> changedChildNodes = new HashMap<String, String>();
+    Map<String, Id> addedChildNodes = new HashMap<String, Id>();
+    Map<String, Id> removedChildNodes = new HashMap<String, Id>();
+    Map<String, Id> changedChildNodes = new HashMap<String, Id>();
 
     public NodeDelta(StoredNode node1, StoredNode node2) throws Exception {
         this.node1 = node1;
@@ -77,15 +77,15 @@ public class NodeDelta implements NodeDiffHandler {
         return changedProperties;
     }
 
-    public Map<String, String> getAddedChildNodes() {
+    public Map<String, Id> getAddedChildNodes() {
         return addedChildNodes;
     }
 
-    public Map<String, String> getRemovedChildNodes() {
+    public Map<String, Id> getRemovedChildNodes() {
         return removedChildNodes;
     }
 
-    public Map<String, String> getChangedChildNodes() {
+    public Map<String, Id> getChangedChildNodes() {
         return changedChildNodes;
     }
 
@@ -103,31 +103,31 @@ public class NodeDelta implements NodeDiffHandler {
 
         // properties
 
-        Map<String, String> otherAdded = other.getAddedProperties();
+        Map<String, String> otherAddedProps = other.getAddedProperties();
         for (Map.Entry<String, String> added : addedProperties.entrySet()) {
-            String otherValue = otherAdded.get(added.getKey());
+            String otherValue = otherAddedProps.get(added.getKey());
             if (otherValue != null && !added.getValue().equals(otherValue)) {
                 // same property added with conflicting values
                 conflicts.add(new Conflict(ConflictType.PROPERTY_VALUE_CONFLICT, added.getKey()));
             }
         }
 
-        Map<String, String> otherChanged = other.getChangedProperties();
-        Map<String, String> otherRemoved = other.getRemovedProperties();
+        Map<String, String> otherChangedProps = other.getChangedProperties();
+        Map<String, String> otherRemovedProps = other.getRemovedProperties();
         for (Map.Entry<String, String> changed : changedProperties.entrySet()) {
-            String otherValue = otherChanged.get(changed.getKey());
+            String otherValue = otherChangedProps.get(changed.getKey());
             if (otherValue != null && !changed.getValue().equals(otherValue)) {
                 // same property changed with conflicting values
                 conflicts.add(new Conflict(ConflictType.PROPERTY_VALUE_CONFLICT, changed.getKey()));
             }
-            if (otherRemoved.containsKey(changed.getKey())) {
+            if (otherRemovedProps.containsKey(changed.getKey())) {
                 // changed property has been removed
                 conflicts.add(new Conflict(ConflictType.REMOVED_DIRTY_PROPERTY_CONFLICT, changed.getKey()));
             }
         }
 
         for (Map.Entry<String, String> removed : removedProperties.entrySet()) {
-            if (otherChanged.containsKey(removed.getKey())) {
+            if (otherChangedProps.containsKey(removed.getKey())) {
                 // removed property has been changed
                 conflicts.add(new Conflict(ConflictType.REMOVED_DIRTY_PROPERTY_CONFLICT, removed.getKey()));
             }
@@ -135,31 +135,31 @@ public class NodeDelta implements NodeDiffHandler {
 
         // child node entries
 
-        otherAdded = other.getAddedChildNodes();
-        for (Map.Entry<String, String> added : addedChildNodes.entrySet()) {
-            String otherValue = otherAdded.get(added.getKey());
+        Map<String, Id> otherAddedChildNodes = other.getAddedChildNodes();
+        for (Map.Entry<String, Id> added : addedChildNodes.entrySet()) {
+            Id otherValue = otherAddedChildNodes.get(added.getKey());
             if (otherValue != null && !added.getValue().equals(otherValue)) {
                 // same child node entry added with different target id's
                 conflicts.add(new Conflict(ConflictType.NODE_CONTENT_CONFLICT, added.getKey()));
             }
         }
 
-        otherChanged = other.getChangedChildNodes();
-        otherRemoved = other.getRemovedChildNodes();
-        for (Map.Entry<String, String> changed : changedChildNodes.entrySet()) {
-            String otherValue = otherChanged.get(changed.getKey());
+        Map<String, Id> otherChangedChildNodes = other.getChangedChildNodes();
+        Map<String, Id> otherRemovedChildNodes = other.getRemovedChildNodes();
+        for (Map.Entry<String, Id> changed : changedChildNodes.entrySet()) {
+            Id otherValue = otherChangedChildNodes.get(changed.getKey());
             if (otherValue != null && !changed.getValue().equals(otherValue)) {
                 // same child node entry changed with different target id's
                 conflicts.add(new Conflict(ConflictType.NODE_CONTENT_CONFLICT, changed.getKey()));
             }
-            if (otherRemoved.containsKey(changed.getKey())) {
+            if (otherRemovedChildNodes.containsKey(changed.getKey())) {
                 // changed child node entry has been removed
                 conflicts.add(new Conflict(ConflictType.REMOVED_DIRTY_NODE_CONFLICT, changed.getKey()));
             }
         }
 
-        for (Map.Entry<String, String> removed : removedChildNodes.entrySet()) {
-            if (otherChanged.containsKey(removed.getKey())) {
+        for (Map.Entry<String, Id> removed : removedChildNodes.entrySet()) {
+            if (otherChangedChildNodes.containsKey(removed.getKey())) {
                 // removed child node entry has been changed
                 conflicts.add(new Conflict(ConflictType.REMOVED_DIRTY_NODE_CONFLICT, removed.getKey()));
             }
@@ -190,7 +190,7 @@ public class NodeDelta implements NodeDiffHandler {
         removedChildNodes.put(deleted.getName(), deleted.getId());
     }
 
-    public void childNodeChanged(ChildNodeEntry changed, String newId) {
+    public void childNodeChanged(ChildNodeEntry changed, Id newId) {
         changedChildNodes.put(changed.getName(), newId);
     }
 

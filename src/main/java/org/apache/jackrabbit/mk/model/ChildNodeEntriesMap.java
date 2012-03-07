@@ -20,7 +20,6 @@ import org.apache.jackrabbit.mk.store.Binding;
 import org.apache.jackrabbit.mk.util.AbstractFilteringIterator;
 import org.apache.jackrabbit.mk.util.EmptyIterator;
 import org.apache.jackrabbit.mk.util.RangeIterator;
-import org.apache.jackrabbit.mk.util.StringUtils;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -230,7 +229,7 @@ public class ChildNodeEntriesMap implements ChildNodeEntries {
                     @Override
                     public Binding.BytesEntry next() {
                         ChildNodeEntry cne = iter.next();
-                        return new Binding.BytesEntry(cne.getName(), StringUtils.convertHexToBytes(cne.getId()));
+                        return new Binding.BytesEntry(cne.getName(), cne.getId().getBytes());
                     }
                     @Override
                     public void remove() {
@@ -245,7 +244,7 @@ public class ChildNodeEntriesMap implements ChildNodeEntries {
         Binding.BytesEntryIterator iter = binding.readBytesMap(":children");
         while (iter.hasNext()) {
             Binding.BytesEntry entry = iter.next();
-            newInstance.add(new ChildNodeEntry(entry.getKey(), StringUtils.convertBytesToHex(entry.getValue())));
+            newInstance.add(new ChildNodeEntry(entry.getKey(), new Id(entry.getValue())));
         }
         return newInstance;
     }

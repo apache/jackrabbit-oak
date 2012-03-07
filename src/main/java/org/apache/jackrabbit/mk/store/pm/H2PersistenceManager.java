@@ -18,6 +18,7 @@ package org.apache.jackrabbit.mk.store.pm;
 
 import org.apache.jackrabbit.mk.model.ChildNodeEntriesMap;
 import org.apache.jackrabbit.mk.model.Commit;
+import org.apache.jackrabbit.mk.model.Id;
 import org.apache.jackrabbit.mk.model.Node;
 import org.apache.jackrabbit.mk.model.StoredCommit;
 import org.apache.jackrabbit.mk.store.BinaryBinding;
@@ -110,18 +111,18 @@ public class H2PersistenceManager implements PersistenceManager {
         }
     }
 
-    public Binding readNodeBinding(String id) throws NotFoundException, Exception {
+    public Binding readNodeBinding(Id id) throws NotFoundException, Exception {
         Connection con = cp.getConnection();
         try {
             PreparedStatement stmt = con.prepareStatement("select DATA from REVS where ID = ?");
             try {
-                stmt.setBytes(1, StringUtils.convertHexToBytes(id));
+                stmt.setBytes(1, id.getBytes());
                 ResultSet rs = stmt.executeQuery();
                 if (rs.next()) {
                     ByteArrayInputStream in = new ByteArrayInputStream(rs.getBytes(1));
                     return new BinaryBinding(in);
                 } else {
-                    throw new NotFoundException(id);
+                    throw new NotFoundException(id.toString());
                 }
             } finally {
                 stmt.close();
@@ -131,12 +132,12 @@ public class H2PersistenceManager implements PersistenceManager {
         }
     }
 
-    public String writeNode(Node node) throws Exception {
+    public Id writeNode(Node node) throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         node.serialize(new BinaryBinding(out));
         byte[] bytes = out.toByteArray();
         byte[] rawId = idFactory.createContentId(bytes);
-        String id = StringUtils.convertBytesToHex(rawId);
+        //String id = StringUtils.convertBytesToHex(rawId);
 
         Connection con = cp.getConnection();
         try {
@@ -154,7 +155,7 @@ public class H2PersistenceManager implements PersistenceManager {
         } finally {
             con.close();
         }
-        return id;
+        return new Id(rawId);
     }
 
     public StoredCommit readCommit(String id) throws NotFoundException, Exception {
@@ -201,18 +202,18 @@ public class H2PersistenceManager implements PersistenceManager {
         }
     }
 
-    public ChildNodeEntriesMap readCNEMap(String id) throws NotFoundException, Exception {
+    public ChildNodeEntriesMap readCNEMap(Id id) throws NotFoundException, Exception {
         Connection con = cp.getConnection();
         try {
             PreparedStatement stmt = con.prepareStatement("select DATA from REVS where ID = ?");
             try {
-                stmt.setBytes(1, StringUtils.convertHexToBytes(id));
+                stmt.setBytes(1, id.getBytes());
                 ResultSet rs = stmt.executeQuery();
                 if (rs.next()) {
                     ByteArrayInputStream in = new ByteArrayInputStream(rs.getBytes(1));
                     return ChildNodeEntriesMap.deserialize(new BinaryBinding(in));
                 } else {
-                    throw new NotFoundException(id);
+                    throw new NotFoundException(id.toString());
                 }
             } finally {
                 stmt.close();
@@ -222,12 +223,11 @@ public class H2PersistenceManager implements PersistenceManager {
         }
     }
 
-    public String writeCNEMap(ChildNodeEntriesMap map) throws Exception {
+    public Id writeCNEMap(ChildNodeEntriesMap map) throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         map.serialize(new BinaryBinding(out));
         byte[] bytes = out.toByteArray();
         byte[] rawId = idFactory.createContentId(bytes);
-        String id = StringUtils.convertBytesToHex(rawId);
 
         Connection con = cp.getConnection();
         try {
@@ -245,6 +245,6 @@ public class H2PersistenceManager implements PersistenceManager {
         } finally {
             con.close();
         }
-        return id;
+        return new Id(rawId);
     }
 }
