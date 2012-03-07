@@ -155,7 +155,26 @@ public class JsopArray extends Jsop implements List<Object> {
     }
 
     public Iterator<Object> iterator() {
-        throw new UnsupportedOperationException();
+        return new Iterator<Object>() {
+
+            int index;
+
+            @Override
+            public boolean hasNext() {
+                return index < size();
+            }
+
+            @Override
+            public Object next() {
+                return get(index++);
+            }
+
+            @Override
+            public void remove() {
+                throw new UnsupportedOperationException();
+            }
+
+        };
     }
 
     public int lastIndexOf(Object o) {
