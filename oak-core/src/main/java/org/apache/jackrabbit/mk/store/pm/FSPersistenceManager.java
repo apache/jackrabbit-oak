@@ -24,6 +24,7 @@ import java.io.FileOutputStream;
 
 import org.apache.jackrabbit.mk.model.ChildNodeEntriesMap;
 import org.apache.jackrabbit.mk.model.Commit;
+import org.apache.jackrabbit.mk.model.Id;
 import org.apache.jackrabbit.mk.model.Node;
 import org.apache.jackrabbit.mk.model.StoredCommit;
 import org.apache.jackrabbit.mk.store.BinaryBinding;
@@ -76,7 +77,7 @@ public class FSPersistenceManager implements PersistenceManager {
         }
     }
 
-    public Binding readNodeBinding(String id) throws NotFoundException, Exception {
+    public Binding readNodeBinding(Id id) throws NotFoundException, Exception {
         File f = getFile(id);
         if (f.exists()) {
             BufferedInputStream in = new BufferedInputStream(new FileInputStream(f));
@@ -86,20 +87,21 @@ public class FSPersistenceManager implements PersistenceManager {
                 in.close();
             }
         } else {
-            throw new NotFoundException(id);
+            throw new NotFoundException(id.toString());
         }
     }
 
-    public String writeNode(Node node) throws Exception {
+    public Id writeNode(Node node) throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         node.serialize(new BinaryBinding(out));
         byte[] bytes = out.toByteArray();
-        byte[] rawId = idFactory.createContentId(bytes);
-        return writeFile(bytes, rawId);
+        Id id = new Id(idFactory.createContentId(bytes));
+        writeFile(id, bytes);
+        return id;
     }
 
     public StoredCommit readCommit(String id) throws NotFoundException, Exception {
-        File f = getFile(id);
+        File f = getFile(Id.fromString(id));
         if (f.exists()) {
             BufferedInputStream in = new BufferedInputStream(new FileInputStream(f));
             try {
@@ -116,10 +118,10 @@ public class FSPersistenceManager implements PersistenceManager {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         commit.serialize(new BinaryBinding(out));
         byte[] bytes = out.toByteArray();
-        writeFile(bytes, rawId);
+        writeFile(new Id(rawId), bytes);
     }
 
-    public ChildNodeEntriesMap readCNEMap(String id) throws NotFoundException, Exception {
+    public ChildNodeEntriesMap readCNEMap(Id id) throws NotFoundException, Exception {
         File f = getFile(id);
         if (f.exists()) {
             BufferedInputStream in = new BufferedInputStream(new FileInputStream(f));
@@ -129,28 +131,30 @@ public class FSPersistenceManager implements PersistenceManager {
                 in.close();
             }
         } else {
-            throw new NotFoundException(id);
+            throw new NotFoundException(id.toString());
         }
     }
 
-    public String writeCNEMap(ChildNodeEntriesMap map) throws Exception {
+    public Id writeCNEMap(ChildNodeEntriesMap map) throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         map.serialize(new BinaryBinding(out));
         byte[] bytes = out.toByteArray();
-        byte[] rawId = idFactory.createContentId(bytes);
-        return writeFile(bytes, rawId);
+        Id id = new Id(idFactory.createContentId(bytes));
+        writeFile(id, bytes);
+        return id;
     }
 
     //-------------------------------------------------------< implementation >
 
-    private File getFile(String id) {
-        StringBuilder buf = new StringBuilder(id.substring(0, 2));
+    private File getFile(Id id) {
+        String sId = id.toString();
+        StringBuilder buf = new StringBuilder(sId.substring(0, 2));
         buf.append('/');
-        buf.append(id.substring(2));
+        buf.append(sId.substring(2));
         return new File(dataDir, buf.toString());
     }
 
-    private String writeFile(byte[] data, byte[] rawId) throws Exception {
+    private void writeFile(Id id, byte[] data) throws Exception {
         File tmp = File.createTempFile("tmp", null, dataDir);
 
         try {
@@ -163,21 +167,20 @@ public class FSPersistenceManager implements PersistenceManager {
                 fos.close();
             }
 
-            String id = StringUtils.convertBytesToHex(rawId);
             File dst = getFile(id);
             if (dst.exists()) {
                 // already exists
-                return id;
+                return;
             }
             // move tmp file
             tmp.setReadOnly();
             if (tmp.renameTo(dst)) {
-                return id;
+                return;
             }
             // make sure parent dir exists and try again
             dst.getParentFile().mkdir();
             if (tmp.renameTo(dst)) {
-                return id;
+                return;
             }
             throw new Exception("failed to create " + dst);
         } finally {

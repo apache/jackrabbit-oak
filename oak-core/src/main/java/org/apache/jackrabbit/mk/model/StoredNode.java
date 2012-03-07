@@ -30,9 +30,9 @@ import java.util.Map;
  */
 public class StoredNode extends AbstractNode {
 
-    private final String id;
+    private final Id id;
 
-    public static StoredNode deserialize(String id, RevisionProvider provider, Binding binding) throws Exception {
+    public static StoredNode deserialize(Id id, RevisionProvider provider, Binding binding) throws Exception {
         StoredNode newInstance = new StoredNode(id, provider);
         Binding.StringEntryIterator iter = binding.readStringMap(":props");
         while (iter.hasNext()) {
@@ -48,12 +48,12 @@ public class StoredNode extends AbstractNode {
         return newInstance;
     }
 
-    private StoredNode(String id, RevisionProvider provider) {
+    private StoredNode(Id id, RevisionProvider provider) {
         super(provider);
         this.id = id;
     }
     
-    public StoredNode(String id, RevisionProvider provider, Map<String, String> properties, Iterator<ChildNodeEntry> cneIt) {
+    public StoredNode(Id id, RevisionProvider provider, Map<String, String> properties, Iterator<ChildNodeEntry> cneIt) {
         super(provider);
         this.id = id;
         this.properties.putAll(properties);
@@ -62,12 +62,12 @@ public class StoredNode extends AbstractNode {
         }
     }
 
-    public StoredNode(String id, Node node, RevisionProvider provider) {
+    public StoredNode(Id id, Node node, RevisionProvider provider) {
         super(node, provider);
         this.id = id;
     }
 
-    public String getId() {
+    public Id getId() {
         return id;
     }
 

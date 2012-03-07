@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.mk.store;
 
 import org.apache.jackrabbit.mk.model.ChildNodeEntriesMap;
+import org.apache.jackrabbit.mk.model.Id;
 import org.apache.jackrabbit.mk.model.StoredCommit;
 import org.apache.jackrabbit.mk.model.StoredNode;
 import org.apache.jackrabbit.oak.model.NodeState;
@@ -35,9 +36,9 @@ public interface RevisionProvider {
      */
     NodeState getNodeState(StoredNode node);
 
-    StoredNode getNode(String id) throws NotFoundException, Exception;
+    StoredNode getNode(Id id) throws NotFoundException, Exception;
     StoredCommit getCommit(String id) throws NotFoundException, Exception;
-    ChildNodeEntriesMap getCNEMap(String id) throws NotFoundException, Exception;
+    ChildNodeEntriesMap getCNEMap(Id id) throws NotFoundException, Exception;
     StoredNode getRootNode(String commitId) throws NotFoundException, Exception;
     StoredCommit getHeadCommit() throws Exception;
     String getHeadCommitId() throws Exception;

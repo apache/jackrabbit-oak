@@ -22,6 +22,7 @@ import java.util.Iterator;
 
 import org.apache.jackrabbit.mk.model.ChildNode;
 import org.apache.jackrabbit.mk.model.ChildNodeEntriesMap;
+import org.apache.jackrabbit.mk.model.Id;
 import org.apache.jackrabbit.mk.model.MutableCommit;
 import org.apache.jackrabbit.mk.model.MutableNode;
 import org.apache.jackrabbit.mk.model.StoredCommit;
@@ -99,8 +100,7 @@ public class CopyingGC implements RevisionStore, Closeable {
     /**
      * Copy a commit and all the nodes belonging to it, starting at the root node.
      * 
-     * @param from source provider
-     * @param to target store
+     * @param commit commit to be copied
      * @throws Exception if an error occurs
      */
     public void copy(StoredCommit commit) throws Exception {
@@ -117,7 +117,6 @@ public class CopyingGC implements RevisionStore, Closeable {
     /**
      * Copy a node and all its descendants into a target store
      * @param node source node
-     * @param store target store
      * @throws Exception if an error occurs
      */
     private void copy(StoredNode node) throws Exception {
@@ -142,7 +141,7 @@ public class CopyingGC implements RevisionStore, Closeable {
         return new StoredNodeAsState(node, this);
     }
 
-    public StoredNode getNode(String id) throws NotFoundException, Exception {
+    public StoredNode getNode(Id id) throws NotFoundException, Exception {
         if (running) {
             try {
                 return rsTo.getNode(id);
@@ -172,7 +171,7 @@ public class CopyingGC implements RevisionStore, Closeable {
         return rsTo.getCommit(id);
     }
 
-    public ChildNodeEntriesMap getCNEMap(String id) throws NotFoundException,
+    public ChildNodeEntriesMap getCNEMap(Id id) throws NotFoundException,
             Exception {
         
         if (running) {
@@ -206,7 +205,7 @@ public class CopyingGC implements RevisionStore, Closeable {
         return running ? rsTo.getHeadCommitId() : rsFrom.getHeadCommitId();
     }
 
-    public String putNode(MutableNode node) throws Exception {
+    public Id putNode(MutableNode node) throws Exception {
         return running ? rsTo.putNode(node) : rsFrom.putNode(node);
     }
 
@@ -214,7 +213,7 @@ public class CopyingGC implements RevisionStore, Closeable {
         return running ? rsTo.putCommit(commit) : rsFrom.putCommit(commit);
     }
 
-    public String putCNEMap(ChildNodeEntriesMap map) throws Exception {
+    public Id putCNEMap(ChildNodeEntriesMap map) throws Exception {
         return running ? rsTo.putCNEMap(map) : rsFrom.putCNEMap(map);
     }
 

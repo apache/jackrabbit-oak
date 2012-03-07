@@ -26,6 +26,7 @@ import org.apache.jackrabbit.mk.blobs.BlobStore;
 import org.apache.jackrabbit.mk.fs.FilePath;
 import org.apache.jackrabbit.mk.model.ChildNodeEntriesMap;
 import org.apache.jackrabbit.mk.model.Commit;
+import org.apache.jackrabbit.mk.model.Id;
 import org.apache.jackrabbit.mk.model.Node;
 import org.apache.jackrabbit.mk.model.StoredCommit;
 import org.apache.jackrabbit.mk.store.BinaryBinding;
@@ -121,16 +122,15 @@ public class MongoPersistenceManager implements PersistenceManager, BlobStore {
         db.getCollection(HEAD_COLLECTION).insert(new BasicDBObject(ID_FIELD, id));
     }
 
-    public Binding readNodeBinding(String id) throws NotFoundException, Exception {
+    public Binding readNodeBinding(Id id) throws NotFoundException, Exception {
         BasicDBObject key = new BasicDBObject();
         if (BINARY_FORMAT) {
-            key.put(ID_FIELD, StringUtils.convertHexToBytes(id));
+            key.put(ID_FIELD, id.getBytes());
         } else {
-            key.put(ID_FIELD, id);
+            key.put(ID_FIELD, id.toString());
         }
         final BasicDBObject nodeObject = (BasicDBObject) nodes.findOne(key);
         if (nodeObject != null) {
-            // todo support partitioned child node lists
             if (BINARY_FORMAT) {
                 byte[] bytes = (byte[]) nodeObject.get(DATA_FIELD);
                 return new BinaryBinding(new ByteArrayInputStream(bytes));
@@ -138,23 +138,21 @@ public class MongoPersistenceManager implements PersistenceManager, BlobStore {
                 return new DBObjectBinding(nodeObject);
             }
         } else {
-            throw new NotFoundException(id);
+            throw new NotFoundException(id.toString());
         }
     }
     
-    public String writeNode(Node node) throws Exception {
+    public Id writeNode(Node node) throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         node.serialize(new BinaryBinding(out));
         byte[] bytes = out.toByteArray();
-        byte[] key = idFactory.createContentId(bytes);
-        String id = StringUtils.convertBytesToHex(key);
+        Id id = new Id(idFactory.createContentId(bytes));
 
-        // todo support partitioned child node lists
         BasicDBObject nodeObject;
         if (BINARY_FORMAT) {
-            nodeObject = new BasicDBObject(ID_FIELD, key).append(DATA_FIELD, bytes);
+            nodeObject = new BasicDBObject(ID_FIELD, id.getBytes()).append(DATA_FIELD, bytes);
         } else {
-            nodeObject = new BasicDBObject(ID_FIELD, id);
+            nodeObject = new BasicDBObject(ID_FIELD, id.toString());
             node.serialize(new DBObjectBinding(nodeObject));
         }
         try {
@@ -206,12 +204,12 @@ public class MongoPersistenceManager implements PersistenceManager, BlobStore {
         }
     }
 
-    public ChildNodeEntriesMap readCNEMap(String id) throws NotFoundException, Exception {
+    public ChildNodeEntriesMap readCNEMap(Id id) throws NotFoundException, Exception {
         BasicDBObject key = new BasicDBObject();
         if (BINARY_FORMAT) {
-            key.put(ID_FIELD, StringUtils.convertHexToBytes(id));
+            key.put(ID_FIELD, id.getBytes());
         } else {
-            key.put(ID_FIELD, id);
+            key.put(ID_FIELD, id.toString());
         }
         BasicDBObject mapObject = (BasicDBObject) cneMaps.findOne(key);
         if (mapObject != null) {
@@ -222,22 +220,21 @@ public class MongoPersistenceManager implements PersistenceManager, BlobStore {
                 return ChildNodeEntriesMap.deserialize(new DBObjectBinding(mapObject));
             }
         } else {
-            throw new NotFoundException(id);
+            throw new NotFoundException(id.toString());
         }
     }
 
-    public String writeCNEMap(ChildNodeEntriesMap map) throws Exception {
+    public Id writeCNEMap(ChildNodeEntriesMap map) throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         map.serialize(new BinaryBinding(out));
         byte[] bytes = out.toByteArray();
-        byte[] key = idFactory.createContentId(bytes);
-        String id = StringUtils.convertBytesToHex(key);
+        Id id = new Id(idFactory.createContentId(bytes));
 
         BasicDBObject mapObject;
         if (BINARY_FORMAT) {
-            mapObject = new BasicDBObject(ID_FIELD, key).append(DATA_FIELD, bytes);
+            mapObject = new BasicDBObject(ID_FIELD, id.getBytes()).append(DATA_FIELD, bytes);
         } else {
-            mapObject = new BasicDBObject(ID_FIELD, id);
+            mapObject = new BasicDBObject(ID_FIELD, id.toString());
             map.serialize(new DBObjectBinding(mapObject));
         }
         try {

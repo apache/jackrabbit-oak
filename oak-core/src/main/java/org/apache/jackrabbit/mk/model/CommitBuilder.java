@@ -64,7 +64,7 @@ public class CommitBuilder {
         newChild.getProperties().putAll(properties);
 
         // id will be computed on commit
-        modParent.add(new ChildNodeEntry(nodeName, ""));
+        modParent.add(new ChildNodeEntry(nodeName, null));
         String newPath = PathUtils.concat(parentNodePath, nodeName);
         staged.put(newPath, newChild);
         // update change log
@@ -191,7 +191,7 @@ public class CommitBuilder {
             }
         }
 
-        String rootNodeId = persistStagedNodes();
+        Id rootNodeId = persistStagedNodes();
 
         String newRevId;
         store.lockHead();
@@ -283,7 +283,7 @@ public class CommitBuilder {
         }
     }
 
-    String /* new id of root node */ persistStagedNodes() throws Exception {
+    Id /* new id of root node */ persistStagedNodes() throws Exception {
         // sort paths in in depth-descending order
         ArrayList<String> orderedPaths = new ArrayList<String>(staged.keySet());
         Collections.sort(orderedPaths, new Comparator<String>() {
@@ -298,10 +298,10 @@ public class CommitBuilder {
             }
         });
         // iterate over staged entries in depth-descending order
-        String rootNodeId = null;
+        Id rootNodeId = null;
         for (String path : orderedPaths) {
             // persist node
-            String id = store.putNode(staged.get(path));
+            Id id = store.putNode(staged.get(path));
             if (PathUtils.denotesRoot(path)) {
                 rootNodeId = id;
             } else {
@@ -324,7 +324,7 @@ public class CommitBuilder {
      * @return id of merged root node
      * @throws Exception
      */
-    String /* id of merged root node */ mergeTree(StoredNode baseRoot, StoredNode ourRoot, StoredNode theirRoot) throws Exception {
+    Id /* id of merged root node */ mergeTree(StoredNode baseRoot, StoredNode ourRoot, StoredNode theirRoot) throws Exception {
         // as we're going to use the staging area for the merge process,
         // we need to clear it first
         staged.clear();
@@ -349,10 +349,10 @@ public class CommitBuilder {
             mergedNode.getProperties().remove(name);
         }
 
-        for (Map.Entry<String, String> entry : ourChanges.getAddedChildNodes ().entrySet()) {
+        for (Map.Entry<String, Id> entry : ourChanges.getAddedChildNodes ().entrySet()) {
             mergedNode.add(new ChildNodeEntry(entry.getKey(), entry.getValue()));
         }
-        for (Map.Entry<String, String> entry : ourChanges.getChangedChildNodes ().entrySet()) {
+        for (Map.Entry<String, Id> entry : ourChanges.getChangedChildNodes ().entrySet()) {
             mergedNode.add(new ChildNodeEntry(entry.getKey(), entry.getValue()));
         }
         for (String name : ourChanges.getRemovedChildNodes().keySet()) {

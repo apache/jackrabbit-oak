@@ -71,7 +71,7 @@ public abstract class TraversingNodeDiffHandler implements NodeDiffHandler {
     public void childNodeDeleted(ChildNodeEntry deleted) {
     }
 
-    public void childNodeChanged(ChildNodeEntry changed, String newId) {
+    public void childNodeChanged(ChildNodeEntry changed, Id newId) {
         paths.push(PathUtils.concat(getCurrentPath(), changed.getName()));
         try {
             store.getNode(changed.getId()).diff(store.getNode(newId), this);

@@ -22,9 +22,9 @@ package org.apache.jackrabbit.mk.model;
 public class ChildNodeEntry {
 
     private final String name;
-    private final String id;
+    private final Id id;
 
-    public ChildNodeEntry(String name, String id) {
+    public ChildNodeEntry(String name, Id id) {
         this.name = name;
         this.id = id;
     }
@@ -33,7 +33,7 @@ public class ChildNodeEntry {
         return name;
     }
 
-    public String getId() {
+    public Id getId() {
         return id;
     }
 

@@ -20,6 +20,7 @@ import java.io.File;
 
 import org.apache.jackrabbit.mk.model.ChildNodeEntriesMap;
 import org.apache.jackrabbit.mk.model.Commit;
+import org.apache.jackrabbit.mk.model.Id;
 import org.apache.jackrabbit.mk.model.Node;
 import org.apache.jackrabbit.mk.model.StoredCommit;
 import org.apache.jackrabbit.mk.store.Binding;
@@ -42,13 +43,13 @@ public interface PersistenceManager {
 
     void writeHead(String id) throws Exception;
 
-    Binding readNodeBinding(String id) throws NotFoundException, Exception;
+    Binding readNodeBinding(Id id) throws NotFoundException, Exception;
 
-    String writeNode(Node node) throws Exception;
+    Id writeNode(Node node) throws Exception;
 
-    ChildNodeEntriesMap readCNEMap(String id) throws NotFoundException, Exception;
+    ChildNodeEntriesMap readCNEMap(Id id) throws NotFoundException, Exception;
 
-    String writeCNEMap(ChildNodeEntriesMap map) throws Exception;
+    Id writeCNEMap(ChildNodeEntriesMap map) throws Exception;
 
     StoredCommit readCommit(String id) throws NotFoundException, Exception;
 

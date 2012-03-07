@@ -23,7 +23,7 @@ import org.apache.jackrabbit.mk.store.Binding;
  */
 public interface Commit {
     
-    String getRootNodeId();
+    Id getRootNodeId();
 
     public String getParentId();
 

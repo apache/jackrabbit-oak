@@ -46,7 +46,7 @@ public class MutableCommit extends AbstractCommit {
         this.parentId = parentId;
     }
 
-    public void setRootNodeId(String rootNodeId) {
+    public void setRootNodeId(Id rootNodeId) {
         this.rootNodeId = rootNodeId;
     }
 

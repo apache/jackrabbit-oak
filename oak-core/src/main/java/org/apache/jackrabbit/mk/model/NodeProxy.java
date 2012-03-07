@@ -24,10 +24,10 @@ import org.apache.jackrabbit.mk.store.NotFoundException;
  */
 public final class NodeProxy {
 
-    private final String id;
+    private final Id id;
     private final Node node;
 
-    public NodeProxy(String id) {
+    public NodeProxy(Id id) {
         this.id = id;
         this.node = null;
     }
@@ -37,7 +37,7 @@ public final class NodeProxy {
         this.id = null;
     }
 
-    public String getId() {
+    public Id getId() {
         return id;
     }
 
