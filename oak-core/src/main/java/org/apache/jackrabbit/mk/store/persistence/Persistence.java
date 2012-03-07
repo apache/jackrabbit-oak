@@ -33,7 +33,7 @@ import org.apache.jackrabbit.mk.store.NotFoundException;
  * TODO: instead of deserializing objects on their own, return Binding
  *       instances, such as in #readNodeBinding.
  */
-public interface PersistenceManager {
+public interface Persistence {
 
     void initialize(File homeDir) throws Exception;
 

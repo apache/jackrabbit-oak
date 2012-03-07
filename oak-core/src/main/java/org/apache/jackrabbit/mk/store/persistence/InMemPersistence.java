@@ -40,7 +40,7 @@ import org.apache.jackrabbit.mk.util.StringUtils;
 /**
  *
  */
-public class InMemPersistenceManager implements PersistenceManager, BlobStore {
+public class InMemPersistence implements Persistence, BlobStore {
 
     private final Map<Id, byte[]> nodes = Collections.synchronizedMap(new HashMap<Id, byte[]>());
     private final Map<String, StoredCommit> commits = Collections.synchronizedMap(new HashMap<String, StoredCommit>());

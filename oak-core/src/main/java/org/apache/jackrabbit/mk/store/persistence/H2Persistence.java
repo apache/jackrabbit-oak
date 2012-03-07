@@ -39,7 +39,7 @@ import java.sql.Statement;
 /**
  *
  */
-public class H2PersistenceManager implements PersistenceManager {
+public class H2Persistence implements Persistence {
 
     private static final boolean FAST = Boolean.getBoolean("mk.fastDb");
 
@@ -48,7 +48,7 @@ public class H2PersistenceManager implements PersistenceManager {
     // TODO: make this configurable
     private IdFactory idFactory = IdFactory.getDigestFactory();
 
-    //---------------------------------------------------< PersistenceManager >
+    //---------------------------------------------------< Persistence >
 
     public void initialize(File homeDir) throws Exception {
         File dbDir = new File(homeDir, "db");

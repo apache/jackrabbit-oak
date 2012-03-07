@@ -44,7 +44,7 @@ import com.sleepycat.je.OperationStatus;
 /**
  *
  */
-public class BDbPersistenceManager implements PersistenceManager {
+public class BDbPersistence implements Persistence {
 
     private final static byte[] HEAD_ID = new byte[]{0};
     private Environment dbEnv;
