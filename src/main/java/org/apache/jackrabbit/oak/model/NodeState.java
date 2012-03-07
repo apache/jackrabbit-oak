@@ -77,6 +77,15 @@ package org.apache.jackrabbit.oak.model;
  * according to the API contract of this interface. A separate higher level
  * interface needs to be used if an implementation can't for example
  * guarantee immutability of exposed content as discussed above.
+ *
+ * <h2>Equality and hash codes</h2>
+ * <p>
+ * Two node states are considered equal if their properties and child nodes
+ * match, regardless of ordering. The {@link Object#equals(Object)} method
+ * needs to be implemented so that it complies with this definition. And
+ * while node states are not meant for use as hash keys, the
+ * {@link Object#hashCode()} method should still be implemented according
+ * to the equality contract.
  */
 public interface NodeState {
 
