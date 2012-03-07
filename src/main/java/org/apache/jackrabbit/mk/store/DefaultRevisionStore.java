@@ -27,6 +27,7 @@ import org.apache.jackrabbit.mk.store.pm.H2PersistenceManager;
 import org.apache.jackrabbit.mk.store.pm.PersistenceManager;
 import org.apache.jackrabbit.mk.util.SimpleLRUCache;
 import org.apache.jackrabbit.mk.util.StringUtils;
+import org.apache.jackrabbit.oak.tree.NodeState;
 
 import java.io.Closeable;
 import java.io.File;
@@ -254,6 +255,10 @@ public class DefaultRevisionStore implements RevisionStore, Closeable {
     }
 
     //-----------------------------------------------------< RevisionProvider >
+
+    public NodeState getNodeState(StoredNode node) {
+        return new StoredNodeAsState(node, this);
+    }
 
     public StoredNode getNode(String id) throws NotFoundException, Exception {
         verifyInitialized();

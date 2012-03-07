@@ -19,11 +19,21 @@ package org.apache.jackrabbit.mk.store;
 import org.apache.jackrabbit.mk.model.ChildNodeEntriesMap;
 import org.apache.jackrabbit.mk.model.StoredCommit;
 import org.apache.jackrabbit.mk.model.StoredNode;
+import org.apache.jackrabbit.oak.tree.NodeState;
 
 /**
  *
  */
 public interface RevisionProvider {
+
+    /**
+     * Adapts the given {@link StoredNode} to a corresponding
+     * {@link NodeState} instance.
+     *
+     * @param node stored node instance
+     * @return node state adapter
+     */
+    NodeState getNodeState(StoredNode node);
 
     StoredNode getNode(String id) throws NotFoundException, Exception;
     StoredCommit getCommit(String id) throws NotFoundException, Exception;

@@ -30,6 +30,7 @@ import org.apache.jackrabbit.mk.store.NotFoundException;
 import org.apache.jackrabbit.mk.store.RevisionStore;
 import org.apache.jackrabbit.mk.util.IOUtils;
 import org.apache.jackrabbit.mk.util.PathUtils;
+import org.apache.jackrabbit.oak.tree.NodeState;
 
 /**
  *
@@ -108,6 +109,10 @@ public class Repository {
             throw new IllegalStateException("not initialized");
         }
         return rs.getCommit(id);
+    }
+
+    public NodeState getNodeState(String revId, String path) throws NotFoundException, Exception {
+        return rs.getNodeState(getNode(revId, path));
     }
 
     /**
