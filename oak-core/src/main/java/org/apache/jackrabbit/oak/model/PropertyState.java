@@ -17,7 +17,8 @@
 package org.apache.jackrabbit.oak.model;
 
 /**
- * TODO: document
+ * Immutable property state. A property consists of a name and
+ * a JSON-encoded value.
  */
 public interface PropertyState {
 
