@@ -52,7 +52,7 @@ import com.mongodb.gridfs.GridFSInputFile;
 /**
  *
  */
-public class MongoPersistenceManager implements PersistenceManager, BlobStore {
+public class MongoPersistence implements Persistence, BlobStore {
 
     private static final boolean BINARY_FORMAT = false;
 

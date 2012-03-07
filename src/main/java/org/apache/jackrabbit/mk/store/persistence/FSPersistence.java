@@ -36,7 +36,7 @@ import org.apache.jackrabbit.mk.util.IOUtils;
 /**
  *
  */
-public class FSPersistenceManager implements PersistenceManager {
+public class FSPersistence implements Persistence {
 
     private File dataDir;
     private File head;

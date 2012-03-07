@@ -24,8 +24,8 @@ import org.apache.jackrabbit.mk.model.MutableCommit;
 import org.apache.jackrabbit.mk.model.MutableNode;
 import org.apache.jackrabbit.mk.model.StoredCommit;
 import org.apache.jackrabbit.mk.model.StoredNode;
-import org.apache.jackrabbit.mk.store.persistence.H2PersistenceManager;
-import org.apache.jackrabbit.mk.store.persistence.PersistenceManager;
+import org.apache.jackrabbit.mk.store.persistence.H2Persistence;
+import org.apache.jackrabbit.mk.store.persistence.Persistence;
 import org.apache.jackrabbit.mk.util.SimpleLRUCache;
 import org.apache.jackrabbit.mk.util.StringUtils;
 import org.apache.jackrabbit.oak.model.NodeState;
@@ -38,7 +38,7 @@ import java.util.Map;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
- * Default revision store implementation, passing calls to a <code>PersistenceManager</code>
+ * Default revision store implementation, passing calls to a <code>Persistence</code>
  * and a <code>BlobStore</code>, respectively and providing caching. 
  */
 public class DefaultRevisionStore implements RevisionStore, Closeable {
@@ -51,7 +51,7 @@ public class DefaultRevisionStore implements RevisionStore, Closeable {
     private String headId;
     private long headCounter;
     private final ReentrantReadWriteLock headLock = new ReentrantReadWriteLock();
-    private PersistenceManager pm;
+    private Persistence pm;
     private BlobStore blobStore;
     private boolean blobStoreNeedsClose;
 
@@ -64,11 +64,11 @@ public class DefaultRevisionStore implements RevisionStore, Closeable {
 
         cache = Collections.synchronizedMap(SimpleLRUCache.<Id, Object>newInstance(determineInitialCacheSize()));
 
-        pm = new H2PersistenceManager();
-        //pm = new InMemPersistenceManager();
-        //pm = new MongoPersistenceManager();
-        //pm = new BDbPersistenceManager();
-        //pm = new FSPersistenceManager();
+        pm = new H2Persistence();
+        //pm = new InMemPersistence();
+        //pm = new MongoPersistence();
+        //pm = new BDbPersistence();
+        //pm = new FSPersistence();
         pm.initialize(homeDir);
         
         if (pm instanceof BlobStore) {
