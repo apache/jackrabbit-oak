@@ -21,11 +21,14 @@ import java.util.Iterator;
 import java.util.Map;
 
 import org.apache.jackrabbit.mk.model.StoredNode;
+import org.apache.jackrabbit.oak.model.AbstractChildNodeEntry;
+import org.apache.jackrabbit.oak.model.AbstractNodeState;
+import org.apache.jackrabbit.oak.model.AbstractPropertyState;
 import org.apache.jackrabbit.oak.model.ChildNodeEntry;
 import org.apache.jackrabbit.oak.model.NodeState;
 import org.apache.jackrabbit.oak.model.PropertyState;
 
-class StoredNodeAsState implements NodeState {
+class StoredNodeAsState extends AbstractNodeState {
 
     private final StoredNode node;
 
@@ -36,7 +39,7 @@ class StoredNodeAsState implements NodeState {
         this.provider = provider;
     }
 
-    private static class SimplePropertyState implements PropertyState {
+    private static class SimplePropertyState extends AbstractPropertyState {
 
         private final String name;
 
@@ -47,16 +50,19 @@ class StoredNodeAsState implements NodeState {
             this.value = value;
         }
 
+        @Override
         public String getName() {
             return name;
         }
 
+        @Override
         public String getEncodedValue() {
             return value;
         }
 
     }
 
+    @Override
     public PropertyState getProperty(String name) {
         String value = node.getProperties().get(name);
         if (value != null) {
@@ -66,10 +72,12 @@ class StoredNodeAsState implements NodeState {
         }
     }
 
+    @Override
     public long getPropertyCount() {
         return node.getProperties().size();
     }
 
+    @Override
     public Iterable<PropertyState> getProperties() {
         return new Iterable<PropertyState>() {
             public Iterator<PropertyState> iterator() {
@@ -92,6 +100,7 @@ class StoredNodeAsState implements NodeState {
         };
     }
 
+    @Override
     public NodeState getChildNode(String name) {
         org.apache.jackrabbit.mk.model.ChildNodeEntry entry =
                 node.getChildNodeEntry(name);
@@ -102,10 +111,12 @@ class StoredNodeAsState implements NodeState {
         }
     }
 
+    @Override
     public long getChildNodeCount() {
         return node.getChildNodeCount();
     }
 
+    @Override
     public Iterable<ChildNodeEntry> getChildNodeEntries(
             final long offset, final long length) {
         if (length < -1) {
@@ -139,7 +150,7 @@ class StoredNodeAsState implements NodeState {
 
     private ChildNodeEntry getChildNodeEntry(
             final org.apache.jackrabbit.mk.model.ChildNodeEntry entry) {
-        return new ChildNodeEntry() {
+        return new AbstractChildNodeEntry() {
             public String getName() {
                 return entry.getName();
             }
@@ -152,6 +163,18 @@ class StoredNodeAsState implements NodeState {
                 }
             }
         };
+    }
+
+    @Override
+    public boolean equals(Object that) {
+        if (that instanceof StoredNodeAsState) {
+            StoredNodeAsState other = (StoredNodeAsState) that;
+            if (provider == other.provider
+                    && node.getId().equals(other.node.getId())) {
+                return true;
+            }
+        }
+        return super.equals(that);
     }
 
 }
