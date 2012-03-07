@@ -27,7 +27,7 @@ import org.apache.jackrabbit.mk.model.MutableNode;
 import org.apache.jackrabbit.mk.model.StoredCommit;
 import org.apache.jackrabbit.mk.model.StoredNode;
 import org.apache.jackrabbit.mk.util.IOUtils;
-import org.apache.jackrabbit.oak.tree.NodeState;
+import org.apache.jackrabbit.oak.model.NodeState;
 
 /**
  * Revision garbage collector that copies reachable revisions from a "from" revision

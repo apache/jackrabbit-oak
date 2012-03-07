@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.tree;
+package org.apache.jackrabbit.oak.model;
 
 /**
  * TODO: document
  */
-public interface PropertyState {
+public interface ChildNodeEntry {
 
     /**
      * TODO: document
@@ -27,8 +27,8 @@ public interface PropertyState {
     String getName();
 
     /**
-     * FIXME: replace with type-specific accessors
+     * TODO: document
      */
-    String getEncodedValue();
+    NodeState getNode();
 
 }

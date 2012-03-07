@@ -30,8 +30,8 @@ import org.apache.jackrabbit.mk.store.NotFoundException;
 import org.apache.jackrabbit.mk.util.CommitGate;
 import org.apache.jackrabbit.mk.util.PathUtils;
 import org.apache.jackrabbit.mk.util.SimpleLRUCache;
-import org.apache.jackrabbit.oak.tree.NodeState;
-import org.apache.jackrabbit.oak.tree.PropertyState;
+import org.apache.jackrabbit.oak.model.NodeState;
+import org.apache.jackrabbit.oak.model.PropertyState;
 
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -605,7 +605,7 @@ public class MicroKernelImpl implements MicroKernel {
         }
         if (childCount > 0 && depth >= 0) {
             // TODO: Use an import once the conflict with .mk.model is resolved
-            for (org.apache.jackrabbit.oak.tree.ChildNodeEntry entry
+            for (org.apache.jackrabbit.oak.model.ChildNodeEntry entry
                     : node.getChildNodeEntries(offset, count)) {
                 builder.key(entry.getName()).object();
                 if (depth > 0) {
