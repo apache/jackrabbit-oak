@@ -23,7 +23,6 @@ import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.mk.model.ChildNodeEntry;
 import org.apache.jackrabbit.mk.model.Commit;
 import org.apache.jackrabbit.mk.model.CommitBuilder;
-import org.apache.jackrabbit.mk.model.Node;
 import org.apache.jackrabbit.mk.model.StoredCommit;
 import org.apache.jackrabbit.mk.model.StoredNode;
 import org.apache.jackrabbit.mk.model.TraversingNodeDiffHandler;
@@ -31,12 +30,13 @@ import org.apache.jackrabbit.mk.store.NotFoundException;
 import org.apache.jackrabbit.mk.util.CommitGate;
 import org.apache.jackrabbit.mk.util.PathUtils;
 import org.apache.jackrabbit.mk.util.SimpleLRUCache;
+import org.apache.jackrabbit.oak.tree.NodeState;
+import org.apache.jackrabbit.oak.tree.PropertyState;
 
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -226,7 +226,8 @@ public class MicroKernelImpl implements MicroKernel {
             if (node1 == null) {
                 if (node2 != null) {
                     buff.tag('+').key(path).object();
-                    toJson(buff, node2, Integer.MAX_VALUE, 0, -1, false);
+                    toJson(buff, rep.getRevisionStore().getNodeState(node2),
+                            Integer.MAX_VALUE, 0, -1, false);
                     return buff.endObject().newline().toString();
                 } else {
                     throw new MicroKernelException("path doesn't exist in the specified revisions: " + path);
@@ -271,7 +272,7 @@ public class MicroKernelImpl implements MicroKernel {
                     buff.tag('+').
                             key(PathUtils.concat(getCurrentPath(), added.getName())).object();
                     try {
-                        toJson(buff, rep.getRevisionStore().getNode(added.getId()), Integer.MAX_VALUE, 0, -1, false);
+                        toJson(buff, store.getNodeState(store.getNode(added.getId())), Integer.MAX_VALUE, 0, -1, false);
                     } catch (Exception e) {
                         buff.value("ERROR: failed to retrieve node " + added.getId());
                     }
@@ -338,7 +339,7 @@ public class MicroKernelImpl implements MicroKernel {
                         buff.tag('+').
                                 key(PathUtils.concat(getCurrentPath(), added.getName())).object();
                         try {
-                            toJson(buff, rep.getRevisionStore().getNode(added.getId()), Integer.MAX_VALUE, 0, -1, false);
+                            toJson(buff, store.getNodeState(store.getNode(added.getId())), Integer.MAX_VALUE, 0, -1, false);
                         } catch (Exception e) {
                             buff.value("ERROR: failed to retrieve node " + added.getId());
                         }
@@ -394,7 +395,7 @@ public class MicroKernelImpl implements MicroKernel {
         revisionId = revisionId == null ? getHeadRevision() : revisionId;
 
         try {
-            return rep.getNode(revisionId, path).getChildNodeCount();
+            return rep.getNodeState(revisionId, path).getChildNodeCount();
         } catch (Exception e) {
             throw new MicroKernelException(e);
         }
@@ -415,7 +416,7 @@ public class MicroKernelImpl implements MicroKernel {
 
         try {
             JsopBuilder buf = new JsopBuilder().object();
-            toJson(buf, rep.getNode(revisionId, path), depth, (int) offset, count, true);
+            toJson(buf, rep.getNodeState(revisionId, path), depth, (int) offset, count, true);
             return buf.endObject().toString();
         } catch (Exception e) {
             throw new MicroKernelException(e);
@@ -594,20 +595,21 @@ public class MicroKernelImpl implements MicroKernel {
 
     //-------------------------------------------------------< implementation >
 
-    void toJson(JsopBuilder builder, Node node, int depth, int offset, int count, boolean inclVirtualProps) throws Exception {
-        for (Map.Entry<String, String> prop : node.getProperties().entrySet()) {
-            builder.key(prop.getKey()).encodedValue(prop.getValue());
+    void toJson(JsopBuilder builder, NodeState node, int depth, int offset, int count, boolean inclVirtualProps) throws Exception {
+        for (PropertyState property : node.getProperties()) {
+            builder.key(property.getName()).encodedValue(property.getEncodedValue());
         }
         long childCount = node.getChildNodeCount();
         if (inclVirtualProps) {
             builder.key(":childNodeCount").value(childCount);
         }
         if (childCount > 0 && depth >= 0) {
-            for (Iterator<ChildNodeEntry> it = node.getChildNodeEntries(offset, count); it.hasNext(); ) {
-                ChildNodeEntry cne = it.next();
-                builder.key(cne.getName()).object();
+            // TODO: Use an import once the conflict with .mk.model is resolved
+            for (org.apache.jackrabbit.oak.tree.ChildNodeEntry entry
+                    : node.getChildNodeEntries(offset, count)) {
+                builder.key(entry.getName()).object();
                 if (depth > 0) {
-                    toJson(builder, rep.getRevisionStore().getNode(cne.getId()), depth - 1, 0, -1, inclVirtualProps);
+                    toJson(builder, entry.getNode(), depth - 1, 0, -1, inclVirtualProps);
                 }
                 builder.endObject();
             }
