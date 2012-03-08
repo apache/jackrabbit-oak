@@ -146,7 +146,7 @@ public class BDbPersistence implements Persistence {
 
         if (db.get(null, key, data, LockMode.DEFAULT) == OperationStatus.SUCCESS) {
             ByteArrayInputStream in = new ByteArrayInputStream(data.getData());
-            return StoredCommit.deserialize(id.toString(), new BinaryBinding(in));
+            return StoredCommit.deserialize(id, new BinaryBinding(in));
         } else {
             throw new NotFoundException(id.toString());
         }

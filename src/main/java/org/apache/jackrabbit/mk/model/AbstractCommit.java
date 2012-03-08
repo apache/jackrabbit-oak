@@ -65,6 +65,6 @@ public abstract class AbstractCommit implements Commit {
         binding.write("rootNodeId", rootNodeId.getBytes());
         binding.write("commitTS", commitTS);
         binding.write("msg", msg == null ? "" : msg);
-        binding.write("parentId", parentId == null ? "" : parentId);
+        binding.write("parentId", parentId == null ? "" : parentId.toString());
     }
 }

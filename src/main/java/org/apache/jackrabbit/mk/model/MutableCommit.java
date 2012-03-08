@@ -24,7 +24,7 @@ public class MutableCommit extends AbstractCommit {
     /**
      * Commit id.
      */
-    private String id;
+    private Id id;
     
     public MutableCommit() {
     }
@@ -63,7 +63,7 @@ public class MutableCommit extends AbstractCommit {
      * 
      * @return commit id
      */
-    public String getId() {
+    public Id getId() {
         return id;
     }
 }

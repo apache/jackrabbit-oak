@@ -166,7 +166,7 @@ public class H2Persistence implements Persistence {
                 ResultSet rs = stmt.executeQuery();
                 if (rs.next()) {
                     ByteArrayInputStream in = new ByteArrayInputStream(rs.getBytes(1));
-                    return StoredCommit.deserialize(id.toString(), new BinaryBinding(in));
+                    return StoredCommit.deserialize(id, new BinaryBinding(in));
                 } else {
                     throw new NotFoundException(id.toString());
                 }

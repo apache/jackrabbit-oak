@@ -103,7 +103,7 @@ public class InMemPersistence implements Persistence, BlobStore {
         byte[] bytes = out.toByteArray();
 
         if (!commits.containsKey(id)) {
-            commits.put(id, StoredCommit.deserialize(id.toString(), new BinaryBinding(new ByteArrayInputStream(bytes))));
+            commits.put(id, StoredCommit.deserialize(id, new BinaryBinding(new ByteArrayInputStream(bytes))));
         }
     }
 

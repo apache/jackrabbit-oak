@@ -105,7 +105,7 @@ public class FSPersistence implements Persistence {
         if (f.exists()) {
             BufferedInputStream in = new BufferedInputStream(new FileInputStream(f));
             try {
-                return StoredCommit.deserialize(id.toString(), new BinaryBinding(in));
+                return StoredCommit.deserialize(id, new BinaryBinding(in));
             } finally {
                 in.close();
             }

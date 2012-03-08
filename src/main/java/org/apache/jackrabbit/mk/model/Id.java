@@ -33,7 +33,7 @@ import java.util.Arrays;
  * passed to {@link Id#Id(byte[])} must not be reused or modified, the same
  * applies for the <code>byte[]</code> returned by {@link Id#getBytes()}.
  */
-public class Id {
+public class Id /* implements Comparable<Id> */ {
 
     // the raw bytes making up this identifier
     private final byte[] raw;
@@ -88,6 +88,19 @@ public class Id {
         // the string representation is intentionally not stored
         return StringUtils.convertBytesToHex(raw);
     }
+    
+//    @Override
+//    public int compareTo(Id o) {
+//        byte[] other = o.getBytes();
+//        int len = Math.min(raw.length, other.length);
+//        
+//        for (int i = 0; i < len; i++) {
+//            if (raw[i] != other[i]) {
+//                return raw[i] - other[i];
+//            }
+//        }
+//        return raw.length - other.length;
+//    }
 
     /**
      * Returns the raw byte representation of this identifier.

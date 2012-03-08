@@ -23,9 +23,9 @@ import org.apache.jackrabbit.mk.store.Binding;
  */
 public class StoredCommit extends AbstractCommit {
 
-    private final String id;
+    private final Id id;
 
-    public static StoredCommit deserialize(String id, Binding binding) throws Exception {
+    public static StoredCommit deserialize(Id id, Binding binding) throws Exception {
         Id rootNodeId = new Id(binding.readBytesValue("rootNodeId"));
         long commitTS = binding.readLongValue("commitTS");
         String msg = binding.readStringValue("msg");
@@ -33,7 +33,7 @@ public class StoredCommit extends AbstractCommit {
         return new StoredCommit(id, "".equals(parentId) ? null : parentId, commitTS, rootNodeId, "".equals(msg) ? null : msg);
     }
 
-    public StoredCommit(String id, String parentId, long commitTS, Id rootNodeId, String msg) {
+    public StoredCommit(Id id, String parentId, long commitTS, Id rootNodeId, String msg) {
         this.id = id;
         this.parentId = parentId;
         this.commitTS = commitTS;
@@ -41,12 +41,12 @@ public class StoredCommit extends AbstractCommit {
         this.msg = msg;
     }
 
-    public StoredCommit(String id, Commit commit) {
+    public StoredCommit(Id id, Commit commit) {
         super(commit);
         this.id = id;
     }
 
-    public String getId() {
+    public Id getId() {
         return id;
     }
 }
