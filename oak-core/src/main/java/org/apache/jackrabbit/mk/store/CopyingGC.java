@@ -175,6 +175,10 @@ public class CopyingGC implements RevisionStore, Closeable {
         return new StoredNodeAsState(node, this);
     }
 
+    public Id getId(NodeState node) {
+        return ((StoredNodeAsState) node).getId();
+    }
+
     public StoredNode getNode(Id id) throws NotFoundException, Exception {
         if (running) {
             try {

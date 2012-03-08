@@ -336,8 +336,10 @@ public class CommitBuilder {
     }
 
     void mergeNode(StoredNode baseNode, StoredNode ourNode, StoredNode theirNode, String path) throws Exception {
-        NodeDelta theirChanges = new NodeDelta(baseNode, theirNode);
-        NodeDelta ourChanges = new NodeDelta(baseNode, ourNode);
+        NodeDelta theirChanges = new NodeDelta(
+                store, store.getNodeState(baseNode), store.getNodeState(theirNode));
+        NodeDelta ourChanges = new NodeDelta(
+                store, store.getNodeState(baseNode), store.getNodeState(ourNode));
 
         // merge non-conflicting changes
         MutableNode mergedNode = new MutableNode(theirNode, store);

@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 
+import org.apache.jackrabbit.mk.model.Id;
 import org.apache.jackrabbit.mk.model.StoredNode;
 import org.apache.jackrabbit.oak.model.AbstractChildNodeEntry;
 import org.apache.jackrabbit.oak.model.AbstractNodeState;
@@ -37,6 +38,10 @@ class StoredNodeAsState extends AbstractNodeState {
     public StoredNodeAsState(StoredNode node, RevisionProvider provider) {
         this.node = node;
         this.provider = provider;
+    }
+
+    Id getId() {
+        return node.getId();
     }
 
     private static class SimplePropertyState extends AbstractPropertyState {

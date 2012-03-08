@@ -36,6 +36,14 @@ public interface RevisionProvider {
      */
     NodeState getNodeState(StoredNode node);
 
+    /**
+     * Adapts the given {@link NodeState} to the corresponding identifier.
+     *
+     * @param node node state
+     * @return node identifier
+     */
+    Id getId(NodeState node);
+
     StoredNode getNode(Id id) throws NotFoundException, Exception;
     StoredCommit getCommit(String id) throws NotFoundException, Exception;
     ChildNodeEntriesMap getCNEMap(Id id) throws NotFoundException, Exception;
