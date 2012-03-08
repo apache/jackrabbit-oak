@@ -138,25 +138,6 @@ public class DefaultRevisionStore implements RevisionStore, Closeable {
         return result;
     }
 
-    /**
-     * Convert a fixed-size byte array of size 8 into a long.
-     * 
-     * @param value byte array
-     * @return long
-     */
-    private static long bytesToLong(byte[] value) {
-        long result = 0;
-        
-        if (value.length != 8) {
-            throw new IllegalArgumentException("Value must be a byte array of size 8");
-        }
-        for (int i = 0; i < value.length; i++) {
-            result |= (value[i] & 0xff);
-            result <<= 8;
-        }
-        return result;
-    }
-    
     //--------------------------------------------------------< RevisionStore >
 
     public Id putNode(MutableNode node) throws Exception {
@@ -216,7 +197,6 @@ public class DefaultRevisionStore implements RevisionStore, Closeable {
             id = StringUtils.convertBytesToHex(rawId);
         } else {
             rawId = StringUtils.convertHexToBytes(id);
-            headCounter = bytesToLong(rawId);
         }
         pm.writeCommit(rawId, commit);
 
@@ -237,6 +217,11 @@ public class DefaultRevisionStore implements RevisionStore, Closeable {
         try {
             pm.writeHead(commitId);
             headId = commitId;
+            
+            long headCounter = Long.parseLong(headId, 16);
+            if (headCounter > this.headCounter) {
+                this.headCounter = headCounter;
+            }
         } finally {
             headLock.writeLock().unlock();
         }
