@@ -26,7 +26,6 @@ import org.apache.jackrabbit.mk.util.PathUtils;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
@@ -45,7 +44,7 @@ public abstract class AbstractNode implements Node {
     protected AbstractNode(RevisionProvider provider) {
         this.provider = provider;
         this.properties = new HashMap<String, String>();
-        this.childEntries = new ChildNodeEntriesMap(true);
+        this.childEntries = new ChildNodeEntriesMap();
     }
 
     protected AbstractNode(Node other, RevisionProvider provider) {
@@ -57,7 +56,7 @@ public abstract class AbstractNode implements Node {
         } else {
             this.properties = new HashMap<String, String>(other.getProperties());
             if (other.getChildNodeCount() <= ChildNodeEntries.CAPACITY_THRESHOLD) {
-                this.childEntries = new ChildNodeEntriesMap(true);
+                this.childEntries = new ChildNodeEntriesMap();
             } else {
                 this.childEntries = new ChildNodeEntriesTree(provider);
             }
@@ -175,12 +174,12 @@ public abstract class AbstractNode implements Node {
             return;
         }
 
-        Map<String, ChildNodeEntry> oldEntries = new LinkedHashMap<String, ChildNodeEntry>(getChildNodeCount());
+        Map<String, ChildNodeEntry> oldEntries = new HashMap<String, ChildNodeEntry>(getChildNodeCount());
         for (Iterator<ChildNodeEntry> it = getChildNodeEntries(0, -1); it.hasNext(); ) {
             ChildNodeEntry cne = it.next();
             oldEntries.put(cne.getName(), cne);
         }
-        Map<String, ChildNodeEntry> newEntries = new LinkedHashMap<String, ChildNodeEntry>(other.getChildNodeCount());
+        Map<String, ChildNodeEntry> newEntries = new HashMap<String, ChildNodeEntry>(other.getChildNodeCount());
         for (Iterator<ChildNodeEntry> it = other.getChildNodeEntries(0, -1); it.hasNext(); ) {
             ChildNodeEntry cne = it.next();
             newEntries.put(cne.getName(), cne);

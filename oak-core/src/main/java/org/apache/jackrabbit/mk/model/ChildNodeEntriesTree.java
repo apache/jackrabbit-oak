@@ -324,7 +324,7 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
                         // both this and other index entry are non-null
                         ChildNodeEntriesMap bucket1;
                         if (ie1 instanceof NodeInfo) {
-                            bucket1 = new ChildNodeEntriesMap(false);
+                            bucket1 = new ChildNodeEntriesMap();
                             bucket1.add((ChildNodeEntry) ie1);
                         } else if (ie1 instanceof BucketInfo) {
                             BucketInfo bi = (BucketInfo) ie1;
@@ -335,7 +335,7 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
                         }
                         ChildNodeEntriesMap bucket2;
                         if (ie2 instanceof NodeInfo) {
-                            bucket2 = new ChildNodeEntriesMap(false);
+                            bucket2 = new ChildNodeEntriesMap();
                             bucket2.add((ChildNodeEntry) ie2);
                         } else if (ie2 instanceof BucketInfo) {
                             BucketInfo bi = (BucketInfo) ie2;
@@ -401,7 +401,7 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
                         // both this and other index entry are non-null
                         ChildNodeEntriesMap bucket1;
                         if (ie1 instanceof NodeInfo) {
-                            bucket1 = new ChildNodeEntriesMap(false);
+                            bucket1 = new ChildNodeEntriesMap();
                             bucket1.add((ChildNodeEntry) ie1);
                         } else if (ie1 instanceof BucketInfo) {
                             BucketInfo bi = (BucketInfo) ie1;
@@ -412,7 +412,7 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
                         }
                         ChildNodeEntriesMap bucket2;
                         if (ie2 instanceof NodeInfo) {
-                            bucket2 = new ChildNodeEntriesMap(false);
+                            bucket2 = new ChildNodeEntriesMap();
                             bucket2.add((ChildNodeEntry) ie2);
                         } else if (ie2 instanceof BucketInfo) {
                             BucketInfo bi = (BucketInfo) ie2;
@@ -468,7 +468,7 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
 
                     ChildNodeEntriesMap bucket1;
                     if (ie1 instanceof NodeInfo) {
-                        bucket1 = new ChildNodeEntriesMap(false);
+                        bucket1 = new ChildNodeEntriesMap();
                         bucket1.add((ChildNodeEntry) ie1);
                     } else if (ie1 instanceof BucketInfo) {
                         BucketInfo bi = (BucketInfo) ie1;
@@ -479,7 +479,7 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
                     }
                     ChildNodeEntriesMap bucket2;
                     if (ie2 instanceof NodeInfo) {
-                        bucket2 = new ChildNodeEntriesMap(false);
+                        bucket2 = new ChildNodeEntriesMap();
                         bucket2.add((ChildNodeEntry) ie2);
                     } else if (ie2 instanceof BucketInfo) {
                         BucketInfo bi = (BucketInfo) ie2;
@@ -532,7 +532,7 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
             return revProvider.getCNEMap(id);
         } catch (Exception e) {
             // todo log error and gracefully handle exception
-            return new ChildNodeEntriesMap(false);
+            return new ChildNodeEntriesMap();
         }
     }
 
@@ -655,7 +655,6 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
     protected static class Bucket extends ChildNodeEntriesMap implements IndexEntry {
 
         protected Bucket() {
-            super(false);
         }
 
         protected Bucket(ChildNodeEntriesMap other) {

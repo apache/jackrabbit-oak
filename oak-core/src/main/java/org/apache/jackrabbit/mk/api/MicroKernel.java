@@ -51,7 +51,6 @@ import java.io.InputStream;
  * <li>SPI (node types, workspaces, namespaces, access control, search, locking, ...)</li>
  * <li><i>MicroKernel</i></li>
  * </ol>
- * </ul>
  */
 public interface MicroKernel {
 
