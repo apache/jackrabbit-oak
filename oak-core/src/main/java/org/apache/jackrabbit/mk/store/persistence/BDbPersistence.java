@@ -29,7 +29,6 @@ import org.apache.jackrabbit.mk.store.BinaryBinding;
 import org.apache.jackrabbit.mk.store.Binding;
 import org.apache.jackrabbit.mk.store.IdFactory;
 import org.apache.jackrabbit.mk.store.NotFoundException;
-import org.apache.jackrabbit.mk.util.StringUtils;
 
 import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseConfig;
