@@ -42,7 +42,7 @@ public class MutableCommit extends AbstractCommit {
         this.id = other.getId();
     }
 
-    public void setParentId(String parentId) {
+    public void setParentId(Id parentId) {
         this.parentId = parentId;
     }
 

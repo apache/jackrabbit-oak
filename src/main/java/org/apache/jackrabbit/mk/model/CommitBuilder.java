@@ -213,7 +213,7 @@ public class CommitBuilder {
                 return currentHead;
             }
             MutableCommit newCommit = new MutableCommit();
-            newCommit.setParentId(baseRevId);
+            newCommit.setParentId(Id.fromString(baseRevId));
             newCommit.setCommitTS(System.currentTimeMillis());
             newCommit.setMsg(msg);
             newCommit.setRootNodeId(rootNodeId);

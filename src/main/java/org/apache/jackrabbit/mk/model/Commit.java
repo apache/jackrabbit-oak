@@ -25,7 +25,7 @@ public interface Commit {
     
     Id getRootNodeId();
 
-    public String getParentId();
+    public Id getParentId();
 
     public long getCommitTS();
 

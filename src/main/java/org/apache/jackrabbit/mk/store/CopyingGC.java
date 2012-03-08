@@ -60,7 +60,7 @@ public class CopyingGC implements RevisionStore, Closeable {
     /**
      * First commit id of "to" store.
      */
-    private String firstCommitId;
+    private Id firstCommitId;
     
     /**
      * Map of commits that have been accessed while a GC cycle is running; these
@@ -70,7 +70,7 @@ public class CopyingGC implements RevisionStore, Closeable {
     private final TreeSet<MutableCommit> commits = new TreeSet<MutableCommit>(
             new Comparator<MutableCommit>() {
                 public int compare(MutableCommit o1, MutableCommit o2) {
-                    return o1.getId().toString().compareTo(o2.getId().toString());
+                    return o1.getId().compareTo(o2.getId());
                 }
             });
 
@@ -92,11 +92,11 @@ public class CopyingGC implements RevisionStore, Closeable {
      */
     public void start() throws Exception {
         commits.clear();
-        firstCommitId = rsTo.getHeadCommitId().toString();
+        firstCommitId = rsTo.getHeadCommitId();
         
         // Copy the head commit
         MutableCommit commitTo = copy(rsFrom.getHeadCommit());
-        commitTo.setParentId(rsTo.getHeadCommitId().toString());
+        commitTo.setParentId(rsTo.getHeadCommitId());
         Id revId = rsTo.putCommit(commitTo);
         rsTo.setHeadCommitId(revId);
 
@@ -113,11 +113,11 @@ public class CopyingGC implements RevisionStore, Closeable {
         running = false;
         
         if (commits.size() > 1) {
-            String parentId = firstCommitId;
+            Id parentId = firstCommitId;
             for (MutableCommit commit : commits) {
                 commit.setParentId(parentId);
                 rsTo.putCommit(commit);
-                parentId = commit.getId().toString();
+                parentId = commit.getId();
             }
         }
         // TODO: swap rsFrom/rsTo and reset them
