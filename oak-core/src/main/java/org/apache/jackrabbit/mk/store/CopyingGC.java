@@ -18,7 +18,9 @@ package org.apache.jackrabbit.mk.store;
 
 import java.io.Closeable;
 import java.io.InputStream;
+import java.util.Comparator;
 import java.util.Iterator;
+import java.util.TreeSet;
 
 import org.apache.jackrabbit.mk.model.ChildNode;
 import org.apache.jackrabbit.mk.model.ChildNodeEntriesMap;
@@ -35,8 +37,8 @@ import org.apache.jackrabbit.oak.model.NodeState;
  * store to a "to" revision store. It assumes that both stores share the same blob
  * store.
  * 
- * TODO: Ensure the integrity of the parental relationship when copying revisions
- *       in a GC cycle (because there may be missing intermediate commits).
+ * In the current design, a revision is reachable, if it is either the head revision
+ * or requested during the GC cycle.
  */
 public class CopyingGC implements RevisionStore, Closeable {
     
@@ -54,6 +56,23 @@ public class CopyingGC implements RevisionStore, Closeable {
      * Flag indicating whether a GC cycle is running.
      */
     private volatile boolean running;
+    
+    /**
+     * First commit id of "to" store.
+     */
+    private String firstCommitId;
+    
+    /**
+     * Map of commits that have been accessed while a GC cycle is running; these
+     * need to be "re-linked" with a preceding, possibly not adjacent parent
+     * commit before saving them back to the "to" revision store.
+     */
+    private final TreeSet<MutableCommit> commits = new TreeSet<MutableCommit>(
+            new Comparator<MutableCommit>() {
+                public int compare(MutableCommit o1, MutableCommit o2) {
+                    return o1.getId().compareTo(o2.getId());
+                }
+            });
 
     /**
      * Create a new instance of this class.
@@ -72,17 +91,35 @@ public class CopyingGC implements RevisionStore, Closeable {
      * @throws Exception if an error occurs
      */
     public void start() throws Exception {
-        running = true;
+        commits.clear();
+        firstCommitId = rsTo.getHeadCommitId();
         
-        copy(rsFrom.getHeadCommit());
+        // Copy the head commit
+        MutableCommit commitTo = copy(rsFrom.getHeadCommit());
+        commitTo.setParentId(rsTo.getHeadCommitId());
+        String revId = rsTo.putCommit(commitTo);
+        rsTo.setHeadCommitId(revId);
+
+        // Add this as sentinel
+        commits.add(commitTo);
+
+        running = true;
     }
     
     /**
      * Stop GC cycle.
      */
-    public void stop() {
+    public void stop() throws Exception {
         running = false;
         
+        if (commits.size() > 1) {
+            String parentId = firstCommitId;
+            for (MutableCommit commit : commits) {
+                commit.setParentId(parentId);
+                rsTo.putCommit(commit);
+                parentId = commit.getId();
+            }
+        }
         // TODO: swap rsFrom/rsTo and reset them
         rsFrom = rsTo;
         rsTo = null;
@@ -100,18 +137,15 @@ public class CopyingGC implements RevisionStore, Closeable {
     /**
      * Copy a commit and all the nodes belonging to it, starting at the root node.
      * 
-     * @param commit commit to be copied
+     * @param commit commit to copy
+     * @return commit in the "to" store, not yet persisted
      * @throws Exception if an error occurs
      */
-    public void copy(StoredCommit commit) throws Exception {
+    private MutableCommit copy(StoredCommit commit) throws Exception {
         StoredNode nodeFrom = rsFrom.getNode(commit.getRootNodeId());
         copy(nodeFrom);
         
-        MutableCommit commitTo = new MutableCommit(commit);
-        commitTo.setParentId(rsTo.getHeadCommitId());
-        
-        String revId = rsTo.putCommit(commitTo);
-        rsTo.setHeadCommitId(revId);
+        return new MutableCommit(commit);
     }
     
     /**
@@ -162,13 +196,7 @@ public class CopyingGC implements RevisionStore, Closeable {
                 // ignore, better add a has() method
             }
         }
-        StoredCommit commit = rsFrom.getCommit(id);
-        if (!running) {
-            return commit;
-        }
-        // synchronously copy the commit and the nodes it references to the target store
-        copy(commit);
-        return rsTo.getCommit(id);
+        return rsFrom.getCommit(id);
     }
 
     public ChildNodeEntriesMap getCNEMap(Id id) throws NotFoundException,
@@ -194,7 +222,12 @@ public class CopyingGC implements RevisionStore, Closeable {
                 // ignore, better add a has() method
             }
         }
-        return rsFrom.getRootNode(commitId);
+        // Copy this commit
+        StoredCommit commit = rsFrom.getCommit(commitId);
+        if (running) {
+            commits.add(copy(commit));
+        }
+        return rsFrom.getNode(commit.getRootNodeId());
     }
 
     public StoredCommit getHeadCommit() throws Exception {

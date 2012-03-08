@@ -23,8 +23,12 @@ import java.io.File;
 
 import org.apache.jackrabbit.mk.MicroKernelImpl;
 import org.apache.jackrabbit.mk.Repository;
+import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.fs.FileUtils;
+import org.apache.jackrabbit.mk.json.fast.Jsop;
+import org.apache.jackrabbit.mk.json.fast.JsopArray;
+import org.apache.jackrabbit.mk.json.fast.JsopObject;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -49,7 +53,7 @@ public class CopyHeadRevisionTest {
     
     @Test
     public void testCopyHeadRevisionToNewStore() throws Exception {
-        String[] revs = new String[3];
+        String[] revs = new String[5];
         
         DefaultRevisionStore rsFrom = new DefaultRevisionStore();
         rsFrom.initialize(new File("target/mk1"));
@@ -59,20 +63,23 @@ public class CopyHeadRevisionTest {
 
         CopyingGC gc = new CopyingGC(rsFrom, rsTo);
         
-        MicroKernelImpl mk = new MicroKernelImpl(new Repository(gc));
-        revs[0] = mk.commit("/",  "+\"a\" : { \"c\":{}, \"d\":{} }", mk.getHeadRevision(), null);
-        revs[1] = mk.commit("/",  "+\"b\" : {}", mk.getHeadRevision(), null);
+        MicroKernel mk = new MicroKernelImpl(new Repository(gc));
+        revs[0] = mk.commit("/", "+\"a\" : { \"c\":{}, \"d\":{} }", mk.getHeadRevision(), null);
+        revs[1] = mk.commit("/", "+\"b\" : {}", mk.getHeadRevision(), null);
+        revs[2] = mk.commit("/b", "+\"e\" : {}", mk.getHeadRevision(), null);
+        revs[3] = mk.commit("/a/c", "+\"f\" : {}", mk.getHeadRevision(), null);
 
         // Simulate a GC cycle start
         gc.start();
 
-        revs[2] = mk.commit("/b", "+\"e\" : {}", mk.getHeadRevision(), null);
+        revs[4] = mk.commit("/b/e", "+\"g\" : {}", mk.getHeadRevision(), null);
+        mk.getJournal(revs[2], revs[2], "");
         
         // Simulate a GC cycle stop
         gc.stop();
         
         // Assert head revision is contained after GC
-        assertEquals(mk.getHeadRevision(), revs[2]);
+        assertEquals(mk.getHeadRevision(), revs[revs.length - 1]);
         
         // Assert unused revision was GCed
         try {
@@ -81,5 +88,14 @@ public class CopyHeadRevisionTest {
         } catch (MicroKernelException e) {
             // ignore
         }
+        
+        // Verify journal integrity: referenced revision must still be available and linked in chain
+        JsopArray a = (JsopArray) Jsop.parse(mk.getRevisions(0, Integer.MAX_VALUE));
+        for (int i = 0; i < a.size(); i++) {
+            if (((JsopObject) a.get(i)).get("id").equals(revs[2])) {
+                return; 
+            }
+        }
+        fail("Revision not appearing in list of revisions: "+ revs[2]);
     }
 }
