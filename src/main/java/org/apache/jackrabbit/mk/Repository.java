@@ -166,7 +166,6 @@ public class Repository {
 
     public CommitBuilder getCommitBuilder(String revId, String msg) throws Exception {
         return new CommitBuilder(revId, msg, rs);
-
     }
 
     /**
