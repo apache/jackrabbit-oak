@@ -102,20 +102,20 @@ public class BDbPersistence implements Persistence {
         }
     }
 
-    public String readHead() throws Exception {
+    public Id readHead() throws Exception {
         DatabaseEntry key = new DatabaseEntry(HEAD_ID);
         DatabaseEntry data = new DatabaseEntry();
 
         if (head.get(null, key, data, LockMode.DEFAULT) == OperationStatus.SUCCESS) {
-            return StringUtils.convertBytesToHex(data.getData());
+            return new Id(data.getData());
         } else {
             return null;
         }
     }
 
-    public void writeHead(String id) throws Exception {
+    public void writeHead(Id id) throws Exception {
         DatabaseEntry key = new DatabaseEntry(HEAD_ID);
-        DatabaseEntry data = new DatabaseEntry(StringUtils.convertHexToBytes(id));
+        DatabaseEntry data = new DatabaseEntry(id.getBytes());
 
         head.put(null, key, data);
     }
@@ -141,23 +141,23 @@ public class BDbPersistence implements Persistence {
         return id;
     }
 
-    public StoredCommit readCommit(String id) throws NotFoundException, Exception {
-        DatabaseEntry key = new DatabaseEntry(StringUtils.convertHexToBytes(id));
+    public StoredCommit readCommit(Id id) throws NotFoundException, Exception {
+        DatabaseEntry key = new DatabaseEntry(id.getBytes());
         DatabaseEntry data = new DatabaseEntry();
 
         if (db.get(null, key, data, LockMode.DEFAULT) == OperationStatus.SUCCESS) {
             ByteArrayInputStream in = new ByteArrayInputStream(data.getData());
-            return StoredCommit.deserialize(id, new BinaryBinding(in));
+            return StoredCommit.deserialize(id.toString(), new BinaryBinding(in));
         } else {
-            throw new NotFoundException(id);
+            throw new NotFoundException(id.toString());
         }
     }
 
-    public void writeCommit(byte[] rawId, Commit commit) throws Exception {
+    public void writeCommit(Id id, Commit commit) throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         commit.serialize(new BinaryBinding(out));
         byte[] bytes = out.toByteArray();
-        persist(rawId, bytes);
+        persist(id.getBytes(), bytes);
     }
 
     public ChildNodeEntriesMap readCNEMap(Id id) throws NotFoundException, Exception {

@@ -35,7 +35,6 @@ import org.apache.jackrabbit.mk.store.BinaryBinding;
 import org.apache.jackrabbit.mk.store.Binding;
 import org.apache.jackrabbit.mk.store.IdFactory;
 import org.apache.jackrabbit.mk.store.NotFoundException;
-import org.apache.jackrabbit.mk.util.StringUtils;
 
 /**
  *
@@ -43,11 +42,11 @@ import org.apache.jackrabbit.mk.util.StringUtils;
 public class InMemPersistence implements Persistence, BlobStore {
 
     private final Map<Id, byte[]> nodes = Collections.synchronizedMap(new HashMap<Id, byte[]>());
-    private final Map<String, StoredCommit> commits = Collections.synchronizedMap(new HashMap<String, StoredCommit>());
+    private final Map<Id, StoredCommit> commits = Collections.synchronizedMap(new HashMap<Id, StoredCommit>());
     private final Map<Id, ChildNodeEntriesMap> cneMaps = Collections.synchronizedMap(new HashMap<Id, ChildNodeEntriesMap>());
     private final BlobStore blobs = new MemoryBlobStore();
 
-    private String head;
+    private Id head;
 
     // TODO: make this configurable
     private IdFactory idFactory = IdFactory.getDigestFactory();
@@ -59,11 +58,11 @@ public class InMemPersistence implements Persistence, BlobStore {
     public void close() {
     }
 
-    public String readHead() throws Exception {
+    public Id readHead() throws Exception {
         return head;
     }
 
-    public void writeHead(String id) throws Exception {
+    public void writeHead(Id id) throws Exception {
         head = id;
     }
 
@@ -89,23 +88,22 @@ public class InMemPersistence implements Persistence, BlobStore {
         return id;
     }
 
-    public StoredCommit readCommit(String id) throws NotFoundException, Exception {
+    public StoredCommit readCommit(Id id) throws NotFoundException, Exception {
         StoredCommit commit = commits.get(id);
         if (commit != null) {
             return commit;
         } else {
-            throw new NotFoundException(id);
+            throw new NotFoundException(id.toString());
         }
     }
 
-    public void writeCommit(byte[] rawId, Commit commit) throws Exception {
+    public void writeCommit(Id id, Commit commit) throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         commit.serialize(new BinaryBinding(out));
         byte[] bytes = out.toByteArray();
-        String id = StringUtils.convertBytesToHex(rawId);
 
         if (!commits.containsKey(id)) {
-            commits.put(id, StoredCommit.deserialize(id, new BinaryBinding(new ByteArrayInputStream(bytes))));
+            commits.put(id, StoredCommit.deserialize(id.toString(), new BinaryBinding(new ByteArrayInputStream(bytes))));
         }
     }
 

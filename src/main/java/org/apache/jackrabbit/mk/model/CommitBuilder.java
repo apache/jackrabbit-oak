@@ -176,7 +176,7 @@ public class CommitBuilder {
             return baseRevId;
         }
 
-        String currentHead = store.getHeadCommitId();
+        String currentHead = store.getHeadCommitId().toString();
         if (!currentHead.equals(baseRevId)) {
             // todo gracefully handle certain conflicts (e.g. changes on moved sub-trees, competing deletes etc)
             // update base revision to new head
@@ -193,13 +193,13 @@ public class CommitBuilder {
 
         Id rootNodeId = persistStagedNodes();
 
-        String newRevId;
+        Id newRevId;
         store.lockHead();
         try {
-            currentHead = store.getHeadCommitId();
+            currentHead = store.getHeadCommitId().toString();
             if (!currentHead.equals(baseRevId)) {
-                StoredNode baseRoot = store.getRootNode(baseRevId);
-                StoredNode theirRoot = store.getRootNode(currentHead);
+                StoredNode baseRoot = store.getRootNode(Id.fromString(baseRevId));
+                StoredNode theirRoot = store.getRootNode(Id.fromString(currentHead));
                 StoredNode ourRoot = store.getNode(rootNodeId);
 
                 rootNodeId = mergeTree(baseRoot, ourRoot, theirRoot);
@@ -207,7 +207,7 @@ public class CommitBuilder {
                 baseRevId = currentHead;
             }
 
-            if (store.getCommit(currentHead).getRootNodeId().equals(rootNodeId)) {
+            if (store.getCommit(Id.fromString(currentHead)).getRootNodeId().equals(rootNodeId)) {
                 // the commit didn't cause any changes,
                 // no need to create new commit object/update head revision
                 return currentHead;
@@ -228,7 +228,7 @@ public class CommitBuilder {
         staged.clear();
         changeLog.clear();
 
-        return newRevId;
+        return newRevId.toString();
     }
 
     MutableNode getOrCreateStagedNode(String nodePath) throws Exception {
@@ -236,7 +236,7 @@ public class CommitBuilder {
         if (node == null) {
             MutableNode parent = staged.get("/");
             if (parent == null) {
-                parent = new MutableNode(store.getRootNode(baseRevId), store);
+                parent = new MutableNode(store.getRootNode(Id.fromString(baseRevId)), store);
                 staged.put("/", parent);
             }
             node = parent;

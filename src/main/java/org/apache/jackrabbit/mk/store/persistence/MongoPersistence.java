@@ -109,17 +109,17 @@ public class MongoPersistence implements Persistence, BlobStore {
         db = null;
     }
 
-    public String readHead() throws Exception {
+    public Id readHead() throws Exception {
         DBObject entry = db.getCollection(HEAD_COLLECTION).findOne();
         if (entry == null) {
             return null;
         }
-        return (String) entry.get(ID_FIELD);
+        return new Id((byte[]) entry.get(ID_FIELD));
     }
 
-    public void writeHead(String id) throws Exception {
+    public void writeHead(Id id) throws Exception {
         // capped collection of size 1
-        db.getCollection(HEAD_COLLECTION).insert(new BasicDBObject(ID_FIELD, id));
+        db.getCollection(HEAD_COLLECTION).insert(new BasicDBObject(ID_FIELD, id.getBytes()));
     }
 
     public Binding readNodeBinding(Id id) throws NotFoundException, Exception {
@@ -164,37 +164,37 @@ public class MongoPersistence implements Persistence, BlobStore {
         return id;
     }
 
-    public StoredCommit readCommit(String id) throws NotFoundException, Exception {
+    public StoredCommit readCommit(Id id) throws NotFoundException, Exception {
         BasicDBObject key = new BasicDBObject();
+        
         if (BINARY_FORMAT) {
-            key.put(ID_FIELD, StringUtils.convertHexToBytes(id));
+            key.put(ID_FIELD, id.getBytes());
         } else {
-            key.put(ID_FIELD, id);
+            key.put(ID_FIELD, id.toString());
         }
         BasicDBObject commitObject = (BasicDBObject) commits.findOne(key);
         if (commitObject != null) {
             if (BINARY_FORMAT) {
                 byte[] bytes = (byte[]) commitObject.get(DATA_FIELD);
-                return StoredCommit.deserialize(id, new BinaryBinding(new ByteArrayInputStream(bytes)));
+                return StoredCommit.deserialize(id.toString(), new BinaryBinding(new ByteArrayInputStream(bytes)));
             } else {
-                return StoredCommit.deserialize(id, new DBObjectBinding(commitObject));
+                return StoredCommit.deserialize(id.toString(), new DBObjectBinding(commitObject));
             }
         } else {
-            throw new NotFoundException(id);
+            throw new NotFoundException(id.toString());
         }
     }
 
-    public void writeCommit(byte[] rawId, Commit commit) throws Exception {
+    public void writeCommit(Id id, Commit commit) throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         commit.serialize(new BinaryBinding(out));
         byte[] bytes = out.toByteArray();
-        String id = StringUtils.convertBytesToHex(rawId);
 
         BasicDBObject commitObject;
         if (BINARY_FORMAT) {
-            commitObject = new BasicDBObject(ID_FIELD, rawId).append(DATA_FIELD, bytes);
+            commitObject = new BasicDBObject(ID_FIELD, id.getBytes()).append(DATA_FIELD, bytes);
         } else {
-            commitObject = new BasicDBObject(ID_FIELD, id);
+            commitObject = new BasicDBObject(ID_FIELD, id.toString());
             commit.serialize(new DBObjectBinding(commitObject));
         }
         try {

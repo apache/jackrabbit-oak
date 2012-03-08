@@ -39,9 +39,9 @@ public interface Persistence {
 
     void close();
 
-    String readHead() throws Exception;
+    Id readHead() throws Exception;
 
-    void writeHead(String id) throws Exception;
+    void writeHead(Id id) throws Exception;
 
     Binding readNodeBinding(Id id) throws NotFoundException, Exception;
 
@@ -51,7 +51,7 @@ public interface Persistence {
 
     Id writeCNEMap(ChildNodeEntriesMap map) throws Exception;
 
-    StoredCommit readCommit(String id) throws NotFoundException, Exception;
+    StoredCommit readCommit(Id id) throws NotFoundException, Exception;
 
-    void writeCommit(byte[] rawId, Commit commit) throws Exception;
+    void writeCommit(Id id, Commit commit) throws Exception;
 }
