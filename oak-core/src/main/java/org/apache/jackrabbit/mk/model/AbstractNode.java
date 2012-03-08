@@ -17,18 +17,11 @@
 package org.apache.jackrabbit.mk.model;
 
 import org.apache.jackrabbit.mk.store.Binding;
-import org.apache.jackrabbit.mk.store.NotFoundException;
 import org.apache.jackrabbit.mk.store.RevisionProvider;
-import org.apache.jackrabbit.mk.util.AbstractRangeIterator;
-import org.apache.jackrabbit.mk.util.EmptyIterator;
-import org.apache.jackrabbit.mk.util.PathUtils;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Set;
 
 /**
  *
@@ -85,50 +78,6 @@ public abstract class AbstractNode implements Node {
 
     public Iterator<ChildNodeEntry> getChildNodeEntries(int offset, int count) {
         return childEntries.getEntries(offset, count);
-    }
-
-    public Iterator<ChildNode> getChildNodes(int offset, int count)
-            throws Exception {
-        if (offset < 0 || count < -1) {
-            throw new IllegalArgumentException();
-        }
-
-        if (offset >= childEntries.getCount()) {
-            return new EmptyIterator<ChildNode>();
-        }
-
-        // todo support embedded/in-lined sub-trees
-
-        if (count == -1 || (offset + count) > childEntries.getCount()) {
-            count = childEntries.getCount() - offset;
-        }
-
-        return new AbstractRangeIterator<ChildNode>(childEntries.getEntries(offset, count), 0, -1) {
-            @Override
-            protected ChildNode doNext() {
-                ChildNodeEntry cne = (ChildNodeEntry) it.next();
-                try {
-                    return new ChildNode(cne.getName(), provider.getNode(cne.getId()));
-                } catch (Exception e) {
-                    throw new NoSuchElementException();
-                }
-            }
-        };
-    }
-
-    public Node getNode(String relPath)
-            throws NotFoundException, Exception {
-        String[] names = PathUtils.split(relPath);
-
-        Node node = this;
-        for (String name : names) {
-            ChildNodeEntry cne = node.getChildNodeEntry(name);
-            if (cne == null) {
-                throw new NotFoundException();
-            }
-            node = provider.getNode(cne.getId());
-        }
-        return node;
     }
 
     public void serialize(Binding binding) throws Exception {

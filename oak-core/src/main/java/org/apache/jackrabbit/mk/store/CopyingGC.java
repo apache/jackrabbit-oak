@@ -22,8 +22,8 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.TreeSet;
 
-import org.apache.jackrabbit.mk.model.ChildNode;
 import org.apache.jackrabbit.mk.model.ChildNodeEntriesMap;
+import org.apache.jackrabbit.mk.model.ChildNodeEntry;
 import org.apache.jackrabbit.mk.model.Id;
 import org.apache.jackrabbit.mk.model.MutableCommit;
 import org.apache.jackrabbit.mk.model.MutableNode;
@@ -161,11 +161,11 @@ public class CopyingGC implements RevisionStore, Closeable {
             // ignore, better add a has() method
         }
         rsTo.putNode(new MutableNode(node, rsTo));
-        
-        Iterator<ChildNode> iter = node.getChildNodes(0, -1);
+
+        Iterator<ChildNodeEntry> iter = node.getChildNodeEntries(0, -1);
         while (iter.hasNext()) {
-            ChildNode c = iter.next();
-            copy(c.getNode());
+            ChildNodeEntry c = iter.next();
+            copy(rsFrom.getNode(c.getId()));
         }
     }
     
