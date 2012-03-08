@@ -39,7 +39,5 @@ public interface Node {
     Iterator<ChildNode> getChildNodes(int offset, int count) throws Exception;
     Node getNode(String relPath) throws NotFoundException, Exception;
 
-    void diff(Node other, NodeDiffHandler handler);
-    
     void serialize(Binding binding) throws Exception;
 }

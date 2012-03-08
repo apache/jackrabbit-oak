@@ -16,68 +16,38 @@
  */
 package org.apache.jackrabbit.mk.model;
 
-import org.apache.jackrabbit.mk.store.RevisionProvider;
 import org.apache.jackrabbit.mk.util.PathUtils;
+import org.apache.jackrabbit.oak.model.NodeState;
 
 import java.util.Stack;
 
 /**
  *
  */
-public abstract class TraversingNodeDiffHandler implements NodeDiffHandler {
+public abstract class TraversingNodeDiffHandler extends NodeStateDiff {
 
-    protected final RevisionProvider store;
-    protected Stack paths = new Stack();
-    
-    public TraversingNodeDiffHandler(RevisionProvider store) {
-        this.store = store;
+    protected Stack<String> paths = new Stack<String>();
+
+    public void start(NodeState before, NodeState after) {
+        start(before, after, "/");
     }
 
-    public void start(Node node1, Node node2) throws Exception {
-        start(node1, node2, "/");
-    }
-
-    public void start(Node node1, Node node2, String path) throws Exception {
+    public void start(NodeState before, NodeState after, String path) {
         paths.clear();
         paths.push(path);
-        try {
-            node1.diff(node2, this);
-        } catch (RuntimeException e) {
-            Throwable root = e.getCause();
-            if (root != null && root instanceof Exception) {
-                throw (Exception) root;
-            } else {
-                throw e;
-            }
-        }
+        compare(before, after);
     }
-    
+
     protected String getCurrentPath() {
-        return (String) paths.peek();
+        return paths.peek();
     }
 
-    public void propAdded(String propName, String value) {
-    }
-
-    public void propChanged(String propName, String oldValue, String newValue) {
-    }
-
-    public void propDeleted(String propName, String value) {
-    }
-
-    public void childNodeAdded(ChildNodeEntry added) {
-    }
-
-    public void childNodeDeleted(ChildNodeEntry deleted) {
-    }
-
-    public void childNodeChanged(ChildNodeEntry changed, Id newId) {
-        paths.push(PathUtils.concat(getCurrentPath(), changed.getName()));
-        try {
-            store.getNode(changed.getId()).diff(store.getNode(newId), this);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+    @Override
+    public void childNodeChanged(
+            String name, NodeState before, NodeState after) {
+        paths.push(PathUtils.concat(getCurrentPath(), name));
+        compare(before, after);
         paths.pop();
     }
+
 }

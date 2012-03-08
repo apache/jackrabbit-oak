@@ -21,10 +21,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.jackrabbit.mk.store.RevisionProvider;
+import org.apache.jackrabbit.oak.model.NodeState;
+import org.apache.jackrabbit.oak.model.PropertyState;
+
 /**
  *
  */
-public class NodeDelta implements NodeDiffHandler {
+public class NodeDelta {
 
     public static enum ConflictType {
         /**
@@ -47,8 +51,9 @@ public class NodeDelta implements NodeDiffHandler {
         REMOVED_DIRTY_NODE_CONFLICT
     }
 
-    final StoredNode node1;
-    final StoredNode node2;
+    private final RevisionProvider provider;
+
+    private final NodeState node1;
 
     Map<String, String> addedProperties = new HashMap<String, String>();
     Map<String, String> removedProperties = new HashMap<String, String>();
@@ -58,11 +63,11 @@ public class NodeDelta implements NodeDiffHandler {
     Map<String, Id> removedChildNodes = new HashMap<String, Id>();
     Map<String, Id> changedChildNodes = new HashMap<String, Id>();
 
-    public NodeDelta(StoredNode node1, StoredNode node2) throws Exception {
+    public NodeDelta(
+            RevisionProvider provider, NodeState node1, NodeState node2) {
+        this.provider = provider;
         this.node1 = node1;
-        this.node2 = node2;
-
-        node1.diff(node2, this);
+        new DiffHandler().compare(node1, node2);
     }
 
     public Map<String, String> getAddedProperties() {
@@ -95,7 +100,7 @@ public class NodeDelta implements NodeDiffHandler {
 
     public List<Conflict> listConflicts(NodeDelta other) {
         // assume that both delta's were built using the *same* base node revision
-        if (!node1.getId().equals(other.node1.getId())) {
+        if (!node1.equals(other.node1)) {
             throw new IllegalArgumentException("other and this NodeDelta object are expected to share common node1 instance");
         }
 
@@ -168,33 +173,42 @@ public class NodeDelta implements NodeDiffHandler {
         return conflicts;
     }
 
-    //------------------------------------------------------< NodeDiffHandler >
-
-    public void propAdded(String propName, String value) {
-        addedProperties.put(propName, value);
-    }
-
-    public void propChanged(String propName, String oldValue, String newValue) {
-        changedProperties.put(propName, newValue);
-    }
-
-    public void propDeleted(String propName, String value) {
-        removedProperties.put(propName, value);
-    }
-
-    public void childNodeAdded(ChildNodeEntry added) {
-        addedChildNodes.put(added.getName(), added.getId());
-    }
-
-    public void childNodeDeleted(ChildNodeEntry deleted) {
-        removedChildNodes.put(deleted.getName(), deleted.getId());
-    }
-
-    public void childNodeChanged(ChildNodeEntry changed, Id newId) {
-        changedChildNodes.put(changed.getName(), newId);
-    }
-
     //--------------------------------------------------------< inner classes >
+
+    private class DiffHandler extends NodeStateDiff {
+
+        @Override
+        public void propertyAdded(PropertyState after) {
+            addedProperties.put(after.getName(), after.getEncodedValue());
+        }
+
+        @Override
+        public void propertyChanged(PropertyState before, PropertyState after) {
+            changedProperties.put(after.getName(), after.getEncodedValue());
+        }
+
+        @Override
+        public void propertyDeleted(PropertyState before) {
+            removedProperties.put(before.getName(), before.getEncodedValue());
+        }
+
+        @Override
+        public void childNodeAdded(String name, NodeState after) {
+            addedChildNodes.put(name, provider.getId(after));
+        }
+
+        @Override
+        public void childNodeChanged(
+                String name, NodeState before, NodeState after) {
+            changedChildNodes.put(name, provider.getId(after));
+        }
+
+        @Override
+        public void childNodeDeleted(String name, NodeState before) {
+            removedChildNodes.put(name, provider.getId(before));
+        }
+
+    }
 
     public static class Conflict {
 

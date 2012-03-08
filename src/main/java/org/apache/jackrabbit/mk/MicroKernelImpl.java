@@ -20,14 +20,13 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
-import org.apache.jackrabbit.mk.model.ChildNodeEntry;
 import org.apache.jackrabbit.mk.model.Commit;
 import org.apache.jackrabbit.mk.model.CommitBuilder;
 import org.apache.jackrabbit.mk.model.Id;
 import org.apache.jackrabbit.mk.model.StoredCommit;
-import org.apache.jackrabbit.mk.model.StoredNode;
 import org.apache.jackrabbit.mk.model.TraversingNodeDiffHandler;
 import org.apache.jackrabbit.mk.store.NotFoundException;
+import org.apache.jackrabbit.mk.store.RevisionProvider;
 import org.apache.jackrabbit.mk.util.CommitGate;
 import org.apache.jackrabbit.mk.util.PathUtils;
 import org.apache.jackrabbit.mk.util.SimpleLRUCache;
@@ -207,19 +206,20 @@ public class MicroKernelImpl implements MicroKernel {
 
         try {
             final JsopBuilder buff = new JsopBuilder();
+            final RevisionProvider rp = rep.getRevisionStore();
             // maps (key: id of target node, value: path/to/target)
             // for tracking added/removed nodes; this allows us
             // to detect 'move' operations
             final HashMap<Id, String> addedNodes = new HashMap<Id, String>();
             final HashMap<Id, String> removedNodes = new HashMap<Id, String>();
-            StoredNode node1, node2;
+            NodeState node1, node2;
             try {
-                node1 = rep.getNode(fromRevisionId, path);
+                node1 = rep.getNodeState(fromRevisionId, path);
             } catch (NotFoundException e) {
                 node1 = null;
             }
             try {
-                node2 = rep.getNode(toRevisionId, path);
+                node2 = rep.getNodeState(toRevisionId, path);
             } catch (NotFoundException e) {
                 node2 = null;
             }
@@ -227,8 +227,7 @@ public class MicroKernelImpl implements MicroKernel {
             if (node1 == null) {
                 if (node2 != null) {
                     buff.tag('+').key(path).object();
-                    toJson(buff, rep.getRevisionStore().getNodeState(node2),
-                            Integer.MAX_VALUE, 0, -1, false);
+                    toJson(buff, node2, Integer.MAX_VALUE, 0, -1, false);
                     return buff.endObject().newline().toString();
                 } else {
                     throw new MicroKernelException("path doesn't exist in the specified revisions: " + path);
@@ -239,52 +238,48 @@ public class MicroKernelImpl implements MicroKernel {
                 return buff.newline().toString();
             }
 
-            TraversingNodeDiffHandler diffHandler = new TraversingNodeDiffHandler(rep.getRevisionStore()) {
+            TraversingNodeDiffHandler diffHandler = new TraversingNodeDiffHandler() {
                 @Override
-                public void propAdded(String propName, String value) {
+                public void propertyAdded(PropertyState after) {
                     buff.tag('+').
-                            key(PathUtils.concat(getCurrentPath(), propName)).
-                            encodedValue(value).
+                            key(PathUtils.concat(getCurrentPath(), after.getName())).
+                            encodedValue(after.getEncodedValue()).
                             newline();
                 }
 
                 @Override
-                public void propChanged(String propName, String oldValue, String newValue) {
+                public void propertyChanged(PropertyState before, PropertyState after) {
                     buff.tag('^').
-                            key(PathUtils.concat(getCurrentPath(), propName)).
-                            encodedValue(newValue).
+                            key(PathUtils.concat(getCurrentPath(), after.getName())).
+                            encodedValue(after.getEncodedValue()).
                             newline();
                 }
 
                 @Override
-                public void propDeleted(String propName, String value) {
+                public void propertyDeleted(PropertyState before) {
                     // since property and node deletions can't be distinguished
                     // using the "- <path>" notation we're representing
                     // property deletions as "^ <path>:null"
                     buff.tag('^').
-                            key(PathUtils.concat(getCurrentPath(), propName)).
+                            key(PathUtils.concat(getCurrentPath(), before.getName())).
                             value(null).
                             newline();
                 }
 
                 @Override
-                public void childNodeAdded(ChildNodeEntry added) {
-                    addedNodes.put(added.getId(), PathUtils.concat(getCurrentPath(), added.getName()));
+                public void childNodeAdded(String name, NodeState after) {
+                    addedNodes.put(rp.getId(after), PathUtils.concat(getCurrentPath(), name));
                     buff.tag('+').
-                            key(PathUtils.concat(getCurrentPath(), added.getName())).object();
-                    try {
-                        toJson(buff, store.getNodeState(store.getNode(added.getId())), Integer.MAX_VALUE, 0, -1, false);
-                    } catch (Exception e) {
-                        buff.value("ERROR: failed to retrieve node " + added.getId());
-                    }
+                            key(PathUtils.concat(getCurrentPath(), name)).object();
+                    toJson(buff, after, Integer.MAX_VALUE, 0, -1, false);
                     buff.endObject().newline();
                 }
 
                 @Override
-                public void childNodeDeleted(ChildNodeEntry deleted) {
-                    removedNodes.put(deleted.getId(), PathUtils.concat(getCurrentPath(), deleted.getName()));
+                public void childNodeDeleted(String name, NodeState before) {
+                    removedNodes.put(rp.getId(before), PathUtils.concat(getCurrentPath(), name));
                     buff.tag('-');
-                    buff.value(PathUtils.concat(getCurrentPath(), deleted.getName()));
+                    buff.value(PathUtils.concat(getCurrentPath(), name));
                     buff.newline();
                 }
             };
@@ -303,58 +298,54 @@ public class MicroKernelImpl implements MicroKernel {
 
                 // TODO refactor code, avoid duplication
 
-                diffHandler = new TraversingNodeDiffHandler(rep.getRevisionStore()) {
+                diffHandler = new TraversingNodeDiffHandler() {
                     @Override
-                    public void propAdded(String propName, String value) {
+                    public void propertyAdded(PropertyState after) {
                         buff.tag('+').
-                                key(PathUtils.concat(getCurrentPath(), propName)).
-                                encodedValue(value).
+                                key(PathUtils.concat(getCurrentPath(), after.getName())).
+                                encodedValue(after.getEncodedValue()).
                                 newline();
                     }
 
                     @Override
-                    public void propChanged(String propName, String oldValue, String newValue) {
+                    public void propertyChanged(PropertyState before, PropertyState after) {
                         buff.tag('^').
-                                key(PathUtils.concat(getCurrentPath(), propName)).
-                                encodedValue(newValue).
+                                key(PathUtils.concat(getCurrentPath(), after.getName())).
+                                encodedValue(after.getEncodedValue()).
                                 newline();
                     }
 
                     @Override
-                    public void propDeleted(String propName, String value) {
+                    public void propertyDeleted(PropertyState before) {
                         // since property and node deletions can't be distinguished
                         // using the "- <path>" notation we're representing
                         // property deletions as "^ <path>:null"
                         buff.tag('^').
-                                key(PathUtils.concat(getCurrentPath(), propName)).
+                                key(PathUtils.concat(getCurrentPath(), before.getName())).
                                 value(null).
                                 newline();
                     }
 
                     @Override
-                    public void childNodeAdded(ChildNodeEntry added) {
-                        if (addedNodes.containsKey(added.getId())) {
+                    public void childNodeAdded(String name, NodeState after) {
+                        if (addedNodes.containsKey(rp.getId(after))) {
                             // moved node, will be processed separately
                             return;
                         }
                         buff.tag('+').
-                                key(PathUtils.concat(getCurrentPath(), added.getName())).object();
-                        try {
-                            toJson(buff, store.getNodeState(store.getNode(added.getId())), Integer.MAX_VALUE, 0, -1, false);
-                        } catch (Exception e) {
-                            buff.value("ERROR: failed to retrieve node " + added.getId());
-                        }
+                                key(PathUtils.concat(getCurrentPath(), name)).object();
+                        toJson(buff, after, Integer.MAX_VALUE, 0, -1, false);
                         buff.endObject().newline();
                     }
 
                     @Override
-                    public void childNodeDeleted(ChildNodeEntry deleted) {
-                        if (addedNodes.containsKey(deleted.getId())) {
+                    public void childNodeDeleted(String name, NodeState before) {
+                        if (addedNodes.containsKey(rp.getId(before))) {
                             // moved node, will be processed separately
                             return;
                         }
                         buff.tag('-');
-                        buff.value(PathUtils.concat(getCurrentPath(), deleted.getName()));
+                        buff.value(PathUtils.concat(getCurrentPath(), name));
                         buff.newline();
                     }
 
@@ -596,7 +587,7 @@ public class MicroKernelImpl implements MicroKernel {
 
     //-------------------------------------------------------< implementation >
 
-    void toJson(JsopBuilder builder, NodeState node, int depth, int offset, int count, boolean inclVirtualProps) throws Exception {
+    void toJson(JsopBuilder builder, NodeState node, int depth, int offset, int count, boolean inclVirtualProps) {
         for (PropertyState property : node.getProperties()) {
             builder.key(property.getName()).encodedValue(property.getEncodedValue());
         }
