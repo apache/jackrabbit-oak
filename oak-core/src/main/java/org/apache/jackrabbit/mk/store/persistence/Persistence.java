@@ -53,5 +53,12 @@ public interface Persistence {
 
     StoredCommit readCommit(Id id) throws NotFoundException, Exception;
 
+    /**
+     * Persist a commit, with an id that is selected by the caller.
+     * 
+     * @param id commit id
+     * @param commit commit
+     * @throws Exception if an error occurs
+     */
     void writeCommit(Id id, Commit commit) throws Exception;
 }
