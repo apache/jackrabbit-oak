@@ -70,7 +70,7 @@ public class CopyingGC implements RevisionStore, Closeable {
     private final TreeSet<MutableCommit> commits = new TreeSet<MutableCommit>(
             new Comparator<MutableCommit>() {
                 public int compare(MutableCommit o1, MutableCommit o2) {
-                    return o1.getId().compareTo(o2.getId());
+                    return o1.getId().toString().compareTo(o2.getId().toString());
                 }
             });
 
@@ -117,7 +117,7 @@ public class CopyingGC implements RevisionStore, Closeable {
             for (MutableCommit commit : commits) {
                 commit.setParentId(parentId);
                 rsTo.putCommit(commit);
-                parentId = commit.getId();
+                parentId = commit.getId().toString();
             }
         }
         // TODO: swap rsFrom/rsTo and reset them

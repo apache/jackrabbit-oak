@@ -124,7 +124,7 @@ public class MicroKernelImpl implements MicroKernel {
         for (int i = history.size() - 1; i >= 0; i--) {
             StoredCommit commit = history.get(i);
             buff.object().
-                    key("id").value(commit.getId()).
+                    key("id").value(commit.getId().toString()).
                     key("ts").value(commit.getCommitTS()).
                     endObject();
         }
@@ -163,7 +163,7 @@ public class MicroKernelImpl implements MicroKernel {
             StoredCommit commit = toCommit;
             while (commit != null) {
                 commits.add(commit);
-                if (commit.getId().equals(fromRevisionId)) {
+                if (commit.getId().toString().equals(fromRevisionId)) {
                     break;
                 }
                 String commitId = commit.getParentId();
@@ -185,13 +185,13 @@ public class MicroKernelImpl implements MicroKernel {
                 continue;
             }
             commitBuff.object().
-                    key("id").value(commit.getId()).
+                    key("id").value(commit.getId().toString()).
                     key("ts").value(commit.getCommitTS()).
                     key("msg").value(commit.getMsg());
-            String diff = diffCache.get(commit.getId());
+            String diff = diffCache.get(commit.getId().toString());
             if (diff == null) {
-                diff = diff(commit.getParentId(), commit.getId(), filter);
-                diffCache.put(commit.getId(), diff);
+                diff = diff(commit.getParentId().toString(), commit.getId().toString(), filter);
+                diffCache.put(commit.getId().toString(), diff);
             }
             commitBuff.key("changes").value(diff).endObject();
         }

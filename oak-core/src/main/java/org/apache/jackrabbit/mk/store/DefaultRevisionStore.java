@@ -27,7 +27,6 @@ import org.apache.jackrabbit.mk.model.StoredNode;
 import org.apache.jackrabbit.mk.store.persistence.H2Persistence;
 import org.apache.jackrabbit.mk.store.persistence.Persistence;
 import org.apache.jackrabbit.mk.util.SimpleLRUCache;
-import org.apache.jackrabbit.mk.util.StringUtils;
 import org.apache.jackrabbit.oak.model.NodeState;
 
 import java.io.Closeable;
@@ -189,23 +188,16 @@ public class DefaultRevisionStore implements RevisionStore, Closeable {
             callback.prePersist(this);
         }
 
-        String sid = commit.getId();
-        byte[] rawId;
-        
-        if (sid == null) {
-            rawId = longToBytes(++headCounter);
-        } else {
-            rawId = StringUtils.convertHexToBytes(sid);
+        Id id = commit.getId();
+        if (id == null) {
+            id = new Id(longToBytes(++headCounter));
         }
-        Id id = new Id(rawId);
         pm.writeCommit(id, commit);
 
         if (callback != null)  {
             callback.postPersist(this);
         }
-
-        cache.put(id, new StoredCommit(id.toString(), commit));
-
+        cache.put(id, new StoredCommit(id, commit));
         return id;
     }
 

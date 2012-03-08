@@ -176,9 +176,9 @@ public class MongoPersistence implements Persistence, BlobStore {
         if (commitObject != null) {
             if (BINARY_FORMAT) {
                 byte[] bytes = (byte[]) commitObject.get(DATA_FIELD);
-                return StoredCommit.deserialize(id.toString(), new BinaryBinding(new ByteArrayInputStream(bytes)));
+                return StoredCommit.deserialize(id, new BinaryBinding(new ByteArrayInputStream(bytes)));
             } else {
-                return StoredCommit.deserialize(id.toString(), new DBObjectBinding(commitObject));
+                return StoredCommit.deserialize(id, new DBObjectBinding(commitObject));
             }
         } else {
             throw new NotFoundException(id.toString());
