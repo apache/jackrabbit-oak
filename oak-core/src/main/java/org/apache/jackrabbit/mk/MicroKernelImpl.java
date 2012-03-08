@@ -110,11 +110,11 @@ public class MicroKernelImpl implements MicroKernel {
                     && commit.getCommitTS() >= since) {
                 history.add(commit);
 
-                String commitId = commit.getParentId();
+                Id commitId = commit.getParentId();
                 if (commitId == null) {
                     break;
                 }
-                commit = rep.getCommit(commitId);
+                commit = rep.getCommit(commitId.toString());
             }
         } catch (Exception e) {
             throw new MicroKernelException(e);
@@ -166,11 +166,11 @@ public class MicroKernelImpl implements MicroKernel {
                 if (commit.getId().toString().equals(fromRevisionId)) {
                     break;
                 }
-                String commitId = commit.getParentId();
+                Id commitId = commit.getParentId();
                 if (commitId == null) {
                     break;
                 }
-                commit = rep.getCommit(commitId);
+                commit = rep.getCommit(commitId.toString());
             }
         } catch (Exception e) {
             throw new MicroKernelException(e);

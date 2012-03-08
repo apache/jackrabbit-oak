@@ -30,10 +30,11 @@ public class StoredCommit extends AbstractCommit {
         long commitTS = binding.readLongValue("commitTS");
         String msg = binding.readStringValue("msg");
         String parentId = binding.readStringValue("parentId");
-        return new StoredCommit(id, "".equals(parentId) ? null : parentId, commitTS, rootNodeId, "".equals(msg) ? null : msg);
+        return new StoredCommit(id, "".equals(parentId) ? null : Id.fromString(parentId),
+                commitTS, rootNodeId, "".equals(msg) ? null : msg);
     }
 
-    public StoredCommit(Id id, String parentId, long commitTS, Id rootNodeId, String msg) {
+    public StoredCommit(Id id, Id parentId, long commitTS, Id rootNodeId, String msg) {
         this.id = id;
         this.parentId = parentId;
         this.commitTS = commitTS;

@@ -33,7 +33,7 @@ public abstract class AbstractCommit implements Commit {
     protected String msg;
 
     // id of parent commit
-    protected String parentId;
+    protected Id parentId;
 
     protected AbstractCommit() {
     }
@@ -45,7 +45,7 @@ public abstract class AbstractCommit implements Commit {
         this.commitTS = other.getCommitTS();
     }
 
-    public String getParentId() {
+    public Id getParentId() {
         return parentId;
     }
 
