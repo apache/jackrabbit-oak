@@ -18,7 +18,6 @@ package org.apache.jackrabbit.mk.model;
 
 import org.apache.jackrabbit.mk.store.Binding;
 import org.apache.jackrabbit.mk.store.RevisionProvider;
-import org.apache.jackrabbit.mk.store.NotFoundException;
 import org.apache.jackrabbit.mk.util.UnmodifiableIterator;
 
 import java.util.Collections;
@@ -83,16 +82,4 @@ public class StoredNode extends AbstractNode {
         return new UnmodifiableIterator<String>(super.getChildNodeNames(offset, count));
     }
 
-    public Iterator<ChildNode> getChildNodes(int offset, int count)
-            throws Exception {
-        return new UnmodifiableIterator<ChildNode>(super.getChildNodes(offset, count));
-    }
-
-    public Node getNode(String relPath) throws NotFoundException, Exception {
-        Node result = super.getNode(relPath);
-        if (!(result instanceof StoredNode)) {
-            // todo return a StoredNode instance instead?
-        }
-        return result;
-    }
 }

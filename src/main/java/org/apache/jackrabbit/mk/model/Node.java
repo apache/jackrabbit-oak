@@ -36,8 +36,5 @@ public interface Node {
     
     Iterator<ChildNodeEntry> getChildNodeEntries(int offset, int count);
 
-    Iterator<ChildNode> getChildNodes(int offset, int count) throws Exception;
-    Node getNode(String relPath) throws NotFoundException, Exception;
-
     void serialize(Binding binding) throws Exception;
 }
