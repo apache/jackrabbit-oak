@@ -23,7 +23,6 @@ import org.apache.jackrabbit.mk.util.RangeIterator;
 
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -33,26 +32,13 @@ public class ChildNodeEntriesMap implements ChildNodeEntries {
 
     protected static final Iterator<ChildNodeEntry> EMPTY_ITER = new EmptyIterator<ChildNodeEntry>();
     
-    protected HashMap<String, ChildNodeEntry> entries;
+    protected HashMap<String, ChildNodeEntry> entries = new HashMap<String, ChildNodeEntry>();
 
-    protected boolean insertionOrdered;
-    
-    ChildNodeEntriesMap(boolean insertionOrdered) {
-        this.insertionOrdered = insertionOrdered;
-        if (insertionOrdered) {
-            entries = new LinkedHashMap<String, ChildNodeEntry>();
-        } else {
-            entries = new HashMap<String, ChildNodeEntry>();
-        }
+    ChildNodeEntriesMap() {
     }
 
     ChildNodeEntriesMap(ChildNodeEntriesMap other) {
-        insertionOrdered = other.insertionOrdered;
-        if (insertionOrdered) {
-            entries = (LinkedHashMap<String, ChildNodeEntry>) other.entries.clone();
-        } else {
-            entries = (HashMap<String, ChildNodeEntry>) other.entries.clone();
-        }
+        entries = (HashMap<String, ChildNodeEntry>) other.entries.clone();
     }
 
     //------------------------------------------------------------< overrides >
@@ -73,11 +59,7 @@ public class ChildNodeEntriesMap implements ChildNodeEntries {
         } catch (CloneNotSupportedException e) {
             // can't possibly get here
         }
-        if (insertionOrdered) {
-            clone.entries = (LinkedHashMap<String, ChildNodeEntry>) entries.clone();
-        } else {
-            clone.entries = (HashMap<String, ChildNodeEntry>) entries.clone();
-        }
+        clone.entries = (HashMap<String, ChildNodeEntry>) entries.clone();
         return clone;
     }
 
@@ -218,7 +200,6 @@ public class ChildNodeEntriesMap implements ChildNodeEntries {
 
     @Override
     public void serialize(Binding binding) throws Exception {
-        binding.write(":ordered", insertionOrdered ? 1 : 0);
         final Iterator<ChildNodeEntry> iter = getEntries(0, -1);
         binding.writeMap(":children", getCount(),
                 new Binding.BytesEntryIterator() {
@@ -239,8 +220,7 @@ public class ChildNodeEntriesMap implements ChildNodeEntries {
     }
 
     public static ChildNodeEntriesMap deserialize(Binding binding) throws Exception {
-        boolean insertionOrdered = binding.readIntValue(":ordered") == 0 ? false : true;
-        ChildNodeEntriesMap newInstance = new ChildNodeEntriesMap(insertionOrdered);
+        ChildNodeEntriesMap newInstance = new ChildNodeEntriesMap();
         Binding.BytesEntryIterator iter = binding.readBytesMap(":children");
         while (iter.hasNext()) {
             Binding.BytesEntry entry = iter.next();
