@@ -33,22 +33,21 @@ import java.util.Map;
  */
 public class CommitBuilder {
 
-    String baseRevId;
+    private Id baseRevId;
 
-    final String msg;
+    private final String msg;
 
-    final RevisionStore store;
+    private final RevisionStore store;
 
-    final Map<String, MutableNode> staged;
+    // key is a path
+    private final Map<String, MutableNode> staged = new HashMap<String, MutableNode>();
     // change log
-    final List<Change> changeLog;
+    private final List<Change> changeLog = new ArrayList<Change>();
 
     public CommitBuilder(String baseRevId, String msg, RevisionStore store) throws Exception {
-        this.baseRevId = baseRevId;
+        this.baseRevId = Id.fromString(baseRevId);
         this.msg = msg;
         this.store = store;
-        staged = new HashMap<String, MutableNode>();
-        changeLog = new ArrayList<Change>();
     }
 
     public void addNode(String parentNodePath, String nodeName) throws Exception {
@@ -173,10 +172,10 @@ public class CommitBuilder {
     public String /* new revId */ doCommit() throws Exception {
         if (staged.isEmpty()) {
             // nothing to commit
-            return baseRevId;
+            return baseRevId.toString();
         }
 
-        String currentHead = store.getHeadCommitId().toString();
+        Id currentHead = store.getHeadCommitId();
         if (!currentHead.equals(baseRevId)) {
             // todo gracefully handle certain conflicts (e.g. changes on moved sub-trees, competing deletes etc)
             // update base revision to new head
@@ -196,10 +195,10 @@ public class CommitBuilder {
         Id newRevId;
         store.lockHead();
         try {
-            currentHead = store.getHeadCommitId().toString();
+            currentHead = store.getHeadCommitId();
             if (!currentHead.equals(baseRevId)) {
-                StoredNode baseRoot = store.getRootNode(Id.fromString(baseRevId));
-                StoredNode theirRoot = store.getRootNode(Id.fromString(currentHead));
+                StoredNode baseRoot = store.getRootNode(baseRevId);
+                StoredNode theirRoot = store.getRootNode(currentHead);
                 StoredNode ourRoot = store.getNode(rootNodeId);
 
                 rootNodeId = mergeTree(baseRoot, ourRoot, theirRoot);
@@ -207,13 +206,13 @@ public class CommitBuilder {
                 baseRevId = currentHead;
             }
 
-            if (store.getCommit(Id.fromString(currentHead)).getRootNodeId().equals(rootNodeId)) {
+            if (store.getCommit(currentHead).getRootNodeId().equals(rootNodeId)) {
                 // the commit didn't cause any changes,
                 // no need to create new commit object/update head revision
-                return currentHead;
+                return currentHead.toString();
             }
             MutableCommit newCommit = new MutableCommit();
-            newCommit.setParentId(Id.fromString(baseRevId));
+            newCommit.setParentId(baseRevId);
             newCommit.setCommitTS(System.currentTimeMillis());
             newCommit.setMsg(msg);
             newCommit.setRootNodeId(rootNodeId);
@@ -236,7 +235,7 @@ public class CommitBuilder {
         if (node == null) {
             MutableNode parent = staged.get("/");
             if (parent == null) {
-                parent = new MutableNode(store.getRootNode(Id.fromString(baseRevId)), store);
+                parent = new MutableNode(store.getRootNode(baseRevId), store);
                 staged.put("/", parent);
             }
             node = parent;
