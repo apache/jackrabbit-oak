@@ -51,26 +51,27 @@ public class FSPersistence implements Persistence {
         }
         head = new File(homeDir, "HEAD");
         if (!head.exists()) {
-            writeHead("");
+            writeHead(null);
         }
     }
 
     public void close() {
     }
 
-    public String readHead() throws Exception {
+    public Id readHead() throws Exception {
         FileInputStream in = new FileInputStream(head);
         try {
-            return IOUtils.readString(in);
+            String s = IOUtils.readString(in);
+            return s.equals("") ? null : Id.fromString(s);
         } finally {
             in.close();
         }
     }
 
-    public void writeHead(String id) throws Exception {
+    public void writeHead(Id id) throws Exception {
         FileOutputStream out = new FileOutputStream(head);
         try {
-            IOUtils.writeString(out, id);
+            IOUtils.writeString(out, id == null ? "" : id.toString());
         } finally {
             out.close();
         }
@@ -99,25 +100,25 @@ public class FSPersistence implements Persistence {
         return id;
     }
 
-    public StoredCommit readCommit(String id) throws NotFoundException, Exception {
-        File f = getFile(Id.fromString(id));
+    public StoredCommit readCommit(Id id) throws NotFoundException, Exception {
+        File f = getFile(id);
         if (f.exists()) {
             BufferedInputStream in = new BufferedInputStream(new FileInputStream(f));
             try {
-                return StoredCommit.deserialize(id, new BinaryBinding(in));
+                return StoredCommit.deserialize(id.toString(), new BinaryBinding(in));
             } finally {
                 in.close();
             }
         } else {
-            throw new NotFoundException(id);
+            throw new NotFoundException(id.toString());
         }
     }
 
-    public void writeCommit(byte[] rawId, Commit commit) throws Exception {
+    public void writeCommit(Id id, Commit commit) throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         commit.serialize(new BinaryBinding(out));
         byte[] bytes = out.toByteArray();
-        writeFile(new Id(rawId), bytes);
+        writeFile(id, bytes);
     }
 
     public ChildNodeEntriesMap readCNEMap(Id id) throws NotFoundException, Exception {

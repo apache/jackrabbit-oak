@@ -45,11 +45,11 @@ public interface RevisionProvider {
     Id getId(NodeState node);
 
     StoredNode getNode(Id id) throws NotFoundException, Exception;
-    StoredCommit getCommit(String id) throws NotFoundException, Exception;
+    StoredCommit getCommit(Id id) throws NotFoundException, Exception;
     ChildNodeEntriesMap getCNEMap(Id id) throws NotFoundException, Exception;
-    StoredNode getRootNode(String commitId) throws NotFoundException, Exception;
+    StoredNode getRootNode(Id commitId) throws NotFoundException, Exception;
     StoredCommit getHeadCommit() throws Exception;
-    String getHeadCommitId() throws Exception;
+    Id getHeadCommitId() throws Exception;
     int getBlob(String blobId, long pos, byte[] buff, int off, int length) throws NotFoundException, Exception;
     long getBlobLength(String blobId) throws NotFoundException, Exception;
 }

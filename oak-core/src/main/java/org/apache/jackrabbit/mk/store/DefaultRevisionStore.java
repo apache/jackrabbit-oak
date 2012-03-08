@@ -48,7 +48,7 @@ public class DefaultRevisionStore implements RevisionStore, Closeable {
 
     private boolean initialized;
 
-    private String headId;
+    private Id head;
     private long headCounter;
     private final ReentrantReadWriteLock headLock = new ReentrantReadWriteLock();
     private Persistence pm;
@@ -79,20 +79,20 @@ public class DefaultRevisionStore implements RevisionStore, Closeable {
         }
 
         // make sure we've got a HEAD commit
-        headId = pm.readHead();
-        if (headId == null || headId.length() == 0) {
+        head = pm.readHead();
+        if (head == null || head.getBytes().length == 0) {
             // assume virgin repository
-            byte[] rawHeadId = longToBytes(++headCounter);
-            headId = StringUtils.convertBytesToHex(rawHeadId);
+            byte[] rawHead = longToBytes(++headCounter);
+            head = new Id(rawHead);
             
             Id rootNodeId = pm.writeNode(new MutableNode(this));
             MutableCommit initialCommit = new MutableCommit();
             initialCommit.setCommitTS(System.currentTimeMillis());
             initialCommit.setRootNodeId(rootNodeId);
-            pm.writeCommit(rawHeadId, initialCommit);
-            pm.writeHead(headId);
+            pm.writeCommit(head, initialCommit);
+            pm.writeHead(head);
         } else {
-            headCounter = Long.parseLong(headId, 16);
+            headCounter = Long.parseLong(head.toString(), 16);
         }
 
         initialized = true;
@@ -180,7 +180,7 @@ public class DefaultRevisionStore implements RevisionStore, Closeable {
         return id;
     }
 
-    public String putCommit(MutableCommit commit) throws Exception {
+    public Id putCommit(MutableCommit commit) throws Exception {
         verifyInitialized();
 
         PersistHook callback = null;
@@ -189,36 +189,35 @@ public class DefaultRevisionStore implements RevisionStore, Closeable {
             callback.prePersist(this);
         }
 
-        String id = commit.getId();
+        String sid = commit.getId();
         byte[] rawId;
         
-        if (id == null) {
+        if (sid == null) {
             rawId = longToBytes(++headCounter);
-            id = StringUtils.convertBytesToHex(rawId);
         } else {
-            rawId = StringUtils.convertHexToBytes(id);
+            rawId = StringUtils.convertHexToBytes(sid);
         }
-        pm.writeCommit(rawId, commit);
+        Id id = new Id(rawId);
+        pm.writeCommit(id, commit);
 
         if (callback != null)  {
             callback.postPersist(this);
         }
 
-        // TODO fixme, String -> Id
-        cache.put(Id.fromString(id), new StoredCommit(id, commit));
+        cache.put(id, new StoredCommit(id.toString(), commit));
 
         return id;
     }
 
-    public void setHeadCommitId(String commitId) throws Exception {
+    public void setHeadCommitId(Id id) throws Exception {
         verifyInitialized();
 
         headLock.writeLock().lock();
         try {
-            pm.writeHead(commitId);
-            headId = commitId;
+            pm.writeHead(id);
+            head = id;
             
-            long headCounter = Long.parseLong(headId, 16);
+            long headCounter = Long.parseLong(id.toString(), 16);
             if (headCounter > this.headCounter) {
                 this.headCounter = headCounter;
             }
@@ -282,22 +281,21 @@ public class DefaultRevisionStore implements RevisionStore, Closeable {
         return map;
     }
 
-    public StoredCommit getCommit(String id) throws NotFoundException, Exception {
+    public StoredCommit getCommit(Id id) throws NotFoundException, Exception {
         verifyInitialized();
 
-        // TODO fixme, String -> Id
-        StoredCommit commit = (StoredCommit) cache.get(Id.fromString(id));
+        StoredCommit commit = (StoredCommit) cache.get(id);
         if (commit != null) {
             return commit;
         }
 
         commit = pm.readCommit(id);
-        cache.put(Id.fromString(id), commit);
+        cache.put(id, commit);
 
         return commit;
     }
 
-    public StoredNode getRootNode(String commitId) throws NotFoundException, Exception {
+    public StoredNode getRootNode(Id commitId) throws NotFoundException, Exception {
         return getNode(getCommit(commitId).getRootNodeId());
     }
 
@@ -305,12 +303,12 @@ public class DefaultRevisionStore implements RevisionStore, Closeable {
         return getCommit(getHeadCommitId());
     }
 
-    public String getHeadCommitId() throws Exception {
+    public Id getHeadCommitId() throws Exception {
         verifyInitialized();
 
         headLock.readLock().lock();
         try {
-            return headId;
+            return head;
         } finally {
             headLock.readLock().unlock();
         }

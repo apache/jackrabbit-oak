@@ -29,9 +29,9 @@ import java.io.InputStream;
 public interface RevisionStore extends RevisionProvider {
 
     Id /*id*/ putNode(MutableNode node) throws Exception;
-    String /*id*/ putCommit(MutableCommit commit) throws Exception;
+    Id /*id*/ putCommit(MutableCommit commit) throws Exception;
     Id /*id*/ putCNEMap(ChildNodeEntriesMap map) throws Exception;
-    void setHeadCommitId(String commitId) throws Exception;
+    void setHeadCommitId(Id commitId) throws Exception;
     void lockHead();
     void unlockHead();
     String /*id*/ putBlob(InputStream in) throws Exception;

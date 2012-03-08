@@ -92,12 +92,12 @@ public class CopyingGC implements RevisionStore, Closeable {
      */
     public void start() throws Exception {
         commits.clear();
-        firstCommitId = rsTo.getHeadCommitId();
+        firstCommitId = rsTo.getHeadCommitId().toString();
         
         // Copy the head commit
         MutableCommit commitTo = copy(rsFrom.getHeadCommit());
-        commitTo.setParentId(rsTo.getHeadCommitId());
-        String revId = rsTo.putCommit(commitTo);
+        commitTo.setParentId(rsTo.getHeadCommitId().toString());
+        Id revId = rsTo.putCommit(commitTo);
         rsTo.setHeadCommitId(revId);
 
         // Add this as sentinel
@@ -190,7 +190,7 @@ public class CopyingGC implements RevisionStore, Closeable {
         return rsFrom.getNode(id);
     }
 
-    public StoredCommit getCommit(String id) throws NotFoundException,
+    public StoredCommit getCommit(Id id) throws NotFoundException,
             Exception {
         
         if (running) {
@@ -216,7 +216,7 @@ public class CopyingGC implements RevisionStore, Closeable {
         return rsFrom.getCNEMap(id);
     }
 
-    public StoredNode getRootNode(String commitId) throws NotFoundException,
+    public StoredNode getRootNode(Id commitId) throws NotFoundException,
             Exception {
 
         if (running) {
@@ -238,7 +238,7 @@ public class CopyingGC implements RevisionStore, Closeable {
         return running ? rsTo.getHeadCommit() : rsFrom.getHeadCommit(); 
     }
 
-    public String getHeadCommitId() throws Exception {
+    public Id getHeadCommitId() throws Exception {
         return running ? rsTo.getHeadCommitId() : rsFrom.getHeadCommitId();
     }
 
@@ -246,7 +246,7 @@ public class CopyingGC implements RevisionStore, Closeable {
         return running ? rsTo.putNode(node) : rsFrom.putNode(node);
     }
 
-    public String putCommit(MutableCommit commit) throws Exception {
+    public Id putCommit(MutableCommit commit) throws Exception {
         return running ? rsTo.putCommit(commit) : rsFrom.putCommit(commit);
     }
 
@@ -263,7 +263,7 @@ public class CopyingGC implements RevisionStore, Closeable {
         }
     }
 
-    public void setHeadCommitId(String commitId) throws Exception {
+    public void setHeadCommitId(Id commitId) throws Exception {
         if (running) {
             rsTo.setHeadCommitId(commitId);
         } else {

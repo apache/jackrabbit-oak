@@ -25,7 +25,6 @@ import org.apache.jackrabbit.mk.store.BinaryBinding;
 import org.apache.jackrabbit.mk.store.Binding;
 import org.apache.jackrabbit.mk.store.IdFactory;
 import org.apache.jackrabbit.mk.store.NotFoundException;
-import org.apache.jackrabbit.mk.util.StringUtils;
 import org.h2.jdbcx.JdbcConnectionPool;
 
 import java.io.ByteArrayInputStream;
@@ -66,9 +65,9 @@ public class H2Persistence implements Persistence {
         Connection con = cp.getConnection();
         try {
             Statement stmt = con.createStatement();
-            stmt.execute("create table if not exists REVS (ID binary primary key, DATA binary)");
-            stmt.execute("create table if not exists head(id varchar) as select ''");
-            stmt.execute("create sequence if not exists datastore_id");
+            stmt.execute("create table if not exists REVS(ID binary primary key, DATA binary)");
+            stmt.execute("create table if not exists HEAD(ID binary) as select null");
+            stmt.execute("create sequence if not exists DATASTORE_ID");
 /*
             DbBlobStore store = new DbBlobStore();
             store.setConnectionPool(cp);
@@ -83,27 +82,27 @@ public class H2Persistence implements Persistence {
         cp.dispose();
     }
 
-    public String readHead() throws Exception {
+    public Id readHead() throws Exception {
         Connection con = cp.getConnection();
         try {
-            PreparedStatement stmt = con.prepareStatement("select * from head");
+            PreparedStatement stmt = con.prepareStatement("select * from HEAD");
             ResultSet rs = stmt.executeQuery();
-            String headId = null;
+            byte[] rawId = null;
             if (rs.next()) {
-                headId = rs.getString(1);
+                rawId = rs.getBytes(1);
             }
             stmt.close();
-            return headId;
+            return rawId == null ? null : new Id(rawId); 
         } finally {
             con.close();
         }
     }
 
-    public void writeHead(String id) throws Exception {
+    public void writeHead(Id id) throws Exception {
         Connection con = cp.getConnection();
         try {
-            PreparedStatement stmt = con.prepareStatement("update head set id=?");
-            stmt.setString(1, id);
+            PreparedStatement stmt = con.prepareStatement("update HEAD set ID=?");
+            stmt.setBytes(1, id.getBytes());
             stmt.execute();
             stmt.close();
         } finally {
@@ -143,7 +142,7 @@ public class H2Persistence implements Persistence {
         try {
             PreparedStatement stmt = con
                     .prepareStatement(
-                            "insert into REVS (ID, DATA) select ?, ? where not exists (select 1 from revs where ID = ?)");
+                            "insert into REVS (ID, DATA) select ?, ? where not exists (select 1 from REVS where ID = ?)");
             try {
                 stmt.setBytes(1, rawId);
                 stmt.setBytes(2, bytes);
@@ -158,18 +157,18 @@ public class H2Persistence implements Persistence {
         return new Id(rawId);
     }
 
-    public StoredCommit readCommit(String id) throws NotFoundException, Exception {
+    public StoredCommit readCommit(Id id) throws NotFoundException, Exception {
         Connection con = cp.getConnection();
         try {
             PreparedStatement stmt = con.prepareStatement("select DATA from REVS where ID = ?");
             try {
-                stmt.setBytes(1, StringUtils.convertHexToBytes(id));
+                stmt.setBytes(1, id.getBytes());
                 ResultSet rs = stmt.executeQuery();
                 if (rs.next()) {
                     ByteArrayInputStream in = new ByteArrayInputStream(rs.getBytes(1));
-                    return StoredCommit.deserialize(id, new BinaryBinding(in));
+                    return StoredCommit.deserialize(id.toString(), new BinaryBinding(in));
                 } else {
-                    throw new NotFoundException(id);
+                    throw new NotFoundException(id.toString());
                 }
             } finally {
                 stmt.close();
@@ -179,7 +178,7 @@ public class H2Persistence implements Persistence {
         }
     }
     
-    public void writeCommit(byte[] rawId, Commit commit) throws Exception {
+    public void writeCommit(Id id, Commit commit) throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         commit.serialize(new BinaryBinding(out));
         byte[] bytes = out.toByteArray();
@@ -188,11 +187,11 @@ public class H2Persistence implements Persistence {
         try {
             PreparedStatement stmt = con
                     .prepareStatement(
-                            "insert into REVS (ID, DATA) select ?, ? where not exists (select 1 from revs where ID = ?)");
+                            "insert into REVS (ID, DATA) select ?, ? where not exists (select 1 from REVS where ID = ?)");
             try {
-                stmt.setBytes(1, rawId);
+                stmt.setBytes(1, id.getBytes());
                 stmt.setBytes(2, bytes);
-                stmt.setBytes(3, rawId);
+                stmt.setBytes(3, id.getBytes());
                 stmt.executeUpdate();
             } finally {
                 stmt.close();
@@ -233,7 +232,7 @@ public class H2Persistence implements Persistence {
         try {
             PreparedStatement stmt = con
                     .prepareStatement(
-                            "insert into REVS (ID, DATA) select ?, ? where not exists (select 1 from revs where ID = ?)");
+                            "insert into REVS (ID, DATA) select ?, ? where not exists (select 1 from REVS where ID = ?)");
             try {
                 stmt.setBytes(1, rawId);
                 stmt.setBytes(2, bytes);
