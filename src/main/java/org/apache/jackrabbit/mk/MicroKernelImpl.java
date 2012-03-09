@@ -48,7 +48,11 @@ public class MicroKernelImpl implements MicroKernel {
 
     protected Repository rep;
     private final CommitGate gate = new CommitGate();
-    private final Map<String, String> diffCache = Collections.synchronizedMap(SimpleLRUCache.<String, String>newInstance(100));
+    
+    /**
+     * Key: revision id, Value: diff string
+     */
+    private final Map<Id, String> diffCache = Collections.synchronizedMap(SimpleLRUCache.<Id, String>newInstance(100));
 
     public MicroKernelImpl(String homeDir) throws MicroKernelException {
         init(homeDir);
@@ -89,7 +93,15 @@ public class MicroKernelImpl implements MicroKernel {
         if (rep == null) {
             throw new IllegalStateException("this instance has already been disposed");
         }
-
+        return getHeadRevisionId().toString();
+    }
+    
+    /**
+     * Same as <code>getHeadRevisionId</code>, with typed <code>Id</code> return value instead of string.
+     * 
+     * @see #getHeadRevision()
+     */
+    private Id getHeadRevisionId() throws MicroKernelException {
         try {
             return rep.getHeadRevision();
         } catch (Exception e) {
@@ -114,7 +126,7 @@ public class MicroKernelImpl implements MicroKernel {
                 if (commitId == null) {
                     break;
                 }
-                commit = rep.getCommit(commitId.toString());
+                commit = rep.getCommit(commitId);
             }
         } catch (Exception e) {
             throw new MicroKernelException(e);
@@ -135,12 +147,13 @@ public class MicroKernelImpl implements MicroKernel {
         return gate.waitForCommit(oldHeadRevision, maxWaitMillis);
     }
 
-    public String getJournal(String fromRevisionId, String toRevisionId, String filter) throws MicroKernelException {
+    public String getJournal(String fromRevision, String toRevision, String filter) throws MicroKernelException {
         if (rep == null) {
             throw new IllegalStateException("this instance has already been disposed");
         }
 
-        toRevisionId = toRevisionId == null ? getHeadRevision() : toRevisionId;
+        Id fromRevisionId = Id.fromString(fromRevision);
+        Id toRevisionId = toRevision == null ? getHeadRevisionId() : Id.fromString(toRevision);
 
         List<StoredCommit> commits = new ArrayList<StoredCommit>();
         try {
@@ -163,14 +176,14 @@ public class MicroKernelImpl implements MicroKernel {
             StoredCommit commit = toCommit;
             while (commit != null) {
                 commits.add(commit);
-                if (commit.getId().toString().equals(fromRevisionId)) {
+                if (commit.getId().equals(fromRevisionId)) {
                     break;
                 }
                 Id commitId = commit.getParentId();
                 if (commitId == null) {
                     break;
                 }
-                commit = rep.getCommit(commitId.toString());
+                commit = rep.getCommit(commitId);
             }
         } catch (Exception e) {
             throw new MicroKernelException(e);
@@ -188,21 +201,30 @@ public class MicroKernelImpl implements MicroKernel {
                     key("id").value(commit.getId().toString()).
                     key("ts").value(commit.getCommitTS()).
                     key("msg").value(commit.getMsg());
-            String diff = diffCache.get(commit.getId().toString());
+            String diff = diffCache.get(commit.getId());
             if (diff == null) {
-                diff = diff(commit.getParentId().toString(), commit.getId().toString(), filter);
-                diffCache.put(commit.getId().toString(), diff);
+                diff = diff(commit.getParentId(), commit.getId(), filter);
+                diffCache.put(commit.getId(), diff);
             }
             commitBuff.key("changes").value(diff).endObject();
         }
         return commitBuff.endArray().toString();
     }
 
-    public String diff(String fromRevisionId, String toRevisionId, String filter) throws MicroKernelException {
+    public String diff(String fromRevision, String toRevision, String filter) throws MicroKernelException {
+        Id toRevisionId = toRevision == null ? getHeadRevisionId() : Id.fromString(toRevision);
+        
+        return diff(Id.fromString(fromRevision), toRevisionId, filter);
+    }
+    
+    /**
+     * Same as <code>diff</code>, with typed <code>Id</code> arguments instead of strings.
+     * 
+     * @see #diff(String, String, String) 
+     */
+    private String diff(Id fromRevisionId, Id toRevisionId, String filter) throws MicroKernelException {
         // TODO extract and evaluate filter criteria (such as e.g. 'path') specified in 'filter' parameter
         String path = "/";
-
-        toRevisionId = toRevisionId == null ? getHeadRevision() : toRevisionId;
 
         try {
             final JsopBuilder buff = new JsopBuilder();
@@ -369,22 +391,21 @@ public class MicroKernelImpl implements MicroKernel {
         }
     }
 
-    public boolean nodeExists(String path, String revisionId) throws MicroKernelException {
+    public boolean nodeExists(String path, String revision) throws MicroKernelException {
         if (rep == null) {
             throw new IllegalStateException("this instance has already been disposed");
         }
 
-        revisionId = revisionId == null ? getHeadRevision() : revisionId;
-
+        Id revisionId = revision == null ? getHeadRevisionId() : Id.fromString(revision);
         return rep.nodeExists(revisionId, path);
     }
 
-    public long getChildNodeCount(String path, String revisionId) throws MicroKernelException {
+    public long getChildNodeCount(String path, String revision) throws MicroKernelException {
         if (rep == null) {
             throw new IllegalStateException("this instance has already been disposed");
         }
 
-        revisionId = revisionId == null ? getHeadRevision() : revisionId;
+        Id revisionId = revision == null ? getHeadRevisionId() : Id.fromString(revision);
 
         try {
             return rep.getNodeState(revisionId, path).getChildNodeCount();
@@ -393,16 +414,16 @@ public class MicroKernelImpl implements MicroKernel {
         }
     }
 
-    public String getNodes(String path, String revisionId) throws MicroKernelException {
-        return getNodes(path, revisionId, 1, 0, -1, null);
+    public String getNodes(String path, String revision) throws MicroKernelException {
+        return getNodes(path, revision, 1, 0, -1, null);
     }
 
-    public String getNodes(String path, String revisionId, int depth, long offset, int count, String filter) throws MicroKernelException {
+    public String getNodes(String path, String revision, int depth, long offset, int count, String filter) throws MicroKernelException {
         if (rep == null) {
             throw new IllegalStateException("this instance has already been disposed");
         }
 
-        revisionId = revisionId == null ? getHeadRevision() : revisionId;
+        Id revisionId = revision == null ? getHeadRevisionId() : Id.fromString(revision);
 
         // TODO extract and evaluate filter criteria (such as e.g. ':hash') specified in 'filter' parameter
 
@@ -415,7 +436,7 @@ public class MicroKernelImpl implements MicroKernel {
         }
     }
 
-    public String commit(String path, String jsonDiff, String revisionId, String message) throws MicroKernelException {
+    public String commit(String path, String jsonDiff, String revision, String message) throws MicroKernelException {
         if (rep == null) {
             throw new IllegalStateException("this instance has already been disposed");
         }
@@ -423,7 +444,7 @@ public class MicroKernelImpl implements MicroKernel {
             throw new IllegalArgumentException("absolute path expected: " + path);
         }
 
-        revisionId = revisionId == null ? getHeadRevision() : revisionId;
+        Id revisionId = revision == null ? getHeadRevisionId() : Id.fromString(revision);
 
         try {
             JsopTokenizer t = new JsopTokenizer(jsonDiff);
@@ -540,13 +561,12 @@ public class MicroKernelImpl implements MicroKernel {
                         throw new AssertionError("token type: " + t.getTokenType());
                 }
             }
-            String newHead = cb.doCommit();
-            if (newHead.equals(revisionId)) {
-                // 'empty' commit
-                return newHead;
+            Id newHead = cb.doCommit();
+            if (!newHead.equals(revisionId)) {
+                // non-empty commit
+                gate.commit(newHead.toString());
             }
-            gate.commit(newHead);
-            return newHead;
+            return newHead.toString();
         } catch (Exception e) {
             throw new MicroKernelException(e);
         }

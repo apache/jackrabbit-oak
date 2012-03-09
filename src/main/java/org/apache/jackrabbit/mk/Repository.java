@@ -91,11 +91,11 @@ public class Repository {
         return rs;
     }
 
-    public String getHeadRevision() throws Exception {
+    public Id getHeadRevision() throws Exception {
         if (!initialized) {
             throw new IllegalStateException("not initialized");
         }
-        return rs.getHeadCommitId().toString();
+        return rs.getHeadCommitId();
     }
 
     public StoredCommit getHeadCommit() throws Exception {
@@ -105,14 +105,14 @@ public class Repository {
         return rs.getHeadCommit();
     }
 
-    public StoredCommit getCommit(String id) throws NotFoundException, Exception {
+    public StoredCommit getCommit(Id id) throws NotFoundException, Exception {
         if (!initialized) {
             throw new IllegalStateException("not initialized");
         }
-        return rs.getCommit(Id.fromString(id));
+        return rs.getCommit(id);
     }
 
-    public NodeState getNodeState(String revId, String path) throws NotFoundException, Exception {
+    public NodeState getNodeState(Id revId, String path) throws NotFoundException, Exception {
         return rs.getNodeState(getNode(revId, path));
     }
 
@@ -124,12 +124,12 @@ public class Repository {
      * @throws NotFoundException if either path or revision doesn't exist
      * @throws Exception if another error occurs
      */
-    public StoredNode getNode(String revId, String path) throws NotFoundException, Exception {
+    public StoredNode getNode(Id revId, String path) throws NotFoundException, Exception {
         if (!initialized) {
             throw new IllegalStateException("not initialized");
         }
 
-        StoredNode root = rs.getRootNode(Id.fromString(revId));
+        StoredNode root = rs.getRootNode(revId);
         if (PathUtils.denotesRoot(path)) {
             return root;
         }
@@ -139,7 +139,7 @@ public class Repository {
         return rs.getNode(ids[ids.length - 1]);
     }
 
-    public boolean nodeExists(String revId, String path) {
+    public boolean nodeExists(Id revId, String path) {
         if (!initialized) {
             throw new IllegalStateException("not initialized");
         }
@@ -150,7 +150,7 @@ public class Repository {
 
         try {
             String[] names = PathUtils.split(path);
-            Node parent = rs.getRootNode(Id.fromString(revId));
+            Node parent = rs.getRootNode(revId);
             for (int i = 0; i < names.length; i++) {
                 ChildNodeEntry cne = parent.getChildNodeEntry(names[i]);
                 if (cne == null) {
@@ -164,7 +164,7 @@ public class Repository {
         }
     }
 
-    public CommitBuilder getCommitBuilder(String revId, String msg) throws Exception {
+    public CommitBuilder getCommitBuilder(Id revId, String msg) throws Exception {
         return new CommitBuilder(revId, msg, rs);
     }
 
@@ -177,12 +177,12 @@ public class Repository {
      * @throws NotFoundException if either path or revision doesn't exist
      * @throws Exception if another error occurs
      */
-    Id[] /* array of node id's */ resolvePath(String revId, String nodePath) throws Exception {
+    Id[] /* array of node id's */ resolvePath(Id revId, String nodePath) throws Exception {
         if (!PathUtils.isAbsolute(nodePath)) {
             throw new IllegalArgumentException("illegal path");
         }
 
-        Commit commit = rs.getCommit(Id.fromString(revId));
+        Commit commit = rs.getCommit(revId);
 
         if (PathUtils.denotesRoot(nodePath)) {
             return new Id[]{commit.getRootNodeId()};
