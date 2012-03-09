@@ -44,8 +44,8 @@ public class CommitBuilder {
     // change log
     private final List<Change> changeLog = new ArrayList<Change>();
 
-    public CommitBuilder(String baseRevId, String msg, RevisionStore store) throws Exception {
-        this.baseRevId = Id.fromString(baseRevId);
+    public CommitBuilder(Id baseRevId, String msg, RevisionStore store) throws Exception {
+        this.baseRevId = baseRevId;
         this.msg = msg;
         this.store = store;
     }
@@ -169,10 +169,10 @@ public class CommitBuilder {
         changeLog.add(new SetProperties(nodePath, properties));
     }
 
-    public String /* new revId */ doCommit() throws Exception {
+    public Id /* new revId */ doCommit() throws Exception {
         if (staged.isEmpty()) {
             // nothing to commit
-            return baseRevId.toString();
+            return baseRevId;
         }
 
         Id currentHead = store.getHeadCommitId();
@@ -209,7 +209,7 @@ public class CommitBuilder {
             if (store.getCommit(currentHead).getRootNodeId().equals(rootNodeId)) {
                 // the commit didn't cause any changes,
                 // no need to create new commit object/update head revision
-                return currentHead.toString();
+                return currentHead;
             }
             MutableCommit newCommit = new MutableCommit();
             newCommit.setParentId(baseRevId);
@@ -227,7 +227,7 @@ public class CommitBuilder {
         staged.clear();
         changeLog.clear();
 
-        return newRevId.toString();
+        return newRevId;
     }
 
     MutableNode getOrCreateStagedNode(String nodePath) throws Exception {
