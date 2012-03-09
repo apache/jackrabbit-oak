@@ -80,12 +80,12 @@ package org.apache.jackrabbit.oak.model;
  *
  * <h2>Equality and hash codes</h2>
  * <p>
- * Two node states are considered equal if their properties and child nodes
- * match, regardless of ordering. The {@link Object#equals(Object)} method
- * needs to be implemented so that it complies with this definition. And
- * while node states are not meant for use as hash keys, the
- * {@link Object#hashCode()} method should still be implemented according
- * to the equality contract.
+ * Two node states are considered equal if and only if their properties and
+ * child nodes match, regardless of ordering. The
+ * {@link Object#equals(Object)} method needs to be implemented so that it
+ * complies with this definition. And while node states are not meant for
+ * use as hash keys, the {@link Object#hashCode()} method should still be
+ * implemented according to this equality contract.
  */
 public interface NodeState {
 
