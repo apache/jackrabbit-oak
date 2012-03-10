@@ -47,7 +47,7 @@ public class FSPersistence implements Persistence {
     public void initialize(File homeDir) throws Exception {
         dataDir = new File(homeDir, "data");
         if (!dataDir.exists()) {
-            dataDir.mkdir();
+            dataDir.mkdirs();
         }
         head = new File(homeDir, "HEAD");
         if (!head.exists()) {
