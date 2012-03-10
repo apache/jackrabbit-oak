@@ -44,9 +44,6 @@ public class Repository {
 
     public Repository(String homeDir) throws Exception {
         File home = new File(homeDir == null ? "." : homeDir, ".mk");
-        if (!home.exists()) {
-            home.mkdirs();
-        }
         this.homeDir = home.getCanonicalPath();
     }
     

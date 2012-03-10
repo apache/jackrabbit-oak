@@ -52,7 +52,7 @@ public class H2Persistence implements Persistence {
     public void initialize(File homeDir) throws Exception {
         File dbDir = new File(homeDir, "db");
         if (!dbDir.exists()) {
-            dbDir.mkdir();
+            dbDir.mkdirs();
         }
 
         Class.forName("org.h2.Driver");

@@ -56,7 +56,7 @@ public class BDbPersistence implements Persistence {
     public void initialize(File homeDir) throws Exception {
         File dbDir = new File(homeDir, "db");
         if (!dbDir.exists()) {
-            dbDir.mkdir();
+            dbDir.mkdirs();
         }
 
         EnvironmentConfig envConfig = new EnvironmentConfig();
