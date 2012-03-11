@@ -118,7 +118,7 @@ public interface NodeState {
      *
      * @return properties in some stable order
      */
-    Iterable<PropertyState> getProperties();
+    Iterable<? extends PropertyState> getProperties();
 
     /**
      * Returns the named child node. The name is an opaque string and
@@ -154,6 +154,6 @@ public interface NodeState {
      *               or -1 for all remaining entries
      * @return requested child node entries in some stable order
      */
-    Iterable<ChildNodeEntry> getChildNodeEntries(long offset, long length);
+    Iterable<? extends ChildNodeEntry> getChildNodeEntries(long offset, long length);
 
 }
