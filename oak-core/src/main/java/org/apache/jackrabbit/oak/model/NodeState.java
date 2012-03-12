@@ -150,10 +150,10 @@ public interface NodeState {
      * offset is greater than the offset of the last child node entry.
      *
      * @param offset zero-based offset of the first entry to return
-     * @param length maximum number of entries to return,
+     * @param count  maximum number of entries to return,
      *               or -1 for all remaining entries
      * @return requested child node entries in some stable order
      */
-    Iterable<? extends ChildNodeEntry> getChildNodeEntries(long offset, long length);
+    Iterable<? extends ChildNodeEntry> getChildNodeEntries(long offset, int count);
 
 }
