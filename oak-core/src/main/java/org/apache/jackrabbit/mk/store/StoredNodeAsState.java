@@ -16,10 +16,6 @@
  */
 package org.apache.jackrabbit.mk.store;
 
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.Map;
-
 import org.apache.jackrabbit.mk.model.Id;
 import org.apache.jackrabbit.mk.model.StoredNode;
 import org.apache.jackrabbit.oak.model.AbstractChildNodeEntry;
@@ -28,6 +24,10 @@ import org.apache.jackrabbit.oak.model.AbstractPropertyState;
 import org.apache.jackrabbit.oak.model.ChildNodeEntry;
 import org.apache.jackrabbit.oak.model.NodeState;
 import org.apache.jackrabbit.oak.model.PropertyState;
+
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.Map;
 
 class StoredNodeAsState extends AbstractNodeState {
 
@@ -123,18 +123,14 @@ class StoredNodeAsState extends AbstractNodeState {
 
     @Override
     public Iterable<ChildNodeEntry> getChildNodeEntries(
-            final long offset, final long length) {
-        if (length < -1) {
-            throw new IllegalArgumentException("Illegal length: " + length);
+            final long offset, final int count) {
+        if (count < -1) {
+            throw new IllegalArgumentException("Illegal count: " + count);
         } else if (offset > Integer.MAX_VALUE) {
             return Collections.emptyList();
         } else {
             return new Iterable<ChildNodeEntry>() {
                 public Iterator<ChildNodeEntry> iterator() {
-                    int count = -1;
-                    if (length < Integer.MAX_VALUE) {
-                        count = (int) length;
-                    }
                     final Iterator<org.apache.jackrabbit.mk.model.ChildNodeEntry> iterator =
                             node.getChildNodeEntries((int) offset, count);
                     return new Iterator<ChildNodeEntry>() {
