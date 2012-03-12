@@ -19,6 +19,8 @@ package org.apache.jackrabbit.mk;
 import java.io.Closeable;
 import java.io.File;
 
+import javax.management.RuntimeErrorException;
+
 import org.apache.jackrabbit.mk.model.ChildNodeEntry;
 import org.apache.jackrabbit.mk.model.Commit;
 import org.apache.jackrabbit.mk.model.CommitBuilder;
@@ -109,55 +111,45 @@ public class Repository {
         return rs.getCommit(id);
     }
 
-    public NodeState getNodeState(Id revId, String path) throws NotFoundException, Exception {
-        return rs.getNodeState(getNode(revId, path));
-    }
-
-    /**
-     *
-     * @param revId
-     * @param path
-     * @return
-     * @throws NotFoundException if either path or revision doesn't exist
-     * @throws Exception if another error occurs
-     */
-    public StoredNode getNode(Id revId, String path) throws NotFoundException, Exception {
+    public NodeState getNodeState(Id revId, String path)
+            throws NotFoundException, Exception {
         if (!initialized) {
             throw new IllegalStateException("not initialized");
+        } else if (!PathUtils.isAbsolute(path)) {
+            throw new IllegalArgumentException("illegal path");
         }
 
-        StoredNode root = rs.getRootNode(revId);
-        if (PathUtils.denotesRoot(path)) {
-            return root;
+        NodeState node = rs.getNodeState(rs.getRootNode(revId));
+        for (String name : PathUtils.split(path)) {
+            node = node.getChildNode(name);
+            if (node == null) {
+                throw new NotFoundException(
+                        "Path " + path + " not found in revision " + revId);
+            }
         }
-
-        //return root.getNode(path.substring(1), pm);
-        Id[] ids = resolvePath(revId, path);
-        return rs.getNode(ids[ids.length - 1]);
+        return node;
     }
 
     public boolean nodeExists(Id revId, String path) {
         if (!initialized) {
             throw new IllegalStateException("not initialized");
-        }
-
-        if (!PathUtils.isAbsolute(path)) {
+        } else if (!PathUtils.isAbsolute(path)) {
             throw new IllegalArgumentException("illegal path");
         }
 
         try {
-            String[] names = PathUtils.split(path);
-            Node parent = rs.getRootNode(revId);
-            for (int i = 0; i < names.length; i++) {
-                ChildNodeEntry cne = parent.getChildNodeEntry(names[i]);
-                if (cne == null) {
+            NodeState node = rs.getNodeState(rs.getRootNode(revId));
+            for (String name : PathUtils.split(path)) {
+                node = node.getChildNode(name);
+                if (node == null) {
                     return false;
                 }
-                parent = rs.getNode(cne.getId());
             }
             return true;
         } catch (Exception e) {
-            return false;
+            throw new RuntimeException(
+                    "Failed to check for existence of path "
+                    + path + " in revision " + revId, e);
         }
     }
 
@@ -165,40 +157,4 @@ public class Repository {
         return new CommitBuilder(revId, msg, rs);
     }
 
-    /**
-     *
-     * @param revId
-     * @param nodePath
-     * @return
-     * @throws IllegalArgumentException if the specified path is not absolute
-     * @throws NotFoundException if either path or revision doesn't exist
-     * @throws Exception if another error occurs
-     */
-    Id[] /* array of node id's */ resolvePath(Id revId, String nodePath) throws Exception {
-        if (!PathUtils.isAbsolute(nodePath)) {
-            throw new IllegalArgumentException("illegal path");
-        }
-
-        Commit commit = rs.getCommit(revId);
-
-        if (PathUtils.denotesRoot(nodePath)) {
-            return new Id[]{commit.getRootNodeId()};
-        }
-        String[] names = PathUtils.split(nodePath);
-        Id[] ids = new Id[names.length + 1];
-
-        // get root node
-        ids[0] = commit.getRootNodeId();
-        Node parent = rs.getNode(ids[0]);
-        // traverse path and remember id of each element
-        for (int i = 0; i < names.length; i++) {
-            ChildNodeEntry cne = parent.getChildNodeEntry(names[i]);
-            if (cne == null) {
-                throw new NotFoundException(nodePath);
-            }
-            ids[i + 1] = cne.getId();
-            parent = rs.getNode(cne.getId());
-        }
-        return ids;
-    }
 }
