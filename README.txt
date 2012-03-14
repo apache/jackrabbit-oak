@@ -25,6 +25,7 @@ The build consists of the following main components:
     oak-run    - runnable jar packaging
     oak-it     - integration tests
     oak-bench  - performance tests
+    oak-jcr    - JCR binding
 
 
 License (see also LICENSE.txt)
