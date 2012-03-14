@@ -238,14 +238,14 @@ public class Sync {
         /**
          * The given node needs to be removed from the target.
          *
-         * @param path the path
+         * @param target the path
          */
         void removeNode(String target);
 
         /**
          * The given property needs to be set on the target.
          *
-         * @param path the path
+         * @param target the path
          * @param property the property name
          * @param value the new value, or null to remove it
          */

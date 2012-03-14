@@ -56,7 +56,7 @@ public class JsopBuilder implements JsopWriter {
     /**
      * Append a Jsop tag character.
      *
-     * @param string the string to append
+     * @param tag the string to append
      * @return this
      */
     public JsopBuilder tag(char tag) {

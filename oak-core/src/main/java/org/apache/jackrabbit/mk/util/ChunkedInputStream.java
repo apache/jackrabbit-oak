@@ -185,7 +185,7 @@ public class ChunkedInputStream extends FilterInputStream {
     /**
      * Recycle this input stream.
      * 
-     * @param out new underlying input stream
+     * @param in new underlying input stream
      */
     public void recycle(InputStream in) {
         this.in = in;
