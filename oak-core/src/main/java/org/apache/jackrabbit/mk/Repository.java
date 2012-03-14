@@ -19,15 +19,9 @@ package org.apache.jackrabbit.mk;
 import java.io.Closeable;
 import java.io.File;
 
-import javax.management.RuntimeErrorException;
-
-import org.apache.jackrabbit.mk.model.ChildNodeEntry;
-import org.apache.jackrabbit.mk.model.Commit;
 import org.apache.jackrabbit.mk.model.CommitBuilder;
 import org.apache.jackrabbit.mk.model.Id;
-import org.apache.jackrabbit.mk.model.Node;
 import org.apache.jackrabbit.mk.model.StoredCommit;
-import org.apache.jackrabbit.mk.model.StoredNode;
 import org.apache.jackrabbit.mk.store.DefaultRevisionStore;
 import org.apache.jackrabbit.mk.store.NotFoundException;
 import org.apache.jackrabbit.mk.store.RevisionStore;
