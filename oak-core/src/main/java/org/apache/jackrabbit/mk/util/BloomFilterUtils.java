@@ -37,7 +37,7 @@ public class BloomFilterUtils {
     /**
      * Create a bloom filter array for the given number of elements.
      *
-     * @param count the number of entries
+     * @param elementCount the number of entries
      * @param maxBytes the maximum number of bytes
      * @return the empty bloom filter
      */
