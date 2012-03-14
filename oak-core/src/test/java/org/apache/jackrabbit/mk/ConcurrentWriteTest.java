@@ -41,7 +41,7 @@ public class ConcurrentWriteTest extends TestCase {
 
     public void tearDown() throws InterruptedException {
         String head = mk.commit("/", "- \"" + TEST_PATH.substring(1) + "\"", mk.getHeadRevision(), null);
-        System.out.println("new HEAD: " + head);
+        //System.out.println("new HEAD: " + head);
         mk.dispose();
     }
 
