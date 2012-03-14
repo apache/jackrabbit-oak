@@ -26,7 +26,7 @@ package org.apache.jackrabbit.oak.model;
  * the {@link #getProperty(String)} and {@link #getPropertyCount()} methods
  * based on {@link #getProperties()}. The {@link #getChildNode(String)} and
  * {@link #getChildNodeCount()} methods are similarly implemented based on
- * {@link #getChildNodeEntries(long, long)}. Subclasses should normally
+ * {@link #getChildNodeEntries(long, int)}. Subclasses should normally
  * override these method with a more efficient alternatives.
  */
 public abstract class AbstractNodeState implements NodeState {

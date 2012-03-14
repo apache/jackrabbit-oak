@@ -45,7 +45,7 @@ public class AscendingClock {
     /**
      * Create a new clock.
      *
-     * @param last the time (the next returned value will be at least one
+     * @param lastMillis the time (the next returned value will be at least one
      *            bigger)
      */
     public AscendingClock(long lastMillis) {

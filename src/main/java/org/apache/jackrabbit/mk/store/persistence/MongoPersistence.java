@@ -302,10 +302,9 @@ public class MongoPersistence implements Persistence, BlobStore {
     protected final static String ENCODED_DOLLAR_SIGN = "_x36_";
 
     /**
-     * see http://www.mongodb.org/display/DOCS/Legal+Key+Names
+     * see <a href="http://www.mongodb.org/display/DOCS/Legal+Key+Names">http://www.mongodb.org/display/DOCS/Legal+Key+Names</a>
      *
      * @param name
-     * @return
      */
     protected static String encodeName(String name) {
         StringBuilder buf = null;
