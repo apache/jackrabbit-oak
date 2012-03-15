@@ -29,10 +29,30 @@ import java.io.InputStream;
 public interface RevisionStore extends RevisionProvider {
 
     Id /*id*/ putNode(MutableNode node) throws Exception;
-    Id /*id*/ putCommit(MutableCommit commit) throws Exception;
     Id /*id*/ putCNEMap(ChildNodeEntriesMap map) throws Exception;
-    void setHeadCommitId(Id commitId) throws Exception;
+    
+    /**
+     * Lock the head. Must be called prior to putting a new head commit.
+     * 
+     * @see #putHeadCommit(MutableCommit)
+     */
     void lockHead();
+    
+    /**
+     * Put a new head commit. Must be called while holding a
+     * lock on the head.
+     * 
+     * @param commit commit
+     * @return head commit id
+     * @throws Exception if an error occurs
+     * @see #lockHead()
+     */
+    Id /*id*/ putHeadCommit(MutableCommit commit) throws Exception;
+    
+    /**
+     * Unlock the head.
+     */
     void unlockHead();
+    
     String /*id*/ putBlob(InputStream in) throws Exception;
 }
