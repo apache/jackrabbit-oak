@@ -531,6 +531,9 @@ public class PropertyImpl extends ItemImpl implements Property {
         }
     }
 
+    /**
+     * @see javax.jcr.Property#isMultiple()
+     */
     @Override
     public boolean isMultiple() throws RepositoryException {
         return value.isArray();
