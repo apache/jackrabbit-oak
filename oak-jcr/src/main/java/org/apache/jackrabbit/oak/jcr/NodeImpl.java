@@ -16,7 +16,21 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
+import org.apache.jackrabbit.commons.iterator.PropertyIteratorAdapter;
+import org.apache.jackrabbit.oak.jcr.SessionImpl.Context;
+import org.apache.jackrabbit.oak.jcr.json.JsonValue;
+import org.apache.jackrabbit.oak.jcr.json.JsonValue.JsonAtom;
+import org.apache.jackrabbit.oak.jcr.state.PropertyStateImpl;
+import org.apache.jackrabbit.oak.jcr.state.TransientNodeState;
+import org.apache.jackrabbit.oak.jcr.util.Function1;
+import org.apache.jackrabbit.oak.jcr.util.ItemNameMatcher;
+import org.apache.jackrabbit.oak.jcr.util.Iterators;
 import org.apache.jackrabbit.oak.jcr.util.LogUtil;
+import org.apache.jackrabbit.oak.jcr.util.Path;
+import org.apache.jackrabbit.oak.jcr.util.Predicate;
+import org.apache.jackrabbit.oak.jcr.util.ValueConverter;
+import org.apache.jackrabbit.oak.model.PropertyState;
 import org.apache.jackrabbit.value.ValueHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,6 +69,9 @@ import javax.jcr.version.VersionManager;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.Calendar;
+import java.util.Iterator;
+
+import static org.apache.jackrabbit.oak.jcr.util.Iterators.filter;
 
 /**
  * <code>NodeImpl</code>...
@@ -66,7 +83,76 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     private static final Logger log = LoggerFactory.getLogger(NodeImpl.class);
 
+    private final TransientNodeState state;
+
+    static boolean exist(Context sessionContext, Path path) {
+        return getNodeState(sessionContext, path) != null;
+    }
+
+    static Node create(Context sessionContext, Path path) throws PathNotFoundException {
+        TransientNodeState state = getNodeState(sessionContext, path);
+        if (state == null) {
+            throw new PathNotFoundException(path.toJcrPath());
+        }
+
+        return new NodeImpl(sessionContext, state);
+    }
+
+    static Node create(Context sessionContext, TransientNodeState state) {
+        return new NodeImpl(sessionContext, state);
+    }
+
+    private NodeImpl(Context sessionContext, TransientNodeState state) {
+        super(sessionContext);
+        this.state = state;
+    }
+
     //---------------------------------------------------------------< Item >---
+
+    @Override
+    public String getPath() throws RepositoryException {
+        return path().toJcrPath();
+    }
+
+    @Override
+    public String getName() throws RepositoryException {
+        return state.getName();
+    }
+
+    @Override
+    public Item getAncestor(int depth) throws RepositoryException {
+        Path parent = path().getAncestor(depth);
+        if (parent == null) {
+            throw new ItemNotFoundException(path().toJcrPath() + "has no ancestor of depth " + depth);
+        }
+
+        return create(sessionContext, parent);
+    }
+
+    @Override
+    public Node getParent() throws RepositoryException {
+        if (state.isRoot()) {
+            throw new ItemNotFoundException("Root has no parent");
+        }
+
+        return create(sessionContext, path().getParent());
+    }
+
+    @Override
+    public int getDepth() throws RepositoryException {
+        return path().getDepth();
+    }
+
+    @Override
+    public boolean isNew() {
+        return state.isNew();
+    }
+
+    @Override
+    public boolean isModified() {
+        return state.isModified();
+    }
+
     /**
      * @see javax.jcr.Item#isNode()
      */
@@ -90,15 +176,24 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public Node addNode(String relPath) throws ItemExistsException, PathNotFoundException, VersionException, ConstraintViolationException, LockException, RepositoryException {
-        return addNode(relPath, null);
+        checkStatus();
+        Path newPath = path().concat(relPath);
+        TransientNodeState parentState = getNodeState(sessionContext, newPath.getParent());
+        TransientNodeState childState = parentState.addNode(newPath.getName());
+        return create(sessionContext, childState);
     }
 
     @Override
     public Node addNode(String relPath, String primaryNodeTypeName) throws ItemExistsException, PathNotFoundException, NoSuchNodeTypeException, LockException, VersionException, ConstraintViolationException, RepositoryException {
         checkStatus();
+        Node childNode = addNode(relPath);
+        childNode.setPrimaryType(primaryNodeTypeName);
+        return childNode;
+    }
 
-        // TODO
-        return null;
+    @Override
+    public void remove() throws RepositoryException {
+        state.remove();
     }
 
     @Override
@@ -127,8 +222,8 @@ public class NodeImpl extends ItemImpl implements Node  {
     public Property setProperty(String name, Value value, int type) throws ValueFormatException, VersionException, LockException, ConstraintViolationException, RepositoryException {
         checkStatus();
 
-        // TODO
-        return null;
+        state.setProperty(name, ValueConverter.toJsonValue(value));
+        return getProperty(name);
     }
 
     /**
@@ -149,8 +244,8 @@ public class NodeImpl extends ItemImpl implements Node  {
     public Property setProperty(String name, Value[] values, int type) throws ValueFormatException, VersionException, LockException, ConstraintViolationException, RepositoryException {
         checkStatus();
 
-        // TODO
-        return null;
+        state.setProperty(name, ValueConverter.toJsonValue(values));
+        return getProperty(name);
     }
 
     /**
@@ -265,62 +360,88 @@ public class NodeImpl extends ItemImpl implements Node  {
 
     @Override
     public Node getNode(String relPath) throws PathNotFoundException, RepositoryException {
-        // TODO
-        return null;
+        return create(sessionContext, path().concat(relPath));
     }
 
     @Override
     public NodeIterator getNodes() throws RepositoryException {
         checkStatus();
 
-        // TODO
-        return null;
+        Iterator<TransientNodeState> childNodeStates = state.getNodes();
+        return new NodeIteratorAdapter(nodeIterator(childNodeStates));
     }
 
     @Override
-    public NodeIterator getNodes(String namePattern) throws RepositoryException {
+    public NodeIterator getNodes(final String namePattern) throws RepositoryException {
         checkStatus();
 
-        // TODO
-        return null;
+        Iterator<TransientNodeState> childNodeStates = filter(state.getNodes(),
+                new Predicate<TransientNodeState>() {
+                    @Override
+                    public boolean evaluate(TransientNodeState state) {
+                        return ItemNameMatcher.matches(state.getName(), namePattern);
+                    }
+                });
+
+        return new NodeIteratorAdapter(nodeIterator(childNodeStates));
     }
 
     @Override
-    public NodeIterator getNodes(String[] nameGlobs) throws RepositoryException {
+    public NodeIterator getNodes(final String[] nameGlobs) throws RepositoryException {
         checkStatus();
 
-        // TODO
-        return null;
+        Iterator<TransientNodeState> childNodeStates = filter(state.getNodes(),
+                new Predicate<TransientNodeState>() {
+                    @Override
+                    public boolean evaluate(TransientNodeState state) {
+                        return ItemNameMatcher.matches(state.getName(), nameGlobs);
+                    }
+                });
+
+        return new NodeIteratorAdapter(nodeIterator(childNodeStates));
     }
 
     @Override
     public Property getProperty(String relPath) throws PathNotFoundException, RepositoryException {
         checkStatus();
 
-        // TODO
-        return null;
+        return PropertyImpl.create(sessionContext, path().concat(relPath));
     }
 
     @Override
     public PropertyIterator getProperties() throws RepositoryException {
         checkStatus();
 
-        // TODO
-        return null;
+        Iterator<PropertyState> properties = state.getProperties();
+        return new PropertyIteratorAdapter(propertyIterator(properties));
     }
 
     @Override
-    public PropertyIterator getProperties(String namePattern) throws RepositoryException {
+    public PropertyIterator getProperties(final String namePattern) throws RepositoryException {
         checkStatus();
 
-        // TODO
-        return null;
+        Iterator<PropertyState> properties = filter(state.getProperties(),
+                new Predicate<PropertyState>() {
+                    @Override
+                    public boolean evaluate(PropertyState entry) {
+                        return ItemNameMatcher.matches(entry.getName(), namePattern);
+                    }
+                });
+
+        return new PropertyIteratorAdapter(propertyIterator(properties));
     }
 
     @Override
-    public PropertyIterator getProperties(String[] nameGlobs) throws RepositoryException {
-        // TODO
-        return null;
+    public PropertyIterator getProperties(final String[] nameGlobs) throws RepositoryException {
+        Iterator<PropertyState> propertyNames = filter(state.getProperties(),
+                new Predicate<PropertyState>() {
+                    @Override
+                    public boolean evaluate(PropertyState entry) {
+                        return ItemNameMatcher.matches(entry.getName(), nameGlobs);
+                    }
+                });
+
+        return new PropertyIteratorAdapter(propertyIterator(propertyNames));
     }
 
     /**
@@ -400,32 +521,28 @@ public class NodeImpl extends ItemImpl implements Node  {
     public boolean hasNode(String relPath) throws RepositoryException {
         checkStatus();
 
-        // TODO
-        return false;
+        return exist(sessionContext, path().concat(relPath));
     }
 
     @Override
     public boolean hasProperty(String relPath) throws RepositoryException {
         checkStatus();
 
-        // TODO
-        return false;
+        return PropertyImpl.exist(sessionContext, path().concat(relPath));
     }
 
     @Override
     public boolean hasNodes() throws RepositoryException {
         checkStatus();
 
-        // TODO
-        return false;
+        return state.hasNodes();
     }
 
     @Override
     public boolean hasProperties() throws RepositoryException {
         checkStatus();
 
-        // TODO
-        return false;
+        return state.hasProperties();
     }
 
     @Override
@@ -456,22 +573,25 @@ public class NodeImpl extends ItemImpl implements Node  {
     public void setPrimaryType(String nodeTypeName) throws NoSuchNodeTypeException, VersionException, ConstraintViolationException, LockException, RepositoryException {
         checkStatus();
 
-        // TODO
-
+        state.setProperty("jcr:primaryType", JsonAtom.string(nodeTypeName));
     }
 
     @Override
     public void addMixin(String mixinName) throws NoSuchNodeTypeException, VersionException, ConstraintViolationException, LockException, RepositoryException {
         checkStatus();
 
-        // TODO
+        JsonValue mixins = state.getPropertyValue("jcr:mixinTypes");
+        mixins.asArray().add(JsonAtom.string(mixinName));
+        state.setProperty("jcr:mixinTypes", mixins);
     }
 
     @Override
     public void removeMixin(String mixinName) throws NoSuchNodeTypeException, VersionException, ConstraintViolationException, LockException, RepositoryException {
         checkStatus();
 
-        // TODO
+        JsonValue mixins = state.getPropertyValue("jcr:mixinTypes");
+        mixins.asArray().remove(JsonAtom.string(mixinName));
+        state.setProperty("jcr:mixinTypes", mixins);
     }
 
     @Override
@@ -695,5 +815,28 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     private VersionManager getVersionManager() throws RepositoryException {
         return getSession().getWorkspace().getVersionManager();
+    }
+
+    private Path path() {
+        return state.getPath();
+    }
+
+    private Iterator<Node> nodeIterator(Iterator<TransientNodeState> childNodeStates) {
+        return Iterators.map(childNodeStates, new Function1<TransientNodeState, Node>() {
+            @Override
+            public Node apply(TransientNodeState state) {
+                return NodeImpl.create(sessionContext, state);
+            }
+        });
+    }
+
+    private Iterator<Property> propertyIterator(Iterator<PropertyState> properties) {
+        return Iterators.map(properties, new Function1<PropertyState, Property>() {
+            @Override
+            public Property apply(PropertyState state) { // fixme don't cast
+                JsonValue value = ((PropertyStateImpl) state).getValue();
+                return PropertyImpl.create(sessionContext, NodeImpl.this.state, state.getName(), value);
+            }
+        });
     }
 }

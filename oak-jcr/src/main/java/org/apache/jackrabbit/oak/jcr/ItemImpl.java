@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import org.apache.jackrabbit.oak.jcr.SessionImpl.Context;
+import org.apache.jackrabbit.oak.jcr.state.TransientNodeState;
+import org.apache.jackrabbit.oak.jcr.util.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,13 +42,16 @@ import javax.jcr.version.VersionException;
  * <code>ItemImpl</code>...
  */
 abstract class ItemImpl implements Item {
+    protected final Context sessionContext;
 
     /**
      * logger instance
      */
     private static final Logger log = LoggerFactory.getLogger(ItemImpl.class);
 
-    private final SessionImpl session = null;
+    protected ItemImpl(Context sessionContext) {
+        this.sessionContext = sessionContext;
+    }
 
     @Override
     public String getPath() throws RepositoryException {
@@ -79,8 +85,7 @@ abstract class ItemImpl implements Item {
 
     @Override
     public Session getSession() throws RepositoryException {
-        // TODO
-        return null;
+        return sessionContext.getSession();
     }
 
     @Override
@@ -150,6 +155,11 @@ abstract class ItemImpl implements Item {
     }
 
     //--------------------------------------------------------------------------
+    
+    SessionImpl getOakSession() {
+        return sessionContext.getSession();
+    }
+
     /**
      * Performs a sanity check on this item and the associated session.
      *
@@ -157,7 +167,7 @@ abstract class ItemImpl implements Item {
      */
     void checkStatus() throws RepositoryException {
         // check session status
-        session.checkIsAlive();
+        getOakSession().checkIsAlive();
 
         // TODO: validate item state.
     }
@@ -169,7 +179,7 @@ abstract class ItemImpl implements Item {
      * @throws RepositoryException
      */
     void checkSessionHasPendingChanges() throws RepositoryException {
-        session.checkHasPendingChanges();
+        getOakSession().checkHasPendingChanges();
     }
 
     /**
@@ -179,6 +189,11 @@ abstract class ItemImpl implements Item {
      * @throws RepositoryException
      */
     ValueFactory getValueFactory() throws RepositoryException {
-        return session.getValueFactory();
+        return getOakSession().getValueFactory();
     }
+
+    protected static TransientNodeState getNodeState(Context sessionContext, Path path) {
+        return sessionContext.getNodeStateProvider().getNodeState(path);
+    }
+
 }

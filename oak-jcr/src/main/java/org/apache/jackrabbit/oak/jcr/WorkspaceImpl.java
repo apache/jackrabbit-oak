@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.oak.jcr.SessionImpl.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.ContentHandler;
@@ -48,24 +50,28 @@ import java.io.InputStream;
  * <code>WorkspaceImpl</code>...
  */
 public class WorkspaceImpl implements Workspace {
+    public static final String DEFAULT_WORKSPACE_NAME = "default";
 
     /**
      * logger instance
      */
     private static final Logger log = LoggerFactory.getLogger(WorkspaceImpl.class);
 
-    private final SessionImpl session = null;
-    private final String name = null;
+    private final Context sessionContext;
+
+    public WorkspaceImpl(Context sessionContext) {
+        this.sessionContext = sessionContext;
+    }
 
     //----------------------------------------------------------< Workspace >---
     @Override
     public Session getSession() {
-        return session;
+        return sessionContext.getSession();
     }
 
     @Override
     public String getName() {
-        return name;
+        return sessionContext.getWorkspaceName();
     }
 
     @Override
@@ -75,8 +81,8 @@ public class WorkspaceImpl implements Workspace {
 
     @Override
     public void copy(String srcWorkspace, String srcAbsPath, String destAbsPath) throws NoSuchWorkspaceException, ConstraintViolationException, VersionException, AccessDeniedException, PathNotFoundException, ItemExistsException, LockException, RepositoryException {
-        session.checkSupportedOption(Repository.LEVEL_2_SUPPORTED);
-        session.checkIsAlive();
+        getOakSession().checkSupportedOption(Repository.LEVEL_2_SUPPORTED);
+        getOakSession().checkIsAlive();
 
         // TODO -> SPI
 
@@ -84,8 +90,8 @@ public class WorkspaceImpl implements Workspace {
 
     @Override
     public void clone(String srcWorkspace, String srcAbsPath, String destAbsPath, boolean removeExisting) throws NoSuchWorkspaceException, ConstraintViolationException, VersionException, AccessDeniedException, PathNotFoundException, ItemExistsException, LockException, RepositoryException {
-        session.checkSupportedOption(Repository.LEVEL_2_SUPPORTED);
-        session.checkIsAlive();
+        getOakSession().checkSupportedOption(Repository.LEVEL_2_SUPPORTED);
+        getOakSession().checkIsAlive();
 
         // TODO -> SPI
 
@@ -93,8 +99,8 @@ public class WorkspaceImpl implements Workspace {
 
     @Override
     public void move(String srcAbsPath, String destAbsPath) throws ConstraintViolationException, VersionException, AccessDeniedException, PathNotFoundException, ItemExistsException, LockException, RepositoryException {
-        session.checkSupportedOption(Repository.LEVEL_2_SUPPORTED);
-        session.checkIsAlive();
+        getOakSession().checkSupportedOption(Repository.LEVEL_2_SUPPORTED);
+        getOakSession().checkIsAlive();
 
         // TODO -> SPI
 
@@ -107,8 +113,8 @@ public class WorkspaceImpl implements Workspace {
 
     @Override
     public LockManager getLockManager() throws UnsupportedRepositoryOperationException, RepositoryException {
-        session.checkIsAlive();
-        session.checkSupportedOption(Repository.OPTION_LOCKING_SUPPORTED);
+        getOakSession().checkIsAlive();
+        getOakSession().checkSupportedOption(Repository.OPTION_LOCKING_SUPPORTED);
 
         // TODO
         return null;
@@ -116,7 +122,7 @@ public class WorkspaceImpl implements Workspace {
 
     @Override
     public QueryManager getQueryManager() throws RepositoryException {
-        session.checkIsAlive();
+        getOakSession().checkIsAlive();
 
         // TODO
         return null;
@@ -124,7 +130,7 @@ public class WorkspaceImpl implements Workspace {
 
     @Override
     public NamespaceRegistry getNamespaceRegistry() throws RepositoryException {
-        session.checkIsAlive();
+        getOakSession().checkIsAlive();
 
         // TODO
         return null;
@@ -132,7 +138,7 @@ public class WorkspaceImpl implements Workspace {
 
     @Override
     public NodeTypeManager getNodeTypeManager() throws RepositoryException {
-        session.checkIsAlive();
+        getOakSession().checkIsAlive();
 
         // TODO
         return null;
@@ -140,8 +146,8 @@ public class WorkspaceImpl implements Workspace {
 
     @Override
     public ObservationManager getObservationManager() throws UnsupportedRepositoryOperationException, RepositoryException {
-        session.checkSupportedOption(Repository.OPTION_OBSERVATION_SUPPORTED);
-        session.checkIsAlive();
+        getOakSession().checkSupportedOption(Repository.OPTION_OBSERVATION_SUPPORTED);
+        getOakSession().checkIsAlive();
 
         // TODO
         return null;
@@ -149,8 +155,8 @@ public class WorkspaceImpl implements Workspace {
 
     @Override
     public VersionManager getVersionManager() throws UnsupportedRepositoryOperationException, RepositoryException {
-        session.checkIsAlive();
-        session.checkSupportedOption(Repository.OPTION_VERSIONING_SUPPORTED);
+        getOakSession().checkIsAlive();
+        getOakSession().checkSupportedOption(Repository.OPTION_VERSIONING_SUPPORTED);
 
         // TODO
         return null;
@@ -158,7 +164,7 @@ public class WorkspaceImpl implements Workspace {
 
     @Override
     public String[] getAccessibleWorkspaceNames() throws RepositoryException {
-        session.checkIsAlive();
+        getOakSession().checkIsAlive();
 
         // TODO
         return new String[0];
@@ -166,8 +172,8 @@ public class WorkspaceImpl implements Workspace {
 
     @Override
     public ContentHandler getImportContentHandler(String parentAbsPath, int uuidBehavior) throws PathNotFoundException, ConstraintViolationException, VersionException, LockException, AccessDeniedException, RepositoryException {
-        session.checkSupportedOption(Repository.LEVEL_2_SUPPORTED);
-        session.checkIsAlive();
+        getOakSession().checkSupportedOption(Repository.LEVEL_2_SUPPORTED);
+        getOakSession().checkIsAlive();
 
         // TODO
         return null;
@@ -175,35 +181,47 @@ public class WorkspaceImpl implements Workspace {
 
     @Override
     public void importXML(String parentAbsPath, InputStream in, int uuidBehavior) throws IOException, VersionException, PathNotFoundException, ItemExistsException, ConstraintViolationException, InvalidSerializedDataException, LockException, AccessDeniedException, RepositoryException {
-        session.checkSupportedOption(Repository.LEVEL_2_SUPPORTED);
-        session.checkIsAlive();
+        getOakSession().checkSupportedOption(Repository.LEVEL_2_SUPPORTED);
+        getOakSession().checkIsAlive();
 
         // TODO -> SPI
     }
 
     @Override
     public void createWorkspace(String name) throws AccessDeniedException, UnsupportedRepositoryOperationException, RepositoryException {
-        session.checkIsAlive();
-        session.checkSupportedOption(Repository.OPTION_WORKSPACE_MANAGEMENT_SUPPORTED);
-        // TODO -> SPI
+        getOakSession().checkIsAlive();
+        getOakSession().checkSupportedOption(Repository.OPTION_WORKSPACE_MANAGEMENT_SUPPORTED);
+
+        createWorkspace(sessionContext.getMicrokernel(), name);
     }
 
     @Override
     public void createWorkspace(String name, String srcWorkspace) throws AccessDeniedException, UnsupportedRepositoryOperationException, NoSuchWorkspaceException, RepositoryException {
-        session.checkIsAlive();
-        session.checkSupportedOption(Repository.OPTION_WORKSPACE_MANAGEMENT_SUPPORTED);
+        getOakSession().checkIsAlive();
+        getOakSession().checkSupportedOption(Repository.OPTION_WORKSPACE_MANAGEMENT_SUPPORTED);
 
         // TODO -> SPI
     }
 
     @Override
     public void deleteWorkspace(String name) throws AccessDeniedException, UnsupportedRepositoryOperationException, NoSuchWorkspaceException, RepositoryException {
-        session.checkIsAlive();
-        session.checkSupportedOption(Repository.OPTION_WORKSPACE_MANAGEMENT_SUPPORTED);
+        getOakSession().checkIsAlive();
+        getOakSession().checkSupportedOption(Repository.OPTION_WORKSPACE_MANAGEMENT_SUPPORTED);
 
-        // TODO -> SPI
+        MicroKernel microKernel = sessionContext.getMicrokernel();
+        String revision = microKernel.getHeadRevision();
+        microKernel.commit("/", "- \"" + name + '\"', revision, null);
     }
 
     //------------------------------------------------------------< private >---
+    
+    private SessionImpl getOakSession() {
+        return sessionContext.getSession();
+    }
+
+    static void createWorkspace(MicroKernel microKernel,String name) {
+        String revision = microKernel.getHeadRevision();
+        microKernel.commit("/", "+ \"" + name + "\" : {}", revision, null);
+    }
 
 }
