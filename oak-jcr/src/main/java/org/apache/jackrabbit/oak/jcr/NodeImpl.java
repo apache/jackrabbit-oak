@@ -108,17 +108,45 @@ public class NodeImpl extends ItemImpl implements Node  {
     }
 
     //---------------------------------------------------------------< Item >---
-
+    /**
+     * @see javax.jcr.Item#isNode()
+     */
     @Override
-    public String getPath() throws RepositoryException {
-        return path().toJcrPath();
+    public boolean isNode() {
+        return true;
     }
 
+    /**
+     * @see javax.jcr.Item#getName()
+     */
     @Override
     public String getName() throws RepositoryException {
         return state.getName();
     }
 
+    /**
+     * @see javax.jcr.Item#getPath()
+     */
+    @Override
+    public String getPath() throws RepositoryException {
+        return path().toJcrPath();
+    }
+
+    /**
+     * @see javax.jcr.Item#getParent()
+     */
+    @Override
+    public Node getParent() throws RepositoryException {
+        if (state.isRoot()) {
+            throw new ItemNotFoundException("Root has no parent");
+        }
+
+        return create(sessionContext, path().getParent());
+    }
+
+    /**
+     * @see Item#getAncestor(int)
+     */
     @Override
     public Item getAncestor(int depth) throws RepositoryException {
         Path parent = path().getAncestor(depth);
@@ -129,36 +157,36 @@ public class NodeImpl extends ItemImpl implements Node  {
         return create(sessionContext, parent);
     }
 
-    @Override
-    public Node getParent() throws RepositoryException {
-        if (state.isRoot()) {
-            throw new ItemNotFoundException("Root has no parent");
-        }
-
-        return create(sessionContext, path().getParent());
-    }
-
+    /**
+     * @see javax.jcr.Item#getDepth()
+     */
     @Override
     public int getDepth() throws RepositoryException {
         return path().getDepth();
     }
 
+    /**
+     * @see javax.jcr.Item#isNew()
+     */
     @Override
     public boolean isNew() {
         return state.isNew();
     }
 
+    /**
+     * @see javax.jcr.Item#isModified()
+     */
     @Override
     public boolean isModified() {
         return state.isModified();
     }
 
     /**
-     * @see javax.jcr.Item#isNode()
+     * @see javax.jcr.Item#remove()
      */
     @Override
-    public boolean isNode() {
-        return true;
+    public void remove() throws RepositoryException {
+        state.remove();
     }
 
     /**
@@ -189,11 +217,6 @@ public class NodeImpl extends ItemImpl implements Node  {
         Node childNode = addNode(relPath);
         childNode.setPrimaryType(primaryNodeTypeName);
         return childNode;
-    }
-
-    @Override
-    public void remove() throws RepositoryException {
-        state.remove();
     }
 
     @Override
