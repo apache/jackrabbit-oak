@@ -38,7 +38,7 @@ import org.apache.jackrabbit.mk.util.PathUtils;
  * All mounted repositories contains the configuration as follows:
  * /:mount/rep1 { url: "mk:...", paths: "/a,/b" }.
  */
-public class VirtualRepositoryWrapper extends WrapperBase implements MicroKernel {
+public class VirtualRepositoryWrapper extends MicroKernelWrapperBase implements MicroKernel {
 
     private static final String PREFIX = "virtual:";
     private static final String MOUNT = "/:mount";
@@ -46,7 +46,7 @@ public class VirtualRepositoryWrapper extends WrapperBase implements MicroKernel
     /**
      * The 'main' (wrapped) implementation.
      */
-    private final Wrapper mk;
+    private final MicroKernelWrapper mk;
 
     /**
      * Path map.
@@ -64,7 +64,7 @@ public class VirtualRepositoryWrapper extends WrapperBase implements MicroKernel
      * Mount map.
      * Key: mount name, value: microkernel implementation.
      */
-    private final HashMap<String, Wrapper> mounts = new HashMap<String, Wrapper>();
+    private final HashMap<String, MicroKernelWrapper> mounts = new HashMap<String, MicroKernelWrapper>();
 
     /**
      * Head revision map.
@@ -75,7 +75,7 @@ public class VirtualRepositoryWrapper extends WrapperBase implements MicroKernel
     private final NodeMap map = new NodeMap();
 
     private VirtualRepositoryWrapper(MicroKernel mk) {
-        this.mk = WrapperBase.wrap(mk);
+        this.mk = MicroKernelWrapperBase.wrap(mk);
     }
 
     public static synchronized VirtualRepositoryWrapper get(String url) {
@@ -111,7 +111,7 @@ public class VirtualRepositoryWrapper extends WrapperBase implements MicroKernel
 
     private void addMount(String mount, String url, String[] paths) {
         MicroKernel mk = MicroKernelFactory.getInstance(url);
-        mounts.put(mount, WrapperBase.wrap(mk));
+        mounts.put(mount, MicroKernelWrapperBase.wrap(mk));
         for (String p : paths) {
             dir.put(p, mount);
         }
@@ -247,7 +247,7 @@ public class VirtualRepositoryWrapper extends WrapperBase implements MicroKernel
         StringBuilder buff = new StringBuilder();
         if (revisions.size() != mounts.size()) {
             revisions.clear();
-            for (Entry<String, Wrapper> e : mounts.entrySet()) {
+            for (Entry<String, MicroKernelWrapper> e : mounts.entrySet()) {
                 String m = e.getKey();
                 String r = e.getValue().getHeadRevision();
                 revisions.put(m, r);
@@ -286,7 +286,7 @@ public class VirtualRepositoryWrapper extends WrapperBase implements MicroKernel
             throw ExceptionFactory.get("Not mapped: " + path);
         }
         String rev = getRevision(mount, revisionId);
-        Wrapper mk = mounts.get(mount);
+        MicroKernelWrapper mk = mounts.get(mount);
         return mk.getNodesStream(path, rev, depth, offset, count, filter);
     }
 

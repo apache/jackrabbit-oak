@@ -31,7 +31,7 @@ import org.apache.jackrabbit.mk.util.Cache;
 import org.apache.jackrabbit.mk.util.CommitGate;
 import org.apache.jackrabbit.mk.util.ExceptionFactory;
 import org.apache.jackrabbit.mk.util.PathUtils;
-import org.apache.jackrabbit.mk.wrapper.WrapperBase;
+import org.apache.jackrabbit.mk.wrapper.MicroKernelWrapperBase;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -60,7 +60,7 @@ Node structure:
 /**
  * A simple MicroKernel implementation.
  */
-public class SimpleKernelImpl extends WrapperBase implements MicroKernel {
+public class SimpleKernelImpl extends MicroKernelWrapperBase implements MicroKernel {
 
     private static final HashMap<String, SimpleKernelImpl> INSTANCES = new HashMap<String, SimpleKernelImpl>();
 

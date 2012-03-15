@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.wrapper;
+package org.apache.jackrabbit.mk.index;
 
 import java.io.InputStream;
 import java.util.HashMap;
@@ -22,9 +22,6 @@ import java.util.Iterator;
 import org.apache.jackrabbit.mk.MicroKernelFactory;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
-import org.apache.jackrabbit.mk.index.Indexer;
-import org.apache.jackrabbit.mk.index.PrefixIndex;
-import org.apache.jackrabbit.mk.index.PropertyIndex;
 import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopStream;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
@@ -32,25 +29,27 @@ import org.apache.jackrabbit.mk.simple.NodeImpl;
 import org.apache.jackrabbit.mk.simple.NodeMap;
 import org.apache.jackrabbit.mk.util.ExceptionFactory;
 import org.apache.jackrabbit.mk.util.PathUtils;
+import org.apache.jackrabbit.mk.wrapper.MicroKernelWrapper;
+import org.apache.jackrabbit.mk.wrapper.MicroKernelWrapperBase;
 
 /**
  * The index mechanism, as a wrapper.
  */
-public class IndexWrapper extends WrapperBase implements MicroKernel {
+public class IndexWrapper extends MicroKernelWrapperBase implements MicroKernel {
 
     private static final String INDEX_PATH = "/index";
     private static final String TYPE_PREFIX = "prefix:";
     private static final String TYPE_PROPERTY = "property:";
     private static final String UNIQUE = "unique";
 
-    private final Wrapper mk;
+    private final MicroKernelWrapper mk;
     private final Indexer indexer;
     private final NodeMap map = new NodeMap();
     private final HashMap<String, PrefixIndex> prefixIndexes = new HashMap<String, PrefixIndex>();
     private final HashMap<String, PropertyIndex> propertyIndexes = new HashMap<String, PropertyIndex>();
 
     public IndexWrapper(MicroKernel mk) {
-        this.mk = WrapperBase.wrap(mk);
+        this.mk = MicroKernelWrapperBase.wrap(mk);
         this.indexer = new Indexer(mk);
     }
 
