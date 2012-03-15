@@ -54,7 +54,7 @@ import java.util.List;
 import java.util.Map.Entry;
 
 /**
- * <code>WorkspaceImpl</code>...
+ * {@code WorkspaceImpl}...
  */
 public class WorkspaceImpl implements Workspace {
     public static final String DEFAULT_WORKSPACE_NAME = "default";

@@ -23,7 +23,7 @@ import javax.jcr.Item;
 import javax.jcr.RepositoryException;
 
 /**
- * <code>LogUtil</code>...
+ * {@code LogUtil}...
  */
 public class LogUtil {
 

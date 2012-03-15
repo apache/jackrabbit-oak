@@ -74,7 +74,7 @@ import java.util.Iterator;
 import static org.apache.jackrabbit.oak.jcr.util.Iterators.filter;
 
 /**
- * <code>NodeImpl</code>...
+ * {@code NodeImpl}...
  */
 public class NodeImpl extends ItemImpl implements Node  {
 

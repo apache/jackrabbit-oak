@@ -30,7 +30,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * <code>RepositoryImpl</code>...
+ * {@code RepositoryImpl}...
  */
 public class RepositoryImpl extends AbstractRepository {
 

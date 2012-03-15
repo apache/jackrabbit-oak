@@ -30,7 +30,7 @@ import org.apache.jackrabbit.oak.jcr.util.Predicate;
 import javax.jcr.RepositoryException;
 
 /**
- * {@code TransientSpace} instances use a {@link org.apache.jackrabbit.state.ChangeTree} to
+ * {@code TransientSpace} instances use a {@link org.apache.jackrabbit.oak.jcr.state.ChangeTree} to
  * record transient changes in a JCR hierarchy. Changes can be persisted by calling
  * {@link #save()}. A transient space is bound to a specific revision. Calling
  * {@link #refresh(boolean)} updates the revision to the latest.

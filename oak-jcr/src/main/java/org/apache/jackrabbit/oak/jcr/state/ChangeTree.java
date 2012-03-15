@@ -125,11 +125,11 @@ public class ChangeTree {
      * subclasses correspond to these changes:
      *
      * <ul>
-     * <li>{@link org.apache.jackrabbit.state.ChangeTree.Added} represents a transiently
+     * <li>{@link org.apache.jackrabbit.oak.jcr.state.ChangeTree.Added} represents a transiently
      *      added node.</li>
-     * <li>{@link org.apache.jackrabbit.state.ChangeTree.Removed} represents a transiently
+     * <li>{@link org.apache.jackrabbit.oak.jcr.state.ChangeTree.Removed} represents a transiently
      *      removed node.</li>
-     * <li>{@link org.apache.jackrabbit.state.ChangeTree.Existing} represents a node which
+     * <li>{@link org.apache.jackrabbit.oak.jcr.state.ChangeTree.Existing} represents a node which
      *      is otherwise touched. That is, which either has property modifications or a has a
      *      child node which is touched. </li>
      * </ul>
@@ -168,7 +168,7 @@ public class ChangeTree {
 
         /**
          * @return persistent path to this node or {@code null} if this node is not
-         * an {@link org.apache.jackrabbit.state.ChangeTree.Existing existing} node.
+         * an {@link org.apache.jackrabbit.oak.jcr.state.ChangeTree.Existing existing} node.
          */
         public Path getPersistentPath() {
             return null;
