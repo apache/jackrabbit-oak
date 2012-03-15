@@ -147,7 +147,7 @@ public final class JsonParser {
         tokenizer.read(Type.END_ARRAY);
     }
 
-    //------------------------------------------< private >---
+    //------------------------------------------------------------< private >---
     
     private boolean tryParsePair(JsonTokenizer tokenizer) {
         if (tokenizer.peek(Type.STRING)) {
