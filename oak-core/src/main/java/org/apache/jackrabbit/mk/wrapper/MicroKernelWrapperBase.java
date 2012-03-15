@@ -22,7 +22,11 @@ import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
 
-public abstract class WrapperBase implements MicroKernel, Wrapper {
+/**
+ * A MicroKernel implementation that extends this interface can use a JsopReader
+ * instead of having to use strings.
+ */
+public abstract class MicroKernelWrapperBase implements MicroKernel, MicroKernelWrapper {
 
     public final String commit(String path, String jsonDiff, String revisionId, String message) {
         return commitStream(path, new JsopTokenizer(jsonDiff), revisionId, message);
@@ -48,11 +52,18 @@ public abstract class WrapperBase implements MicroKernel, Wrapper {
         return getRevisionsStream(since, maxEntries).toString();
     }
 
-    public static Wrapper wrap(final MicroKernel mk) {
-        if (mk instanceof Wrapper) {
-            return (Wrapper) mk;
+    /**
+     * Wrap a MicroKernel implementation so that the MicroKernelWrapper
+     * interface can be used.
+     *
+     * @param mk the MicroKernel implementation to wrap
+     * @return the wrapped instance
+     */
+    public static MicroKernelWrapper wrap(final MicroKernel mk) {
+        if (mk instanceof MicroKernelWrapper) {
+            return (MicroKernelWrapper) mk;
         }
-        return new Wrapper() {
+        return new MicroKernelWrapper() {
 
             MicroKernel wrapped = mk;
 
