@@ -22,20 +22,13 @@ import org.apache.jackrabbit.oak.jcr.util.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.jcr.AccessDeniedException;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.Item;
-import javax.jcr.ItemExistsException;
 import javax.jcr.Node;
-import javax.jcr.ReferentialIntegrityException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.ValueFactory;
-import javax.jcr.lock.LockException;
-import javax.jcr.nodetype.ConstraintViolationException;
-import javax.jcr.nodetype.NoSuchNodeTypeException;
-import javax.jcr.version.VersionException;
 
 /**
  * {@code ItemImpl}...
@@ -95,7 +88,7 @@ abstract class ItemImpl implements Item {
      * @see javax.jcr.Item#save()
      */
     @Override
-    public void save() throws AccessDeniedException, ItemExistsException, ConstraintViolationException, InvalidItemStateException, ReferentialIntegrityException, VersionException, LockException, NoSuchNodeTypeException, RepositoryException {
+    public void save() throws UnsupportedRepositoryOperationException {
         throw new UnsupportedRepositoryOperationException("Use Session#save");
     }
 
@@ -103,7 +96,7 @@ abstract class ItemImpl implements Item {
      * @see Item#refresh(boolean)
      */
     @Override
-    public void refresh(boolean keepChanges) throws InvalidItemStateException, RepositoryException {
+    public void refresh(boolean keepChanges) throws UnsupportedRepositoryOperationException {
         throw new UnsupportedRepositoryOperationException("Use Session#refresh");
     }
 
