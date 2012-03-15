@@ -20,7 +20,11 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.json.JsopReader;
 
-public interface Wrapper extends MicroKernel {
+/**
+ * This interface allows a MicroKernel client to use a JsopReader instead of
+ * having to use strings.
+ */
+public interface MicroKernelWrapper extends MicroKernel {
 
     JsopReader getRevisionsStream(long since, int maxEntries) throws MicroKernelException;
 

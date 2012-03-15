@@ -41,9 +41,9 @@ import org.apache.jackrabbit.mk.util.SimpleLRUCache;
  * This implementation is not meant for production, it is only used to find
  * (performance and other) problems when using such an approach.
  */
-public class SecurityWrapper extends WrapperBase implements MicroKernel {
+public class SecurityWrapper extends MicroKernelWrapperBase implements MicroKernel {
 
-    private final Wrapper mk;
+    private final MicroKernelWrapper mk;
     private final boolean admin, write;
     private final String[] userRights;
     private final NodeMap map = new NodeMap();
@@ -52,7 +52,7 @@ public class SecurityWrapper extends WrapperBase implements MicroKernel {
 
     private SecurityWrapper(MicroKernel mk, String[] rights) {
         // TODO security for the index mechanism
-        this.mk = WrapperBase.wrap(mk);
+        this.mk = MicroKernelWrapperBase.wrap(mk);
         this.userRights = rights;
         boolean isAdmin = false, canWrite = false;
         for (String r : rights) {
