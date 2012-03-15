@@ -37,7 +37,10 @@ import static java.text.MessageFormat.format;
 
 /**
  * Poor man's dependency injection
- * todo: replace by some more sophisticated mechanism
+ * todo: OAK-17: replace by some more sophisticated mechanism
+ * This class implements a poor man's dependency injection mechanism.
+ * It should be replaced by a more sophisticated mechanism for compile
+ * time dependency injection mechanism.
  */
 public class GlobalContext {
     private final Map<Class<?>, Object> instances = new HashMap<Class<?>, Object>();
