@@ -53,7 +53,7 @@ import javax.jcr.version.VersionException;
 import java.security.AccessControlException;
 
 /**
- * <code>SessionImpl</code>...
+ * {@code SessionImpl}...
  */
 public class SessionImpl extends AbstractSession {
 

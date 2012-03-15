@@ -46,7 +46,7 @@ import java.math.BigDecimal;
 import java.util.Calendar;
 
 /**
- * <code>PropertyImpl</code>...
+ * {@code PropertyImpl}...
  */
 public class PropertyImpl extends ItemImpl implements Property {
 
