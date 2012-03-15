@@ -513,18 +513,20 @@ public class PropertyImpl extends ItemImpl implements Property {
         return null;
     }
 
+    /**
+     * @see javax.jcr.Property#getType()
+     */
     @Override
     public int getType() throws RepositoryException {
         if (isMultiple()) {
             Value[] values = getValues();
             if (values.length == 0) {
-                return PropertyType.UNDEFINED;
-            }
-            else {
+                // retrieve the type from the property definition
+                return getRequiredType(PropertyType.UNDEFINED);
+            } else {
                 return values[0].getType();
             }
-        }
-        else {
+        } else {
             return getValue().getType();
         }
     }
@@ -544,7 +546,7 @@ public class PropertyImpl extends ItemImpl implements Property {
     private int getRequiredType(int defaultType) throws RepositoryException {
         // check type according to definition of this property
         PropertyDefinition def = getDefinition();
-        int reqType = def == null ? PropertyType.UNDEFINED : getDefinition().getRequiredType();
+        int reqType = (def == null) ? PropertyType.UNDEFINED : getDefinition().getRequiredType();
         if (reqType == PropertyType.UNDEFINED) {
             if (defaultType == PropertyType.UNDEFINED) {
                 reqType = PropertyType.STRING;
