@@ -22,7 +22,6 @@ import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
-import org.apache.jackrabbit.mk.Constants;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
@@ -38,6 +37,8 @@ import org.apache.jackrabbit.mk.util.StringUtils;
  * An in-memory node, including all child nodes.
  */
 public class NodeImpl implements Cache.Value {
+
+    private static final boolean NODE_NAME_AS_PROPERTY = false;
 
     /**
      * The child node count.
@@ -342,7 +343,7 @@ public class NodeImpl implements Cache.Value {
         } else if (childNodes.containsKey(name)) {
             throw ExceptionFactory.get("Node already exists: " + name);
         }
-        if (Constants.NODE_NAME_AS_PROPERTY) {
+        if (NODE_NAME_AS_PROPERTY) {
             node.setProperty(NAME, JsopBuilder.encode(name));
         }
         childNodes.add(name, map.addNode(node));
