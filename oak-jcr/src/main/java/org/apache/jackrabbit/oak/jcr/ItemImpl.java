@@ -26,7 +26,6 @@ import javax.jcr.AccessDeniedException;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.Item;
 import javax.jcr.ItemExistsException;
-import javax.jcr.ItemNotFoundException;
 import javax.jcr.Node;
 import javax.jcr.ReferentialIntegrityException;
 import javax.jcr.RepositoryException;
@@ -53,51 +52,10 @@ abstract class ItemImpl implements Item {
         this.sessionContext = sessionContext;
     }
 
-    @Override
-    public String getPath() throws RepositoryException {
-        // TODO
-        return null;
-    }
-
-    @Override
-    public String getName() throws RepositoryException {
-        // TODO
-        return null;
-    }
-
-    @Override
-    public Item getAncestor(int depth) throws ItemNotFoundException, AccessDeniedException, RepositoryException {
-        // TODO
-        return null;
-    }
-
-    @Override
-    public Node getParent() throws ItemNotFoundException, AccessDeniedException, RepositoryException {
-        // TODO
-        return null;
-    }
-
-    @Override
-    public int getDepth() throws RepositoryException {
-        // TODO
-        return 0;
-    }
-
+    //---------------------------------------------------------------< Item >---
     @Override
     public Session getSession() throws RepositoryException {
         return sessionContext.getSession();
-    }
-
-    @Override
-    public boolean isNew() {
-        // TODO
-        return false;
-    }
-
-    @Override
-    public boolean isModified() {
-        // TODO
-        return false;
     }
 
     /**
@@ -149,17 +107,7 @@ abstract class ItemImpl implements Item {
         throw new UnsupportedRepositoryOperationException("Use Session#refresh");
     }
 
-    @Override
-    public void remove() throws VersionException, LockException, ConstraintViolationException, AccessDeniedException, RepositoryException {
-        // TODO
-    }
-
     //--------------------------------------------------------------------------
-    
-    SessionImpl getOakSession() {
-        return sessionContext.getSession();
-    }
-
     /**
      * Performs a sanity check on this item and the associated session.
      *
@@ -167,7 +115,7 @@ abstract class ItemImpl implements Item {
      */
     void checkStatus() throws RepositoryException {
         // check session status
-        getOakSession().checkIsAlive();
+        sessionContext.getSession().checkIsAlive();
 
         // TODO: validate item state.
     }
@@ -179,7 +127,7 @@ abstract class ItemImpl implements Item {
      * @throws RepositoryException
      */
     void checkSessionHasPendingChanges() throws RepositoryException {
-        getOakSession().checkHasPendingChanges();
+        sessionContext.getSession().checkHasPendingChanges();
     }
 
     /**
@@ -189,7 +137,7 @@ abstract class ItemImpl implements Item {
      * @throws RepositoryException
      */
     ValueFactory getValueFactory() throws RepositoryException {
-        return getOakSession().getValueFactory();
+        return sessionContext.getValueFactory();
     }
 
     protected static TransientNodeState getNodeState(Context sessionContext, Path path) {

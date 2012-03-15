@@ -97,14 +97,72 @@ public class PropertyImpl extends ItemImpl implements Property {
         return false;
     }
 
+    /**
+     * @see javax.jcr.Item#getName()
+     */
+    @Override
+    public String getName() throws RepositoryException {
+        return name;
+    }
+
+    /**
+     * @see javax.jcr.Property#getPath() ()
+     */
     @Override
     public String getPath() throws RepositoryException {
         return parentState.getPath().concat(name).toJcrPath();
     }
 
+    /**
+     * @see javax.jcr.Item#getParent()
+     */
     @Override
-    public String getName() throws RepositoryException {
-        return name;
+    public Node getParent() throws RepositoryException {
+        return NodeImpl.create(sessionContext, parentState);
+    }
+
+    /**
+     * @see Item#getAncestor(int)
+     */
+    @Override
+    public Item getAncestor(int depth) throws RepositoryException {
+        if (depth == getDepth() - 1) {
+            return getParent();
+        } else {
+            return getParent().getAncestor(depth);
+        }
+    }
+
+    /**
+     * @see javax.jcr.Item#getDepth()
+     */
+    @Override
+    public int getDepth() throws RepositoryException {
+        return parentState.getPath().getDepth() + 1;
+    }
+
+    /**
+     * @see javax.jcr.Item#isNew()
+     */
+    @Override
+    public boolean isNew() {
+        return parentState.isPropertyNew(name);
+    }
+
+    /**
+     * @see javax.jcr.Item#isModified() ()
+     */
+    @Override
+    public boolean isModified() {
+        return parentState.isPropertyModified(name);
+    }
+
+    /**
+     * @see javax.jcr.Item#isNew()
+     */
+    @Override
+    public void remove() throws RepositoryException {
+        parentState.removeProperty(name);
     }
 
     /**
@@ -115,42 +173,6 @@ public class PropertyImpl extends ItemImpl implements Property {
         checkStatus();
         visitor.visit(this);
     }
-
-    @Override
-    public Item getAncestor(int depth) throws RepositoryException {
-        if (depth == getDepth() - 1) {
-            return getParent();
-        }
-        else {
-            return getParent().getAncestor(depth);
-        }
-    }
-
-    @Override
-    public Node getParent() throws RepositoryException {
-        return NodeImpl.create(sessionContext, parentState);
-    }
-
-    @Override
-    public int getDepth() throws RepositoryException {
-        return parentState.getPath().getDepth() + 1;
-    }
-
-    @Override
-    public boolean isNew() {
-        return parentState.isPropertyNew(name);
-    }
-
-    @Override
-    public boolean isModified() {
-        return parentState.isPropertyModified(name);
-    }
-
-    @Override
-    public void remove() throws RepositoryException {
-        parentState.removeProperty(name);
-    }
-
 
     //-----------------------------------------------------------< Property >---
     /**
