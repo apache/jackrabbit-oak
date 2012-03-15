@@ -19,8 +19,6 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import org.apache.jackrabbit.commons.JcrUtils;
-import org.apache.jackrabbit.mk.MicroKernelFactory;
-import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -42,6 +40,7 @@ import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.Value;
+import javax.jcr.ValueFactory;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.NodeTypeTemplate;
@@ -84,32 +83,48 @@ public class RepositoryTest {
     private Session session;
 
     @Before
-    public void setup() {
-        MicroKernel mk = MicroKernelFactory.getInstance(URL);
+    public void setup() throws RepositoryException {
+        Session session = getRepository().login();
+        ValueFactory valueFactory = session.getValueFactory();
         try {
-            String head = mk.getHeadRevision();
-            if (mk.nodeExists("/default", head)) {
-                head = mk.commit("/", "- \"default\"", head, null);
-            }
-
-            head = mk.commit("/",
-                    "+\"default\" : {" +
-                            "\"foo\" : {" +
-                            "\"stringProp\":\"stringVal\"," +
-                            "\"intProp\":42," +
-                            "\"mvProp\":[1,2,3]}, " +
-                            "\"bar\" : {}}", head, "{}");
-
-            mk.commit("/default",
-                    "+\"" + TEST_NODE + "\" : {\"jcr:primaryType\":\"7:nt:unstructured\"}", head, "{}");
+            Node root = session.getRootNode();
+            Node foo = root.addNode("foo");
+            foo.setProperty("stringProp", "stringVal");
+            foo.setProperty("intProp", 42);
+            foo.setProperty("mvProp", new Value[] {
+                valueFactory.createValue(1),
+                valueFactory.createValue(2),
+                valueFactory.createValue(3),
+            });
+            root.addNode("bar");
+            root.addNode(TEST_NODE);
+            session.save();
         }
         finally {
-            mk.dispose();
+            session.logout();
         }
     }
 
     @After
-    public void tearDown() {
+    public void tearDown() throws RepositoryException {
+        Session session = getRepository().login();
+        try {
+            Node root = session.getRootNode();
+            if (root.hasNode("foo")) {
+                root.getNode("foo").remove();
+            }
+            if (root.hasNode("bar")) {
+                root.getNode("bar").remove();
+            }
+            if (root.hasNode(TEST_NODE)) {
+                root.getNode(TEST_NODE).remove();
+            }
+            session.save();
+        }
+        finally {
+            session.logout();
+        }
+
         if (session != null) {
             session.logout();
             session = null;
