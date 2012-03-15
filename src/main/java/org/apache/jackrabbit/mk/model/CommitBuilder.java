@@ -216,9 +216,7 @@ public class CommitBuilder {
             newCommit.setCommitTS(System.currentTimeMillis());
             newCommit.setMsg(msg);
             newCommit.setRootNodeId(rootNodeId);
-            newRevId = store.putCommit(newCommit);
-
-            store.setHeadCommitId(newRevId);
+            newRevId = store.putHeadCommit(newCommit);
         } finally {
             store.unlockHead();
         }

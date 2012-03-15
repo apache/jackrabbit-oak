@@ -179,8 +179,15 @@ public class DefaultRevisionStore implements RevisionStore, Closeable {
         return id;
     }
 
-    public Id putCommit(MutableCommit commit) throws Exception {
+    public void lockHead() {
+        headLock.writeLock().lock();
+    }
+
+    public Id putHeadCommit(MutableCommit commit) throws Exception {
         verifyInitialized();
+        if (!headLock.writeLock().isHeldByCurrentThread()) {
+            throw new IllegalStateException("putCommit called without holding write lock.");
+        }
 
         PersistHook callback = null;
         if (commit instanceof PersistHook) {
@@ -193,33 +200,24 @@ public class DefaultRevisionStore implements RevisionStore, Closeable {
             id = new Id(longToBytes(++headCounter));
         }
         pm.writeCommit(id, commit);
+        setHeadCommitId(id);
 
         if (callback != null)  {
             callback.postPersist(this);
         }
         cache.put(id, new StoredCommit(id, commit));
+
         return id;
     }
 
-    public void setHeadCommitId(Id id) throws Exception {
-        verifyInitialized();
-
-        headLock.writeLock().lock();
-        try {
-            pm.writeHead(id);
-            head = id;
-            
-            long headCounter = Long.parseLong(id.toString(), 16);
-            if (headCounter > this.headCounter) {
-                this.headCounter = headCounter;
-            }
-        } finally {
-            headLock.writeLock().unlock();
+    private void setHeadCommitId(Id id) throws Exception {
+        pm.writeHead(id);
+        head = id;
+        
+        long headCounter = Long.parseLong(id.toString(), 16);
+        if (headCounter > this.headCounter) {
+            this.headCounter = headCounter;
         }
-    }
-
-    public void lockHead() {
-        headLock.writeLock().lock();
     }
 
     public void unlockHead() {
