@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
 import org.apache.jackrabbit.commons.iterator.PropertyIteratorAdapter;
 import org.apache.jackrabbit.oak.jcr.SessionImpl.Context;
@@ -35,16 +36,10 @@ import org.apache.jackrabbit.value.ValueHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.jcr.AccessDeniedException;
 import javax.jcr.Binary;
-import javax.jcr.InvalidItemStateException;
-import javax.jcr.InvalidLifecycleTransitionException;
 import javax.jcr.Item;
-import javax.jcr.ItemExistsException;
 import javax.jcr.ItemNotFoundException;
 import javax.jcr.ItemVisitor;
-import javax.jcr.MergeException;
-import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.PathNotFoundException;
@@ -54,16 +49,10 @@ import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Value;
-import javax.jcr.ValueFormatException;
 import javax.jcr.lock.Lock;
-import javax.jcr.lock.LockException;
-import javax.jcr.nodetype.ConstraintViolationException;
-import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeType;
-import javax.jcr.version.ActivityViolationException;
 import javax.jcr.version.Version;
-import javax.jcr.version.VersionException;
 import javax.jcr.version.VersionHistory;
 import javax.jcr.version.VersionManager;
 import java.io.InputStream;
@@ -203,7 +192,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see Node#addNode(String)
      */
     @Override
-    public Node addNode(String relPath) throws ItemExistsException, PathNotFoundException, VersionException, ConstraintViolationException, LockException, RepositoryException {
+    public Node addNode(String relPath) throws RepositoryException {
         checkStatus();
         Path newPath = path().concat(relPath);
         TransientNodeState parentState = getNodeState(sessionContext, newPath.getParent());
@@ -212,7 +201,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     }
 
     @Override
-    public Node addNode(String relPath, String primaryNodeTypeName) throws ItemExistsException, PathNotFoundException, NoSuchNodeTypeException, LockException, VersionException, ConstraintViolationException, RepositoryException {
+    public Node addNode(String relPath, String primaryNodeTypeName) throws RepositoryException {
         checkStatus();
         Node childNode = addNode(relPath);
         childNode.setPrimaryType(primaryNodeTypeName);
@@ -220,7 +209,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     }
 
     @Override
-    public void orderBefore(String srcChildRelPath, String destChildRelPath) throws UnsupportedRepositoryOperationException, VersionException, ConstraintViolationException, ItemNotFoundException, LockException, RepositoryException {
+    public void orderBefore(String srcChildRelPath, String destChildRelPath) throws RepositoryException {
         checkStatus();
 
         // TODO
@@ -230,7 +219,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see Node#setProperty(String, javax.jcr.Value)
      */
     @Override
-    public Property setProperty(String name, Value value) throws ValueFormatException, VersionException, LockException, ConstraintViolationException, RepositoryException {
+    public Property setProperty(String name, Value value) throws RepositoryException {
         int type = PropertyType.UNDEFINED;
         if (value != null) {
             type = value.getType();
@@ -242,7 +231,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see Node#setProperty(String, javax.jcr.Value, int)
      */
     @Override
-    public Property setProperty(String name, Value value, int type) throws ValueFormatException, VersionException, LockException, ConstraintViolationException, RepositoryException {
+    public Property setProperty(String name, Value value, int type) throws RepositoryException {
         checkStatus();
 
         state.setProperty(name, ValueConverter.toJsonValue(value));
@@ -253,7 +242,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see Node#setProperty(String, javax.jcr.Value[])
      */
     @Override
-    public Property setProperty(String name, Value[] values) throws ValueFormatException, VersionException, LockException, ConstraintViolationException, RepositoryException {
+    public Property setProperty(String name, Value[] values) throws RepositoryException {
         int type;
         if (values == null || values.length == 0 || values[0] == null) {
             type = PropertyType.UNDEFINED;
@@ -264,7 +253,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     }
 
     @Override
-    public Property setProperty(String name, Value[] values, int type) throws ValueFormatException, VersionException, LockException, ConstraintViolationException, RepositoryException {
+    public Property setProperty(String name, Value[] values, int type) throws RepositoryException {
         checkStatus();
 
         state.setProperty(name, ValueConverter.toJsonValue(values));
@@ -275,7 +264,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see Node#setProperty(String, String[])
      */
     @Override
-    public Property setProperty(String name, String[] values) throws ValueFormatException, VersionException, LockException, ConstraintViolationException, RepositoryException {
+    public Property setProperty(String name, String[] values) throws RepositoryException {
         return setProperty(name, values, PropertyType.UNDEFINED);
     }
 
@@ -283,7 +272,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see Node#setProperty(String, String[], int)
      */
     @Override
-    public Property setProperty(String name, String[] values, int type) throws ValueFormatException, VersionException, LockException, ConstraintViolationException, RepositoryException {
+    public Property setProperty(String name, String[] values, int type) throws RepositoryException {
         Value[] vs;
         if (type == PropertyType.UNDEFINED) {
             vs = ValueHelper.convert(values, PropertyType.STRING, getValueFactory());
@@ -297,7 +286,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see Node#setProperty(String, String)
      */
     @Override
-    public Property setProperty(String name, String value) throws ValueFormatException, VersionException, LockException, ConstraintViolationException, RepositoryException {
+    public Property setProperty(String name, String value) throws RepositoryException {
         Value v = (value == null) ? null : getValueFactory().createValue(value, PropertyType.STRING);
         return setProperty(name, v, PropertyType.UNDEFINED);
     }
@@ -306,7 +295,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see Node#setProperty(String, String, int)
      */
     @Override
-    public Property setProperty(String name, String value, int type) throws ValueFormatException, VersionException, LockException, ConstraintViolationException, RepositoryException {
+    public Property setProperty(String name, String value, int type) throws RepositoryException {
         Value v = (value == null) ? null : getValueFactory().createValue(value, type);
         return setProperty(name, v, type);
     }
@@ -315,7 +304,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see Node#setProperty(String, InputStream)
      */
     @Override
-    public Property setProperty(String name, InputStream value) throws ValueFormatException, VersionException, LockException, ConstraintViolationException, RepositoryException {
+    public Property setProperty(String name, InputStream value) throws RepositoryException {
         Value v = (value == null ? null : getValueFactory().createValue(value));
         return setProperty(name, v, PropertyType.BINARY);
     }
@@ -324,7 +313,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see Node#setProperty(String, Binary)
      */
     @Override
-    public Property setProperty(String name, Binary value) throws ValueFormatException, VersionException, LockException, ConstraintViolationException, RepositoryException {
+    public Property setProperty(String name, Binary value) throws RepositoryException {
         Value v = (value == null ? null : getValueFactory().createValue(value));
         return setProperty(name, v, PropertyType.BINARY);
     }
@@ -333,7 +322,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see Node#setProperty(String, boolean)
      */
     @Override
-    public Property setProperty(String name, boolean value) throws ValueFormatException, VersionException, LockException, ConstraintViolationException, RepositoryException {
+    public Property setProperty(String name, boolean value) throws RepositoryException {
         return setProperty(name, getValueFactory().createValue(value), PropertyType.BOOLEAN);
 
     }
@@ -342,7 +331,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see Node#setProperty(String, double)
      */
     @Override
-    public Property setProperty(String name, double value) throws ValueFormatException, VersionException, LockException, ConstraintViolationException, RepositoryException {
+    public Property setProperty(String name, double value) throws RepositoryException {
         return setProperty(name, getValueFactory().createValue(value), PropertyType.DOUBLE);
     }
 
@@ -350,7 +339,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see Node#setProperty(String, BigDecimal)
      */
     @Override
-    public Property setProperty(String name, BigDecimal value) throws ValueFormatException, VersionException, LockException, ConstraintViolationException, RepositoryException {
+    public Property setProperty(String name, BigDecimal value) throws RepositoryException {
         Value v = (value == null ? null : getValueFactory().createValue(value));
         return setProperty(name, v, PropertyType.DECIMAL);
     }
@@ -359,7 +348,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see Node#setProperty(String, long)
      */
     @Override
-    public Property setProperty(String name, long value) throws ValueFormatException, VersionException, LockException, ConstraintViolationException, RepositoryException {
+    public Property setProperty(String name, long value) throws RepositoryException {
         return setProperty(name, getValueFactory().createValue(value), PropertyType.LONG);
     }
 
@@ -367,7 +356,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see Node#setProperty(String, Calendar)
      */
     @Override
-    public Property setProperty(String name, Calendar value) throws ValueFormatException, VersionException, LockException, ConstraintViolationException, RepositoryException {
+    public Property setProperty(String name, Calendar value) throws RepositoryException {
         Value v = (value == null ? null : getValueFactory().createValue(value));
         return setProperty(name, v, PropertyType.DATE);
     }
@@ -376,13 +365,13 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see Node#setProperty(String, Node)
      */
     @Override
-    public Property setProperty(String name, Node value) throws ValueFormatException, VersionException, LockException, ConstraintViolationException, RepositoryException {
+    public Property setProperty(String name, Node value) throws RepositoryException {
         Value v = (value == null) ? null : getValueFactory().createValue(value);
         return setProperty(name, v, PropertyType.REFERENCE);
     }
 
     @Override
-    public Node getNode(String relPath) throws PathNotFoundException, RepositoryException {
+    public Node getNode(String relPath) throws RepositoryException {
         return create(sessionContext, path().concat(relPath));
     }
 
@@ -425,7 +414,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     }
 
     @Override
-    public Property getProperty(String relPath) throws PathNotFoundException, RepositoryException {
+    public Property getProperty(String relPath) throws RepositoryException {
         checkStatus();
 
         return PropertyImpl.create(sessionContext, path().concat(relPath));
@@ -471,7 +460,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see javax.jcr.Node#getPrimaryItem()
      */
     @Override
-    public Item getPrimaryItem() throws ItemNotFoundException, RepositoryException {
+    public Item getPrimaryItem() throws RepositoryException {
         checkStatus();
         String name = getPrimaryNodeType().getPrimaryItemName();
         if (name == null) {
@@ -487,7 +476,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     }
 
     @Override
-    public String getUUID() throws UnsupportedRepositoryOperationException, RepositoryException {
+    public String getUUID() throws RepositoryException {
         checkStatus();
 
         // TODO
@@ -593,32 +582,32 @@ public class NodeImpl extends ItemImpl implements Node  {
     }
 
     @Override
-    public void setPrimaryType(String nodeTypeName) throws NoSuchNodeTypeException, VersionException, ConstraintViolationException, LockException, RepositoryException {
+    public void setPrimaryType(String nodeTypeName) throws RepositoryException {
         checkStatus();
 
-        state.setProperty("jcr:primaryType", JsonAtom.string(nodeTypeName));
+        state.setProperty(JcrConstants.JCR_PRIMARYTYPE, JsonAtom.string(nodeTypeName));
     }
 
     @Override
-    public void addMixin(String mixinName) throws NoSuchNodeTypeException, VersionException, ConstraintViolationException, LockException, RepositoryException {
+    public void addMixin(String mixinName) throws RepositoryException {
         checkStatus();
 
-        JsonValue mixins = state.getPropertyValue("jcr:mixinTypes");
+        JsonValue mixins = state.getPropertyValue(JcrConstants.JCR_MIXINTYPES);
         mixins.asArray().add(JsonAtom.string(mixinName));
-        state.setProperty("jcr:mixinTypes", mixins);
+        state.setProperty(JcrConstants.JCR_MIXINTYPES, mixins);
     }
 
     @Override
-    public void removeMixin(String mixinName) throws NoSuchNodeTypeException, VersionException, ConstraintViolationException, LockException, RepositoryException {
+    public void removeMixin(String mixinName) throws RepositoryException {
         checkStatus();
 
-        JsonValue mixins = state.getPropertyValue("jcr:mixinTypes");
+        JsonValue mixins = state.getPropertyValue(JcrConstants.JCR_MIXINTYPES);
         mixins.asArray().remove(JsonAtom.string(mixinName));
-        state.setProperty("jcr:mixinTypes", mixins);
+        state.setProperty(JcrConstants.JCR_MIXINTYPES, mixins);
     }
 
     @Override
-    public boolean canAddMixin(String mixinName) throws NoSuchNodeTypeException, RepositoryException {
+    public boolean canAddMixin(String mixinName) throws RepositoryException {
         // TODO
         return false;
     }
@@ -633,7 +622,7 @@ public class NodeImpl extends ItemImpl implements Node  {
 
 
     @Override
-    public String getCorrespondingNodePath(String workspaceName) throws ItemNotFoundException, NoSuchWorkspaceException, AccessDeniedException, RepositoryException {
+    public String getCorrespondingNodePath(String workspaceName) throws RepositoryException {
         checkStatus();
 
         // TODO
@@ -642,7 +631,7 @@ public class NodeImpl extends ItemImpl implements Node  {
 
 
     @Override
-    public void update(String srcWorkspace) throws NoSuchWorkspaceException, AccessDeniedException, LockException, InvalidItemStateException, RepositoryException {
+    public void update(String srcWorkspace) throws RepositoryException {
         checkStatus();
         checkSessionHasPendingChanges();
 
@@ -654,7 +643,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see javax.jcr.Node#checkin()
      */
     @Override
-    public Version checkin() throws VersionException, UnsupportedRepositoryOperationException, InvalidItemStateException, LockException, RepositoryException {
+    public Version checkin() throws RepositoryException {
         return getVersionManager().checkin(getPath());
     }
 
@@ -662,7 +651,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see javax.jcr.Node#checkout()
      */
     @Override
-    public void checkout() throws UnsupportedRepositoryOperationException, LockException, ActivityViolationException, RepositoryException {
+    public void checkout() throws RepositoryException {
         getVersionManager().checkout(getPath());
     }
 
@@ -670,7 +659,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see javax.jcr.Node#doneMerge(javax.jcr.version.Version)
      */
     @Override
-    public void doneMerge(Version version) throws VersionException, InvalidItemStateException, UnsupportedRepositoryOperationException, RepositoryException {
+    public void doneMerge(Version version) throws RepositoryException {
         getVersionManager().doneMerge(getPath(), version);
     }
 
@@ -678,7 +667,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see javax.jcr.Node#cancelMerge(javax.jcr.version.Version)
      */
     @Override
-    public void cancelMerge(Version version) throws VersionException, InvalidItemStateException, UnsupportedRepositoryOperationException, RepositoryException {
+    public void cancelMerge(Version version) throws RepositoryException {
         getVersionManager().cancelMerge(getPath(), version);
     }
 
@@ -686,7 +675,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see javax.jcr.Node#merge(String, boolean)
      */
     @Override
-    public NodeIterator merge(String srcWorkspace, boolean bestEffort) throws NoSuchWorkspaceException, AccessDeniedException, MergeException, LockException, InvalidItemStateException, RepositoryException {
+    public NodeIterator merge(String srcWorkspace, boolean bestEffort) throws RepositoryException {
         return getVersionManager().merge(getPath(), srcWorkspace, bestEffort);
     }
 
@@ -702,7 +691,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see javax.jcr.Node#restore(String, boolean)
      */
     @Override
-    public void restore(String versionName, boolean removeExisting) throws VersionException, ItemExistsException, UnsupportedRepositoryOperationException, LockException, InvalidItemStateException, RepositoryException {
+    public void restore(String versionName, boolean removeExisting) throws RepositoryException {
         getSession().getWorkspace().getVersionManager().restore(getPath(), versionName, removeExisting);
     }
 
@@ -710,7 +699,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see javax.jcr.Node#restore(javax.jcr.version.Version, boolean)
      */
     @Override
-    public void restore(Version version, boolean removeExisting) throws VersionException, ItemExistsException, InvalidItemStateException, UnsupportedRepositoryOperationException, LockException, RepositoryException {
+    public void restore(Version version, boolean removeExisting) throws RepositoryException {
         getSession().getWorkspace().getVersionManager().restore(version, removeExisting);
     }
 
@@ -718,7 +707,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see javax.jcr.Node#restore(Version, String, boolean)
      */
     @Override
-    public void restore(Version version, String relPath, boolean removeExisting) throws PathNotFoundException, ItemExistsException, VersionException, ConstraintViolationException, UnsupportedRepositoryOperationException, LockException, InvalidItemStateException, RepositoryException {
+    public void restore(Version version, String relPath, boolean removeExisting) throws RepositoryException {
         // additional checks are performed with subsequent calls.
         if (hasNode(relPath)) {
             // node at 'relPath' exists -> call restore on the target Node
@@ -732,7 +721,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see javax.jcr.Node#restoreByLabel(String, boolean)
      */
     @Override
-    public void restoreByLabel(String versionLabel, boolean removeExisting) throws VersionException, ItemExistsException, UnsupportedRepositoryOperationException, LockException, InvalidItemStateException, RepositoryException {
+    public void restoreByLabel(String versionLabel, boolean removeExisting) throws RepositoryException {
         getVersionManager().restoreByLabel(getPath(), versionLabel, removeExisting);
     }
 
@@ -740,7 +729,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see javax.jcr.Node#getVersionHistory()
      */
     @Override
-    public VersionHistory getVersionHistory() throws UnsupportedRepositoryOperationException, RepositoryException {
+    public VersionHistory getVersionHistory() throws RepositoryException {
         return getVersionManager().getVersionHistory(getPath());
     }
 
@@ -748,7 +737,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see javax.jcr.Node#getBaseVersion()
      */
     @Override
-    public Version getBaseVersion() throws UnsupportedRepositoryOperationException, RepositoryException {
+    public Version getBaseVersion() throws RepositoryException {
         return getVersionManager().getBaseVersion(getPath());
     }
 
@@ -756,7 +745,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see javax.jcr.Node#lock(boolean, boolean)
      */
     @Override
-    public Lock lock(boolean isDeep, boolean isSessionScoped) throws UnsupportedRepositoryOperationException, LockException, AccessDeniedException, InvalidItemStateException, RepositoryException {
+    public Lock lock(boolean isDeep, boolean isSessionScoped) throws RepositoryException {
         return getSession().getWorkspace().getLockManager().lock(getPath(), isDeep, isSessionScoped, Long.MAX_VALUE, null);
     }
 
@@ -764,7 +753,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see javax.jcr.Node#getLock()
      */
     @Override
-    public Lock getLock() throws UnsupportedRepositoryOperationException, LockException, AccessDeniedException, RepositoryException {
+    public Lock getLock() throws RepositoryException {
         return getSession().getWorkspace().getLockManager().getLock(getPath());
     }
 
@@ -772,7 +761,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see javax.jcr.Node#unlock()
      */
     @Override
-    public void unlock() throws UnsupportedRepositoryOperationException, LockException, AccessDeniedException, InvalidItemStateException, RepositoryException {
+    public void unlock() throws RepositoryException {
         getSession().getWorkspace().getLockManager().unlock(getPath());
     }
 
@@ -800,13 +789,13 @@ public class NodeImpl extends ItemImpl implements Node  {
     }
 
     @Override
-    public void removeSharedSet() throws VersionException, LockException, ConstraintViolationException, RepositoryException {
+    public void removeSharedSet() throws RepositoryException {
         // TODO
 
     }
 
     @Override
-    public void removeShare() throws VersionException, LockException, ConstraintViolationException, RepositoryException {
+    public void removeShare() throws RepositoryException {
         // TODO
 
     }
@@ -815,7 +804,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see javax.jcr.Node#followLifecycleTransition() ()
      */
     @Override
-    public void followLifecycleTransition(String transition) throws UnsupportedRepositoryOperationException, InvalidLifecycleTransitionException, RepositoryException {
+    public void followLifecycleTransition(String transition) throws RepositoryException {
         throw new UnsupportedRepositoryOperationException("Lifecycle Management is not supported");
     }
 
@@ -823,7 +812,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see javax.jcr.Node#getAllowedLifecycleTransistions() ()
      */
     @Override
-    public String[] getAllowedLifecycleTransistions() throws UnsupportedRepositoryOperationException, RepositoryException {
+    public String[] getAllowedLifecycleTransistions() throws RepositoryException {
         throw new UnsupportedRepositoryOperationException("Lifecycle Management is not supported");
 
     }

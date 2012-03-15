@@ -37,10 +37,7 @@ import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFormatException;
-import javax.jcr.lock.LockException;
-import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.PropertyDefinition;
-import javax.jcr.version.VersionException;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.Calendar;
@@ -179,7 +176,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      * @see Property#setValue(Value)
      */
     @Override
-    public void setValue(Value value) throws ValueFormatException, VersionException, LockException, ConstraintViolationException, RepositoryException {
+    public void setValue(Value value) throws RepositoryException {
         checkStatus();
 
         int valueType = (value != null) ? value.getType() : PropertyType.UNDEFINED;
@@ -191,7 +188,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      * @see Property#setValue(Value[])
      */
     @Override
-    public void setValue(Value[] values) throws ValueFormatException, VersionException, LockException, ConstraintViolationException, RepositoryException {
+    public void setValue(Value[] values) throws RepositoryException {
         checkStatus();
 
         // assert equal types for all values entries
@@ -220,7 +217,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      * @see Property#setValue(String)
      */
     @Override
-    public void setValue(String value) throws ValueFormatException, VersionException, LockException, ConstraintViolationException, RepositoryException {
+    public void setValue(String value) throws RepositoryException {
         checkStatus();
 
         int reqType = getRequiredType(PropertyType.STRING);
@@ -235,7 +232,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      * @see Property#setValue(String[])
      */
     @Override
-    public void setValue(String[] values) throws ValueFormatException, VersionException, LockException, ConstraintViolationException, RepositoryException {
+    public void setValue(String[] values) throws RepositoryException {
         checkStatus();
 
         int reqType = getRequiredType(PropertyType.STRING);
@@ -255,7 +252,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      * @see Property#setValue(InputStream)
      */
     @Override
-    public void setValue(InputStream value) throws ValueFormatException, VersionException, LockException, ConstraintViolationException, RepositoryException {
+    public void setValue(InputStream value) throws RepositoryException {
         checkStatus();
 
         int reqType = getRequiredType(PropertyType.BINARY);
@@ -270,7 +267,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      * @see Property#setValue(Binary)
      */
     @Override
-    public void setValue(Binary value) throws ValueFormatException, VersionException, LockException, ConstraintViolationException, RepositoryException {
+    public void setValue(Binary value) throws RepositoryException {
         checkStatus();
 
         int reqType = getRequiredType(PropertyType.BINARY);
@@ -285,7 +282,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      * @see Property#setValue(long)
      */
     @Override
-    public void setValue(long value) throws ValueFormatException, VersionException, LockException, ConstraintViolationException, RepositoryException {
+    public void setValue(long value) throws RepositoryException {
         checkStatus();
 
         int reqType = getRequiredType(PropertyType.LONG);
@@ -296,7 +293,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      * @see Property#setValue(double)
      */
     @Override
-    public void setValue(double value) throws ValueFormatException, VersionException, LockException, ConstraintViolationException, RepositoryException {
+    public void setValue(double value) throws RepositoryException {
         checkStatus();
 
         int reqType = getRequiredType(PropertyType.DOUBLE);
@@ -307,7 +304,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      * @see Property#setValue(BigDecimal)
      */
     @Override
-    public void setValue(BigDecimal value) throws ValueFormatException, VersionException, LockException, ConstraintViolationException, RepositoryException {
+    public void setValue(BigDecimal value) throws RepositoryException {
         checkStatus();
 
         int reqType = getRequiredType(PropertyType.DECIMAL);
@@ -318,7 +315,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      * @see Property#setValue(Calendar)
      */
     @Override
-    public void setValue(Calendar value) throws ValueFormatException, VersionException, LockException, ConstraintViolationException, RepositoryException {
+    public void setValue(Calendar value) throws RepositoryException {
         checkStatus();
 
         int reqType = getRequiredType(PropertyType.DATE);
@@ -333,7 +330,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      * @see Property#setValue(boolean)
      */
     @Override
-    public void setValue(boolean value) throws ValueFormatException, VersionException, LockException, ConstraintViolationException, RepositoryException {
+    public void setValue(boolean value) throws RepositoryException {
         checkStatus();
 
         int reqType = getRequiredType(PropertyType.BOOLEAN);
@@ -344,7 +341,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      * @see Property#setValue(javax.jcr.Node)
      */
     @Override
-    public void setValue(Node value) throws ValueFormatException, VersionException, LockException, ConstraintViolationException, RepositoryException {
+    public void setValue(Node value) throws RepositoryException {
         checkStatus();
 
         int reqType = getRequiredType(PropertyType.REFERENCE);
@@ -356,7 +353,7 @@ public class PropertyImpl extends ItemImpl implements Property {
     }
 
     @Override
-    public Value getValue() throws ValueFormatException, RepositoryException {
+    public Value getValue() throws RepositoryException {
         checkStatus();
         if (isMultiple()) {
             throw new ValueFormatException(LogUtil.safeGetJCRPath(this) + " is multi-valued.");
@@ -366,7 +363,7 @@ public class PropertyImpl extends ItemImpl implements Property {
     }
 
     @Override
-    public Value[] getValues() throws ValueFormatException, RepositoryException {
+    public Value[] getValues() throws RepositoryException {
         checkStatus();
         if (!isMultiple()) {
             throw new ValueFormatException(LogUtil.safeGetJCRPath(this) + " is not multi-valued.");
@@ -379,7 +376,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      * @see Property#getString()
      */
     @Override
-    public String getString() throws ValueFormatException, RepositoryException {
+    public String getString() throws RepositoryException {
         return getValue().getString();
     }
 
@@ -387,7 +384,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      * @see Property#getStream()
      */
     @Override
-    public InputStream getStream() throws ValueFormatException, RepositoryException {
+    public InputStream getStream() throws RepositoryException {
         return getValue().getStream();
     }
 
@@ -395,7 +392,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      * @see javax.jcr.Property#getBinary()
      */
     @Override
-    public Binary getBinary() throws ValueFormatException, RepositoryException {
+    public Binary getBinary() throws RepositoryException {
         return getValue().getBinary();
     }
 
@@ -403,7 +400,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      * @see Property#getLong()
      */
     @Override
-    public long getLong() throws ValueFormatException, RepositoryException {
+    public long getLong() throws RepositoryException {
         return getValue().getLong();
     }
 
@@ -411,7 +408,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      * @see Property#getDouble()
      */
     @Override
-    public double getDouble() throws ValueFormatException, RepositoryException {
+    public double getDouble() throws RepositoryException {
         return getValue().getDouble();
     }
 
@@ -419,7 +416,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      * @see Property#getDecimal()
      */
     @Override
-    public BigDecimal getDecimal() throws ValueFormatException, RepositoryException {
+    public BigDecimal getDecimal() throws RepositoryException {
         return getValue().getDecimal();
     }
 
@@ -427,7 +424,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      * @see Property#getDate()
      */
     @Override
-    public Calendar getDate() throws ValueFormatException, RepositoryException {
+    public Calendar getDate() throws RepositoryException {
         return getValue().getDate();
     }
 
@@ -435,7 +432,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      * @see Property#getBoolean()
      */
     @Override
-    public boolean getBoolean() throws ValueFormatException, RepositoryException {
+    public boolean getBoolean() throws RepositoryException {
         return getValue().getBoolean();
     }
 
@@ -443,7 +440,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      * @see javax.jcr.Property#getNode()
      */
     @Override
-    public Node getNode() throws ItemNotFoundException, ValueFormatException, RepositoryException {
+    public Node getNode() throws RepositoryException {
         Value value = getValue();
         switch (value.getType()) {
             case PropertyType.REFERENCE:
@@ -485,7 +482,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      * @see javax.jcr.Property#getProperty()
      */
     @Override
-    public Property getProperty() throws ItemNotFoundException, ValueFormatException, RepositoryException {
+    public Property getProperty() throws RepositoryException {
         Value value = getValue();
         Value pathValue = ValueHelper.convert(value, PropertyType.PATH, getValueFactory());
         String path = pathValue.getString();
@@ -500,7 +497,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      * @see javax.jcr.Property#getLength()
      */
     @Override
-    public long getLength() throws ValueFormatException, RepositoryException {
+    public long getLength() throws RepositoryException {
         return getLength(getValue());
     }
 
@@ -508,7 +505,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      * @see javax.jcr.Property#getLengths()
      */
     @Override
-    public long[] getLengths() throws ValueFormatException, RepositoryException {
+    public long[] getLengths() throws RepositoryException {
         Value[] values = getValues();
         long[] lengths = new long[values.length];
 
