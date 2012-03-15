@@ -116,6 +116,12 @@ public class RepositoryTest {
             if (root.hasNode("bar")) {
                 root.getNode("bar").remove();
             }
+            if (root.hasNode("node")) {
+                root.getNode("node").remove();
+            }
+            if (root.hasNode("node1")) {
+                root.getNode("node1").remove();
+            }
             if (root.hasNode(TEST_NODE)) {
                 root.getNode(TEST_NODE).remove();
             }
