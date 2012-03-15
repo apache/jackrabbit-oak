@@ -22,14 +22,17 @@ import org.slf4j.LoggerFactory;
 import org.xml.sax.ContentHandler;
 
 import javax.jcr.AccessDeniedException;
+import javax.jcr.Credentials;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.ItemExistsException;
 import javax.jcr.ItemNotFoundException;
+import javax.jcr.LoginException;
 import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.ReferentialIntegrityException;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.ValueFactory;
 import javax.jcr.Workspace;
@@ -51,7 +54,6 @@ public class SessionImpl extends AbstractSession {
      */
     private static final Logger log = LoggerFactory.getLogger(SessionImpl.class);
 
-    private final Repository repository = null;
     private final Workspace workspace = null;
     private final ValueFactory valueFactory = null;
 
@@ -60,7 +62,8 @@ public class SessionImpl extends AbstractSession {
     //------------------------------------------------------------< Session >---
     @Override
     public Repository getRepository() {
-        return repository;
+        // TODO
+        return null;
     }
 
     @Override
@@ -156,6 +159,9 @@ public class SessionImpl extends AbstractSession {
         return false;
     }
 
+    /**
+     * @see javax.jcr.Session#checkPermission(String, String)
+     */
     @Override
     public void checkPermission(String absPath, String actions) throws AccessControlException, RepositoryException {
         if (!hasPermission(absPath, actions)) {
@@ -193,6 +199,17 @@ public class SessionImpl extends AbstractSession {
         }
 
         // TODO
+    }
+
+    /**
+     * @see javax.jcr.Session#impersonate(Credentials)
+     */
+    @Override
+    public Session impersonate(Credentials credentials) throws LoginException, RepositoryException {
+        checkIsAlive();
+
+        // TODO
+        return null;
     }
 
     @Override
@@ -283,7 +300,7 @@ public class SessionImpl extends AbstractSession {
      * @return true if the repository supports the given option. False otherwise.
      */
     boolean isSupportedOption(String option) {
-        String desc = repository.getDescriptor(option);
+        String desc = getRepository().getDescriptor(option);
         // if the descriptors are not available return true. the missing
         // functionality of the given SPI impl will in this case be detected
         // upon the corresponding SPI call (see JCR-3143).
