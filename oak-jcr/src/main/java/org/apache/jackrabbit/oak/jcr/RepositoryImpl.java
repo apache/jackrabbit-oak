@@ -39,7 +39,13 @@ public class RepositoryImpl extends AbstractRepository {
      */
     private static final Logger log = LoggerFactory.getLogger(RepositoryImpl.class);
 
+    private final GlobalContext context;
+
     private Map<String, Value[]> descriptors;
+
+    public RepositoryImpl(GlobalContext context) {
+        this.context = context;
+    }
 
     //---------------------------------------------------------< Repository >---
     /**
@@ -102,8 +108,8 @@ public class RepositoryImpl extends AbstractRepository {
      */
     @Override
     public Session login(Credentials credentials, String workspaceName) throws LoginException, NoSuchWorkspaceException, RepositoryException {
-        // TODO -> SPI
-        return null;
+        SessionFactory sessionFactory = context.getInstance(SessionFactory.class);
+        return sessionFactory.createSession(context, credentials, workspaceName);
     }
 
     //------------------------------------------------------------< private >---

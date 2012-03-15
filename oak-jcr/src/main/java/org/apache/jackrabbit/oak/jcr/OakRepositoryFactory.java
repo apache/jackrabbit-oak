@@ -16,14 +16,15 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.Map;
+import org.apache.jackrabbit.oak.jcr.configuration.OakRepositoryConfiguration;
+import org.apache.jackrabbit.oak.jcr.configuration.RepositoryConfiguration;
 
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.RepositoryFactory;
-import javax.jcr.UnsupportedRepositoryOperationException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.Map;
 
 @SuppressWarnings("rawtypes")
 public class OakRepositoryFactory implements RepositoryFactory {
@@ -47,10 +48,12 @@ public class OakRepositoryFactory implements RepositoryFactory {
         return null;
     }
 
-    private Repository getRepository(URI uri, Map parameters)
+    private static Repository getRepository(URI uri, Map parameters)
             throws RepositoryException {
-        throw new UnsupportedRepositoryOperationException(
-                "jcr-oak repository URIs are not yet supported: " + uri);
+
+        parameters.put(RepositoryConfiguration.MICROKERNEL_URL, "simple:target/repository-test/repository");
+        GlobalContext context = new GlobalContext(OakRepositoryConfiguration.create(parameters));
+        return context.getInstance(Repository.class);
     }
 
 }

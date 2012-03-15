@@ -16,12 +16,18 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import org.apache.jackrabbit.oak.jcr.SessionImpl.Context;
+import org.apache.jackrabbit.oak.jcr.json.JsonValue;
+import org.apache.jackrabbit.oak.jcr.state.TransientNodeState;
 import org.apache.jackrabbit.oak.jcr.util.LogUtil;
+import org.apache.jackrabbit.oak.jcr.util.Path;
+import org.apache.jackrabbit.oak.jcr.util.ValueConverter;
 import org.apache.jackrabbit.value.ValueHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.jcr.Binary;
+import javax.jcr.Item;
 import javax.jcr.ItemNotFoundException;
 import javax.jcr.ItemVisitor;
 import javax.jcr.Node;
@@ -30,6 +36,7 @@ import javax.jcr.Property;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
+import javax.jcr.ValueFactory;
 import javax.jcr.ValueFormatException;
 import javax.jcr.lock.LockException;
 import javax.jcr.nodetype.ConstraintViolationException;
@@ -49,6 +56,38 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     private static final Logger log = LoggerFactory.getLogger(PropertyImpl.class);
 
+    private final TransientNodeState parentState;
+    private final String name;
+    private final JsonValue value;
+
+    static Property create(Context sessionContext, Path path) throws PathNotFoundException,
+            ItemNotFoundException {
+
+        TransientNodeState parentState = getNodeState(sessionContext, path.getParent());
+        if (parentState == null) {
+            throw new PathNotFoundException(path.toJcrPath());
+        }
+
+        String name = path.getName();
+        JsonValue value = parentState.getPropertyValue(name);
+        return new PropertyImpl(sessionContext, parentState, name, value);
+    }
+
+    static Property create(Context sessionContext, TransientNodeState parentState, String name, JsonValue value) {
+        return new PropertyImpl(sessionContext, parentState, name, value);
+    }
+
+    public static boolean exist(Context sessionContext, Path path) {
+        TransientNodeState parentState = getNodeState(sessionContext, path.getParent());
+        return parentState != null && parentState.hasProperty(path.getName());
+    }
+
+    private PropertyImpl(Context sessionContext, TransientNodeState parentState, String name, JsonValue value) {
+        super(sessionContext);
+        this.parentState = parentState;
+        this.name = name;
+        this.value = value;
+    }
 
     //---------------------------------------------------------------< Item >---
     /**
@@ -59,6 +98,16 @@ public class PropertyImpl extends ItemImpl implements Property {
         return false;
     }
 
+    @Override
+    public String getPath() throws RepositoryException {
+        return parentState.getPath().concat(name).toJcrPath();
+    }
+
+    @Override
+    public String getName() throws RepositoryException {
+        return name;
+    }
+
     /**
      * @see javax.jcr.Item#accept(javax.jcr.ItemVisitor)
      */
@@ -67,6 +116,42 @@ public class PropertyImpl extends ItemImpl implements Property {
         checkStatus();
         visitor.visit(this);
     }
+
+    @Override
+    public Item getAncestor(int depth) throws RepositoryException {
+        if (depth == getDepth() - 1) {
+            return getParent();
+        }
+        else {
+            return getParent().getAncestor(depth);
+        }
+    }
+
+    @Override
+    public Node getParent() throws RepositoryException {
+        return NodeImpl.create(sessionContext, parentState);
+    }
+
+    @Override
+    public int getDepth() throws RepositoryException {
+        return parentState.getPath().getDepth() + 1;
+    }
+
+    @Override
+    public boolean isNew() {
+        return parentState.isPropertyNew(name);
+    }
+
+    @Override
+    public boolean isModified() {
+        return parentState.isPropertyModified(name);
+    }
+
+    @Override
+    public void remove() throws RepositoryException {
+        parentState.removeProperty(name);
+    }
+
 
     //-----------------------------------------------------------< Property >---
     /**
@@ -256,8 +341,12 @@ public class PropertyImpl extends ItemImpl implements Property {
             throw new ValueFormatException(LogUtil.safeGetJCRPath(this) + " is multi-valued.");
         }
 
-        // TODO
-        return null;
+        if (!value.isAtom()) {
+            throw new ValueFormatException(value.toJson());
+        }
+
+        ValueFactory valueFactory = sessionContext.getValueFactory();
+        return ValueConverter.toValue(valueFactory, value.asAtom());
     }
 
     @Override
@@ -267,8 +356,12 @@ public class PropertyImpl extends ItemImpl implements Property {
             throw new ValueFormatException(LogUtil.safeGetJCRPath(this) + " is not multi-valued.");
         }
 
-        // TODO
-        return new Value[0];
+        if (!value.isArray()) {
+            throw new ValueFormatException(value.toJson());
+        }
+
+        ValueFactory valueFactory = sessionContext.getValueFactory();
+        return ValueConverter.toValue(valueFactory, value.asArray());
     }
 
     /**
@@ -422,14 +515,23 @@ public class PropertyImpl extends ItemImpl implements Property {
 
     @Override
     public int getType() throws RepositoryException {
-        // TODO
-        return 0;
+        if (isMultiple()) {
+            Value[] values = getValues();
+            if (values.length == 0) {
+                return PropertyType.UNDEFINED;
+            }
+            else {
+                return values[0].getType();
+            }
+        }
+        else {
+            return getValue().getType();
+        }
     }
 
     @Override
     public boolean isMultiple() throws RepositoryException {
-        // TODO
-        return false;
+        return value.isArray();
     }
 
     //------------------------------------------------------------< private >---
@@ -464,7 +566,12 @@ public class PropertyImpl extends ItemImpl implements Property {
             throw new IllegalArgumentException("Property type of a value cannot be undefined (" + LogUtil.safeGetJCRPath(this) + ").");
         }
 
-        // TODO -> set value on the property state and remember operation.
+        if (value == null) {
+            remove();
+        }
+        else {
+            parentState.setProperty(name, ValueConverter.toJsonValue(value));
+        }
     }
 
     /**
@@ -479,7 +586,12 @@ public class PropertyImpl extends ItemImpl implements Property {
             throw new IllegalArgumentException("Property type of a value cannot be undefined (" + LogUtil.safeGetJCRPath(this) + ").");
         }
 
-        // TODO -> internal set values to the property and remember operation
+        if (value == null) {
+            remove();
+        }
+        else {
+            parentState.setProperty(name, ValueConverter.toJsonValue(values));
+        }
     }
 
     /**
@@ -497,4 +609,5 @@ public class PropertyImpl extends ItemImpl implements Property {
             return value.getString().length();
         }
     }
+
 }

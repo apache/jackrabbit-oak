@@ -17,6 +17,13 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import org.apache.jackrabbit.commons.AbstractSession;
+import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.oak.jcr.security.Authenticator;
+import org.apache.jackrabbit.oak.jcr.security.CredentialsInfo;
+import org.apache.jackrabbit.oak.jcr.state.NodeStateProvider;
+import org.apache.jackrabbit.oak.jcr.state.TransientNodeState;
+import org.apache.jackrabbit.oak.jcr.state.TransientSpace;
+import org.apache.jackrabbit.oak.jcr.util.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.ContentHandler;
@@ -27,6 +34,7 @@ import javax.jcr.InvalidItemStateException;
 import javax.jcr.ItemExistsException;
 import javax.jcr.ItemNotFoundException;
 import javax.jcr.LoginException;
+import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.ReferentialIntegrityException;
@@ -54,34 +62,122 @@ public class SessionImpl extends AbstractSession {
      */
     private static final Logger log = LoggerFactory.getLogger(SessionImpl.class);
 
-    private final Workspace workspace = null;
-    private final ValueFactory valueFactory = null;
+    private final Workspace workspace;
+    private final GlobalContext globalContext;
+    private final CredentialsInfo credentialsInfo;
+    private final String workspaceName;
+    private final MicroKernel microKernel;
+    private final TransientSpace transientSpace;
+    private final NodeStateProvider nodeStateProvider;
 
-    private boolean isAlive;
+    private String revision;
+    private boolean isAlive = true;
+
+    public static final SessionFactory FACTORY = new SessionFactory() {
+        @Override
+        public Session createSession(GlobalContext globalContext, Credentials credentials,
+                String workspaceName) throws LoginException, NoSuchWorkspaceException {
+
+            Authenticator authenticator = globalContext.getInstance(Authenticator.class);
+            CredentialsInfo credentialsInfo = authenticator.authenticate(credentials);
+            MicroKernel microKernel = globalContext.getInstance(MicroKernel.class);
+            String revision = microKernel.getHeadRevision();
+
+            if (workspaceName == null) {
+                workspaceName = WorkspaceImpl.DEFAULT_WORKSPACE_NAME;
+            }
+
+            if (!microKernel.nodeExists('/' + workspaceName, revision)) {
+                if (WorkspaceImpl.DEFAULT_WORKSPACE_NAME.equals(workspaceName)) {
+                    WorkspaceImpl.createWorkspace(microKernel, workspaceName);
+                    revision = microKernel.getHeadRevision();
+                }
+                else {
+                    throw new NoSuchWorkspaceException(workspaceName);
+                }
+            }
+
+            return new SessionImpl(globalContext, credentialsInfo, workspaceName, revision);
+        }
+    };
+
+    public interface Context extends SessionContext<SessionImpl>{}
+
+    private final Context sessionContext = new Context() {
+        @Override
+        public SessionImpl getSession() {
+            return SessionImpl.this;
+        }
+
+        @Override
+        public GlobalContext getGlobalContext() {
+            return globalContext;
+        }
+
+        @Override
+        public CredentialsInfo getCredentialsInfo() {
+            return credentialsInfo;
+        }
+
+        @Override
+        public String getWorkspaceName() {
+            return workspaceName;
+        }
+
+        @Override
+        public MicroKernel getMicrokernel() {
+            return microKernel;
+        }
+
+        @Override
+        public String getRevision() {
+            return revision;
+        }
+
+        @Override
+        public ValueFactory getValueFactory() {
+            return globalContext.getInstance(ValueFactory.class);
+        }
+
+        @Override
+        public NodeStateProvider getNodeStateProvider() {
+            return nodeStateProvider;
+        }
+    };
+
+    private SessionImpl(GlobalContext globalContext, CredentialsInfo credentialsInfo, String workspaceName,
+            String revision) {
+
+        this.globalContext = globalContext;
+        this.credentialsInfo = credentialsInfo;
+        this.workspaceName = workspaceName;
+        this.revision = revision;
+        workspace = new WorkspaceImpl(sessionContext);
+        microKernel = globalContext.getInstance(MicroKernel.class);
+        transientSpace = new TransientSpace(workspaceName, microKernel, revision);
+        nodeStateProvider = new NodeStateProvider(sessionContext, transientSpace);
+    }
+
 
     //------------------------------------------------------------< Session >---
     @Override
     public Repository getRepository() {
-        // TODO
-        return null;
+        return globalContext.getInstance(Repository.class);
     }
 
     @Override
     public String getUserID() {
-        // TODO
-        return null;
+        return credentialsInfo.getUserId();
     }
 
     @Override
     public String[] getAttributeNames() {
-        // TODO
-        return new String[0];
+        return credentialsInfo.getAttributeNames();
     }
 
     @Override
     public Object getAttribute(String name) {
-        // TODO
-        return null;
+        return credentialsInfo.getAttribute(name);
     }
 
     @Override
@@ -92,9 +188,7 @@ public class SessionImpl extends AbstractSession {
     @Override
     public Node getRootNode() throws RepositoryException {
         checkIsAlive();
-
-        // TODO
-        return null;
+        return NodeImpl.create(sessionContext, Path.create(workspaceName));
     }
 
     @Override
@@ -116,39 +210,39 @@ public class SessionImpl extends AbstractSession {
     @Override
     public void move(String srcAbsPath, String destAbsPath) throws ItemExistsException, PathNotFoundException, VersionException, ConstraintViolationException, LockException, RepositoryException {
         checkIsAlive();
+        Path sourcePath = Path.create(workspaceName, srcAbsPath);
+        TransientNodeState sourceParent = nodeStateProvider.getNodeState(sourcePath.getParent());
+        if (sourceParent == null) {
+            throw new PathNotFoundException(srcAbsPath);
+        }
 
-        // TODO
-
+        sourceParent.move(sourcePath.getName(), Path.create(workspaceName, destAbsPath));
     }
 
     @Override
     public void save() throws AccessDeniedException, ItemExistsException, ReferentialIntegrityException, ConstraintViolationException, InvalidItemStateException, VersionException, LockException, NoSuchNodeTypeException, RepositoryException {
         checkIsAlive();
-
-        // TODO
-
+        revision = transientSpace.save();
+        nodeStateProvider.clear();
     }
 
     @Override
     public void refresh(boolean keepChanges) throws RepositoryException {
         checkIsAlive();
-
-        // TODO
-
+        revision = transientSpace.refresh(keepChanges);
+        nodeStateProvider.clear();
     }
 
     @Override
     public boolean hasPendingChanges() throws RepositoryException {
         checkIsAlive();
-
-        // TODO
-        return false;
+        return transientSpace.isDirty();
     }
 
     @Override
     public ValueFactory getValueFactory() throws UnsupportedRepositoryOperationException, RepositoryException {
         checkIsAlive();
-        return valueFactory;
+        return sessionContext.getValueFactory();
     }
 
     @Override
@@ -198,6 +292,7 @@ public class SessionImpl extends AbstractSession {
             return;
         }
 
+        isAlive = false;
         // TODO
     }
 
