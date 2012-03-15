@@ -476,7 +476,7 @@ public class NodeImpl extends ItemImpl implements Node  {
         checkStatus();
 
         // TODO
-        return null;
+        return path().toMkPath();
     }
 
     @Override
