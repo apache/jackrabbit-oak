@@ -21,10 +21,10 @@ import org.apache.jackrabbit.mk.store.RevisionProvider;
 import org.apache.jackrabbit.mk.store.RevisionStore;
 import org.apache.jackrabbit.mk.util.AbstractFilteringIterator;
 import org.apache.jackrabbit.mk.util.AbstractRangeIterator;
-import org.apache.jackrabbit.mk.util.EmptyIterator;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -34,8 +34,8 @@ import java.util.NoSuchElementException;
  */
 public class ChildNodeEntriesTree implements ChildNodeEntries {
 
-    protected static final Iterator<ChildNodeEntry> EMPTY_ITER = new EmptyIterator<ChildNodeEntry>();
-
+    protected static final List<ChildNodeEntry> EMPTY = Collections.emptyList();
+    
     protected int count;
     
     protected RevisionProvider revProvider;
@@ -113,7 +113,8 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
         }
 
         if (offset >= count || cnt == 0) {
-            return new EmptyIterator<String>();
+            List<String> empty = Collections.emptyList();
+            return empty.iterator();
         }
 
         if (cnt == -1 || (offset + cnt) > count) {
@@ -136,7 +137,7 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
         }
 
         if (offset >= count || cnt == 0) {
-            return EMPTY_ITER;
+            return EMPTY.iterator();
         }
 
         int skipped = 0;
@@ -290,7 +291,7 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
     @Override
     public Iterator<ChildNodeEntry> getAdded(final ChildNodeEntries other) {
         if (equals(other)) {
-            return EMPTY_ITER;
+            return EMPTY.iterator();
         }
 
         if (other instanceof ChildNodeEntriesTree) {
@@ -367,7 +368,7 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
     @Override
     public Iterator<ChildNodeEntry> getRemoved(final ChildNodeEntries other) {
         if (equals(other)) {
-            return EMPTY_ITER;
+            return EMPTY.iterator();
         }
 
         if (other instanceof ChildNodeEntriesTree) {
@@ -444,7 +445,7 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
     @Override
     public Iterator<ChildNodeEntry> getModified(final ChildNodeEntries other) {
         if (equals(other)) {
-            return EMPTY_ITER;
+            return EMPTY.iterator();
         }
 
         if (other instanceof ChildNodeEntriesTree) {
