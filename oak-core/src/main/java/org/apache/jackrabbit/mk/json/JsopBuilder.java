@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.mk.json;
 
-import org.apache.jackrabbit.mk.Constants;
 
 /**
  * A builder for Json and Jsop strings. It encodes string values, and knows when
@@ -25,6 +24,8 @@ import org.apache.jackrabbit.mk.Constants;
  * limit to the number of nesting levels.
  */
 public class JsopBuilder implements JsopWriter {
+
+    private static final boolean JSON_NEWLINES = false;
 
     private StringBuilder buff = new StringBuilder();
     private boolean needComma;
@@ -107,7 +108,7 @@ public class JsopBuilder implements JsopWriter {
      * @return this
      */
     public JsopBuilder endObject() {
-        if (Constants.JSON_NEWLINES) {
+        if (JSON_NEWLINES) {
             buff.append("\n}");
         } else {
             buff.append('}');
@@ -148,7 +149,7 @@ public class JsopBuilder implements JsopWriter {
      */
     public JsopBuilder key(String name) {
         optionalCommaAndNewline(name.length());
-        if (Constants.JSON_NEWLINES) {
+        if (JSON_NEWLINES) {
             buff.append('\n');
         }
         buff.append(encode(name)).append(':');
