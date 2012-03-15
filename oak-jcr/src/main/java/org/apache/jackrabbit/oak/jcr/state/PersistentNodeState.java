@@ -42,6 +42,7 @@ import java.util.Map;
 
 /**
  * A {@code NodeState} implementation on top of a {@code MicroKernel}.
+ * todo this class should probably go into oak-core
  */
 public class PersistentNodeState extends AbstractNodeState {
     private final MicroKernel microkernel;
