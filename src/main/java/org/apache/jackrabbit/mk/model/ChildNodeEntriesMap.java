@@ -18,11 +18,12 @@ package org.apache.jackrabbit.mk.model;
 
 import org.apache.jackrabbit.mk.store.Binding;
 import org.apache.jackrabbit.mk.util.AbstractFilteringIterator;
-import org.apache.jackrabbit.mk.util.EmptyIterator;
 import org.apache.jackrabbit.mk.util.RangeIterator;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -30,7 +31,7 @@ import java.util.Map;
  */
 public class ChildNodeEntriesMap implements ChildNodeEntries {
 
-    protected static final Iterator<ChildNodeEntry> EMPTY_ITER = new EmptyIterator<ChildNodeEntry>();
+    protected static final List<ChildNodeEntry> EMPTY = Collections.emptyList();
     
     protected HashMap<String, ChildNodeEntry> entries = new HashMap<String, ChildNodeEntry>();
 
@@ -90,7 +91,8 @@ public class ChildNodeEntriesMap implements ChildNodeEntries {
             return entries.keySet().iterator();
         } else {
             if (offset >= entries.size() || count == 0) {
-                return new EmptyIterator<String>();
+                List<String> empty = Collections.emptyList();
+                return empty.iterator();
             }
             if (count == -1 || (offset + count) > entries.size()) {
                 count = entries.size() - offset;
@@ -108,7 +110,7 @@ public class ChildNodeEntriesMap implements ChildNodeEntries {
             return entries.values().iterator();
         } else {
             if (offset >= entries.size() || count == 0) {
-                return EMPTY_ITER;
+                return EMPTY.iterator();
             }
             if (count == -1 || (offset + count) > entries.size()) {
                 count = entries.size() - offset;
@@ -157,7 +159,7 @@ public class ChildNodeEntriesMap implements ChildNodeEntries {
     @Override
     public Iterator<ChildNodeEntry> getAdded(final ChildNodeEntries other) {
         if (equals(other)) {
-            return EMPTY_ITER;            
+            return EMPTY.iterator();            
         }
         
         return new AbstractFilteringIterator<ChildNodeEntry>(other.getEntries(0, -1)) {
@@ -171,7 +173,7 @@ public class ChildNodeEntriesMap implements ChildNodeEntries {
     @Override
     public Iterator<ChildNodeEntry> getRemoved(final ChildNodeEntries other) {
         if (equals(other)) {
-            return EMPTY_ITER;
+            return EMPTY.iterator();
         }
 
         return new AbstractFilteringIterator<ChildNodeEntry>(entries.values().iterator()) {
@@ -185,7 +187,7 @@ public class ChildNodeEntriesMap implements ChildNodeEntries {
     @Override
     public Iterator<ChildNodeEntry> getModified(final ChildNodeEntries other) {
         if (equals(other)) {
-            return EMPTY_ITER;
+            return EMPTY.iterator();
         }
         return new AbstractFilteringIterator<ChildNodeEntry>(getEntries(0, -1)) {
             @Override
