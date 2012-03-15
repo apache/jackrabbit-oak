@@ -18,6 +18,10 @@ package org.apache.jackrabbit.oak.jcr;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.jcr.SessionImpl.Context;
+import org.apache.jackrabbit.oak.jcr.json.FullJsonParser;
+import org.apache.jackrabbit.oak.jcr.json.JsonValue;
+import org.apache.jackrabbit.oak.jcr.json.JsonValue.JsonObject;
+import org.apache.jackrabbit.oak.jcr.json.UnescapingJsonTokenizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.ContentHandler;
@@ -45,6 +49,9 @@ import javax.jcr.version.VersionException;
 import javax.jcr.version.VersionManager;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map.Entry;
 
 /**
  * <code>WorkspaceImpl</code>...
@@ -166,8 +173,19 @@ public class WorkspaceImpl implements Workspace {
     public String[] getAccessibleWorkspaceNames() throws RepositoryException {
         getOakSession().checkIsAlive();
 
-        // TODO
-        return new String[0];
+        MicroKernel microKernel = sessionContext.getMicrokernel();
+        String revision = sessionContext.getRevision();
+        String json = microKernel.getNodes("/", revision, 0, 0, -1, null);
+        JsonObject jsonObject = FullJsonParser.parseObject(new UnescapingJsonTokenizer(json));
+
+        List<String> workspaces = new ArrayList<String>();
+        for (Entry<String, JsonValue> entry : jsonObject.value().entrySet()) {
+            if (entry.getValue().isObject()) {
+                workspaces.add(entry.getKey());
+            }
+        }
+
+        return workspaces.toArray(new String[workspaces.size()]);
     }
 
     @Override
