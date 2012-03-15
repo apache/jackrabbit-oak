@@ -356,10 +356,6 @@ public class PropertyImpl extends ItemImpl implements Property {
             throw new ValueFormatException(LogUtil.safeGetJCRPath(this) + " is not multi-valued.");
         }
 
-        if (!value.isArray()) {
-            throw new ValueFormatException(value.toJson());
-        }
-
         ValueFactory valueFactory = sessionContext.getValueFactory();
         return ValueConverter.toValue(valueFactory, value.asArray());
     }
