@@ -108,6 +108,8 @@ public class RepositoryImpl extends AbstractRepository {
      */
     @Override
     public Session login(Credentials credentials, String workspaceName) throws LoginException, NoSuchWorkspaceException, RepositoryException {
+        // TODO: needs complete refactoring
+
         SessionFactory sessionFactory = context.getInstance(SessionFactory.class);
         return sessionFactory.createSession(context, credentials, workspaceName);
     }
