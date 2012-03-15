@@ -75,16 +75,21 @@ public class CopyingGC implements RevisionStore, Closeable {
         // Copy the head commit
         MutableCommit commitTo = copy(rsFrom.getHeadCommit());
         commitTo.setParentId(rsTo.getHeadCommitId());
-        Id revId = rsTo.putCommit(commitTo);
-        rsTo.setHeadCommitId(revId);
-
+        
+        rsTo.lockHead();
+        
+        try {
+            rsTo.putHeadCommit(commitTo);
+        } finally {
+            rsTo.unlockHead();
+        }
         running = true;
     }
     
     /**
      * Stop GC cycle.
      */
-    public void stop() throws Exception {
+    public void stop() {
         running = false;
         
         // TODO: swap rsFrom/rsTo and reset them
@@ -192,10 +197,6 @@ public class CopyingGC implements RevisionStore, Closeable {
         return running ? rsTo.putNode(node) : rsFrom.putNode(node);
     }
 
-    public Id putCommit(MutableCommit commit) throws Exception {
-        return running ? rsTo.putCommit(commit) : rsFrom.putCommit(commit);
-    }
-
     public Id putCNEMap(ChildNodeEntriesMap map) throws Exception {
         return running ? rsTo.putCNEMap(map) : rsFrom.putCNEMap(map);
     }
@@ -209,12 +210,8 @@ public class CopyingGC implements RevisionStore, Closeable {
         }
     }
 
-    public void setHeadCommitId(Id commitId) throws Exception {
-        if (running) {
-            rsTo.setHeadCommitId(commitId);
-        } else {
-            rsFrom.setHeadCommitId(commitId);
-        }
+    public Id putHeadCommit(MutableCommit commit) throws Exception {
+        return running ? rsTo.putHeadCommit(commit) : rsFrom.putHeadCommit(commit);
     }
 
     // TODO: potentially dangerous, if lock & unlock interfere with GC start
