@@ -48,9 +48,11 @@ public class OakRepositoryFactory implements RepositoryFactory {
         return null;
     }
 
+    @SuppressWarnings("unchecked")
     private static Repository getRepository(URI uri, Map parameters)
             throws RepositoryException {
 
+        // todo correctly interpret uri
         parameters.put(RepositoryConfiguration.MICROKERNEL_URL, "simple:target/repository-test/repository");
         GlobalContext context = new GlobalContext(OakRepositoryConfiguration.create(parameters));
         return context.getInstance(Repository.class);
