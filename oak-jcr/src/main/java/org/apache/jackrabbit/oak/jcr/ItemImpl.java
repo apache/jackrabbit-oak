@@ -38,7 +38,7 @@ import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.version.VersionException;
 
 /**
- * <code>ItemImpl</code>...
+ * ItemImpl...
  */
 abstract class ItemImpl implements Item {
     protected final Context sessionContext;
