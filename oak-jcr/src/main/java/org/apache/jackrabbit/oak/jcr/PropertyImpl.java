@@ -36,7 +36,6 @@ import javax.jcr.Property;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
-import javax.jcr.ValueFactory;
 import javax.jcr.ValueFormatException;
 import javax.jcr.lock.LockException;
 import javax.jcr.nodetype.ConstraintViolationException;
@@ -341,8 +340,7 @@ public class PropertyImpl extends ItemImpl implements Property {
             throw new ValueFormatException(LogUtil.safeGetJCRPath(this) + " is multi-valued.");
         }
 
-        ValueFactory valueFactory = sessionContext.getValueFactory();
-        return ValueConverter.toValue(valueFactory, value.asAtom());
+        return ValueConverter.toValue(getValueFactory(), value.asAtom());
     }
 
     @Override
@@ -352,8 +350,7 @@ public class PropertyImpl extends ItemImpl implements Property {
             throw new ValueFormatException(LogUtil.safeGetJCRPath(this) + " is not multi-valued.");
         }
 
-        ValueFactory valueFactory = sessionContext.getValueFactory();
-        return ValueConverter.toValue(valueFactory, value.asArray());
+        return ValueConverter.toValue(getValueFactory(), value.asArray());
     }
 
     /**
