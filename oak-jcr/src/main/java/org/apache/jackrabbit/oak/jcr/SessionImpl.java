@@ -307,6 +307,9 @@ public class SessionImpl extends AbstractSession {
         return null;
     }
 
+    /**
+     * @see javax.jcr.Session#addLockToken(String)
+     */
     @Override
     public void addLockToken(String lt) {
         try {
@@ -316,6 +319,9 @@ public class SessionImpl extends AbstractSession {
         }
     }
 
+    /**
+     * @see javax.jcr.Session#getLockTokens()
+     */
     @Override
     public String[] getLockTokens() {
         try {
@@ -325,6 +331,9 @@ public class SessionImpl extends AbstractSession {
             return new String[0];        }
     }
 
+    /**
+     * @see javax.jcr.Session#removeLockToken(String)
+     */
     @Override
     public void removeLockToken(String lt) {
         try {
