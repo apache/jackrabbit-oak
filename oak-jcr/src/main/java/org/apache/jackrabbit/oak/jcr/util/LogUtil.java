@@ -26,8 +26,7 @@ import javax.jcr.RepositoryException;
  * {@code LogUtil}...
  */
 public class LogUtil {
-
-    private static Logger log = LoggerFactory.getLogger(LogUtil.class);
+    private static final Logger log = LoggerFactory.getLogger(LogUtil.class);
 
     /**
      * Avoid instantiation
