@@ -16,21 +16,20 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import org.apache.jackrabbit.commons.AbstractRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.jcr.Credentials;
+import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.Value;
-import java.util.Map;
-import java.util.Set;
+import javax.jcr.ValueFactory;
 
 /**
  * {@code RepositoryImpl}...
  */
-public class RepositoryImpl extends AbstractRepository {
+public class RepositoryImpl implements Repository {
 
     /**
      * logger instance
@@ -38,21 +37,26 @@ public class RepositoryImpl extends AbstractRepository {
     private static final Logger log = LoggerFactory.getLogger(RepositoryImpl.class);
 
     private final GlobalContext context;
-
-    private Map<String, Value[]> descriptors;
+    private final Descriptors descriptors;
 
     public RepositoryImpl(GlobalContext context) {
         this.context = context;
+        descriptors = new Descriptors(context.getInstance(ValueFactory.class));
     }
 
     //---------------------------------------------------------< Repository >---
+
     /**
      * @see javax.jcr.Repository#getDescriptorKeys()
      */
     @Override
     public String[] getDescriptorKeys() {
-        Set<String> keys = getDescriptors().keySet();
-        return keys.toArray(new String[keys.size()]);
+        return descriptors.getKeys();
+    }
+
+    @Override
+    public boolean isStandardDescriptor(String key) {
+        return descriptors.isStandardDescriptor(key);
     }
 
     /**
@@ -60,11 +64,14 @@ public class RepositoryImpl extends AbstractRepository {
      */
     @Override
     public String getDescriptor(String key) {
-        Value v = getDescriptorValue(key);
         try {
-            return (v == null) ? null : v.getString();
-        } catch (RepositoryException e) {
-            log.error("corrupt descriptor value: " + key, e);
+            Value v = getDescriptorValue(key);
+            return v == null
+                    ? null
+                    : v.getString();
+        }
+        catch (RepositoryException e) {
+            log.debug("Error converting value for descriptor with key {} to string", key);
             return null;
         }
     }
@@ -74,8 +81,7 @@ public class RepositoryImpl extends AbstractRepository {
      */
     @Override
     public Value getDescriptorValue(String key) {
-        Value[] vs = getDescriptorValues(key);
-        return (vs == null || vs.length != 1) ? null : vs[0];
+        return descriptors.getValue(key);
     }
 
     /**
@@ -83,13 +89,7 @@ public class RepositoryImpl extends AbstractRepository {
      */
     @Override
     public Value[] getDescriptorValues(String key) {
-        Map<String, Value[]> descriptors = getDescriptors();
-        if (descriptors.containsKey(key)) {
-            return descriptors.get(key);
-        } else {
-            return null;
-
-        }
+        return descriptors.getValues(key);
     }
 
     /**
@@ -97,8 +97,7 @@ public class RepositoryImpl extends AbstractRepository {
      */
     @Override
     public boolean isSingleValueDescriptor(String key) {
-        Value[] vs = getDescriptors().get(key);
-        return (vs != null && vs.length == 1);
+        return descriptors.isSingleValueDescriptor(key);
     }
 
     /**
@@ -112,14 +111,41 @@ public class RepositoryImpl extends AbstractRepository {
         return sessionFactory.createSession(context, credentials, workspaceName);
     }
 
-    //------------------------------------------------------------< private >---
     /**
-     * Returns the descriptor map.
+     * Calls {@link Repository#login(Credentials, String)} with
+     * {@code null} arguments.
      *
-     * @return the descriptor map.
+     * @return logged in session
+     * @throws RepositoryException if an error occurs
      */
-    private Map<String, Value[]> getDescriptors() {
-        // TODO
-        return null;
+    @Override
+    public Session login() throws RepositoryException {
+        return login(null, null);
+    }
+
+    /**
+     * Calls {@link Repository#login(Credentials, String)} with
+     * the given credentials and a {@code null} workspace name.
+     *
+     * @param credentials login credentials
+     * @return logged in session
+     * @throws RepositoryException if an error occurs
+     */
+    @Override
+    public Session login(Credentials credentials) throws RepositoryException {
+        return login(credentials, null);
+    }
+
+    /**
+     * Calls {@link Repository#login(Credentials, String)} with
+     * {@code null} credentials and the given workspace name.
+     *
+     * @param workspace workspace name
+     * @return logged in session
+     * @throws RepositoryException if an error occurs
+     */
+    @Override
+    public Session login(String workspace) throws RepositoryException {
+        return login(null, workspace);
     }
 }
