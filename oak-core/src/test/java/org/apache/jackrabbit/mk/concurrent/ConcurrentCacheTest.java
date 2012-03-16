@@ -19,8 +19,6 @@ package org.apache.jackrabbit.mk.concurrent;
 import java.util.concurrent.atomic.AtomicInteger;
 import junit.framework.Assert;
 import org.apache.jackrabbit.mk.util.Cache;
-import org.apache.jackrabbit.mk.util.Concurrent;
-import org.apache.jackrabbit.mk.util.Concurrent.Task;
 import org.junit.Test;
 
 /**
@@ -34,7 +32,7 @@ public class ConcurrentCacheTest implements Cache.Backend<Integer, ConcurrentCac
 
     @Test
     public void test() throws Exception {
-        Concurrent.run("cache", new Task() {
+        Concurrent.run("cache", new Concurrent.Task() {
             public void call() throws Exception {
                 int k = value++ % 10;
                 Data v = cache.get(k);

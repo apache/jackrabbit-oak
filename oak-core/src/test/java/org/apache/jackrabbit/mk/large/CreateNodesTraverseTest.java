@@ -14,7 +14,6 @@
 package org.apache.jackrabbit.mk.large;
 
 import org.apache.jackrabbit.mk.MultiMkTestBase;
-import org.apache.jackrabbit.mk.util.NodeCreator;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;

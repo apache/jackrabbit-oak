@@ -18,7 +18,6 @@ package org.apache.jackrabbit.mk.large;
 
 import junit.framework.Assert;
 import org.apache.jackrabbit.mk.MultiMkTestBase;
-import org.apache.jackrabbit.mk.util.StopWatch;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -95,19 +94,14 @@ public class LargeNodeTest extends MultiMkTestBase {
         // added 1000000 nodes 33.93 seconds (1000000 ops; 29471 op/s)
         // int count = 1000000;
         int count = 5000;
-        StopWatch timer = new StopWatch();
         StringBuilder buff = new StringBuilder();
         for (int i = 0; i < count; i++) {
-            if (i % 100 == 0 && timer.log()) {
-                log("added " + i + " nodes " + timer.operationsPerSecond(i));
-            }
             buff.append("+ \"test/" + i + "\": {\"x\":" + i + "}\n");
             if (i % 1000 == 0) {
                 head = mk.commit("/", buff.toString(), head, "");
                 buff.setLength(0);
             }
         }
-        log("added " + count + " nodes " + timer.operationsPerSecond(count));
         if (buff.length() > 0) {
             head = mk.commit("/", buff.toString(), head, "");
         }
