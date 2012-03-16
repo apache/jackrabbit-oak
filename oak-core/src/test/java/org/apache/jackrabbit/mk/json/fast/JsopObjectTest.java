@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.mk.json.fast;
 
 import java.math.BigDecimal;
-import org.apache.jackrabbit.mk.util.StopWatch;
 import junit.framework.TestCase;
 
 /**
@@ -37,12 +36,10 @@ public class JsopObjectTest extends TestCase {
                 w.put("child" + j, data);
             }
             String jsop = w.toString();
-            StopWatch timer = new StopWatch();
             for (int j = 0; j < 10000; j++) {
                 JsopObject o = (JsopObject) Jsop.parse(jsop);
                 assertEquals(data, o.get("child99"));
             }
-            System.out.println(timer.seconds() + " lengthIndex=" + lengthIndex);
         }
     }
 

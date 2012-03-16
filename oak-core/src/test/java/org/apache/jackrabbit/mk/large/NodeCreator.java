@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.util;
+package org.apache.jackrabbit.mk.large;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 
@@ -27,7 +27,6 @@ public class NodeCreator {
     private String head;
     private int totalCount = 200;
     private int width = 30, count;
-    private StopWatch timer;
     private String nodeName = "test";
     private String data = "Hello World";
     private boolean logToSystemOut;
@@ -57,22 +56,18 @@ public class NodeCreator {
         log("implementation: " + mk);
         log("creating " + totalCount + " nodes");
         head = mk.commit("/", "+\"" + nodeName + "\":{}", head, "");
-        timer = new StopWatch();
         count = 0;
         int depth = (int) Math.ceil(Math.log(totalCount) / Math.log(width));
         log("depth: " + depth);
         createNodes(nodeName, depth);
-        log("created  " + count + " nodes in " + timer.operationsPerSecond(count));
         log("");
     }
 
     public void traverse() {
-        timer = new StopWatch();
         count = 0;
         int depth = (int) Math.ceil(Math.log(totalCount) / Math.log(width));
         log("depth: " + depth);
         traverse(nodeName, depth);
-        log("read  " + count + " nodes in " + timer.operationsPerSecond(count));
     }
 
     private void createNodes(String parent, int depth) {
@@ -92,9 +87,6 @@ public class NodeCreator {
             }
             count++;
             buff.append("}\n");
-            if (count % 1000 == 0 && timer.log()) {
-                log("  " + count + " nodes in " + timer.operationsPerSecond(count));
-            }
         }
         head = mk.commit("/", buff.toString(), head, "");
         if (depth > 0) {
@@ -119,9 +111,6 @@ public class NodeCreator {
             }
             mk.getNodes("/" + p, head);
             count++;
-            if (count % 1000 == 0 && timer.log()) {
-                log("  " + count + " nodes in " + timer.operationsPerSecond(count));
-            }
             if (depth > 0) {
                 traverse(p, depth - 1);
             }

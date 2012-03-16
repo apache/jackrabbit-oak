@@ -14,21 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.util;
+package org.apache.jackrabbit.mk.concurrent;
 
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import org.h2.util.Profiler;
 
 /**
  * A concurrency test tool.
  */
 public class Concurrent {
-
-    private static final boolean BENCHMARK = false;
-    private static final boolean PROFILE = false;
 
     /**
      * Run a task concurrently in 2 threads for 1 second.
@@ -46,12 +42,6 @@ public class Concurrent {
         final AtomicReference<Throwable> exception = new AtomicReference<Throwable>();
         ArrayList<Thread> threads = new ArrayList<Thread>();
         final AtomicInteger counter = new AtomicInteger();
-        StopWatch timer = new StopWatch();
-        Profiler p = new Profiler();
-        if (PROFILE) {
-            p.interval = 1;
-            p.startCollecting();
-        }
         for (int i = 0; i < threadCount; i++) {
             Thread t = new Thread("Task " + i) {
                 public void run() {
@@ -96,13 +86,6 @@ public class Concurrent {
                 throw (Exception) e;
             }
             throw (Error) e;
-        }
-        if (BENCHMARK) {
-            String t = timer.operationsPerSecond(counter.get());
-            System.out.println(message + ": " + t);
-        }
-        if (PROFILE) {
-            System.out.println(p.getTop(5));
         }
     }
 

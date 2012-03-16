@@ -16,8 +16,6 @@ package org.apache.jackrabbit.mk.concurrent;
 import java.util.concurrent.atomic.AtomicInteger;
 import junit.framework.Assert;
 import org.apache.jackrabbit.mk.MultiMkTestBase;
-import org.apache.jackrabbit.mk.util.Concurrent;
-import org.apache.jackrabbit.mk.util.Concurrent.Task;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -35,7 +33,7 @@ public class ConcurrentTest extends MultiMkTestBase {
     @Test
     public void test() throws Exception {
         final AtomicInteger id = new AtomicInteger();
-        Concurrent.run(url, new Task() {
+        Concurrent.run(url, new Concurrent.Task() {
             public void call() throws Exception {
                 long start = System.currentTimeMillis();
                 String rev = mk.getHeadRevision();
