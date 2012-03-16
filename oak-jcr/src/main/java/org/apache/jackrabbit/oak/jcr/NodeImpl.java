@@ -475,12 +475,18 @@ public class NodeImpl extends ItemImpl implements Node  {
         }
     }
 
+    /**
+     * @see javax.jcr.Node#getUUID()
+     */
     @Override
     public String getUUID() throws RepositoryException {
         checkStatus();
 
-        // TODO
-        return null;
+        if (hasProperty(JcrConstants.JCR_UUID) && isNodeType(JcrConstants.MIX_REFERENCEABLE)) {
+            return getProperty(JcrConstants.JCR_UUID).getString();
+        }
+
+        throw new UnsupportedRepositoryOperationException("Node is not referenceable.");
     }
 
     @Override
