@@ -20,6 +20,7 @@ import java.io.IOException;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.client.Client;
+import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.mk.fs.FileUtils;
 import org.apache.jackrabbit.mk.index.IndexWrapper;
 import org.apache.jackrabbit.mk.simple.SimpleKernelImpl;
