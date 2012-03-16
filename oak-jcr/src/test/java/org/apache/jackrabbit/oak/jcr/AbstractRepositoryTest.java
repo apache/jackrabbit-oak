@@ -4,6 +4,7 @@ import org.apache.jackrabbit.commons.JcrUtils;
 
 import javax.jcr.GuestCredentials;
 import javax.jcr.Node;
+import javax.jcr.NodeIterator;
 import javax.jcr.Property;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -13,14 +14,28 @@ import javax.jcr.Session;
  * Abstract base class for repository tests providing methods for accessing
  * the repository, a session and nodes and properties from that session.
  *
- * Uses of this class must call logout to close the session associated with
- * this instance when they are done.
+ * Users of this class must call clear to close the session associated with
+ * this instance and clean up the repository when done.
  */
 abstract class AbstractRepositoryTest {
     private Repository repository;
     private Session session;
     
-    public void logout() {
+    public void logout() throws RepositoryException {
+        Session session = getRepository().login();
+        try {
+            Node root = session.getRootNode();
+            NodeIterator ns = root.getNodes();
+            while (ns.hasNext()) {
+                ns.nextNode().remove();
+            }
+            session.save();
+        }
+        finally {
+            session.logout();
+        }
+
+
         if (session != null) {
             session.logout();
             session = null;
