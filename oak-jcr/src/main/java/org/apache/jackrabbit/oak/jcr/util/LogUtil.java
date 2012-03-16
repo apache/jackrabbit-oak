@@ -35,7 +35,7 @@ public class LogUtil {
     private LogUtil() {}
 
     /**
-     * Failsafe retrieval of the JCR path for a given item. This is intended
+     * Fail safe retrieval of the JCR path for a given item. This is intended
      * to be used in log output, error messages etc.
      *
      * @param item The target item.
