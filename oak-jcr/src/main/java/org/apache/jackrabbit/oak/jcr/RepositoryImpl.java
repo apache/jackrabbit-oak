@@ -21,8 +21,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.jcr.Credentials;
-import javax.jcr.LoginException;
-import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.Value;
@@ -107,7 +105,7 @@ public class RepositoryImpl extends AbstractRepository {
      * @see javax.jcr.Repository#login(javax.jcr.Credentials, String)
      */
     @Override
-    public Session login(Credentials credentials, String workspaceName) throws LoginException, NoSuchWorkspaceException, RepositoryException {
+    public Session login(Credentials credentials, String workspaceName) throws RepositoryException {
         // TODO: needs complete refactoring
 
         SessionFactory sessionFactory = context.getInstance(SessionFactory.class);

@@ -28,28 +28,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.ContentHandler;
 
-import javax.jcr.AccessDeniedException;
 import javax.jcr.Credentials;
 import javax.jcr.InvalidItemStateException;
-import javax.jcr.ItemExistsException;
-import javax.jcr.ItemNotFoundException;
 import javax.jcr.LoginException;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
-import javax.jcr.ReferentialIntegrityException;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.ValueFactory;
 import javax.jcr.Workspace;
-import javax.jcr.lock.LockException;
-import javax.jcr.nodetype.ConstraintViolationException;
-import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.retention.RetentionManager;
 import javax.jcr.security.AccessControlManager;
-import javax.jcr.version.VersionException;
 import java.security.AccessControlException;
 
 /**
@@ -192,7 +184,7 @@ public class SessionImpl extends AbstractSession {
     }
 
     @Override
-    public Node getNodeByUUID(String uuid) throws ItemNotFoundException, RepositoryException {
+    public Node getNodeByUUID(String uuid) throws RepositoryException {
         checkIsAlive();
 
         // TODO
@@ -200,7 +192,7 @@ public class SessionImpl extends AbstractSession {
     }
 
     @Override
-    public Node getNodeByIdentifier(String id) throws ItemNotFoundException, RepositoryException {
+    public Node getNodeByIdentifier(String id) throws RepositoryException {
         checkIsAlive();
 
         // TODO
@@ -208,7 +200,7 @@ public class SessionImpl extends AbstractSession {
     }
 
     @Override
-    public void move(String srcAbsPath, String destAbsPath) throws ItemExistsException, PathNotFoundException, VersionException, ConstraintViolationException, LockException, RepositoryException {
+    public void move(String srcAbsPath, String destAbsPath) throws RepositoryException {
         checkIsAlive();
         Path sourcePath = Path.create(workspaceName, srcAbsPath);
         TransientNodeState sourceParent = nodeStateProvider.getNodeState(sourcePath.getParent());
@@ -220,7 +212,7 @@ public class SessionImpl extends AbstractSession {
     }
 
     @Override
-    public void save() throws AccessDeniedException, ItemExistsException, ReferentialIntegrityException, ConstraintViolationException, InvalidItemStateException, VersionException, LockException, NoSuchNodeTypeException, RepositoryException {
+    public void save() throws RepositoryException {
         checkIsAlive();
         revision = transientSpace.save();
         nodeStateProvider.clear();
@@ -240,7 +232,7 @@ public class SessionImpl extends AbstractSession {
     }
 
     @Override
-    public ValueFactory getValueFactory() throws UnsupportedRepositoryOperationException, RepositoryException {
+    public ValueFactory getValueFactory() throws RepositoryException {
         checkIsAlive();
         return sessionContext.getValueFactory();
     }
@@ -272,7 +264,7 @@ public class SessionImpl extends AbstractSession {
     }
 
     @Override
-    public ContentHandler getImportContentHandler(String parentAbsPath, int uuidBehavior) throws PathNotFoundException, ConstraintViolationException, VersionException, LockException, RepositoryException {
+    public ContentHandler getImportContentHandler(String parentAbsPath, int uuidBehavior) throws RepositoryException {
         checkIsAlive();
 
         // TODO
@@ -300,7 +292,7 @@ public class SessionImpl extends AbstractSession {
      * @see javax.jcr.Session#impersonate(Credentials)
      */
     @Override
-    public Session impersonate(Credentials credentials) throws LoginException, RepositoryException {
+    public Session impersonate(Credentials credentials) throws RepositoryException {
         checkIsAlive();
 
         // TODO
@@ -344,7 +336,7 @@ public class SessionImpl extends AbstractSession {
     }
 
     @Override
-    public AccessControlManager getAccessControlManager() throws UnsupportedRepositoryOperationException, RepositoryException {
+    public AccessControlManager getAccessControlManager() throws RepositoryException {
         checkIsAlive();
 
         // TODO
@@ -352,7 +344,7 @@ public class SessionImpl extends AbstractSession {
     }
 
     @Override
-    public RetentionManager getRetentionManager() throws UnsupportedRepositoryOperationException, RepositoryException {
+    public RetentionManager getRetentionManager() throws RepositoryException {
         throw new UnsupportedRepositoryOperationException("Retention Management is not supported.");
     }
 
@@ -446,7 +438,7 @@ public class SessionImpl extends AbstractSession {
      * @throws RepositoryException
      * @see javax.jcr.Repository#getDescriptorKeys()
      */
-    void checkSupportedOption(String option) throws UnsupportedRepositoryOperationException, RepositoryException {
+    void checkSupportedOption(String option) throws RepositoryException {
         if (!isSupportedOption(option)) {
             throw new UnsupportedRepositoryOperationException(option + " is not supported by this repository.");
         }
