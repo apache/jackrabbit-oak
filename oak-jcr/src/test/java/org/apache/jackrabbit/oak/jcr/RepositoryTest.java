@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import org.apache.jackrabbit.commons.JcrUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -26,7 +25,6 @@ import org.junit.Test;
 import util.NumberStream;
 
 import javax.jcr.Binary;
-import javax.jcr.GuestCredentials;
 import javax.jcr.Item;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.NoSuchWorkspaceException;
@@ -73,12 +71,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-public class RepositoryTest {
-
+public class RepositoryTest extends AbstractRepositoryTest {
     private static final String TEST_NODE = "test_node";
     private static final String TEST_PATH = '/' + TEST_NODE;
-    private Repository repository;
-    private Session session;
 
     @Before
     public void setup() throws RepositoryException {
@@ -129,10 +124,7 @@ public class RepositoryTest {
             session.logout();
         }
 
-        if (session != null) {
-            session.logout();
-            session = null;
-        }
+        logout();
     }
 
     @Test
@@ -1663,26 +1655,4 @@ public class RepositoryTest {
         }
     }
 
-    private Repository getRepository() throws RepositoryException {
-        if (repository == null) {
-            repository = JcrUtils.getRepository("jcr-oak://inmemory/CRUDTest");
-        }
-
-        return repository;
-    }
-
-    private Session getSession() throws RepositoryException {
-        if (session == null) {
-            session = getRepository().login(new GuestCredentials());
-        }
-        return session;
-    }
-
-    private Node getNode(String path) throws RepositoryException {
-        return getSession().getNode(path);
-    }
-
-    private Property getProperty(String path) throws RepositoryException {
-        return getSession().getProperty(path);
-    }
 }

@@ -16,26 +16,27 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertTrue;
+import org.junit.After;
+import org.junit.Test;
 
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
-import org.apache.jackrabbit.commons.JcrUtils;
-import org.junit.Ignore;
-import org.junit.Test;
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertTrue;
 
-public class CRUDTest {
+public class CRUDTest extends AbstractRepositoryTest {
 
-    @Ignore
+    @After
+    public void tearDown() {
+        logout();
+    }
+
     @Test
     public void testCRUD() throws RepositoryException {
-        Repository repository =
-                JcrUtils.getRepository("jcr-oak://inmemory/CRUDTest");
-
+        Repository repository = getRepository();
         Session session = repository.login();
         try {
             // Create
