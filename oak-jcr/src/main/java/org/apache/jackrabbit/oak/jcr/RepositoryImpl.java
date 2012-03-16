@@ -24,7 +24,6 @@ import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.Value;
-import javax.jcr.ValueFactory;
 
 /**
  * {@code RepositoryImpl}...
@@ -37,67 +36,46 @@ public class RepositoryImpl implements Repository {
     private static final Logger log = LoggerFactory.getLogger(RepositoryImpl.class);
 
     private final GlobalContext context;
-    private final Descriptors descriptors;
 
     public RepositoryImpl(GlobalContext context) {
         this.context = context;
-        descriptors = new Descriptors(context.getInstance(ValueFactory.class));
     }
 
     //---------------------------------------------------------< Repository >---
-
-    /**
-     * @see javax.jcr.Repository#getDescriptorKeys()
-     */
     @Override
     public String[] getDescriptorKeys() {
-        return descriptors.getKeys();
+        // TODO
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public boolean isStandardDescriptor(String key) {
-        return descriptors.isStandardDescriptor(key);
+        // TODO
+        throw new UnsupportedOperationException();
     }
 
-    /**
-     * @see javax.jcr.Repository#getDescriptor(String)
-     */
     @Override
     public String getDescriptor(String key) {
-        try {
-            Value v = getDescriptorValue(key);
-            return v == null
-                    ? null
-                    : v.getString();
-        }
-        catch (RepositoryException e) {
-            log.debug("Error converting value for descriptor with key {} to string", key);
-            return null;
-        }
+        // TODO
+        throw new UnsupportedOperationException();
     }
 
-    /**
-     * @see javax.jcr.Repository#getDescriptorValue(String)
-     */
     @Override
     public Value getDescriptorValue(String key) {
-        return descriptors.getValue(key);
+        // TODO
+        throw new UnsupportedOperationException();
     }
 
-    /**
-     * @see javax.jcr.Repository#getDescriptorValues(String)
-     */
     @Override
     public Value[] getDescriptorValues(String key) {
-        return descriptors.getValues(key);
+        // TODO
+        throw new UnsupportedOperationException();
     }
 
-    /**
-     * @see javax.jcr.Repository#isSingleValueDescriptor(String)
-     */
     @Override
     public boolean isSingleValueDescriptor(String key) {
-        return descriptors.isSingleValueDescriptor(key);
+        // TODO
+        throw new UnsupportedOperationException();
     }
 
     /**
