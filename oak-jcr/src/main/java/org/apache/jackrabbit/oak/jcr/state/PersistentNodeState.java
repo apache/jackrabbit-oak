@@ -112,10 +112,11 @@ public class PersistentNodeState extends AbstractNodeState {
         String json = microkernel.getNodes(path.toMkPath(), revision, 1, offset, count, null);
         final List<ChildNodeEntry> childNodeEntries = new ArrayList<ChildNodeEntry>();
 
+        final JsonParser skippingParser = new JsonParser(JsonHandler.INSTANCE);
         new JsonParser(new JsonHandler(){
             @Override
             public void object(JsonParser parser, Token key, JsonTokenizer tokenizer) {
-                super.object(parser, key, tokenizer);
+                skippingParser.parseObject(tokenizer);
                 childNodeEntries.add(createChildNodeEntry(key.text()));
             }
         }).parseObject(new UnescapingJsonTokenizer(json));
