@@ -20,8 +20,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.jcr.Credentials;
-import javax.jcr.LoginException;
-import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -43,7 +41,7 @@ class RepositoryAdaptor implements Repository {
 
     RepositoryAdaptor(Repository repository, ValueFactory valueFactory) {
         this.repository = repository;
-        // TODO: define if descriptiors are being retrieved from oak-api.
+        // TODO: define if descriptors are being retrieved from oak-api.
         // TODO: in this case the 'sessionInfo' needs to be passed to the constructor as well.
         this.descriptors = new Descriptors(valueFactory);
     }
@@ -110,7 +108,7 @@ class RepositoryAdaptor implements Repository {
      * @see javax.jcr.Repository#login(Credentials, String)
      */
     @Override
-    public Session login(Credentials credentials, String workspaceName) throws LoginException, NoSuchWorkspaceException, RepositoryException {
+    public Session login(Credentials credentials, String workspaceName) throws RepositoryException {
         return repository.login(credentials, workspaceName);
     }
 
@@ -118,7 +116,7 @@ class RepositoryAdaptor implements Repository {
      * @see javax.jcr.Repository#login(Credentials)
      */
     @Override
-    public Session login(Credentials credentials) throws LoginException, RepositoryException {
+    public Session login(Credentials credentials) throws RepositoryException {
         return repository.login(credentials);
     }
 
@@ -126,7 +124,7 @@ class RepositoryAdaptor implements Repository {
      * @see javax.jcr.Repository#login(String)
      */
     @Override
-    public Session login(String workspaceName) throws LoginException, NoSuchWorkspaceException, RepositoryException {
+    public Session login(String workspaceName) throws RepositoryException {
         return repository.login(workspaceName);
 
     }
@@ -135,7 +133,7 @@ class RepositoryAdaptor implements Repository {
      * @see javax.jcr.Repository#login()
      */
     @Override
-    public Session login() throws LoginException, RepositoryException {
+    public Session login() throws RepositoryException {
         return repository.login();
     }
 
