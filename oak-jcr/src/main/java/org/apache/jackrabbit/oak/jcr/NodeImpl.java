@@ -809,7 +809,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     }
 
     /**
-     * @see javax.jcr.Node#getAllowedLifecycleTransistions() ()
+     * @see javax.jcr.Node#getAllowedLifecycleTransistions()
      */
     @Override
     public String[] getAllowedLifecycleTransistions() throws RepositoryException {
@@ -823,7 +823,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * with the editing session.
      *
      * @return the version manager associated with the editing session.
-     * @throws RepositoryException
+     * @throws RepositoryException If an error occurs while retrieving the version manager.
      */
     private VersionManager getVersionManager() throws RepositoryException {
         return getSession().getWorkspace().getVersionManager();

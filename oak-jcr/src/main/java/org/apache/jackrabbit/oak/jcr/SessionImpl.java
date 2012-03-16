@@ -307,7 +307,7 @@ public class SessionImpl extends AbstractSession {
         try {
             getWorkspace().getLockManager().addLockToken(lt);
         } catch (RepositoryException e) {
-            log.warn("Unable to add lock token '" +lt+ "' to this session.", e);
+            log.warn("Unable to add lock token '{}' to this session: {}", lt, e.getMessage());
         }
     }
 
@@ -319,7 +319,7 @@ public class SessionImpl extends AbstractSession {
         try {
             return getWorkspace().getLockManager().getLockTokens();
         } catch (RepositoryException e) {
-            log.warn("Unable to retrieve lock tokens for this session. (" + e.getMessage() + ")");
+            log.warn("Unable to retrieve lock tokens for this session: {}", e.getMessage());
             return new String[0];        }
     }
 
@@ -331,7 +331,7 @@ public class SessionImpl extends AbstractSession {
         try {
             getWorkspace().getLockManager().addLockToken(lt);
         } catch (RepositoryException e) {
-            log.warn("Unable to add lock token '" +lt+ "' to this session.", e);
+            log.warn("Unable to add lock token '{}' to this session: {}", lt, e.getMessage());
         }
     }
 
@@ -434,8 +434,9 @@ public class SessionImpl extends AbstractSession {
      * <li>{@link Repository#OPTION_XML_IMPORT_SUPPORTED}</li>
      * <li>{@link Repository#WRITE_SUPPORTED}</li>
      * </ul>
-     * @throws UnsupportedRepositoryOperationException
-     * @throws RepositoryException
+     * @throws UnsupportedRepositoryOperationException If the given option is
+     * not supported.
+     * @throws RepositoryException If another error occurs.
      * @see javax.jcr.Repository#getDescriptorKeys()
      */
     void checkSupportedOption(String option) throws RepositoryException {
