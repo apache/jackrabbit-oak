@@ -21,11 +21,12 @@ Maven 3 and Java 6 (or higher) like this:
 The build consists of the following main components:
 
     oak-parent - parent POM
-    oak-core   - main codebase (incl. unit tests)
+    oak-mk     - MicroKernel API and default implementation
+    oak-core   - Oak repository API and implementation
+    oak-jcr    - JCR binding for the Oak repository
     oak-run    - runnable jar packaging
     oak-it     - integration tests
     oak-bench  - performance tests
-    oak-jcr    - JCR binding
 
 
 License (see also LICENSE.txt)
