@@ -18,11 +18,11 @@ package org.apache.jackrabbit.mk.concurrent;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
 import junit.framework.Assert;
 import org.apache.jackrabbit.mk.blobs.MemoryBlobStore;
 import org.apache.jackrabbit.mk.util.IOUtils;
-import org.apache.jackrabbit.mk.util.IOUtilsTest;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -54,7 +54,7 @@ public class ConcurrentBlobTest {
                 Assert.assertEquals(58, store.getBlobLength(id));
                 byte[] test = out.toByteArray();
                 Assert.assertEquals(8, store.readBlob(id, 0, test, 0, 8));
-                IOUtilsTest.assertEquals(data, test);
+                Assert.assertTrue(Arrays.equals(data, test));
             }
         });
     }

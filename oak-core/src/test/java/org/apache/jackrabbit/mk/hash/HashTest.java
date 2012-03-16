@@ -19,9 +19,9 @@ package org.apache.jackrabbit.mk.hash;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import java.util.Arrays;
+
 import org.apache.jackrabbit.mk.MultiMkTestBase;
 import org.apache.jackrabbit.mk.simple.NodeImpl;
-import org.apache.jackrabbit.mk.util.IOUtilsTest;
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -64,7 +64,7 @@ public class HashTest extends MultiMkTestBase {
         assertTrue(r.getHash() != null);
         NodeImpl t1 = NodeImpl.parse(mk.getNodes("/test1", head));
         NodeImpl t2 = NodeImpl.parse(mk.getNodes("/test2", head));
-        IOUtilsTest.assertEquals(t1.getHash(), t2.getHash());
+        assertTrue(Arrays.equals(t1.getHash(), t2.getHash()));
         assertFalse(Arrays.equals(t1.getHash(), r.getHash()));
     }
 
