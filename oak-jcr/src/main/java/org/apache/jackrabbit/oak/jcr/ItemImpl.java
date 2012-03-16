@@ -129,7 +129,7 @@ abstract class ItemImpl implements Item {
      * @return the value factory
      * @throws RepositoryException
      */
-    ValueFactory getValueFactory() throws RepositoryException {
+    ValueFactory getValueFactory() {
         return sessionContext.getValueFactory();
     }
 
