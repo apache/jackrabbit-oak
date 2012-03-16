@@ -34,6 +34,7 @@ import javax.jcr.ValueFactory;
  * {@code ItemImpl}...
  */
 abstract class ItemImpl implements Item {
+
     protected final Context sessionContext;
 
     /**
@@ -127,7 +128,6 @@ abstract class ItemImpl implements Item {
      * Returns the value factory associated with the editing session.
      *
      * @return the value factory
-     * @throws RepositoryException
      */
     ValueFactory getValueFactory() {
         return sessionContext.getValueFactory();
