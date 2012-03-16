@@ -55,6 +55,8 @@ public class SessionImpl extends AbstractSession {
     private static final Logger log = LoggerFactory.getLogger(SessionImpl.class);
 
     private final Workspace workspace;
+    private final ValueFactory valueFactory;
+
     private final GlobalContext globalContext;
     private final CredentialsInfo credentialsInfo;
     private final String workspaceName;
@@ -96,6 +98,7 @@ public class SessionImpl extends AbstractSession {
     public interface Context extends SessionContext<SessionImpl>{}
 
     private final Context sessionContext = new Context() {
+
         @Override
         public SessionImpl getSession() {
             return SessionImpl.this;
@@ -128,7 +131,7 @@ public class SessionImpl extends AbstractSession {
 
         @Override
         public ValueFactory getValueFactory() {
-            return globalContext.getInstance(ValueFactory.class);
+            return valueFactory;
         }
 
         @Override
@@ -145,6 +148,8 @@ public class SessionImpl extends AbstractSession {
         this.workspaceName = workspaceName;
         this.revision = revision;
         workspace = new WorkspaceImpl(sessionContext);
+        valueFactory = new ValueFactoryImpl();
+
         microKernel = globalContext.getInstance(MicroKernel.class);
         transientSpace = new TransientSpace(workspaceName, microKernel, revision);
         nodeStateProvider = new NodeStateProvider(sessionContext, transientSpace);
