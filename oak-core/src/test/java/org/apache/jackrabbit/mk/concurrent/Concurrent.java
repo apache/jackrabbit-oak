@@ -21,10 +21,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.h2.util.Profiler;
+
 /**
  * A concurrency test tool.
  */
 public class Concurrent {
+
+    private static final boolean PROFILE = false;
 
     /**
      * Run a task concurrently in 2 threads for 1 second.
@@ -42,6 +46,11 @@ public class Concurrent {
         final AtomicReference<Throwable> exception = new AtomicReference<Throwable>();
         ArrayList<Thread> threads = new ArrayList<Thread>();
         final AtomicInteger counter = new AtomicInteger();
+        Profiler p = new Profiler();
+        if (PROFILE) {
+            p.interval = 1;
+            p.startCollecting();
+        }
         for (int i = 0; i < threadCount; i++) {
             Thread t = new Thread("Task " + i) {
                 public void run() {
@@ -87,6 +96,10 @@ public class Concurrent {
             }
             throw (Error) e;
         }
+        if (PROFILE) {
+            System.out.println(p.getTop(5));
+        }
+
     }
 
     public interface Task {
