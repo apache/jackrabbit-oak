@@ -844,7 +844,7 @@ public class RepositoryTest {
     }
 
     @Test
-    @Ignore // todo implement value coding in ValueConverter
+    @Ignore
     public void addEmptyMultiValuedProperty_JCR_2992_WorkaroundTest() throws RepositoryException {
         Node parentNode = getNode(TEST_PATH);
         Value[] values = new Value[0];
@@ -1277,7 +1277,7 @@ public class RepositoryTest {
     }
 
     @Test
-    @Ignore // todo implement orderBefore
+    @Ignore // todo implement orderBefore, orderable child nodes
     public void reorderTest() throws RepositoryException {
         Node testNode = getNode(TEST_PATH);
         testNode.addNode("a");
@@ -1286,18 +1286,13 @@ public class RepositoryTest {
         getSession().save();
 
         NodeIterator it = testNode.getNodes();
-        while (it.hasNext()) {
-            System.out.println(it.nextNode().getPath());
-        }
+        // todo: check order
 
         testNode.orderBefore("a", "c");
         getSession().save();
 
         it = testNode.getNodes();
-        while (it.hasNext()) {
-            System.out.println(it.nextNode().getPath());
-        }
-
+        // todo: check order
     }
 
     @Test
