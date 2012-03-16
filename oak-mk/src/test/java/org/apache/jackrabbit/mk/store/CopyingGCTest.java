@@ -21,25 +21,30 @@ import static org.junit.Assert.fail;
 
 import java.io.File;
 
-import org.apache.jackrabbit.mk.core.MicroKernelImpl;
-import org.apache.jackrabbit.mk.core.Repository;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
+import org.apache.jackrabbit.mk.core.MicroKernelImpl;
+import org.apache.jackrabbit.mk.core.Repository;
 import org.apache.jackrabbit.mk.fs.FileUtils;
 import org.apache.jackrabbit.mk.json.fast.Jsop;
 import org.apache.jackrabbit.mk.json.fast.JsopArray;
+import org.apache.jackrabbit.mk.util.IOUtils;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
  * Use-case: start off a new revision store that contains just the head revision
  * and its nodes.
  * 
- * TODO: make the test concurrent
+ * TODO: fix concurrent GC, fails because of missing nodes in the "to" store.
  */
-public class CopyHeadRevisionTest {
+public class CopyingGCTest {
 
+    private DefaultRevisionStore rsFrom;
+    private DefaultRevisionStore rsTo;
+    
     @Before
     public void setup() throws Exception {
         FileUtils.deleteRecursive("target/mk1", false);
@@ -48,16 +53,56 @@ public class CopyHeadRevisionTest {
 
     @After
     public void tearDown() throws Exception {
+        IOUtils.closeQuietly(rsFrom);
+        IOUtils.closeQuietly(rsTo);
+    }
+    
+    @Ignore
+    @Test
+    public void concurrentGC() throws Exception {
+        rsFrom = new DefaultRevisionStore();
+        rsFrom.initialize(new File("target/mk1"));
+
+        rsTo = new DefaultRevisionStore(); 
+        rsTo.initialize(new File("target/mk2"));
+
+        final CopyingGC gc = new CopyingGC(rsFrom, rsTo);
+        
+        Thread t = new Thread(new Runnable() {
+            public void run() {
+                try {
+                    gc.gc();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+        t.setDaemon(true);
+
+        MicroKernel mk = new MicroKernelImpl(new Repository(gc));
+        mk.commit("/", "+\"a\" : { \"b\" : { \"c\" : { \"d\" : {} } } }", mk.getHeadRevision(), null);
+        
+        t.start();
+        
+        try {
+            for (int i = 0; i < 10; i++) {
+                mk.commit("/a/b/c/d", "+\"e\" : {}", mk.getHeadRevision(), null);
+                Thread.sleep(100);
+                mk.commit("/a/b/c/d", "-\"e\"", mk.getHeadRevision(), null);
+            }
+        } finally {        
+            t.join();
+        }
     }
     
     @Test
-    public void testCopyHeadRevisionToNewStore() throws Exception {
+    public void copyHeadRevisionToNewStore() throws Exception {
         String[] revs = new String[5];
         
-        DefaultRevisionStore rsFrom = new DefaultRevisionStore();
+        rsFrom = new DefaultRevisionStore();
         rsFrom.initialize(new File("target/mk1"));
 
-        DefaultRevisionStore rsTo = new DefaultRevisionStore(); 
+        rsTo = new DefaultRevisionStore(); 
         rsTo.initialize(new File("target/mk2"));
 
         CopyingGC gc = new CopyingGC(rsFrom, rsTo);
@@ -68,13 +113,10 @@ public class CopyHeadRevisionTest {
         revs[2] = mk.commit("/b", "+\"e\" : {}", mk.getHeadRevision(), null);
         revs[3] = mk.commit("/a/c", "+\"f\" : {}", mk.getHeadRevision(), null);
 
-        // Simulate a GC cycle start
-        gc.start();
+        // garbage collect
+        gc.gc();
 
         revs[4] = mk.commit("/b/e", "+\"g\" : {}", mk.getHeadRevision(), null);
-        
-        // Simulate a GC cycle stop
-        gc.stop();
         
         // Assert head revision is contained after GC
         assertEquals(mk.getHeadRevision(), revs[revs.length - 1]);
