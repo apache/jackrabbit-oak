@@ -32,6 +32,11 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Utility class for converting between internal value representation and JCR
+ * values.
+ * todo: needs refactoring. see OAK-16.
+ */
 public final class ValueConverter {
     private ValueConverter() {}
 
