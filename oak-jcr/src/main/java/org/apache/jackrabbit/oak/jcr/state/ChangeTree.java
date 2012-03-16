@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.jcr.util.Function1;
 import org.apache.jackrabbit.oak.jcr.util.Iterators;
 import org.apache.jackrabbit.oak.jcr.util.Path;
 import org.apache.jackrabbit.oak.jcr.util.Predicate;
-import org.apache.jackrabbit.oak.model.PropertyState;
+import org.apache.jackrabbit.mk.model.PropertyState;
 
 import javax.jcr.ItemExistsException;
 import javax.jcr.ItemNotFoundException;

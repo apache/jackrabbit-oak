@@ -29,11 +29,11 @@ import org.apache.jackrabbit.oak.jcr.json.Token;
 import org.apache.jackrabbit.oak.jcr.json.UnescapingJsonTokenizer;
 import org.apache.jackrabbit.oak.jcr.util.Function0;
 import org.apache.jackrabbit.oak.jcr.util.Path;
-import org.apache.jackrabbit.oak.model.AbstractChildNodeEntry;
-import org.apache.jackrabbit.oak.model.AbstractNodeState;
-import org.apache.jackrabbit.oak.model.ChildNodeEntry;
-import org.apache.jackrabbit.oak.model.NodeState;
-import org.apache.jackrabbit.oak.model.PropertyState;
+import org.apache.jackrabbit.mk.model.AbstractChildNodeEntry;
+import org.apache.jackrabbit.mk.model.AbstractNodeState;
+import org.apache.jackrabbit.mk.model.ChildNodeEntry;
+import org.apache.jackrabbit.mk.model.NodeState;
+import org.apache.jackrabbit.mk.model.PropertyState;
 
 import java.util.ArrayList;
 import java.util.HashMap;
