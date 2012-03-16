@@ -1,10 +1,8 @@
 package org.apache.jackrabbit.oak.jcr;
 
-import org.apache.jackrabbit.commons.JcrUtils;
 import org.junit.After;
 import org.junit.Test;
 
-import javax.jcr.GuestCredentials;
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -16,17 +14,14 @@ import static org.junit.Assert.fail;
  * This class contains test cases which demonstrate changes in behaviour wrt. to Jackrabbit 2.
  * See OAK-14: Identify and document changes in behaviour wrt. Jackrabbit 2
  */
-public class CompatibilityIssues {
-
-    private Repository repository;
-    private Session session;
+public class CompatibilityIssuesTest extends AbstractRepositoryTest {
 
     @After
     public void tearDown() throws RepositoryException {
-        if (session != null) {
-            session.logout();
-            session = null;
-        }
+        getSession().getNode("/testNode").remove();
+        getSession().save();
+        
+        logout();
     }
 
     /**
@@ -82,23 +77,6 @@ public class CompatibilityIssues {
                 session.getNode("/testNode").getProperty("p2").getLong() < 0) {
             fail("p1 + p2 < 0");
         }
-    }
-
-    //------------------------------------------------------------< private >---
-
-    private Repository getRepository() throws RepositoryException {
-        if (repository == null) {
-            repository = JcrUtils.getRepository("jcr-oak://inmemory/CRUDTest");
-        }
-
-        return repository;
-    }
-
-    private Session getSession() throws RepositoryException {
-        if (session == null) {
-            session = getRepository().login(new GuestCredentials());
-        }
-        return session;
     }
 
 }
