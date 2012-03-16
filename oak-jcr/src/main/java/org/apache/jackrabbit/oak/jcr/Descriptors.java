@@ -81,6 +81,7 @@ public class Descriptors {
 
     private final Map<String, Descriptor> descriptors;
 
+    @SuppressWarnings("deprecation")
     public Descriptors(ValueFactory valueFactory) {
         descriptors = new HashMap<String, Descriptor>();
         Value trueValue = valueFactory.createValue(true);
@@ -249,7 +250,7 @@ public class Descriptors {
 
     public Descriptors(ValueFactory valueFactory, Iterable<Descriptor> descriptors) {
         this(valueFactory);
-        
+
         for (Descriptor d : descriptors) {
             this.descriptors.put(d.name, d);
         }
@@ -278,10 +279,10 @@ public class Descriptors {
     }
 
     public static final class Descriptor {
-        private final String name;
-        private final Value[] values;
-        private final boolean singleValued;
-        private final boolean standard;
+        final String name;
+        final Value[] values;
+        final boolean singleValued;
+        final boolean standard;
 
         public Descriptor(String name, Value[] values, boolean singleValued, boolean standard) {
             this.name = name;
