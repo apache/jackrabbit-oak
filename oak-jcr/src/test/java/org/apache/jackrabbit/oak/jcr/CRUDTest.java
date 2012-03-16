@@ -30,7 +30,7 @@ import static junit.framework.Assert.assertTrue;
 public class CRUDTest extends AbstractRepositoryTest {
 
     @After
-    public void tearDown() {
+    public void tearDown() throws RepositoryException {
         logout();
     }
 

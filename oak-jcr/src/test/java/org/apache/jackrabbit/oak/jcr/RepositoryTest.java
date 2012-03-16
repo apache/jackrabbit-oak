@@ -100,30 +100,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
     @After
     public void tearDown() throws RepositoryException {
-        Session session = getRepository().login();
-        try {
-            Node root = session.getRootNode();
-            if (root.hasNode("foo")) {
-                root.getNode("foo").remove();
-            }
-            if (root.hasNode("bar")) {
-                root.getNode("bar").remove();
-            }
-            if (root.hasNode("node")) {
-                root.getNode("node").remove();
-            }
-            if (root.hasNode("node1")) {
-                root.getNode("node1").remove();
-            }
-            if (root.hasNode(TEST_NODE)) {
-                root.getNode(TEST_NODE).remove();
-            }
-            session.save();
-        }
-        finally {
-            session.logout();
-        }
-
         logout();
     }
 

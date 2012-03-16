@@ -18,9 +18,6 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
 
     @After
     public void tearDown() throws RepositoryException {
-        getSession().getNode("/testNode").remove();
-        getSession().save();
-        
         logout();
     }
 
