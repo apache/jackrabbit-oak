@@ -34,6 +34,12 @@
   <name>Oak Core</name>
 
   <dependencies>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-mk</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
     <!-- Optional dependencies for different persistence backends -->
     <dependency>
       <groupId>com.h2database</groupId>
