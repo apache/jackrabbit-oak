@@ -21,10 +21,8 @@ import java.io.ByteArrayOutputStream;
 import java.util.concurrent.atomic.AtomicInteger;
 import junit.framework.Assert;
 import org.apache.jackrabbit.mk.blobs.MemoryBlobStore;
-import org.apache.jackrabbit.mk.util.Concurrent;
 import org.apache.jackrabbit.mk.util.IOUtils;
 import org.apache.jackrabbit.mk.util.IOUtilsTest;
-import org.apache.jackrabbit.mk.util.Concurrent.Task;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -45,7 +43,7 @@ public class ConcurrentBlobTest {
     @Test
     public void test() throws Exception {
         final AtomicInteger id = new AtomicInteger();
-        Concurrent.run("blob", new Task() {
+        Concurrent.run("blob", new Concurrent.Task() {
             public void call() throws Exception {
                 int i = id.getAndIncrement();
                 ByteArrayOutputStream out = new ByteArrayOutputStream();

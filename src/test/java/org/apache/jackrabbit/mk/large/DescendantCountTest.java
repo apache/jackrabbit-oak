@@ -20,7 +20,6 @@ import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.mk.json.fast.Jsop;
 import org.apache.jackrabbit.mk.json.fast.JsopObject;
 import org.apache.jackrabbit.mk.simple.NodeImpl;
-import org.apache.jackrabbit.mk.util.NodeCreator;
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
