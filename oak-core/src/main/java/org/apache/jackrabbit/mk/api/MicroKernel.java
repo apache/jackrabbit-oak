@@ -176,8 +176,8 @@ public interface MicroKernel {
 
     /**
      * Returns the node tree rooted at the specified parent node with depth 1.
-     * Depth 1 means all properties of the node are returned, including the list
-     * of child nodes and their properties (including
+     * Depth 1 means all properties of the node are returned, including the direct
+     * child nodes and their properties (including
      * <code>:childNodeCount</code>). Example:
      * <pre>
      * {
@@ -193,14 +193,11 @@ public interface MicroKernel {
      *      }
      * }
      * </pre>
-     * The collection of name/value pairs denoting child nodes is assumed to be
-     * ordered.
-     * <p/>
      * Remarks:
      * <ul>
      * <li>If the property <code>:childNodeCount</code> equals 0, then the
      * node does not have any child nodes.
-     * <li>If the value of <code>:childNodeCount</code> is larger than the list
+     * <li>If the value of <code>:childNodeCount</code> is larger than the number
      * of returned child nodes, then the node has more child nodes than those
      * included in the tree. Large number of child nodes can be retrieved in
      * chunks using {@link #getNodes(String, String, int, long, int, String)}</li>
@@ -222,8 +219,8 @@ public interface MicroKernel {
      * <table>
      * <tr>
      * <td>depth = 0</td>
-     * <td>properties, including <code>:childNodeCount</code> and the list
-     * of child node names (as empty objects)</td>
+     * <td>properties, including <code>:childNodeCount</code> and
+     * child node names (i.e. empty child node objects)</td>
      * </tr>
      * <tr>
      * <td>depth = 1</td>
@@ -235,15 +232,16 @@ public interface MicroKernel {
      * <td>[and so on...]</td>
      * </tr>
      * </table>
-     * Offset and count only affect the returned child node list of this node.
+     * <p/>
+     * The {@code offset} and {@code count} parameters are only applied to the
+     * direct child nodes of the root of the returned node tree.
      *
      * @param path       path denoting root of node tree to be retrieved
      * @param revisionId revision, if null the current head revision is assumed
      * @param depth      maximum depth of returned tree
-     * @param offset     start position in child node list (0 to start at the
+     * @param offset     start position in the iteration order of child nodes (0 to start at the
      *                   beginning)
-     * @param count      maximum number of child nodes to retrieve (-1 for as many as
-     *                   possible)
+     * @param count      maximum number of child nodes to retrieve (-1 for all)
      * @param filter     (optional) filter criteria
      *                   (e.g. names of properties to be included, etc);
      *                   TODO specify format and semantics
