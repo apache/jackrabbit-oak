@@ -22,13 +22,14 @@ import java.io.InputStream;
  * The MicroKernel <b>design goals/principles</b>:
  * <ul>
  * <li>manage huge trees of nodes and properties efficiently</li>
- * <li>MVCC-based concurrency control</li>
- * <li>GIT/SVN-inspired DAG-based data model</li>
+ * <li>MVCC-based concurrency control
+ * (writers don't interfere with readers, snapshot isolation)</li>
+ * <li>GIT/SVN-inspired DAG-based versioning model</li>
  * <li>highly scalable concurrent read & write operations</li>
  * <li>stateless API</li>
  * <li>portable to C</li>
  * <li>efficient support for large number of child nodes</li>
- * <li>integrated API for storing/retrieving large binaries (similar to existing DataStore API)</li>
+ * <li>integrated API for efficiently storing/retrieving large binaries</li>
  * <li>human-readable data serialization (JSON)</li>
  * </ul>
  * <p/>
@@ -40,17 +41,7 @@ import java.io.InputStream;
  * refer to a property or a child node, not both at the same time.
  * <li>properties are represented as name/value pairs</li>
  * <li>supported property types: string, number</li>
- * <li>other property types (weak/hard reference, date, etc) would need to be
- * encoded/mangled in name or value</li>
- * <li>no support for JCR/XML-like namespaces, "foo:bar" is just an ordinary name</li>
  * </ul>
- * <p/>
- * <b>Architecture (overview)</b>:
- * <ol>
- * <li>JCR (full TCK-compliant implementation)</li>
- * <li>SPI (node types, workspaces, namespaces, access control, search, locking, ...)</li>
- * <li><i>MicroKernel</i></li>
- * </ol>
  */
 public interface MicroKernel {
 
