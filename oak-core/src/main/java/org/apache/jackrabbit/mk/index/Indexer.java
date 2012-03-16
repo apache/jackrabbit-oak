@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.mk.index;
 
-import org.apache.jackrabbit.mk.MicroKernelImpl;
+import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.mk.json.JsopReader;
