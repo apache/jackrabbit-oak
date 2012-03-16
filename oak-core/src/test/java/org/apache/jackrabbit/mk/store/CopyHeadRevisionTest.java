@@ -21,8 +21,8 @@ import static org.junit.Assert.fail;
 
 import java.io.File;
 
-import org.apache.jackrabbit.mk.MicroKernelImpl;
-import org.apache.jackrabbit.mk.Repository;
+import org.apache.jackrabbit.mk.core.MicroKernelImpl;
+import org.apache.jackrabbit.mk.core.Repository;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.fs.FileUtils;
