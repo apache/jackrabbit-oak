@@ -23,7 +23,6 @@ import org.apache.jackrabbit.mk.json.JsonBuilder.JsonArrayBuilder;
 import org.apache.jackrabbit.mk.json.JsonBuilder.JsonObjectBuilder;
 import org.json.simple.parser.ContentHandler;
 import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -87,7 +86,7 @@ public class JsonBuilderTest {
     }
 
     @Test
-    public void fixedPoint() throws IOException, ParseException {
+    public void fixedPoint() {
         InputStream one = JsonBuilderTest.class.getResourceAsStream("test.json");
         assertNotNull(one);
         InputStreamReader isr = new InputStreamReader(one);
@@ -101,13 +100,17 @@ public class JsonBuilderTest {
 
     //------------------------------------------< private >---
 
-    private static String fix(Reader reader) throws IOException, ParseException {
+    private static String fix(Reader reader) {
         StringWriter sw = new StringWriter();
-        new JSONParser().parse(reader, new JsonHandler(JsonBuilder.create(sw)));
+        try {
+            new JSONParser().parse(reader, new JsonHandler(JsonBuilder.create(sw)));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
         return sw.toString();
     }
 
-    private static String fix(String string) throws IOException, ParseException {
+    private static String fix(String string) {
         return fix(new StringReader(string));
     }
 
@@ -120,47 +123,47 @@ public class JsonBuilderTest {
             this.objectBuilder = objectBuilder;
         }
 
-        public void startJSON() throws ParseException, IOException {
+        public void startJSON() {
             // ignore
         }
 
-        public void endJSON() throws ParseException, IOException {
+        public void endJSON() {
             // ignore
         }
 
-        public boolean startObject() throws ParseException, IOException {
+        public boolean startObject() throws IOException {
             if (currentKey != null) {
                 objectBuilder = objectBuilder.object(currentKey);
             }
             return true;
         }
 
-        public boolean endObject() throws ParseException, IOException {
+        public boolean endObject() throws IOException {
             objectBuilder = objectBuilder.build();
             return true;
         }
 
-        public boolean startObjectEntry(String key) throws ParseException, IOException {
+        public boolean startObjectEntry(String key) throws IOException {
             currentKey = key;
             return true;
         }
 
-        public boolean endObjectEntry() throws ParseException, IOException {
+        public boolean endObjectEntry() throws IOException {
             return true;
         }
 
-        public boolean startArray() throws ParseException, IOException {
+        public boolean startArray() throws IOException {
             arrayBuilder = objectBuilder.array(currentKey);
             return true;
         }
 
-        public boolean endArray() throws ParseException, IOException {
+        public boolean endArray() throws IOException {
             objectBuilder = arrayBuilder.build();
             arrayBuilder = null;
             return true;
         }
 
-        public boolean primitive(Object value) throws ParseException, IOException {
+        public boolean primitive(Object value) throws IOException {
             if (arrayBuilder == null) {
                 if (value == null) {
                     objectBuilder.nil(currentKey);
