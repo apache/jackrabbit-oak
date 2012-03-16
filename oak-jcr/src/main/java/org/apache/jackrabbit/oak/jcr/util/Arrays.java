@@ -76,6 +76,7 @@ public final class Arrays {
      * @param <T>
      * @return an array containing all elements of {@code array} except for {@code value}.
      */
+    @SuppressWarnings("unchecked")
     public static <T> T[] remove(T[] array, T value) {
         List<T> copy = new ArrayList<T>(array.length);
         for (T v : array) {
