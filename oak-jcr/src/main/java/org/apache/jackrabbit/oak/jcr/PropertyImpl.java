@@ -202,7 +202,7 @@ public class PropertyImpl extends ItemImpl implements Property {
                 if (valueType == PropertyType.UNDEFINED) {
                     valueType = values[i].getType();
                 } else if (valueType != values[i].getType()) {
-                    String msg = "Inhomogeneous type of values (" + LogUtil.safeGetJCRPath(this) + ")";
+                    String msg = "Inhomogeneous type of values (" + LogUtil.safeGetJCRPath(this) + ')';
                     log.debug(msg);
                     throw new ValueFormatException(msg);
                 }
