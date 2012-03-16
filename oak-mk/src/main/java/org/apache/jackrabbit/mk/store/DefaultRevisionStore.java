@@ -16,13 +16,6 @@
  */
 package org.apache.jackrabbit.mk.store;
 
-import java.io.Closeable;
-import java.io.File;
-import java.io.InputStream;
-import java.util.Collections;
-import java.util.Map;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-
 import org.apache.jackrabbit.mk.blobs.BlobStore;
 import org.apache.jackrabbit.mk.blobs.FileBlobStore;
 import org.apache.jackrabbit.mk.model.ChildNodeEntriesMap;
@@ -36,6 +29,13 @@ import org.apache.jackrabbit.mk.persistence.H2Persistence;
 import org.apache.jackrabbit.mk.persistence.Persistence;
 import org.apache.jackrabbit.mk.util.SimpleLRUCache;
 
+import java.io.Closeable;
+import java.io.File;
+import java.io.InputStream;
+import java.util.Collections;
+import java.util.Map;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
 /**
  * Default revision store implementation, passing calls to a <code>Persistence</code>
  * and a <code>BlobStore</code>, respectively and providing caching. 
@@ -46,7 +46,7 @@ public class DefaultRevisionStore implements RevisionStore, Closeable {
     public static final int DEFAULT_CACHE_SIZE = 10000;
 
     private boolean initialized;
-
+    private File homeDir;
     private Id head;
     private long headCounter;
     private final ReentrantReadWriteLock headLock = new ReentrantReadWriteLock();
@@ -60,6 +60,7 @@ public class DefaultRevisionStore implements RevisionStore, Closeable {
         if (initialized) {
             throw new IllegalStateException("already initialized");
         }
+        this.homeDir = homeDir;
 
         cache = Collections.synchronizedMap(SimpleLRUCache.<Id, Object>newInstance(determineInitialCacheSize()));
 
@@ -84,7 +85,7 @@ public class DefaultRevisionStore implements RevisionStore, Closeable {
             byte[] rawHead = longToBytes(++headCounter);
             head = new Id(rawHead);
             
-            Id rootNodeId = pm.writeNode(new MutableNode(this));
+            Id rootNodeId = pm.writeNode(new MutableNode(this, "/"));
             MutableCommit initialCommit = new MutableCommit();
             initialCommit.setCommitTS(System.currentTimeMillis());
             initialCommit.setRootNodeId(rootNodeId);
@@ -314,5 +315,10 @@ public class DefaultRevisionStore implements RevisionStore, Closeable {
         verifyInitialized();
 
         return blobStore.getBlobLength(blobId);
+    }
+    
+    @Override
+    public String toString() {
+        return homeDir.toString();
     }
 }

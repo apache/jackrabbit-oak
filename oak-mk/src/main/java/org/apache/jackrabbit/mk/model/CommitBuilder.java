@@ -59,12 +59,12 @@ public class CommitBuilder {
         if (modParent.getChildNodeEntry(nodeName) != null) {
             throw new Exception("there's already a child node with name '" + nodeName + "'");
         }
-        MutableNode newChild = new MutableNode(store);
+        String newPath = PathUtils.concat(parentNodePath, nodeName);
+        MutableNode newChild = new MutableNode(store, newPath);
         newChild.getProperties().putAll(properties);
 
         // id will be computed on commit
         modParent.add(new ChildNode(nodeName, null));
-        String newPath = PathUtils.concat(parentNodePath, nodeName);
         staged.put(newPath, newChild);
         // update change log
         changeLog.add(new AddNode(parentNodePath, nodeName, properties));
@@ -233,7 +233,7 @@ public class CommitBuilder {
         if (node == null) {
             MutableNode parent = staged.get("/");
             if (parent == null) {
-                parent = new MutableNode(store.getRootNode(baseRevId), store);
+                parent = new MutableNode(store.getRootNode(baseRevId), store, "/");
                 staged.put("/", parent);
             }
             node = parent;
@@ -248,7 +248,7 @@ public class CommitBuilder {
                     if (cne == null) {
                         throw new NotFoundException(nodePath);
                     }
-                    node = new MutableNode(store.getNode(cne.getId()), store);
+                    node = new MutableNode(store.getNode(cne.getId()), store, path);
                     staged.put(path, node);
                 }
                 parent = node;
@@ -339,7 +339,7 @@ public class CommitBuilder {
                 store, store.getNodeState(baseNode), store.getNodeState(ourNode));
 
         // merge non-conflicting changes
-        MutableNode mergedNode = new MutableNode(theirNode, store);
+        MutableNode mergedNode = new MutableNode(theirNode, store, path);
         staged.put(path, mergedNode);
 
         mergedNode.getProperties().putAll(ourChanges.getAddedProperties());
