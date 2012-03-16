@@ -20,9 +20,9 @@
 package org.apache.jackrabbit.oak.jcr.state;
 
 import org.apache.jackrabbit.oak.jcr.util.Iterators;
-import org.apache.jackrabbit.oak.model.AbstractNodeState;
-import org.apache.jackrabbit.oak.model.ChildNodeEntry;
-import org.apache.jackrabbit.oak.model.PropertyState;
+import org.apache.jackrabbit.mk.model.AbstractNodeState;
+import org.apache.jackrabbit.mk.model.ChildNodeEntry;
+import org.apache.jackrabbit.mk.model.PropertyState;
 
 import java.util.Iterator;
 

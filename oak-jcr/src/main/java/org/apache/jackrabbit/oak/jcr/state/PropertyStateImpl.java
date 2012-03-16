@@ -1,7 +1,7 @@
 package org.apache.jackrabbit.oak.jcr.state;
 
 import org.apache.jackrabbit.oak.jcr.json.JsonValue;
-import org.apache.jackrabbit.oak.model.AbstractPropertyState;
+import org.apache.jackrabbit.mk.model.AbstractPropertyState;
 
 public class PropertyStateImpl extends AbstractPropertyState {
     private final String name;
