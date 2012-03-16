@@ -26,12 +26,12 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Map;
 
-@SuppressWarnings("rawtypes")
 public class OakRepositoryFactory implements RepositoryFactory {
 
     private static final String REPOSITORY_URI =
             "org.apache.jackrabbit.repository.uri";
 
+    @SuppressWarnings({"rawtypes", "unchecked"})
     @Override
     public Repository getRepository(Map parameters)
             throws RepositoryException {
@@ -48,8 +48,7 @@ public class OakRepositoryFactory implements RepositoryFactory {
         return null;
     }
 
-    @SuppressWarnings("unchecked")
-    private static Repository getRepository(URI uri, Map parameters)
+    private static Repository getRepository(URI uri, Map<String, String> parameters)
             throws RepositoryException {
 
         // todo correctly interpret uri
