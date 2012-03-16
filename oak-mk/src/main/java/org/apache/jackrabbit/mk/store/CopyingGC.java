@@ -21,7 +21,7 @@ import java.io.InputStream;
 import java.util.Iterator;
 
 import org.apache.jackrabbit.mk.model.ChildNodeEntriesMap;
-import org.apache.jackrabbit.mk.model.ChildNodeEntry;
+import org.apache.jackrabbit.mk.model.ChildNode;
 import org.apache.jackrabbit.mk.model.Id;
 import org.apache.jackrabbit.mk.model.MutableCommit;
 import org.apache.jackrabbit.mk.model.MutableNode;
@@ -134,9 +134,9 @@ public class CopyingGC implements RevisionStore, Closeable {
         }
         rsTo.putNode(new MutableNode(node, rsTo));
 
-        Iterator<ChildNodeEntry> iter = node.getChildNodeEntries(0, -1);
+        Iterator<ChildNode> iter = node.getChildNodeEntries(0, -1);
         while (iter.hasNext()) {
-            ChildNodeEntry c = iter.next();
+            ChildNode c = iter.next();
             copy(rsFrom.getNode(c.getId()));
         }
     }

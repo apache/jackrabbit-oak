@@ -35,12 +35,12 @@ public class MutableNode extends AbstractNode implements PersistHook {
         super(other, provider);
     }
 
-    public ChildNodeEntry add(ChildNodeEntry newEntry) {
-        ChildNodeEntry existing = childEntries.add(newEntry);
+    public ChildNode add(ChildNode newEntry) {
+        ChildNode existing = childEntries.add(newEntry);
         if (childEntries.getCount() > ChildNodeEntries.CAPACITY_THRESHOLD
                 && childEntries.inlined()) {
             ChildNodeEntries entries = new ChildNodeEntriesTree(provider);
-            Iterator<ChildNodeEntry> iter = childEntries.getEntries(0, -1);
+            Iterator<ChildNode> iter = childEntries.getEntries(0, -1);
             while (iter.hasNext()) {
                 entries.add(iter.next());
             }
@@ -49,11 +49,11 @@ public class MutableNode extends AbstractNode implements PersistHook {
         return existing;
     }
     
-    public ChildNodeEntry remove(String name) {
+    public ChildNode remove(String name) {
         return childEntries.remove(name);
     }
 
-    public ChildNodeEntry rename(String oldName, String newName) {
+    public ChildNode rename(String oldName, String newName) {
         return childEntries.rename(oldName, newName);
     }
 

@@ -19,12 +19,12 @@ package org.apache.jackrabbit.mk.model;
 /**
  *
  */
-public class ChildNodeEntry {
+public class ChildNode {
 
     private final String name;
     private final Id id;
 
-    public ChildNodeEntry(String name, Id id) {
+    public ChildNode(String name, Id id) {
         this.name = name;
         this.id = id;
     }
@@ -42,8 +42,8 @@ public class ChildNodeEntry {
         if (this == obj) {
             return true;
         }
-        if (obj instanceof ChildNodeEntry) {
-            ChildNodeEntry other = (ChildNodeEntry) obj;
+        if (obj instanceof ChildNode) {
+            ChildNode other = (ChildNode) obj;
             return (name == null ? other.name == null : name.equals(other.name)
                     && id == null ? other.id == null : id.equals(other.id));
         }
