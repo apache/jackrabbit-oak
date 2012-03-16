@@ -152,6 +152,7 @@ public class SessionImpl extends AbstractSession {
 
 
     //------------------------------------------------------------< Session >---
+
     @Override
     public Repository getRepository() {
         return globalContext.getInstance(Repository.class);
@@ -177,6 +178,25 @@ public class SessionImpl extends AbstractSession {
         return workspace;
     }
 
+    /**
+     * @see javax.jcr.Session#impersonate(Credentials)
+     */
+    @Override
+    public Session impersonate(Credentials credentials) throws RepositoryException {
+        checkIsAlive();
+
+        // TODO
+        return null;
+    }
+
+    @Override
+    public ValueFactory getValueFactory() throws RepositoryException {
+        checkIsAlive();
+        return sessionContext.getValueFactory();
+    }
+
+    //------------------------------------------------------------< Reading >---
+
     @Override
     public Node getRootNode() throws RepositoryException {
         checkIsAlive();
@@ -199,6 +219,8 @@ public class SessionImpl extends AbstractSession {
         return null;
     }
 
+    //------------------------------------------------------------< Writing >---
+
     @Override
     public void move(String srcAbsPath, String destAbsPath) throws RepositoryException {
         checkIsAlive();
@@ -210,6 +232,8 @@ public class SessionImpl extends AbstractSession {
 
         sourceParent.move(sourcePath.getName(), Path.create(workspaceName, destAbsPath));
     }
+
+    //------------------------------------------------------------< state >---
 
     @Override
     public void save() throws RepositoryException {
@@ -231,45 +255,7 @@ public class SessionImpl extends AbstractSession {
         return transientSpace.isDirty();
     }
 
-    @Override
-    public ValueFactory getValueFactory() throws RepositoryException {
-        checkIsAlive();
-        return sessionContext.getValueFactory();
-    }
-
-    @Override
-    public boolean hasPermission(String absPath, String actions) throws RepositoryException {
-        checkIsAlive();
-
-        // TODO
-        return false;
-    }
-
-    /**
-     * @see javax.jcr.Session#checkPermission(String, String)
-     */
-    @Override
-    public void checkPermission(String absPath, String actions) throws AccessControlException, RepositoryException {
-        if (!hasPermission(absPath, actions)) {
-            throw new AccessControlException("Access control violation: path = " + absPath + ", actions = " + actions);
-        }
-    }
-
-    @Override
-    public boolean hasCapability(String methodName, Object target, Object[] arguments) throws RepositoryException {
-        checkIsAlive();
-
-        // TODO
-        return false;
-    }
-
-    @Override
-    public ContentHandler getImportContentHandler(String parentAbsPath, int uuidBehavior) throws RepositoryException {
-        checkIsAlive();
-
-        // TODO
-        return null;
-    }
+    //------------------------------------------------------------< Lifecycle >---
 
     @Override
     public boolean isLive() {
@@ -288,16 +274,17 @@ public class SessionImpl extends AbstractSession {
         // TODO
     }
 
-    /**
-     * @see javax.jcr.Session#impersonate(Credentials)
-     */
+    //------------------------------------------------------------< Import / Export >---
+
     @Override
-    public Session impersonate(Credentials credentials) throws RepositoryException {
+    public ContentHandler getImportContentHandler(String parentAbsPath, int uuidBehavior) throws RepositoryException {
         checkIsAlive();
 
         // TODO
         return null;
     }
+
+    //------------------------------------------------------------< Locking >---
 
     /**
      * @see javax.jcr.Session#addLockToken(String)
@@ -335,6 +322,34 @@ public class SessionImpl extends AbstractSession {
         }
     }
 
+    //------------------------------------------------------------< AccessControl >---
+
+    @Override
+    public boolean hasPermission(String absPath, String actions) throws RepositoryException {
+        checkIsAlive();
+
+        // TODO
+        return false;
+    }
+
+    /**
+     * @see javax.jcr.Session#checkPermission(String, String)
+     */
+    @Override
+    public void checkPermission(String absPath, String actions) throws AccessControlException, RepositoryException {
+        if (!hasPermission(absPath, actions)) {
+            throw new AccessControlException("Access control violation: path = " + absPath + ", actions = " + actions);
+        }
+    }
+
+    @Override
+    public boolean hasCapability(String methodName, Object target, Object[] arguments) throws RepositoryException {
+        checkIsAlive();
+
+        // TODO
+        return false;
+    }
+
     @Override
     public AccessControlManager getAccessControlManager() throws RepositoryException {
         checkIsAlive();
@@ -343,12 +358,15 @@ public class SessionImpl extends AbstractSession {
         return null;
     }
 
+    //------------------------------------------------------------< Retention >---
+
     @Override
     public RetentionManager getRetentionManager() throws RepositoryException {
         throw new UnsupportedRepositoryOperationException("Retention Management is not supported.");
     }
 
-    //------------------------------------------------------< check methods >---
+    //------------------------------------------------------------< check methods >---
+
     /**
      * Performs a sanity check on this session.
      *
@@ -459,7 +477,5 @@ public class SessionImpl extends AbstractSession {
             throw new InvalidItemStateException(msg);
         }
     }
-
-    //------------------------------------------------------------< private >---
 
 }
