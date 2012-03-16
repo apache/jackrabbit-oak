@@ -76,6 +76,7 @@ public class WorkspaceImpl implements Workspace {
         copy(getName(), srcAbsPath, destAbsPath);
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void copy(String srcWorkspace, String srcAbsPath, String destAbsPath) throws RepositoryException {
         getOakSession().checkSupportedOption(Repository.LEVEL_2_SUPPORTED);
@@ -85,6 +86,7 @@ public class WorkspaceImpl implements Workspace {
 
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void clone(String srcWorkspace, String srcAbsPath, String destAbsPath, boolean removeExisting) throws RepositoryException {
         getOakSession().checkSupportedOption(Repository.LEVEL_2_SUPPORTED);
@@ -94,6 +96,7 @@ public class WorkspaceImpl implements Workspace {
 
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void move(String srcAbsPath, String destAbsPath) throws RepositoryException {
         getOakSession().checkSupportedOption(Repository.LEVEL_2_SUPPORTED);
@@ -178,6 +181,7 @@ public class WorkspaceImpl implements Workspace {
         return workspaces.toArray(new String[workspaces.size()]);
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public ContentHandler getImportContentHandler(String parentAbsPath, int uuidBehavior) throws RepositoryException {
         getOakSession().checkSupportedOption(Repository.LEVEL_2_SUPPORTED);
@@ -187,6 +191,7 @@ public class WorkspaceImpl implements Workspace {
         return null;
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void importXML(String parentAbsPath, InputStream in, int uuidBehavior) throws IOException, RepositoryException {
         getOakSession().checkSupportedOption(Repository.LEVEL_2_SUPPORTED);
@@ -222,7 +227,7 @@ public class WorkspaceImpl implements Workspace {
     }
 
     //------------------------------------------------------------< private >---
-    
+
     private SessionImpl getOakSession() {
         return sessionContext.getSession();
     }
