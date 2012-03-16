@@ -17,11 +17,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import java.io.ByteArrayInputStream;
+import java.util.Arrays;
 import java.util.Random;
 import org.apache.jackrabbit.mk.MicroKernelFactory;
 import org.apache.jackrabbit.mk.MultiMkTestBase;
 import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.util.IOUtilsTest;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -136,7 +136,7 @@ public class VirtualRepositoryWrapperTest extends MultiMkTestBase {
         String id = mkVirtual.write(new ByteArrayInputStream(data));
         byte[] test = new byte[len];
         mkVirtual.read(id, 0, test, 0, len);
-        IOUtilsTest.assertEquals(data, test);
+        assertTrue(Arrays.equals(data, test));
         assertEquals(len, mkVirtual.getLength(id));
     }
 
