@@ -801,7 +801,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     }
 
     /**
-     * @see javax.jcr.Node#followLifecycleTransition() ()
+     * @see javax.jcr.Node#followLifecycleTransition(String)
      */
     @Override
     public void followLifecycleTransition(String transition) throws RepositoryException {
