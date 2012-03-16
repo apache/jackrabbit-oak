@@ -12,22 +12,22 @@ public PropertyStateImpl(String name, JsonValue value) {
     this.value = value;
 }
 
-public JsonValue getValue() {
-    return value;
-}
+    public JsonValue getValue() {
+        return value;
+    }
 
-@Override
-public String getName() {
-    return name;
-}
+    @Override
+    public String getName() {
+        return name;
+    }
 
-@Override
-public String getEncodedValue() {
-    return value.toJson();
-}
+    @Override
+    public String getEncodedValue() {
+        return value.toJson();
+    }
 
-@Override
-public String toString() {
-    return name + ':' + getEncodedValue();
-}
+    @Override
+    public String toString() {
+        return name + ':' + getEncodedValue();
+    }
 }

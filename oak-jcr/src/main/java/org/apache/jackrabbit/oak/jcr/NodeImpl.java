@@ -845,7 +845,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     private Iterator<Property> propertyIterator(Iterator<PropertyState> properties) {
         return Iterators.map(properties, new Function1<PropertyState, Property>() {
             @Override
-            public Property apply(PropertyState state) { // fixme don't cast
+            public Property apply(PropertyState state) { // fixme don't cast, see OAK-16
                 JsonValue value = ((PropertyStateImpl) state).getValue();
                 return PropertyImpl.create(sessionContext, NodeImpl.this.state, state.getName(), value);
             }

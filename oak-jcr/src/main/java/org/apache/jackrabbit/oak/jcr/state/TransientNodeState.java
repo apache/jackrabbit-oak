@@ -292,7 +292,7 @@ public class TransientNodeState {
             return null;
         }
         else {
-            return ((PropertyStateImpl) state).getValue();  // fixme: don't cast
+            return ((PropertyStateImpl) state).getValue();  // fixme: don't cast, see OAK-16
         }
     }
 
