@@ -74,8 +74,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class RepositoryTest {
-    private static final String NODE_STATE_CACHE_SIZE = "65536";
-    private static final String URL = "simple:target/repository-test/repository";
 
     private static final String TEST_NODE = "test_node";
     private static final String TEST_PATH = '/' + TEST_NODE;
@@ -265,7 +263,7 @@ public class RepositoryTest {
             add("mvProp");
             add("added");
         }};
-        
+
         Set<String> values = new HashSet<String>() {{
             add("added");
             add("1");
@@ -889,7 +887,7 @@ public class RepositoryTest {
             session2.logout();
         }
     }
-    
+
     @Test
     public void transientChanges() throws RepositoryException {
         Node parentNode = getNode(TEST_PATH);
@@ -903,7 +901,7 @@ public class RepositoryTest {
         assertFalse(node.hasNode("n"));
         node.addNode("n");
         assertTrue(node.hasNode("n"));
-        
+
         assertTrue(node.hasProperties());
         assertTrue(node.hasNodes());
     }
@@ -1043,7 +1041,7 @@ public class RepositoryTest {
             session3.logout();
         }
     }
-    
+
     @Test
     public void sessionSave() throws RepositoryException {
         Session session1 = getRepository().login();
@@ -1056,10 +1054,10 @@ public class RepositoryTest {
 
             Node node1 = session1.getNode("/node1");
             assertEquals("/node1", node1.getPath());
-            
+
             Node node2 = session1.getNode("/node1/node2");
             assertEquals("/node1/node2", node2.getPath());
-            
+
             Node node3 = session1.getNode("/node1/node3");
             assertEquals("/node1/node3", node3.getPath());
 
@@ -1135,7 +1133,7 @@ public class RepositoryTest {
             session.logout();
         }
     }
-    
+
     @Test
     public void sessionRefreshFalse() throws RepositoryException {
         Session session = getRepository().login();
@@ -1256,7 +1254,7 @@ public class RepositoryTest {
         assertTrue(node.hasNode("source"));
         assertTrue(node.hasNode("target/moved"));
     }
-    
+
     @Test
     @Ignore // todo implement node type support
     public void setPrimaryType() throws RepositoryException {
@@ -1299,7 +1297,7 @@ public class RepositoryTest {
         while (it.hasNext()) {
             System.out.println(it.nextNode().getPath());
         }
-        
+
     }
 
     @Test
@@ -1595,11 +1593,11 @@ public class RepositoryTest {
         disposer.get(10000, TimeUnit.MILLISECONDS);
         assertTrue(failedEvents.isEmpty());
     }
-    
+
     @Test
     public void liveNode() throws RepositoryException {
         Session session = getSession();
-        
+
         Node n1 = session.getNode(TEST_PATH);
         Node n2 = session.getNode(TEST_PATH);
         assertTrue(n1.isSame(n2));
