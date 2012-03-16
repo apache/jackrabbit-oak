@@ -16,25 +16,25 @@
  */
 package org.apache.jackrabbit.mk.store;
 
-import org.apache.jackrabbit.mk.blobs.BlobStore;
-import org.apache.jackrabbit.mk.blobs.FileBlobStore;
-import org.apache.jackrabbit.mk.model.ChildNodeEntriesMap;
-import org.apache.jackrabbit.mk.model.Id;
-import org.apache.jackrabbit.mk.model.MutableCommit;
-import org.apache.jackrabbit.mk.model.MutableNode;
-import org.apache.jackrabbit.mk.model.StoredCommit;
-import org.apache.jackrabbit.mk.model.StoredNode;
-import org.apache.jackrabbit.mk.persistence.H2Persistence;
-import org.apache.jackrabbit.mk.persistence.Persistence;
-import org.apache.jackrabbit.mk.util.SimpleLRUCache;
-import org.apache.jackrabbit.oak.model.NodeState;
-
 import java.io.Closeable;
 import java.io.File;
 import java.io.InputStream;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import org.apache.jackrabbit.mk.blobs.BlobStore;
+import org.apache.jackrabbit.mk.blobs.FileBlobStore;
+import org.apache.jackrabbit.mk.model.ChildNodeEntriesMap;
+import org.apache.jackrabbit.mk.model.Id;
+import org.apache.jackrabbit.mk.model.MutableCommit;
+import org.apache.jackrabbit.mk.model.MutableNode;
+import org.apache.jackrabbit.mk.model.NodeState;
+import org.apache.jackrabbit.mk.model.StoredCommit;
+import org.apache.jackrabbit.mk.model.StoredNode;
+import org.apache.jackrabbit.mk.persistence.H2Persistence;
+import org.apache.jackrabbit.mk.persistence.Persistence;
+import org.apache.jackrabbit.mk.util.SimpleLRUCache;
 
 /**
  * Default revision store implementation, passing calls to a <code>Persistence</code>

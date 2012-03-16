@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.model;
+package org.apache.jackrabbit.mk.model;
 
 /**
  * Builder interface for constructing new {@link NodeState node states}.

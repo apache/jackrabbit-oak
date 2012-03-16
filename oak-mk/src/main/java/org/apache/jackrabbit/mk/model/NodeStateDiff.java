@@ -19,10 +19,6 @@ package org.apache.jackrabbit.mk.model;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.jackrabbit.oak.model.ChildNodeEntry;
-import org.apache.jackrabbit.oak.model.NodeState;
-import org.apache.jackrabbit.oak.model.PropertyState;
-
 /**
  * Utility base class for comparing two {@link NodeState} instances. The
  * {@link #compare(NodeState, NodeState)} method will go through all

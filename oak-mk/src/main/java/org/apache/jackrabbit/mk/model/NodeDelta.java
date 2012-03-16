@@ -22,8 +22,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.jackrabbit.mk.store.RevisionProvider;
-import org.apache.jackrabbit.oak.model.NodeState;
-import org.apache.jackrabbit.oak.model.PropertyState;
 
 /**
  *

@@ -16,23 +16,6 @@
  */
 package org.apache.jackrabbit.mk.core;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.api.MicroKernelException;
-import org.apache.jackrabbit.mk.json.JsopBuilder;
-import org.apache.jackrabbit.mk.json.JsopTokenizer;
-import org.apache.jackrabbit.mk.model.Commit;
-import org.apache.jackrabbit.mk.model.CommitBuilder;
-import org.apache.jackrabbit.mk.model.Id;
-import org.apache.jackrabbit.mk.model.StoredCommit;
-import org.apache.jackrabbit.mk.model.TraversingNodeDiffHandler;
-import org.apache.jackrabbit.mk.store.NotFoundException;
-import org.apache.jackrabbit.mk.store.RevisionProvider;
-import org.apache.jackrabbit.mk.util.CommitGate;
-import org.apache.jackrabbit.mk.util.PathUtils;
-import org.apache.jackrabbit.mk.util.SimpleLRUCache;
-import org.apache.jackrabbit.oak.model.NodeState;
-import org.apache.jackrabbit.oak.model.PropertyState;
-
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -40,6 +23,24 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.mk.api.MicroKernelException;
+import org.apache.jackrabbit.mk.json.JsopBuilder;
+import org.apache.jackrabbit.mk.json.JsopTokenizer;
+import org.apache.jackrabbit.mk.model.ChildNodeEntry;
+import org.apache.jackrabbit.mk.model.Commit;
+import org.apache.jackrabbit.mk.model.CommitBuilder;
+import org.apache.jackrabbit.mk.model.Id;
+import org.apache.jackrabbit.mk.model.NodeState;
+import org.apache.jackrabbit.mk.model.PropertyState;
+import org.apache.jackrabbit.mk.model.StoredCommit;
+import org.apache.jackrabbit.mk.model.TraversingNodeDiffHandler;
+import org.apache.jackrabbit.mk.store.NotFoundException;
+import org.apache.jackrabbit.mk.store.RevisionProvider;
+import org.apache.jackrabbit.mk.util.CommitGate;
+import org.apache.jackrabbit.mk.util.PathUtils;
+import org.apache.jackrabbit.mk.util.SimpleLRUCache;
 
 /**
  *
@@ -616,9 +617,7 @@ public class MicroKernelImpl implements MicroKernel {
             builder.key(":childNodeCount").value(childCount);
         }
         if (childCount > 0 && depth >= 0) {
-            // TODO: Use an import once the conflict with .mk.model is resolved
-            for (org.apache.jackrabbit.oak.model.ChildNodeEntry entry
-                    : node.getChildNodeEntries(offset, count)) {
+            for (ChildNodeEntry entry : node.getChildNodeEntries(offset, count)) {
                 builder.key(entry.getName()).object();
                 if (depth > 0) {
                     toJson(builder, entry.getNode(), depth - 1, 0, -1, inclVirtualProps);
