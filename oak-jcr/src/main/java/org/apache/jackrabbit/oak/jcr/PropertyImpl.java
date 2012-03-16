@@ -194,14 +194,15 @@ public class PropertyImpl extends ItemImpl implements Property {
         // assert equal types for all values entries
         int valueType = PropertyType.UNDEFINED;
         if (values != null) {
-            for (int i = 0; i < values.length; i++) {
-                if (values[i] == null) {
+            for (Value value : values) {
+                if (value == null) {
                     // skip null values as those will be purged later
                     continue;
                 }
                 if (valueType == PropertyType.UNDEFINED) {
-                    valueType = values[i].getType();
-                } else if (valueType != values[i].getType()) {
+                    valueType = value.getType();
+                }
+                else if (valueType != value.getType()) {
                     String msg = "Inhomogeneous type of values (" + LogUtil.safeGetJCRPath(this) + ')';
                     log.debug(msg);
                     throw new ValueFormatException(msg);
