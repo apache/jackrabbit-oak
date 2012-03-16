@@ -30,10 +30,13 @@ import org.xml.sax.ContentHandler;
 
 import javax.jcr.Credentials;
 import javax.jcr.InvalidItemStateException;
+import javax.jcr.Item;
+import javax.jcr.ItemNotFoundException;
 import javax.jcr.LoginException;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
+import javax.jcr.Property;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -207,6 +210,48 @@ public class SessionImpl extends AbstractSession {
         checkIsAlive();
         return NodeImpl.create(sessionContext, Path.create(workspaceName));
     }
+
+    @Override
+    public Item getItem(String absPath) throws RepositoryException {
+        if (nodeExists(absPath)) {
+            return getNode(absPath);
+        }
+        else {
+            return getProperty(absPath);
+        }
+    }
+
+    @Override
+    public boolean itemExists(String absPath) throws RepositoryException {
+        return nodeExists(absPath) || propertyExists(absPath);
+    }
+
+    @Override
+    public Node getNode(String absPath) throws RepositoryException {
+        return NodeImpl.create(sessionContext, Path.create(workspaceName, absPath));
+    }
+
+    @Override
+    public boolean nodeExists(String absPath) throws RepositoryException {
+        Path path = Path.create(workspaceName, absPath);
+        return path.isRoot() || NodeImpl.exist(sessionContext, path);
+    }
+
+    @Override
+    public Property getProperty(String absPath) throws RepositoryException {
+        if ("/".equals(absPath)) {
+            throw new ItemNotFoundException(absPath);
+        }
+
+        return PropertyImpl.create(sessionContext, Path.create(workspaceName, absPath));
+    }
+
+    @Override
+    public boolean propertyExists(String absPath) throws RepositoryException {
+        Path path = Path.create(workspaceName, absPath);
+        return !path.isRoot() && PropertyImpl.exist(sessionContext, path);
+    }
+
 
     @Override
     public Node getNodeByUUID(String uuid) throws RepositoryException {
