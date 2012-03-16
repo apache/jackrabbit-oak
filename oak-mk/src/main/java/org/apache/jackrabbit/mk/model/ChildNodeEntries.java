@@ -35,19 +35,19 @@ public interface ChildNodeEntries extends Cloneable {
 
     int getCount();
 
-    ChildNodeEntry get(String name);
+    ChildNode get(String name);
 
     Iterator<String> getNames(int offset, int count);
 
-    Iterator<ChildNodeEntry> getEntries(int offset, int count);
+    Iterator<ChildNode> getEntries(int offset, int count);
 
     //------------------------------------------------------------< write ops >
 
-    ChildNodeEntry add(ChildNodeEntry entry);
+    ChildNode add(ChildNode entry);
 
-    ChildNodeEntry remove(String name);
+    ChildNode remove(String name);
 
-    ChildNodeEntry rename(String oldName, String newName);
+    ChildNode rename(String oldName, String newName);
 
     //-------------------------------------------------------------< diff ops >
 
@@ -58,7 +58,7 @@ public interface ChildNodeEntries extends Cloneable {
      * @param other
      * @return
      */
-    Iterator<ChildNodeEntry> getAdded(final ChildNodeEntries other);
+    Iterator<ChildNode> getAdded(final ChildNodeEntries other);
 
     /**
      * Returns those entries that exist in <code>this</code> but not in
@@ -67,7 +67,7 @@ public interface ChildNodeEntries extends Cloneable {
      * @param other
      * @return
      */
-    Iterator<ChildNodeEntry> getRemoved(final ChildNodeEntries other);
+    Iterator<ChildNode> getRemoved(final ChildNodeEntries other);
 
     /**
      * Returns <code>this</code> instance's entries that have namesakes in
@@ -76,7 +76,7 @@ public interface ChildNodeEntries extends Cloneable {
      * @param other
      * @return
      */
-    Iterator<ChildNodeEntry> getModified(final ChildNodeEntries other);
+    Iterator<ChildNode> getModified(final ChildNodeEntries other);
 
     //------------------------------------------------< serialization support >
 

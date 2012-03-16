@@ -29,12 +29,12 @@ public interface Node {
 
     Map<String, String> getProperties();
     
-    ChildNodeEntry getChildNodeEntry(String name);
+    ChildNode getChildNodeEntry(String name);
 
     Iterator<String> getChildNodeNames(int offset, int count);
     int getChildNodeCount();
     
-    Iterator<ChildNodeEntry> getChildNodeEntries(int offset, int count);
+    Iterator<ChildNode> getChildNodeEntries(int offset, int count);
 
     void serialize(Binding binding) throws Exception;
 }

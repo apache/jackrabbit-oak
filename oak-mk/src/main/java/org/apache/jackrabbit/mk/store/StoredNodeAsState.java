@@ -107,7 +107,7 @@ class StoredNodeAsState extends AbstractNodeState {
 
     @Override
     public NodeState getChildNode(String name) {
-        org.apache.jackrabbit.mk.model.ChildNodeEntry entry =
+        org.apache.jackrabbit.mk.model.ChildNode entry =
                 node.getChildNodeEntry(name);
         if (entry != null) {
             return getChildNodeEntry(entry).getNode();
@@ -131,7 +131,7 @@ class StoredNodeAsState extends AbstractNodeState {
         } else {
             return new Iterable<ChildNodeEntry>() {
                 public Iterator<ChildNodeEntry> iterator() {
-                    final Iterator<org.apache.jackrabbit.mk.model.ChildNodeEntry> iterator =
+                    final Iterator<org.apache.jackrabbit.mk.model.ChildNode> iterator =
                             node.getChildNodeEntries((int) offset, count);
                     return new Iterator<ChildNodeEntry>() {
                         public boolean hasNext() {
@@ -150,7 +150,7 @@ class StoredNodeAsState extends AbstractNodeState {
     }
 
     private ChildNodeEntry getChildNodeEntry(
-            final org.apache.jackrabbit.mk.model.ChildNodeEntry entry) {
+            final org.apache.jackrabbit.mk.model.ChildNode entry) {
         return new AbstractChildNodeEntry() {
             public String getName() {
                 return entry.getName();

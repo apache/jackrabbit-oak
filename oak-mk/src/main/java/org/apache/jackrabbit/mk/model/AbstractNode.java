@@ -53,8 +53,8 @@ public abstract class AbstractNode implements Node {
             } else {
                 this.childEntries = new ChildNodeEntriesTree(provider);
             }
-            for (Iterator<ChildNodeEntry> it = other.getChildNodeEntries(0, -1); it.hasNext(); ) {
-                ChildNodeEntry cne = it.next();
+            for (Iterator<ChildNode> it = other.getChildNodeEntries(0, -1); it.hasNext(); ) {
+                ChildNode cne = it.next();
                 this.childEntries.add(cne);
             }
         }
@@ -64,7 +64,7 @@ public abstract class AbstractNode implements Node {
         return properties;
     }
 
-    public ChildNodeEntry getChildNodeEntry(String name) {
+    public ChildNode getChildNodeEntry(String name) {
         return childEntries.get(name);
     }
 
@@ -76,7 +76,7 @@ public abstract class AbstractNode implements Node {
         return childEntries.getCount();
     }
 
-    public Iterator<ChildNodeEntry> getChildNodeEntries(int offset, int count) {
+    public Iterator<ChildNode> getChildNodeEntries(int offset, int count) {
         return childEntries.getEntries(offset, count);
     }
 

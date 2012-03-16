@@ -31,15 +31,15 @@ import java.util.Map;
  */
 public class ChildNodeEntriesMap implements ChildNodeEntries {
 
-    protected static final List<ChildNodeEntry> EMPTY = Collections.emptyList();
+    protected static final List<ChildNode> EMPTY = Collections.emptyList();
     
-    protected HashMap<String, ChildNodeEntry> entries = new HashMap<String, ChildNodeEntry>();
+    protected HashMap<String, ChildNode> entries = new HashMap<String, ChildNode>();
 
     ChildNodeEntriesMap() {
     }
 
     ChildNodeEntriesMap(ChildNodeEntriesMap other) {
-        entries = (HashMap<String, ChildNodeEntry>) other.entries.clone();
+        entries = (HashMap<String, ChildNode>) other.entries.clone();
     }
 
     //------------------------------------------------------------< overrides >
@@ -60,7 +60,7 @@ public class ChildNodeEntriesMap implements ChildNodeEntries {
         } catch (CloneNotSupportedException e) {
             // can't possibly get here
         }
-        clone.entries = (HashMap<String, ChildNodeEntry>) entries.clone();
+        clone.entries = (HashMap<String, ChildNode>) entries.clone();
         return clone;
     }
 
@@ -77,7 +77,7 @@ public class ChildNodeEntriesMap implements ChildNodeEntries {
     }
 
     @Override
-    public ChildNodeEntry get(String name) {
+    public ChildNode get(String name) {
         return entries.get(name);
     }
 
@@ -102,7 +102,7 @@ public class ChildNodeEntriesMap implements ChildNodeEntries {
     }
 
     @Override
-    public Iterator<ChildNodeEntry> getEntries(int offset, int count) {
+    public Iterator<ChildNode> getEntries(int offset, int count) {
         if (offset < 0 || count < -1) {
             throw new IllegalArgumentException();
         }
@@ -115,38 +115,38 @@ public class ChildNodeEntriesMap implements ChildNodeEntries {
             if (count == -1 || (offset + count) > entries.size()) {
                 count = entries.size() - offset;
             }
-            return new RangeIterator<ChildNodeEntry>(entries.values().iterator(), offset, count);
+            return new RangeIterator<ChildNode>(entries.values().iterator(), offset, count);
         }
     }
 
     //------------------------------------------------------------< write ops >
 
     @Override
-    public ChildNodeEntry add(ChildNodeEntry entry) {
+    public ChildNode add(ChildNode entry) {
         return entries.put(entry.getName(), entry);
     }
 
     @Override
-    public ChildNodeEntry remove(String name) {
+    public ChildNode remove(String name) {
         return entries.remove(name);
     }
 
     @Override
-    public ChildNodeEntry rename(String oldName, String newName) {
+    public ChildNode rename(String oldName, String newName) {
         if (oldName.equals(newName)) {
             return entries.get(oldName);
         }
         if (entries.get(oldName) == null) {
             return null;
         }
-        HashMap<String, ChildNodeEntry> clone =
-                (HashMap<String, ChildNodeEntry>) entries.clone();
+        HashMap<String, ChildNode> clone =
+                (HashMap<String, ChildNode>) entries.clone();
         entries.clear();
-        ChildNodeEntry oldCNE = null;
-        for (Map.Entry<String, ChildNodeEntry> entry : clone.entrySet()) {
+        ChildNode oldCNE = null;
+        for (Map.Entry<String, ChildNode> entry : clone.entrySet()) {
             if (entry.getKey().equals(oldName)) {
                 oldCNE = entry.getValue();
-                entries.put(newName, new ChildNodeEntry(newName, oldCNE.getId()));
+                entries.put(newName, new ChildNode(newName, oldCNE.getId()));
             } else {
                 entries.put(entry.getKey(), entry.getValue());
             }
@@ -157,42 +157,42 @@ public class ChildNodeEntriesMap implements ChildNodeEntries {
     //-------------------------------------------------------------< diff ops >
 
     @Override
-    public Iterator<ChildNodeEntry> getAdded(final ChildNodeEntries other) {
+    public Iterator<ChildNode> getAdded(final ChildNodeEntries other) {
         if (equals(other)) {
             return EMPTY.iterator();            
         }
         
-        return new AbstractFilteringIterator<ChildNodeEntry>(other.getEntries(0, -1)) {
+        return new AbstractFilteringIterator<ChildNode>(other.getEntries(0, -1)) {
             @Override
-            protected boolean include(ChildNodeEntry entry) {
+            protected boolean include(ChildNode entry) {
                 return !entries.containsKey(entry.getName());
             }
         };
     }
 
     @Override
-    public Iterator<ChildNodeEntry> getRemoved(final ChildNodeEntries other) {
+    public Iterator<ChildNode> getRemoved(final ChildNodeEntries other) {
         if (equals(other)) {
             return EMPTY.iterator();
         }
 
-        return new AbstractFilteringIterator<ChildNodeEntry>(entries.values().iterator()) {
+        return new AbstractFilteringIterator<ChildNode>(entries.values().iterator()) {
             @Override
-            protected boolean include(ChildNodeEntry entry) {
+            protected boolean include(ChildNode entry) {
                 return other.get(entry.getName()) == null;
             }
         };
     }
 
     @Override
-    public Iterator<ChildNodeEntry> getModified(final ChildNodeEntries other) {
+    public Iterator<ChildNode> getModified(final ChildNodeEntries other) {
         if (equals(other)) {
             return EMPTY.iterator();
         }
-        return new AbstractFilteringIterator<ChildNodeEntry>(getEntries(0, -1)) {
+        return new AbstractFilteringIterator<ChildNode>(getEntries(0, -1)) {
             @Override
-            protected boolean include(ChildNodeEntry entry) {
-                ChildNodeEntry namesake = other.get(entry.getName());
+            protected boolean include(ChildNode entry) {
+                ChildNode namesake = other.get(entry.getName());
                 return (namesake != null && !namesake.getId().equals(entry.getId()));
             }
         };
@@ -202,7 +202,7 @@ public class ChildNodeEntriesMap implements ChildNodeEntries {
 
     @Override
     public void serialize(Binding binding) throws Exception {
-        final Iterator<ChildNodeEntry> iter = getEntries(0, -1);
+        final Iterator<ChildNode> iter = getEntries(0, -1);
         binding.writeMap(":children", getCount(),
                 new Binding.BytesEntryIterator() {
                     @Override
@@ -211,7 +211,7 @@ public class ChildNodeEntriesMap implements ChildNodeEntries {
                     }
                     @Override
                     public Binding.BytesEntry next() {
-                        ChildNodeEntry cne = iter.next();
+                        ChildNode cne = iter.next();
                         return new Binding.BytesEntry(cne.getName(), cne.getId().getBytes());
                     }
                     @Override
@@ -226,7 +226,7 @@ public class ChildNodeEntriesMap implements ChildNodeEntries {
         Binding.BytesEntryIterator iter = binding.readBytesMap(":children");
         while (iter.hasNext()) {
             Binding.BytesEntry entry = iter.next();
-            newInstance.add(new ChildNodeEntry(entry.getKey(), new Id(entry.getValue())));
+            newInstance.add(new ChildNode(entry.getKey(), new Id(entry.getValue())));
         }
         return newInstance;
     }
