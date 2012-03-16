@@ -21,13 +21,13 @@ import java.io.File;
 
 import org.apache.jackrabbit.mk.model.CommitBuilder;
 import org.apache.jackrabbit.mk.model.Id;
+import org.apache.jackrabbit.mk.model.NodeState;
 import org.apache.jackrabbit.mk.model.StoredCommit;
 import org.apache.jackrabbit.mk.store.DefaultRevisionStore;
 import org.apache.jackrabbit.mk.store.NotFoundException;
 import org.apache.jackrabbit.mk.store.RevisionStore;
 import org.apache.jackrabbit.mk.util.IOUtils;
 import org.apache.jackrabbit.mk.util.PathUtils;
-import org.apache.jackrabbit.oak.model.NodeState;
 
 /**
  *

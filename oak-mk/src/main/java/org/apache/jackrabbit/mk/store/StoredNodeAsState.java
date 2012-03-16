@@ -16,18 +16,19 @@
  */
 package org.apache.jackrabbit.mk.store;
 
-import org.apache.jackrabbit.mk.model.Id;
-import org.apache.jackrabbit.mk.model.StoredNode;
-import org.apache.jackrabbit.oak.model.AbstractChildNodeEntry;
-import org.apache.jackrabbit.oak.model.AbstractNodeState;
-import org.apache.jackrabbit.oak.model.AbstractPropertyState;
-import org.apache.jackrabbit.oak.model.ChildNodeEntry;
-import org.apache.jackrabbit.oak.model.NodeState;
-import org.apache.jackrabbit.oak.model.PropertyState;
-
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
+
+import org.apache.jackrabbit.mk.model.AbstractChildNodeEntry;
+import org.apache.jackrabbit.mk.model.AbstractNodeState;
+import org.apache.jackrabbit.mk.model.AbstractPropertyState;
+import org.apache.jackrabbit.mk.model.ChildNode;
+import org.apache.jackrabbit.mk.model.ChildNodeEntry;
+import org.apache.jackrabbit.mk.model.Id;
+import org.apache.jackrabbit.mk.model.NodeState;
+import org.apache.jackrabbit.mk.model.PropertyState;
+import org.apache.jackrabbit.mk.model.StoredNode;
 
 class StoredNodeAsState extends AbstractNodeState {
 
@@ -107,8 +108,7 @@ class StoredNodeAsState extends AbstractNodeState {
 
     @Override
     public NodeState getChildNode(String name) {
-        org.apache.jackrabbit.mk.model.ChildNode entry =
-                node.getChildNodeEntry(name);
+        ChildNode entry = node.getChildNodeEntry(name);
         if (entry != null) {
             return getChildNodeEntry(entry).getNode();
         } else {
@@ -131,7 +131,7 @@ class StoredNodeAsState extends AbstractNodeState {
         } else {
             return new Iterable<ChildNodeEntry>() {
                 public Iterator<ChildNodeEntry> iterator() {
-                    final Iterator<org.apache.jackrabbit.mk.model.ChildNode> iterator =
+                    final Iterator<ChildNode> iterator =
                             node.getChildNodeEntries((int) offset, count);
                     return new Iterator<ChildNodeEntry>() {
                         public boolean hasNext() {

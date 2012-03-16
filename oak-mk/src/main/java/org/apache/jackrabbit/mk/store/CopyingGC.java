@@ -20,15 +20,15 @@ import java.io.Closeable;
 import java.io.InputStream;
 import java.util.Iterator;
 
-import org.apache.jackrabbit.mk.model.ChildNodeEntriesMap;
 import org.apache.jackrabbit.mk.model.ChildNode;
+import org.apache.jackrabbit.mk.model.ChildNodeEntriesMap;
 import org.apache.jackrabbit.mk.model.Id;
 import org.apache.jackrabbit.mk.model.MutableCommit;
 import org.apache.jackrabbit.mk.model.MutableNode;
+import org.apache.jackrabbit.mk.model.NodeState;
 import org.apache.jackrabbit.mk.model.StoredCommit;
 import org.apache.jackrabbit.mk.model.StoredNode;
 import org.apache.jackrabbit.mk.util.IOUtils;
-import org.apache.jackrabbit.oak.model.NodeState;
 
 /**
  * Revision garbage collector that copies reachable revisions from a "from" revision

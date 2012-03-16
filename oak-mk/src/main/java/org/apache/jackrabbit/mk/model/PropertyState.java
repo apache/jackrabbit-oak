@@ -14,21 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.model;
+package org.apache.jackrabbit.mk.model;
 
 /**
- * TODO: document
+ * Immutable property state. A property consists of a name and
+ * a JSON-encoded value.
  *
  * <h2>Equality and hash codes</h2>
  * <p>
- * Two child node entries are considered equal if and only if their names
- * and referenced node states match. The {@link Object#equals(Object)}
- * method needs to be implemented so that it complies with this definition.
- * And while child node entries are not meant for use as hash keys, the
+ * Two property states are considered equal if and only if their names and
+ * encoded values match. The {@link Object#equals(Object)} method needs to
+ * be implemented so that it complies with this definition. And while
+ * property states are not meant for use as hash keys, the
  * {@link Object#hashCode()} method should still be implemented according
  * to this equality contract.
  */
-public interface ChildNodeEntry {
+public interface PropertyState {
 
     /**
      * TODO: document
@@ -36,8 +37,8 @@ public interface ChildNodeEntry {
     String getName();
 
     /**
-     * TODO: document
+     * FIXME: replace with type-specific accessors
      */
-    NodeState getNode();
+    String getEncodedValue();
 
 }
