@@ -24,8 +24,8 @@ import org.apache.jackrabbit.mk.model.MutableCommit;
 import org.apache.jackrabbit.mk.model.MutableNode;
 import org.apache.jackrabbit.mk.model.StoredCommit;
 import org.apache.jackrabbit.mk.model.StoredNode;
-import org.apache.jackrabbit.mk.store.persistence.H2Persistence;
-import org.apache.jackrabbit.mk.store.persistence.Persistence;
+import org.apache.jackrabbit.mk.persistence.H2Persistence;
+import org.apache.jackrabbit.mk.persistence.Persistence;
 import org.apache.jackrabbit.mk.util.SimpleLRUCache;
 import org.apache.jackrabbit.oak.model.NodeState;
 
