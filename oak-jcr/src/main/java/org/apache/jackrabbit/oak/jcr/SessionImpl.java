@@ -446,7 +446,7 @@ public class SessionImpl extends AbstractSession {
     }
 
     /**
-     * Checks if this nodes session has pending changes.
+     * Checks if this session has pending changes.
      *
      * @throws InvalidItemStateException if this nodes session has pending changes
      * @throws RepositoryException
