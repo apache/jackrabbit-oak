@@ -22,7 +22,6 @@ import java.util.TreeMap;
 import junit.framework.Assert;
 import org.apache.jackrabbit.mk.MultiMkTestBase;
 import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.json.JsopTest;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -226,7 +225,7 @@ public class IndexTest extends MultiMkTestBase {
     static void print(MicroKernel mk, BTree tree) {
         String head = mk.getHeadRevision();
         String t = mk.getNodes("/index", head, 100, 0, -1, null);
-        log(JsopTest.format(t));
+        log(t);
         Cursor c = tree.findFirst("0");
         StringBuilder buff = new StringBuilder();
         while (c.hasNext()) {
