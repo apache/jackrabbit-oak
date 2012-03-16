@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.jcr;
 
+import org.apache.jackrabbit.commons.SimpleValueFactory;
 import org.apache.jackrabbit.mk.MicroKernelFactory;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.jcr.configuration.RepositoryConfiguration;
@@ -28,6 +29,7 @@ import org.apache.jackrabbit.oak.jcr.util.Unchecked;
 
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
+import javax.jcr.ValueFactory;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -46,6 +48,7 @@ public class GlobalContext {
     public GlobalContext(RepositoryConfiguration repositoryConfiguration) throws RepositoryException {
         put(RepositoryConfiguration.class, repositoryConfiguration);
         put(MicroKernel.class, MicroKernelFactory.getInstance(repositoryConfiguration.getMicrokernelUrl()));
+        put(ValueFactory.class, new SimpleValueFactory());
         put(Repository.class, new RepositoryImpl(this));
         put(Authenticator.class, AuthenticatorImpl.INSTANCE);
         put(SessionFactory.class, SessionImpl.FACTORY);
