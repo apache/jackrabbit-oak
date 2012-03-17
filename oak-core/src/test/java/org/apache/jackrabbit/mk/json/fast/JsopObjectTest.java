@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.mk.json.fast;
 
 import java.math.BigDecimal;
+
 import junit.framework.TestCase;
 
 /**
@@ -36,10 +37,14 @@ public class JsopObjectTest extends TestCase {
                 w.put("child" + j, data);
             }
             String jsop = w.toString();
+            long start = System.nanoTime();
             for (int j = 0; j < 10000; j++) {
                 JsopObject o = (JsopObject) Jsop.parse(jsop);
                 assertEquals(data, o.get("child99"));
             }
+            double seconds = (System.nanoTime() - start) / 1.0e9;
+            System.out.format(
+                    "%.2f seconds lengthIndex=%d%n", seconds, lengthIndex);
         }
     }
 
