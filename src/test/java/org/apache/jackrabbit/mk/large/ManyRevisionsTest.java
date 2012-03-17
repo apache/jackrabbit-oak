@@ -77,10 +77,15 @@ public class ManyRevisionsTest extends MultiMkTestBase {
     public void smallWrites() {
         String head = mk.getHeadRevision();
         log(url);
+        StopWatch watch = new StopWatch();
         int count = 1000;
         for (int i = 0; i < count; i++) {
             head = mk.commit("/", "^ \"x\": " + (i % 10), head, "");
+            if (i % 100 == 0 && watch.log()) {
+                log(watch.operationsPerSecond(i));
+            }
         }
+        log(watch.operationsPerSecond(count));
     }
 
     private void log(String s) {
