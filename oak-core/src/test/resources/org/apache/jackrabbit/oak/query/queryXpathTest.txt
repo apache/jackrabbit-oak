@@ -1,0 +1,106 @@
+# Syntax:
+# * lines starting with "#" are remarks.
+# * lines starting with "xpath" are xpath queries, followed by expected sql2 query
+# * use ascii character only
+
+xpath //*
+select * from [nt:base]
+
+xpath //element(*, my:type)
+select * from [my:type]
+
+xpath //element(*, my:type)/@my:title
+select [my:title] from [my:type]
+
+xpath //element(*, my:type)/(@my:title | @my:text)
+select [my:title], [my:text] from [my:type]
+
+xpath /jcr:root/nodes//element(*, my:type)
+select * from [my:type] where [jcr:path] like '/nodes' or [jcr:path] like '/nodes/%'
+
+xpath /jcr:root/some/element(nodes, my:type)
+select * from [my:type] where [jcr:path] like '/some/nodes'
+
+xpath /jcr:root/some/nodes/element(*, my:type)
+select * from [my:type] where [jcr:path] like '/some/nodes/%' and not [jcr:path] like '/some/nodes/%/'
+
+xpath /jcr:root/some/nodes//element(*, my:type)
+select * from [my:type] where [jcr:path] like '/some/nodes' or [jcr:path] like '/some/nodes/%'
+
+xpath //element(*, my:type)[@my:title = 'JSR 170']
+select * from [my:type] where [my:title] = 'JSR 170'
+
+xpath //element(*, my:type)[jcr:like(@title,'%Java%')]
+select * from [my:type] where [title] like '%Java%'
+
+xpath //element(*, my:type)[jcr:contains(., 'JSR 170')]
+select * from [my:type] where contains(*, 'JSR 170')
+
+xpath //element(*, my:type)[@my:title]
+select * from [my:type] where [my:title] is not null
+
+xpath //element(*, my:type)[not(@my:title)]
+select * from [my:type] where [my:title] is null
+
+xpath //element(*, my:type)[@my:value < -1.0]
+select * from [my:type] where [my:value] < -1.0
+
+xpath //element(*, my:type)[@my:value > +10123123123]
+select * from [my:type] where [my:value] > 10123123123
+
+xpath //element(*, my:type)[@my:value <= 10.3e-3]
+select * from [my:type] where [my:value] <= 10.3e-3
+
+xpath //element(*, my:type)[@my:value >= 0e3]
+select * from [my:type] where [my:value] >= 0e3
+
+xpath //element(*, my:type)[@my:value <> 'Joe''s Caffee']
+select * from [my:type] where [my:value] <> 'Joe''s Caffee'
+
+xpath //element(*, my:type)[(not(@my:title) and @my:subject)]
+select * from [my:type] where ([my:title] is null and [my:subject] is not null)
+
+xpath //element(*, my:type)[not(@my:title) or @my:subject]
+select * from [my:type] where [my:title] is null or [my:subject] is not null
+
+xpath //element(*, my:type)[not(@my:value > 0 and @my:value < 100)]
+select * from [my:type] where not([my:value] > 0 and [my:value] < 100)
+
+xpath //element(*, my:type) order by @jcr:lastModified
+select * from [my:type] order by [jcr:lastModified]
+
+xpath //element(*, my:type) order by @my:date descending, @my:title ascending
+select * from [my:type] order by [my:date] desc, [my:title]
+
+xpath //element(*, my:type)[jcr:contains(., 'jcr')] order by jcr:score() descending
+select * from [my:type] where contains(*, 'jcr') order by score() desc
+
+xpath //element(*, my:type)[jcr:contains(@my:title, 'jcr')] order by jcr:score() descending
+select * from [my:type] where contains([my:title], 'jcr') order by score() desc
+
+xpath invalid/query
+invalid: Query: invalid(*)/query; expected: <end>
+
+xpath //element(*, my:type)[@my:value = -'x']
+invalid: Query: //element(*, my:type)[@my:value = -'x'(*)]
+
+xpath //element(-1, my:type)
+invalid: Query: //element(-(*)1, my:type); expected: identifier
+
+xpath //element(*, my:type)[not @my:title]
+invalid: Query: //element(*, my:type)[not @(*)my:title]; expected: (
+
+xpath //element(*, my:type)[@my:value = +'x']
+invalid: Query: //element(*, my:type)[@my:value = +'x'(*)]
+
+xpath //element(*, my:type)[@my:value = ['x']
+invalid: Query: //element(*, my:type)[@my:value = [(*)'x']; expected: @, -, +
+
+xpath //element(*, my:type)[jcr:strike(@title,'%Java%')]
+invalid: Query: //element(*, my:type)[jcr:strike(@(*)title,'%Java%')]; expected: jcr:like | jcr:contains | jcr:score | jcr:deref
+
+xpath //element(*, my:type)[
+invalid: Query: //element(*, my:type)(*)[; expected: not, (, @, -, +
+
+xpath //element(*, my:type)[@my:value >= .]
+invalid: Query: //element(*, my:type)[@my:value >= .(*)]; expected: @, -, +
