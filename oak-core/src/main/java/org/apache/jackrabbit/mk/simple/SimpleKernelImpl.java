@@ -78,7 +78,7 @@ public class SimpleKernelImpl extends MicroKernelWrapperBase implements MicroKer
     private Server server;
     private boolean disposed;
 
-    private SimpleKernelImpl(String name) {
+    public SimpleKernelImpl(String name) {
         this.name = name;
         boolean startServer = false;
         if (name.startsWith("server:")) {
