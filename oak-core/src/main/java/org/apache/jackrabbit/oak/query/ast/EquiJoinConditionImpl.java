@@ -93,10 +93,10 @@ public class EquiJoinConditionImpl extends JoinConditionImpl {
         Value v1 = selector1.currentProperty(property1Name);
         Value v2 = selector2.currentProperty(property2Name);
         if (f.getSelector() == selector1 && v2 != null) {
-            f.restrictProperty(property1Name, Operator.EQ, v2);
+            f.restrictProperty(property1Name, Operator.EQUAL, v2);
         }
         if (f.getSelector() == selector2 && v1 != null) {
-            f.restrictProperty(property2Name, Operator.EQ, v1);
+            f.restrictProperty(property2Name, Operator.EQUAL, v1);
         }
     }
 

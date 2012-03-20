@@ -278,17 +278,17 @@ public class SQL2Parser {
     private ConstraintImpl parseCondition(DynamicOperandImpl left) throws ParseException {
         ConstraintImpl c;
         if (readIf("=")) {
-            c = factory.comparison(left, Operator.EQ, parseStaticOperand());
+            c = factory.comparison(left, Operator.EQUAL, parseStaticOperand());
         } else if (readIf("<>")) {
-            c = factory.comparison(left, Operator.NE, parseStaticOperand());
+            c = factory.comparison(left, Operator.NOT_EQUAL, parseStaticOperand());
         } else if (readIf("<")) {
-            c = factory.comparison(left, Operator.LT, parseStaticOperand());
+            c = factory.comparison(left, Operator.LESS_THAN, parseStaticOperand());
         } else if (readIf(">")) {
-            c = factory.comparison(left, Operator.GT, parseStaticOperand());
+            c = factory.comparison(left, Operator.GREATER_THAN, parseStaticOperand());
         } else if (readIf("<=")) {
-            c = factory.comparison(left, Operator.LE, parseStaticOperand());
+            c = factory.comparison(left, Operator.LESS_OR_EQUAL, parseStaticOperand());
         } else if (readIf(">=")) {
-            c = factory.comparison(left, Operator.GE, parseStaticOperand());
+            c = factory.comparison(left, Operator.GREATER_OR_EQUAL, parseStaticOperand());
         } else if (readIf("LIKE")) {
             c = factory.comparison(left, Operator.LIKE, parseStaticOperand());
         } else if (readIf("IS")) {

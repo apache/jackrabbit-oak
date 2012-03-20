@@ -110,24 +110,25 @@ public abstract class AstVisitorBase implements AstVisitor {
      * <li>Orderings</li>
      * <li>Columns</li>
      * </ul>
+     *
+     * @param query the query to visit
      */
-    public boolean visit(Query node) {
-        node.getSource().accept(this);
-        ConstraintImpl constraint = node.getConstraint();
+    public void visit(Query query) {
+        query.getSource().accept(this);
+        ConstraintImpl constraint = query.getConstraint();
         if (constraint != null) {
             constraint.accept(this);
         }
-        OrderingImpl[] orderings = node.getOrderings();
+        OrderingImpl[] orderings = query.getOrderings();
         if (orderings != null) {
             for (OrderingImpl ordering : orderings) {
                 ordering.accept(this);
             }
         }
-        ColumnImpl[] columns = node.getColumns();
+        ColumnImpl[] columns = query.getColumns();
         for (ColumnImpl column : columns) {
             column.accept(this);
         }
-        return true;
     }
 
     /**

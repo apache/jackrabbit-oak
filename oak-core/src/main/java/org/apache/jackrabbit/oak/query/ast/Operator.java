@@ -21,17 +21,17 @@ package org.apache.jackrabbit.oak.query.ast;
  */
 public enum Operator {
 
-    EQ("="),
+    EQUAL("="),
 
-    NE("<>"),
+    NOT_EQUAL("<>"),
 
-    GT(">"),
+    GREATER_THAN(">"),
 
-    GE(">="),
+    GREATER_OR_EQUAL(">="),
 
-    LT("<"),
+    LESS_THAN("<"),
 
-    LE("<="),
+    LESS_OR_EQUAL("<="),
 
     LIKE("like");
 

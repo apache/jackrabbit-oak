@@ -105,4 +105,9 @@ public class Value implements Comparable<Value> {
         return value.toString().compareTo(o.toString());
     }
 
+    @Override
+    public String toString() {
+        return getString();
+    }
+
 }

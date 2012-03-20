@@ -55,14 +55,14 @@ public class ComparisonImpl extends ConstraintImpl {
             return false;
         }
         switch (operator) {
-        case EQ:
+        case EQUAL:
             return v1.equals(v2);
-        case GE:
-        case GT:
-        case LE:
-        case LT:
+        case GREATER_OR_EQUAL:
+        case GREATER_THAN:
+        case LESS_OR_EQUAL:
+        case LESS_THAN:
             return operand1.currentValue() .equals(operand2.currentValue());
-        case NE:
+        case NOT_EQUAL:
             return !operand1.currentValue().equals(operand2.currentValue());
         case LIKE:
             return evaluateLike(v1, v2);
@@ -268,10 +268,10 @@ public class ComparisonImpl extends ConstraintImpl {
                 } else {
                     ValueFactory vf = query.getValueFactory();
                     if (lowerBound != null) {
-                        operand1.apply(f, Operator.GE, vf.createValue(lowerBound));
+                        operand1.apply(f, Operator.GREATER_OR_EQUAL, vf.createValue(lowerBound));
                     }
                     if (upperBound != null) {
-                        operand1.apply(f, Operator.LE, vf.createValue(upperBound));
+                        operand1.apply(f, Operator.LESS_OR_EQUAL, vf.createValue(upperBound));
                     }
                 }
             } else {
