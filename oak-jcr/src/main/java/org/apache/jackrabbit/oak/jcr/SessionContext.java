@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.oak.jcr.security.CredentialsInfo;
 import org.apache.jackrabbit.oak.jcr.state.NodeStateProvider;
 
 import javax.jcr.Session;
@@ -29,7 +28,6 @@ import javax.jcr.ValueFactory;
 public interface SessionContext<T extends Session> {
     T getSession();
     GlobalContext getGlobalContext();
-    CredentialsInfo getCredentialsInfo();
     String getWorkspaceName();
     MicroKernel getMicrokernel();
     String getRevision();

@@ -18,8 +18,6 @@ package org.apache.jackrabbit.oak.jcr;
 
 import org.apache.jackrabbit.commons.AbstractSession;
 import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.oak.jcr.security.Authenticator;
-import org.apache.jackrabbit.oak.jcr.security.CredentialsInfo;
 import org.apache.jackrabbit.oak.jcr.state.NodeStateProvider;
 import org.apache.jackrabbit.oak.jcr.state.TransientNodeState;
 import org.apache.jackrabbit.oak.jcr.state.TransientSpace;
@@ -62,7 +60,6 @@ public class SessionImpl extends AbstractSession {
     private final ValueFactory valueFactory;
 
     private final GlobalContext globalContext;
-    private final CredentialsInfo credentialsInfo;
     private final String workspaceName;
     private final MicroKernel microKernel;
     private final TransientSpace transientSpace;
@@ -76,8 +73,6 @@ public class SessionImpl extends AbstractSession {
         public Session createSession(GlobalContext globalContext, Credentials credentials,
                 String workspaceName) throws LoginException, NoSuchWorkspaceException {
 
-            Authenticator authenticator = globalContext.getInstance(Authenticator.class);
-            CredentialsInfo credentialsInfo = authenticator.authenticate(credentials);
             MicroKernel microKernel = globalContext.getInstance(MicroKernel.class);
             String revision = microKernel.getHeadRevision();
 
@@ -95,7 +90,7 @@ public class SessionImpl extends AbstractSession {
                 }
             }
 
-            return new SessionImpl(globalContext, credentialsInfo, workspaceName, revision);
+            return new SessionImpl(globalContext, workspaceName, revision);
         }
     };
 
@@ -111,11 +106,6 @@ public class SessionImpl extends AbstractSession {
         @Override
         public GlobalContext getGlobalContext() {
             return globalContext;
-        }
-
-        @Override
-        public CredentialsInfo getCredentialsInfo() {
-            return credentialsInfo;
         }
 
         @Override
@@ -144,11 +134,10 @@ public class SessionImpl extends AbstractSession {
         }
     };
 
-    private SessionImpl(GlobalContext globalContext, CredentialsInfo credentialsInfo, String workspaceName,
+    private SessionImpl(GlobalContext globalContext, String workspaceName,
             String revision) {
 
         this.globalContext = globalContext;
-        this.credentialsInfo = credentialsInfo;
         this.workspaceName = workspaceName;
         this.revision = revision;
 
@@ -171,17 +160,19 @@ public class SessionImpl extends AbstractSession {
 
     @Override
     public String getUserID() {
-        return credentialsInfo.getUserId();
+        // TODO
+        return null;
     }
 
     @Override
     public String[] getAttributeNames() {
-        return credentialsInfo.getAttributeNames();
-    }
+        // TODO
+        return null;    }
 
     @Override
     public Object getAttribute(String name) {
-        return credentialsInfo.getAttribute(name);
+        // TODO
+        return null;
     }
 
     @Override

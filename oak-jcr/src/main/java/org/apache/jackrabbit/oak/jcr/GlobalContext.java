@@ -22,8 +22,6 @@ package org.apache.jackrabbit.oak.jcr;
 import org.apache.jackrabbit.mk.MicroKernelFactory;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.jcr.configuration.RepositoryConfiguration;
-import org.apache.jackrabbit.oak.jcr.security.Authenticator;
-import org.apache.jackrabbit.oak.jcr.security.AuthenticatorImpl;
 import org.apache.jackrabbit.oak.jcr.util.Unchecked;
 
 import javax.jcr.Repository;
@@ -47,7 +45,6 @@ public class GlobalContext {
         put(RepositoryConfiguration.class, repositoryConfiguration);
         put(MicroKernel.class, MicroKernelFactory.getInstance(repositoryConfiguration.getMicrokernelUrl()));
         put(Repository.class, new RepositoryImpl(this));
-        put(Authenticator.class, AuthenticatorImpl.INSTANCE);
         put(SessionFactory.class, SessionImpl.FACTORY);
     }
 
