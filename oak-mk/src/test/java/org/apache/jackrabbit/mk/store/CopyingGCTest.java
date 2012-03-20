@@ -28,6 +28,7 @@ import org.apache.jackrabbit.mk.core.Repository;
 import org.apache.jackrabbit.mk.fs.FileUtils;
 import org.apache.jackrabbit.mk.json.fast.Jsop;
 import org.apache.jackrabbit.mk.json.fast.JsopArray;
+import org.apache.jackrabbit.mk.persistence.InMemPersistence;
 import org.apache.jackrabbit.mk.util.IOUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -61,10 +62,10 @@ public class CopyingGCTest {
     @Test
     public void concurrentGC() throws Exception {
         rsFrom = new DefaultRevisionStore();
-        rsFrom.initialize(new File("target/mk1"));
+        rsFrom.initialize(new File("target/mk1"), new InMemPersistence());
 
         rsTo = new DefaultRevisionStore(); 
-        rsTo.initialize(new File("target/mk2"));
+        rsTo.initialize(new File("target/mk2"), new InMemPersistence());
 
         final CopyingGC gc = new CopyingGC(rsFrom, rsTo);
         
@@ -100,10 +101,10 @@ public class CopyingGCTest {
         String[] revs = new String[5];
         
         rsFrom = new DefaultRevisionStore();
-        rsFrom.initialize(new File("target/mk1"));
+        rsFrom.initialize(new File("target/mk1"), new InMemPersistence());
 
         rsTo = new DefaultRevisionStore(); 
-        rsTo.initialize(new File("target/mk2"));
+        rsTo.initialize(new File("target/mk2"), new InMemPersistence());
 
         CopyingGC gc = new CopyingGC(rsFrom, rsTo);
         
