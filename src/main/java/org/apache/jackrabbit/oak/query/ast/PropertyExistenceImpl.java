@@ -67,7 +67,7 @@ public class PropertyExistenceImpl extends ConstraintImpl {
     @Override
     public void apply(Filter f) {
         if (f.getSelector() == selector) {
-            f.restrictProperty(propertyName, Operator.NE, (Value) null);
+            f.restrictProperty(propertyName, Operator.NOT_EQUAL, (Value) null);
         }
     }
 

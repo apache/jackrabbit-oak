@@ -94,9 +94,9 @@ public class Filter {
      */
     private String valuePrefix;
 
-    private HashMap<String, PropertyValueCondition> propertyRanges = new HashMap<String, PropertyValueCondition>();
+    private HashMap<String, PropertyRestriction> propertyRestrictions = new HashMap<String, PropertyRestriction>();
 
-    static class PropertyValueCondition {
+    static class PropertyRestriction {
 
         /**
          * The name of the property.
@@ -106,22 +106,28 @@ public class Filter {
         /**
          * The first value to read, or null to read from the beginning.
          */
-        public String first;
+        public Value first;
 
         /**
-         * Whether only values bigger than the first value should be returned.
+         * Whether values that match the first should be returned.
          */
-        public boolean firstExcluding;
+        public boolean firstIncluding;
 
         /**
          * The last value to read, or null to read until the end.
          */
-        public String last;
+        public Value last;
 
         /**
-         * Whether only values smaller than the last value should be returned.
+         * Whether values that match the last should be returned.
          */
-        public boolean lastExcluding;
+        public boolean lastIncluding;
+
+        @Override
+        public String toString() {
+            return (first == null ? "" : ((firstIncluding ? "[" : "(") + first)) + ".." +
+                    (last == null ? "" : last + (lastIncluding ? "]" : ")"));
+        }
 
     }
 
@@ -138,6 +144,8 @@ public class Filter {
 
     /**
      * Get the path.
+     *
+     * @return the path
      */
     public String getPath() {
         return path;
@@ -176,7 +184,7 @@ public class Filter {
     }
 
     public void setAlwaysFalse() {
-        propertyRanges.clear();
+        propertyRestrictions.clear();
         valuePrefix = "none";
         nodeType = "none";
         path = "none";
@@ -192,8 +200,14 @@ public class Filter {
         return selector;
     }
 
-    public void restrictProperty(String propertyName, Operator op, Value value) {
-        restrictProperty(propertyName, op, value == null ? null : value.getString());
+    /**
+     * Get the restriction for the given property, if any.
+     *
+     * @param propertyName the property name
+     * @return the restriction or null
+     */
+    public PropertyRestriction getPropertyRestriction(String propertyName) {
+        return propertyRestrictions.get(propertyName);
     }
 
     public boolean testPath(String path) {
@@ -214,53 +228,62 @@ public class Filter {
         }
     }
 
-    public void restrictProperty(String propertyName, Operator op, String value) {
-        PropertyValueCondition x = propertyRanges.get(propertyName);
+    public void restrictProperty(String propertyName, Operator op, Value value) {
+        PropertyRestriction x = propertyRestrictions.get(propertyName);
         if (x == null) {
-            x = new PropertyValueCondition();
+            x = new PropertyRestriction();
             x.propertyName = propertyName;
-            propertyRanges.put(propertyName, x);
+            propertyRestrictions.put(propertyName, x);
         }
-        String oldFirst = x.first, oldLast = x.last;
+        Value oldFirst = x.first, oldLast = x.last;
         switch (op) {
-        case EQ:
+        case EQUAL:
             x.first = maxValue(oldFirst, value);
-            x.firstExcluding = false;
+            x.firstIncluding = x.first == oldFirst ? x.firstIncluding : true;
             x.last = minValue(oldLast, value);
-            x.lastExcluding = false;
+            x.lastIncluding = x.last == oldLast ? x.lastIncluding : true;
             break;
-        case NE:
-            // not null
+        case NOT_EQUAL:
+            if (value != null) {
+                throw new IllegalArgumentException("NOT_EQUAL only supported for NOT_EQUAL NULL");
+            }
             break;
-        case GT:
+        case GREATER_THAN:
             x.first = maxValue(oldFirst, value);
-            x.firstExcluding = true;
+            x.firstIncluding = false;
             break;
-        case GE:
+        case GREATER_OR_EQUAL:
             x.first = maxValue(oldFirst, value);
-            x.firstExcluding = x.first == oldFirst ? x.firstExcluding : false;
+            x.firstIncluding = x.first == oldFirst ? x.firstIncluding : true;
             break;
-        case LT:
+        case LESS_THAN:
             x.last = minValue(oldLast, value);
-            x.lastExcluding = true;
+            x.lastIncluding = false;
             break;
-        case LE:
+        case LESS_OR_EQUAL:
             x.last = minValue(oldLast, value);
-            x.lastExcluding = x.last == oldLast ? x.lastExcluding : false;
+            x.lastIncluding = x.last == oldLast ? x.lastIncluding : true;
             break;
         case LIKE:
-            throw new RuntimeException("LIKE is not supported");
+            throw new IllegalArgumentException("LIKE is not supported");
+        }
+        if (x.first != null && x.last != null) {
+            if (x.first.compareTo(x.last) > 0) {
+                setAlwaysFalse();
+            } else if (x.first.compareTo(x.last) == 0 && (!x.firstIncluding || !x.lastIncluding)) {
+                setAlwaysFalse();
+            }
         }
     }
 
-    static String maxValue(String a, String b) {
+    static Value maxValue(Value a, Value b) {
         if (a == null) {
             return b;
         }
         return a.compareTo(b) < 0 ? b : a;
     }
 
-    static String minValue(String a, String b) {
+    static Value minValue(Value a, Value b) {
         if (a == null) {
             return b;
         }
