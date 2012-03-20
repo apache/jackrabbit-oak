@@ -23,6 +23,7 @@ import org.apache.jackrabbit.mk.model.CommitBuilder;
 import org.apache.jackrabbit.mk.model.Id;
 import org.apache.jackrabbit.mk.model.NodeState;
 import org.apache.jackrabbit.mk.model.StoredCommit;
+import org.apache.jackrabbit.mk.persistence.H2Persistence;
 import org.apache.jackrabbit.mk.store.DefaultRevisionStore;
 import org.apache.jackrabbit.mk.store.NotFoundException;
 import org.apache.jackrabbit.mk.store.RevisionStore;
@@ -51,7 +52,7 @@ public class Repository {
     public Repository(RevisionStore rs) {
         this.homeDir = null;
         this.rs = rs;
-        
+
         initialized = true;
     }
     
@@ -59,8 +60,10 @@ public class Repository {
         if (initialized) {
             return;
         }
+
         DefaultRevisionStore rs = new DefaultRevisionStore();
-        rs.initialize(new File(homeDir));
+        rs.initialize(new File(homeDir), new H2Persistence());
+
         this.rs = rs;
 
         initialized = true;

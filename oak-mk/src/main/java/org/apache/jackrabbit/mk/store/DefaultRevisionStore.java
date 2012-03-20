@@ -25,7 +25,6 @@ import org.apache.jackrabbit.mk.model.MutableNode;
 import org.apache.jackrabbit.mk.model.NodeState;
 import org.apache.jackrabbit.mk.model.StoredCommit;
 import org.apache.jackrabbit.mk.model.StoredNode;
-import org.apache.jackrabbit.mk.persistence.H2Persistence;
 import org.apache.jackrabbit.mk.persistence.Persistence;
 import org.apache.jackrabbit.mk.util.SimpleLRUCache;
 
@@ -56,7 +55,7 @@ public class DefaultRevisionStore implements RevisionStore, Closeable {
 
     private Map<Id, Object> cache;
 
-    public void initialize(File homeDir) throws Exception {
+    public void initialize(File homeDir, Persistence persistence) throws Exception {
         if (initialized) {
             throw new IllegalStateException("already initialized");
         }
@@ -64,11 +63,7 @@ public class DefaultRevisionStore implements RevisionStore, Closeable {
 
         cache = Collections.synchronizedMap(SimpleLRUCache.<Id, Object>newInstance(determineInitialCacheSize()));
 
-        pm = new H2Persistence();
-        //pm = new InMemPersistence();
-        //pm = new MongoPersistence();
-        //pm = new BDbPersistence();
-        //pm = new FSPersistence();
+        pm = persistence;
         pm.initialize(homeDir);
         
         if (pm instanceof BlobStore) {
