@@ -182,6 +182,7 @@ public class Query {
 
             @Override
             public boolean visit(SelectorImpl node) {
+                selectors.add(node);
                 node.setQuery(query);
                 return true;
             }
@@ -284,18 +285,15 @@ public class Query {
         for (int i = 0, size = orderings.length; i < size; i++) {
             Value a = orderValues[i];
             Value b = orderValues2[i];
-            // TODO order by: currently use string compare
-            String as = a == null ? null : a.getString();
-            String bs = b == null ? null : b.getString();
-            if (as == null || bs == null) {
-                if (as == bs) {
+            if (a == null || b == null) {
+                if (a == b) {
                     comp = 0;
-                } else if (as == null) {
+                } else if (a == null) {
                     // TODO order by: nulls first, last, low or high?
                     comp = 1;
                 }
             } else {
-                comp = as.compareTo(bs);
+                comp = a.compareTo(b);
             }
             if (comp != 0) {
                 if (orderings[i].isDescending()) {
@@ -428,6 +426,14 @@ public class Query {
 
     public long getOffset() {
         return offset;
+    }
+
+    public Value getBindVariableValue(String bindVariableName) {
+        Value v = bindVariableMap.get(bindVariableName);
+        if (v == null) {
+            throw new RuntimeException("Bind variable value not set: " + bindVariableName);
+        }
+        return v;
     }
 
 }

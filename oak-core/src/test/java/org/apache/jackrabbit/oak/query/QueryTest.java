@@ -13,6 +13,8 @@
  */
 package org.apache.jackrabbit.oak.query;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -20,6 +22,7 @@ import java.io.LineNumberReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.text.ParseException;
+import java.util.HashMap;
 import java.util.Iterator;
 import org.apache.jackrabbit.mk.MicroKernelFactory;
 import org.apache.jackrabbit.mk.api.MicroKernel;
@@ -56,6 +59,23 @@ public class QueryTest {
     @Test
     public void xpath() throws Exception {
         test("queryXpathTest.txt");
+    }
+
+    @Test
+    public void bindVariableTest() throws Exception {
+        head = mk.commit("/", "+ \"test\": { \"hello\": {\"id\": \"1\"}, \"world\": {\"id\": \"2\"}}", null, null);
+        HashMap<String, Value> sv = new HashMap<String, Value>();
+        ValueFactory vf = new ValueFactory();
+        sv.put("id", vf.createValue("1"));
+        Iterator<Row> result;
+        result = qe.executeQuery(QueryEngine.SQL2, "select * from [nt:base] where id = $id", sv);
+        assertTrue(result.hasNext());
+        assertEquals("/test/hello", result.next().getPath());
+
+        sv.put("id", vf.createValue("2"));
+        result = qe.executeQuery(QueryEngine.SQL2, "select * from [nt:base] where id = $id", sv);
+        assertTrue(result.hasNext());
+        assertEquals("/test/world", result.next().getPath());
     }
 
     private void test(String file) throws Exception {

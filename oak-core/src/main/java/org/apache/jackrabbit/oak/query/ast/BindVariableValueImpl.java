@@ -23,7 +23,6 @@ import org.apache.jackrabbit.oak.query.Value;
 public class BindVariableValueImpl extends StaticOperandImpl {
 
     private final String bindVariableName;
-    private Value value;
 
     public BindVariableValueImpl(String bindVariableName) {
         this.bindVariableName = bindVariableName;
@@ -45,7 +44,7 @@ public class BindVariableValueImpl extends StaticOperandImpl {
 
     @Override
     Value currentValue() {
-        return value;
+        return query.getBindVariableValue(bindVariableName);
     }
 
 }
