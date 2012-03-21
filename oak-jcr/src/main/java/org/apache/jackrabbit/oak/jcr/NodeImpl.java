@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.jcr;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
 import org.apache.jackrabbit.commons.iterator.PropertyIteratorAdapter;
-import org.apache.jackrabbit.oak.jcr.SessionImpl.Context;
+import org.apache.jackrabbit.mk.model.PropertyState;
 import org.apache.jackrabbit.oak.jcr.json.JsonValue;
 import org.apache.jackrabbit.oak.jcr.json.JsonValue.JsonAtom;
 import org.apache.jackrabbit.oak.jcr.state.PropertyStateImpl;
@@ -31,7 +31,6 @@ import org.apache.jackrabbit.oak.jcr.util.LogUtil;
 import org.apache.jackrabbit.oak.jcr.util.Path;
 import org.apache.jackrabbit.oak.jcr.util.Predicate;
 import org.apache.jackrabbit.oak.jcr.util.ValueConverter;
-import org.apache.jackrabbit.mk.model.PropertyState;
 import org.apache.jackrabbit.value.ValueHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,11 +73,11 @@ public class NodeImpl extends ItemImpl implements Node  {
 
     private final TransientNodeState state;
 
-    static boolean exist(Context sessionContext, Path path) {
+    static boolean exist(SessionContext<SessionImpl> sessionContext, Path path) {
         return getNodeState(sessionContext, path) != null;
     }
 
-    static Node create(Context sessionContext, Path path) throws PathNotFoundException {
+    static Node create(SessionContext<SessionImpl> sessionContext, Path path) throws PathNotFoundException {
         TransientNodeState state = getNodeState(sessionContext, path);
         if (state == null) {
             throw new PathNotFoundException(path.toJcrPath());
@@ -87,11 +86,11 @@ public class NodeImpl extends ItemImpl implements Node  {
         return new NodeImpl(sessionContext, state);
     }
 
-    static Node create(Context sessionContext, TransientNodeState state) {
+    static Node create(SessionContext<SessionImpl> sessionContext, TransientNodeState state) {
         return new NodeImpl(sessionContext, state);
     }
 
-    private NodeImpl(Context sessionContext, TransientNodeState state) {
+    private NodeImpl(SessionContext<SessionImpl> sessionContext, TransientNodeState state) {
         super(sessionContext);
         this.state = state;
     }

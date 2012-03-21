@@ -20,7 +20,8 @@
 package org.apache.jackrabbit.oak.jcr.state;
 
 import org.apache.commons.collections.map.LRUMap;
-import org.apache.jackrabbit.oak.jcr.SessionImpl.Context;
+import org.apache.jackrabbit.oak.jcr.SessionContext;
+import org.apache.jackrabbit.oak.jcr.SessionImpl;
 import org.apache.jackrabbit.oak.jcr.configuration.RepositoryConfiguration;
 import org.apache.jackrabbit.oak.jcr.state.ChangeTree.NodeDelta;
 import org.apache.jackrabbit.oak.jcr.util.Path;
@@ -29,11 +30,11 @@ import org.apache.jackrabbit.oak.jcr.util.Unchecked;
 import java.util.Map;
 
 public class NodeStateProvider {
-    private final Context sessionContext;
+    private final SessionContext<SessionImpl> sessionContext;
     private final TransientSpace transientSpace;
     private final Map<Path, TransientNodeState> cache;
 
-    public NodeStateProvider(Context sessionContext, TransientSpace transientSpace) {
+    public NodeStateProvider(SessionContext<SessionImpl> sessionContext, TransientSpace transientSpace) {
         this.sessionContext = sessionContext;
         this.transientSpace = transientSpace;
 
