@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.api;
 
 import java.io.InputStream;
-import java.math.BigDecimal;
 
 /**
  * An immutable, typed scalar value.
@@ -38,8 +37,6 @@ public interface Scalar {
     long getLong();
 
     double getDouble();
-
-    BigDecimal getDecimal();
 
     InputStream getInputStream();
 
