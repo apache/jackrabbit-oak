@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.oak.jcr.SessionImpl.Context;
 import org.apache.jackrabbit.oak.jcr.json.FullJsonParser;
 import org.apache.jackrabbit.oak.jcr.json.JsonValue;
 import org.apache.jackrabbit.oak.jcr.json.JsonValue.JsonObject;
@@ -54,9 +53,9 @@ public class WorkspaceImpl implements Workspace {
      */
     private static final Logger log = LoggerFactory.getLogger(WorkspaceImpl.class);
 
-    private final Context sessionContext;
+    private final SessionContext<SessionImpl> sessionContext;
 
-    public WorkspaceImpl(Context sessionContext) {
+    public WorkspaceImpl(SessionContext<SessionImpl> sessionContext) {
         this.sessionContext = sessionContext;
     }
 

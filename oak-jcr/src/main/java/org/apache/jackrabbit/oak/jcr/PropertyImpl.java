@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import org.apache.jackrabbit.oak.jcr.SessionImpl.Context;
 import org.apache.jackrabbit.oak.jcr.json.JsonValue;
 import org.apache.jackrabbit.oak.jcr.state.TransientNodeState;
 import org.apache.jackrabbit.oak.jcr.util.LogUtil;
@@ -56,7 +55,7 @@ public class PropertyImpl extends ItemImpl implements Property {
     private final String name;
     private final JsonValue value;
 
-    static Property create(Context sessionContext, Path path) throws PathNotFoundException,
+    static Property create(SessionContext<SessionImpl> sessionContext, Path path) throws PathNotFoundException,
             ItemNotFoundException {
 
         TransientNodeState parentState = getNodeState(sessionContext, path.getParent());
@@ -69,16 +68,16 @@ public class PropertyImpl extends ItemImpl implements Property {
         return new PropertyImpl(sessionContext, parentState, name, value);
     }
 
-    static Property create(Context sessionContext, TransientNodeState parentState, String name, JsonValue value) {
+    static Property create(SessionContext<SessionImpl> sessionContext, TransientNodeState parentState, String name, JsonValue value) {
         return new PropertyImpl(sessionContext, parentState, name, value);
     }
 
-    public static boolean exist(Context sessionContext, Path path) {
+    public static boolean exist(SessionContext<SessionImpl> sessionContext, Path path) {
         TransientNodeState parentState = getNodeState(sessionContext, path.getParent());
         return parentState != null && parentState.hasProperty(path.getName());
     }
 
-    private PropertyImpl(Context sessionContext, TransientNodeState parentState, String name, JsonValue value) {
+    private PropertyImpl(SessionContext<SessionImpl> sessionContext, TransientNodeState parentState, String name, JsonValue value) {
         super(sessionContext);
         this.parentState = parentState;
         this.name = name;

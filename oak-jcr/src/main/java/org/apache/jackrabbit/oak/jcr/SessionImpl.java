@@ -94,9 +94,7 @@ public class SessionImpl extends AbstractSession {
         }
     };
 
-    public interface Context extends SessionContext<SessionImpl>{}
-
-    private final Context sessionContext = new Context() {
+    private final SessionContext<SessionImpl> sessionContext = new SessionContext<SessionImpl>() {
 
         @Override
         public SessionImpl getSession() {

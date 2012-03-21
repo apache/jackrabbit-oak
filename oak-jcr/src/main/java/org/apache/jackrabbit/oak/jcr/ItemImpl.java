@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import org.apache.jackrabbit.oak.jcr.SessionImpl.Context;
 import org.apache.jackrabbit.oak.jcr.state.TransientNodeState;
 import org.apache.jackrabbit.oak.jcr.util.Path;
 import org.slf4j.Logger;
@@ -35,14 +34,14 @@ import javax.jcr.ValueFactory;
  */
 abstract class ItemImpl implements Item {
 
-    protected final Context sessionContext;
+    protected final SessionContext<SessionImpl> sessionContext;
 
     /**
      * logger instance
      */
     private static final Logger log = LoggerFactory.getLogger(ItemImpl.class);
 
-    protected ItemImpl(Context sessionContext) {
+    protected ItemImpl(SessionContext<SessionImpl> sessionContext) {
         this.sessionContext = sessionContext;
     }
 
@@ -133,7 +132,7 @@ abstract class ItemImpl implements Item {
         return sessionContext.getValueFactory();
     }
 
-    protected static TransientNodeState getNodeState(Context sessionContext, Path path) {
+    protected static TransientNodeState getNodeState(SessionContext<SessionImpl> sessionContext, Path path) {
         return sessionContext.getNodeStateProvider().getNodeState(path);
     }
 

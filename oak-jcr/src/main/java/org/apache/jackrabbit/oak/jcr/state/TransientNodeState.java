@@ -19,7 +19,11 @@
 
 package org.apache.jackrabbit.oak.jcr.state;
 
-import org.apache.jackrabbit.oak.jcr.SessionImpl.Context;
+import org.apache.jackrabbit.mk.model.ChildNodeEntry;
+import org.apache.jackrabbit.mk.model.NodeState;
+import org.apache.jackrabbit.mk.model.PropertyState;
+import org.apache.jackrabbit.oak.jcr.SessionContext;
+import org.apache.jackrabbit.oak.jcr.SessionImpl;
 import org.apache.jackrabbit.oak.jcr.json.JsonValue;
 import org.apache.jackrabbit.oak.jcr.json.JsonValue.JsonAtom;
 import org.apache.jackrabbit.oak.jcr.state.ChangeTree.NodeDelta;
@@ -28,9 +32,6 @@ import org.apache.jackrabbit.oak.jcr.util.Iterators;
 import org.apache.jackrabbit.oak.jcr.util.PagedIterator;
 import org.apache.jackrabbit.oak.jcr.util.Path;
 import org.apache.jackrabbit.oak.jcr.util.Predicate;
-import org.apache.jackrabbit.mk.model.ChildNodeEntry;
-import org.apache.jackrabbit.mk.model.NodeState;
-import org.apache.jackrabbit.mk.model.PropertyState;
 
 import javax.jcr.ItemExistsException;
 import javax.jcr.ItemNotFoundException;
@@ -47,13 +48,13 @@ import static org.apache.jackrabbit.oak.jcr.util.Iterators.toIterable;
 public class TransientNodeState {
     private static final int BATCH_SIZE = 256;
 
-    private final Context sessionContext;
+    private final SessionContext<SessionImpl> sessionContext;
 
     private String revision;
     private NodeState persistentNodeState;
     private NodeDelta nodeDelta;
 
-    TransientNodeState(Context sessionContext, NodeDelta nodeDelta) {
+    TransientNodeState(SessionContext<SessionImpl> sessionContext, NodeDelta nodeDelta) {
         this.sessionContext = sessionContext;
         this.nodeDelta = nodeDelta;
     }
