@@ -16,9 +16,12 @@
  */
 package org.apache.jackrabbit.oak.query;
 
+import java.io.InputStream;
 import java.math.BigDecimal;
 
-public class Value implements Comparable<Value> {
+import org.apache.jackrabbit.oak.api.Scalar;
+
+public class Value implements Scalar, Comparable<Value> {
 
     private final Object value;
     private final int type;
@@ -59,6 +62,10 @@ public class Value implements Comparable<Value> {
     public String getBinary() {
         // TODO convert?
         return value.toString();
+    }
+
+    public InputStream getInputStream() {
+        throw new UnsupportedOperationException(); // TODO
     }
 
     public String getDate() {
