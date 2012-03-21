@@ -49,6 +49,7 @@ public class LengthImpl extends DynamicOperandImpl {
         if (v == null) {
             return null;
         }
+        // TODO LENGTH(..) is the length of the string representation?
         String value = v.getString();
         return query.getValueFactory().createValue(value.length());
     }

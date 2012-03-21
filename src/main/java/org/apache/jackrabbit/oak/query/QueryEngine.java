@@ -40,7 +40,7 @@ public class QueryEngine {
         return new QueryEngine(mk);
     }
 
-    public Iterator<Row> executeQuery(String language, String query, Map<String, String> bindings) throws ParseException {
+    public Iterator<Row> executeQuery(String language, String query, Map<String, Value> bindings) throws ParseException {
         Query q;
         if (SQL2.equals(language)) {
             q = parserSQL2.parse(query);
@@ -53,8 +53,8 @@ public class QueryEngine {
         }
         q.setMicroKernel(mk);
         if (bindings != null) {
-            for (Entry<String, String> e : bindings.entrySet()) {
-                q.bindValue(e.getKey(), vf.createValue(e.getValue()));
+            for (Entry<String, Value> e : bindings.entrySet()) {
+                q.bindValue(e.getKey(), e.getValue());
             }
         }
         return q.executeQuery(mk.getHeadRevision());

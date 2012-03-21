@@ -34,7 +34,7 @@ public class Row implements Comparable<Row> {
     }
 
     public String getPath() {
-        if (paths.length > 0) {
+        if (paths.length > 1) {
             throw new IllegalArgumentException("More than one selector");
         }
         return paths[0];
