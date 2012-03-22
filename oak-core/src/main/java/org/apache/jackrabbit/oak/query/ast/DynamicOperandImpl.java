@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import org.apache.jackrabbit.oak.query.Value;
+import org.apache.jackrabbit.oak.query.ScalarImpl;
 import org.apache.jackrabbit.oak.query.index.Filter;
 
 public abstract class DynamicOperandImpl extends AstElement {
 
-    public abstract Value currentValue();
+    public abstract ScalarImpl currentValue();
 
-    public abstract void apply(Filter f, Operator operator, Value v);
+    public abstract void apply(Filter f, Operator operator, ScalarImpl v);
 
 }

@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import org.apache.jackrabbit.oak.query.Value;
+import org.apache.jackrabbit.oak.query.ScalarImpl;
 import org.apache.jackrabbit.oak.query.index.Filter;
 
 public class PropertyValueImpl extends DynamicOperandImpl {
@@ -52,7 +52,7 @@ public class PropertyValueImpl extends DynamicOperandImpl {
     }
 
     @Override
-    public Value currentValue() {
+    public ScalarImpl currentValue() {
         return selector.currentProperty(propertyName);
     }
 
@@ -64,7 +64,7 @@ public class PropertyValueImpl extends DynamicOperandImpl {
     }
 
     @Override
-    public void apply(Filter f, Operator operator, Value v) {
+    public void apply(Filter f, Operator operator, ScalarImpl v) {
         if (f.getSelector() == selector) {
             f.restrictProperty(propertyName, operator, v);
         }

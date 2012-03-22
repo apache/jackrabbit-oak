@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import org.apache.jackrabbit.oak.query.Value;
+import org.apache.jackrabbit.oak.query.ScalarImpl;
 import org.apache.jackrabbit.oak.query.index.Filter;
 
 public class FullTextSearchScoreImpl extends DynamicOperandImpl {
@@ -44,13 +44,13 @@ public class FullTextSearchScoreImpl extends DynamicOperandImpl {
     }
 
     @Override
-    public Value currentValue() {
+    public ScalarImpl currentValue() {
         // TODO support evaluating fulltext conditions (score)
         return null;
     }
 
     @Override
-    public void apply(Filter f, Operator operator, Value v) {
+    public void apply(Filter f, Operator operator, ScalarImpl v) {
         // TODO support fulltext index conditions (score)
     }
 

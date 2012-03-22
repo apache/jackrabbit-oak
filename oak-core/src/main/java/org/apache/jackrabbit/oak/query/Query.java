@@ -18,6 +18,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.query.ast.AstVisitorBase;
 import org.apache.jackrabbit.oak.query.ast.BindVariableValueImpl;
@@ -52,17 +53,17 @@ public class Query {
 
     final SourceImpl source;
     final ConstraintImpl constraint;
-    final HashMap<String, Value> bindVariableMap = new HashMap<String, Value>();
+    final HashMap<String, ScalarImpl> bindVariableMap = new HashMap<String, ScalarImpl>();
     final ArrayList<SelectorImpl> selectors = new ArrayList<SelectorImpl>();
 
     private MicroKernel mk;
     private final OrderingImpl[] orderings;
-    private final ColumnImpl[] columns;
+    private ColumnImpl[] columns;
     private boolean explain;
     private long limit;
     private long offset;
     private boolean prepared;
-    private final ValueFactory valueFactory = new ValueFactory();
+    private final ScalarFactory valueFactory = new ScalarFactory();
 
     Query(SourceImpl source, ConstraintImpl constraint, OrderingImpl[] orderings,
             ColumnImpl[] columns) {
@@ -235,7 +236,7 @@ public class Query {
         return source;
     }
 
-    void bindValue(String varName, Value value) {
+    void bindValue(String varName, ScalarImpl value) {
         bindVariableMap.put(varName, value);
     }
 
@@ -251,7 +252,7 @@ public class Query {
         this.offset = offset;
     }
 
-    public ValueFactory getValueFactory() {
+    public ScalarFactory getValueFactory() {
         return valueFactory;
     }
 
@@ -263,7 +264,8 @@ public class Query {
         prepare();
         if (explain) {
             String plan = source.getPlan();
-            Row r = new Row(this, null, new Value[] { valueFactory.createValue(plan) }, null);
+            columns = new ColumnImpl[] { new ColumnImpl("explain", "plan", "plan")};
+            Row r = new Row(this, new String[0], new ScalarImpl[] { valueFactory.createValue(plan) }, null);
             return Arrays.asList(r).iterator();
         }
         RowIterator it = new RowIterator(revisionId);
@@ -280,11 +282,11 @@ public class Query {
         return list.iterator();
     }
 
-    public int compareRows(Value[] orderValues, Value[] orderValues2) {
+    public int compareRows(ScalarImpl[] orderValues, ScalarImpl[] orderValues2) {
         int comp = 0;
         for (int i = 0, size = orderings.length; i < size; i++) {
-            Value a = orderValues[i];
-            Value b = orderValues2[i];
+            ScalarImpl a = orderValues[i];
+            ScalarImpl b = orderValues2[i];
             if (a == null || b == null) {
                 if (a == b) {
                     comp = 0;
@@ -383,17 +385,17 @@ public class Query {
             paths[i] = s.currentPath();
         }
         int columnCount = columns.length;
-        Value[] values = new Value[columnCount];
+        ScalarImpl[] values = new ScalarImpl[columnCount];
         for (int i = 0; i < columnCount; i++) {
             ColumnImpl c = columns[i];
             values[i] = c.currentValue();
         }
-        Value[] orderValues;
+        ScalarImpl[] orderValues;
         if (orderings == null) {
             orderValues = null;
         } else {
             int size = orderings.length;
-            orderValues = new Value[size];
+            orderValues = new ScalarImpl[size];
             for (int i = 0; i < size; i++) {
                 orderValues[i] = orderings[i].getOperand().currentValue();
             }
@@ -428,12 +430,16 @@ public class Query {
         return offset;
     }
 
-    public Value getBindVariableValue(String bindVariableName) {
-        Value v = bindVariableMap.get(bindVariableName);
+    public ScalarImpl getBindVariableValue(String bindVariableName) {
+        ScalarImpl v = bindVariableMap.get(bindVariableName);
         if (v == null) {
             throw new RuntimeException("Bind variable value not set: " + bindVariableName);
         }
         return v;
+    }
+
+    public List<SelectorImpl> getSelectors() {
+        return Collections.unmodifiableList(selectors);
     }
 
 }
