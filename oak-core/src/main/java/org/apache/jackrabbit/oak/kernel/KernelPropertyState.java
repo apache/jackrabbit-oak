@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.kernel;
 
 import org.apache.jackrabbit.mk.model.AbstractPropertyState;
 
-class KernelPropertyState extends AbstractPropertyState {
+public class KernelPropertyState extends AbstractPropertyState { // fixme make package private
 
     private final String name;
 

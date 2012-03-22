@@ -20,9 +20,11 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
 import org.apache.jackrabbit.commons.iterator.PropertyIteratorAdapter;
 import org.apache.jackrabbit.mk.model.PropertyState;
+import org.apache.jackrabbit.oak.jcr.json.FullJsonParser;
 import org.apache.jackrabbit.oak.jcr.json.JsonValue;
 import org.apache.jackrabbit.oak.jcr.json.JsonValue.JsonAtom;
-import org.apache.jackrabbit.oak.jcr.state.PropertyStateImpl;
+import org.apache.jackrabbit.oak.jcr.json.JsonValue.Type;
+import org.apache.jackrabbit.oak.jcr.json.UnescapingJsonTokenizer;
 import org.apache.jackrabbit.oak.jcr.state.TransientNodeState;
 import org.apache.jackrabbit.oak.jcr.util.Function1;
 import org.apache.jackrabbit.oak.jcr.util.ItemNameMatcher;
@@ -850,8 +852,26 @@ public class NodeImpl extends ItemImpl implements Node  {
     private Iterator<Property> propertyIterator(Iterator<PropertyState> properties) {
         return Iterators.map(properties, new Function1<PropertyState, Property>() {
             @Override
-            public Property apply(PropertyState state) { // fixme don't cast, see OAK-16
-                JsonValue value = ((PropertyStateImpl) state).getValue();
+            public Property apply(PropertyState state) {
+                // fixme: use Scalar class
+                JsonValue value;
+                String v = state.getEncodedValue();
+                if (v.startsWith("[")) {
+                    value = FullJsonParser.parseArray(new UnescapingJsonTokenizer(v));
+                }
+                else if (v.startsWith("\"")) {
+                    value =  new JsonAtom(v.substring(1, v.length() - 1), Type.STRING);
+                }
+                else if ("true".equalsIgnoreCase(v)) {
+                    value = JsonAtom.TRUE;
+                }
+                else if ("false".equalsIgnoreCase(v)) {
+                    value = JsonAtom.FALSE;
+                }
+                else {
+                    value = new JsonAtom(v, Type.NUMBER);
+                }
+
                 return PropertyImpl.create(sessionContext, NodeImpl.this.state, state.getName(), value);
             }
         });
