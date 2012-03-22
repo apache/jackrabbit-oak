@@ -22,6 +22,13 @@ import java.io.InputStream;
  * An immutable, typed scalar value.
  */
 public interface Scalar {
+    int BOOLEAN = 0;
+    int LONG = 1;
+    int DOUBLE = 2;
+    int BINARY = 3;
+    int STRING = 4;
+    
+    String[] typeNames = {"boolean", "long", "double", "binary", "string"};
 
     /**
      * Returns the value type.
