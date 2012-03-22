@@ -64,8 +64,8 @@ public class QueryTest {
     @Test
     public void bindVariableTest() throws Exception {
         head = mk.commit("/", "+ \"test\": { \"hello\": {\"id\": \"1\"}, \"world\": {\"id\": \"2\"}}", null, null);
-        HashMap<String, Value> sv = new HashMap<String, Value>();
-        ValueFactory vf = new ValueFactory();
+        HashMap<String, ScalarImpl> sv = new HashMap<String, ScalarImpl>();
+        ScalarFactory vf = new ScalarFactory();
         sv.put("id", vf.createValue("1"));
         Iterator<Row> result;
         result = qe.executeQuery(QueryEngine.SQL2, "select * from [nt:base] where id = $id", sv);
@@ -76,6 +76,12 @@ public class QueryTest {
         result = qe.executeQuery(QueryEngine.SQL2, "select * from [nt:base] where id = $id", sv);
         assertTrue(result.hasNext());
         assertEquals("/test/world", result.next().getPath());
+
+
+        qe.executeQuery(QueryEngine.SQL2, "explain select * from [nt:base] where id = 1 order by id", null);
+
+
+
     }
 
     private void test(String file) throws Exception {
@@ -164,12 +170,12 @@ public class QueryTest {
 
     private String readRow(String query, Row row) {
         StringBuilder buff = new StringBuilder();
-        Value[] values = row.getValues();
+        ScalarImpl[] values = row.getValues();
         for (int i = 0; i < values.length; i++) {
             if (i > 0) {
                 buff.append(", ");
             }
-            Value v = values[i];
+            ScalarImpl v = values[i];
             buff.append(v == null ? "null" : v.getString());
         }
         return buff.toString();

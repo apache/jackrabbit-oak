@@ -8,6 +8,8 @@
 
 + "test": { "jcr:resource": {}, "resource": { "x" : {}}}
 
+select * from [nt:base] where id = -1
+
 explain select * from [nt:base] as b where ischildnode(b, '/test')
 nt:base AS b /* traverse "/test/*" */
 
