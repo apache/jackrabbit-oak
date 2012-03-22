@@ -28,7 +28,6 @@ import org.apache.jackrabbit.oak.jcr.util.Function1;
 import org.apache.jackrabbit.oak.jcr.util.Iterators;
 import org.apache.jackrabbit.oak.jcr.util.Path;
 import org.apache.jackrabbit.oak.jcr.util.Predicate;
-import org.apache.jackrabbit.oak.kernel.KernelPropertyState;
 
 import javax.jcr.ItemExistsException;
 import javax.jcr.ItemNotFoundException;
@@ -273,7 +272,17 @@ public class ChangeTree {
                     new Function1<Entry<String, JsonValue>, PropertyState>() {
                         @Override
                         public PropertyState apply(final Entry<String, JsonValue> entry) {
-                            return new KernelPropertyState(entry.getKey(), entry.getValue().toJson());
+                            return new PropertyState() {
+                                @Override
+                                public String getName() {
+                                    return entry.getKey();
+                                }
+
+                                @Override
+                                public String getEncodedValue() {
+                                    return entry.getValue().toJson();
+                                }
+                            };
                         }
                     });
         }

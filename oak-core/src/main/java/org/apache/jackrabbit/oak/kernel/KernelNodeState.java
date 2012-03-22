@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
+import org.apache.jackrabbit.ScalarImpl;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.json.JsopReader;
@@ -26,6 +27,7 @@ import org.apache.jackrabbit.mk.model.AbstractNodeState;
 import org.apache.jackrabbit.mk.model.ChildNodeEntry;
 import org.apache.jackrabbit.mk.model.NodeState;
 import org.apache.jackrabbit.mk.model.PropertyState;
+import org.apache.jackrabbit.oak.api.Scalar;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -87,16 +89,16 @@ public class KernelNodeState extends AbstractNodeState { // fixme make package p
                             kernel, childPath, revision));
                 } else if (reader.matches(JsopTokenizer.NUMBER)) {
                     properties.put(name, new KernelPropertyState(
-                            name, reader.getToken()));
+                            name, ScalarImpl.createNumber(reader.getToken())));
                 } else if (reader.matches(JsopTokenizer.STRING)) {
                     properties.put(name, new KernelPropertyState(
-                            name, '"' + reader.getToken() + '"'));
+                            name, ScalarImpl.createString(reader.getToken())));
                 } else if (reader.matches(JsopTokenizer.TRUE)) {
                     properties.put(name, new KernelPropertyState(
-                            name, "true"));
+                            name, ScalarImpl.createBoolean(true)));
                 } else if (reader.matches(JsopTokenizer.FALSE)) {
                     properties.put(name, new KernelPropertyState(
-                            name, "false"));
+                            name, ScalarImpl.createBoolean(false)));
                 } else if (reader.matches('[')) {
                     properties.put(name, new KernelPropertyState(
                             name, readArray(reader)));
@@ -212,30 +214,23 @@ public class KernelNodeState extends AbstractNodeState { // fixme make package p
         }
     }
 
-    private static String readArray(JsopReader reader) {
-        StringBuilder sb = new StringBuilder("[");
-        String sep = "";
+    private static List<Scalar> readArray(JsopReader reader) {
+        List<Scalar> values = new ArrayList<Scalar>();
         while (!reader.matches(']')) {
-            String v;
             if (reader.matches(JsopTokenizer.NUMBER)) {
-                v = reader.getToken();
+                values.add(ScalarImpl.createNumber(reader.getToken()));
             } else if (reader.matches(JsopTokenizer.STRING)) {
-                v = '"' + reader.getToken() + '"';
-            }
-            else if (reader.matches(JsopTokenizer.TRUE)) {
-                v = "true";
+                values.add(ScalarImpl.createString(reader.getToken()));
+            } else if (reader.matches(JsopTokenizer.TRUE)) {
+                values.add(ScalarImpl.createBoolean(true));
             } else if (reader.matches(JsopTokenizer.FALSE)) {
-                v = "false";
+                values.add(ScalarImpl.createBoolean(false));
             } else {
                 throw new IllegalArgumentException("Unexpected token: " + reader.getToken());
             }
-            sb.append(sep);
-            sep = ",";
-            sb.append(v);
             reader.matches(',');
         }
-        sb.append(']');
-        return sb.toString();
+        return values;
     }
 
 }
