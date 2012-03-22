@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import org.apache.jackrabbit.mk.util.PathUtils;
-import org.apache.jackrabbit.oak.query.Value;
+import org.apache.jackrabbit.oak.query.ScalarImpl;
 import org.apache.jackrabbit.oak.query.index.Filter;
 
 public class NodeNameImpl extends DynamicOperandImpl {
@@ -53,13 +53,13 @@ public class NodeNameImpl extends DynamicOperandImpl {
     }
 
     @Override
-    public  Value currentValue() {
+    public  ScalarImpl currentValue() {
         String name = PathUtils.getName(selector.currentPath());
         return query.getValueFactory().createValue(name);
     }
 
     @Override
-    public void apply(Filter f, Operator operator, Value v) {
+    public void apply(Filter f, Operator operator, ScalarImpl v) {
         // TODO support NAME(..) index conditions
     }
 

@@ -28,7 +28,7 @@ public class QueryEngine {
     public static final String SQL2 = "sql2";
 
     private final MicroKernel mk;
-    private final ValueFactory vf = new ValueFactory();
+    private final ScalarFactory vf = new ScalarFactory();
     private final SQL2Parser parserSQL2;
 
     private QueryEngine(MicroKernel mk) {
@@ -40,7 +40,7 @@ public class QueryEngine {
         return new QueryEngine(mk);
     }
 
-    public Iterator<Row> executeQuery(String language, String query, Map<String, Value> bindings) throws ParseException {
+    public Iterator<Row> executeQuery(String language, String query, Map<String, ScalarImpl> bindings) throws ParseException {
         Query q;
         if (SQL2.equals(language)) {
             q = parserSQL2.parse(query);
@@ -53,7 +53,7 @@ public class QueryEngine {
         }
         q.setMicroKernel(mk);
         if (bindings != null) {
-            for (Entry<String, Value> e : bindings.entrySet()) {
+            for (Entry<String, ScalarImpl> e : bindings.entrySet()) {
                 q.bindValue(e.getKey(), e.getValue());
             }
         }

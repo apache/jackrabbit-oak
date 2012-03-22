@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import org.apache.jackrabbit.oak.query.Value;
+import org.apache.jackrabbit.oak.query.ScalarImpl;
 
 public class ColumnImpl extends AstElement {
 
@@ -58,7 +58,7 @@ public class ColumnImpl extends AstElement {
         }
     }
 
-    public Value currentValue() {
+    public ScalarImpl currentValue() {
         if (propertyName == null) {
             // TODO for SELECT * FROM queries, currently return the path (for testing only)
             String p = selector.currentPath();

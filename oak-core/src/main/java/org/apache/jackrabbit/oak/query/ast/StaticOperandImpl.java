@@ -18,10 +18,10 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import org.apache.jackrabbit.oak.query.Value;
+import org.apache.jackrabbit.oak.query.ScalarImpl;
 
 public abstract class StaticOperandImpl extends AstElement {
 
-    abstract Value currentValue();
+    abstract ScalarImpl currentValue();
 
 }

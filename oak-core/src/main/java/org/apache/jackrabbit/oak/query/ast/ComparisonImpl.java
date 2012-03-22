@@ -18,8 +18,8 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import org.apache.jackrabbit.oak.query.Value;
-import org.apache.jackrabbit.oak.query.ValueFactory;
+import org.apache.jackrabbit.oak.query.ScalarImpl;
+import org.apache.jackrabbit.oak.query.ScalarFactory;
 import org.apache.jackrabbit.oak.query.index.Filter;
 
 public class ComparisonImpl extends ConstraintImpl {
@@ -48,8 +48,8 @@ public class ComparisonImpl extends ConstraintImpl {
 
     @Override
     public boolean evaluate() {
-        Value v1 = operand1.currentValue();
-        Value v2 = operand2.currentValue();
+        ScalarImpl v1 = operand1.currentValue();
+        ScalarImpl v2 = operand2.currentValue();
         if (v1 == null || v2 == null) {
             // TODO comparison: what about (null <> x) ?
             return false;
@@ -71,7 +71,7 @@ public class ComparisonImpl extends ConstraintImpl {
         return false;
     }
 
-    private static boolean evaluateLike(Value v1, Value v2) {
+    private static boolean evaluateLike(ScalarImpl v1, ScalarImpl v2) {
         LikePattern like = new LikePattern(v2.getString());
         return like.matches(v1.getString());
     }
@@ -255,7 +255,7 @@ public class ComparisonImpl extends ConstraintImpl {
 
     @Override
     public void apply(Filter f) {
-        Value v = operand2.currentValue();
+        ScalarImpl v = operand2.currentValue();
         if (v != null) {
             if (operator == Operator.LIKE) {
                 String pattern;
@@ -266,7 +266,7 @@ public class ComparisonImpl extends ConstraintImpl {
                 if (lowerBound == null && upperBound == null) {
                     // ignore
                 } else {
-                    ValueFactory vf = query.getValueFactory();
+                    ScalarFactory vf = query.getValueFactory();
                     if (lowerBound != null) {
                         operand1.apply(f, Operator.GREATER_OR_EQUAL, vf.createValue(lowerBound));
                     }

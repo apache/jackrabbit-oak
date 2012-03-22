@@ -16,21 +16,25 @@
  */
 package org.apache.jackrabbit.oak.query;
 
+import org.apache.jackrabbit.oak.query.ast.ColumnImpl;
+import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
+
 /**
  * A query result row that keeps all data in memory.
  */
 public class Row implements Comparable<Row> {
 
-    private final Query qom;
+    private final Query query;
     private final String[] paths;
-    private final Value[] values;
-    private final Value[] orderValues;
+    private final ScalarImpl[] values;
+    private final ScalarImpl[] orderValues;
 
-    Row(Query qom, String[] paths, Value[] values, Value[] orderValues) {
-        this.qom = qom;
+    Row(Query query, String[] paths, ScalarImpl[] values, ScalarImpl[] orderValues) {
+        this.query = query;
         this.paths = paths;
         this.values = values;
         this.orderValues = orderValues;
+        System.out.println(toString());
     }
 
     public String getPath() {
@@ -41,22 +45,47 @@ public class Row implements Comparable<Row> {
     }
 
     public String getPath(String selectorName) {
-        return paths[qom.getSelectorIndex(selectorName)];
+        int index = query.getSelectorIndex(selectorName);
+        if (paths == null || index >= paths.length) {
+            return null;
+        }
+        return paths[index];
     }
 
-    public Value getValue(String columnName) {
-        return values[qom.getColumnIndex(columnName)];
+    public ScalarImpl getValue(String columnName) {
+        return values[query.getColumnIndex(columnName)];
     }
 
-    public Value[] getValues() {
-        Value[] v2 = new Value[values.length];
+    public ScalarImpl[] getValues() {
+        ScalarImpl[] v2 = new ScalarImpl[values.length];
         System.arraycopy(values, 0, v2, 0, v2.length);
         return v2;
     }
 
     @Override
     public int compareTo(Row o) {
-        return qom.compareRows(orderValues, o.orderValues);
+        return query.compareRows(orderValues, o.orderValues);
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder buff = new StringBuilder();
+        for (SelectorImpl s : query.getSelectors()) {
+            String n = s.getSelectorName();
+            String p = getPath(n);
+            if (p != null) {
+                buff.append(n).append(": ").append(p).append(" ");
+            }
+        }
+        ColumnImpl[] cols = query.getColumns();
+        for (int i = 0; i < values.length; i++) {
+            ColumnImpl c = cols[i];
+            String n = c.getColumnName();
+            if (n != null) {
+                buff.append(n).append(": ").append(values[i]).append(" ");
+            }
+        }
+        return buff.toString();
     }
 
 }
