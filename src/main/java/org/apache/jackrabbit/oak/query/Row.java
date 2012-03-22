@@ -34,7 +34,6 @@ public class Row implements Comparable<Row> {
         this.paths = paths;
         this.values = values;
         this.orderValues = orderValues;
-        System.out.println(toString());
     }
 
     public String getPath() {
