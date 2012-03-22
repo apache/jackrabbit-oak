@@ -40,7 +40,7 @@ import java.io.InputStream;
  * property and child node is uniquely named and a single name can only
  * refer to a property or a child node, not both at the same time.
  * <li>properties are represented as name/value pairs</li>
- * <li>supported property types: string, number</li>
+ * <li>supported property types: string, number, boolean</li>
  * </ul>
  */
 public interface MicroKernel {
