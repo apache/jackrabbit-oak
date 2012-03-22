@@ -215,10 +215,12 @@ class KernelNodeState extends AbstractNodeState {
         String sep = "";
         while (!reader.matches(']')) {
             String v;
-            if (reader.matches(JsopTokenizer.NUMBER) ||
-                    reader.matches(JsopTokenizer.STRING)) {
+            if (reader.matches(JsopTokenizer.NUMBER)) {
                 v = reader.getToken();
-            } else if (reader.matches(JsopTokenizer.TRUE)) {
+            } else if (reader.matches(JsopTokenizer.STRING)) {
+                v = '"' + reader.getToken() + '"';
+            }
+            else if (reader.matches(JsopTokenizer.TRUE)) {
                 v = "true";
             } else if (reader.matches(JsopTokenizer.FALSE)) {
                 v = "false";
