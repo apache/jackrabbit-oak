@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.mk.store;
 
-import java.io.InputStream;
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -221,24 +220,5 @@ public class CopyingGC implements RevisionStore {
         } else {
             rsFrom.unlockHead();
         }
-    }
-    
-    public int getBlob(String blobId, long pos, byte[] buff, int off, int length)
-            throws NotFoundException, Exception {
-        
-        // Assuming that from and to store use the same BlobStore instance
-        return rsTo.getBlob(blobId, pos, buff, off, length);
-    }
-
-    public long getBlobLength(String blobId) throws NotFoundException,
-            Exception {
-        
-        // Assuming that from and to store use the same BlobStore instance
-        return rsTo.getBlobLength(blobId);
-    }
-
-    public String putBlob(InputStream in) throws Exception {
-        // Assuming that from and to store use the same BlobStore instance
-        return rsTo.putBlob(in);
     }
 }

@@ -16,8 +16,11 @@
  */
 package org.apache.jackrabbit.mk.store;
 
-import org.apache.jackrabbit.mk.blobs.BlobStore;
-import org.apache.jackrabbit.mk.blobs.FileBlobStore;
+import java.io.Closeable;
+import java.util.Collections;
+import java.util.Map;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
 import org.apache.jackrabbit.mk.model.ChildNodeEntriesMap;
 import org.apache.jackrabbit.mk.model.Id;
 import org.apache.jackrabbit.mk.model.MutableCommit;
@@ -26,14 +29,8 @@ import org.apache.jackrabbit.mk.model.NodeState;
 import org.apache.jackrabbit.mk.model.StoredCommit;
 import org.apache.jackrabbit.mk.model.StoredNode;
 import org.apache.jackrabbit.mk.persistence.Persistence;
+import org.apache.jackrabbit.mk.util.IOUtils;
 import org.apache.jackrabbit.mk.util.SimpleLRUCache;
-
-import java.io.Closeable;
-import java.io.File;
-import java.io.InputStream;
-import java.util.Collections;
-import java.util.Map;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * Default revision store implementation, passing calls to a <code>Persistence</code>
@@ -45,33 +42,23 @@ public class DefaultRevisionStore implements RevisionStore, Closeable {
     public static final int DEFAULT_CACHE_SIZE = 10000;
 
     private boolean initialized;
-    private File homeDir;
     private Id head;
     private long headCounter;
     private final ReentrantReadWriteLock headLock = new ReentrantReadWriteLock();
-    private Persistence pm;
-    private BlobStore blobStore;
-    private boolean blobStoreNeedsClose;
+    private final Persistence pm;
 
     private Map<Id, Object> cache;
 
-    public void initialize(File homeDir, Persistence persistence) throws Exception {
+    public DefaultRevisionStore(Persistence pm) {
+        this.pm = pm;
+    }
+    
+    public void initialize() throws Exception {
         if (initialized) {
             throw new IllegalStateException("already initialized");
         }
-        this.homeDir = homeDir;
 
         cache = Collections.synchronizedMap(SimpleLRUCache.<Id, Object>newInstance(determineInitialCacheSize()));
-
-        pm = persistence;
-        pm.initialize(homeDir);
-        
-        if (pm instanceof BlobStore) {
-            blobStore = (BlobStore) pm;
-        } else {
-            blobStore = new FileBlobStore(new File(homeDir, "blobs").getCanonicalPath());
-            blobStoreNeedsClose = true;
-        }
 
         // make sure we've got a HEAD commit
         head = pm.readHead();
@@ -97,12 +84,9 @@ public class DefaultRevisionStore implements RevisionStore, Closeable {
         verifyInitialized();
 
         cache.clear();
-
-        if (blobStoreNeedsClose) {
-            blobStore.close();
+        if (pm instanceof Closeable) {
+            IOUtils.closeQuietly((Closeable) pm);
         }
-        pm.close();
-        
         initialized = false;
     }
 
@@ -220,12 +204,6 @@ public class DefaultRevisionStore implements RevisionStore, Closeable {
         headLock.writeLock().unlock();
     }
 
-    public String putBlob(InputStream in) throws Exception {
-        verifyInitialized();
-
-        return blobStore.writeBlob(in);
-    }
-
     //-----------------------------------------------------< RevisionProvider >
 
     public NodeState getNodeState(StoredNode node) {
@@ -298,22 +276,5 @@ public class DefaultRevisionStore implements RevisionStore, Closeable {
         } finally {
             headLock.readLock().unlock();
         }
-    }
-
-    public int getBlob(String blobId, long pos, byte[] buff, int off, int length) throws NotFoundException, Exception {
-        verifyInitialized();
-
-        return blobStore.readBlob(blobId, pos, buff, off, length);
-    }
-
-    public long getBlobLength(String blobId) throws NotFoundException, Exception {
-        verifyInitialized();
-
-        return blobStore.getBlobLength(blobId);
-    }
-    
-    @Override
-    public String toString() {
-        return homeDir.toString();
     }
 }

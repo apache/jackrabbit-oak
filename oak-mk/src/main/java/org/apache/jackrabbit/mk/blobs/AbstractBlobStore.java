@@ -24,6 +24,7 @@ import org.apache.jackrabbit.mk.util.StringUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
@@ -62,7 +63,7 @@ import java.util.WeakHashMap;
  * long), size of data store id (variable size long), hash code length (variable
  * size int), hash code.
  */
-public abstract class AbstractBlobStore implements BlobStore, Cache.Backend<AbstractBlobStore.BlockId, AbstractBlobStore.Data> {
+public abstract class AbstractBlobStore implements Closeable, BlobStore, Cache.Backend<AbstractBlobStore.BlockId, AbstractBlobStore.Data> {
 
     protected static final String HASH_ALGORITHM = "SHA-1";
 

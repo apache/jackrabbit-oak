@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.mk.persistence;
 
-import java.io.File;
-
 import org.apache.jackrabbit.mk.model.ChildNodeEntriesMap;
 import org.apache.jackrabbit.mk.model.Commit;
 import org.apache.jackrabbit.mk.model.Id;
@@ -34,10 +32,6 @@ import org.apache.jackrabbit.mk.store.NotFoundException;
  *       instances, such as in #readNodeBinding.
  */
 public interface Persistence {
-
-    void initialize(File homeDir) throws Exception;
-
-    void close();
 
     Id readHead() throws Exception;
 
