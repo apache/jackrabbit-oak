@@ -24,14 +24,18 @@ import org.apache.jackrabbit.mk.model.NodeState;
 import org.apache.jackrabbit.mk.model.PropertyState;
 import org.apache.jackrabbit.oak.jcr.SessionContext;
 import org.apache.jackrabbit.oak.jcr.SessionImpl;
+import org.apache.jackrabbit.oak.jcr.json.FullJsonParser;
 import org.apache.jackrabbit.oak.jcr.json.JsonValue;
 import org.apache.jackrabbit.oak.jcr.json.JsonValue.JsonAtom;
+import org.apache.jackrabbit.oak.jcr.json.JsonValue.Type;
+import org.apache.jackrabbit.oak.jcr.json.UnescapingJsonTokenizer;
 import org.apache.jackrabbit.oak.jcr.state.ChangeTree.NodeDelta;
 import org.apache.jackrabbit.oak.jcr.util.Function1;
 import org.apache.jackrabbit.oak.jcr.util.Iterators;
 import org.apache.jackrabbit.oak.jcr.util.PagedIterator;
 import org.apache.jackrabbit.oak.jcr.util.Path;
 import org.apache.jackrabbit.oak.jcr.util.Predicate;
+import org.apache.jackrabbit.oak.kernel.KernelNodeState;
 
 import javax.jcr.ItemExistsException;
 import javax.jcr.ItemNotFoundException;
@@ -295,7 +299,23 @@ public class TransientNodeState {
             return null;
         }
         else {
-            return ((PropertyStateImpl) state).getValue();  // fixme: don't cast, see OAK-16
+            // fixme: use Scalar class
+            String v = state.getEncodedValue();
+            if (v.startsWith("[")) {
+                return FullJsonParser.parseArray(new UnescapingJsonTokenizer(v));
+            }
+            else if (v.startsWith("\"")) {
+                return new JsonAtom(v.substring(1, v.length() - 1), Type.STRING);
+            }
+            else if ("true".equalsIgnoreCase(v)) {
+                return JsonAtom.TRUE;
+            }
+            else if ("false".equalsIgnoreCase(v)) {
+                return JsonAtom.FALSE;
+            }
+            else {
+                return new JsonAtom(v, Type.NUMBER);
+            }
         }
     }
 
@@ -308,7 +328,7 @@ public class TransientNodeState {
                 persistentNodeState = EmptyNodeState.INSTANCE;
             }
             else {
-                persistentNodeState = new PersistentNodeState(sessionContext.getMicrokernel(), path, revision);
+                persistentNodeState = new KernelNodeState(sessionContext.getMicrokernel(), path.toMkPath(), revision);
             }
         }
 
