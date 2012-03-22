@@ -19,16 +19,27 @@
 package org.apache.jackrabbit.oak.kernel;
 
 import org.apache.jackrabbit.mk.model.AbstractPropertyState;
+import org.apache.jackrabbit.oak.api.Scalar;
+
+import java.util.Collections;
+import java.util.List;
 
 public class KernelPropertyState extends AbstractPropertyState { // fixme make package private
 
     private final String name;
+    private final Scalar value;
+    private final List<Scalar> values;
 
-    private final String value;
-
-    public KernelPropertyState(String name, String value) {
+    public KernelPropertyState(String name, Scalar value) {
         this.name = name;
         this.value = value;
+        this.values = null;
+    }
+
+    public KernelPropertyState(String name, List<Scalar> values) {
+        this.name = name;
+        this.value = null;
+        this.values = Collections.unmodifiableList(values);
     }
 
     @Override
@@ -38,7 +49,41 @@ public class KernelPropertyState extends AbstractPropertyState { // fixme make p
 
     @Override
     public String getEncodedValue() {
-        return value;
+        if (value == null) {
+            String sep = "";
+            StringBuilder sb = new StringBuilder("[");
+            for (Scalar s : values) {
+                sb.append(sep);
+                sep = ",";
+                if (s.getType() == Scalar.STRING) {
+                    sb.append('"' + s.getString() + '"');
+                }
+                else {
+                    sb.append(s.getString());
+                }
+            }
+            sb.append(']');
+            return sb.toString();
+        }
+        else {
+            if (value.getType() == Scalar.STRING) {
+                return '"' + value.getString() + '"';
+            }
+            else {
+                return value.getString();
+            }
+        }
     }
 
+    public boolean isMultiValues() {
+        return value == null;
+    }
+    
+    public Scalar getValue() {
+        return value;
+    }
+    
+    public List<Scalar> getValues() {
+        return values;
+    }
 }
