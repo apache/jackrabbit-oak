@@ -86,11 +86,15 @@ class KernelNodeState extends AbstractNodeState {
                     childNodes.put(name, new KernelNodeState(
                             kernel, childPath, revision));
                 } else if (reader.matches(JsopTokenizer.NUMBER) ||
-                        reader.matches(JsopTokenizer.TRUE) ||
-                        reader.matches(JsopTokenizer.FALSE) ||
                         reader.matches(JsopTokenizer.STRING)) {
                     properties.put(name, new KernelPropertyState(
                             name, reader.getToken()));
+                } else if (reader.matches(JsopTokenizer.TRUE)) {
+                    properties.put(name, new KernelPropertyState(
+                            name, "true"));
+                } else if (reader.matches(JsopTokenizer.FALSE)) {
+                    properties.put(name, new KernelPropertyState(
+                            name, "false"));
                 } else if (reader.matches('[')) {
                     properties.put(name, new KernelPropertyState(
                             name, readArray(reader)));
@@ -210,17 +214,20 @@ class KernelNodeState extends AbstractNodeState {
         StringBuilder sb = new StringBuilder("[");
         String sep = "";
         while (!reader.matches(']')) {
+            String v;
             if (reader.matches(JsopTokenizer.NUMBER) ||
-                    reader.matches(JsopTokenizer.TRUE) ||
-                    reader.matches(JsopTokenizer.FALSE) ||
                     reader.matches(JsopTokenizer.STRING)) {
-                sb.append(sep);
-                sep = ",";
-                sb.append(reader.getToken());
-            }
-            else {
+                v = reader.getToken();
+            } else if (reader.matches(JsopTokenizer.TRUE)) {
+                v = "true";
+            } else if (reader.matches(JsopTokenizer.FALSE)) {
+                v = "false";
+            } else {
                 throw new IllegalArgumentException("Unexpected token: " + reader.getToken());
             }
+            sb.append(sep);
+            sep = ",";
+            sb.append(v);
             reader.matches(',');
         }
         sb.append(']');
