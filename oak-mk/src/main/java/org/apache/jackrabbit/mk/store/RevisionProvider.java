@@ -23,7 +23,7 @@ import org.apache.jackrabbit.mk.model.StoredCommit;
 import org.apache.jackrabbit.mk.model.StoredNode;
 
 /**
- *
+ * Read operations.
  */
 public interface RevisionProvider {
 
@@ -50,6 +50,4 @@ public interface RevisionProvider {
     StoredNode getRootNode(Id commitId) throws NotFoundException, Exception;
     StoredCommit getHeadCommit() throws Exception;
     Id getHeadCommitId() throws Exception;
-    int getBlob(String blobId, long pos, byte[] buff, int off, int length) throws NotFoundException, Exception;
-    long getBlobLength(String blobId) throws NotFoundException, Exception;
 }

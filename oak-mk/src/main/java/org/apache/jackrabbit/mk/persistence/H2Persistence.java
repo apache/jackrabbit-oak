@@ -29,6 +29,7 @@ import org.h2.jdbcx.JdbcConnectionPool;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
 import java.io.File;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -38,18 +39,23 @@ import java.sql.Statement;
 /**
  *
  */
-public class H2Persistence implements Persistence {
+public class H2Persistence implements Persistence, Closeable {
 
     private static final boolean FAST = Boolean.getBoolean("mk.fastDb");
 
+    private final File homeDir;
     private JdbcConnectionPool cp;
     
     // TODO: make this configurable
     private IdFactory idFactory = IdFactory.getDigestFactory();
 
+    public H2Persistence(File homeDir) throws Exception {
+        this.homeDir = homeDir;
+    }
+    
     //---------------------------------------------------< Persistence >
 
-    public void initialize(File homeDir) throws Exception {
+    public void initialize() throws Exception {
         File dbDir = new File(homeDir, "db");
         if (!dbDir.exists()) {
             dbDir.mkdirs();

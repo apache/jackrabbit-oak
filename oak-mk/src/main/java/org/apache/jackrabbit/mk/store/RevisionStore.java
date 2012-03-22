@@ -21,10 +21,8 @@ import org.apache.jackrabbit.mk.model.Id;
 import org.apache.jackrabbit.mk.model.MutableCommit;
 import org.apache.jackrabbit.mk.model.MutableNode;
 
-import java.io.InputStream;
-
 /**
- *
+ * Write operations.
  */
 public interface RevisionStore extends RevisionProvider {
 
@@ -53,6 +51,4 @@ public interface RevisionStore extends RevisionProvider {
      * Unlock the head.
      */
     void unlockHead();
-    
-    String /*id*/ putBlob(InputStream in) throws Exception;
 }

@@ -18,14 +18,10 @@ package org.apache.jackrabbit.mk.persistence;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.InputStream;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.jackrabbit.mk.blobs.BlobStore;
-import org.apache.jackrabbit.mk.blobs.MemoryBlobStore;
 import org.apache.jackrabbit.mk.model.ChildNodeEntriesMap;
 import org.apache.jackrabbit.mk.model.Commit;
 import org.apache.jackrabbit.mk.model.Id;
@@ -39,34 +35,26 @@ import org.apache.jackrabbit.mk.store.NotFoundException;
 /**
  *
  */
-public class InMemPersistence implements Persistence, BlobStore {
+public class InMemPersistence implements Persistence {
 
     private final Map<Id, byte[]> nodes = Collections.synchronizedMap(new HashMap<Id, byte[]>());
     private final Map<Id, StoredCommit> commits = Collections.synchronizedMap(new HashMap<Id, StoredCommit>());
     private final Map<Id, ChildNodeEntriesMap> cneMaps = Collections.synchronizedMap(new HashMap<Id, ChildNodeEntriesMap>());
-    private final BlobStore blobs = new MemoryBlobStore();
 
     private Id head;
 
     // TODO: make this configurable
     private IdFactory idFactory = IdFactory.getDigestFactory();
     
-    public void initialize(File homeDir) throws Exception {
-        head = null;
-    }
-
-    public void close() {
-    }
-
-    public Id readHead() throws Exception {
+    public Id readHead() {
         return head;
     }
 
-    public void writeHead(Id id) throws Exception {
+    public void writeHead(Id id) {
         head = id;
     }
 
-    public Binding readNodeBinding(Id id) throws NotFoundException, Exception {
+    public Binding readNodeBinding(Id id) throws NotFoundException {
         byte[] bytes = nodes.get(id);
         if (bytes != null) {
             return new BinaryBinding(new ByteArrayInputStream(bytes));
@@ -88,7 +76,7 @@ public class InMemPersistence implements Persistence, BlobStore {
         return id;
     }
 
-    public StoredCommit readCommit(Id id) throws NotFoundException, Exception {
+    public StoredCommit readCommit(Id id) throws NotFoundException {
         StoredCommit commit = commits.get(id);
         if (commit != null) {
             return commit;
@@ -107,7 +95,7 @@ public class InMemPersistence implements Persistence, BlobStore {
         }
     }
 
-    public ChildNodeEntriesMap readCNEMap(Id id) throws NotFoundException, Exception {
+    public ChildNodeEntriesMap readCNEMap(Id id) throws NotFoundException {
         ChildNodeEntriesMap map = cneMaps.get(id);
         if (map != null) {
             return map;
@@ -127,23 +115,5 @@ public class InMemPersistence implements Persistence, BlobStore {
         }
 
         return id;
-    }
-    
-    //------------------------------------------------------------< BlobStore >
-
-    public String addBlob(String tempFilePath) throws Exception {
-        return blobs.addBlob(tempFilePath);
-    }
-
-    public String writeBlob(InputStream in) throws Exception {
-        return blobs.writeBlob(in);
-    }
-
-    public int readBlob(String blobId, long pos, byte[] buff, int off, int length) throws NotFoundException, Exception {
-        return blobs.readBlob(blobId, pos, buff, off, length);
-    }
-
-    public long getBlobLength(String blobId) throws Exception {
-        return blobs.getBlobLength(blobId);
     }
 }

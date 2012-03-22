@@ -578,7 +578,7 @@ public class MicroKernelImpl implements MicroKernel {
             throw new IllegalStateException("this instance has already been disposed");
         }
         try {
-            return rep.getRevisionStore().getBlobLength(blobId);
+            return rep.getBlobStore().getBlobLength(blobId);
         } catch (Exception e) {
             throw new MicroKernelException(e);
         }
@@ -589,7 +589,7 @@ public class MicroKernelImpl implements MicroKernel {
             throw new IllegalStateException("this instance has already been disposed");
         }
         try {
-            return rep.getRevisionStore().getBlob(blobId, pos, buff, off, length);
+            return rep.getBlobStore().readBlob(blobId, pos, buff, off, length);
         } catch (Exception e) {
             throw new MicroKernelException(e);
         }
@@ -600,7 +600,7 @@ public class MicroKernelImpl implements MicroKernel {
             throw new IllegalStateException("this instance has already been disposed");
         }
         try {
-            return rep.getRevisionStore().putBlob(in);
+            return rep.getBlobStore().writeBlob(in);
         } catch (Exception e) {
             throw new MicroKernelException(e);
         }

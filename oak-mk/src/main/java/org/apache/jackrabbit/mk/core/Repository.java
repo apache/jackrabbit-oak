@@ -19,6 +19,8 @@ package org.apache.jackrabbit.mk.core;
 import java.io.Closeable;
 import java.io.File;
 
+import org.apache.jackrabbit.mk.blobs.BlobStore;
+import org.apache.jackrabbit.mk.blobs.FileBlobStore;
 import org.apache.jackrabbit.mk.model.CommitBuilder;
 import org.apache.jackrabbit.mk.model.Id;
 import org.apache.jackrabbit.mk.model.NodeState;
@@ -35,13 +37,15 @@ import org.apache.jackrabbit.mk.util.PathUtils;
  */
 public class Repository {
 
-    private final String homeDir;
+    private final File homeDir;
     private boolean initialized;
     private RevisionStore rs;
+    private BlobStore bs;
+    private boolean blobStoreNeedsClose;
 
     public Repository(String homeDir) throws Exception {
         File home = new File(homeDir == null ? "." : homeDir, ".mk");
-        this.homeDir = home.getCanonicalPath();
+        this.homeDir = home.getCanonicalFile();
     }
     
     /**
@@ -49,9 +53,10 @@ public class Repository {
      * 
      * @param rs revision store, already initialized
      */
-    public Repository(RevisionStore rs) {
+    public Repository(RevisionStore rs, BlobStore bs) {
         this.homeDir = null;
         this.rs = rs;
+        this.bs = bs;
 
         initialized = true;
     }
@@ -61,17 +66,30 @@ public class Repository {
             return;
         }
 
-        DefaultRevisionStore rs = new DefaultRevisionStore();
-        rs.initialize(new File(homeDir), new H2Persistence());
-
+        H2Persistence pm = new H2Persistence(homeDir);
+        pm.initialize();
+        
+        DefaultRevisionStore rs = new DefaultRevisionStore(pm);
+        rs.initialize();
+        
         this.rs = rs;
-
+        
+        if (pm instanceof BlobStore) {
+            bs = (BlobStore) pm;
+        } else {
+            bs = new FileBlobStore(new File(homeDir, "blobs").getCanonicalPath());
+            blobStoreNeedsClose = true;
+        }
+        
         initialized = true;
     }
 
     public void shutDown() throws Exception {
         if (!initialized) {
             return;
+        }
+        if (blobStoreNeedsClose && bs instanceof Closeable) {
+            IOUtils.closeQuietly((Closeable) bs);
         }
         if (rs instanceof Closeable) {
             IOUtils.closeQuietly((Closeable) rs);
@@ -85,6 +103,14 @@ public class Repository {
         }
 
         return rs;
+    }
+    
+    public BlobStore getBlobStore() {
+        if (!initialized) {
+            throw new IllegalStateException("not initialized");
+        }
+
+        return bs;
     }
 
     public Id getHeadRevision() throws Exception {

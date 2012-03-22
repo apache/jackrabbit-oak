@@ -19,10 +19,9 @@ package org.apache.jackrabbit.mk.store;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import java.io.File;
-
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
+import org.apache.jackrabbit.mk.blobs.MemoryBlobStore;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.mk.core.Repository;
 import org.apache.jackrabbit.mk.fs.FileUtils;
@@ -61,11 +60,11 @@ public class CopyingGCTest {
     @Ignore
     @Test
     public void concurrentGC() throws Exception {
-        rsFrom = new DefaultRevisionStore();
-        rsFrom.initialize(new File("target/mk1"), new InMemPersistence());
+        rsFrom = new DefaultRevisionStore(new InMemPersistence());
+        rsFrom.initialize();
 
-        rsTo = new DefaultRevisionStore(); 
-        rsTo.initialize(new File("target/mk2"), new InMemPersistence());
+        rsTo = new DefaultRevisionStore(new InMemPersistence()); 
+        rsTo.initialize();
 
         final CopyingGC gc = new CopyingGC(rsFrom, rsTo);
         
@@ -80,7 +79,7 @@ public class CopyingGCTest {
         });
         t.setDaemon(true);
 
-        MicroKernel mk = new MicroKernelImpl(new Repository(gc));
+        MicroKernel mk = new MicroKernelImpl(new Repository(gc, new MemoryBlobStore()));
         mk.commit("/", "+\"a\" : { \"b\" : { \"c\" : { \"d\" : {} } } }", mk.getHeadRevision(), null);
         
         t.start();
@@ -100,15 +99,15 @@ public class CopyingGCTest {
     public void copyHeadRevisionToNewStore() throws Exception {
         String[] revs = new String[5];
         
-        rsFrom = new DefaultRevisionStore();
-        rsFrom.initialize(new File("target/mk1"), new InMemPersistence());
+        rsFrom = new DefaultRevisionStore(new InMemPersistence());
+        rsFrom.initialize();
 
-        rsTo = new DefaultRevisionStore(); 
-        rsTo.initialize(new File("target/mk2"), new InMemPersistence());
+        rsTo = new DefaultRevisionStore(new InMemPersistence()); 
+        rsTo.initialize();
 
         CopyingGC gc = new CopyingGC(rsFrom, rsTo);
         
-        MicroKernel mk = new MicroKernelImpl(new Repository(gc));
+        MicroKernel mk = new MicroKernelImpl(new Repository(gc, new MemoryBlobStore()));
         revs[0] = mk.commit("/", "+\"a\" : { \"c\":{}, \"d\":{} }", mk.getHeadRevision(), null);
         revs[1] = mk.commit("/", "+\"b\" : {}", mk.getHeadRevision(), null);
         revs[2] = mk.commit("/b", "+\"e\" : {}", mk.getHeadRevision(), null);

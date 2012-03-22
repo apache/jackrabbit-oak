@@ -18,6 +18,7 @@ package org.apache.jackrabbit.mk.persistence;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
 import java.io.File;
 
 import org.apache.jackrabbit.mk.model.ChildNodeEntriesMap;
@@ -43,9 +44,10 @@ import com.sleepycat.je.OperationStatus;
 /**
  *
  */
-public class BDbPersistence implements Persistence {
+public class BDbPersistence implements Persistence, Closeable {
 
     private final static byte[] HEAD_ID = new byte[]{0};
+    private final File homeDir;
     private Environment dbEnv;
     private Database db;
     private Database head;
@@ -53,7 +55,11 @@ public class BDbPersistence implements Persistence {
     // TODO: make this configurable
     private IdFactory idFactory = IdFactory.getDigestFactory();
     
-    public void initialize(File homeDir) throws Exception {
+    public BDbPersistence(File homeDir) {
+        this.homeDir = homeDir;
+    }
+    
+    public void initialize() throws Exception {
         File dbDir = new File(homeDir, "db");
         if (!dbDir.exists()) {
             dbDir.mkdirs();
