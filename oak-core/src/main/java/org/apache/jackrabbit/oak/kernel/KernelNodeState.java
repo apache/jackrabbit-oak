@@ -18,12 +18,6 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.json.JsopReader;
@@ -32,6 +26,12 @@ import org.apache.jackrabbit.mk.model.AbstractNodeState;
 import org.apache.jackrabbit.mk.model.ChildNodeEntry;
 import org.apache.jackrabbit.mk.model.NodeState;
 import org.apache.jackrabbit.mk.model.PropertyState;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Basic {@link NodeState} implementation based on the {@link MicroKernel}
@@ -50,11 +50,11 @@ class KernelNodeState extends AbstractNodeState {
 
     private final String revision;
 
-    private Map<String, PropertyState> properties = null;
+    private Map<String, PropertyState> properties;
 
     private long childNodeCount = -1;
 
-    private Map<String, NodeState> childNodes = null; // TODO: WeakReference?
+    private Map<String, NodeState> childNodes; // TODO: WeakReference?
 
     public KernelNodeState(MicroKernel kernel, String path, String revision) {
         this.kernel = kernel;
@@ -79,18 +79,23 @@ class KernelNodeState extends AbstractNodeState {
                             Long.valueOf(reader.read(JsopTokenizer.NUMBER));
                 } else if (reader.matches('{')) {
                     reader.read('}');
-                    String childPath = path + "/" + name;
+                    String childPath = path + '/' + name;
                     if ("/".equals(path)) {
-                        childPath = "/" + name;
+                        childPath = '/' + name;
                     }
                     childNodes.put(name, new KernelNodeState(
                             kernel, childPath, revision));
-                } else if (reader.matches(JsopTokenizer.NUMBER)) {
+                } else if (reader.matches(JsopTokenizer.NUMBER) ||
+                        reader.matches(JsopTokenizer.TRUE) ||
+                        reader.matches(JsopTokenizer.FALSE) ||
+                        reader.matches(JsopTokenizer.STRING)) {
                     properties.put(name, new KernelPropertyState(
                             name, reader.getToken()));
-                } else {
+                } else if (reader.matches('[')) {
                     properties.put(name, new KernelPropertyState(
-                            name, reader.readString()));
+                            name, readArray(reader)));
+                } else {
+                    throw new IllegalArgumentException("Unexpected token: " + reader.getToken());
                 }
             } while (reader.matches(','));
             reader.read('}');
@@ -195,10 +200,31 @@ class KernelNodeState extends AbstractNodeState {
 
     private String getChildPath(String name) {
         if ("/".equals(path)) {
-            return "/" + name;
+            return '/' + name;
         } else {
-            return path + "/" + name;
+            return path + '/' + name;
         }
+    }
+
+    private static String readArray(JsopReader reader) {
+        StringBuilder sb = new StringBuilder("[");
+        String sep = "";
+        while (!reader.matches(']')) {
+            if (reader.matches(JsopTokenizer.NUMBER) ||
+                    reader.matches(JsopTokenizer.TRUE) ||
+                    reader.matches(JsopTokenizer.FALSE) ||
+                    reader.matches(JsopTokenizer.STRING)) {
+                sb.append(sep);
+                sep = ",";
+                sb.append(reader.getToken());
+            }
+            else {
+                throw new IllegalArgumentException("Unexpected token: " + reader.getToken());
+            }
+            reader.matches(',');
+        }
+        sb.append(']');
+        return sb.toString();
     }
 
 }
