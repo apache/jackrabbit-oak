@@ -37,7 +37,7 @@ import java.util.Map;
  * Basic {@link NodeState} implementation based on the {@link MicroKernel}
  * interface. This class makes an attempt to load data lazily.
  */
-class KernelNodeState extends AbstractNodeState {
+public class KernelNodeState extends AbstractNodeState { // fixme make package private
 
     /**
      * Maximum number of child nodes kept in memory.
@@ -85,10 +85,12 @@ class KernelNodeState extends AbstractNodeState {
                     }
                     childNodes.put(name, new KernelNodeState(
                             kernel, childPath, revision));
-                } else if (reader.matches(JsopTokenizer.NUMBER) ||
-                        reader.matches(JsopTokenizer.STRING)) {
+                } else if (reader.matches(JsopTokenizer.NUMBER)) {
                     properties.put(name, new KernelPropertyState(
                             name, reader.getToken()));
+                } else if (reader.matches(JsopTokenizer.STRING)) {
+                    properties.put(name, new KernelPropertyState(
+                            name, '"' + reader.getToken() + '"'));
                 } else if (reader.matches(JsopTokenizer.TRUE)) {
                     properties.put(name, new KernelPropertyState(
                             name, "true"));
