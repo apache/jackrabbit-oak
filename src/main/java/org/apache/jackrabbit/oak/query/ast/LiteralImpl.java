@@ -19,18 +19,18 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import org.apache.jackrabbit.oak.query.SQL2Parser;
-import org.apache.jackrabbit.oak.query.PropertyType;
-import org.apache.jackrabbit.oak.query.Value;
+import org.apache.jackrabbit.oak.query.ScalarImpl;
+import org.apache.jackrabbit.oak.query.ScalarType;
 
 public class LiteralImpl extends StaticOperandImpl {
 
-    private final Value value;
+    private final ScalarImpl value;
 
-    public LiteralImpl(Value value) {
+    public LiteralImpl(ScalarImpl value) {
         this.value = value;
     }
 
-    public Value getLiteralValue() {
+    public ScalarImpl getLiteralValue() {
         return value;
     }
 
@@ -42,28 +42,28 @@ public class LiteralImpl extends StaticOperandImpl {
     @Override
     public String toString() {
         switch (value.getType()) {
-        case PropertyType.BINARY:
+        case ScalarType.BINARY:
             return cast("BINARY");
-        case PropertyType.BOOLEAN:
+        case ScalarType.BOOLEAN:
             return cast("BOOLEAN");
-        case PropertyType.DATE:
+        case ScalarType.DATE:
             return cast("DATE");
-        case PropertyType.DECIMAL:
+        case ScalarType.DECIMAL:
             return cast("DECIMAL");
-        case PropertyType.DOUBLE:
-        case PropertyType.LONG:
+        case ScalarType.DOUBLE:
+        case ScalarType.LONG:
             return value.getString();
-        case PropertyType.NAME:
+        case ScalarType.NAME:
             return cast("NAME");
-        case PropertyType.PATH:
+        case ScalarType.PATH:
             return cast("PATH");
-        case PropertyType.REFERENCE:
+        case ScalarType.REFERENCE:
             return cast("REFERENCE");
-        case PropertyType.STRING:
+        case ScalarType.STRING:
             return escape();
-        case PropertyType.URI:
+        case ScalarType.URI:
             return cast("URI");
-        case PropertyType.WEAKREFERENCE:
+        case ScalarType.WEAKREFERENCE:
             return cast("WEAKREFERENCE");
         default:
             return escape();
@@ -79,7 +79,7 @@ public class LiteralImpl extends StaticOperandImpl {
     }
 
     @Override
-    Value currentValue() {
+    ScalarImpl currentValue() {
         return value;
     }
 

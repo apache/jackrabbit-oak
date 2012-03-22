@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import org.apache.jackrabbit.oak.query.Value;
+import org.apache.jackrabbit.oak.query.ScalarImpl;
 
 public class BindVariableValueImpl extends StaticOperandImpl {
 
@@ -43,7 +43,7 @@ public class BindVariableValueImpl extends StaticOperandImpl {
     }
 
     @Override
-    Value currentValue() {
+    ScalarImpl currentValue() {
         return query.getBindVariableValue(bindVariableName);
     }
 

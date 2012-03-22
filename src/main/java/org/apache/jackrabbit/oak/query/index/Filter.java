@@ -19,8 +19,9 @@
 package org.apache.jackrabbit.oak.query.index;
 
 import java.util.HashMap;
+import java.util.Map.Entry;
 import org.apache.jackrabbit.mk.util.PathUtils;
-import org.apache.jackrabbit.oak.query.Value;
+import org.apache.jackrabbit.oak.query.ScalarImpl;
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 
@@ -106,7 +107,7 @@ public class Filter {
         /**
          * The first value to read, or null to read from the beginning.
          */
-        public Value first;
+        public ScalarImpl first;
 
         /**
          * Whether values that match the first should be returned.
@@ -116,7 +117,7 @@ public class Filter {
         /**
          * The last value to read, or null to read until the end.
          */
-        public Value last;
+        public ScalarImpl last;
 
         /**
          * Whether values that match the last should be returned.
@@ -228,14 +229,14 @@ public class Filter {
         }
     }
 
-    public void restrictProperty(String propertyName, Operator op, Value value) {
+    public void restrictProperty(String propertyName, Operator op, ScalarImpl value) {
         PropertyRestriction x = propertyRestrictions.get(propertyName);
         if (x == null) {
             x = new PropertyRestriction();
             x.propertyName = propertyName;
             propertyRestrictions.put(propertyName, x);
         }
-        Value oldFirst = x.first, oldLast = x.last;
+        ScalarImpl oldFirst = x.first, oldLast = x.last;
         switch (op) {
         case EQUAL:
             x.first = maxValue(oldFirst, value);
@@ -276,18 +277,31 @@ public class Filter {
         }
     }
 
-    static Value maxValue(Value a, Value b) {
+    static ScalarImpl maxValue(ScalarImpl a, ScalarImpl b) {
         if (a == null) {
             return b;
         }
         return a.compareTo(b) < 0 ? b : a;
     }
 
-    static Value minValue(Value a, Value b) {
+    static ScalarImpl minValue(ScalarImpl a, ScalarImpl b) {
         if (a == null) {
             return b;
         }
         return a.compareTo(b) < 0 ? a : b;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder buff = new StringBuilder();
+        if (alwaysFalse) {
+            return "(always false)";
+        }
+        buff.append("path: ").append(path).append(pathRestriction).append('\n');
+        for (Entry<String, PropertyRestriction> p : propertyRestrictions.entrySet()) {
+            buff.append("property ").append(p.getKey()).append(": ").append(p.getValue()).append('\n');
+        }
+        return buff.toString();
     }
 
     public void restrictPath(String addedPath, PathRestriction addedPathRestriction) {

@@ -61,7 +61,7 @@ public class SQL2Parser {
     private int currentTokenType;
     private String currentToken;
     private boolean currentTokenQuoted;
-    private Value currentValue;
+    private ScalarImpl currentValue;
     private ArrayList<String> expected;
 
     // The bind variables
@@ -75,14 +75,14 @@ public class SQL2Parser {
     private boolean allowNumberLiterals = true;
 
     private final AstElementFactory factory = new AstElementFactory();
-    private final ValueFactory valueFactory;
+    private final ScalarFactory valueFactory;
 
     /**
      * Create a new parser. A parser can be re-used, but it is not thread safe.
      *
      * @param valueFactory the value factory
      */
-    public SQL2Parser(ValueFactory valueFactory) {
+    public SQL2Parser(ScalarFactory valueFactory) {
         this.valueFactory = valueFactory;
     }
 
@@ -136,7 +136,7 @@ public class SQL2Parser {
     private String readName() throws ParseException {
         if (readIf("[")) {
             if (currentTokenType == VALUE) {
-                Value value = readString();
+                ScalarImpl value = readString();
                 read("]");
                 return value.getString();
             } else {
@@ -442,16 +442,16 @@ public class SQL2Parser {
             }
             int valueType = currentValue.getType();
             switch (valueType) {
-            case PropertyType.LONG:
+            case ScalarType.LONG:
                 currentValue = valueFactory.createValue(-currentValue.getLong());
                 break;
-            case PropertyType.DOUBLE:
+            case ScalarType.DOUBLE:
                 currentValue = valueFactory.createValue(-currentValue.getDouble());
                 break;
-            case PropertyType.BOOLEAN:
+            case ScalarType.BOOLEAN:
                 currentValue = valueFactory.createValue(!currentValue.getBoolean());
                 break;
-            case PropertyType.DECIMAL:
+            case ScalarType.DECIMAL:
                 currentValue = valueFactory.createValue(currentValue.getDecimal().negate());
                 break;
             default:
@@ -487,7 +487,7 @@ public class SQL2Parser {
                 throw getSyntaxError("literal");
             }
             LiteralImpl literal = (LiteralImpl) op;
-            Value value = literal.getLiteralValue();
+            ScalarImpl value = literal.getLiteralValue();
             read("AS");
             value = parseCastAs(value);
             read(")");
@@ -505,11 +505,11 @@ public class SQL2Parser {
      * @param value the original value
      * @return the literal
      */
-    private LiteralImpl getUncastLiteral(Value value) throws ParseException {
+    private LiteralImpl getUncastLiteral(ScalarImpl value) throws ParseException {
         return factory.literal(value);
     }
 
-    private Value parseCastAs(Value value) throws ParseException {
+    private ScalarImpl parseCastAs(ScalarImpl value) throws ParseException {
         if (readIf("STRING")) {
             return valueFactory.createValue(value.getString());
         } else if (readIf("BINARY")) {
@@ -525,15 +525,15 @@ public class SQL2Parser {
         } else if (readIf("BOOLEAN")) {
             return valueFactory.createValue(value.getBoolean());
         } else if (readIf("NAME")) {
-            return valueFactory.createValue(value.getString(), PropertyType.NAME);
+            return valueFactory.createValue(value.getString(), ScalarType.NAME);
         } else if (readIf("PATH")) {
-            return valueFactory.createValue(value.getString(), PropertyType.PATH);
+            return valueFactory.createValue(value.getString(), ScalarType.PATH);
         } else if (readIf("REFERENCE")) {
-            return valueFactory.createValue(value.getString(), PropertyType.REFERENCE);
+            return valueFactory.createValue(value.getString(), ScalarType.REFERENCE);
         } else if (readIf("WEAKREFERENCE")) {
-            return valueFactory.createValue(value.getString(), PropertyType.WEAKREFERENCE);
+            return valueFactory.createValue(value.getString(), ScalarType.WEAKREFERENCE);
         } else if (readIf("URI")) {
-            return valueFactory.createValue(value.getString(), PropertyType.URI);
+            return valueFactory.createValue(value.getString(), ScalarType.URI);
         } else {
             throw getSyntaxError("data type (STRING|BINARY|...)");
         }
@@ -654,11 +654,11 @@ public class SQL2Parser {
         return s;
     }
 
-    private Value readString() throws ParseException {
+    private ScalarImpl readString() throws ParseException {
         if (currentTokenType != VALUE) {
             throw getSyntaxError("string value");
         }
-        Value value = currentValue;
+        ScalarImpl value = currentValue;
         read();
         return value;
     }

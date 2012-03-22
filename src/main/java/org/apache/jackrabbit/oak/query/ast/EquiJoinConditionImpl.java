@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import org.apache.jackrabbit.oak.query.Value;
+import org.apache.jackrabbit.oak.query.ScalarImpl;
 import org.apache.jackrabbit.oak.query.index.Filter;
 
 public class EquiJoinConditionImpl extends JoinConditionImpl {
@@ -79,19 +79,19 @@ public class EquiJoinConditionImpl extends JoinConditionImpl {
 
     @Override
     public boolean evaluate() {
-        Value v1 = selector1.currentProperty(property1Name);
+        ScalarImpl v1 = selector1.currentProperty(property1Name);
         if (v1 == null) {
             return false;
         }
         // TODO data type mapping
-        Value v2 = selector2.currentProperty(property2Name);
+        ScalarImpl v2 = selector2.currentProperty(property2Name);
         return v2 != null && v1.equals(v2);
     }
 
     @Override
     public void apply(Filter f) {
-        Value v1 = selector1.currentProperty(property1Name);
-        Value v2 = selector2.currentProperty(property2Name);
+        ScalarImpl v1 = selector1.currentProperty(property1Name);
+        ScalarImpl v2 = selector2.currentProperty(property2Name);
         if (f.getSelector() == selector1 && v2 != null) {
             f.restrictProperty(property1Name, Operator.EQUAL, v2);
         }
