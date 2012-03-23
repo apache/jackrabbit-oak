@@ -29,6 +29,7 @@ import javax.jcr.NamespaceRegistry;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Workspace;
 import javax.jcr.lock.LockManager;
 import javax.jcr.nodetype.NodeTypeManager;
@@ -140,7 +141,7 @@ public class WorkspaceImpl implements Workspace {
         getOakSession().checkIsAlive();
 
         // TODO
-        return null;
+        throw new UnsupportedRepositoryOperationException();
     }
 
     @Override
@@ -149,7 +150,7 @@ public class WorkspaceImpl implements Workspace {
         getOakSession().checkIsAlive();
 
         // TODO
-        return null;
+        throw new UnsupportedRepositoryOperationException();
     }
 
     @Override
@@ -158,7 +159,7 @@ public class WorkspaceImpl implements Workspace {
         getOakSession().checkSupportedOption(Repository.OPTION_VERSIONING_SUPPORTED);
 
         // TODO
-        return null;
+        throw new UnsupportedRepositoryOperationException();
     }
 
     @Override
