@@ -45,16 +45,16 @@ public final class ValueConverter {
     public static Scalar toScalar(Value value) throws RepositoryException {
         switch (value.getType()) {
             case PropertyType.STRING: {
-                return ScalarImpl.createString(value.getString());
+                return ScalarImpl.stringScalar(value.getString());
             }
             case PropertyType.DOUBLE: {
-                return ScalarImpl.createDouble(value.getDouble());
+                return ScalarImpl.doubleScalar(value.getDouble());
             }
             case PropertyType.LONG: {
-                return ScalarImpl.createLong(value.getLong());
+                return ScalarImpl.longScalar(value.getLong());
             }
             case PropertyType.BOOLEAN: {
-                return ScalarImpl.createBoolean(value.getBoolean());
+                return ScalarImpl.booleanScalar(value.getBoolean());
             }
             case PropertyType.DECIMAL:
             case PropertyType.BINARY:

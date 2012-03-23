@@ -269,11 +269,11 @@ public class TransientNodeState {
     private static Scalar toScalar(JsonValue value) {
         switch (value.type()) {
             case STRING:
-                return ScalarImpl.createString(value.asAtom().value());
+                return ScalarImpl.stringScalar(value.asAtom().value());
             case NUMBER:
-                return ScalarImpl.createNumber(value.asAtom().value());
+                return ScalarImpl.numberScalar(value.asAtom().value());
             case BOOLEAN:
-                return ScalarImpl.createBoolean(value.asAtom().isTrue());
+                return ScalarImpl.booleanScalar(value.asAtom().isTrue());
             default:
                 throw new IllegalStateException("Invalid value");
         }
