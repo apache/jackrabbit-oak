@@ -877,7 +877,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
     @Test
     public void setStringProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
-        addProperty(parentNode, "string", getSession().getValueFactory().createValue("string value"));
+        addProperty(parentNode, "string", getSession().getValueFactory().createValue("string \" value"));
 
         Property property = parentNode.getProperty("string");
         property.setValue("new value");

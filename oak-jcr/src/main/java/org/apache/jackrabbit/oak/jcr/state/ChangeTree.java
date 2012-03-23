@@ -272,17 +272,7 @@ public class ChangeTree {
                     new Function1<Entry<String, JsonValue>, PropertyState>() {
                         @Override
                         public PropertyState apply(final Entry<String, JsonValue> entry) {
-                            return new PropertyState() {
-                                @Override
-                                public String getName() {
-                                    return entry.getKey();
-                                }
-
-                                @Override
-                                public String getEncodedValue() {
-                                    return entry.getValue().toJson();
-                                }
-                            };
+                            return TransientNodeState.createPropertyState(entry.getKey(), entry.getValue());
                         }
                     });
         }

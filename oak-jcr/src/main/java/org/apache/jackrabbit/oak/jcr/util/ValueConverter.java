@@ -19,6 +19,8 @@
 
 package org.apache.jackrabbit.oak.jcr.util;
 
+import org.apache.jackrabbit.ScalarImpl;
+import org.apache.jackrabbit.oak.api.Scalar;
 import org.apache.jackrabbit.oak.jcr.json.JsonValue;
 import org.apache.jackrabbit.oak.jcr.json.JsonValue.JsonArray;
 import org.apache.jackrabbit.oak.jcr.json.JsonValue.JsonAtom;
@@ -40,6 +42,34 @@ import java.util.List;
 public final class ValueConverter {
     private ValueConverter() {}
 
+    public static Scalar toScalar(Value value) throws RepositoryException {
+        switch (value.getType()) {
+            case PropertyType.STRING: {
+                return ScalarImpl.createString(value.getString());
+            }
+            case PropertyType.DOUBLE: {
+                return ScalarImpl.createDouble(value.getDouble());
+            }
+            case PropertyType.LONG: {
+                return ScalarImpl.createLong(value.getLong());
+            }
+            case PropertyType.BOOLEAN: {
+                return ScalarImpl.createBoolean(value.getBoolean());
+            }
+            case PropertyType.DECIMAL:
+            case PropertyType.BINARY:
+            case PropertyType.DATE:
+            case PropertyType.NAME:
+            case PropertyType.PATH:
+            case PropertyType.REFERENCE:
+            case PropertyType.WEAKREFERENCE:
+            case PropertyType.URI:
+            default: {
+                throw new UnsupportedRepositoryOperationException("toScalar"); // todo implement toScalar
+            }
+        }
+    }
+    
     public static JsonValue toJsonValue(Value value) throws RepositoryException {
         switch (value.getType()) {
             case PropertyType.STRING: {
@@ -80,6 +110,34 @@ public final class ValueConverter {
         return new JsonArray(jsonValues);
     }
 
+    public static Value toValue(ValueFactory valueFactory, Scalar scalar)
+            throws UnsupportedRepositoryOperationException {
+
+        switch (scalar.getType()) {
+            case Scalar.BOOLEAN:
+                return valueFactory.createValue(scalar.getBoolean());
+            case Scalar.LONG:
+                return valueFactory.createValue(scalar.getLong());
+            case Scalar.DOUBLE:
+                return valueFactory.createValue(scalar.getDouble());
+            case Scalar.STRING:
+                return valueFactory.createValue(scalar.getString());
+            default:
+                throw new UnsupportedRepositoryOperationException("toValue"); // todo implement toValue
+        }
+    }
+
+    public static Value[] toValues(ValueFactory valueFactory, List<Scalar> scalars)
+            throws UnsupportedRepositoryOperationException {
+
+        Value[] values = new Value[scalars.size()];
+        int k = 0;
+        for (Scalar scalar : scalars) {
+            values[k++] = toValue(valueFactory, scalar);
+        }
+        return values;
+    }
+
     public static Value toValue(ValueFactory valueFactory, JsonAtom jsonAtom) {
         switch (jsonAtom.type()) {
             case STRING: {
@@ -116,4 +174,5 @@ public final class ValueConverter {
         }
         return values;
     }
+
 }

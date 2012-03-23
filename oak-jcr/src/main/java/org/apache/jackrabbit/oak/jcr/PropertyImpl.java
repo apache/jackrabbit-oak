@@ -16,11 +16,12 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import org.apache.jackrabbit.oak.jcr.json.JsonValue;
+import org.apache.jackrabbit.mk.model.PropertyState;
 import org.apache.jackrabbit.oak.jcr.state.TransientNodeState;
 import org.apache.jackrabbit.oak.jcr.util.LogUtil;
 import org.apache.jackrabbit.oak.jcr.util.Path;
 import org.apache.jackrabbit.oak.jcr.util.ValueConverter;
+import org.apache.jackrabbit.oak.kernel.KernelPropertyState;
 import org.apache.jackrabbit.value.ValueHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,8 +53,7 @@ public class PropertyImpl extends ItemImpl implements Property {
     private static final Logger log = LoggerFactory.getLogger(PropertyImpl.class);
 
     private final TransientNodeState parentState;
-    private final String name;
-    private final JsonValue value;
+    private final PropertyState state;
 
     static Property create(SessionContext<SessionImpl> sessionContext, Path path) throws PathNotFoundException,
             ItemNotFoundException {
@@ -64,12 +64,12 @@ public class PropertyImpl extends ItemImpl implements Property {
         }
 
         String name = path.getName();
-        JsonValue value = parentState.getPropertyValue(name);
-        return new PropertyImpl(sessionContext, parentState, name, value);
+        PropertyState state = parentState.getPropertyState(name);
+        return new PropertyImpl(sessionContext, parentState, state);
     }
 
-    static Property create(SessionContext<SessionImpl> sessionContext, TransientNodeState parentState, String name, JsonValue value) {
-        return new PropertyImpl(sessionContext, parentState, name, value);
+    static Property create(SessionContext<SessionImpl> sessionContext, TransientNodeState parentState, PropertyState state) {
+        return new PropertyImpl(sessionContext, parentState, state);
     }
 
     public static boolean exist(SessionContext<SessionImpl> sessionContext, Path path) {
@@ -77,11 +77,10 @@ public class PropertyImpl extends ItemImpl implements Property {
         return parentState != null && parentState.hasProperty(path.getName());
     }
 
-    private PropertyImpl(SessionContext<SessionImpl> sessionContext, TransientNodeState parentState, String name, JsonValue value) {
+    private PropertyImpl(SessionContext<SessionImpl> sessionContext, TransientNodeState parentState, PropertyState state) {
         super(sessionContext);
         this.parentState = parentState;
-        this.name = name;
-        this.value = value;
+        this.state = state;
     }
 
     //---------------------------------------------------------------< Item >---
@@ -98,7 +97,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @Override
     public String getName() throws RepositoryException {
-        return name;
+        return state.getName();
     }
 
     /**
@@ -106,7 +105,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @Override
     public String getPath() throws RepositoryException {
-        return parentState.getPath().concat(name).toJcrPath();
+        return parentState.getPath().concat(state.getName()).toJcrPath();
     }
 
     /**
@@ -142,7 +141,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @Override
     public boolean isNew() {
-        return parentState.isPropertyNew(name);
+        return parentState.isPropertyNew(state.getName());
     }
 
     /**
@@ -150,7 +149,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @Override
     public boolean isModified() {
-        return parentState.isPropertyModified(name);
+        return parentState.isPropertyModified(state.getName());
     }
 
     /**
@@ -158,7 +157,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @Override
     public void remove() throws RepositoryException {
-        parentState.removeProperty(name);
+        parentState.removeProperty(state.getName());
     }
 
     /**
@@ -359,7 +358,7 @@ public class PropertyImpl extends ItemImpl implements Property {
             throw new ValueFormatException(LogUtil.safeGetJCRPath(this) + " is multi-valued.");
         }
 
-        return ValueConverter.toValue(getValueFactory(), value.asAtom());
+        return ValueConverter.toValue(getValueFactory(), ((KernelPropertyState) state).getValue());  // fixme don't cast
     }
 
     @Override
@@ -369,7 +368,7 @@ public class PropertyImpl extends ItemImpl implements Property {
             throw new ValueFormatException(LogUtil.safeGetJCRPath(this) + " is not multi-valued.");
         }
 
-        return ValueConverter.toValue(getValueFactory(), value.asArray());
+        return ValueConverter.toValues(getValueFactory(), ((KernelPropertyState) state).getValues()); // fixme don't cast
     }
 
     /**
@@ -544,7 +543,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @Override
     public boolean isMultiple() throws RepositoryException {
-        return value.isArray();
+        return ((KernelPropertyState) state).isMultiValues();  // fixme don't cast
     }
 
     //------------------------------------------------------------< private >---
@@ -584,7 +583,7 @@ public class PropertyImpl extends ItemImpl implements Property {
             remove();
         }
         else {
-            parentState.setProperty(name, ValueConverter.toJsonValue(value));
+            parentState.setProperty(state.getName(), ValueConverter.toJsonValue(value));
         }
     }
 
@@ -600,11 +599,11 @@ public class PropertyImpl extends ItemImpl implements Property {
             throw new IllegalArgumentException("Property type of a value cannot be undefined (" + LogUtil.safeGetJCRPath(this) + ").");
         }
 
-        if (value == null) {
+        if (values == null) {
             remove();
         }
         else {
-            parentState.setProperty(name, ValueConverter.toJsonValue(values));
+            parentState.setProperty(state.getName(), ValueConverter.toJsonValue(values));
         }
     }
 

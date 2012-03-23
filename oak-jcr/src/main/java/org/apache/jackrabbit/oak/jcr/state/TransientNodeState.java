@@ -19,9 +19,11 @@
 
 package org.apache.jackrabbit.oak.jcr.state;
 
+import org.apache.jackrabbit.ScalarImpl;
 import org.apache.jackrabbit.mk.model.ChildNodeEntry;
 import org.apache.jackrabbit.mk.model.NodeState;
 import org.apache.jackrabbit.mk.model.PropertyState;
+import org.apache.jackrabbit.oak.api.Scalar;
 import org.apache.jackrabbit.oak.jcr.SessionContext;
 import org.apache.jackrabbit.oak.jcr.SessionImpl;
 import org.apache.jackrabbit.oak.jcr.json.FullJsonParser;
@@ -36,11 +38,14 @@ import org.apache.jackrabbit.oak.jcr.util.PagedIterator;
 import org.apache.jackrabbit.oak.jcr.util.Path;
 import org.apache.jackrabbit.oak.jcr.util.Predicate;
 import org.apache.jackrabbit.oak.kernel.KernelNodeState;
+import org.apache.jackrabbit.oak.kernel.KernelPropertyState;
 
 import javax.jcr.ItemExistsException;
 import javax.jcr.ItemNotFoundException;
 import javax.jcr.PathNotFoundException;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 import static org.apache.jackrabbit.oak.jcr.util.Iterators.toIterable;
 
@@ -233,6 +238,45 @@ public class TransientNodeState {
         }
 
         return value;
+    }
+
+    public PropertyState getPropertyState(String name) throws ItemNotFoundException {
+        JsonValue value = getPropertyValueOrNull(name);
+        if (value == null) {
+            throw new ItemNotFoundException(name);
+        }
+
+        return createPropertyState(name, value);
+    }
+
+    public static PropertyState createPropertyState(String name, JsonValue value) {
+        switch (value.type()) {
+            case STRING:
+            case NUMBER:
+            case BOOLEAN:
+                return new KernelPropertyState(name, toScalar(value));
+            case ARRAY:
+                List<Scalar> values = new ArrayList<Scalar>();
+                for (JsonValue v : value.asArray().value()) {
+                    values.add(toScalar(v));
+                }
+                return new KernelPropertyState(name, values);
+            default:
+                throw new IllegalStateException("Invalid value");
+        }
+    }
+
+    private static Scalar toScalar(JsonValue value) {
+        switch (value.type()) {
+            case STRING:
+                return ScalarImpl.createString(value.asAtom().value());
+            case NUMBER:
+                return ScalarImpl.createNumber(value.asAtom().value());
+            case BOOLEAN:
+                return ScalarImpl.createBoolean(value.asAtom().isTrue());
+            default:
+                throw new IllegalStateException("Invalid value");
+        }
     }
 
     /**
