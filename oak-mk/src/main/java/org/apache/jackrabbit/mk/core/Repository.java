@@ -21,11 +21,13 @@ import java.io.File;
 
 import org.apache.jackrabbit.mk.blobs.BlobStore;
 import org.apache.jackrabbit.mk.blobs.FileBlobStore;
+import org.apache.jackrabbit.mk.blobs.MemoryBlobStore;
 import org.apache.jackrabbit.mk.model.CommitBuilder;
 import org.apache.jackrabbit.mk.model.Id;
 import org.apache.jackrabbit.mk.model.NodeState;
 import org.apache.jackrabbit.mk.model.StoredCommit;
 import org.apache.jackrabbit.mk.persistence.H2Persistence;
+import org.apache.jackrabbit.mk.persistence.InMemPersistence;
 import org.apache.jackrabbit.mk.store.DefaultRevisionStore;
 import org.apache.jackrabbit.mk.store.NotFoundException;
 import org.apache.jackrabbit.mk.store.RevisionStore;
@@ -51,13 +53,34 @@ public class Repository {
     /**
      * Alternate constructor, used for testing.
      * 
-     * @param rs revision store, already initialized
+     * @param rs revision store
+     * @param bs blob store
      */
     public Repository(RevisionStore rs, BlobStore bs) {
         this.homeDir = null;
         this.rs = rs;
         this.bs = bs;
 
+        initialized = true;
+    }
+
+    /**
+     * Argument-less constructor, used for in-memory kernel.
+     */
+    protected Repository() {
+        this.homeDir = null;
+        
+        DefaultRevisionStore rs = new DefaultRevisionStore(new InMemPersistence());
+        
+        try {
+            rs.initialize();
+        } catch (Exception e) {
+            /* Not plausible for in-memory operation */
+            throw new InternalError("Unable to initialize in-memory store");
+        }
+        this.rs = rs;
+        this.bs = new MemoryBlobStore();
+        
         initialized = true;
     }
     
