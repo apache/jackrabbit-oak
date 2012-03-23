@@ -10,50 +10,54 @@ import java.util.concurrent.Callable;
 public abstract class ScalarImpl implements Scalar {
     private final int type;
 
-    public static Scalar createNumber(String value) {
+    public static Scalar numberScalar(String value) {
         // todo improve
         try {
-            return createLong(Long.parseLong(value));
+            return longScalar(Long.parseLong(value));
         }
         catch (NumberFormatException e) {
-            return createDouble(Double.parseDouble(value));
+            return doubleScalar(Double.parseDouble(value));
         }
     }
 
-    public static Scalar createBoolean(final boolean value) {
+    public static Scalar booleanScalar(final boolean value) {
         return value ? TRUE_SCALAR : FALSE_SCALAR;
     }
     
-    public static Scalar createLong(final long value) {
+    public static Scalar longScalar(final long value) {
         return new LongScalar(value);
     }
+
+    public static Scalar nullScalar() {
+        return NULL_SCALAR;
+    }
     
-    public static Scalar createDouble(final double value) {
+    public static Scalar doubleScalar(final double value) {
         return new DoubleScalar(value);
     }
     
-    public static Scalar createString(final String value) {
+    public static Scalar stringScalar(final String value) {
         if (value == null) {
             throw new IllegalArgumentException("Value must not be null");
         }
         return new StringScalar(value);
     }
     
-    public static Scalar createBinary(final String value) {
+    public static Scalar binaryScalar(final String value) {
         if (value == null) {
             throw new IllegalArgumentException("Value must not be null");
         }
         return new SmallBinaryScalar(value);
     }
     
-    public static Scalar createBinary(final Callable<InputStream> valueProvider) {
+    public static Scalar binaryScalar(final Callable<InputStream> valueProvider) {
         if (valueProvider == null) {
             throw new IllegalArgumentException("Value must not be null");
         }
         return new BinaryScalar(valueProvider);
     }
 
-    protected ScalarImpl(int type) {
+    private ScalarImpl(int type) {
         this.type = type;
     }
 
@@ -131,6 +135,29 @@ public abstract class ScalarImpl implements Scalar {
         @Override
         public int hashCode() {
             return (value ? 1 : 0);
+        }
+    }
+
+    private static final NullScalar NULL_SCALAR = new NullScalar();
+
+    private static final class NullScalar extends ScalarImpl {
+        protected NullScalar() {
+            super(Scalar.NULL);
+        }
+
+        @Override
+        public String getString() {
+            return "null";
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            return this == other || other != null && getClass() == other.getClass();
+        }
+
+        @Override
+        public int hashCode() {
+            return 42;
         }
     }
 
@@ -270,7 +297,7 @@ public abstract class ScalarImpl implements Scalar {
         }
     }
 
-    private static class BinaryScalar extends ScalarImpl {
+    private static final class BinaryScalar extends ScalarImpl {
         private final Callable<InputStream> valueProvider;
 
         public BinaryScalar(Callable<InputStream> valueProvider) {
@@ -311,4 +338,5 @@ public abstract class ScalarImpl implements Scalar {
             return getString().hashCode();
         }
     }
+     
 }
