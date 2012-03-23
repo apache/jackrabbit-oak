@@ -27,8 +27,9 @@ public interface Scalar {
     int DOUBLE = 2;
     int BINARY = 3;
     int STRING = 4;
+    int NULL = 5;
     
-    String[] typeNames = {"boolean", "long", "double", "binary", "string"};
+    String[] typeNames = {"boolean", "long", "double", "binary", "string", "null"};
 
     /**
      * Returns the value type.

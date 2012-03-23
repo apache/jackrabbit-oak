@@ -89,16 +89,16 @@ public class KernelNodeState extends AbstractNodeState { // fixme make package p
                             kernel, childPath, revision));
                 } else if (reader.matches(JsopTokenizer.NUMBER)) {
                     properties.put(name, new KernelPropertyState(
-                            name, ScalarImpl.createNumber(reader.getToken())));
+                            name, ScalarImpl.numberScalar(reader.getToken())));
                 } else if (reader.matches(JsopTokenizer.STRING)) {
                     properties.put(name, new KernelPropertyState(
-                            name, ScalarImpl.createString(reader.getToken())));
+                            name, ScalarImpl.stringScalar(reader.getToken())));
                 } else if (reader.matches(JsopTokenizer.TRUE)) {
                     properties.put(name, new KernelPropertyState(
-                            name, ScalarImpl.createBoolean(true)));
+                            name, ScalarImpl.booleanScalar(true)));
                 } else if (reader.matches(JsopTokenizer.FALSE)) {
                     properties.put(name, new KernelPropertyState(
-                            name, ScalarImpl.createBoolean(false)));
+                            name, ScalarImpl.booleanScalar(false)));
                 } else if (reader.matches('[')) {
                     properties.put(name, new KernelPropertyState(
                             name, readArray(reader)));
@@ -218,13 +218,13 @@ public class KernelNodeState extends AbstractNodeState { // fixme make package p
         List<Scalar> values = new ArrayList<Scalar>();
         while (!reader.matches(']')) {
             if (reader.matches(JsopTokenizer.NUMBER)) {
-                values.add(ScalarImpl.createNumber(reader.getToken()));
+                values.add(ScalarImpl.numberScalar(reader.getToken()));
             } else if (reader.matches(JsopTokenizer.STRING)) {
-                values.add(ScalarImpl.createString(reader.getToken()));
+                values.add(ScalarImpl.stringScalar(reader.getToken()));
             } else if (reader.matches(JsopTokenizer.TRUE)) {
-                values.add(ScalarImpl.createBoolean(true));
+                values.add(ScalarImpl.booleanScalar(true));
             } else if (reader.matches(JsopTokenizer.FALSE)) {
-                values.add(ScalarImpl.createBoolean(false));
+                values.add(ScalarImpl.booleanScalar(false));
             } else {
                 throw new IllegalArgumentException("Unexpected token: " + reader.getToken());
             }
