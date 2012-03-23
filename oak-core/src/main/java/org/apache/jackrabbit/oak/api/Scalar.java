@@ -22,23 +22,15 @@ import java.io.InputStream;
  * An immutable, typed scalar value.
  */
 public interface Scalar {
-    int BOOLEAN = 0;
-    int LONG = 1;
-    int DOUBLE = 2;
-    int BINARY = 3;
-    int STRING = 4;
-    int NULL = 5;
-    
-    String[] typeNames = {"boolean", "long", "double", "binary", "string", "null"};
+    enum Type {BOOLEAN, LONG, DOUBLE, BINARY, STRING, NULL}
 
     /**
      * Returns the value type.
      * <p>
-     * TODO: Define value types
      *
      * @return value type
      */
-    int getType();
+    Type getType();
 
     boolean getBoolean();
 
