@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.jcr.state;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
-import org.apache.jackrabbit.oak.jcr.json.JsonValue;
+import org.apache.jackrabbit.mk.model.PropertyState;
 import org.apache.jackrabbit.oak.jcr.state.ChangeTree.Listener;
 import org.apache.jackrabbit.oak.jcr.state.ChangeTree.NodeDelta;
 import org.apache.jackrabbit.oak.jcr.util.Path;
@@ -56,9 +56,15 @@ public class TransientSpace {
         }
 
         @Override
-        public void setValue(NodeDelta parent, String name, JsonValue value) {
-            changeLog.setProperty(parent.getPath(), name, value);
+        public void setProperty(NodeDelta parent, PropertyState state) {
+            changeLog.setProperty(parent.getPath(), state);
         }
+
+        @Override
+        public void removeProperty(NodeDelta parent, String name) {
+            changeLog.removeProperty(parent.getPath(), name);
+        }
+
     };
 
     private ChangeTree changeTree;

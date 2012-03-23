@@ -26,11 +26,6 @@ import org.apache.jackrabbit.mk.model.PropertyState;
 import org.apache.jackrabbit.oak.api.Scalar;
 import org.apache.jackrabbit.oak.jcr.SessionContext;
 import org.apache.jackrabbit.oak.jcr.SessionImpl;
-import org.apache.jackrabbit.oak.jcr.json.FullJsonParser;
-import org.apache.jackrabbit.oak.jcr.json.JsonValue;
-import org.apache.jackrabbit.oak.jcr.json.JsonValue.JsonAtom;
-import org.apache.jackrabbit.oak.jcr.json.JsonValue.Type;
-import org.apache.jackrabbit.oak.jcr.json.UnescapingJsonTokenizer;
 import org.apache.jackrabbit.oak.jcr.state.ChangeTree.NodeDelta;
 import org.apache.jackrabbit.oak.jcr.util.Function1;
 import org.apache.jackrabbit.oak.jcr.util.Iterators;
@@ -43,7 +38,6 @@ import org.apache.jackrabbit.oak.kernel.KernelPropertyState;
 import javax.jcr.ItemExistsException;
 import javax.jcr.ItemNotFoundException;
 import javax.jcr.PathNotFoundException;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -144,11 +138,28 @@ public class TransientNodeState {
     /**
      * Transiently set a property.
      * @param name  Name of the property.
-     * @param value  Value of the property. Use {@code null} or {@code JsonAtom.NULL}
+     * @param value  Value of the property.
      *               to remove the property.
      */
-    public void setProperty(String name, JsonValue value) {
+    public void setProperty(String name, Scalar value) {
         getNodeDelta().setValue(name, value);
+    }
+
+    /**
+     * Transiently set a property.
+     * @param name  Name of the property.
+     * @param values  Values of the property.
+     */
+    public void setProperty(String name, List<Scalar> values) {
+        getNodeDelta().setValue(name, values);
+    }
+
+    /**
+     * Transiently remove a property.
+     * @param name  name of the property to remove.
+     */
+    public void removeProperty(String name) {
+        getNodeDelta().setValue(name, (Scalar) null);
     }
 
     /**
@@ -163,12 +174,12 @@ public class TransientNodeState {
      */
     public Iterator<TransientNodeState> getNodes() {
         Iterator<? extends ChildNodeEntry> persistedEntries = Iterators.flatten(
-            new PagedIterator<ChildNodeEntry>(BATCH_SIZE) {
-                @Override
-                protected Iterator<? extends ChildNodeEntry> getPage(long pos, int size) {
-                    return getPersistentNodeState().getChildNodeEntries(pos, size).iterator();
-                }
-            });
+                new PagedIterator<ChildNodeEntry>(BATCH_SIZE) {
+                    @Override
+                    protected Iterator<? extends ChildNodeEntry> getPage(long pos, int size) {
+                        return getPersistentNodeState().getChildNodeEntries(pos, size).iterator();
+                    }
+                });
 
         final NodeDelta delta = getNodeDelta();
 
@@ -228,55 +239,16 @@ public class TransientNodeState {
 
     /**
      * @param name  name of the property
-     * @return  value of the property named {@code name}.
+     * @return  state of the property named {@code name}.
      * @throws javax.jcr.ItemNotFoundException  if no such property exists.
      */
-    public JsonValue getPropertyValue(String name) throws ItemNotFoundException {
-        JsonValue value = getPropertyValueOrNull(name);
-        if (value == null) {
-            throw new ItemNotFoundException(name);
-        }
-
-        return value;
-    }
-
     public PropertyState getPropertyState(String name) throws ItemNotFoundException {
-        JsonValue value = getPropertyValueOrNull(name);
-        if (value == null) {
+        PropertyState state = getPropertyStateOrNull(name);
+        if (state == null) {
             throw new ItemNotFoundException(name);
         }
 
-        return createPropertyState(name, value);
-    }
-
-    public static PropertyState createPropertyState(String name, JsonValue value) {
-        switch (value.type()) {
-            case STRING:
-            case NUMBER:
-            case BOOLEAN:
-                return new KernelPropertyState(name, toScalar(value));
-            case ARRAY:
-                List<Scalar> values = new ArrayList<Scalar>();
-                for (JsonValue v : value.asArray().value()) {
-                    values.add(toScalar(v));
-                }
-                return new KernelPropertyState(name, values);
-            default:
-                throw new IllegalStateException("Invalid value");
-        }
-    }
-
-    private static Scalar toScalar(JsonValue value) {
-        switch (value.type()) {
-            case STRING:
-                return ScalarImpl.stringScalar(value.asAtom().value());
-            case NUMBER:
-                return ScalarImpl.numberScalar(value.asAtom().value());
-            case BOOLEAN:
-                return ScalarImpl.booleanScalar(value.asAtom().isTrue());
-            default:
-                throw new IllegalStateException("Invalid value");
-        }
+        return state;
     }
 
     /**
@@ -284,7 +256,7 @@ public class TransientNodeState {
      * @return {@code true} iff this instance has a property name {@code name}.
      */
     public boolean hasProperty(String name) {
-        return getPropertyValueOrNull(name) != null;
+        return getPropertyStateOrNull(name) != null;
     }
 
     /**
@@ -292,8 +264,18 @@ public class TransientNodeState {
      * @return {@code true} iff the property named {@code name} has been transiently added.
      */
     public boolean isPropertyNew(String name) {
-        JsonValue value = getNodeDelta().getPropertyValue(name);
-        return value != null && !value.isNull() && getPersistedPropertyValue(name) == null;
+        KernelPropertyState state = (KernelPropertyState) getNodeDelta().getPropertyState(name);  // fixme don't cast
+        if (state == null) {
+            return false;
+        }
+
+        if (state.isMultiValued()) {
+            return true;
+        }
+        else {
+            Scalar value = state.getValue();
+            return !value.equals(ScalarImpl.nullScalar()) && getPersistedPropertyState(name) == null;
+        }
     }
 
     /**
@@ -302,14 +284,6 @@ public class TransientNodeState {
      */
     public boolean isPropertyModified(String name) {
         return getNodeDelta().hasProperty(name);
-    }
-
-    /**
-     * Transiently remove a property.
-     * @param name  name of the property to remove.
-     */
-    public void removeProperty(String name) {
-        getNodeDelta().setValue(name, null);
     }
 
     @Override
@@ -327,40 +301,26 @@ public class TransientNodeState {
         return getNodeStateProvider().getNodeState(nodeDelta);
     }
 
-    private JsonValue getPropertyValueOrNull(String name) {
-        JsonValue value = getNodeDelta().getPropertyValue(name);
-        if (value == null) {
-            return getPersistedPropertyValue(name);
+    private PropertyState getPropertyStateOrNull(String name) {
+        KernelPropertyState state = (KernelPropertyState) getNodeDelta().getPropertyState(name);  // fixme don't cast
+        if (state == null) {
+            return getPersistedPropertyState(name);
         }
         else {
-            return value == JsonAtom.NULL ? null : value;
+            if (state.isMultiValued()) {
+                return state;
+            }
+            else {
+                Scalar value = state.getValue();
+                return value.equals(ScalarImpl.nullScalar())
+                    ? null
+                    : state;
+            }
         }
     }
 
-    private JsonValue getPersistedPropertyValue(String name) {
-        PropertyState state = getPersistentNodeState().getProperty(name);
-        if (state == null) {
-            return null;
-        }
-        else {
-            // fixme: use Scalar class
-            String v = state.getEncodedValue();
-            if (v.startsWith("[")) {
-                return FullJsonParser.parseArray(new UnescapingJsonTokenizer(v));
-            }
-            else if (v.startsWith("\"")) {
-                return new JsonAtom(v.substring(1, v.length() - 1), Type.STRING);
-            }
-            else if ("true".equalsIgnoreCase(v)) {
-                return JsonAtom.TRUE;
-            }
-            else if ("false".equalsIgnoreCase(v)) {
-                return JsonAtom.FALSE;
-            }
-            else {
-                return new JsonAtom(v, Type.NUMBER);
-            }
-        }
+    private PropertyState getPersistedPropertyState(String name) {
+        return getPersistentNodeState().getProperty(name);
     }
 
     private synchronized NodeState getPersistentNodeState() {

@@ -19,9 +19,10 @@
 
 package org.apache.jackrabbit.oak.jcr.state;
 
-import org.apache.jackrabbit.oak.jcr.json.JsonValue;
-import org.apache.jackrabbit.oak.jcr.json.JsonValue.JsonAtom;
+import org.apache.jackrabbit.ScalarImpl;
+import org.apache.jackrabbit.mk.model.PropertyState;
 import org.apache.jackrabbit.oak.jcr.util.Path;
+import org.apache.jackrabbit.oak.kernel.KernelPropertyState;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -79,14 +80,10 @@ public class ChangeLog {
     /**
      * Add a set property operation to this change log
      * @param parent  parent of the property
-     * @param name  name of the property
-     * @param value  value of the property
+     * @param state  state of the property
      */
-    public void setProperty(Path parent, String name, JsonValue value) {
-        if (value == null) {
-            value = JsonAtom.NULL;
-        }
-        addOperation(Operation.setProperty(parent, name, value));
+    public void setProperty(Path parent, PropertyState state) {
+        addOperation(Operation.setProperty(parent, state.getName(), state));
     }
 
     /**
@@ -95,7 +92,7 @@ public class ChangeLog {
      * @param name  name of the property
      */
     public void removeProperty(Path parent, String name) {
-        setProperty(parent, name, JsonAtom.NULL);
+        setProperty(parent, new KernelPropertyState(name, ScalarImpl.nullScalar()));
     }
 
     private void addOperation(Operation operation) {
@@ -290,24 +287,25 @@ public class ChangeLog {
      * The underlying abstraction models operations as a moves: remove
      * node is represented as move to {@code NIL} and add node and add
      * property are represented as move from {@code NIL}. Add property
-     * operations carry a value and the property names is disambiguated
-     * (leading star) in order to avoid conflicts with node names.
+     * operations carry the property state and the property names is
+     * disambiguated (leading star) in order to avoid conflicts with node
+     * names.
      */
     static final class Operation {
         public static final Operation ID = new Operation(NIL, NIL, null);
 
         private final Path from;
         private final Path to;
-        private final JsonValue value;
+        private final PropertyState state;
 
-        private Operation(Path from, Path to, JsonValue value) {
+        private Operation(Path from, Path to, PropertyState state) {
             if (from == null || to == null) {
                 throw new IllegalArgumentException("path is null");
             }
 
             this.from = from;
             this.to = to;
-            this.value = value;
+            this.state = state;
         }
 
         /**
@@ -355,11 +353,11 @@ public class ChangeLog {
          * Create a new set property operation.
          * @param parent  parent of the property
          * @param name  name of the property
-         * @param value  value of the property
+         * @param state  state of the property
          * @return  new set property operation
          */
-        public static Operation setProperty(Path parent, String name, JsonValue value) {
-            return new Operation(NIL, encodeProperty(parent, name), value);
+        public static Operation setProperty(Path parent, String name, PropertyState state) {
+            return new Operation(NIL, encodeProperty(parent, name), state);
         }
 
         /**
@@ -370,7 +368,7 @@ public class ChangeLog {
          * in both {@code from} and {@code to} of this operation.
          */
         public Operation move(Path source, Path target) {
-            return new Operation(subst(source, target, from), subst(source, target, to), value);
+            return new Operation(subst(source, target, from), subst(source, target, to), state);
         }
 
         /**
@@ -380,8 +378,8 @@ public class ChangeLog {
             if (from == NIL && to == NIL) {
                 return "";
             }
-            else if (value != null) {
-                return "^\"" + decodeProperty(to).toMkPath() + "\":" + value.toJson();
+            else if (state != null) {
+                return "^\"" + decodeProperty(to).toMkPath() + "\":" + state.getEncodedValue();
             }
             else if (from == NIL) {
                 return "+\"" + to.toMkPath() + "\":{}";
@@ -405,13 +403,13 @@ public class ChangeLog {
 
             Operation that = (Operation) other;
             return from.equals(that.from) && to.equals(that.to)
-                    && value == null ? that.value == null : value.equals(that.value);
+                    && state == null ? that.state == null : state.equals(that.state);
 
         }
 
         @Override
         public int hashCode() {
-            return 31 * (31 * from.hashCode() + to.hashCode()) + (value == null ? 0 : value.hashCode());
+            return 31 * (31 * from.hashCode() + to.hashCode()) + (state == null ? 0 : state.hashCode());
         }
 
         @Override
@@ -419,8 +417,8 @@ public class ChangeLog {
             if (from == NIL && to == NIL) {
                 return "ID";
             }
-            else if (value != null) {
-                return '^' + decodeProperty(to).toMkPath() + ':' + value.toJson();
+            else if (state != null) {
+                return '^' + decodeProperty(to).toMkPath() + ':' + state.getEncodedValue();
             }
             else if (from == NIL) {
                 return '+' + to.toMkPath() + ":{}";
@@ -440,6 +438,7 @@ public class ChangeLog {
         private static Path decodeProperty(Path path) {
             return path.getParent().concat(path.getName().substring(1));
         }
+
     }
 
     /**
@@ -579,7 +578,7 @@ public class ChangeLog {
             ops.remove(index);
             return index;
         }
-        else if (m.value != null && n.value != null && m.to.equals(n.to)) {
+        else if (m.state != null && n.state != null && m.to.equals(n.to)) {
             // set property absorption: ^a:x * ^a:y = ^a:y
             ops.remove(index);
             return index;
