@@ -60,6 +60,13 @@ public class MicroKernelImpl implements MicroKernel {
     }
     
     /**
+     * Argument-less constructor, used for in-memory kernel.
+     */
+    public MicroKernelImpl() {
+        this(new Repository());
+    }
+    
+    /**
      * Alternate constructor, used for testing.
      * 
      * @param rep repository, already initialized
