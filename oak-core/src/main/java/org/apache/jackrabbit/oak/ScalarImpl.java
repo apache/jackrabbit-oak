@@ -1,4 +1,4 @@
-package org.apache.jackrabbit;
+package org.apache.jackrabbit.oak;
 
 import org.apache.jackrabbit.oak.api.Scalar;
 

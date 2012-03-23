@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.ScalarImpl;
+import org.apache.jackrabbit.oak.ScalarImpl;
 import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
 import org.apache.jackrabbit.commons.iterator.PropertyIteratorAdapter;
 import org.apache.jackrabbit.mk.model.PropertyState;
