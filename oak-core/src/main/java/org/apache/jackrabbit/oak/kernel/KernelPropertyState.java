@@ -55,23 +55,13 @@ public class KernelPropertyState extends AbstractPropertyState { // fixme make p
             for (Scalar s : values) {
                 sb.append(sep);
                 sep = ",";
-                if (s.getType() == Scalar.STRING) {
-                    sb.append('"' + s.getString() + '"');
-                }
-                else {
-                    sb.append(s.getString());
-                }
+                sb.append(encodeValue(s));
             }
             sb.append(']');
             return sb.toString();
         }
         else {
-            if (value.getType() == Scalar.STRING) {
-                return '"' + value.getString() + '"';
-            }
-            else {
-                return value.getString();
-            }
+            return encodeValue(value);
         }
     }
 
@@ -85,5 +75,16 @@ public class KernelPropertyState extends AbstractPropertyState { // fixme make p
     
     public List<Scalar> getValues() {
         return values;
+    }
+    
+    //------------------------------------------------------------< private >--- 
+    
+    private static String encodeValue(Scalar value) {
+        if (value.getType() == Scalar.STRING) {
+            return '"' + value.getString() + '"';
+        }
+        else {
+            return value.getString();
+        }
     }
 }
