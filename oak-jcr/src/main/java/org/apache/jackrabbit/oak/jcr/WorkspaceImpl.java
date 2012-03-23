@@ -17,8 +17,8 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.json.JsopReader;
-import org.apache.jackrabbit.mk.json.JsopTokenizer;
+import org.apache.jackrabbit.mk.model.ChildNodeEntry;
+import org.apache.jackrabbit.oak.kernel.KernelNodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.ContentHandler;
@@ -165,26 +165,12 @@ public class WorkspaceImpl implements Workspace {
 
         MicroKernel microKernel = sessionContext.getMicrokernel();
         String revision = sessionContext.getRevision();
-        String json = microKernel.getNodes("/", revision, 0, 0, -1, null);
-
-        JsopReader reader = new JsopTokenizer(json);
-        reader.read('{');
+        KernelNodeState rootState = new KernelNodeState(microKernel, "/", revision);
         List<String> workspaces = new ArrayList<String>();
-        do {
-            String name = reader.readString();
-            reader.read(':');
-            if (name.startsWith(":")) {
-                reader.read();
-            } else if (reader.matches('{')) {
-                reader.read('}');
-                workspaces.add(name);
-            } else {
-                throw new IllegalArgumentException("Unexpected token: " + reader.getToken());
-            }
-        } while (reader.matches(','));
-        reader.read('}');
-        reader.read(JsopTokenizer.END);
-        
+        for (ChildNodeEntry entry : rootState.getChildNodeEntries(0, -1)) {
+            workspaces.add(entry.getName());
+        }
+
         return workspaces.toArray(new String[workspaces.size()]);
     }
 
