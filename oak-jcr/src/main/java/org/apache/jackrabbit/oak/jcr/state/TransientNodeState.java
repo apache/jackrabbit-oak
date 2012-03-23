@@ -142,7 +142,7 @@ public class TransientNodeState {
      *               to remove the property.
      */
     public void setProperty(String name, Scalar value) {
-        getNodeDelta().setValue(name, value);
+        getNodeDelta().setProperty(new KernelPropertyState(name, value));
     }
 
     /**
@@ -151,7 +151,7 @@ public class TransientNodeState {
      * @param values  Values of the property.
      */
     public void setProperty(String name, List<Scalar> values) {
-        getNodeDelta().setValue(name, values);
+        getNodeDelta().setProperty(new KernelPropertyState(name, values));
     }
 
     /**
@@ -159,7 +159,7 @@ public class TransientNodeState {
      * @param name  name of the property to remove.
      */
     public void removeProperty(String name) {
-        getNodeDelta().setValue(name, (Scalar) null);
+        getNodeDelta().removeProperty(name);
     }
 
     /**
@@ -270,7 +270,7 @@ public class TransientNodeState {
         }
 
         if (state.isMultiValued()) {
-            return true;
+            return getPersistedPropertyState(name) == null;
         }
         else {
             Scalar value = state.getValue();
