@@ -23,7 +23,6 @@ import org.apache.commons.collections.map.AbstractReferenceMap;
 import org.apache.commons.collections.map.ReferenceMap;
 import org.apache.jackrabbit.ScalarImpl;
 import org.apache.jackrabbit.mk.model.PropertyState;
-import org.apache.jackrabbit.oak.api.Scalar;
 import org.apache.jackrabbit.oak.jcr.util.Iterators;
 import org.apache.jackrabbit.oak.jcr.util.Path;
 import org.apache.jackrabbit.oak.jcr.util.Predicate;
@@ -34,7 +33,6 @@ import javax.jcr.ItemNotFoundException;
 import javax.jcr.PathNotFoundException;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 
 import static org.apache.jackrabbit.oak.jcr.util.Unchecked.cast;
@@ -333,40 +331,30 @@ public class ChangeTree {
         }
 
         /**
-         * Set the property with the given {@code name} to {@code value} or remove the
-         * property if {@code value} is {@code null}.
-         * @param name
-         * @param value
+         * Set the given property {@code state}
+         * @param state
          */
-        public void setValue(String name, Scalar value) {
-            if (value == null) {
-                value = ScalarImpl.nullScalar();
-            }
-
-            if (value.equals(ScalarImpl.nullScalar()) && properties.containsKey(name) &&
-                    !properties.get(name).equals(ScalarImpl.nullScalar())) {
-
-                properties.remove(name);
-                notifyRemoveProperty(this, name);
-            }
-            else {
-                KernelPropertyState state = new KernelPropertyState(name, value);
-                properties.put(name, state);
-                touch();
-                notifySetProperty(this, state);
-            }
+        public void setProperty(PropertyState state) {
+            properties.put(state.getName(), state);
+            touch();
+            notifySetProperty(this, state);
         }
 
         /**
-         * Set the property with the given {@code name} to {@code values}.
+         * Remove the property with the given {@code name}
          * @param name
-         * @param values
          */
-        public void setValue(String name, List<Scalar> values) {
-            KernelPropertyState state = new KernelPropertyState(name, values);
-            properties.put(name, state);
-            touch();
-            notifySetProperty(this, state);
+        public void removeProperty(String name)  {
+            KernelPropertyState state = (KernelPropertyState) properties.get(name);  // fixme don't cast
+            if (state != null && !state.isMultiValued() && !state.getValue().equals(ScalarImpl.nullScalar())) {
+                // remove transiently added property
+                properties.remove(name);
+            }
+            else {
+                // mark property as removed
+                properties.put(name, new KernelPropertyState(name, ScalarImpl.nullScalar()));
+                notifyRemoveProperty(this, name);
+            }
         }
 
         //------------------------------------------< internal >---
@@ -617,7 +605,12 @@ public class ChangeTree {
         }
 
         @Override
-        public void setValue(String name, Scalar value) {
+        public void removeProperty(String name) {
+            throw new IllegalStateException("Removed");
+        }
+
+        @Override
+        public void setProperty(PropertyState state) {
             throw new IllegalStateException("Removed");
         }
 
