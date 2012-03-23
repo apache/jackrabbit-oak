@@ -21,21 +21,21 @@ package org.apache.jackrabbit.oak.jcr.state;
 
 import org.apache.commons.collections.map.AbstractReferenceMap;
 import org.apache.commons.collections.map.ReferenceMap;
+import org.apache.jackrabbit.ScalarImpl;
 import org.apache.jackrabbit.mk.model.PropertyState;
-import org.apache.jackrabbit.oak.jcr.json.JsonValue;
-import org.apache.jackrabbit.oak.jcr.json.JsonValue.JsonAtom;
-import org.apache.jackrabbit.oak.jcr.util.Function1;
+import org.apache.jackrabbit.oak.api.Scalar;
 import org.apache.jackrabbit.oak.jcr.util.Iterators;
 import org.apache.jackrabbit.oak.jcr.util.Path;
 import org.apache.jackrabbit.oak.jcr.util.Predicate;
+import org.apache.jackrabbit.oak.kernel.KernelPropertyState;
 
 import javax.jcr.ItemExistsException;
 import javax.jcr.ItemNotFoundException;
 import javax.jcr.PathNotFoundException;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import static org.apache.jackrabbit.oak.jcr.util.Unchecked.cast;
 
@@ -67,7 +67,8 @@ public class ChangeTree {
         void added(NodeDelta nodeDelta);
         void removed(NodeDelta nodeDelta);
         void moved(Path source, NodeDelta nodeDelta);
-        void setValue(NodeDelta parent, String name, JsonValue value);
+        void setProperty(NodeDelta parent, PropertyState state);
+        void removeProperty(NodeDelta parent, String name);
     }
 
     /**
@@ -136,7 +137,7 @@ public class ChangeTree {
      */
     public abstract class NodeDelta {
         private final Map<String, NodeDelta> childNodes = new HashMap<String, NodeDelta>();
-        private final Map<String, JsonValue> properties = new HashMap<String, JsonValue>();
+        private final Map<String, PropertyState> properties = new HashMap<String, PropertyState>();
         protected NodeDelta parent;
         protected String name;
 
@@ -248,31 +249,22 @@ public class ChangeTree {
 
         /**
          * @param name
-         * @return  the value of the property with the given {@code name}, JSON {@code null} if the
-         * property has been removed or {@code null} if if does not exist.
+         * @return  the state of the property with the given {@code name} or
+         * {@code null} if if does not exist.
          */
-        public JsonValue getPropertyValue(String name) {
+        public PropertyState getPropertyState(String name) {
             return properties.get(name);
         }
 
         /**
-         * @return  an iterator for all added and modified properties.
+         * @return  an iterator for all added and modified property states.
          */
         public Iterator<PropertyState> getPropertyStates() {
-            Iterator<Entry<String, JsonValue>> entries =
-                Iterators.filter(properties.entrySet().iterator(),
-                        new Predicate<Entry<String, JsonValue>>() {
-                            @Override
-                            public boolean evaluate(Entry<String, JsonValue> entry) {
-                                return entry.getValue() != JsonAtom.NULL;
-                            }
-                        });
-
-            return Iterators.map(entries,
-                    new Function1<Entry<String, JsonValue>, PropertyState>() {
+            return Iterators.filter(properties.values().iterator(),
+                    new Predicate<PropertyState>() {
                         @Override
-                        public PropertyState apply(final Entry<String, JsonValue> entry) {
-                            return TransientNodeState.createPropertyState(entry.getKey(), entry.getValue());
+                        public boolean evaluate(PropertyState state) {
+                            return !((KernelPropertyState) state).getValue().equals(ScalarImpl.nullScalar());  // fixme don't cast
                         }
                     });
         }
@@ -342,23 +334,39 @@ public class ChangeTree {
 
         /**
          * Set the property with the given {@code name} to {@code value} or remove the
-         * property if {@code value} is {@code null} or JSON {@code null}.
+         * property if {@code value} is {@code null}.
          * @param name
          * @param value
          */
-        public void setValue(String name, JsonValue value) {
+        public void setValue(String name, Scalar value) {
             if (value == null) {
-                value = JsonAtom.NULL;
+                value = ScalarImpl.nullScalar();
             }
-            
-            if (value.isNull() && properties.containsKey(name) && properties.get(name) != JsonAtom.NULL) {
+
+            if (value.equals(ScalarImpl.nullScalar()) && properties.containsKey(name) &&
+                    !properties.get(name).equals(ScalarImpl.nullScalar())) {
+
                 properties.remove(name);
+                notifyRemoveProperty(this, name);
             }
             else {
-                properties.put(name, value);
+                KernelPropertyState state = new KernelPropertyState(name, value);
+                properties.put(name, state);
                 touch();
+                notifySetProperty(this, state);
             }
-            notifySetValue(this, name, value);
+        }
+
+        /**
+         * Set the property with the given {@code name} to {@code values}.
+         * @param name
+         * @param values
+         */
+        public void setValue(String name, List<Scalar> values) {
+            KernelPropertyState state = new KernelPropertyState(name, values);
+            properties.put(name, state);
+            touch();
+            notifySetProperty(this, state);
         }
 
         //------------------------------------------< internal >---
@@ -418,9 +426,15 @@ public class ChangeTree {
             }
         }
         
-        private void notifySetValue(NodeDelta parent, String name, JsonValue value) {
+        private void notifySetProperty(NodeDelta parent, PropertyState state) {
             if (listener != null) {
-                listener.setValue(parent, name, value);
+                listener.setProperty(parent, state);
+            }
+        }
+
+        private void notifyRemoveProperty(NodeDelta parent, String name) {
+            if (listener != null) {
+                listener.removeProperty(parent, name);
             }
         }
     }
@@ -603,7 +617,7 @@ public class ChangeTree {
         }
 
         @Override
-        public void setValue(String name, JsonValue value) {
+        public void setValue(String name, Scalar value) {
             throw new IllegalStateException("Removed");
         }
 

@@ -21,16 +21,12 @@ package org.apache.jackrabbit.oak.jcr.util;
 
 import org.apache.jackrabbit.ScalarImpl;
 import org.apache.jackrabbit.oak.api.Scalar;
-import org.apache.jackrabbit.oak.jcr.json.JsonValue;
-import org.apache.jackrabbit.oak.jcr.json.JsonValue.JsonArray;
-import org.apache.jackrabbit.oak.jcr.json.JsonValue.JsonAtom;
 
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -70,44 +66,14 @@ public final class ValueConverter {
         }
     }
     
-    public static JsonValue toJsonValue(Value value) throws RepositoryException {
-        switch (value.getType()) {
-            case PropertyType.STRING: {
-                return JsonAtom.string(value.getString());
-            }
-            case PropertyType.DOUBLE: {
-                return JsonAtom.number(value.getDouble()); // todo mind NaN
-            }
-            case PropertyType.LONG: {
-                return JsonAtom.number(value.getLong());
-            }
-            case PropertyType.DECIMAL: {
-                return JsonAtom.number(value.getDecimal());
-            }
-            case PropertyType.BOOLEAN: {
-                return value.getBoolean() ? JsonAtom.TRUE : JsonAtom.FALSE;
-            }
-            case PropertyType.BINARY:
-            case PropertyType.DATE:
-            case PropertyType.NAME:
-            case PropertyType.PATH:
-            case PropertyType.REFERENCE:
-            case PropertyType.WEAKREFERENCE:
-            case PropertyType.URI:
-            default: {
-                throw new UnsupportedRepositoryOperationException("toJson"); // todo implement toJson
-            }
-        }
-    }
-
-    public static JsonArray toJsonValue(Value[] values) throws RepositoryException {
-        List<JsonValue> jsonValues = new ArrayList<JsonValue>();
+    public static List<Scalar> toScalar(Value[] values) throws RepositoryException {
+        List<Scalar> scalars = new ArrayList<Scalar>();
         for (Value value : values) {
             if (value != null) {
-                jsonValues.add(toJsonValue(value));
+                scalars.add(toScalar(value));
             }
         }
-        return new JsonArray(jsonValues);
+        return scalars;
     }
 
     public static Value toValue(ValueFactory valueFactory, Scalar scalar)
@@ -136,33 +102,6 @@ public final class ValueConverter {
             values[k++] = toValue(valueFactory, scalar);
         }
         return values;
-    }
-
-    public static Value toValue(ValueFactory valueFactory, JsonAtom jsonAtom) {
-        switch (jsonAtom.type()) {
-            case STRING: {
-                return valueFactory.createValue(jsonAtom.value());  // todo decode to correct type
-            }
-            case NUMBER: {
-                String value = jsonAtom.value();
-                try {
-                    return valueFactory.createValue(Long.valueOf(value));
-                }
-                catch (NumberFormatException e) {
-                    try {
-                        return valueFactory.createValue(Double.valueOf(value));
-                    }
-                    catch (NumberFormatException e1) {
-                        return valueFactory.createValue(new BigDecimal(value));
-                    }
-                }
-            }
-            case BOOLEAN: {
-                return valueFactory.createValue(Boolean.valueOf(jsonAtom.value()));
-            }
-            default:
-                throw new IllegalArgumentException(jsonAtom.toString());
-        }
     }
 
 }

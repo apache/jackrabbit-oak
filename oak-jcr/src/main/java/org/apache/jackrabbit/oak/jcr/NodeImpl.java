@@ -17,11 +17,10 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.ScalarImpl;
 import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
 import org.apache.jackrabbit.commons.iterator.PropertyIteratorAdapter;
 import org.apache.jackrabbit.mk.model.PropertyState;
-import org.apache.jackrabbit.oak.jcr.json.JsonValue;
-import org.apache.jackrabbit.oak.jcr.json.JsonValue.JsonAtom;
 import org.apache.jackrabbit.oak.jcr.state.TransientNodeState;
 import org.apache.jackrabbit.oak.jcr.util.Function1;
 import org.apache.jackrabbit.oak.jcr.util.ItemNameMatcher;
@@ -232,7 +231,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     public Property setProperty(String name, Value value, int type) throws RepositoryException {
         checkStatus();
 
-        state.setProperty(name, ValueConverter.toJsonValue(value));
+        state.setProperty(name, ValueConverter.toScalar(value));
         return getProperty(name);
     }
 
@@ -254,7 +253,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     public Property setProperty(String name, Value[] values, int type) throws RepositoryException {
         checkStatus();
 
-        state.setProperty(name, ValueConverter.toJsonValue(values));
+        state.setProperty(name, ValueConverter.toScalar(values));
         return getProperty(name);
     }
 
@@ -589,25 +588,21 @@ public class NodeImpl extends ItemImpl implements Node  {
     public void setPrimaryType(String nodeTypeName) throws RepositoryException {
         checkStatus();
 
-        state.setProperty(JcrConstants.JCR_PRIMARYTYPE, JsonAtom.string(nodeTypeName));
+        state.setProperty(JcrConstants.JCR_PRIMARYTYPE, ScalarImpl.stringScalar(nodeTypeName));
     }
 
     @Override
     public void addMixin(String mixinName) throws RepositoryException {
         checkStatus();
 
-        JsonValue mixins = state.getPropertyValue(JcrConstants.JCR_MIXINTYPES);
-        mixins.asArray().add(JsonAtom.string(mixinName));
-        state.setProperty(JcrConstants.JCR_MIXINTYPES, mixins);
+        // todo implement addMixin
     }
 
     @Override
     public void removeMixin(String mixinName) throws RepositoryException {
         checkStatus();
 
-        JsonValue mixins = state.getPropertyValue(JcrConstants.JCR_MIXINTYPES);
-        mixins.asArray().remove(JsonAtom.string(mixinName));
-        state.setProperty(JcrConstants.JCR_MIXINTYPES, mixins);
+        // todo implement removeMixin
     }
 
     @Override

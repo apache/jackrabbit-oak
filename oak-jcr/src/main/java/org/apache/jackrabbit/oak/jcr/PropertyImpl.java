@@ -543,7 +543,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @Override
     public boolean isMultiple() throws RepositoryException {
-        return ((KernelPropertyState) state).isMultiValues();  // fixme don't cast
+        return ((KernelPropertyState) state).isMultiValued();  // fixme don't cast
     }
 
     //------------------------------------------------------------< private >---
@@ -583,7 +583,7 @@ public class PropertyImpl extends ItemImpl implements Property {
             remove();
         }
         else {
-            parentState.setProperty(state.getName(), ValueConverter.toJsonValue(value));
+            parentState.setProperty(state.getName(), ValueConverter.toScalar(value));
         }
     }
 
@@ -603,7 +603,7 @@ public class PropertyImpl extends ItemImpl implements Property {
             remove();
         }
         else {
-            parentState.setProperty(state.getName(), ValueConverter.toJsonValue(values));
+            parentState.setProperty(state.getName(), ValueConverter.toScalar(values));
         }
     }
 

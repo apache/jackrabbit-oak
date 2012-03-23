@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
+import org.apache.jackrabbit.mk.json.JsonBuilder;
 import org.apache.jackrabbit.mk.model.AbstractPropertyState;
 import org.apache.jackrabbit.oak.api.Scalar;
 
@@ -65,7 +66,7 @@ public class KernelPropertyState extends AbstractPropertyState { // fixme make p
         }
     }
 
-    public boolean isMultiValues() {
+    public boolean isMultiValued() {
         return value == null;
     }
     
@@ -81,7 +82,7 @@ public class KernelPropertyState extends AbstractPropertyState { // fixme make p
     
     private static String encodeValue(Scalar value) {
         if (value.getType() == Scalar.STRING) {
-            return '"' + value.getString() + '"';
+            return '"' + JsonBuilder.escape(value.getString()) + '"';
         }
         else {
             return value.getString();
