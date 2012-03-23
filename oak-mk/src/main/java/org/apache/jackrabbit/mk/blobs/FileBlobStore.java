@@ -17,13 +17,14 @@
 package org.apache.jackrabbit.mk.blobs;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
-import org.apache.jackrabbit.mk.fs.FilePath;
-import org.apache.jackrabbit.mk.fs.FileUtils;
 import org.apache.jackrabbit.mk.util.ExceptionFactory;
 import org.apache.jackrabbit.mk.util.IOUtils;
 import org.apache.jackrabbit.mk.util.StringUtils;
@@ -35,23 +36,23 @@ public class FileBlobStore extends AbstractBlobStore {
 
     private static final String OLD_SUFFIX = "_old";
 
-    private final FilePath baseDir;
+    private final File baseDir;
     private final byte[] buffer = new byte[16 * 1024];
     private boolean mark;
 
     public FileBlobStore(String dir) throws IOException {
-        baseDir = FilePath.get(dir);
-        FileUtils.createDirectories(dir);
+        baseDir = new File(dir);
+        baseDir.mkdirs();
     }
 
     @Override
     public String addBlob(String tempFilePath) {
         try {
-            FilePath file = FilePath.get(tempFilePath);
-            InputStream in = file.newInputStream();
+            File file = new File(tempFilePath);
+            InputStream in = new FileInputStream(file);
             MessageDigest messageDigest = MessageDigest.getInstance(HASH_ALGORITHM);
             DigestInputStream din = new DigestInputStream(in, messageDigest);
-            long length = file.size();
+            long length = file.length();
             try {
                 while (true) {
                     int len = din.read(buffer, 0, buffer.length);
@@ -67,15 +68,15 @@ public class FileBlobStore extends AbstractBlobStore {
             IOUtils.writeVarInt(idStream, 0);
             IOUtils.writeVarLong(idStream, length);
             byte[] digest = messageDigest.digest();
-            FilePath f = getFile(digest, false);
+            File f = getFile(digest, false);
             if (f.exists()) {
                 file.delete();
             } else {
-                FilePath parent = f.getParent();
+                File parent = f.getParentFile();
                 if (!parent.exists()) {
-                    FileUtils.createDirectories(parent.toString());
+                    parent.mkdirs();
                 }
-                file.moveTo(f);
+                file.renameTo(f);
             }
             IOUtils.writeVarInt(idStream, digest.length);
             idStream.write(digest);
@@ -90,42 +91,42 @@ public class FileBlobStore extends AbstractBlobStore {
 
     @Override
     protected synchronized void storeBlock(byte[] digest, int level, byte[] data) throws IOException {
-        FilePath f = getFile(digest, false);
+        File f = getFile(digest, false);
         if (f.exists()) {
             return;
         }
-        FilePath parent = f.getParent();
+        File parent = f.getParentFile();
         if (!parent.exists()) {
-            FileUtils.createDirectories(parent.toString());
+            parent.mkdirs();
         }
-        FilePath temp = parent.resolve(f.getName() + ".temp");
-        OutputStream out = temp.newOutputStream(false);
+        File temp = new File(parent, f.getName() + ".temp");
+        OutputStream out = new FileOutputStream(temp, false);
         out.write(data);
         out.close();
-        temp.moveTo(f);
+        temp.renameTo(f);
     }
 
-    private FilePath getFile(byte[] digest, boolean old) {
+    private File getFile(byte[] digest, boolean old) {
         String id = StringUtils.convertBytesToHex(digest);
         String sub = id.substring(id.length() - 2);
         if (old) {
             sub += OLD_SUFFIX;
         }
-        return baseDir.resolve(sub).resolve(id + ".dat");
+        return new File(new File(baseDir, sub), id + ".dat");
     }
 
     @Override
     protected byte[] readBlockFromBackend(BlockId id) throws IOException {
-        FilePath f = getFile(id.digest, false);
+        File f = getFile(id.digest, false);
         if (!f.exists()) {
-            FilePath old = getFile(id.digest, true);
-            f.getParent().createDirectory();
-            old.moveTo(f);
+            File old = getFile(id.digest, true);
+            f.getParentFile().mkdir();
+            old.renameTo(f);
             f = getFile(id.digest, false);
         }
-        int length = (int) Math.min(f.size(), getBlockSize());
+        int length = (int) Math.min(f.length(), getBlockSize());
         byte[] data = new byte[length];
-        InputStream in = f.newInputStream();
+        InputStream in = new FileInputStream(f);
         try {
             IOUtils.skipFully(in, id.pos);
             IOUtils.readFully(in, data, 0, length);
@@ -140,17 +141,17 @@ public class FileBlobStore extends AbstractBlobStore {
         mark = true;
         for (int i = 0; i < 256; i++) {
             String sub = StringUtils.convertBytesToHex(new byte[] { (byte) i });
-            FilePath d = baseDir.resolve(sub);
-            FilePath old = baseDir.resolve(sub + OLD_SUFFIX);
+            File d = new File(baseDir, sub);
+            File old = new File(baseDir, sub + OLD_SUFFIX);
             if (d.exists()) {
                 if (old.exists()) {
-                    for (FilePath p : d.newDirectoryStream()) {
+                    for (File p : d.listFiles()) {
                         String name = p.getName();
-                        FilePath newName = old.resolve(name);
-                        p.moveTo(newName);
+                        File newName = new File(old, name);
+                        p.renameTo(newName);
                     }
                 } else {
-                    d.moveTo(old);
+                    d.renameTo(old);
                 }
             }
         }
@@ -164,11 +165,11 @@ public class FileBlobStore extends AbstractBlobStore {
 
     @Override
     protected void mark(BlockId id) throws IOException {
-        FilePath f = getFile(id.digest, false);
+        File f = getFile(id.digest, false);
         if (!f.exists()) {
-            FilePath old = getFile(id.digest, true);
-            f.getParent().createDirectory();
-            old.moveTo(f);
+            File old = getFile(id.digest, true);
+            f.getParentFile().mkdir();
+            old.renameTo(f);
             f = getFile(id.digest, false);
         }
     }
@@ -178,11 +179,11 @@ public class FileBlobStore extends AbstractBlobStore {
         int count = 0;
         for (int i = 0; i < 256; i++) {
             String sub = StringUtils.convertBytesToHex(new byte[] { (byte) i });
-            FilePath old = baseDir.resolve(sub + OLD_SUFFIX);
+            File old = new File(baseDir, sub + OLD_SUFFIX);
             if (old.exists()) {
-                for (FilePath p : old.newDirectoryStream()) {
+                for (File p : old.listFiles()) {
                     String name = p.getName();
-                    FilePath file = old.resolve(name);
+                    File file = new File(old, name);
                     file.delete();
                     count++;
                 }

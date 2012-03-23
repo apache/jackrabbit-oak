@@ -19,11 +19,12 @@ package org.apache.jackrabbit.mk.persistence;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.Iterator;
 
 import org.apache.jackrabbit.mk.blobs.BlobStore;
-import org.apache.jackrabbit.mk.fs.FilePath;
 import org.apache.jackrabbit.mk.model.ChildNodeEntriesMap;
 import org.apache.jackrabbit.mk.model.Commit;
 import org.apache.jackrabbit.mk.model.Id;
@@ -250,11 +251,15 @@ public class MongoPersistence implements Persistence, Closeable, BlobStore {
 
     public String addBlob(String tempFilePath) throws Exception {
         try {
-            FilePath file = FilePath.get(tempFilePath);
+            File file = new File(tempFilePath);
+            InputStream in = null;
             try {
-                InputStream in = file.newInputStream();
+                in = new FileInputStream(file);
                 return writeBlob(in);
             } finally {
+                if (in != null) {
+                    in.close();
+                }
                 file.delete();
             }
         } catch (Exception e) {

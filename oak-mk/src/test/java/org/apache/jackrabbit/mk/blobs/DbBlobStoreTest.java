@@ -18,7 +18,6 @@ package org.apache.jackrabbit.mk.blobs;
 
 import junit.framework.TestCase;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
-import org.apache.jackrabbit.mk.fs.FileUtils;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.mk.util.IOUtilsTest;
@@ -70,7 +69,9 @@ public class DbBlobStoreTest extends TestCase {
         Random r = new Random(0);
         r.nextBytes(data);
         String tempFileName = "target/temp/test";
-        OutputStream out = FileUtils.newOutputStream(tempFileName, false);
+        File tempFile = new File(tempFileName);
+        tempFile.getParentFile().mkdirs();
+        OutputStream out = new FileOutputStream(tempFile, false);
         out.write(data);
         out.close();
         String s = store.addBlob(tempFileName);
