@@ -125,11 +125,12 @@ public abstract class ScalarImpl implements Scalar {
             if (this == other) {
                 return true;
             }
-            if (other == null || getClass() != other.getClass()) {
+            if (!(other instanceof Scalar)) {
                 return false;
             }
 
-            return value == ((BooleanScalar) other).value;
+            Scalar that = (Scalar) other;
+            return that != null && that.getType() == Scalar.BOOLEAN && that.getBoolean() == value;
         }
 
         @Override
@@ -152,7 +153,15 @@ public abstract class ScalarImpl implements Scalar {
 
         @Override
         public boolean equals(Object other) {
-            return this == other || other != null && getClass() == other.getClass();
+            if (this == other) {
+                return true;
+            }
+            if (!(other instanceof Scalar)) {
+                return false;
+            }
+
+            Scalar that = (Scalar) other;
+            return that != null && that.getType() == Scalar.NULL;
         }
 
         @Override
@@ -184,11 +193,12 @@ public abstract class ScalarImpl implements Scalar {
             if (this == other) {
                 return true;
             }
-            if (other == null || getClass() != other.getClass()) {
+            if (!(other instanceof Scalar)) {
                 return false;
             }
 
-            return value == ((LongScalar) other).value;
+            Scalar that = (Scalar) other;
+            return that != null && that.getType() == Scalar.LONG && that.getLong() == value;
         }
 
         @Override
@@ -220,12 +230,12 @@ public abstract class ScalarImpl implements Scalar {
             if (this == other) {
                 return true;
             }
-            if (other == null || getClass() != other.getClass()) {
+            if (!(other instanceof Scalar)) {
                 return false;
             }
 
-            return Double.compare(((DoubleScalar) other).value, value) == 0;
-
+            Scalar that = (Scalar) other;
+            return that != null && that.getType() == Scalar.DOUBLE && Double.compare(that.getDouble(), value) == 0;
         }
 
         @Override
@@ -249,15 +259,16 @@ public abstract class ScalarImpl implements Scalar {
         }
 
         @Override
-        public boolean equals(Object o) {
-            if (this == o) {
+        public boolean equals(Object other) {
+            if (this == other) {
                 return true;
             }
-            if (o == null || getClass() != o.getClass()) {
+            if (!(other instanceof Scalar)) {
                 return false;
             }
 
-            return value.equals(((StringScalar) o).value);
+            Scalar that = (Scalar) other;
+            return that != null && that.getType() == Scalar.STRING && that.getString().equals(value);
         }
 
         @Override
@@ -284,11 +295,12 @@ public abstract class ScalarImpl implements Scalar {
             if (this == other) {
                 return true;
             }
-            if (other == null || getClass() != other.getClass()) {
+            if (!(other instanceof Scalar)) {
                 return false;
             }
 
-            return value.equals(((SmallBinaryScalar) other).value);
+            Scalar that = (Scalar) other;
+            return that != null && that.getType() == Scalar.BINARY && that.getString().equals(value);
         }
 
         @Override
@@ -326,11 +338,12 @@ public abstract class ScalarImpl implements Scalar {
             if (this == other) {
                 return true;
             }
-            if (other == null || getClass() != other.getClass()) {
+            if (!(other instanceof Scalar)) {
                 return false;
             }
 
-            return getString().equals(((BinaryScalar) other).getString());
+            Scalar that = (Scalar) other;
+            return that != null && that.getType() == Scalar.BINARY && that.getString().equals(getString());
         }
 
         @Override
