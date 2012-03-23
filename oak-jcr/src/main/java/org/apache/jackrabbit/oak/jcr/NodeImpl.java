@@ -47,6 +47,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Value;
 import javax.jcr.lock.Lock;
+import javax.jcr.lock.LockManager;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.version.Version;
@@ -635,7 +636,6 @@ public class NodeImpl extends ItemImpl implements Node  {
         checkSessionHasPendingChanges();
 
         // TODO
-
     }
 
     /**
@@ -683,7 +683,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public boolean isCheckedOut() throws RepositoryException {
-        return getSession().getWorkspace().getVersionManager().isCheckedOut(getPath());
+        return getVersionManager().isCheckedOut(getPath());
     }
 
     /**
@@ -691,7 +691,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public void restore(String versionName, boolean removeExisting) throws RepositoryException {
-        getSession().getWorkspace().getVersionManager().restore(getPath(), versionName, removeExisting);
+        getVersionManager().restore(getPath(), versionName, removeExisting);
     }
 
     /**
@@ -699,7 +699,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public void restore(Version version, boolean removeExisting) throws RepositoryException {
-        getSession().getWorkspace().getVersionManager().restore(version, removeExisting);
+        getVersionManager().restore(version, removeExisting);
     }
 
     /**
@@ -745,7 +745,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public Lock lock(boolean isDeep, boolean isSessionScoped) throws RepositoryException {
-        return getSession().getWorkspace().getLockManager().lock(getPath(), isDeep, isSessionScoped, Long.MAX_VALUE, null);
+        return getLockManager().lock(getPath(), isDeep, isSessionScoped, Long.MAX_VALUE, null);
     }
 
     /**
@@ -753,7 +753,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public Lock getLock() throws RepositoryException {
-        return getSession().getWorkspace().getLockManager().getLock(getPath());
+        return getLockManager().getLock(getPath());
     }
 
     /**
@@ -761,7 +761,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public void unlock() throws RepositoryException {
-        getSession().getWorkspace().getLockManager().unlock(getPath());
+        getLockManager().unlock(getPath());
     }
 
     /**
@@ -769,7 +769,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public boolean holdsLock() throws RepositoryException {
-        return getSession().getWorkspace().getLockManager().holdsLock(getPath());
+        return getLockManager().holdsLock(getPath());
     }
 
     /**
@@ -777,7 +777,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public boolean isLocked() throws RepositoryException {
-        return getSession().getWorkspace().getLockManager().isLocked(getPath());
+        return getLockManager().isLocked(getPath());
     }
 
 
@@ -790,13 +790,11 @@ public class NodeImpl extends ItemImpl implements Node  {
     @Override
     public void removeSharedSet() throws RepositoryException {
         // TODO
-
     }
 
     @Override
     public void removeShare() throws RepositoryException {
         // TODO
-
     }
 
     /**
@@ -826,6 +824,10 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     private VersionManager getVersionManager() throws RepositoryException {
         return getSession().getWorkspace().getVersionManager();
+    }
+
+    private LockManager getLockManager() throws RepositoryException {
+        return getSession().getWorkspace().getLockManager();
     }
 
     private Path path() {
