@@ -17,10 +17,8 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.oak.jcr.json.FullJsonParser;
-import org.apache.jackrabbit.oak.jcr.json.JsonValue;
-import org.apache.jackrabbit.oak.jcr.json.JsonValue.JsonObject;
-import org.apache.jackrabbit.oak.jcr.json.UnescapingJsonTokenizer;
+import org.apache.jackrabbit.mk.json.JsopReader;
+import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.ContentHandler;
@@ -41,7 +39,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map.Entry;
 
 /**
  * {@code WorkspaceImpl}...
@@ -169,15 +166,25 @@ public class WorkspaceImpl implements Workspace {
         MicroKernel microKernel = sessionContext.getMicrokernel();
         String revision = sessionContext.getRevision();
         String json = microKernel.getNodes("/", revision, 0, 0, -1, null);
-        JsonObject jsonObject = FullJsonParser.parseObject(new UnescapingJsonTokenizer(json));
 
+        JsopReader reader = new JsopTokenizer(json);
+        reader.read('{');
         List<String> workspaces = new ArrayList<String>();
-        for (Entry<String, JsonValue> entry : jsonObject.value().entrySet()) {
-            if (entry.getValue().isObject()) {
-                workspaces.add(entry.getKey());
+        do {
+            String name = reader.readString();
+            reader.read(':');
+            if (name.startsWith(":")) {
+                reader.read();
+            } else if (reader.matches('{')) {
+                reader.read('}');
+                workspaces.add(name);
+            } else {
+                throw new IllegalArgumentException("Unexpected token: " + reader.getToken());
             }
-        }
-
+        } while (reader.matches(','));
+        reader.read('}');
+        reader.read(JsopTokenizer.END);
+        
         return workspaces.toArray(new String[workspaces.size()]);
     }
 
