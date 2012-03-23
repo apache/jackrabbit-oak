@@ -8,7 +8,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.concurrent.Callable;
 
 public abstract class ScalarImpl implements Scalar {
-    private final int type;
+    private final Type type;
 
     public static Scalar numberScalar(String value) {
         // todo improve
@@ -57,12 +57,12 @@ public abstract class ScalarImpl implements Scalar {
         return new BinaryScalar(valueProvider);
     }
 
-    private ScalarImpl(int type) {
+    private ScalarImpl(Type type) {
         this.type = type;
     }
 
     @Override
-    public int getType() {
+    public Type getType() {
         return type;   
     }
 
@@ -94,7 +94,7 @@ public abstract class ScalarImpl implements Scalar {
 
     @Override
     public String toString() {
-        return getString() + ": " + Scalar.typeNames[type];
+        return getString() + ": " + type;
     }
 
     //------------------------------------------------------------< private >---
@@ -106,7 +106,7 @@ public abstract class ScalarImpl implements Scalar {
         private final boolean value;
 
         public BooleanScalar(boolean value) {
-            super(Scalar.BOOLEAN);
+            super(Type.BOOLEAN);
             this.value = value;
         }
 
@@ -130,7 +130,7 @@ public abstract class ScalarImpl implements Scalar {
             }
 
             Scalar that = (Scalar) other;
-            return that != null && that.getType() == Scalar.BOOLEAN && that.getBoolean() == value;
+            return that != null && that.getType() == Type.BOOLEAN && that.getBoolean() == value;
         }
 
         @Override
@@ -143,7 +143,7 @@ public abstract class ScalarImpl implements Scalar {
 
     private static final class NullScalar extends ScalarImpl {
         protected NullScalar() {
-            super(Scalar.NULL);
+            super(Type.NULL);
         }
 
         @Override
@@ -161,7 +161,7 @@ public abstract class ScalarImpl implements Scalar {
             }
 
             Scalar that = (Scalar) other;
-            return that != null && that.getType() == Scalar.NULL;
+            return that != null && that.getType() == Type.NULL;
         }
 
         @Override
@@ -174,7 +174,7 @@ public abstract class ScalarImpl implements Scalar {
         private final long value;
 
         public LongScalar(long value) {
-            super(Scalar.LONG);
+            super(Type.LONG);
             this.value = value;
         }
 
@@ -198,7 +198,7 @@ public abstract class ScalarImpl implements Scalar {
             }
 
             Scalar that = (Scalar) other;
-            return that != null && that.getType() == Scalar.LONG && that.getLong() == value;
+            return that != null && that.getType() == Type.LONG && that.getLong() == value;
         }
 
         @Override
@@ -211,7 +211,7 @@ public abstract class ScalarImpl implements Scalar {
         private final double value;
 
         public DoubleScalar(double value) {
-            super(Scalar.DOUBLE);
+            super(Type.DOUBLE);
             this.value = value;
         }
 
@@ -235,7 +235,7 @@ public abstract class ScalarImpl implements Scalar {
             }
 
             Scalar that = (Scalar) other;
-            return that != null && that.getType() == Scalar.DOUBLE && Double.compare(that.getDouble(), value) == 0;
+            return that != null && that.getType() == Type.DOUBLE && Double.compare(that.getDouble(), value) == 0;
         }
 
         @Override
@@ -249,7 +249,7 @@ public abstract class ScalarImpl implements Scalar {
         private final String value;
 
         public StringScalar(String value) {
-            super(Scalar.STRING);
+            super(Type.STRING);
             this.value = value;
         }
 
@@ -268,7 +268,7 @@ public abstract class ScalarImpl implements Scalar {
             }
 
             Scalar that = (Scalar) other;
-            return that != null && that.getType() == Scalar.STRING && that.getString().equals(value);
+            return that != null && that.getType() == Type.STRING && that.getString().equals(value);
         }
 
         @Override
@@ -281,7 +281,7 @@ public abstract class ScalarImpl implements Scalar {
         private final String value;
 
         public SmallBinaryScalar(String value) {
-            super(Scalar.BINARY);
+            super(Type.BINARY);
             this.value = value;
         }
 
@@ -300,7 +300,7 @@ public abstract class ScalarImpl implements Scalar {
             }
 
             Scalar that = (Scalar) other;
-            return that != null && that.getType() == Scalar.BINARY && that.getString().equals(value);
+            return that != null && that.getType() == Type.BINARY && that.getString().equals(value);
         }
 
         @Override
@@ -313,7 +313,7 @@ public abstract class ScalarImpl implements Scalar {
         private final Callable<InputStream> valueProvider;
 
         public BinaryScalar(Callable<InputStream> valueProvider) {
-            super(Scalar.BINARY);
+            super(Type.BINARY);
             this.valueProvider = valueProvider;
         }
 
@@ -343,7 +343,7 @@ public abstract class ScalarImpl implements Scalar {
             }
 
             Scalar that = (Scalar) other;
-            return that != null && that.getType() == Scalar.BINARY && that.getString().equals(getString());
+            return that != null && that.getType() == Type.BINARY && that.getString().equals(getString());
         }
 
         @Override

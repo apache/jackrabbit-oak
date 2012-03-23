@@ -80,13 +80,13 @@ public final class ValueConverter {
             throws UnsupportedRepositoryOperationException {
 
         switch (scalar.getType()) {
-            case Scalar.BOOLEAN:
+            case BOOLEAN:
                 return valueFactory.createValue(scalar.getBoolean());
-            case Scalar.LONG:
+            case LONG:
                 return valueFactory.createValue(scalar.getLong());
-            case Scalar.DOUBLE:
+            case DOUBLE:
                 return valueFactory.createValue(scalar.getDouble());
-            case Scalar.STRING:
+            case STRING:
                 return valueFactory.createValue(scalar.getString());
             default:
                 throw new UnsupportedRepositoryOperationException("toValue"); // todo implement toValue
