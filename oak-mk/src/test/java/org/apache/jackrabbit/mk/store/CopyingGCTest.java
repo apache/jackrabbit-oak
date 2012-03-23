@@ -24,7 +24,6 @@ import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.blobs.MemoryBlobStore;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.mk.core.Repository;
-import org.apache.jackrabbit.mk.fs.FileUtils;
 import org.apache.jackrabbit.mk.json.fast.Jsop;
 import org.apache.jackrabbit.mk.json.fast.JsopArray;
 import org.apache.jackrabbit.mk.persistence.InMemPersistence;
@@ -33,6 +32,9 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+
+import java.io.File;
+import java.io.IOException;
 
 /**
  * Use-case: start off a new revision store that contains just the head revision
@@ -47,8 +49,8 @@ public class CopyingGCTest {
     
     @Before
     public void setup() throws Exception {
-        FileUtils.deleteRecursive("target/mk1", false);
-        FileUtils.deleteRecursive("target/mk2", false);
+        delete(new File("target/mk1"));
+        delete(new File("target/mk2"));
     }
 
     @After
@@ -133,5 +135,17 @@ public class CopyingGCTest {
         
         // Assert MK contains 3 revisions only
         assertEquals(3, ((JsopArray) Jsop.parse(mk.getRevisions(0, Integer.MAX_VALUE))).size());
+    }
+    
+    private static void delete(File f) throws IOException {
+        if (f.exists()) {
+            if (f.isDirectory()) {
+                // recursively delete children first
+                for (File child : f.listFiles()) {
+                    delete(child);
+                }
+            }
+            f.delete();
+        }
     }
 }
