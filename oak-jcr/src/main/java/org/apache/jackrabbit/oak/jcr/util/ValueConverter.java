@@ -165,14 +165,4 @@ public final class ValueConverter {
         }
     }
 
-    public static Value[] toValue(ValueFactory valueFactory, JsonArray jsonArray) {
-        List<JsonValue> jsonValues = jsonArray.value();
-        Value[] values = new Value[jsonValues.size()];
-        int k = 0;
-        for (JsonValue jsonValue : jsonValues) {
-            values[k++] = toValue(valueFactory, jsonValue.asAtom());
-        }
-        return values;
-    }
-
 }
