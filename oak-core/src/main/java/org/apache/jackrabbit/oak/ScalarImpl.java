@@ -8,7 +8,6 @@ import java.io.UnsupportedEncodingException;
 import java.util.concurrent.Callable;
 
 public abstract class ScalarImpl implements Scalar {
-    private final Type type;
 
     public static Scalar numberScalar(String value) {
         // todo improve
@@ -57,15 +56,6 @@ public abstract class ScalarImpl implements Scalar {
         return new BinaryScalar(valueProvider);
     }
 
-    private ScalarImpl(Type type) {
-        this.type = type;
-    }
-
-    @Override
-    public Type getType() {
-        return type;   
-    }
-
     @Override
     public boolean getBoolean() {
         return Boolean.valueOf(getString());
@@ -94,7 +84,7 @@ public abstract class ScalarImpl implements Scalar {
 
     @Override
     public String toString() {
-        return getString() + ": " + type;
+        return getString() + ": " + getType();
     }
 
     //------------------------------------------------------------< private >---
@@ -106,8 +96,12 @@ public abstract class ScalarImpl implements Scalar {
         private final boolean value;
 
         public BooleanScalar(boolean value) {
-            super(Type.BOOLEAN);
             this.value = value;
+        }
+
+        @Override
+        public Type getType() {
+            return Type.BOOLEAN;
         }
 
         @Override
@@ -142,8 +136,10 @@ public abstract class ScalarImpl implements Scalar {
     private static final NullScalar NULL_SCALAR = new NullScalar();
 
     private static final class NullScalar extends ScalarImpl {
-        protected NullScalar() {
-            super(Type.NULL);
+
+        @Override
+        public Type getType() {
+            return Type.NULL;
         }
 
         @Override
@@ -174,8 +170,12 @@ public abstract class ScalarImpl implements Scalar {
         private final long value;
 
         public LongScalar(long value) {
-            super(Type.LONG);
             this.value = value;
+        }
+
+        @Override
+        public Type getType() {
+            return Type.LONG;
         }
 
         @Override
@@ -211,8 +211,12 @@ public abstract class ScalarImpl implements Scalar {
         private final double value;
 
         public DoubleScalar(double value) {
-            super(Type.DOUBLE);
             this.value = value;
+        }
+
+        @Override
+        public Type getType() {
+            return Type.DOUBLE;
         }
 
         @Override
@@ -249,8 +253,12 @@ public abstract class ScalarImpl implements Scalar {
         private final String value;
 
         public StringScalar(String value) {
-            super(Type.STRING);
             this.value = value;
+        }
+
+        @Override
+        public Type getType() {
+            return Type.STRING;
         }
 
         @Override
@@ -281,8 +289,12 @@ public abstract class ScalarImpl implements Scalar {
         private final String value;
 
         public SmallBinaryScalar(String value) {
-            super(Type.BINARY);
             this.value = value;
+        }
+
+        @Override
+        public Type getType() {
+            return Type.BINARY;
         }
 
         @Override
@@ -313,8 +325,12 @@ public abstract class ScalarImpl implements Scalar {
         private final Callable<InputStream> valueProvider;
 
         public BinaryScalar(Callable<InputStream> valueProvider) {
-            super(Type.BINARY);
             this.valueProvider = valueProvider;
+        }
+
+        @Override
+        public Type getType() {
+            return Type.BINARY;
         }
 
         @Override
@@ -351,5 +367,5 @@ public abstract class ScalarImpl implements Scalar {
             return getString().hashCode();
         }
     }
-     
+
 }
