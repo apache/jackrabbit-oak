@@ -67,14 +67,17 @@ public class KernelPropertyState extends AbstractPropertyState { // fixme make p
         }
     }
 
+    @Override
     public boolean isMultiValued() {
         return value == null;
     }
     
+    @Override
     public Scalar getValue() {
         return value;
     }
     
+    @Override
     public List<Scalar> getValues() {
         return values;
     }
