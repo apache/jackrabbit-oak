@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak;
 
-import org.apache.jackrabbit.oak.api.Scalar;
+import org.apache.jackrabbit.mk.model.Scalar;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
