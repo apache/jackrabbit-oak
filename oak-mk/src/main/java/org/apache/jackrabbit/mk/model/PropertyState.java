@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.mk.model;
 
+import java.util.Collection;
+
 /**
  * Immutable property state. A property consists of a name and
  * a JSON-encoded value.
@@ -41,4 +43,21 @@ public interface PropertyState {
      */
     String getEncodedValue();
 
+    /**
+     * Determine whether this is a multi valued property
+     * @return  {@code true} if and only if this is a multi valued property.
+     */
+    boolean isMultiValued();
+
+    /**
+     * @return  the single value of this property or {@code null} if this is a multi
+     * valued property.
+     */
+    Scalar getValue();
+
+    /**
+     * @return  an immutable collection of the values of this multi valued property or
+     * {@code null} if this is not a multi valued property.
+     */
+    Collection<Scalar> getValues();
 }

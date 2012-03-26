@@ -21,7 +21,6 @@ import org.apache.jackrabbit.oak.jcr.state.TransientNodeState;
 import org.apache.jackrabbit.oak.jcr.util.LogUtil;
 import org.apache.jackrabbit.oak.jcr.util.Path;
 import org.apache.jackrabbit.oak.jcr.util.ValueConverter;
-import org.apache.jackrabbit.oak.kernel.KernelPropertyState;
 import org.apache.jackrabbit.value.ValueHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -358,7 +357,7 @@ public class PropertyImpl extends ItemImpl implements Property {
             throw new ValueFormatException(LogUtil.safeGetJCRPath(this) + " is multi-valued.");
         }
 
-        return ValueConverter.toValue(getValueFactory(), ((KernelPropertyState) state).getValue());  // fixme don't cast
+        return ValueConverter.toValue(getValueFactory(), state.getValue());
     }
 
     @Override
@@ -368,7 +367,7 @@ public class PropertyImpl extends ItemImpl implements Property {
             throw new ValueFormatException(LogUtil.safeGetJCRPath(this) + " is not multi-valued.");
         }
 
-        return ValueConverter.toValues(getValueFactory(), ((KernelPropertyState) state).getValues()); // fixme don't cast
+        return ValueConverter.toValues(getValueFactory(), state.getValues());
     }
 
     /**
@@ -543,7 +542,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @Override
     public boolean isMultiple() throws RepositoryException {
-        return ((KernelPropertyState) state).isMultiValued();  // fixme don't cast
+        return state.isMultiValued();
     }
 
     //------------------------------------------------------------< private >---

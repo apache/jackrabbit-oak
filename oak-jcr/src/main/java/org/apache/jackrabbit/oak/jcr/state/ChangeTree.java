@@ -262,7 +262,7 @@ public class ChangeTree {
                     new Predicate<PropertyState>() {
                         @Override
                         public boolean evaluate(PropertyState state) {
-                            return !((KernelPropertyState) state).getValue().equals(ScalarImpl.nullScalar());  // fixme don't cast
+                            return !state.getValue().equals(ScalarImpl.nullScalar());
                         }
                     });
         }
@@ -345,7 +345,7 @@ public class ChangeTree {
          * @param name
          */
         public void removeProperty(String name)  {
-            KernelPropertyState state = (KernelPropertyState) properties.get(name);  // fixme don't cast
+            PropertyState state = properties.get(name);
             if (state != null && !state.isMultiValued() && !state.getValue().equals(ScalarImpl.nullScalar())) {
                 // remove transiently added property
                 properties.remove(name);
