@@ -357,7 +357,7 @@ public class PropertyImpl extends ItemImpl implements Property {
             throw new ValueFormatException(LogUtil.safeGetJCRPath(this) + " is multi-valued.");
         }
 
-        return ValueConverter.toValue(getValueFactory(), state.getValue());
+        return ValueConverter.toValue(getValueFactory(), state.getScalar());
     }
 
     @Override
@@ -367,7 +367,7 @@ public class PropertyImpl extends ItemImpl implements Property {
             throw new ValueFormatException(LogUtil.safeGetJCRPath(this) + " is not multi-valued.");
         }
 
-        return ValueConverter.toValues(getValueFactory(), state.getValues());
+        return ValueConverter.toValues(getValueFactory(), state.getArray());
     }
 
     /**
@@ -542,7 +542,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @Override
     public boolean isMultiple() throws RepositoryException {
-        return state.isMultiValued();
+        return state.isArray();
     }
 
     //------------------------------------------------------------< private >---
