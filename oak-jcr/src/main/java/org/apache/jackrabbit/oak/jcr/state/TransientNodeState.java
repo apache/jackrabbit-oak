@@ -269,11 +269,11 @@ public class TransientNodeState {
             return false;
         }
 
-        if (state.isMultiValued()) {
+        if (state.isArray()) {
             return getPersistedPropertyState(name) == null;
         }
         else {
-            Scalar value = state.getValue();
+            Scalar value = state.getScalar();
             return !value.equals(ScalarImpl.nullScalar()) && getPersistedPropertyState(name) == null;
         }
     }
@@ -307,11 +307,11 @@ public class TransientNodeState {
             return getPersistedPropertyState(name);
         }
         else {
-            if (state.isMultiValued()) {
+            if (state.isArray()) {
                 return state;
             }
             else {
-                Scalar value = state.getValue();
+                Scalar value = state.getScalar();
                 return value.equals(ScalarImpl.nullScalar())
                     ? null
                     : state;

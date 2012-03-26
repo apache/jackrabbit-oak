@@ -68,22 +68,22 @@ public class KernelPropertyState extends AbstractPropertyState { // fixme make p
     }
 
     @Override
-    public boolean isMultiValued() {
+    public boolean isArray() {
         return value == null;
     }
     
     @Override
-    public Scalar getValue() {
+    public Scalar getScalar() {
         return value;
     }
-    
+
     @Override
-    public List<Scalar> getValues() {
+    public Iterable<Scalar> getArray() {
         return values;
     }
-    
-    //------------------------------------------------------------< private >--- 
-    
+
+    //------------------------------------------------------------< private >
+
     private static String encodeValue(Scalar value) {
         if (value.getType() == Type.STRING) {
             return '"' + JsonBuilder.escape(value.getString()) + '"';

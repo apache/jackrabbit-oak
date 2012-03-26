@@ -27,7 +27,6 @@ import org.apache.jackrabbit.mk.model.PropertyState;
 import org.apache.jackrabbit.mk.model.Scalar;
 import org.apache.jackrabbit.mk.model.StoredNode;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
@@ -69,17 +68,17 @@ class StoredNodeAsState extends AbstractNodeState {
         }
 
         @Override
-        public boolean isMultiValued() {
+        public boolean isArray() {
             return false; // todo implement isMultiValued
         }
 
         @Override
-        public Scalar getValue() {
+        public Scalar getScalar() {
             return null; // todo implement getValue
         }
 
         @Override
-        public Collection<Scalar> getValues() {
+        public Iterable<Scalar> getArray() {
             return null; // todo implement getValues
         }
 

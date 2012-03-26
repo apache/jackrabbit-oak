@@ -28,7 +28,6 @@ import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 /**
@@ -94,15 +93,13 @@ public final class ValueConverter {
         }
     }
 
-    public static Value[] toValues(ValueFactory valueFactory, Collection<Scalar> scalars)
+    public static Value[] toValues(ValueFactory valueFactory, Iterable<Scalar> scalars)
             throws UnsupportedRepositoryOperationException {
-
-        Value[] values = new Value[scalars.size()];
-        int k = 0;
+        List<Value> values = new ArrayList<Value>();
         for (Scalar scalar : scalars) {
-            values[k++] = toValue(valueFactory, scalar);
+            values.add(toValue(valueFactory, scalar));
         }
-        return values;
+        return values.toArray(new Value[values.size()]);
     }
 
 }
