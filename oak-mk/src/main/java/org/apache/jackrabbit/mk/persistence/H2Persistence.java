@@ -16,17 +16,6 @@
  */
 package org.apache.jackrabbit.mk.persistence;
 
-import org.apache.jackrabbit.mk.model.ChildNodeEntriesMap;
-import org.apache.jackrabbit.mk.model.Commit;
-import org.apache.jackrabbit.mk.model.Id;
-import org.apache.jackrabbit.mk.model.Node;
-import org.apache.jackrabbit.mk.model.StoredCommit;
-import org.apache.jackrabbit.mk.store.BinaryBinding;
-import org.apache.jackrabbit.mk.store.Binding;
-import org.apache.jackrabbit.mk.store.IdFactory;
-import org.apache.jackrabbit.mk.store.NotFoundException;
-import org.h2.jdbcx.JdbcConnectionPool;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
@@ -35,6 +24,17 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
+
+import org.apache.jackrabbit.mk.model.ChildNodeEntriesMap;
+import org.apache.jackrabbit.mk.model.Commit;
+import org.apache.jackrabbit.mk.model.Id;
+import org.apache.jackrabbit.mk.model.Node;
+import org.apache.jackrabbit.mk.model.StoredCommit;
+import org.apache.jackrabbit.mk.model.StoredNode;
+import org.apache.jackrabbit.mk.store.BinaryBinding;
+import org.apache.jackrabbit.mk.store.IdFactory;
+import org.apache.jackrabbit.mk.store.NotFoundException;
+import org.h2.jdbcx.JdbcConnectionPool;
 
 /**
  *
@@ -116,7 +116,8 @@ public class H2Persistence implements Persistence, Closeable {
         }
     }
 
-    public Binding readNodeBinding(Id id) throws NotFoundException, Exception {
+    public void readNode(StoredNode node) throws NotFoundException, Exception {
+        Id id = node.getId();
         Connection con = cp.getConnection();
         try {
             PreparedStatement stmt = con.prepareStatement("select DATA from REVS where ID = ?");
@@ -125,7 +126,7 @@ public class H2Persistence implements Persistence, Closeable {
                 ResultSet rs = stmt.executeQuery();
                 if (rs.next()) {
                     ByteArrayInputStream in = new ByteArrayInputStream(rs.getBytes(1));
-                    return new BinaryBinding(in);
+                    node.deserialize(new BinaryBinding(in));
                 } else {
                     throw new NotFoundException(id.toString());
                 }

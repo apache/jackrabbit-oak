@@ -27,8 +27,8 @@ import org.apache.jackrabbit.mk.model.Commit;
 import org.apache.jackrabbit.mk.model.Id;
 import org.apache.jackrabbit.mk.model.Node;
 import org.apache.jackrabbit.mk.model.StoredCommit;
+import org.apache.jackrabbit.mk.model.StoredNode;
 import org.apache.jackrabbit.mk.store.BinaryBinding;
-import org.apache.jackrabbit.mk.store.Binding;
 import org.apache.jackrabbit.mk.store.IdFactory;
 import org.apache.jackrabbit.mk.store.NotFoundException;
 import org.apache.jackrabbit.mk.util.IOUtils;
@@ -80,12 +80,14 @@ public class FSPersistence implements Persistence {
         }
     }
 
-    public Binding readNodeBinding(Id id) throws NotFoundException, Exception {
+    public void readNode(StoredNode node) throws NotFoundException, Exception {
+        Id id = node.getId();
         File f = getFile(id);
+        
         if (f.exists()) {
             BufferedInputStream in = new BufferedInputStream(new FileInputStream(f));
             try {
-                return new BinaryBinding(in);
+                node.deserialize(new BinaryBinding(in));
             } finally {
                 in.close();
             }

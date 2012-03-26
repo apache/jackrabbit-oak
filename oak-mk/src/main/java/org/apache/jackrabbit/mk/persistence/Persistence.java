@@ -21,15 +21,12 @@ import org.apache.jackrabbit.mk.model.Commit;
 import org.apache.jackrabbit.mk.model.Id;
 import org.apache.jackrabbit.mk.model.Node;
 import org.apache.jackrabbit.mk.model.StoredCommit;
-import org.apache.jackrabbit.mk.store.Binding;
+import org.apache.jackrabbit.mk.model.StoredNode;
 import org.apache.jackrabbit.mk.store.NotFoundException;
 
 /**
  * Defines the methods exposed by a persistence manager, that stores head
  * revision id, nodes, child node entries and blobs.
- * 
- * TODO: instead of deserializing objects on their own, return Binding
- *       instances, such as in #readNodeBinding.
  */
 public interface Persistence {
 
@@ -37,7 +34,14 @@ public interface Persistence {
 
     void writeHead(Id id) throws Exception;
 
-    Binding readNodeBinding(Id id) throws NotFoundException, Exception;
+    /**
+     * Read a node from storage.
+     * 
+     * @param node node to read, with id given in {@link StoredNode#getId()}
+     * @throws NotFoundException if no such node is found
+     * @throws Exception if some other error occurs
+     */
+    void readNode(StoredNode node) throws NotFoundException, Exception;
 
     Id writeNode(Node node) throws Exception;
 

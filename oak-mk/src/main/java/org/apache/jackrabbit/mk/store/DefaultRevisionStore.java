@@ -222,8 +222,8 @@ public class DefaultRevisionStore implements RevisionStore, Closeable {
             return node;
         }
 
-        Binding nodeBinding = pm.readNodeBinding(id);
-        node = StoredNode.deserialize(id, this, nodeBinding);
+        node = new StoredNode(id, this);
+        pm.readNode(node);
 
         cache.put(id, node);
 
