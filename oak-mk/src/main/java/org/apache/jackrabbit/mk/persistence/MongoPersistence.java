@@ -30,6 +30,7 @@ import org.apache.jackrabbit.mk.model.Commit;
 import org.apache.jackrabbit.mk.model.Id;
 import org.apache.jackrabbit.mk.model.Node;
 import org.apache.jackrabbit.mk.model.StoredCommit;
+import org.apache.jackrabbit.mk.model.StoredNode;
 import org.apache.jackrabbit.mk.store.BinaryBinding;
 import org.apache.jackrabbit.mk.store.Binding;
 import org.apache.jackrabbit.mk.store.IdFactory;
@@ -123,7 +124,8 @@ public class MongoPersistence implements Persistence, Closeable, BlobStore {
         db.getCollection(HEAD_COLLECTION).insert(new BasicDBObject(ID_FIELD, id.getBytes()));
     }
 
-    public Binding readNodeBinding(Id id) throws NotFoundException, Exception {
+    public void readNode(StoredNode node) throws NotFoundException, Exception {
+        Id id = node.getId();
         BasicDBObject key = new BasicDBObject();
         if (BINARY_FORMAT) {
             key.put(ID_FIELD, id.getBytes());
@@ -132,12 +134,14 @@ public class MongoPersistence implements Persistence, Closeable, BlobStore {
         }
         final BasicDBObject nodeObject = (BasicDBObject) nodes.findOne(key);
         if (nodeObject != null) {
+            Binding binding;
             if (BINARY_FORMAT) {
                 byte[] bytes = (byte[]) nodeObject.get(DATA_FIELD);
-                return new BinaryBinding(new ByteArrayInputStream(bytes));
+                binding = new BinaryBinding(new ByteArrayInputStream(bytes));
             } else {
-                return new DBObjectBinding(nodeObject);
+                binding = new DBObjectBinding(nodeObject);
             }
+            node.deserialize(binding);
         } else {
             throw new NotFoundException(id.toString());
         }

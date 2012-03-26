@@ -31,23 +31,7 @@ public class StoredNode extends AbstractNode {
 
     private final Id id;
 
-    public static StoredNode deserialize(Id id, RevisionProvider provider, Binding binding) throws Exception {
-        StoredNode newInstance = new StoredNode(id, provider);
-        Binding.StringEntryIterator iter = binding.readStringMap(":props");
-        while (iter.hasNext()) {
-            Binding.StringEntry entry = iter.next();
-            newInstance.properties.put(entry.getKey(), entry.getValue());
-        }
-        boolean inlined = binding.readIntValue(":inlined") != 0;
-        if (inlined) {
-            newInstance.childEntries = ChildNodeEntriesMap.deserialize(binding);
-        } else {
-            newInstance.childEntries = ChildNodeEntriesTree.deserialize(provider, binding);
-        }
-        return newInstance;
-    }
-
-    private StoredNode(Id id, RevisionProvider provider) {
+    public StoredNode(Id id, RevisionProvider provider) {
         super(provider);
         this.id = id;
     }
@@ -82,4 +66,17 @@ public class StoredNode extends AbstractNode {
         return new UnmodifiableIterator<String>(super.getChildNodeNames(offset, count));
     }
 
+    public void deserialize(Binding binding) throws Exception {
+        Binding.StringEntryIterator iter = binding.readStringMap(":props");
+        while (iter.hasNext()) {
+            Binding.StringEntry entry = iter.next();
+            properties.put(entry.getKey(), entry.getValue());
+        }
+        boolean inlined = binding.readIntValue(":inlined") != 0;
+        if (inlined) {
+            childEntries = ChildNodeEntriesMap.deserialize(binding);
+        } else {
+            childEntries = ChildNodeEntriesTree.deserialize(provider, binding);
+        }
+    }
 }
