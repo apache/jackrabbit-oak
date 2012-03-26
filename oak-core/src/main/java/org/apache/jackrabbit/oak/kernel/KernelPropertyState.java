@@ -20,8 +20,8 @@ package org.apache.jackrabbit.oak.kernel;
 
 import org.apache.jackrabbit.mk.json.JsonBuilder;
 import org.apache.jackrabbit.mk.model.AbstractPropertyState;
-import org.apache.jackrabbit.oak.api.Scalar;
-import org.apache.jackrabbit.oak.api.Scalar.Type;
+import org.apache.jackrabbit.mk.model.Scalar;
+import org.apache.jackrabbit.mk.model.Scalar.Type;
 
 import java.util.Collections;
 import java.util.List;

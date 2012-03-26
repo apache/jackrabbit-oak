@@ -19,8 +19,8 @@
 
 package org.apache.jackrabbit.oak.jcr.util;
 
+import org.apache.jackrabbit.mk.model.Scalar;
 import org.apache.jackrabbit.oak.ScalarImpl;
-import org.apache.jackrabbit.oak.api.Scalar;
 
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;

@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
+import org.apache.jackrabbit.mk.model.Scalar;
 import org.apache.jackrabbit.oak.ScalarImpl;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
@@ -27,7 +28,6 @@ import org.apache.jackrabbit.mk.model.AbstractNodeState;
 import org.apache.jackrabbit.mk.model.ChildNodeEntry;
 import org.apache.jackrabbit.mk.model.NodeState;
 import org.apache.jackrabbit.mk.model.PropertyState;
-import org.apache.jackrabbit.oak.api.Scalar;
 
 import java.util.ArrayList;
 import java.util.Iterator;

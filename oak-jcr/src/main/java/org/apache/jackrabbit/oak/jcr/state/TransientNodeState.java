@@ -19,11 +19,11 @@
 
 package org.apache.jackrabbit.oak.jcr.state;
 
+import org.apache.jackrabbit.mk.model.Scalar;
 import org.apache.jackrabbit.oak.ScalarImpl;
 import org.apache.jackrabbit.mk.model.ChildNodeEntry;
 import org.apache.jackrabbit.mk.model.NodeState;
 import org.apache.jackrabbit.mk.model.PropertyState;
-import org.apache.jackrabbit.oak.api.Scalar;
 import org.apache.jackrabbit.oak.jcr.SessionContext;
 import org.apache.jackrabbit.oak.jcr.SessionImpl;
 import org.apache.jackrabbit.oak.jcr.state.ChangeTree.NodeDelta;
