@@ -293,6 +293,8 @@ public class Query {
                 } else if (a == null) {
                     // TODO order by: nulls first, last, low or high?
                     comp = 1;
+                } else {
+                    comp = -1;
                 }
             } else {
                 comp = a.compareTo(b);
