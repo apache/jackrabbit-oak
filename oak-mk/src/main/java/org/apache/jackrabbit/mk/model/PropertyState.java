@@ -54,7 +54,7 @@ public interface PropertyState {
     Scalar getScalar();
 
     /**
-     * @return  an immutable collection of the values of this multi valued property or
+     * @return  an iterable of the values of this multi valued property or
      * {@code null} if this is not a multi valued property.
      */
     Iterable<Scalar> getArray();
