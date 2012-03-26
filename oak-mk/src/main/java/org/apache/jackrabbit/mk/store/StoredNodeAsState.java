@@ -16,10 +16,6 @@
  */
 package org.apache.jackrabbit.mk.store;
 
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.Map;
-
 import org.apache.jackrabbit.mk.model.AbstractChildNodeEntry;
 import org.apache.jackrabbit.mk.model.AbstractNodeState;
 import org.apache.jackrabbit.mk.model.AbstractPropertyState;
@@ -28,7 +24,13 @@ import org.apache.jackrabbit.mk.model.ChildNodeEntry;
 import org.apache.jackrabbit.mk.model.Id;
 import org.apache.jackrabbit.mk.model.NodeState;
 import org.apache.jackrabbit.mk.model.PropertyState;
+import org.apache.jackrabbit.mk.model.Scalar;
 import org.apache.jackrabbit.mk.model.StoredNode;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.Map;
 
 class StoredNodeAsState extends AbstractNodeState {
 
@@ -64,6 +66,21 @@ class StoredNodeAsState extends AbstractNodeState {
         @Override
         public String getEncodedValue() {
             return value;
+        }
+
+        @Override
+        public boolean isMultiValued() {
+            return false; // todo implement isMultiValued
+        }
+
+        @Override
+        public Scalar getValue() {
+            return null; // todo implement getValue
+        }
+
+        @Override
+        public Collection<Scalar> getValues() {
+            return null; // todo implement getValues
         }
 
     }

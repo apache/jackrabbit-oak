@@ -264,7 +264,7 @@ public class TransientNodeState {
      * @return {@code true} iff the property named {@code name} has been transiently added.
      */
     public boolean isPropertyNew(String name) {
-        KernelPropertyState state = (KernelPropertyState) getNodeDelta().getPropertyState(name);  // fixme don't cast
+        PropertyState state = getNodeDelta().getPropertyState(name);
         if (state == null) {
             return false;
         }
@@ -302,7 +302,7 @@ public class TransientNodeState {
     }
 
     private PropertyState getPropertyStateOrNull(String name) {
-        KernelPropertyState state = (KernelPropertyState) getNodeDelta().getPropertyState(name);  // fixme don't cast
+        PropertyState state = getNodeDelta().getPropertyState(name);
         if (state == null) {
             return getPersistedPropertyState(name);
         }
