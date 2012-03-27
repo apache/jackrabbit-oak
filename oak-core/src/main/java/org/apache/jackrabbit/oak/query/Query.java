@@ -53,7 +53,7 @@ public class Query {
 
     final SourceImpl source;
     final ConstraintImpl constraint;
-    final HashMap<String, ScalarImpl> bindVariableMap = new HashMap<String, ScalarImpl>();
+    final HashMap<String, CoreValue> bindVariableMap = new HashMap<String, CoreValue>();
     final ArrayList<SelectorImpl> selectors = new ArrayList<SelectorImpl>();
 
     private MicroKernel mk;
@@ -236,7 +236,7 @@ public class Query {
         return source;
     }
 
-    void bindValue(String varName, ScalarImpl value) {
+    void bindValue(String varName, CoreValue value) {
         bindVariableMap.put(varName, value);
     }
 
@@ -265,7 +265,7 @@ public class Query {
         if (explain) {
             String plan = source.getPlan();
             columns = new ColumnImpl[] { new ColumnImpl("explain", "plan", "plan")};
-            Row r = new Row(this, new String[0], new ScalarImpl[] { valueFactory.createValue(plan) }, null);
+            Row r = new Row(this, new String[0], new CoreValue[] { valueFactory.createValue(plan) }, null);
             return Arrays.asList(r).iterator();
         }
         RowIterator it = new RowIterator(revisionId);
@@ -282,11 +282,11 @@ public class Query {
         return list.iterator();
     }
 
-    public int compareRows(ScalarImpl[] orderValues, ScalarImpl[] orderValues2) {
+    public int compareRows(CoreValue[] orderValues, CoreValue[] orderValues2) {
         int comp = 0;
         for (int i = 0, size = orderings.length; i < size; i++) {
-            ScalarImpl a = orderValues[i];
-            ScalarImpl b = orderValues2[i];
+            CoreValue a = orderValues[i];
+            CoreValue b = orderValues2[i];
             if (a == null || b == null) {
                 if (a == b) {
                     comp = 0;
@@ -387,17 +387,17 @@ public class Query {
             paths[i] = s.currentPath();
         }
         int columnCount = columns.length;
-        ScalarImpl[] values = new ScalarImpl[columnCount];
+        CoreValue[] values = new CoreValue[columnCount];
         for (int i = 0; i < columnCount; i++) {
             ColumnImpl c = columns[i];
             values[i] = c.currentValue();
         }
-        ScalarImpl[] orderValues;
+        CoreValue[] orderValues;
         if (orderings == null) {
             orderValues = null;
         } else {
             int size = orderings.length;
-            orderValues = new ScalarImpl[size];
+            orderValues = new CoreValue[size];
             for (int i = 0; i < size; i++) {
                 orderValues[i] = orderings[i].getOperand().currentValue();
             }
@@ -432,8 +432,8 @@ public class Query {
         return offset;
     }
 
-    public ScalarImpl getBindVariableValue(String bindVariableName) {
-        ScalarImpl v = bindVariableMap.get(bindVariableName);
+    public CoreValue getBindVariableValue(String bindVariableName) {
+        CoreValue v = bindVariableMap.get(bindVariableName);
         if (v == null) {
             throw new RuntimeException("Bind variable value not set: " + bindVariableName);
         }

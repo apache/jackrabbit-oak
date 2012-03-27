@@ -64,7 +64,7 @@ public class QueryTest {
     @Test
     public void bindVariableTest() throws Exception {
         head = mk.commit("/", "+ \"test\": { \"hello\": {\"id\": \"1\"}, \"world\": {\"id\": \"2\"}}", null, null);
-        HashMap<String, ScalarImpl> sv = new HashMap<String, ScalarImpl>();
+        HashMap<String, CoreValue> sv = new HashMap<String, CoreValue>();
         ScalarFactory vf = new ScalarFactory();
         sv.put("id", vf.createValue("1"));
         Iterator<Row> result;
@@ -170,12 +170,12 @@ public class QueryTest {
 
     private String readRow(String query, Row row) {
         StringBuilder buff = new StringBuilder();
-        ScalarImpl[] values = row.getValues();
+        CoreValue[] values = row.getValues();
         for (int i = 0; i < values.length; i++) {
             if (i > 0) {
                 buff.append(", ");
             }
-            ScalarImpl v = values[i];
+            CoreValue v = values[i];
             buff.append(v == null ? "null" : v.getString());
         }
         return buff.toString();

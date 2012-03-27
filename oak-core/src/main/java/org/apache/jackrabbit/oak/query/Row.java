@@ -26,10 +26,10 @@ public class Row implements Comparable<Row> {
 
     private final Query query;
     private final String[] paths;
-    private final ScalarImpl[] values;
-    private final ScalarImpl[] orderValues;
+    private final CoreValue[] values;
+    private final CoreValue[] orderValues;
 
-    Row(Query query, String[] paths, ScalarImpl[] values, ScalarImpl[] orderValues) {
+    Row(Query query, String[] paths, CoreValue[] values, CoreValue[] orderValues) {
         this.query = query;
         this.paths = paths;
         this.values = values;
@@ -51,12 +51,12 @@ public class Row implements Comparable<Row> {
         return paths[index];
     }
 
-    public ScalarImpl getValue(String columnName) {
+    public CoreValue getValue(String columnName) {
         return values[query.getColumnIndex(columnName)];
     }
 
-    public ScalarImpl[] getValues() {
-        ScalarImpl[] v2 = new ScalarImpl[values.length];
+    public CoreValue[] getValues() {
+        CoreValue[] v2 = new CoreValue[values.length];
         System.arraycopy(values, 0, v2, 0, v2.length);
         return v2;
     }

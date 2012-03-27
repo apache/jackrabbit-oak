@@ -18,12 +18,26 @@ package org.apache.jackrabbit.oak.query;
 
 import java.math.BigDecimal;
 
-public class ScalarImpl implements Comparable<ScalarImpl> {
+public class CoreValue implements Comparable<CoreValue> {
+
+    public static final int UNDEFINED = 0;
+    public static final int STRING = 1;
+    public static final int BINARY = 2;
+    public static final int LONG = 3;
+    public static final int DOUBLE = 4;
+    public static final int DATE = 5;
+    public static final int BOOLEAN = 6;
+    public static final int NAME = 7;
+    public static final int PATH = 8;
+    public static final int REFERENCE = 9;
+    public static final int WEAKREFERENCE = 10;
+    public static final int URI = 11;
+    public static final int DECIMAL = 12;
 
     private final Object value;
     private final int type;
 
-    public ScalarImpl(Object value, int type) {
+    public CoreValue(Object value, int type) {
         this.value = value;
         this.type = type;
     }
@@ -76,15 +90,15 @@ public class ScalarImpl implements Comparable<ScalarImpl> {
         if (this == o) {
             return true;
         }
-        if (!(o instanceof ScalarImpl)) {
+        if (!(o instanceof CoreValue)) {
             return false;
         }
-        ScalarImpl v = (ScalarImpl) o;
+        CoreValue v = (CoreValue) o;
         return type == v.type && value.equals(v.value);
     }
 
     @Override
-    public int compareTo(ScalarImpl o) {
+    public int compareTo(CoreValue o) {
         if (this == o) {
             return 0;
         }
@@ -93,13 +107,13 @@ public class ScalarImpl implements Comparable<ScalarImpl> {
             return type - o.type;
         }
         switch (type) {
-        case ScalarType.LONG:
+        case LONG:
             return ((Long) value).compareTo((Long) o.value);
-        case ScalarType.DOUBLE:
+        case DOUBLE:
             return ((Double) value).compareTo((Double) o.value);
-        case ScalarType.DECIMAL:
+        case DECIMAL:
             return ((BigDecimal) value).compareTo((BigDecimal) o.value);
-        case ScalarType.BOOLEAN:
+        case BOOLEAN:
             return ((Boolean) value).compareTo((Boolean) o.value);
         }
         return value.toString().compareTo(o.toString());

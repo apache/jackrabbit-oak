@@ -61,7 +61,7 @@ public class SQL2Parser {
     private int currentTokenType;
     private String currentToken;
     private boolean currentTokenQuoted;
-    private ScalarImpl currentValue;
+    private CoreValue currentValue;
     private ArrayList<String> expected;
 
     // The bind variables
@@ -136,7 +136,7 @@ public class SQL2Parser {
     private String readName() throws ParseException {
         if (readIf("[")) {
             if (currentTokenType == VALUE) {
-                ScalarImpl value = readString();
+                CoreValue value = readString();
                 read("]");
                 return value.getString();
             } else {
@@ -442,16 +442,16 @@ public class SQL2Parser {
             }
             int valueType = currentValue.getType();
             switch (valueType) {
-            case ScalarType.LONG:
+            case CoreValue.LONG:
                 currentValue = valueFactory.createValue(-currentValue.getLong());
                 break;
-            case ScalarType.DOUBLE:
+            case CoreValue.DOUBLE:
                 currentValue = valueFactory.createValue(-currentValue.getDouble());
                 break;
-            case ScalarType.BOOLEAN:
+            case CoreValue.BOOLEAN:
                 currentValue = valueFactory.createValue(!currentValue.getBoolean());
                 break;
-            case ScalarType.DECIMAL:
+            case CoreValue.DECIMAL:
                 currentValue = valueFactory.createValue(currentValue.getDecimal().negate());
                 break;
             default:
@@ -487,7 +487,7 @@ public class SQL2Parser {
                 throw getSyntaxError("literal");
             }
             LiteralImpl literal = (LiteralImpl) op;
-            ScalarImpl value = literal.getLiteralValue();
+            CoreValue value = literal.getLiteralValue();
             read("AS");
             value = parseCastAs(value);
             read(")");
@@ -505,11 +505,11 @@ public class SQL2Parser {
      * @param value the original value
      * @return the literal
      */
-    private LiteralImpl getUncastLiteral(ScalarImpl value) throws ParseException {
+    private LiteralImpl getUncastLiteral(CoreValue value) throws ParseException {
         return factory.literal(value);
     }
 
-    private ScalarImpl parseCastAs(ScalarImpl value) throws ParseException {
+    private CoreValue parseCastAs(CoreValue value) throws ParseException {
         if (readIf("STRING")) {
             return valueFactory.createValue(value.getString());
         } else if (readIf("BINARY")) {
@@ -525,15 +525,15 @@ public class SQL2Parser {
         } else if (readIf("BOOLEAN")) {
             return valueFactory.createValue(value.getBoolean());
         } else if (readIf("NAME")) {
-            return valueFactory.createValue(value.getString(), ScalarType.NAME);
+            return valueFactory.createValue(value.getString(), CoreValue.NAME);
         } else if (readIf("PATH")) {
-            return valueFactory.createValue(value.getString(), ScalarType.PATH);
+            return valueFactory.createValue(value.getString(), CoreValue.PATH);
         } else if (readIf("REFERENCE")) {
-            return valueFactory.createValue(value.getString(), ScalarType.REFERENCE);
+            return valueFactory.createValue(value.getString(), CoreValue.REFERENCE);
         } else if (readIf("WEAKREFERENCE")) {
-            return valueFactory.createValue(value.getString(), ScalarType.WEAKREFERENCE);
+            return valueFactory.createValue(value.getString(), CoreValue.WEAKREFERENCE);
         } else if (readIf("URI")) {
-            return valueFactory.createValue(value.getString(), ScalarType.URI);
+            return valueFactory.createValue(value.getString(), CoreValue.URI);
         } else {
             throw getSyntaxError("data type (STRING|BINARY|...)");
         }
@@ -654,11 +654,11 @@ public class SQL2Parser {
         return s;
     }
 
-    private ScalarImpl readString() throws ParseException {
+    private CoreValue readString() throws ParseException {
         if (currentTokenType != VALUE) {
             throw getSyntaxError("string value");
         }
-        ScalarImpl value = currentValue;
+        CoreValue value = currentValue;
         read();
         return value;
     }

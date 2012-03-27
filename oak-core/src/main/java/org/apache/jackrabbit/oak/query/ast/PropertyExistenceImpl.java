@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import org.apache.jackrabbit.oak.query.ScalarImpl;
+import org.apache.jackrabbit.oak.query.CoreValue;
 import org.apache.jackrabbit.oak.query.index.Filter;
 
 public class PropertyExistenceImpl extends ConstraintImpl {
@@ -42,7 +42,7 @@ public class PropertyExistenceImpl extends ConstraintImpl {
 
     @Override
     public boolean evaluate() {
-        ScalarImpl v = selector.currentProperty(propertyName);
+        CoreValue v = selector.currentProperty(propertyName);
         return v != null;
     }
 
@@ -67,7 +67,7 @@ public class PropertyExistenceImpl extends ConstraintImpl {
     @Override
     public void apply(Filter f) {
         if (f.getSelector() == selector) {
-            f.restrictProperty(propertyName, Operator.NOT_EQUAL, (ScalarImpl) null);
+            f.restrictProperty(propertyName, Operator.NOT_EQUAL, (CoreValue) null);
         }
     }
 

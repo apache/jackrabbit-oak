@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.query.index;
 import java.util.HashMap;
 import java.util.Map.Entry;
 import org.apache.jackrabbit.mk.util.PathUtils;
-import org.apache.jackrabbit.oak.query.ScalarImpl;
+import org.apache.jackrabbit.oak.query.CoreValue;
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 
@@ -107,7 +107,7 @@ public class Filter {
         /**
          * The first value to read, or null to read from the beginning.
          */
-        public ScalarImpl first;
+        public CoreValue first;
 
         /**
          * Whether values that match the first should be returned.
@@ -117,7 +117,7 @@ public class Filter {
         /**
          * The last value to read, or null to read until the end.
          */
-        public ScalarImpl last;
+        public CoreValue last;
 
         /**
          * Whether values that match the last should be returned.
@@ -229,14 +229,14 @@ public class Filter {
         }
     }
 
-    public void restrictProperty(String propertyName, Operator op, ScalarImpl value) {
+    public void restrictProperty(String propertyName, Operator op, CoreValue value) {
         PropertyRestriction x = propertyRestrictions.get(propertyName);
         if (x == null) {
             x = new PropertyRestriction();
             x.propertyName = propertyName;
             propertyRestrictions.put(propertyName, x);
         }
-        ScalarImpl oldFirst = x.first, oldLast = x.last;
+        CoreValue oldFirst = x.first, oldLast = x.last;
         switch (op) {
         case EQUAL:
             x.first = maxValue(oldFirst, value);
@@ -277,14 +277,14 @@ public class Filter {
         }
     }
 
-    static ScalarImpl maxValue(ScalarImpl a, ScalarImpl b) {
+    static CoreValue maxValue(CoreValue a, CoreValue b) {
         if (a == null) {
             return b;
         }
         return a.compareTo(b) < 0 ? b : a;
     }
 
-    static ScalarImpl minValue(ScalarImpl a, ScalarImpl b) {
+    static CoreValue minValue(CoreValue a, CoreValue b) {
         if (a == null) {
             return b;
         }

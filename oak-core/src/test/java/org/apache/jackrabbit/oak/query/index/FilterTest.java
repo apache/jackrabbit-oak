@@ -23,7 +23,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import java.util.ArrayList;
 import java.util.Random;
-import org.apache.jackrabbit.oak.query.ScalarImpl;
+import org.apache.jackrabbit.oak.query.CoreValue;
 import org.apache.jackrabbit.oak.query.ScalarFactory;
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.index.Filter.PathRestriction;
@@ -36,8 +36,8 @@ public class FilterTest {
 
     @Test
     public void propertyRestriction() {
-        ScalarImpl one = new ScalarFactory().createValue("1");
-        ScalarImpl two = new ScalarFactory().createValue("2");
+        CoreValue one = new ScalarFactory().createValue("1");
+        CoreValue two = new ScalarFactory().createValue("2");
 
         Filter f = new Filter(null);
         assertTrue(null == f.getPropertyRestriction("x"));

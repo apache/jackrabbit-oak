@@ -19,18 +19,17 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import org.apache.jackrabbit.oak.query.SQL2Parser;
-import org.apache.jackrabbit.oak.query.ScalarImpl;
-import org.apache.jackrabbit.oak.query.ScalarType;
+import org.apache.jackrabbit.oak.query.CoreValue;
 
 public class LiteralImpl extends StaticOperandImpl {
 
-    private final ScalarImpl value;
+    private final CoreValue value;
 
-    public LiteralImpl(ScalarImpl value) {
+    public LiteralImpl(CoreValue value) {
         this.value = value;
     }
 
-    public ScalarImpl getLiteralValue() {
+    public CoreValue getLiteralValue() {
         return value;
     }
 
@@ -42,28 +41,28 @@ public class LiteralImpl extends StaticOperandImpl {
     @Override
     public String toString() {
         switch (value.getType()) {
-        case ScalarType.BINARY:
+        case CoreValue.BINARY:
             return cast("BINARY");
-        case ScalarType.BOOLEAN:
+        case CoreValue.BOOLEAN:
             return cast("BOOLEAN");
-        case ScalarType.DATE:
+        case CoreValue.DATE:
             return cast("DATE");
-        case ScalarType.DECIMAL:
+        case CoreValue.DECIMAL:
             return cast("DECIMAL");
-        case ScalarType.DOUBLE:
-        case ScalarType.LONG:
+        case CoreValue.DOUBLE:
+        case CoreValue.LONG:
             return value.getString();
-        case ScalarType.NAME:
+        case CoreValue.NAME:
             return cast("NAME");
-        case ScalarType.PATH:
+        case CoreValue.PATH:
             return cast("PATH");
-        case ScalarType.REFERENCE:
+        case CoreValue.REFERENCE:
             return cast("REFERENCE");
-        case ScalarType.STRING:
+        case CoreValue.STRING:
             return escape();
-        case ScalarType.URI:
+        case CoreValue.URI:
             return cast("URI");
-        case ScalarType.WEAKREFERENCE:
+        case CoreValue.WEAKREFERENCE:
             return cast("WEAKREFERENCE");
         default:
             return escape();
@@ -79,7 +78,7 @@ public class LiteralImpl extends StaticOperandImpl {
     }
 
     @Override
-    ScalarImpl currentValue() {
+    CoreValue currentValue() {
         return value;
     }
 

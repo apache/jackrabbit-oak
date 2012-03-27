@@ -20,28 +20,28 @@ import java.math.BigDecimal;
 
 public class ScalarFactory {
 
-    public ScalarImpl createValue(String value) {
-        return new ScalarImpl(value, ScalarType.STRING);
+    public CoreValue createValue(String value) {
+        return new CoreValue(value, CoreValue.STRING);
     }
 
-    public ScalarImpl createValue(BigDecimal value) {
-        return new ScalarImpl(value, ScalarType.DECIMAL);
+    public CoreValue createValue(BigDecimal value) {
+        return new CoreValue(value, CoreValue.DECIMAL);
     }
 
-    public ScalarImpl createValue(double value) {
-        return new ScalarImpl(value, ScalarType.DOUBLE);
+    public CoreValue createValue(double value) {
+        return new CoreValue(value, CoreValue.DOUBLE);
     }
 
-    public ScalarImpl createValue(long value) {
-        return new ScalarImpl(value, ScalarType.LONG);
+    public CoreValue createValue(long value) {
+        return new CoreValue(value, CoreValue.LONG);
     }
 
-    public ScalarImpl createValue(boolean value) {
-        return new ScalarImpl(value, ScalarType.BOOLEAN);
+    public CoreValue createValue(boolean value) {
+        return new CoreValue(value, CoreValue.BOOLEAN);
     }
 
-    public ScalarImpl createValue(String value, int type) {
-        return new ScalarImpl(value, type);
+    public CoreValue createValue(String value, int type) {
+        return new CoreValue(value, type);
     }
 
 }
