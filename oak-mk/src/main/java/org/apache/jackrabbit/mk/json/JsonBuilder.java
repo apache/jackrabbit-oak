@@ -309,14 +309,14 @@ public final class JsonBuilder {
     }
 
     public static String encode(float value) {
-        // TODO silently losing data, should probably throw an exception instead
+        // FIXME silently losing data, should probably throw an exception instead
         return Float.isInfinite(value) || Float.isNaN(value)
                 ? "null"
                 : Float.toString(value);
     }
 
     public static String encode(double value) {
-        // TODO silently losing data, should probably throw an exception instead
+        // FIXME silently losing data, should probably throw an exception instead
         return Double.isInfinite(value) || Double.isNaN(value)
                 ? "null"
                 : Double.toString(value);

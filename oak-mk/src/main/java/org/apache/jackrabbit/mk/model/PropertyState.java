@@ -32,7 +32,7 @@ package org.apache.jackrabbit.mk.model;
 public interface PropertyState {
 
     /**
-     * TODO: document
+     * @return the name of this property state
      */
     String getName();
 
