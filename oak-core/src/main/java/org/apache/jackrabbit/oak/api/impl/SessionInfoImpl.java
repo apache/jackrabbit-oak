@@ -75,7 +75,7 @@ public class SessionInfoImpl implements SessionInfo {
     }
 
     //--------------------------------------------------------------------------
-    // TODO: tmp solution as long as oak-jcr still writes to MK directly
+    // FIXME: tmp solution as long as oak-jcr still writes to MK directly
     public void setRevision(String revision) {
         this.revision = revision;
     }
