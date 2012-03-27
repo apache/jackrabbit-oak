@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.jcr;
 
 import org.apache.jackrabbit.commons.AbstractSession;
 import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.oak.api.SessionInfo;
 import org.apache.jackrabbit.oak.jcr.state.NodeStateProvider;
 import org.apache.jackrabbit.oak.jcr.state.TransientNodeState;
 import org.apache.jackrabbit.oak.jcr.state.TransientSpace;
@@ -30,8 +31,6 @@ import javax.jcr.Credentials;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.Item;
 import javax.jcr.ItemNotFoundException;
-import javax.jcr.LoginException;
-import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.Property;
@@ -57,94 +56,29 @@ public class SessionImpl extends AbstractSession {
 
     private final Repository repository;
     private final Workspace workspace;
+    private final SessionInfo sessionInfo;
     private final ValueFactory valueFactory;
 
     private final GlobalContext globalContext;
-    private final String workspaceName;
-    private final MicroKernel microKernel;
     private final TransientSpace transientSpace;
     private final NodeStateProvider nodeStateProvider;
 
-    private String revision;
+    private String revision; // TODO: revision should be kept with sessionINFO and adjusted upon calls on oak-core API
     private boolean isAlive = true;
 
-    public static final SessionFactory FACTORY = new SessionFactory() {
-        @Override
-        public Session createSession(GlobalContext globalContext, Credentials credentials,
-                String workspaceName) throws LoginException, NoSuchWorkspaceException {
+    private final SessionContext<SessionImpl> sessionContext = new Context();
 
-            MicroKernel microKernel = globalContext.getInstance(MicroKernel.class);
-            String revision = microKernel.getHeadRevision();
-
-            if (workspaceName == null) {
-                workspaceName = WorkspaceImpl.DEFAULT_WORKSPACE_NAME;
-            }
-
-            if (!microKernel.nodeExists('/' + workspaceName, revision)) {
-                if (WorkspaceImpl.DEFAULT_WORKSPACE_NAME.equals(workspaceName)) {
-                    WorkspaceImpl.createWorkspace(microKernel, workspaceName);
-                    revision = microKernel.getHeadRevision();
-                }
-                else {
-                    throw new NoSuchWorkspaceException(workspaceName);
-                }
-            }
-
-            return new SessionImpl(globalContext, workspaceName, revision);
-        }
-    };
-
-    private final SessionContext<SessionImpl> sessionContext = new SessionContext<SessionImpl>() {
-
-        @Override
-        public SessionImpl getSession() {
-            return SessionImpl.this;
-        }
-
-        @Override
-        public GlobalContext getGlobalContext() {
-            return globalContext;
-        }
-
-        @Override
-        public String getWorkspaceName() {
-            return workspaceName;
-        }
-
-        @Override
-        public MicroKernel getMicrokernel() {
-            return microKernel;
-        }
-
-        @Override
-        public String getRevision() {
-            return revision;
-        }
-
-        @Override
-        public ValueFactory getValueFactory() {
-            return valueFactory;
-        }
-
-        @Override
-        public NodeStateProvider getNodeStateProvider() {
-            return nodeStateProvider;
-        }
-    };
-
-    private SessionImpl(GlobalContext globalContext, String workspaceName,
-            String revision) {
+    SessionImpl(GlobalContext globalContext, SessionInfo sessionInfo) {
 
         this.globalContext = globalContext;
-        this.workspaceName = workspaceName;
-        this.revision = revision;
+        this.sessionInfo = sessionInfo;
+        this.revision = sessionInfo.getRevision();
 
         valueFactory = new ValueFactoryImpl();
         repository = new RepositoryAdaptor(globalContext.getInstance(Repository.class), valueFactory);
         workspace = new WorkspaceImpl(sessionContext);
 
-        microKernel = globalContext.getInstance(MicroKernel.class);
-        transientSpace = new TransientSpace(workspaceName, microKernel, revision);
+        transientSpace = new TransientSpace(sessionContext.getWorkspaceName(), sessionContext.getMicrokernel(), revision);
         nodeStateProvider = new NodeStateProvider(sessionContext, transientSpace);
     }
 
@@ -158,19 +92,17 @@ public class SessionImpl extends AbstractSession {
 
     @Override
     public String getUserID() {
-        // TODO
-        return null;
+        return sessionInfo.getUserID();
     }
 
     @Override
     public String[] getAttributeNames() {
-        // TODO
-        return null;    }
+        return sessionInfo.getAttributeNames();
+    }
 
     @Override
     public Object getAttribute(String name) {
-        // TODO
-        return null;
+        return sessionInfo.getAttribute(name);
     }
 
     @Override
@@ -200,7 +132,7 @@ public class SessionImpl extends AbstractSession {
     @Override
     public Node getRootNode() throws RepositoryException {
         checkIsAlive();
-        return NodeImpl.create(sessionContext, Path.create(workspaceName));
+        return NodeImpl.create(sessionContext, Path.create(sessionContext.getWorkspaceName()));
     }
 
     @Override
@@ -220,12 +152,12 @@ public class SessionImpl extends AbstractSession {
 
     @Override
     public Node getNode(String absPath) throws RepositoryException {
-        return NodeImpl.create(sessionContext, Path.create(workspaceName, absPath));
+        return NodeImpl.create(sessionContext, Path.create(sessionContext.getWorkspaceName(), absPath));
     }
 
     @Override
     public boolean nodeExists(String absPath) throws RepositoryException {
-        Path path = Path.create(workspaceName, absPath);
+        Path path = Path.create(sessionContext.getWorkspaceName(), absPath);
         return path.isRoot() || NodeImpl.exist(sessionContext, path);
     }
 
@@ -235,12 +167,12 @@ public class SessionImpl extends AbstractSession {
             throw new ItemNotFoundException(absPath);
         }
 
-        return PropertyImpl.create(sessionContext, Path.create(workspaceName, absPath));
+        return PropertyImpl.create(sessionContext, Path.create(sessionContext.getWorkspaceName(), absPath));
     }
 
     @Override
     public boolean propertyExists(String absPath) throws RepositoryException {
-        Path path = Path.create(workspaceName, absPath);
+        Path path = Path.create(sessionContext.getWorkspaceName(), absPath);
         return !path.isRoot() && PropertyImpl.exist(sessionContext, path);
     }
 
@@ -265,13 +197,13 @@ public class SessionImpl extends AbstractSession {
     @Override
     public void move(String srcAbsPath, String destAbsPath) throws RepositoryException {
         checkIsAlive();
-        Path sourcePath = Path.create(workspaceName, srcAbsPath);
+        Path sourcePath = Path.create(sessionContext.getWorkspaceName(), srcAbsPath);
         TransientNodeState sourceParent = nodeStateProvider.getNodeState(sourcePath.getParent());
         if (sourceParent == null) {
             throw new PathNotFoundException(srcAbsPath);
         }
 
-        sourceParent.move(sourcePath.getName(), Path.create(workspaceName, destAbsPath));
+        sourceParent.move(sourcePath.getName(), Path.create(sessionContext.getWorkspaceName(), destAbsPath));
     }
 
     //------------------------------------------------------------< state >---
@@ -296,7 +228,7 @@ public class SessionImpl extends AbstractSession {
         return transientSpace.isDirty();
     }
 
-    //------------------------------------------------------------< Lifecycle >---
+    //----------------------------------------------------------< Lifecycle >---
 
     @Override
     public boolean isLive() {
@@ -313,9 +245,11 @@ public class SessionImpl extends AbstractSession {
 
         isAlive = false;
         // TODO
+
+        sessionInfo.dispose();
     }
 
-    //------------------------------------------------------------< Import / Export >---
+    //----------------------------------------------------< Import / Export >---
 
     @Override
     public ContentHandler getImportContentHandler(String parentAbsPath, int uuidBehavior) throws RepositoryException {
@@ -363,7 +297,7 @@ public class SessionImpl extends AbstractSession {
         }
     }
 
-    //------------------------------------------------------------< AccessControl >---
+    //------------------------------------------------------< AccessControl >---
 
     @Override
     public boolean hasPermission(String absPath, String actions) throws RepositoryException {
@@ -399,14 +333,14 @@ public class SessionImpl extends AbstractSession {
         return null;
     }
 
-    //------------------------------------------------------------< Retention >---
+    //----------------------------------------------------------< Retention >---
 
     @Override
     public RetentionManager getRetentionManager() throws RepositoryException {
         throw new UnsupportedRepositoryOperationException("Retention Management is not supported.");
     }
 
-    //------------------------------------------------------------< check methods >---
+    //--------------------------------------------------------------------------
 
     /**
      * Performs a sanity check on this session.
@@ -519,4 +453,43 @@ public class SessionImpl extends AbstractSession {
         }
     }
 
+    //--------------------------------------------------------------------------
+
+    private class Context implements SessionContext<SessionImpl> {
+
+        @Override
+        public SessionImpl getSession() {
+            return SessionImpl.this;
+        }
+
+        @Override
+        public GlobalContext getGlobalContext() {
+            return globalContext;
+        }
+
+        @Override
+        public String getWorkspaceName() {
+            return sessionInfo.getWorkspaceName();
+        }
+
+        @Override
+        public MicroKernel getMicrokernel() {
+            return globalContext.getInstance(MicroKernel.class);
+        }
+
+        @Override
+        public String getRevision() {
+            return revision;
+        }
+
+        @Override
+        public ValueFactory getValueFactory() {
+            return valueFactory;
+        }
+
+        @Override
+        public NodeStateProvider getNodeStateProvider() {
+            return nodeStateProvider;
+        }
+    }
 }

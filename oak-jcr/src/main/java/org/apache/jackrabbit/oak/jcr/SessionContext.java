@@ -30,7 +30,7 @@ public interface SessionContext<T extends Session> {
     GlobalContext getGlobalContext();
     String getWorkspaceName();
     MicroKernel getMicrokernel();
-    String getRevision();
+    String getRevision(); // TODO: this should be superfluous if SessionInfo is used for communication
     ValueFactory getValueFactory();
     NodeStateProvider getNodeStateProvider();
 }
