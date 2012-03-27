@@ -22,7 +22,7 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.mk.simple.NodeImpl;
 import org.apache.jackrabbit.oak.query.Query;
-import org.apache.jackrabbit.oak.query.ScalarImpl;
+import org.apache.jackrabbit.oak.query.CoreValue;
 import org.apache.jackrabbit.oak.query.index.Cursor;
 import org.apache.jackrabbit.oak.query.index.Filter;
 import org.apache.jackrabbit.oak.query.index.NodeReader;
@@ -108,7 +108,7 @@ public class SelectorImpl extends SourceImpl {
         return cursor == null ? null : cursor.currentNode();
     }
 
-    public ScalarImpl currentProperty(String propertyName) {
+    public CoreValue currentProperty(String propertyName) {
         if (propertyName.equals(PATH)) {
             String p = currentPath();
             return p == null ? null : query.getValueFactory().createValue(p);
