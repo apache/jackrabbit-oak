@@ -19,6 +19,8 @@
 
 package org.apache.jackrabbit.mk.json;
 
+import org.apache.jackrabbit.mk.model.Scalar;
+
 import java.io.IOException;
 
 /**
@@ -441,5 +443,28 @@ public final class JsonBuilder {
         sb.append(']');
         return sb.toString();
     }
+    
+    public static String encode(Scalar scalar) {
+        switch (scalar.getType()) {
+            case BOOLEAN: return encode(scalar.getBoolean());
+            case LONG:    return encode(scalar.getLong());
+            case DOUBLE:  return encode(scalar.getDouble());
+            case BINARY:  return null; // TODO implement encoding of binaries
+            case STRING:  return encode(scalar.getString());
+            case NULL:    return "null";
+        }
+        throw new IllegalStateException("unreachable");  // Make javac happy
+    }
 
+    public static String encode(Iterable<Scalar> scalars) {
+        StringBuilder sb = new StringBuilder();
+        sb.append('[');
+        for (Scalar scalar : scalars) {
+            sb.append(encode(scalar));
+            sb.append(',');
+        }
+        sb.deleteCharAt(sb.length() - 1);
+        sb.append(']');
+        return sb.toString();
+    }
 }

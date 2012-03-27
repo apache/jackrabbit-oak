@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.mk.model;
 
+import org.apache.jackrabbit.mk.json.JsonBuilder;
+
 /**
  * Abstract base class for {@link PropertyState} implementations.
  * This base class contains default implementations of the
@@ -25,14 +27,24 @@ package org.apache.jackrabbit.mk.model;
 public abstract class AbstractPropertyState implements PropertyState {
 
     /**
+     * Default implementation delegating to {@link JsonBuilder#encode(Scalar)}.
+     * Derived classes may override this with more efficient implementations.
+     */
+    @Override
+    public String getEncodedValue() {
+        return isArray()
+            ? JsonBuilder.encode(getArray())
+            : JsonBuilder.encode(getScalar());
+    }
+
+    /**
      * Checks whether the given object is equal to this one. Two property
      * states are considered equal if both their names and encoded values
      * match. Subclasses may override this method with a more efficient
      * equality check if one is available.
      *
      * @param that target of the comparison
-     * @return <code>true</code> if the objects are equal,
-     *         <code>false</code> otherwise
+     * @return {@code true} if the objects are equal, {@code false} otherwise
      */
     @Override
     public boolean equals(Object that) {

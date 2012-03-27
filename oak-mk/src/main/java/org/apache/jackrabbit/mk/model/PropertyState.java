@@ -37,7 +37,7 @@ public interface PropertyState {
     String getName();
 
     /**
-     * FIXME: replace with type-specific accessors
+     * @return the JSON encoded value of this property state.
      */
     String getEncodedValue();
 
