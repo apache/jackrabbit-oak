@@ -27,6 +27,7 @@ import org.apache.jackrabbit.mk.model.AbstractNodeState;
 import org.apache.jackrabbit.mk.model.ChildNodeEntry;
 import org.apache.jackrabbit.mk.model.NodeState;
 import org.apache.jackrabbit.mk.model.PropertyState;
+import org.apache.jackrabbit.mk.model.ScalarImpl;
 
 import java.util.ArrayList;
 import java.util.Iterator;

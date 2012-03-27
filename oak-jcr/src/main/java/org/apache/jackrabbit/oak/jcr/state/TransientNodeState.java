@@ -20,7 +20,7 @@
 package org.apache.jackrabbit.oak.jcr.state;
 
 import org.apache.jackrabbit.mk.model.Scalar;
-import org.apache.jackrabbit.oak.kernel.ScalarImpl;
+import org.apache.jackrabbit.mk.model.ScalarImpl;
 import org.apache.jackrabbit.mk.model.ChildNodeEntry;
 import org.apache.jackrabbit.mk.model.NodeState;
 import org.apache.jackrabbit.mk.model.PropertyState;

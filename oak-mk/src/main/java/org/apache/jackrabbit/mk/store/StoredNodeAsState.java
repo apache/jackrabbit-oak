@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.mk.store;
 
+import org.apache.jackrabbit.mk.json.JsopReader;
+import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.mk.model.AbstractChildNodeEntry;
 import org.apache.jackrabbit.mk.model.AbstractNodeState;
 import org.apache.jackrabbit.mk.model.AbstractPropertyState;
@@ -25,10 +27,13 @@ import org.apache.jackrabbit.mk.model.Id;
 import org.apache.jackrabbit.mk.model.NodeState;
 import org.apache.jackrabbit.mk.model.PropertyState;
 import org.apache.jackrabbit.mk.model.Scalar;
+import org.apache.jackrabbit.mk.model.ScalarImpl;
 import org.apache.jackrabbit.mk.model.StoredNode;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 class StoredNodeAsState extends AbstractNodeState {
@@ -47,11 +52,10 @@ class StoredNodeAsState extends AbstractNodeState {
     }
 
     private static class SimplePropertyState extends AbstractPropertyState {
-
         private final String name;
-
         private final String value;
 
+        // todo make name and value not nullable
         public SimplePropertyState(String name, String value) {
             this.name = name;
             this.value = value;
@@ -69,17 +73,46 @@ class StoredNodeAsState extends AbstractNodeState {
 
         @Override
         public boolean isArray() {
-            return false; // todo implement isMultiValued
+            return !value.isEmpty() && value.charAt(0) == '[';
         }
 
         @Override
         public Scalar getScalar() {
-            return null; // todo implement getValue
+            if (isArray()) {
+                throw new IllegalStateException("Array cannot be accessed as scalar");
+            }
+
+            return readScalar(new JsopTokenizer(value));
         }
 
         @Override
         public Iterable<Scalar> getArray() {
-            return null; // todo implement getValues
+            if (!isArray()) {
+                throw new IllegalStateException("Scalar cannot be accessed as array");
+            }
+
+            List<Scalar> scalars = new ArrayList<Scalar>();
+            JsopReader reader = new JsopTokenizer(value);
+            reader.read('[');
+            while (!reader.matches(']')) {
+                scalars.add(readScalar(reader));
+                reader.matches(',');
+            }
+            return scalars;
+        }
+
+        private static Scalar readScalar(JsopReader reader) {
+            if (reader.matches(JsopTokenizer.NUMBER)) {
+                return ScalarImpl.numberScalar(reader.getToken());
+            } else if (reader.matches(JsopTokenizer.STRING)) {
+                return ScalarImpl.stringScalar(reader.getToken());
+            } else if (reader.matches(JsopTokenizer.TRUE)) {
+                return ScalarImpl.booleanScalar(true);
+            } else if (reader.matches(JsopTokenizer.FALSE)) {
+                return ScalarImpl.booleanScalar(false);
+            } else {
+                throw new IllegalArgumentException("Unexpected token: " + reader.getToken());
+            }
         }
 
     }
@@ -102,18 +135,22 @@ class StoredNodeAsState extends AbstractNodeState {
     @Override
     public Iterable<PropertyState> getProperties() {
         return new Iterable<PropertyState>() {
+            @Override
             public Iterator<PropertyState> iterator() {
                 final Iterator<Map.Entry<String, String>> iterator =
                         node.getProperties().entrySet().iterator();
                 return new Iterator<PropertyState>() {
+                    @Override
                     public boolean hasNext() {
                         return iterator.hasNext();
                     }
+                    @Override
                     public PropertyState next() {
                         Map.Entry<String, String> entry = iterator.next();
                         return new SimplePropertyState(
                                 entry.getKey(), entry.getValue());
                     }
+                    @Override
                     public void remove() {
                         throw new UnsupportedOperationException();
                     }
@@ -146,16 +183,20 @@ class StoredNodeAsState extends AbstractNodeState {
             return Collections.emptyList();
         } else {
             return new Iterable<ChildNodeEntry>() {
+                @Override
                 public Iterator<ChildNodeEntry> iterator() {
                     final Iterator<ChildNode> iterator =
                             node.getChildNodeEntries((int) offset, count);
                     return new Iterator<ChildNodeEntry>() {
+                        @Override
                         public boolean hasNext() {
                             return iterator.hasNext();
                         }
+                        @Override
                         public ChildNodeEntry next() {
                             return getChildNodeEntry(iterator.next());
                         }
+                        @Override
                         public void remove() {
                             throw new UnsupportedOperationException();
                         }
@@ -168,9 +209,11 @@ class StoredNodeAsState extends AbstractNodeState {
     private ChildNodeEntry getChildNodeEntry(
             final org.apache.jackrabbit.mk.model.ChildNode entry) {
         return new AbstractChildNodeEntry() {
+            @Override
             public String getName() {
                 return entry.getName();
             }
+            @Override
             public NodeState getNode() {
                 try {
                     StoredNode child = provider.getNode(entry.getId());

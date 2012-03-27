@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.jcr.state;
 
 import org.apache.commons.collections.map.AbstractReferenceMap;
 import org.apache.commons.collections.map.ReferenceMap;
-import org.apache.jackrabbit.oak.kernel.ScalarImpl;
+import org.apache.jackrabbit.mk.model.ScalarImpl;
 import org.apache.jackrabbit.mk.model.PropertyState;
 import org.apache.jackrabbit.oak.jcr.util.Iterators;
 import org.apache.jackrabbit.oak.jcr.util.Path;
