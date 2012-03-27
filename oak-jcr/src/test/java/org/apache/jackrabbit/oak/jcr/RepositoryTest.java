@@ -114,51 +114,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertNotNull(getSession());
     }
 
-    @Test(expected = NoSuchWorkspaceException.class)
-    public void loginInvalidWorkspace() throws RepositoryException {
-        Repository repository = getRepository();
-        repository.login("invalid");
-    }
-
-    @Test
-    public void getWorkspaceNames() throws RepositoryException {
-        String[] workspaces = getSession().getWorkspace().getAccessibleWorkspaceNames();
-
-        Set<String> names = new HashSet<String>() {{
-            add("default");
-        }};
-
-        assertTrue(asList(workspaces).containsAll(names));
-        assertTrue(names.containsAll(asList(workspaces)));
-    }
-
-    @Test
-    public void createDeleteWorkspace() throws RepositoryException {
-        getSession().getWorkspace().createWorkspace("new");
-
-        Session session2 = getRepository().login();
-        try {
-            String[] workspaces = session2.getWorkspace().getAccessibleWorkspaceNames();
-            assertTrue(asList(workspaces).contains("new"));
-            Session session3 = getRepository().login("new");
-            assertEquals("new", session3.getWorkspace().getName());
-            session3.logout();
-            session2.getWorkspace().deleteWorkspace("new");
-        }
-        finally {
-            session2.logout();
-        }
-
-        Session session4 = getRepository().login();
-        try {
-            String[] workspaces = session4.getWorkspace().getAccessibleWorkspaceNames();
-            assertFalse(asList(workspaces).contains("new"));
-        }
-        finally {
-            session4.logout();
-        }
-    }
-
     @Test
     public void getRoot() throws RepositoryException {
         Node root = getSession().getRootNode();

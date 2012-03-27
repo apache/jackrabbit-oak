@@ -21,6 +21,8 @@ package org.apache.jackrabbit.oak.jcr;
 
 import org.apache.jackrabbit.mk.MicroKernelFactory;
 import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.oak.api.AuthenticationService;
+import org.apache.jackrabbit.oak.api.impl.AuthenticationServiceImpl;
 import org.apache.jackrabbit.oak.jcr.configuration.RepositoryConfiguration;
 import org.apache.jackrabbit.oak.jcr.util.Unchecked;
 
@@ -34,6 +36,7 @@ import static java.text.MessageFormat.format;
 /**
  * Poor man's dependency injection
  * todo: OAK-17: replace by some more sophisticated mechanism
+ * todo: OAK-20: remove usages of mk on oak-jcr
  * This class implements a poor man's dependency injection mechanism.
  * It should be replaced by a more sophisticated mechanism for compile
  * time dependency injection mechanism.
@@ -42,10 +45,12 @@ public class GlobalContext {
     private final Map<Class<?>, Object> instances = new HashMap<Class<?>, Object>();
     
     public GlobalContext(RepositoryConfiguration repositoryConfiguration) throws RepositoryException {
+        MicroKernel mk = MicroKernelFactory.getInstance(repositoryConfiguration.getMicrokernelUrl());
+        AuthenticationService authenticationService = new AuthenticationServiceImpl(mk);
         put(RepositoryConfiguration.class, repositoryConfiguration);
-        put(MicroKernel.class, MicroKernelFactory.getInstance(repositoryConfiguration.getMicrokernelUrl()));
+        put(AuthenticationService.class, authenticationService);
+        put(MicroKernel.class, mk);
         put(Repository.class, new RepositoryImpl(this));
-        put(SessionFactory.class, SessionImpl.FACTORY);
     }
 
     public <T> T getInstance(Class<T> forClass) {

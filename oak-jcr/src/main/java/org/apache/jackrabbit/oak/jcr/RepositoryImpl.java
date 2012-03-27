@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import org.apache.jackrabbit.oak.api.AuthenticationService;
+import org.apache.jackrabbit.oak.api.SessionInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,6 +26,7 @@ import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.Value;
+import javax.security.auth.login.LoginException;
 
 /**
  * {@code RepositoryImpl}...
@@ -85,8 +88,14 @@ public class RepositoryImpl implements Repository {
     public Session login(Credentials credentials, String workspaceName) throws RepositoryException {
         // TODO: needs complete refactoring
 
-        SessionFactory sessionFactory = context.getInstance(SessionFactory.class);
-        return sessionFactory.createSession(context, credentials, workspaceName);
+        AuthenticationService authentication = context.getInstance(AuthenticationService.class);
+        try {
+            SessionInfo sessionInfo = authentication.login(credentials, workspaceName);
+            return new SessionImpl(context, sessionInfo);
+        } catch (LoginException e) {
+            throw new javax.jcr.LoginException(e.getMessage());
+        }
+
     }
 
     /**
