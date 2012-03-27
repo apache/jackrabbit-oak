@@ -20,7 +20,7 @@
 package org.apache.jackrabbit.oak.jcr.util;
 
 import org.apache.jackrabbit.mk.model.Scalar;
-import org.apache.jackrabbit.oak.kernel.ScalarImpl;
+import org.apache.jackrabbit.mk.model.ScalarImpl;
 
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
