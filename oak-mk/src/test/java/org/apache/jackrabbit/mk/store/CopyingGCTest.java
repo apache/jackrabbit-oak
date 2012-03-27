@@ -49,8 +49,6 @@ public class CopyingGCTest {
     
     @Before
     public void setup() throws Exception {
-        delete(new File("target/mk1"));
-        delete(new File("target/mk2"));
     }
 
     @After
@@ -135,17 +133,5 @@ public class CopyingGCTest {
         
         // Assert MK contains 3 revisions only
         assertEquals(3, ((JsopArray) Jsop.parse(mk.getRevisions(0, Integer.MAX_VALUE))).size());
-    }
-    
-    private static void delete(File f) throws IOException {
-        if (f.exists()) {
-            if (f.isDirectory()) {
-                // recursively delete children first
-                for (File child : f.listFiles()) {
-                    delete(child);
-                }
-            }
-            f.delete();
-        }
     }
 }
