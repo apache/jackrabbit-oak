@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import org.apache.jackrabbit.oak.query.ScalarImpl;
+import org.apache.jackrabbit.oak.query.CoreValue;
 import org.apache.jackrabbit.oak.query.ScalarFactory;
 import org.apache.jackrabbit.oak.query.index.Filter;
 
@@ -48,8 +48,8 @@ public class ComparisonImpl extends ConstraintImpl {
 
     @Override
     public boolean evaluate() {
-        ScalarImpl v1 = operand1.currentValue();
-        ScalarImpl v2 = operand2.currentValue();
+        CoreValue v1 = operand1.currentValue();
+        CoreValue v2 = operand2.currentValue();
         if (v1 == null || v2 == null) {
             // TODO comparison: what about (null <> x) ?
             return false;
@@ -71,7 +71,7 @@ public class ComparisonImpl extends ConstraintImpl {
         return false;
     }
 
-    private static boolean evaluateLike(ScalarImpl v1, ScalarImpl v2) {
+    private static boolean evaluateLike(CoreValue v1, CoreValue v2) {
         LikePattern like = new LikePattern(v2.getString());
         return like.matches(v1.getString());
     }
@@ -255,7 +255,7 @@ public class ComparisonImpl extends ConstraintImpl {
 
     @Override
     public void apply(Filter f) {
-        ScalarImpl v = operand2.currentValue();
+        CoreValue v = operand2.currentValue();
         if (v != null) {
             if (operator == Operator.LIKE) {
                 String pattern;

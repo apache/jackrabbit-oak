@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import org.apache.jackrabbit.oak.query.ScalarImpl;
+import org.apache.jackrabbit.oak.query.CoreValue;
 import org.apache.jackrabbit.oak.query.index.Filter;
 
 public class LowerCaseImpl extends DynamicOperandImpl {
@@ -44,8 +44,8 @@ public class LowerCaseImpl extends DynamicOperandImpl {
     }
 
     @Override
-    public ScalarImpl currentValue() {
-        ScalarImpl v = operand.currentValue();
+    public CoreValue currentValue() {
+        CoreValue v = operand.currentValue();
         if (v == null) {
             return null;
         }
@@ -54,7 +54,7 @@ public class LowerCaseImpl extends DynamicOperandImpl {
     }
 
     @Override
-    public void apply(Filter f, Operator operator, ScalarImpl v) {
+    public void apply(Filter f, Operator operator, CoreValue v) {
         // ignore
         // TODO UPPER(x) conditions: can use IS NOT NULL?
     }

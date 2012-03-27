@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import org.apache.jackrabbit.oak.query.ScalarImpl;
+import org.apache.jackrabbit.oak.query.CoreValue;
 import org.apache.jackrabbit.oak.query.index.Filter;
 
 public class LengthImpl extends DynamicOperandImpl {
@@ -44,8 +44,8 @@ public class LengthImpl extends DynamicOperandImpl {
     }
 
     @Override
-    public ScalarImpl currentValue() {
-        ScalarImpl v = propertyValue.currentValue();
+    public CoreValue currentValue() {
+        CoreValue v = propertyValue.currentValue();
         if (v == null) {
             return null;
         }
@@ -55,7 +55,7 @@ public class LengthImpl extends DynamicOperandImpl {
     }
 
     @Override
-    public void apply(Filter f, Operator operator, ScalarImpl v) {
+    public void apply(Filter f, Operator operator, CoreValue v) {
         // ignore
         // TODO LENGTH(x) conditions: can use IS NOT NULL?
     }
