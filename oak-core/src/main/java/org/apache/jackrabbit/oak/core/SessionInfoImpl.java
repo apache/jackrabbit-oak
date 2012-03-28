@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.api.impl;
+package org.apache.jackrabbit.oak.core;
 
 import org.apache.jackrabbit.oak.api.SessionInfo;
 import org.slf4j.Logger;
@@ -73,11 +73,4 @@ public class SessionInfoImpl implements SessionInfo {
         // TODO
 
     }
-
-    //--------------------------------------------------------------------------
-    // FIXME: tmp solution as long as oak-jcr still writes to MK directly
-    public void setRevision(String revision) {
-        this.revision = revision;
-    }
-
 }

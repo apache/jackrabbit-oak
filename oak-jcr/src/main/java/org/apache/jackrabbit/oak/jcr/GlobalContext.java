@@ -21,8 +21,8 @@ package org.apache.jackrabbit.oak.jcr;
 
 import org.apache.jackrabbit.mk.MicroKernelFactory;
 import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.oak.api.AuthenticationService;
-import org.apache.jackrabbit.oak.api.impl.AuthenticationServiceImpl;
+import org.apache.jackrabbit.oak.api.RepositoryService;
+import org.apache.jackrabbit.oak.core.TmpRepositoryService;
 import org.apache.jackrabbit.oak.jcr.configuration.RepositoryConfiguration;
 import org.apache.jackrabbit.oak.jcr.util.Unchecked;
 
@@ -46,9 +46,9 @@ public class GlobalContext {
     
     public GlobalContext(RepositoryConfiguration repositoryConfiguration) throws RepositoryException {
         MicroKernel mk = MicroKernelFactory.getInstance(repositoryConfiguration.getMicrokernelUrl());
-        AuthenticationService authenticationService = new AuthenticationServiceImpl(mk);
+        RepositoryService repositoryService = new TmpRepositoryService(mk);
         put(RepositoryConfiguration.class, repositoryConfiguration);
-        put(AuthenticationService.class, authenticationService);
+        put(RepositoryService.class, repositoryService);
         put(MicroKernel.class, mk);
         put(Repository.class, new RepositoryImpl(this));
     }
