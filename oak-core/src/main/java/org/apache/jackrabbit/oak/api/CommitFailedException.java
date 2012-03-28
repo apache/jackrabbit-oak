@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.api;
 
 /**
  * Main exception thrown by methods defined on the {@code Connection} interface
- * indicating that commiting a given set of changes failed.
+ * indicating that committing a given set of changes failed.
  *
  * TODO: define mechanism to inform the oak-jcr level about the specific type of exception
  *       possible ways:
