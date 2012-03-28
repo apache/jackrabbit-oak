@@ -330,8 +330,8 @@ public class TransientNodeState {
             revision = baseRevision;
             if (path == null) {
                 persistentNodeState = EmptyNodeState.INSTANCE;
-            }
-            else {
+            } else {
+                // TODO: use oak-api here in order to avoid reading directly from MK
                 persistentNodeState = new KernelNodeState(sessionContext.getMicrokernel(), path.toMkPath(), revision);
             }
         }
