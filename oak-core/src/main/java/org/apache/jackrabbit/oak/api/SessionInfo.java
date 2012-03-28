@@ -55,6 +55,8 @@ public interface SessionInfo {
      * latest state after successful commit of modifications or if the associated
      * session is being refreshed.
      *
+     * TODO: review. maybe this isn't needed any more in oak-jcr once we got rid of all mk-dependencies.
+     *
      * @return the revision The current revision.
      */
     String getRevision();
