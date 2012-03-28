@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import org.apache.jackrabbit.oak.jcr.query.QueryManagerImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.ContentHandler;
@@ -45,6 +46,7 @@ public class WorkspaceImpl implements Workspace {
     private static final Logger log = LoggerFactory.getLogger(WorkspaceImpl.class);
 
     private final SessionContext<SessionImpl> sessionContext;
+    private QueryManagerImpl queryManager;
 
     public WorkspaceImpl(SessionContext<SessionImpl> sessionContext) {
         this.sessionContext = sessionContext;
@@ -113,9 +115,10 @@ public class WorkspaceImpl implements Workspace {
     @Override
     public QueryManager getQueryManager() throws RepositoryException {
         getSessionImpl().checkIsAlive();
-
-        // TODO
-        return null;
+        if (queryManager == null) {
+            queryManager = new QueryManagerImpl(this, sessionContext);
+        }
+        return queryManager;
     }
 
     @Override
