@@ -826,6 +826,13 @@ public class NodeImpl extends ItemImpl implements Node  {
         return getSession().getWorkspace().getVersionManager();
     }
 
+    /**
+     * Shortcut to retrieve the lock manager from the workspace associated
+     * with the editing session.
+     *
+     * @return the lock manager associated with the editing session.
+     * @throws RepositoryException If an error occurs while retrieving the lock manager.
+     */
     private LockManager getLockManager() throws RepositoryException {
         return getSession().getWorkspace().getLockManager();
     }
