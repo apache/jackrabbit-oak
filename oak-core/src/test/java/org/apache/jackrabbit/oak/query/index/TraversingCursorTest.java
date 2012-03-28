@@ -48,24 +48,24 @@ public class TraversingCursorTest {
 
     @Test
     public void traverse() throws Exception {
-        TraversingReader r = new TraversingReader(mk);
-        traverse(r);
+        TraversingIndex t = new TraversingIndex(mk);
+        traverse(t);
     }
 
     @Test
     public void traverseBlockwise() throws Exception {
-        TraversingReader r = new TraversingReader(mk);
-        r.setChildBlockSize(2);
-        traverse(r);
+        TraversingIndex t = new TraversingIndex(mk);
+        t.setChildBlockSize(2);
+        traverse(t);
     }
 
-    private void traverse(TraversingReader r) {
+    private void traverse(TraversingIndex t) {
         head = mk.commit("/", "+ \"parents\": { \"p0\": {\"id\": \"0\"}, \"p1\": {\"id\": \"1\"}, \"p2\": {\"id\": \"2\"}}", head, "");
         head = mk.commit("/", "+ \"children\": { \"c1\": {\"p\": \"1\"}, \"c2\": {\"p\": \"1\"}, \"c3\": {\"p\": \"2\"}, \"c4\": {\"p\": \"3\"}}", head, "");
         Filter f = new Filter(null);
         Cursor c;
         f.setPath("/");
-        c = r.query(f, head);
+        c = t.query(f, head);
         String[] list = {"/", "/parents", "/parents/p0", "/parents/p1",  "/parents/p2",
                 "/children", "/children/c1", "/children/c2", "/children/c3", "/children/c4"};
         for (String s : list) {
@@ -75,7 +75,7 @@ public class TraversingCursorTest {
         assertFalse(c.next());
         assertFalse(c.next());
         f.setPath("/nowhere");
-        c = r.query(f, head);
+        c = t.query(f, head);
         assertFalse(c.next());
         assertFalse(c.next());
     }

@@ -22,14 +22,14 @@ import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 /**
  * A query result row that keeps all data in memory.
  */
-public class Row implements Comparable<Row> {
+public class ResultRow implements Comparable<ResultRow> {
 
     private final Query query;
     private final String[] paths;
     private final CoreValue[] values;
     private final CoreValue[] orderValues;
 
-    Row(Query query, String[] paths, CoreValue[] values, CoreValue[] orderValues) {
+    ResultRow(Query query, String[] paths, CoreValue[] values, CoreValue[] orderValues) {
         this.query = query;
         this.paths = paths;
         this.values = values;
@@ -62,7 +62,7 @@ public class Row implements Comparable<Row> {
     }
 
     @Override
-    public int compareTo(Row o) {
+    public int compareTo(ResultRow o) {
         return query.compareRows(orderValues, o.orderValues);
     }
 

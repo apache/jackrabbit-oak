@@ -43,7 +43,7 @@ public class QueryTest {
     public void setUp() {
         mk = MicroKernelFactory.getInstance("simple:/target/temp;clear");
         head = mk.getHeadRevision();
-        qe = QueryEngine.getInstance(mk);
+        qe = new QueryEngine(mk);
     }
 
     @After
@@ -65,20 +65,20 @@ public class QueryTest {
     public void bindVariableTest() throws Exception {
         head = mk.commit("/", "+ \"test\": { \"hello\": {\"id\": \"1\"}, \"world\": {\"id\": \"2\"}}", null, null);
         HashMap<String, CoreValue> sv = new HashMap<String, CoreValue>();
-        ScalarFactory vf = new ScalarFactory();
+        CoreValueFactory vf = new CoreValueFactory();
         sv.put("id", vf.createValue("1"));
-        Iterator<Row> result;
-        result = qe.executeQuery(QueryEngine.SQL2, "select * from [nt:base] where id = $id", sv);
+        Iterator<ResultRow> result;
+        result = qe.executeQuery("select * from [nt:base] where id = $id", QueryEngine.SQL2, sv).getRows();
         assertTrue(result.hasNext());
         assertEquals("/test/hello", result.next().getPath());
 
         sv.put("id", vf.createValue("2"));
-        result = qe.executeQuery(QueryEngine.SQL2, "select * from [nt:base] where id = $id", sv);
+        result = qe.executeQuery("select * from [nt:base] where id = $id", QueryEngine.SQL2, sv).getRows();
         assertTrue(result.hasNext());
         assertEquals("/test/world", result.next().getPath());
 
 
-        qe.executeQuery(QueryEngine.SQL2, "explain select * from [nt:base] where id = 1 order by id", null);
+        qe.executeQuery("explain select * from [nt:base] where id = 1 order by id", QueryEngine.SQL2, null);
 
 
 
@@ -115,10 +115,10 @@ public class QueryTest {
                     }
                 } else if (line.startsWith("select") || line.startsWith("explain")) {
                     w.println(line);
-                    Iterator<Row> result = qe.executeQuery(QueryEngine.SQL2, line, null);
+                    Iterator<ResultRow> result = qe.executeQuery(line, QueryEngine.SQL2, null).getRows();
                     boolean readEnd = true;
                     while (result.hasNext()) {
-                        Row row = result.next();
+                        ResultRow row = result.next();
                         String resultLine = readRow(line, row);
                         w.println(resultLine);
                         if (readEnd) {
@@ -168,7 +168,7 @@ public class QueryTest {
         }
     }
 
-    private String readRow(String query, Row row) {
+    private String readRow(String query, ResultRow row) {
         StringBuilder buff = new StringBuilder();
         CoreValue[] values = row.getValues();
         for (int i = 0; i < values.length; i++) {
