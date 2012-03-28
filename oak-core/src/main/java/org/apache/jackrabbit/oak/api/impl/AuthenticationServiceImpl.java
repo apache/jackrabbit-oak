@@ -79,7 +79,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     /**
      * @param credentials The credentials object used for authentication.
-     * @return The microkernal revision. If the give credentials don't specify
+     * @return The microkernel revision. If the give credentials don't specify
      * a specific revision number the current head revision is returned.
      */
     private String getRevision(Object credentials) {
