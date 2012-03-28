@@ -63,7 +63,7 @@ public class Query {
     private long limit;
     private long offset;
     private boolean prepared;
-    private final ScalarFactory valueFactory = new ScalarFactory();
+    private final CoreValueFactory valueFactory = new CoreValueFactory();
 
     Query(SourceImpl source, ConstraintImpl constraint, OrderingImpl[] orderings,
             ColumnImpl[] columns) {
@@ -252,7 +252,7 @@ public class Query {
         this.offset = offset;
     }
 
-    public ScalarFactory getValueFactory() {
+    public CoreValueFactory getValueFactory() {
         return valueFactory;
     }
 
@@ -260,26 +260,29 @@ public class Query {
         this.explain = explain;
     }
 
-    public Iterator<Row> executeQuery(String revisionId) {
+    public Result executeQuery(String revisionId) {
         prepare();
+        Iterator<ResultRow> it;
         if (explain) {
             String plan = source.getPlan();
             columns = new ColumnImpl[] { new ColumnImpl("explain", "plan", "plan")};
-            Row r = new Row(this, new String[0], new CoreValue[] { valueFactory.createValue(plan) }, null);
-            return Arrays.asList(r).iterator();
+            ResultRow r = new ResultRow(this, new String[0], new CoreValue[] { valueFactory.createValue(plan) }, null);
+            it = Arrays.asList(r).iterator();
+        } else {
+            it = new RowIterator(revisionId);
+            if (orderings != null) {
+                // TODO "order by" is not necessary if the used index returns
+                // rows in the same order
+                ArrayList<ResultRow> list = new ArrayList<ResultRow>();
+                while (it.hasNext()) {
+                    ResultRow r = it.next();
+                    list.add(r);
+                }
+                Collections.sort(list);
+                it = list.iterator();
+            }
         }
-        RowIterator it = new RowIterator(revisionId);
-        if (orderings == null) {
-            return it;
-        }
-        // TODO "order by" is not necessary if the used index returns rows in the same order
-        ArrayList<Row> list = new ArrayList<Row>();
-        while (it.hasNext()) {
-            Row r = it.next();
-            list.add(r);
-        }
-        Collections.sort(list);
-        return list.iterator();
+        return new Result(this, it);
     }
 
     public int compareRows(CoreValue[] orderValues, CoreValue[] orderValues2) {
@@ -316,10 +319,10 @@ public class Query {
         source.prepare(mk);
     }
 
-    class RowIterator implements Iterator<Row> {
+    class RowIterator implements Iterator<ResultRow> {
 
         private final String revisionId;
-        private Row current;
+        private ResultRow current;
         private boolean started, end;
 
         RowIterator(String revisionId) {
@@ -360,14 +363,14 @@ public class Query {
         }
 
         @Override
-        public Row next() {
+        public ResultRow next() {
             if (end) {
                 return null;
             }
             if (current == null) {
                 fetchNext();
             }
-            Row r = current;
+            ResultRow r = current;
             current = null;
             return r;
         }
@@ -379,7 +382,7 @@ public class Query {
 
     }
 
-    Row currentRow() {
+    ResultRow currentRow() {
         int selectorCount = selectors.size();
         String[] paths = new String[selectorCount];
         for (int i = 0; i < selectorCount; i++) {
@@ -402,7 +405,7 @@ public class Query {
                 orderValues[i] = orderings[i].getOperand().currentValue();
             }
         }
-        return new Row(this, paths, values, orderValues);
+        return new ResultRow(this, paths, values, orderValues);
     }
 
     public int getSelectorIndex(String selectorName) {
@@ -442,6 +445,10 @@ public class Query {
 
     public List<SelectorImpl> getSelectors() {
         return Collections.unmodifiableList(selectors);
+    }
+
+    public List<String> getBindVariableNames() {
+        return new ArrayList<String>(bindVariableMap.keySet());
     }
 
 }

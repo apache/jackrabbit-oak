@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 
 /**
- * An index filter / lookup condition.
+ * A filter or lookup condition.
  */
 public class Filter {
 

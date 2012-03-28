@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import org.apache.jackrabbit.oak.query.CoreValue;
-import org.apache.jackrabbit.oak.query.ScalarFactory;
+import org.apache.jackrabbit.oak.query.CoreValueFactory;
 import org.apache.jackrabbit.oak.query.index.Filter;
 
 public class ComparisonImpl extends ConstraintImpl {
@@ -266,7 +266,7 @@ public class ComparisonImpl extends ConstraintImpl {
                 if (lowerBound == null && upperBound == null) {
                     // ignore
                 } else {
-                    ScalarFactory vf = query.getValueFactory();
+                    CoreValueFactory vf = query.getValueFactory();
                     if (lowerBound != null) {
                         operand1.apply(f, Operator.GREATER_OR_EQUAL, vf.createValue(lowerBound));
                     }

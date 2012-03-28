@@ -19,13 +19,13 @@
 package org.apache.jackrabbit.oak.query.index;
 
 /**
- * A node reader. The reader should use the data in the filter if possible to
- * speed up reading.
+ * Represents an index. The index should use the data in the filter if possible
+ * to speed up reading.
  */
-public interface NodeReader {
+public interface QueryIndex {
 
     /**
-     * Estimate the cost to use this reader with the given filter. The returned
+     * Estimate the cost to query with the given filter. The returned
      * cost is a value between 1 (very fast; lookup of a unique node) and the
      * estimated number of nodes to traverse.
      *
@@ -35,7 +35,7 @@ public interface NodeReader {
     double getCost(Filter filter);
 
     /**
-     * Start reading nodes.
+     * Start a query.
      *
      * @param filter the filter
      * @param revisionId the revision
@@ -44,7 +44,7 @@ public interface NodeReader {
     Cursor query(Filter filter, String revisionId);
 
     /**
-     * Get the query plan for the given reader.
+     * Get the query plan for the given filter.
      *
      * @param filter the filter
      * @return the query plan

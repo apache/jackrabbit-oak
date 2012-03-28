@@ -75,14 +75,14 @@ public class SQL2Parser {
     private boolean allowNumberLiterals = true;
 
     private final AstElementFactory factory = new AstElementFactory();
-    private final ScalarFactory valueFactory;
+    private final CoreValueFactory valueFactory;
 
     /**
      * Create a new parser. A parser can be re-used, but it is not thread safe.
      *
      * @param valueFactory the value factory
      */
-    public SQL2Parser(ScalarFactory valueFactory) {
+    public SQL2Parser(CoreValueFactory valueFactory) {
         this.valueFactory = valueFactory;
     }
 
