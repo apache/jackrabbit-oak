@@ -17,10 +17,10 @@ import javax.jcr.Session;
  * Users of this class must call clear to close the session associated with
  * this instance and clean up the repository when done.
  */
-abstract class AbstractRepositoryTest {
+public abstract class AbstractRepositoryTest {
     private Repository repository;
     private Session session;
-    
+
     public void logout() throws RepositoryException {
         Session session = getRepository().login();
         try {
