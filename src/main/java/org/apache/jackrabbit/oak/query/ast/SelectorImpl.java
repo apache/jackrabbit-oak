@@ -25,15 +25,15 @@ import org.apache.jackrabbit.oak.query.Query;
 import org.apache.jackrabbit.oak.query.CoreValue;
 import org.apache.jackrabbit.oak.query.index.Cursor;
 import org.apache.jackrabbit.oak.query.index.Filter;
-import org.apache.jackrabbit.oak.query.index.NodeReader;
-import org.apache.jackrabbit.oak.query.index.TraversingReader;
+import org.apache.jackrabbit.oak.query.index.QueryIndex;
+import org.apache.jackrabbit.oak.query.index.TraversingIndex;
 
 public class SelectorImpl extends SourceImpl {
 
     // TODO jcr:path isn't an official feature, support it?
     private static final String PATH = "jcr:path";
 
-    protected NodeReader reader;
+    protected QueryIndex index;
 
     private final String nodeTypeName, selectorName;
     private Cursor cursor;
@@ -65,17 +65,17 @@ public class SelectorImpl extends SourceImpl {
 
     @Override
     public void prepare(MicroKernel mk) {
-        reader = new TraversingReader(mk);
+        index = new TraversingIndex(mk);
     }
 
     @Override
     public void execute(String revisionId) {
-        cursor = reader.query(createFilter(), revisionId);
+        cursor = index.query(createFilter(), revisionId);
     }
 
     @Override
     public String getPlan() {
-        return  nodeTypeName + " AS " + getSelectorName() + " /* " + reader.getPlan(createFilter()) + " */";
+        return  nodeTypeName + " AS " + getSelectorName() + " /* " + index.getPlan(createFilter()) + " */";
     }
 
     private Filter createFilter() {

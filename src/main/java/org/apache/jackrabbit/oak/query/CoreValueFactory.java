@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.query;
 
 import java.math.BigDecimal;
 
-public class ScalarFactory {
+public class CoreValueFactory {
 
     public CoreValue createValue(String value) {
         return new CoreValue(value, CoreValue.STRING);

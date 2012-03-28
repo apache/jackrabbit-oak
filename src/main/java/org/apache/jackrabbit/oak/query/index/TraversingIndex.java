@@ -21,12 +21,12 @@ package org.apache.jackrabbit.oak.query.index;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.util.PathUtils;
 
-public class TraversingReader implements NodeReader {
+public class TraversingIndex implements QueryIndex {
 
     private final MicroKernel mk;
     private int childBlockSize = 2000;
 
-    public TraversingReader(MicroKernel mk) {
+    public TraversingIndex(MicroKernel mk) {
         this.mk = mk;
     }
 
