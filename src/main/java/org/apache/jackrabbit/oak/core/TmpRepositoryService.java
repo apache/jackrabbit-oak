@@ -14,10 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.api.impl;
+package org.apache.jackrabbit.oak.core;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.oak.api.AuthenticationService;
+import org.apache.jackrabbit.oak.api.Connection;
+import org.apache.jackrabbit.oak.api.RepositoryService;
 import org.apache.jackrabbit.oak.api.SessionInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,21 +29,21 @@ import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.LoginException;
 
 /**
- * AuthenticationServiceImpl...
+ * TmpRepositoryService...
  */
-public class AuthenticationServiceImpl implements AuthenticationService {
+public class TmpRepositoryService implements RepositoryService {
 
     /**
      * logger instance
      */
-    private static final Logger log = LoggerFactory.getLogger(AuthenticationServiceImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(TmpRepositoryService.class);
 
     // TODO: retrieve default wsp-name from configuration
     private static final String DEFAULT_WORKSPACE_NAME = "default";
 
     private final MicroKernel mk;
 
-    public AuthenticationServiceImpl(MicroKernel mk) {
+    public TmpRepositoryService(MicroKernel mk) {
         this.mk = mk;
 
         // FIXME: default mk-setup must be done elsewhere...
@@ -77,9 +78,15 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         }
     }
 
+    @Override
+    public Connection getConnection(SessionInfo sessionInfo) {
+        // TODO
+        return null;
+    }
+
     /**
      * @param credentials The credentials object used for authentication.
-     * @return The microkernel revision. If the give credentials don't specify
+     * @return The microkernal revision. If the give credentials don't specify
      * a specific revision number the current head revision is returned.
      */
     private String getRevision(Object credentials) {

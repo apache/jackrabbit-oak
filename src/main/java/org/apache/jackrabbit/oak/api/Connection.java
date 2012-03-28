@@ -16,22 +16,25 @@
  */
 package org.apache.jackrabbit.oak.api;
 
-import javax.jcr.NoSuchWorkspaceException;
-import javax.security.auth.login.LoginException;
+import org.apache.jackrabbit.mk.model.NodeBuilder;
+import org.apache.jackrabbit.mk.model.NodeState;
 
 /**
- * AuthenticationService... TODO: WORK IN PROGRESS
+ * The {@code Connection} interface ...
+ *
+ * TODO: define whether this is a repository-level connection or just bound to a single workspace.
+ * TODO: describe how this interface is intended to handle validation: nt, names, ac, constraints...
  */
-public interface AuthenticationService {
+public interface Connection {
 
-    /**
-     *
-     * @param credentials
-     * @param workspaceName
-     * @return
-     * @throws javax.security.auth.login.LoginException
-     * @throws javax.jcr.NoSuchWorkspaceException
-     */
-    SessionInfo login(Object credentials, String workspaceName) throws LoginException, NoSuchWorkspaceException;
+    NodeState getCurrentRoot();
+
+    NodeState commit(NodeState newRoot) throws CommitFailedException;
+
+    NodeBuilder getNodeBuilder(NodeState state);
+
+    // TODO : add versioning operations
+
+    // TODO : add query execution operations
 
 }
