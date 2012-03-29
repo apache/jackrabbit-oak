@@ -18,18 +18,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.query;
 
-import java.text.ParseException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map.Entry;
-import javax.jcr.Node;
-import javax.jcr.RepositoryException;
-import javax.jcr.Value;
-import javax.jcr.query.InvalidQueryException;
-import javax.jcr.query.Query;
-import javax.jcr.query.QueryManager;
-import javax.jcr.query.QueryResult;
-import javax.jcr.query.qom.QueryObjectModelFactory;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.jcr.SessionContext;
 import org.apache.jackrabbit.oak.jcr.SessionImpl;
@@ -38,6 +26,19 @@ import org.apache.jackrabbit.oak.jcr.query.qom.QueryObjectModelFactoryImpl;
 import org.apache.jackrabbit.oak.query.CoreValue;
 import org.apache.jackrabbit.oak.query.QueryEngine;
 import org.apache.jackrabbit.oak.query.Result;
+
+import javax.jcr.Node;
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+import javax.jcr.query.InvalidQueryException;
+import javax.jcr.query.Query;
+import javax.jcr.query.QueryManager;
+import javax.jcr.query.QueryResult;
+import javax.jcr.query.qom.QueryObjectModelFactory;
+import java.text.ParseException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map.Entry;
 
 /**
  * The implementation of the corresponding JCR interface.
@@ -48,7 +49,7 @@ public class QueryManagerImpl implements QueryManager {
     private final QueryEngine qe;
 
     public QueryManagerImpl(WorkspaceImpl workspace, SessionContext<SessionImpl> sessionContext) {
-        MicroKernel mk = sessionContext.getGlobalContext().getInstance(MicroKernel.class);
+        MicroKernel mk = sessionContext.getMicrokernel();
         qe = new QueryEngine(mk);
     }
 
