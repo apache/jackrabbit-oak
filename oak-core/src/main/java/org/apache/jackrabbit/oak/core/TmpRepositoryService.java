@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.core;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.Connection;
 import org.apache.jackrabbit.oak.api.RepositoryService;
-import org.apache.jackrabbit.oak.api.SessionInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,13 +47,13 @@ public class TmpRepositoryService implements RepositoryService {
 
         // FIXME: default mk-setup must be done elsewhere...
         String headRev = mk.getHeadRevision();
-        if (!mk.nodeExists("/" + DEFAULT_WORKSPACE_NAME, headRev)) {
+        if (!mk.nodeExists('/' + DEFAULT_WORKSPACE_NAME, headRev)) {
             mk.commit("/", "+ \"" + DEFAULT_WORKSPACE_NAME + "\" : {}", headRev, null);
         }
     }
 
     @Override
-    public SessionInfo login(Object credentials, String workspaceName) throws LoginException, NoSuchWorkspaceException {
+    public Connection login(Object credentials, String workspaceName) throws LoginException, NoSuchWorkspaceException {
         // TODO: add proper implementation
         // TODO  - authentication against configurable spi-authentication
         // TODO  - validation of workspace name (including access rights for the given 'user')
@@ -72,16 +71,10 @@ public class TmpRepositoryService implements RepositoryService {
         final String revision = getRevision(credentials);
 
         if (sc != null) {
-            return new SessionInfoImpl(sc, wspName, revision);
+            return new ConnectionImpl(sc, wspName, revision);
         } else {
             throw new LoginException("login failed...");
         }
-    }
-
-    @Override
-    public Connection getConnection(SessionInfo sessionInfo) {
-        // TODO
-        return null;
     }
 
     /**

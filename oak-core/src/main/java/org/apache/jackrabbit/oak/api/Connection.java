@@ -19,13 +19,35 @@ package org.apache.jackrabbit.oak.api;
 import org.apache.jackrabbit.mk.model.NodeBuilder;
 import org.apache.jackrabbit.mk.model.NodeState;
 
+import java.io.Closeable;
+
 /**
  * The {@code Connection} interface ...
+ *
+ * - retrieving information from persistent layer (MK) that are accessible to
+ *   a given session
+ *
+ * - validate information being written back to the persistent layer. this includes
+ *   permission evaluation, node type and name constraints etc.
+ *
+ * - update the revision ID a given session is operating on.
  *
  * TODO: define whether this is a repository-level connection or just bound to a single workspace.
  * TODO: describe how this interface is intended to handle validation: nt, names, ac, constraints...
  */
-public interface Connection {
+public interface Connection extends Closeable {
+
+    AuthInfo getAuthInfo();
+
+    /**
+     * The immutable name of the workspace this {@code SessionInfo} instance has
+     * been created for. If no workspace name has been specified during
+     * repository login this method will return the name of the default
+     * workspace.
+     *
+     * @return name of the workspace this instance has been created for.
+     */
+    String getWorkspaceName();
 
     NodeState getCurrentRoot();
 
