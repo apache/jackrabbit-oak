@@ -17,7 +17,9 @@
 package org.apache.jackrabbit.oak.api;
 
 /**
- * The {@code AuthInfo} TODO... used for identification, authorization....
+ * {@code AuthInfo} instances provide access to information related
+ * to authentication and authorization of a given connection.
+ * {@code AuthInfo} instances are guaranteed to be immutable.
  */
 public interface AuthInfo {
 
