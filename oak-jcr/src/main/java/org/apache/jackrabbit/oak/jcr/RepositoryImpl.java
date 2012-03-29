@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.Connection;
 import org.apache.jackrabbit.oak.api.RepositoryService;
 import org.slf4j.Logger;
@@ -39,6 +40,14 @@ public class RepositoryImpl implements Repository {
     private static final Logger log = LoggerFactory.getLogger(RepositoryImpl.class);
 
     private final GlobalContext context;
+
+    /**
+     * Utility constructor that creates a JCR binding for an initially empty,
+     * newly constructed Oak repository.
+     */
+    public RepositoryImpl() {
+        this(new GlobalContext(new MicroKernelImpl()));
+    }
 
     public RepositoryImpl(GlobalContext context) {
         this.context = context;

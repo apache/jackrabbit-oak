@@ -38,12 +38,20 @@ public class NodeStateProvider {
         this.sessionContext = sessionContext;
         this.transientSpace = transientSpace;
 
-        RepositoryConfiguration config = sessionContext.getGlobalContext().getInstance(RepositoryConfiguration.class);
-        if (config.getNodeStateCacheSize() <= 0) {
-            cache = null;
+        int cacheSize = 0;
+        try {
+            RepositoryConfiguration config =
+                    sessionContext.getGlobalContext().getInstance(
+                            RepositoryConfiguration.class);
+            cacheSize = config.getNodeStateCacheSize();
+        } catch (IllegalStateException ignore) {
+            // FIXME: Shouldn't use the context to pass around configuration
         }
-        else {
-            cache = Unchecked.cast(new LRUMap(config.getNodeStateCacheSize()));
+
+        if (cacheSize <= 0) {
+            cache = null;
+        } else {
+            cache = Unchecked.cast(new LRUMap(cacheSize));
         }
     }
 
