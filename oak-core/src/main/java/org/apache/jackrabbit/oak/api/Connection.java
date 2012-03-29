@@ -67,7 +67,8 @@ public interface Connection extends Closeable {
      * repository login this method will return the name of the default
      * workspace.
      *
-     * @return name of the workspace this instance has been created for.
+     * @return name of the workspace this instance has been created for or
+     * {@code null} if this connection is repository bound.
      */
     String getWorkspaceName();
 
