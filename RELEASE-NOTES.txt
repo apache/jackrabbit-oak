@@ -3,15 +3,18 @@ Release Notes -- Apache Jackrabbit Oak -- Version 0.1
 Introduction
 ------------
 
-Oak is an effort implement a scalable and performant hierarchical content 
+Jackrabbit Oak is an effort to implement a scalable and performant hierarchical content 
 repository for use as the foundation of modern world-class web sites and 
 other demanding content applications. 
 
 The Oak effort is a part of the Apache Jackrabbit project. 
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
+Jackrabbit Oak 0.1 is to be considered alpha-level software. Use at your own risk 
+with no stability or compatibility guarantees. 
+
 Changes in Oak 0.1
----------------------------
+------------------
 
 New features
 
@@ -49,7 +52,7 @@ Release Contents
 
 This release consists of a single source archive packaged as a zip file.
 The archive can be unpacked with the jar tool from your JDK installation.
-See the README.txt file for instructions on how to build this release.
+See the README.md file for instructions on how to build this release.
 
 The source archive is accompanied by SHA1 and MD5 checksums and a PGP
 signature that you can use to verify the authenticity of your download.
