@@ -53,8 +53,6 @@ public class TransientNodeState {
 
     private final SessionContext<SessionImpl> sessionContext;
 
-    private String revision;
-    private NodeState persistentNodeState;
     private NodeDelta nodeDelta;
 
     TransientNodeState(SessionContext<SessionImpl> sessionContext, NodeDelta nodeDelta) {
@@ -325,17 +323,10 @@ public class TransientNodeState {
 
     private synchronized NodeState getPersistentNodeState() {
         Path path = getNodeDelta().getPersistentPath();
-        String baseRevision = sessionContext.getRevision();
-        if (persistentNodeState == null || !revision.equals(baseRevision)) {
-            revision = baseRevision;
-            if (path == null) {
-                persistentNodeState = EmptyNodeState.INSTANCE;
-            } else {
-                persistentNodeState = getPersistentNodeState(sessionContext.getConnection(), path);
-            }
-        }
 
-        return persistentNodeState;
+        return path == null
+            ? EmptyNodeState.INSTANCE
+            : getPersistentNodeState(sessionContext.getConnection(), path);
     }
 
     private NodeDelta getNodeDelta() {

@@ -65,7 +65,6 @@ public class SessionImpl extends AbstractSession {
     private final TransientSpace transientSpace;
     private final NodeStateProvider nodeStateProvider;
 
-    private String revision; // TODO: revision should be kept with sessionINFO and adjusted upon calls on oak-core API
     private boolean isAlive = true;
 
     private final SessionContext<SessionImpl> sessionContext = new Context();
@@ -74,13 +73,12 @@ public class SessionImpl extends AbstractSession {
 
         this.globalContext = globalContext;
         this.connection = connection;
-        this.revision = globalContext.getInstance(MicroKernel.class).getHeadRevision();  // fixme: this is a hack and creates a race. however we will get rid of tracking the revision here anyway
 
         valueFactory = new ValueFactoryImpl();
         repository = new RepositoryAdaptor(globalContext.getInstance(Repository.class), valueFactory);
         workspace = new WorkspaceImpl(sessionContext);
 
-        transientSpace = new TransientSpace(sessionContext.getWorkspaceName(), sessionContext.getMicrokernel(), revision);
+        transientSpace = new TransientSpace(sessionContext.getWorkspaceName(), sessionContext.getMicrokernel());
         nodeStateProvider = new NodeStateProvider(sessionContext, transientSpace);
     }
 
@@ -214,8 +212,8 @@ public class SessionImpl extends AbstractSession {
     public void save() throws RepositoryException {
         checkIsAlive();
         try {
-            revision = transientSpace.save();
-            connection.commit(connection.getCurrentRoot());  // todo: need a way to update a connection to head
+            transientSpace.save();
+            connection.commit(connection.getCurrentRoot());  // todo: need a better way to update a connection to head
             nodeStateProvider.clear();
         }
         catch (CommitFailedException e) {
@@ -227,8 +225,8 @@ public class SessionImpl extends AbstractSession {
     public void refresh(boolean keepChanges) throws RepositoryException {
         checkIsAlive();
         try {
-            revision = transientSpace.refresh(keepChanges);
-            connection.commit(connection.getCurrentRoot());  // todo: need a way to update a connection to head
+            transientSpace.refresh(keepChanges);
+            connection.commit(connection.getCurrentRoot());  // todo: need a better way to update a connection to head
             nodeStateProvider.clear();
         }
         catch (CommitFailedException e) {
@@ -499,11 +497,6 @@ public class SessionImpl extends AbstractSession {
         @Override
         public MicroKernel getMicrokernel() {
             return globalContext.getInstance(MicroKernel.class);
-        }
-
-        @Override
-        public String getRevision() {
-            return revision;
         }
 
         @Override
