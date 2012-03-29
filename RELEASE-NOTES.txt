@@ -1,0 +1,81 @@
+Release Notes -- Apache Jackrabbit Oak -- Version 0.1
+
+Introduction
+------------
+
+Oak is an effort implement a scalable and performant hierarchical content 
+repository for use as the foundation of modern world-class web sites and 
+other demanding content applications. 
+
+The Oak effort is a part of the Apache Jackrabbit project. 
+Apache Jackrabbit is a project of the Apache Software Foundation.
+
+Changes in Oak 0.1
+---------------------------
+
+New features
+
+  [OAK-3] - Internal tree model
+  [OAK-4] - Runnable jar packaging
+  [OAK-5] - JCR bindings for Oak
+  [OAK-6] - Setup integration tests and TCK tests
+  [OAK-7] - In-memory persistence
+
+Improvements
+
+  [OAK-1] - Setup basic build structure
+  [OAK-2] - Use Java 6 as base platform
+  [OAK-8] - Make return types of NodeState#getProperties() and NodeState#getChildNodeEntries() covariant
+  [OAK-10] - Impedance mismatch between signatures of NodeState#getChildeNodeEntries and MicroKernel#getNodes
+  [OAK-24] - Separate component for the microkernel
+  [OAK-25] - Factor repository descriptors into separate class
+  [OAK-26] - MVCC causes write skew
+  [OAK-42] - Prepare for first release
+
+Bug fixes
+
+  [OAK-27] - Remove Authenticator and CredentialsInfo in oak-jcr
+  [OAK-38] - KernelNodeState should handle multi valued properties
+  [OAK-39] - KernelNodeState does not handle boolean values correctly
+
+
+For more detailed information about all the changes in this and other
+Oak releases, please see the Oak issue tracker at
+
+  https://issues.apache.org/jira/browse/OAK
+
+Release Contents
+----------------
+
+This release consists of a single source archive packaged as a zip file.
+The archive can be unpacked with the jar tool from your JDK installation.
+See the README.txt file for instructions on how to build this release.
+
+The source archive is accompanied by SHA1 and MD5 checksums and a PGP
+signature that you can use to verify the authenticity of your download.
+The public key used for the PGP signature can be found at
+https://svn.apache.org/repos/asf/jackrabbit/dist/KEYS.
+
+About Apache Jackrabbit Oak
+---------------------------
+
+Oak is an effort implement a scalable and performant hierarchical content 
+repository for use as the foundation of modern world-class web sites and 
+other demanding content applications. 
+
+The Oak effort is a part of the Apache Jackrabbit project. 
+Apache Jackrabbit is a project of the Apache Software Foundation.
+
+For more information, visit http://wiki.apache.org/jackrabbit/Jackrabbit%203
+
+About The Apache Software Foundation
+------------------------------------
+
+Established in 1999, The Apache Software Foundation provides organizational,
+legal, and financial support for more than 100 freely-available,
+collaboratively-developed Open Source projects. The pragmatic Apache License
+enables individual and commercial users to easily deploy Apache software;
+the Foundation's intellectual property framework limits the legal exposure
+of its 2,500+ contributors.
+
+For more information, visit http://www.apache.org/
