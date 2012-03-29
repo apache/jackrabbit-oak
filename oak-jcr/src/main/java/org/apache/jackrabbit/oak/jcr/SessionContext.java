@@ -31,8 +31,7 @@ public interface SessionContext<T extends Session> {
     GlobalContext getGlobalContext();
     String getWorkspaceName();
     Connection getConnection();
-    MicroKernel getMicrokernel();
-    String getRevision(); // TODO: this should be superfluous if SessionInfo is used for communication
+    MicroKernel getMicrokernel(); // TODO: this should be superfluous when Connection is used for communication
     ValueFactory getValueFactory();
     NodeStateProvider getNodeStateProvider();
 }

@@ -75,12 +75,11 @@ public class TransientSpace {
      * and {@code revision}.
      * @param workspace
      * @param microkernel
-     * @param revision
      */
-    public TransientSpace(final String workspace, final MicroKernel microkernel, final String revision) {
+    public TransientSpace(String workspace, MicroKernel microkernel) {
         this.microkernel = microkernel;
         this.workspace = workspace;
-        this.revision = revision;
+        this.revision = microkernel.getHeadRevision();
 
         changeTree = createChangeTree(workspace, changeTreeListener);
     }
