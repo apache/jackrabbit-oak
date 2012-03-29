@@ -19,11 +19,12 @@
 
 package org.apache.jackrabbit.oak.jcr.state;
 
-import org.apache.jackrabbit.mk.model.Scalar;
-import org.apache.jackrabbit.mk.model.ScalarImpl;
 import org.apache.jackrabbit.mk.model.ChildNodeEntry;
 import org.apache.jackrabbit.mk.model.NodeState;
 import org.apache.jackrabbit.mk.model.PropertyState;
+import org.apache.jackrabbit.mk.model.Scalar;
+import org.apache.jackrabbit.mk.model.ScalarImpl;
+import org.apache.jackrabbit.oak.api.Connection;
 import org.apache.jackrabbit.oak.jcr.SessionContext;
 import org.apache.jackrabbit.oak.jcr.SessionImpl;
 import org.apache.jackrabbit.oak.jcr.state.ChangeTree.NodeDelta;
@@ -32,7 +33,6 @@ import org.apache.jackrabbit.oak.jcr.util.Iterators;
 import org.apache.jackrabbit.oak.jcr.util.PagedIterator;
 import org.apache.jackrabbit.oak.jcr.util.Path;
 import org.apache.jackrabbit.oak.jcr.util.Predicate;
-import org.apache.jackrabbit.oak.kernel.KernelNodeState;
 import org.apache.jackrabbit.oak.kernel.KernelPropertyState;
 
 import javax.jcr.ItemExistsException;
@@ -331,8 +331,7 @@ public class TransientNodeState {
             if (path == null) {
                 persistentNodeState = EmptyNodeState.INSTANCE;
             } else {
-                // TODO: use oak-api here in order to avoid reading directly from MK
-                persistentNodeState = new KernelNodeState(sessionContext.getMicrokernel(), path.toMkPath(), revision);
+                persistentNodeState = getPersistentNodeState(sessionContext.getConnection(), path);
             }
         }
 
@@ -341,6 +340,18 @@ public class TransientNodeState {
 
     private NodeDelta getNodeDelta() {
         return nodeDelta = getNodeStateProvider().getNodeDelta(nodeDelta.getPath());
+    }
+
+    private static NodeState getPersistentNodeState(Connection connection, Path path) {
+        NodeState state = connection.getCurrentRoot();
+        for (String name : path.getNames()) {
+            state = state.getChildNode(name);
+            if (state == null) {
+                return null;
+            }
+        }
+
+        return state;
     }
 
 }

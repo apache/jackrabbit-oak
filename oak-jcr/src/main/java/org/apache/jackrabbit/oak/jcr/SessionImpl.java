@@ -18,8 +18,8 @@ package org.apache.jackrabbit.oak.jcr;
 
 import org.apache.jackrabbit.commons.AbstractSession;
 import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Connection;
-import org.apache.jackrabbit.oak.core.ConnectionImpl;
 import org.apache.jackrabbit.oak.jcr.state.NodeStateProvider;
 import org.apache.jackrabbit.oak.jcr.state.TransientNodeState;
 import org.apache.jackrabbit.oak.jcr.state.TransientSpace;
@@ -74,7 +74,7 @@ public class SessionImpl extends AbstractSession {
 
         this.globalContext = globalContext;
         this.connection = connection;
-        this.revision = ((ConnectionImpl) connection).getRevision();
+        this.revision = globalContext.getInstance(MicroKernel.class).getHeadRevision();  // fixme: this is a hack and creates a race. however we will get rid of tracking the revision here anyway
 
         valueFactory = new ValueFactoryImpl();
         repository = new RepositoryAdaptor(globalContext.getInstance(Repository.class), valueFactory);
@@ -213,15 +213,27 @@ public class SessionImpl extends AbstractSession {
     @Override
     public void save() throws RepositoryException {
         checkIsAlive();
-        revision = transientSpace.save();
-        nodeStateProvider.clear();
+        try {
+            revision = transientSpace.save();
+            connection.commit(connection.getCurrentRoot());  // todo: need a way to update a connection to head
+            nodeStateProvider.clear();
+        }
+        catch (CommitFailedException e) {
+            throw new RepositoryException(e);
+        }
     }
 
     @Override
     public void refresh(boolean keepChanges) throws RepositoryException {
         checkIsAlive();
-        revision = transientSpace.refresh(keepChanges);
-        nodeStateProvider.clear();
+        try {
+            revision = transientSpace.refresh(keepChanges);
+            connection.commit(connection.getCurrentRoot());  // todo: need a way to update a connection to head
+            nodeStateProvider.clear();
+        }
+        catch (CommitFailedException e) {
+            throw new RepositoryException(e);
+        }
     }
 
     @Override
@@ -477,6 +489,11 @@ public class SessionImpl extends AbstractSession {
         @Override
         public String getWorkspaceName() {
             return connection.getWorkspaceName();
+        }
+
+        @Override
+        public Connection getConnection() {
+            return connection;
         }
 
         @Override

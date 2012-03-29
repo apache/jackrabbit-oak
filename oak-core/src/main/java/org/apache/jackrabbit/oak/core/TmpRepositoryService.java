@@ -71,7 +71,7 @@ public class TmpRepositoryService implements RepositoryService {
         final String revision = getRevision(credentials);
 
         if (sc != null) {
-            return new ConnectionImpl(sc, wspName, revision);
+            return ConnectionImpl.createWorkspaceConnection(sc, wspName, mk, revision);
         } else {
             throw new LoginException("login failed...");
         }

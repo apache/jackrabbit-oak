@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.oak.api.Connection;
 import org.apache.jackrabbit.oak.jcr.state.NodeStateProvider;
 
 import javax.jcr.Session;
@@ -29,6 +30,7 @@ public interface SessionContext<T extends Session> {
     T getSession();
     GlobalContext getGlobalContext();
     String getWorkspaceName();
+    Connection getConnection();
     MicroKernel getMicrokernel();
     String getRevision(); // TODO: this should be superfluous if SessionInfo is used for communication
     ValueFactory getValueFactory();
