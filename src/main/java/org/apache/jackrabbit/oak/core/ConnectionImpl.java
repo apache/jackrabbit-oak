@@ -98,4 +98,8 @@ public class ConnectionImpl implements Connection {
         return workspaceName;
     }
 
+    @Override
+    public Connection getRepositoryConnection() {
+        return null; // todo implement getRepositoryConnection
+    }
 }
