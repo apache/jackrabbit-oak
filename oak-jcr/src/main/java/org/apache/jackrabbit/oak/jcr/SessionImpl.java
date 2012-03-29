@@ -18,7 +18,8 @@ package org.apache.jackrabbit.oak.jcr;
 
 import org.apache.jackrabbit.commons.AbstractSession;
 import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.oak.api.SessionInfo;
+import org.apache.jackrabbit.oak.api.Connection;
+import org.apache.jackrabbit.oak.core.ConnectionImpl;
 import org.apache.jackrabbit.oak.jcr.state.NodeStateProvider;
 import org.apache.jackrabbit.oak.jcr.state.TransientNodeState;
 import org.apache.jackrabbit.oak.jcr.state.TransientSpace;
@@ -42,6 +43,7 @@ import javax.jcr.ValueFactory;
 import javax.jcr.Workspace;
 import javax.jcr.retention.RetentionManager;
 import javax.jcr.security.AccessControlManager;
+import java.io.IOException;
 import java.security.AccessControlException;
 
 /**
@@ -56,7 +58,7 @@ public class SessionImpl extends AbstractSession {
 
     private final Repository repository;
     private final Workspace workspace;
-    private final SessionInfo sessionInfo;
+    private final Connection connection;
     private final ValueFactory valueFactory;
 
     private final GlobalContext globalContext;
@@ -68,11 +70,11 @@ public class SessionImpl extends AbstractSession {
 
     private final SessionContext<SessionImpl> sessionContext = new Context();
 
-    SessionImpl(GlobalContext globalContext, SessionInfo sessionInfo) {
+    SessionImpl(GlobalContext globalContext, Connection connection) {
 
         this.globalContext = globalContext;
-        this.sessionInfo = sessionInfo;
-        this.revision = sessionInfo.getRevision();
+        this.connection = connection;
+        this.revision = ((ConnectionImpl) connection).getRevision();
 
         valueFactory = new ValueFactoryImpl();
         repository = new RepositoryAdaptor(globalContext.getInstance(Repository.class), valueFactory);
@@ -92,17 +94,17 @@ public class SessionImpl extends AbstractSession {
 
     @Override
     public String getUserID() {
-        return sessionInfo.getUserID();
+        return connection.getAuthInfo().getUserID();
     }
 
     @Override
     public String[] getAttributeNames() {
-        return sessionInfo.getAttributeNames();
+        return connection.getAuthInfo().getAttributeNames();
     }
 
     @Override
     public Object getAttribute(String name) {
-        return sessionInfo.getAttribute(name);
+        return connection.getAuthInfo().getAttribute(name);
     }
 
     @Override
@@ -246,7 +248,12 @@ public class SessionImpl extends AbstractSession {
         isAlive = false;
         // TODO
 
-        sessionInfo.dispose();
+        try {
+            connection.close();
+        }
+        catch (IOException e) {
+            log.warn("Error while closing connection", e);
+        }
     }
 
     //----------------------------------------------------< Import / Export >---
@@ -469,7 +476,7 @@ public class SessionImpl extends AbstractSession {
 
         @Override
         public String getWorkspaceName() {
-            return sessionInfo.getWorkspaceName();
+            return connection.getWorkspaceName();
         }
 
         @Override

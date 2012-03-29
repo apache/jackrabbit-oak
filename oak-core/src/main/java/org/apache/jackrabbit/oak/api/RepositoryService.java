@@ -24,24 +24,13 @@ import javax.security.auth.login.LoginException;
  * The {@code RepositoryService} is the main access point of the oak-api. It
  * serves the following purposes:
  *
- * - validating a given login request and providing SessionInfo object
+ * - validating a given login request and providing a connection
  *   that is used for further communication with the persistent layer (MK).
- *
- * - retrieving information from persistent layer (MK) that are accessible to
- *   a given session
- *
- * - validate information being written back to the persistent layer. this includes
- *   permission evaluation, node type and name constraints etc.
- *
- * - update the revision ID a given session is operating on.
  *
  * The implementation of this and all related interfaces are intended to only
  * hold the state of the persistent layer at a given revision without any
  * session-related state modifications.
  */
 public interface RepositoryService {
-
-    SessionInfo login(Object credentials, String workspaceName) throws LoginException, NoSuchWorkspaceException;
-
-    Connection getConnection(SessionInfo sessionInfo);
+    Connection login(Object credentials, String workspaceName) throws LoginException, NoSuchWorkspaceException;
 }

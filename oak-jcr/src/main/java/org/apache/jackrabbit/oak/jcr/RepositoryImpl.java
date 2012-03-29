@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import org.apache.jackrabbit.oak.api.Connection;
 import org.apache.jackrabbit.oak.api.RepositoryService;
-import org.apache.jackrabbit.oak.api.SessionInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -90,8 +90,8 @@ public class RepositoryImpl implements Repository {
 
         RepositoryService service = context.getInstance(RepositoryService.class);
         try {
-            SessionInfo sessionInfo = service.login(credentials, workspaceName);
-            return new SessionImpl(context, sessionInfo);
+            Connection connection = service.login(credentials, workspaceName);
+            return new SessionImpl(context, connection);
         } catch (LoginException e) {
             throw new javax.jcr.LoginException(e.getMessage());
         }

@@ -17,9 +17,9 @@
 package org.apache.jackrabbit.oak.api;
 
 /**
- * The {@code SessionInfo} TODO... describe how obtained, when disposed, used for communication with oak-api, identification, authorization....
+ * The {@code AuthInfo} TODO... used for identification, authorization....
  */
-public interface SessionInfo {
+public interface AuthInfo {
 
     /**
      * Return the user ID to be exposed on the JCR Session object. It refers
@@ -47,34 +47,4 @@ public interface SessionInfo {
      */
     Object getAttribute(String attributeName);
 
-    /**
-     * Returns the current revision the associated session is operating on.
-     * Unless otherwise specified the revision is set to the current head
-     * revision upon {@code SessionInfo} creation. Later on in the lifecycle
-     * of this {@code SessionInfo} the revision will be reset to match the
-     * latest state after successful commit of modifications or if the associated
-     * session is being refreshed.
-     *
-     * TODO: review. maybe this isn't needed any more in oak-jcr once we got rid of all mk-dependencies.
-     *
-     * @return the revision The current revision.
-     */
-    String getRevision();
-
-    /**
-     * The immutable name of the workspace this {@code SessionInfo} instance has
-     * been created for. If no workspace name has been specified during
-     * repository login this method will return the name of the default
-     * workspace.
-     *
-     * @return name of the workspace this instance has been created for.
-     */
-    String getWorkspaceName();
-
-    /**
-     * Dispose this instance of {@code SessionInfo} as the associated
-     * JCR Session instance was logged out. This method allows an implementation
-     * to free any resources that may possibly be associated with this instance.
-     */
-    void dispose();
 }
