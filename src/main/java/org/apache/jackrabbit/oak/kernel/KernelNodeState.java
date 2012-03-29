@@ -39,7 +39,7 @@ import java.util.Map;
  * Basic {@link NodeState} implementation based on the {@link MicroKernel}
  * interface. This class makes an attempt to load data lazily.
  */
-public class KernelNodeState extends AbstractNodeState { // fixme make package private
+class KernelNodeState extends AbstractNodeState {
 
     /**
      * Maximum number of child nodes kept in memory.
