@@ -45,9 +45,12 @@ public class GlobalContext {
     private final Map<Class<?>, Object> instances = new HashMap<Class<?>, Object>();
     
     public GlobalContext(RepositoryConfiguration repositoryConfiguration) throws RepositoryException {
-        MicroKernel mk = MicroKernelFactory.getInstance(repositoryConfiguration.getMicrokernelUrl());
-        RepositoryService repositoryService = new TmpRepositoryService(mk);
+        this(MicroKernelFactory.getInstance(repositoryConfiguration.getMicrokernelUrl()));
         put(RepositoryConfiguration.class, repositoryConfiguration);
+    }
+
+    public GlobalContext(MicroKernel mk) {
+        RepositoryService repositoryService = new TmpRepositoryService(mk);
         put(RepositoryService.class, repositoryService);
         put(MicroKernel.class, mk);
         put(Repository.class, new RepositoryImpl(this));
