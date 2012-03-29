@@ -27,9 +27,9 @@ then
  exit
 fi
 
-STAGING="http://people.apache.org/~$USERNAME/jackrabbit/$VERSION/"
+STAGING="http://people.apache.org/~$USERNAME/oak/$VERSION/"
 
-WORKDIR=${4:-target/jackrabbit-staging-`date +%s`}
+WORKDIR=${4:-target/oak-staging-`date +%s`}
 mkdir $WORKDIR -p -v
 
 echo "[INFO] ------------------------------------------------------------------------"
@@ -51,7 +51,7 @@ echo "[INFO] "
 
 ## 1. check sha from release email against src.zip.sha file
 
-downloaded_sha=$(cat `find $WORKDIR -type f | grep jackrabbit-$VERSION-src.zip.sha`)
+downloaded_sha=$(cat `find $WORKDIR -type f | grep jackrabbit-oak-$VERSION-src.zip.sha`)
 if [ "$SHA" = "$downloaded_sha" ]; then echo "[INFO] Step 1. Release checksum matches provided checksum."; else echo "[ERROR] Step 1. Release checksum does not match provided checksum!"; fi
 echo "[INFO] "
 
@@ -86,13 +86,13 @@ echo "[INFO] "
 echo "[INFO] Step 3. Check SVN Tag for version $VERSION with src zip file contents"
 
 echo "[INFO] doing svn checkout, please wait..."
-SVNTAGDIR="$WORKDIR/tag-svn/jackrabbit-$VERSION"
-svn --quiet export http://svn.apache.org/repos/asf/jackrabbit/tags/$VERSION $SVNTAGDIR
+SVNTAGDIR="$WORKDIR/tag-svn/jackrabbit-oak-$VERSION"
+svn --quiet export http://svn.apache.org/repos/asf/jackrabbit/oak/tags/$VERSION $SVNTAGDIR
 
 echo "[INFO] unzipping src zip file, please wait..."
 ZIPTAG="$WORKDIR/tag-zip"
-unzip -q $WORKDIR/jackrabbit-$VERSION-src.zip -d $ZIPTAG
-ZIPTAGDIR="$ZIPTAG/jackrabbit-$VERSION"
+unzip -q $WORKDIR/jackrabbit-oak-$VERSION-src.zip -d $ZIPTAG
+ZIPTAGDIR="$ZIPTAG/jackrabbit-oak-$VERSION"
 
 DIFFOUT=`diff -r $SVNTAGDIR $ZIPTAGDIR`
 if [ -n "$DIFFOUT" ]
