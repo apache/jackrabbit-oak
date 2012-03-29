@@ -41,7 +41,12 @@ import java.io.Closeable;
  *   hold the state of the persistent layer at a given revision without any
  *   session-related state modifications.
  *
- * TODO: define whether this is a repository-level connection or just bound to a single workspace.
+ * - Whether this connection is bound to a workspace or to the whole repository
+ *   is determined by how the connection was acquired: connections acquired by
+ *   {@link RepositoryService#login(Object, String)} are bound to the workspace
+ *   passed to the login method. Connections acquired by
+ *   {@link Connection#getRepositoryConnection()} are bound to the whole repository.
+ *
  * TODO: describe how this interface is intended to handle validation: nt, names, ac, constraints...
  */
 public interface Connection extends Closeable {
@@ -57,7 +62,7 @@ public interface Connection extends Closeable {
     AuthInfo getAuthInfo();
 
     /**
-     * The immutable name of the workspace this {@code SessionInfo} instance has
+     * The immutable name of the workspace this {@code Connection} instance has
      * been created for. If no workspace name has been specified during
      * repository login this method will return the name of the default
      * workspace.
@@ -65,6 +70,15 @@ public interface Connection extends Closeable {
      * @return name of the workspace this instance has been created for.
      */
     String getWorkspaceName();
+
+    /**
+     * Provide access to the whole repository (i.e. all workspaces) respecting
+     * the access rights of the current connection. This method returns the
+     * same connection instance on every invocation.
+     *
+     * @return a {@code Connection} which covers the whole repository.
+     */
+    Connection getRepositoryConnection();
 
     NodeState getCurrentRoot();
 
