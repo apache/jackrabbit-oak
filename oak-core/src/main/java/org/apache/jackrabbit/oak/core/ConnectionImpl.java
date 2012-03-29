@@ -16,14 +16,18 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.model.NodeBuilder;
 import org.apache.jackrabbit.mk.model.NodeState;
+import org.apache.jackrabbit.mk.model.NodeStore;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Connection;
+import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.SimpleCredentials;
 import java.io.IOException;
 
@@ -37,19 +41,30 @@ public class ConnectionImpl implements Connection {
      */
     private static final Logger log = LoggerFactory.getLogger(ConnectionImpl.class);
 
-    private final SimpleCredentials sc;
+    private final SimpleCredentials credentials;
     private final String workspaceName;
+    private final NodeStore store;
 
-    private String revision;
+    private NodeState root;
 
-    ConnectionImpl(SimpleCredentials sc, String workspaceName, String revision) {
-        this.sc = sc;
+    public ConnectionImpl(SimpleCredentials credentials, String workspaceName,
+            NodeStore store, NodeState root) {
+        this.credentials = credentials;
         this.workspaceName = workspaceName;
-        this.revision = revision;
+        this.store = store;
+        this.root = root;
     }
 
-    public String getRevision() {
-        return revision;
+    static Connection createWorkspaceConnection(SimpleCredentials credentials,
+            String workspace, MicroKernel microKernel, String revision) throws NoSuchWorkspaceException {
+
+        NodeStore store = new KernelNodeStore(microKernel); // TODO: pass revision?
+        NodeState wspRoot = store.getRoot().getChildNode(workspace);
+        if (wspRoot == null) {
+            throw new NoSuchWorkspaceException(workspace);
+        }
+
+        return new ConnectionImpl(credentials, workspace, store, wspRoot);
     }
 
     @Override
@@ -58,34 +73,42 @@ public class ConnectionImpl implements Connection {
         return new AuthInfo() {
             @Override
             public String getUserID() {
-                return sc.getUserID();
+                return credentials.getUserID();
             }
 
             @Override
             public String[] getAttributeNames() {
-                return sc.getAttributeNames();
+                return credentials.getAttributeNames();
             }
 
             @Override
             public Object getAttribute(String attributeName) {
-                return sc.getAttribute(attributeName);
+                return credentials.getAttribute(attributeName);
             }
         };
     }
 
     @Override
     public NodeState getCurrentRoot() {
-        return null; // todo implement getCurrentRoot
+        return root;
     }
 
     @Override
     public NodeState commit(NodeState newRoot) throws CommitFailedException {
-        return null; // todo implement commit
+        if (workspaceName == null) {
+// todo            store.setRoot(newRoot);
+            return root = store.getRoot();
+        }
+        else {
+// todo            NodeBuilder builder = store.getNodeBuilder(store.getRoot());
+//            builder.setChildNode(workspaceName, newRoot);
+            return root = store.getRoot().getChildNode(workspaceName);
+        }
     }
 
     @Override
     public NodeBuilder getNodeBuilder(NodeState state) {
-        return null; // todo implement getNodeBuilder
+        return store.getNodeBuilder(state);
     }
 
     @Override
@@ -100,6 +123,6 @@ public class ConnectionImpl implements Connection {
 
     @Override
     public Connection getRepositoryConnection() {
-        return null; // todo implement getRepositoryConnection
+        return new ConnectionImpl(credentials, null, store, store.getRoot());
     }
 }
