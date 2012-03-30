@@ -17,13 +17,13 @@
    limitations under the License.
   -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0                              http://maven.apache.org/maven-v4_0_0.xsd ">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd ">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>0.1</version>
+    <version>0.2-SNAPSHOT</version>
     <relativePath>oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -46,9 +46,9 @@
   </modules>
 
   <scm>
-    <connection>scm:svn:http://svn.apache.org/repos/asf/jackrabbit/oak/tags/jackrabbit-oak-0.1</connection>
-    <developerConnection>scm:svn:https://svn.apache.org/repos/asf/jackrabbit/oak/tags/jackrabbit-oak-0.1</developerConnection>
-    <url>http://svn.apache.org/viewvc/jackrabbit/oak/tags/jackrabbit-oak-0.1</url>
+    <connection>scm:svn:http://svn.apache.org/repos/asf/jackrabbit/oak/trunk</connection>
+    <developerConnection>scm:svn:https://svn.apache.org/repos/asf/jackrabbit/oak/trunk</developerConnection>
+    <url>http://svn.apache.org/viewvc/jackrabbit/oak/trunk</url>
   </scm>
 
   <build>
