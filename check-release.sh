@@ -87,7 +87,7 @@ echo "[INFO] Step 3. Check SVN Tag for version $VERSION with src zip file conten
 
 echo "[INFO] doing svn checkout, please wait..."
 SVNTAGDIR="$WORKDIR/tag-svn/jackrabbit-oak-$VERSION"
-svn --quiet export http://svn.apache.org/repos/asf/jackrabbit/oak/tags/$VERSION $SVNTAGDIR
+svn --quiet export http://svn.apache.org/repos/asf/jackrabbit/oak/tags/jackrabbit-oak-$VERSION $SVNTAGDIR
 
 echo "[INFO] unzipping src zip file, please wait..."
 ZIPTAG="$WORKDIR/tag-zip"
@@ -111,5 +111,5 @@ echo "[INFO] -------------------------------------------------------------------
 echo "[INFO] "
 
 cd "$ZIPTAGDIR"
-mvn package -Ppedantic
+mvn package # -Ppedantic
 
