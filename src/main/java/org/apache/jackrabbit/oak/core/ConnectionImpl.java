@@ -17,8 +17,8 @@
 package org.apache.jackrabbit.oak.core;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.model.NodeBuilder;
 import org.apache.jackrabbit.mk.model.NodeState;
+import org.apache.jackrabbit.mk.model.NodeStateEditor;
 import org.apache.jackrabbit.mk.model.NodeStore;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -94,21 +94,20 @@ public class ConnectionImpl implements Connection {
     }
 
     @Override
-    public NodeState commit(NodeState newRoot) throws CommitFailedException {
+    public NodeState commit(NodeStateEditor editor) throws CommitFailedException {
         if (workspaceName == null) {
-// todo            store.setRoot(newRoot);
+// todo            merge changes from editor into base
             return root = store.getRoot();
         }
         else {
-// todo            NodeBuilder builder = store.getNodeBuilder(store.getRoot());
-//            builder.setChildNode(workspaceName, newRoot);
+// todo            merge changes from editor into base
             return root = store.getRoot().getChildNode(workspaceName);
         }
     }
 
     @Override
-    public NodeBuilder getNodeBuilder(NodeState state) {
-        return store.getNodeBuilder(state);
+    public NodeStateEditor getNodeStateEditor(NodeState state) {
+        return store.branch(state);
     }
 
     @Override

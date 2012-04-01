@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.api;
 
-import org.apache.jackrabbit.mk.model.NodeBuilder;
 import org.apache.jackrabbit.mk.model.NodeState;
+import org.apache.jackrabbit.mk.model.NodeStateEditor;
 
 import java.io.Closeable;
 
@@ -83,9 +83,9 @@ public interface Connection extends Closeable {
 
     NodeState getCurrentRoot();
 
-    NodeState commit(NodeState newRoot) throws CommitFailedException;
+    NodeState commit(NodeStateEditor editor) throws CommitFailedException;
 
-    NodeBuilder getNodeBuilder(NodeState state);
+    NodeStateEditor getNodeStateEditor(NodeState state);
 
     // TODO : add versioning operations
 
