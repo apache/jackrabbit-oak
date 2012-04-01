@@ -19,8 +19,8 @@
 package org.apache.jackrabbit.oak.kernel;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.model.NodeBuilder;
 import org.apache.jackrabbit.mk.model.NodeState;
+import org.apache.jackrabbit.mk.model.NodeStateEditor;
 import org.apache.jackrabbit.mk.model.NodeStore;
 
 /**
@@ -40,13 +40,13 @@ public class KernelNodeStore implements NodeStore {
     }
 
     @Override
-    public void setRoot(NodeState newRoot) {
-        throw new UnsupportedOperationException(); // FIXME
+    public NodeStateEditor branch(NodeState base) {
+        return null; // todo implement branch
     }
 
     @Override
-    public NodeBuilder getNodeBuilder(NodeState base) {
-        throw new UnsupportedOperationException(); // FIXME
+    public NodeState merge(NodeStateEditor branch, NodeState base) {
+        return null; // todo implement merge
     }
 
 }

@@ -19,10 +19,10 @@ package org.apache.jackrabbit.mk.model;
 /**
  * Storage abstraction for content trees. At any given point in time
  * the stored content tree is rooted at a single immutable node state.
- * Changes in the tree are constructed using {@link NodeBuilder} instances
- * based on the root and other node states in the tree. The state of the
- * entire tree can then be changed by setting the resulting modified root
- * node state as the new root of the tree.
+ * Changes in the tree are constructed by branching off a private copy
+ * using the {@link #branch(NodeState)} method which can be modified
+ * and merged back using the {@link #merge(NodeStateEditor, NodeState)}
+ * method.
  * <p>
  * This is a low-level interface that doesn't cover functionality like
  * merging concurrent changes or rejecting new tree states based on some
@@ -38,22 +38,25 @@ public interface NodeStore {
     NodeState getRoot();
 
     /**
-     * Updates the state of the content tree.
+     * Creates a private branch from a {@code base} node state
+     * for editing. The branch can later be merged back into
+     * the node store using the {@link #merge(NodeStateEditor, NodeState) merge}
+     * method.
      *
-     * @param newRoot new root node state
+     * @param base base node state
+     * @return a private branch rooted at {@code base}
      */
-    void setRoot(NodeState newRoot);
+    NodeStateEditor branch(NodeState base);
 
     /**
-     * Returns a builder for constructing a new or modified node state.
-     * The builder is initialized with all the properties and child nodes
-     * from the given base node state, or with no properties or child nodes
-     * if no base node state is given.
+     * Atomically merges the changes from {@code branch} back
+     * into the sub-tree rooted at {@code base}.
      *
-     * @param base base node state,
-     *             or <code>null</code> to construct a new node state
-     * @return builder instance
+     * @param branch branch to merge into {@code base}
+     * @param base base of the sub-tree for merging
+     * @return result of the merge operation: the new node state of the
+     *         sub tree rooted at {@code base}.
      */
-    NodeBuilder getNodeBuilder(NodeState base);
+    NodeState merge(NodeStateEditor branch, NodeState base);
 
 }

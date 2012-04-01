@@ -213,7 +213,7 @@ public class SessionImpl extends AbstractSession {
         checkIsAlive();
         try {
             transientSpace.save();
-            connection.commit(connection.getCurrentRoot());  // todo: need a better way to update a connection to head
+            connection.commit(connection.getNodeStateEditor(connection.getCurrentRoot()));  // todo: need a better way to update a connection to head
             nodeStateProvider.clear();
         }
         catch (CommitFailedException e) {
@@ -226,7 +226,7 @@ public class SessionImpl extends AbstractSession {
         checkIsAlive();
         try {
             transientSpace.refresh(keepChanges);
-            connection.commit(connection.getCurrentRoot());  // todo: need a better way to update a connection to head
+            connection.commit(connection.getNodeStateEditor(connection.getCurrentRoot()));  // todo: need a better way to update a connection to head
             nodeStateProvider.clear();
         }
         catch (CommitFailedException e) {
