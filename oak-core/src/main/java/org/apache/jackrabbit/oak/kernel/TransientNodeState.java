@@ -14,6 +14,7 @@ import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Set;
 
+// fixme: this should be immutable as mandated by the NodeState interface
 public class TransientNodeState extends AbstractNodeState {
     private final KernelNodeStateEditor editor;
     private final NodeState persistentState;
