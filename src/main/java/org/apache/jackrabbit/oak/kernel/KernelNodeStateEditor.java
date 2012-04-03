@@ -49,95 +49,101 @@ import java.util.Set;
  */
 public class KernelNodeStateEditor implements NodeStateEditor {
     private final NodeState base;
-    private final String path;
+    private final TransientNodeState transientState;
     private final StringBuilder jsop;
-
-    private final Map<String, NodeState> addedNodes = new HashMap<String, NodeState>();
-    private final Set<String> removedNodes = new HashSet<String>();
-    private final Map<String, PropertyState> addedProperties = new HashMap<String, PropertyState>();
-    private final Set<String> removedProperties = new HashSet<String>();
 
     KernelNodeStateEditor(NodeState base) {
         this.base = base;
-        this.path = "";
-        this.jsop = new StringBuilder();
+        transientState = new TransientNodeState(base, this, null, "");
+        jsop = new StringBuilder();
     }
 
-    private KernelNodeStateEditor(NodeState base, String path, StringBuilder jsop) {
-        this.base = base;
-        this.path = path;
-        this.jsop = jsop;
+    private KernelNodeStateEditor(KernelNodeStateEditor parentEditor,
+            NodeState state, String name) {
+
+        base = parentEditor.base;
+        transientState = new TransientNodeState(state, this, parentEditor.getNodeState(), name);
+        jsop = parentEditor.jsop;
+    }
+
+    private KernelNodeStateEditor(KernelNodeStateEditor parentEditor,
+            TransientNodeState state) {
+        
+        base = parentEditor.base;
+        transientState = state;
+        jsop = parentEditor.jsop;
     }
 
     @Override
     public void addNode(String name) {
-        if (!hasNodeState(name)) {
-            transientAddNode(name, new TransientNodeState(name));
+        if (!hasNode(transientState, name)) {
+            transientState.addNode(name);
             jsop.append("+\"").append(path(name)).append("\":{}");
         }
     }
 
     @Override
     public void removeNode(String name) {
-        if (hasNodeState(name)) {
-            transientRemoveNode(name);
+        if (hasNode(transientState, name)) {
+            transientState.removeNode(name);
             jsop.append("-\"").append(path(name)).append('"');
         }
     }
 
     @Override
     public void setProperty(PropertyState state) {
-        transientSetProperty(state);
+        transientState.setProperty(state);
         jsop.append("^\"").append(path(state.getName())).append("\":")
                 .append(state.getEncodedValue());
     }
 
     @Override
     public void removeProperty(String name) {
-        transientRemoveProperty(name);
+        transientState.removeProperty(name);
         jsop.append("^\"").append(path(name)).append("\":null");
     }
 
     @Override
     public void move(String sourcePath, String destPath) {
-        KernelNodeStateEditor sourceParent = getEditor(PathUtils.getAncestorPath(sourcePath, 1));
+        TransientNodeState sourceParent = getTransientState(PathUtils.getAncestorPath(sourcePath, 1));
         String sourceName = PathUtils.getName(sourcePath);
-        if (sourceParent == null || !sourceParent.hasNodeState(sourceName)) {
+        if (sourceParent == null || !hasNode(sourceParent, sourceName)) {
             return;
         }
         
-        KernelNodeStateEditor destParent = getEditor(PathUtils.getAncestorPath(destPath, 1));
+        TransientNodeState destParent = getTransientState(PathUtils.getAncestorPath(destPath, 1));
         String destName = PathUtils.getName(destPath);
-        if (destParent == null || destParent.hasNodeState(destName)) {
+        if (destParent == null || hasNode(destParent, destName)) {
             return;
         }
 
-        destParent.transientAddNode(destName, sourceParent.transientRemoveNode(sourceName));
+        sourceParent.move(sourceName, destParent, destName);
         jsop.append(">\"").append(path(sourcePath))
                 .append("\":\"").append(path(destPath)).append('"');
     }
 
     @Override
     public void copy(String sourcePath, String destPath) {
-        KernelNodeStateEditor source = getEditor(sourcePath);
-        if (source == null) {
+        TransientNodeState sourceParent = getTransientState(PathUtils.getAncestorPath(sourcePath, 1));
+        String sourceName = PathUtils.getName(sourcePath);
+        if (sourceParent == null || !hasNode(sourceParent, sourceName)) {
             return;
         }
 
-        KernelNodeStateEditor destParent = getEditor(PathUtils.getAncestorPath(destPath, 1));
+        TransientNodeState destParent = getTransientState(PathUtils.getAncestorPath(destPath, 1));
         String destName = PathUtils.getName(destPath);
-        if (destParent == null || destParent.hasNodeState(destName)) {
+        if (destParent == null || hasNode(destParent, destName)) {
             return;
         }
 
-        destParent.transientAddNode(destName, source.getNodeState());
+        sourceParent.copy(sourceName, destParent, destName);
         jsop.append("*\"").append(path(sourcePath)).append("\":\"")
                 .append(path(destPath)).append('"');
     }
 
     @Override
     public KernelNodeStateEditor edit(String name) {
-        NodeState childState = getChildNodeState(name);
+        NodeState childState = transientState.getChildNode(name);
         if (childState == null) {
             return null;
         }
@@ -145,13 +151,13 @@ public class KernelNodeStateEditor implements NodeStateEditor {
             return ((TransientNodeState) childState).editor;
         }
         else {
-            return new KernelNodeStateEditor(childState, cat(path, name), jsop);
+            return new KernelNodeStateEditor(this, childState, name);
         }
     }
 
     @Override
-    public NodeState getNodeState() {
-        return new TransientNodeState(this);
+    public TransientNodeState getNodeState() {
+        return transientState;
     }
 
     @Override
@@ -168,7 +174,7 @@ public class KernelNodeStateEditor implements NodeStateEditor {
         return new KernelNodeState(microkernel, targetPath, rev);
     }
 
-    private KernelNodeStateEditor getEditor(String path) {
+    private TransientNodeState getTransientState(String path) {
         KernelNodeStateEditor editor = this;
         for(String name : PathUtils.elements(path)) {
             editor = editor.edit(name);
@@ -177,102 +183,103 @@ public class KernelNodeStateEditor implements NodeStateEditor {
             }
         }
         
-        return editor;
-    }
-
-    private static String cat(String path, String relPath) {
-        return path.isEmpty() ? relPath : path + '/' + relPath;
+        return editor.transientState;
     }
 
     private String path(String name) {
-        return cat(path, name);
+        String path = transientState.getPath();
+        return path.isEmpty() ? name : path + '/' + name;
     }
 
-    private NodeState getChildNodeState(String name) {
-        NodeState state = addedNodes.get(name);
-        if (state != null) {
-            return state;
-        }
-
-        return removedNodes.contains(name)
-            ? null
-            : base.getChildNode(name);
-    }
-
-    private boolean hasNodeState(String name) {
-        return getChildNodeState(name) != null;
-    }
-
-    private PropertyState getPropertyState(String name) {
-        PropertyState state = addedProperties.get(name);
-        if (state != null) {
-            return state;
-        }
-
-        if (removedProperties.contains(name)) {
-            return null;
-        }
-        else {
-            return base.getProperty(name);
-        }
-    }
-
-    private void transientAddNode(String name, NodeState nodeState) {
-        addedNodes.put(name, nodeState);
-    }
-
-    private NodeState transientRemoveNode(String name) {
-        NodeState state = addedNodes.remove(name);
-        removedNodes.add(name);
-        return state == null
-            ? base.getChildNode(name)
-            : state;
-    }
-
-    private void transientSetProperty(PropertyState state) {
-        addedProperties.put(state.getName(), state);
-    }
-
-    private void transientRemoveProperty(String name) {
-        addedProperties.remove(name);
-        removedProperties.add(name);
+    private static boolean hasNode(NodeState nodeState, String name) {
+        return nodeState.getChildNode(name) != null;
     }
 
     private class TransientNodeState extends AbstractNodeState {
         private final KernelNodeStateEditor editor;
+        private final NodeState persistentState;
 
-        public TransientNodeState(KernelNodeStateEditor editor) {
+        private final Map<String, NodeState> addedNodes = new HashMap<String, NodeState>();
+        private final Set<String> removedNodes = new HashSet<String>();
+        private final Map<String, PropertyState> addedProperties = new HashMap<String, PropertyState>();
+        private final Set<String> removedProperties = new HashSet<String>();
+
+        private String name;
+        private TransientNodeState parent;
+
+        public TransientNodeState(NodeState persistentState, KernelNodeStateEditor editor,
+                TransientNodeState parent, String name) {
+
             this.editor = editor;
+            this.persistentState = persistentState;
+            this.parent = parent;
+            this.name = name;
         }
 
-        public TransientNodeState(String name) {
-            this.editor = new KernelNodeStateEditor(this, cat(path, name), jsop);
+        public TransientNodeState(KernelNodeStateEditor parentEditor, String name) {
+            editor = new KernelNodeStateEditor(parentEditor, this);
+            persistentState = null;
+            parent = parentEditor.getNodeState();
+            this.name = name;
         }
 
         @Override
         public PropertyState getProperty(String name) {
-            return editor.getPropertyState(name);
+            PropertyState state = addedProperties.get(name);
+            if (state != null) {
+                return state;
+            }
+
+            return removedProperties.contains(name)
+                ? null
+                : persistentState.getProperty(name);
+        }
+
+        @Override
+        public long getPropertyCount() {
+            // todo optimise getPropertyCount
+            // persistentCount - removedCount + addedCount won't work however since
+            // persisted properties might be overlaid
+            return super.getPropertyCount();
         }
 
         @Override
         public NodeState getChildNode(String name) {
-            return editor.getChildNodeState(name);
+            NodeState state = addedNodes.get(name);
+            if (state != null) {
+                return state;
+            }
+
+            return removedNodes.contains(name)
+                ? null
+                : persistentState.getChildNode(name);
+        }
+
+        @Override
+        public long getChildNodeCount() {
+            // todo optimise getChildNodeCount
+            // persistentCount - removedCount + addedCount won't work however since
+            // persisted nodes might be overlaid
+            return super.getChildNodeCount();
         }
 
         @Override
         public Iterable<? extends PropertyState> getProperties() {
             final Set<String> removed = new HashSet<String>();
-            removed.addAll(editor.removedProperties);
+            removed.addAll(removedProperties);
 
             final Map<String, PropertyState> added = new HashMap<String, PropertyState>();
-            added.putAll(editor.addedProperties);
+            added.putAll(addedProperties);
 
-            final Iterable<? extends PropertyState> baseProperties = editor.base.getProperties();
+            final Iterable<? extends PropertyState>
+                    persistedProperties = persistentState.getProperties();
+
             return new Iterable<PropertyState>() {
                 @Override
                 public Iterator<PropertyState> iterator() {
                     return new Iterator<PropertyState>() {
-                        private final Iterator<? extends PropertyState> properties = baseProperties.iterator();
+                        private final Iterator<? extends PropertyState>
+                                properties = persistedProperties.iterator();
                         private PropertyState next;
 
                         @Override
@@ -315,17 +322,20 @@ public class KernelNodeStateEditor implements NodeStateEditor {
         @Override
         public Iterable<? extends ChildNodeEntry> getChildNodeEntries(long offset, int count) {
             final Set<String> removed = new HashSet<String>();
-            removed.addAll(editor.removedNodes);
+            removed.addAll(removedNodes);
 
             final Map<String, NodeState> added = new HashMap<String, NodeState>();
-            added.putAll(editor.addedNodes);
+            added.putAll(addedNodes);
 
-            final Iterable<? extends ChildNodeEntry> baseNodes = editor.base.getChildNodeEntries(offset, count);
+            final Iterable<? extends ChildNodeEntry>
+                    baseNodes = persistentState.getChildNodeEntries(offset, count);
+
             return new Iterable<ChildNodeEntry>() {
                 @Override
                 public Iterator<ChildNodeEntry> iterator() {
                     return new Iterator<ChildNodeEntry>() {
-                        private final Iterator<? extends ChildNodeEntry> properties = baseNodes.iterator();
+                        private final Iterator<? extends ChildNodeEntry>
+                                properties = baseNodes.iterator();
                         private ChildNodeEntry next;
 
                         @Override
@@ -373,6 +383,53 @@ public class KernelNodeStateEditor implements NodeStateEditor {
                     };
                 }
             };
+        }
+
+        //------------------------------------------------------------< internal >---
+
+        String getPath() {
+            if (parent == null) {
+                return name;
+            }
+            else {
+                String path = parent.getPath();
+                return path.isEmpty()
+                    ? name
+                    : path + '/' + name;
+            }
+        }
+
+        void addNode(String name) {
+            addedNodes.put(name, new TransientNodeState(editor, name));
+        }
+
+        void removeNode(String name) {
+            addedNodes.remove(name);
+            removedNodes.add(name);
+        }
+
+        void setProperty(PropertyState state) {
+            addedProperties.put(state.getName(), state);
+        }
+
+        void removeProperty(String name) {
+            addedProperties.remove(name);
+            removedProperties.add(name);
+        }
+
+        void move(String name, TransientNodeState destParent, String destName) {
+            NodeState state = getChildNode(name);
+            removeNode(name);
+            destParent.addNode(destName, state);
+        }
+
+        void copy(String name, TransientNodeState destParent, String destName) {
+            NodeState state = getChildNode(name);
+            destParent.addNode(destName, state);
+        }
+
+        private void addNode(String name, NodeState state) {
+            addedNodes.put(name, state);
         }
     }
 }
