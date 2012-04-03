@@ -24,8 +24,8 @@ import javax.jcr.RepositoryException;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.RowIterator;
 import org.apache.jackrabbit.commons.iterator.RowIteratorAdapter;
-import org.apache.jackrabbit.oak.query.Result;
-import org.apache.jackrabbit.oak.query.ResultRow;
+import org.apache.jackrabbit.oak.api.Result;
+import org.apache.jackrabbit.oak.api.ResultRow;
 
 /**
  * The implementation of the corresponding JCR interface.
@@ -52,7 +52,7 @@ public class QueryResultImpl implements QueryResult {
     public RowIterator getRows() throws RepositoryException {
         Iterator<RowImpl> it = new Iterator<RowImpl>() {
 
-            private Iterator<ResultRow> it = result.getRows();
+            private Iterator<? extends ResultRow> it = result.getRows();
 
             @Override
             public boolean hasNext() {

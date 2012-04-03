@@ -18,14 +18,13 @@
  */
 package org.apache.jackrabbit.oak.jcr.query;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.oak.api.QueryEngine;
+import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.jcr.SessionContext;
 import org.apache.jackrabbit.oak.jcr.SessionImpl;
 import org.apache.jackrabbit.oak.jcr.WorkspaceImpl;
 import org.apache.jackrabbit.oak.jcr.query.qom.QueryObjectModelFactoryImpl;
 import org.apache.jackrabbit.oak.query.CoreValue;
-import org.apache.jackrabbit.oak.query.QueryEngine;
-import org.apache.jackrabbit.oak.query.Result;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -46,11 +45,10 @@ import java.util.Map.Entry;
 public class QueryManagerImpl implements QueryManager {
 
     private final QueryObjectModelFactoryImpl qomFactory = new QueryObjectModelFactoryImpl();
-    private final QueryEngine qe;
+    private final QueryEngine queryEngine;
 
     public QueryManagerImpl(WorkspaceImpl workspace, SessionContext<SessionImpl> sessionContext) {
-        MicroKernel mk = sessionContext.getMicrokernel();
-        qe = new QueryEngine(mk);
+        queryEngine = sessionContext.getConnection().getQueryEngine();
     }
 
     @Override
@@ -84,7 +82,7 @@ public class QueryManagerImpl implements QueryManager {
 
     public List<String> parse(String statement, String language) throws InvalidQueryException {
         try {
-            return qe.parse(statement, convertLanguage(language));
+            return queryEngine.getBindVariableNames(statement, convertLanguage(language));
         } catch (ParseException e) {
             throw new InvalidQueryException(e);
         }
@@ -94,7 +92,7 @@ public class QueryManagerImpl implements QueryManager {
             HashMap<String, Value> bindVariableMap, long limit, long offset) throws RepositoryException {
         try {
             HashMap<String, CoreValue> bindMap = convertMap(bindVariableMap);
-            Result r = qe.executeQuery(statement, convertLanguage(language), bindMap);
+            Result r = queryEngine.executeQuery(statement, convertLanguage(language), bindMap);
             return new QueryResultImpl(r);
         } catch (ParseException e) {
             throw new InvalidQueryException(e);

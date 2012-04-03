@@ -16,26 +16,28 @@
  */
 package org.apache.jackrabbit.oak.query;
 
+import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.query.ast.ColumnImpl;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 
 /**
  * A query result row that keeps all data in memory.
  */
-public class ResultRow implements Comparable<ResultRow> {
+public class ResultRowImpl implements ResultRow, Comparable<ResultRowImpl> {
 
     private final Query query;
     private final String[] paths;
     private final CoreValue[] values;
     private final CoreValue[] orderValues;
 
-    ResultRow(Query query, String[] paths, CoreValue[] values, CoreValue[] orderValues) {
+    ResultRowImpl(Query query, String[] paths, CoreValue[] values, CoreValue[] orderValues) {
         this.query = query;
         this.paths = paths;
         this.values = values;
         this.orderValues = orderValues;
     }
 
+    @Override
     public String getPath() {
         if (paths.length > 1) {
             throw new IllegalArgumentException("More than one selector");
@@ -43,6 +45,7 @@ public class ResultRow implements Comparable<ResultRow> {
         return paths[0];
     }
 
+    @Override
     public String getPath(String selectorName) {
         int index = query.getSelectorIndex(selectorName);
         if (paths == null || index >= paths.length) {
@@ -51,10 +54,12 @@ public class ResultRow implements Comparable<ResultRow> {
         return paths[index];
     }
 
+    @Override
     public CoreValue getValue(String columnName) {
         return values[query.getColumnIndex(columnName)];
     }
 
+    @Override
     public CoreValue[] getValues() {
         CoreValue[] v2 = new CoreValue[values.length];
         System.arraycopy(values, 0, v2, 0, v2.length);
@@ -62,7 +67,7 @@ public class ResultRow implements Comparable<ResultRow> {
     }
 
     @Override
-    public int compareTo(ResultRow o) {
+    public int compareTo(ResultRowImpl o) {
         return query.compareRows(orderValues, o.orderValues);
     }
 

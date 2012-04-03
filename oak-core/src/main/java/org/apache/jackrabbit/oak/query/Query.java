@@ -260,29 +260,29 @@ public class Query {
         this.explain = explain;
     }
 
-    public Result executeQuery(String revisionId) {
+    public ResultImpl executeQuery(String revisionId) {
         prepare();
-        Iterator<ResultRow> it;
+        Iterator<ResultRowImpl> it;
         if (explain) {
             String plan = source.getPlan();
             columns = new ColumnImpl[] { new ColumnImpl("explain", "plan", "plan")};
-            ResultRow r = new ResultRow(this, new String[0], new CoreValue[] { valueFactory.createValue(plan) }, null);
+            ResultRowImpl r = new ResultRowImpl(this, new String[0], new CoreValue[] { valueFactory.createValue(plan) }, null);
             it = Arrays.asList(r).iterator();
         } else {
             it = new RowIterator(revisionId);
             if (orderings != null) {
                 // TODO "order by" is not necessary if the used index returns
                 // rows in the same order
-                ArrayList<ResultRow> list = new ArrayList<ResultRow>();
+                ArrayList<ResultRowImpl> list = new ArrayList<ResultRowImpl>();
                 while (it.hasNext()) {
-                    ResultRow r = it.next();
+                    ResultRowImpl r = it.next();
                     list.add(r);
                 }
                 Collections.sort(list);
                 it = list.iterator();
             }
         }
-        return new Result(this, it);
+        return new ResultImpl(this, it);
     }
 
     public int compareRows(CoreValue[] orderValues, CoreValue[] orderValues2) {
@@ -319,10 +319,10 @@ public class Query {
         source.prepare(mk);
     }
 
-    class RowIterator implements Iterator<ResultRow> {
+    class RowIterator implements Iterator<ResultRowImpl> {
 
         private final String revisionId;
-        private ResultRow current;
+        private ResultRowImpl current;
         private boolean started, end;
 
         RowIterator(String revisionId) {
@@ -363,14 +363,14 @@ public class Query {
         }
 
         @Override
-        public ResultRow next() {
+        public ResultRowImpl next() {
             if (end) {
                 return null;
             }
             if (current == null) {
                 fetchNext();
             }
-            ResultRow r = current;
+            ResultRowImpl r = current;
             current = null;
             return r;
         }
@@ -382,7 +382,7 @@ public class Query {
 
     }
 
-    ResultRow currentRow() {
+    ResultRowImpl currentRow() {
         int selectorCount = selectors.size();
         String[] paths = new String[selectorCount];
         for (int i = 0; i < selectorCount; i++) {
@@ -405,7 +405,7 @@ public class Query {
                 orderValues[i] = orderings[i].getOperand().currentValue();
             }
         }
-        return new ResultRow(this, paths, values, orderValues);
+        return new ResultRowImpl(this, paths, values, orderValues);
     }
 
     public int getSelectorIndex(String selectorName) {

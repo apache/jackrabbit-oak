@@ -26,6 +26,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import org.apache.jackrabbit.mk.MicroKernelFactory;
 import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.oak.api.QueryEngine;
+import org.apache.jackrabbit.oak.api.ResultRow;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -37,13 +39,13 @@ public class QueryTest {
 
     MicroKernel mk;
     String head;
-    QueryEngine qe;
+    QueryEngineImpl qe;
 
     @Before
     public void setUp() {
         mk = MicroKernelFactory.getInstance("simple:/target/temp;clear");
         head = mk.getHeadRevision();
-        qe = new QueryEngine(mk);
+        qe = new QueryEngineImpl(mk);
     }
 
     @After
@@ -67,7 +69,7 @@ public class QueryTest {
         HashMap<String, CoreValue> sv = new HashMap<String, CoreValue>();
         CoreValueFactory vf = new CoreValueFactory();
         sv.put("id", vf.createValue("1"));
-        Iterator<ResultRow> result;
+        Iterator<? extends ResultRow> result;
         result = qe.executeQuery("select * from [nt:base] where id = $id", QueryEngine.SQL2, sv).getRows();
         assertTrue(result.hasNext());
         assertEquals("/test/hello", result.next().getPath());
@@ -78,9 +80,9 @@ public class QueryTest {
         assertEquals("/test/world", result.next().getPath());
 
 
-        qe.executeQuery("explain select * from [nt:base] where id = 1 order by id", QueryEngine.SQL2, null);
-
-
+        result = qe.executeQuery("explain select * from [nt:base] where id = 1 order by id", QueryEngine.SQL2, null).getRows();
+        assertTrue(result.hasNext());
+        assertEquals("nt:base AS nt:base /* traverse \"//*\" */", result.next().getValue("plan").getString());
 
     }
 
@@ -115,7 +117,7 @@ public class QueryTest {
                     }
                 } else if (line.startsWith("select") || line.startsWith("explain")) {
                     w.println(line);
-                    Iterator<ResultRow> result = qe.executeQuery(line, QueryEngine.SQL2, null).getRows();
+                    Iterator<? extends ResultRow> result = qe.executeQuery(line, QueryEngine.SQL2, null).getRows();
                     boolean readEnd = true;
                     while (result.hasNext()) {
                         ResultRow row = result.next();
