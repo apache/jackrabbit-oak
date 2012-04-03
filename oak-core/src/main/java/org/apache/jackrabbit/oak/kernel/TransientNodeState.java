@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Set;
 
@@ -17,7 +18,8 @@ public class TransientNodeState extends AbstractNodeState {
     private final KernelNodeStateEditor editor;
     private final NodeState persistentState;
 
-    private final Map<String, NodeState> addedNodes = new HashMap<String, NodeState>();
+    private final Map<String, TransientNodeState>
+            addedNodes = new HashMap<String, TransientNodeState>();
     private final Set<String> removedNodes = new HashSet<String>();
     private final Map<String, PropertyState> addedProperties = new HashMap<String, PropertyState>();
     private final Set<String> removedProperties = new HashSet<String>();
@@ -34,11 +36,30 @@ public class TransientNodeState extends AbstractNodeState {
         this.name = name;
     }
 
-    TransientNodeState(KernelNodeStateEditor parentEditor, String name) {
+    private TransientNodeState(KernelNodeStateEditor parentEditor, String name) {
         editor = new KernelNodeStateEditor(parentEditor, this);
         persistentState = null;
         parent = parentEditor.getNodeState();
         this.name = name;
+    }
+
+    private TransientNodeState(TransientNodeState state, TransientNodeState parent,
+            String name) {
+
+        editor = new KernelNodeStateEditor(parent.getEditor(), this);
+        persistentState = state.persistentState;
+        this.parent = parent;
+        this.name = name;
+
+        for (Entry<String, TransientNodeState> added : addedNodes.entrySet()) {
+            String addedName = added.getKey();
+            this.addedNodes.put(addedName,
+                    new TransientNodeState(added.getValue(), this, addedName));
+        }
+
+        this.removedNodes.addAll(state.removedNodes);
+        this.addedProperties.putAll(state.addedProperties);
+        this.removedProperties.addAll(state.removedProperties);
     }
 
     @Override
@@ -240,17 +261,18 @@ public class TransientNodeState extends AbstractNodeState {
     }
 
     void move(String name, TransientNodeState destParent, String destName) {
-        NodeState state = getChildNode(name);
+        TransientNodeState state = editor.edit(name).getNodeState();
         removeNode(name);
-        destParent.addNode(destName, state);
+
+        state.name = destName;
+        state.parent = destParent;
+        destParent.addedNodes.put(destName, state);
     }
 
     void copy(String name, TransientNodeState destParent, String destName) {
-        NodeState state = getChildNode(name);
-        destParent.addNode(destName, state);
+        TransientNodeState state = editor.edit(name).getNodeState();
+        destParent.addedNodes.put(destName,
+                new TransientNodeState(state, destParent, destName));
     }
 
-    private void addNode(String name, NodeState state) {
-        addedNodes.put(name, state);
-    }
 }
