@@ -87,8 +87,13 @@ public interface Connection extends Closeable {
 
     NodeStateEditor getNodeStateEditor(NodeState state);
 
-    // TODO : add versioning operations
+    /**
+     * Get the query engine.
+     *
+     * @return the query engine
+     */
+    QueryEngine getQueryEngine();
 
-    // TODO : add query execution operations
+    // TODO : add versioning operations
 
 }

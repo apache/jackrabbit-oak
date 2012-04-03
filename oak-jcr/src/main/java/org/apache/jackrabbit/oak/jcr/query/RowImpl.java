@@ -23,8 +23,8 @@ import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.query.Row;
+import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.query.CoreValue;
-import org.apache.jackrabbit.oak.query.ResultRow;
 
 /**
  * The implementation of the corresponding JCR interface.

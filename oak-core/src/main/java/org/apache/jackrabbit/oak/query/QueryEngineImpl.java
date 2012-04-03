@@ -21,17 +21,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.oak.api.QueryEngine;
 
-public class QueryEngine {
-
-    public static final String XPATH = "xpath";
-    public static final String SQL2 = "sql2";
+public class QueryEngineImpl implements QueryEngine {
 
     private final MicroKernel mk;
     private final CoreValueFactory vf = new CoreValueFactory();
     private final SQL2Parser parserSQL2;
 
-    public QueryEngine(MicroKernel mk) {
+    public QueryEngineImpl(MicroKernel mk) {
         this.mk = mk;
         parserSQL2 = new SQL2Parser(vf);
     }
@@ -44,7 +42,8 @@ public class QueryEngine {
      * @return the list of bind variable names
      * @throws ParseException
      */
-    public List<String> parse(String statement, String language) throws ParseException {
+    @Override
+    public List<String> getBindVariableNames(String statement, String language) throws ParseException {
         Query q = parseQuery(statement, language);
         return q.getBindVariableNames();
 
@@ -64,7 +63,8 @@ public class QueryEngine {
         return q;
     }
 
-    public Result executeQuery(String statement, String language, Map<String, CoreValue> bindings) throws ParseException {
+    @Override
+    public ResultImpl executeQuery(String statement, String language, Map<String, CoreValue> bindings) throws ParseException {
         Query q = parseQuery(statement, language);
         q.setMicroKernel(mk);
         if (bindings != null) {
