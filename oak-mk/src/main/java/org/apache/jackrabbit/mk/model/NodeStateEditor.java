@@ -25,24 +25,24 @@ package org.apache.jackrabbit.mk.model;
 public interface NodeStateEditor {
 
     /**
-     * Add or replace the child node state with the given {@code name}.
+     * Add the child node state with the given {@code name}. Does nothing
+     * if such a child node already exists.
      * @param name name of the new node state
-     * @return editor for the added node state
      */
-    NodeStateEditor addNode(String name);
+    void addNode(String name);
 
     /**
-     * Remove the child node state with the given {@code name}.
+     * Remove the child node state with the given {@code name}. Does nothing
+     * if no such child node exists.
      * @param name  name of the node state to remove
      */
     void removeNode(String name);
 
     /**
      * Set a property on this node state
-     * @param name name of the property
-     * @param value value of the property
+     * @param state property state to set
      */
-    void setProperty(String name, Scalar value);
+    void setProperty(PropertyState state);
 
     /**
      * Remove a property from this node state
