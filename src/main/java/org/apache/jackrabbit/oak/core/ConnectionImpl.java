@@ -23,7 +23,9 @@ import org.apache.jackrabbit.mk.model.NodeStore;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Connection;
+import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
+import org.apache.jackrabbit.oak.query.QueryEngineImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,15 +46,17 @@ public class ConnectionImpl implements Connection {
     private final SimpleCredentials credentials;
     private final String workspaceName;
     private final NodeStore store;
+    private final QueryEngine queryEngine;
 
     private NodeState root;
 
     public ConnectionImpl(SimpleCredentials credentials, String workspaceName,
-            NodeStore store, NodeState root) {
+            NodeStore store, NodeState root, QueryEngine queryEngine) {
         this.credentials = credentials;
         this.workspaceName = workspaceName;
         this.store = store;
         this.root = root;
+        this.queryEngine = queryEngine;
     }
 
     static Connection createWorkspaceConnection(SimpleCredentials credentials,
@@ -63,8 +67,9 @@ public class ConnectionImpl implements Connection {
         if (wspRoot == null) {
             throw new NoSuchWorkspaceException(workspace);
         }
+        QueryEngine queryEngine = new QueryEngineImpl(microKernel);
 
-        return new ConnectionImpl(credentials, workspace, store, wspRoot);
+        return new ConnectionImpl(credentials, workspace, store, wspRoot, queryEngine);
     }
 
     @Override
@@ -122,6 +127,12 @@ public class ConnectionImpl implements Connection {
 
     @Override
     public Connection getRepositoryConnection() {
-        return new ConnectionImpl(credentials, null, store, store.getRoot());
+        return new ConnectionImpl(credentials, null, store, store.getRoot(), queryEngine);
     }
+
+    @Override
+    public QueryEngine getQueryEngine() {
+        return queryEngine;
+    }
+
 }

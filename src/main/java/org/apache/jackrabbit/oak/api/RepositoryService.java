@@ -37,7 +37,7 @@ public interface RepositoryService {
      *
      * @param credentials
      * @param workspaceName
-     * @return
+     * @return the connection
      * @throws LoginException
      * @throws NoSuchWorkspaceException
      */

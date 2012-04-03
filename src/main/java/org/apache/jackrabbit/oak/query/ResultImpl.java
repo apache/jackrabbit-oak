@@ -18,22 +18,25 @@ package org.apache.jackrabbit.oak.query;
 
 import java.util.Iterator;
 import java.util.List;
+import org.apache.jackrabbit.oak.api.Result;
+import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.query.ast.ColumnImpl;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 
 /**
  * A query result.
  */
-public class Result {
+public class ResultImpl implements Result {
 
     private final Query query;
-    private final Iterator<ResultRow> it;
+    private final Iterator<ResultRowImpl> it;
 
-    Result(Query query, Iterator<ResultRow> it) {
+    ResultImpl(Query query, Iterator<ResultRowImpl> it) {
         this.query = query;
         this.it = it;
     }
 
+    @Override
     public String[] getColumnNames() {
         ColumnImpl[] cols = query.getColumns();
         String[] names = new String[cols.length];
@@ -43,6 +46,7 @@ public class Result {
         return names;
     }
 
+    @Override
     public String[] getSelectorNames() {
         List<SelectorImpl> selectors = query.getSelectors();
         String[] names = new String[selectors.size()];
@@ -52,7 +56,8 @@ public class Result {
         return names;
     }
 
-    public Iterator<ResultRow> getRows() {
+    @Override
+    public Iterator<? extends ResultRow> getRows() {
         return it;
     }
 
