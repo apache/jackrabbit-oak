@@ -206,6 +206,16 @@ class KernelNodeState extends AbstractNodeState {
         return entries;
     }
 
+    //------------------------------------------------------------< internal >---
+
+    String getRevision() {
+        return revision;
+    }
+
+    String getPath() {
+        return path;
+    }
+
     private String getChildPath(String name) {
         if ("/".equals(path)) {
             return '/' + name;
