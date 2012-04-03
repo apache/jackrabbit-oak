@@ -101,13 +101,13 @@ public class ConnectionImpl implements Connection {
     @Override
     public NodeState commit(NodeStateEditor editor) throws CommitFailedException {
         if (workspaceName == null) {
-// todo            merge changes from editor into base
             return root = store.getRoot();
         }
         else {
-// todo            merge changes from editor into base
             return root = store.getRoot().getChildNode(workspaceName);
         }
+
+        // todo return store.merge(editor, editor.getBaseNodeState());
     }
 
     @Override

@@ -41,12 +41,19 @@ public class KernelNodeStore implements NodeStore {
 
     @Override
     public NodeStateEditor branch(NodeState base) {
-        return null; // todo implement branch
+        return new KernelNodeStateEditor(base);
     }
 
     @Override
-    public NodeState merge(NodeStateEditor branch, NodeState base) {
-        return null; // todo implement merge
+    public NodeState merge(NodeStateEditor branch, NodeState target) {
+        if (!(branch instanceof KernelNodeStateEditor)) {
+            throw new IllegalArgumentException("Branch does not belong to this store");
+        }
+        if (!(target instanceof KernelNodeStore)) {
+            throw new IllegalArgumentException("Target does not belong to this store");
+        }
+
+        return ((KernelNodeStateEditor) branch).mergeInto(kernel, (KernelNodeState) target);
     }
 
 }
