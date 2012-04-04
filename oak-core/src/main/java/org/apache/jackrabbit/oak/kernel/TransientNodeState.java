@@ -74,7 +74,7 @@ public class TransientNodeState {
             return state;
         }
 
-        return removedProperties.contains(name)
+        return removedProperties.contains(name) || persistentState == null
             ? null
             : persistentState.getProperty(name);
     }
@@ -102,7 +102,7 @@ public class TransientNodeState {
         added.putAll(addedProperties);
 
         final Iterable<? extends PropertyState>
-                persistedProperties = persistentState.getProperties();
+                persistedProperties = persistentState.getProperties(); // fixme check for null
 
         return new Iterable<PropertyState>() {
             @Override
@@ -157,7 +157,7 @@ public class TransientNodeState {
         added.putAll(addedNodes);
 
         final Iterable<? extends ChildNodeEntry>
-                persistedNodes = persistentState.getChildNodeEntries(offset, count);
+                persistedNodes = persistentState.getChildNodeEntries(offset, count); // fixme check for null
 
         return new Iterable<TransientNodeState>() {
             @Override
@@ -255,8 +255,11 @@ public class TransientNodeState {
     }
 
     private TransientNodeState getExistingChildNode(String name) {
-        NodeState state = persistentState.getChildNode(name);
+        if (persistentState == null) {
+            return null;
+        }
 
+        NodeState state = persistentState.getChildNode(name);
         TransientNodeState transientState = existingChildNodes.get(state);
         if (transientState == null) {
             transientState = new TransientNodeState(editor, name, state);
