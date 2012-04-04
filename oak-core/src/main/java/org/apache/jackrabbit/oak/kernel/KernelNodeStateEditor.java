@@ -48,14 +48,6 @@ public class KernelNodeStateEditor implements NodeStateEditor {
         jsop = new StringBuilder();
     }
 
-    private KernelNodeStateEditor(KernelNodeStateEditor parentEditor,
-            NodeState state, String name) {
-
-        base = parentEditor.base;
-        transientState = new TransientNodeState(state, this, parentEditor.getNodeState(), name);
-        jsop = parentEditor.jsop;
-    }
-
     KernelNodeStateEditor(KernelNodeStateEditor parentEditor, TransientNodeState state) {
         base = parentEditor.base;
         transientState = state;
@@ -131,21 +123,16 @@ public class KernelNodeStateEditor implements NodeStateEditor {
 
     @Override
     public KernelNodeStateEditor edit(String name) {
-        NodeState childState = transientState.getChildNode(name);
-        if (childState == null) {
-            return null;
-        }
-        else if (childState instanceof TransientNodeState) {
-            return ((TransientNodeState) childState).getEditor();
-        }
-        else {
-            return new KernelNodeStateEditor(this, childState, name);
-        }
+        TransientNodeState childState = transientState.getChildNode(name);
+        return childState == null
+            ? null
+            : childState.getEditor();
     }
 
     @Override
-    public TransientNodeState getNodeState() {
-        return transientState;
+    public NodeState getNodeState() {
+        // todo implement getNodeState
+        return null;
     }
 
     @Override
@@ -162,16 +149,19 @@ public class KernelNodeStateEditor implements NodeStateEditor {
         return new KernelNodeState(microkernel, targetPath, rev);
     }
 
+    TransientNodeState getTransientState() {
+        return transientState;
+    }
+
     private TransientNodeState getTransientState(String path) {
-        KernelNodeStateEditor editor = this;
-        for(String name : PathUtils.elements(path)) {
-            editor = editor.edit(name);
-            if (editor == null) {
+        TransientNodeState state = transientState;
+        for (String name : PathUtils.elements(path)) {
+            state = state.getChildNode(name);
+            if (state == null) {
                 return null;
             }
         }
-        
-        return editor.transientState;
+        return state;
     }
 
     private String path(String name) {
@@ -179,8 +169,8 @@ public class KernelNodeStateEditor implements NodeStateEditor {
         return path.isEmpty() ? name : path + '/' + name;
     }
 
-    private static boolean hasNode(NodeState nodeState, String name) {
-        return nodeState.getChildNode(name) != null;
+    private static boolean hasNode(TransientNodeState state, String name) {
+        return state.getChildNode(name) != null;
     }
 
 }
