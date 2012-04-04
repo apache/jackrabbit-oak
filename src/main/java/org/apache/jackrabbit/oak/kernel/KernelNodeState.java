@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.kernel;
 
 import org.apache.jackrabbit.mk.model.Scalar;
 import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.mk.model.AbstractNodeState;
@@ -141,11 +140,8 @@ class KernelNodeState extends AbstractNodeState {
         NodeState child = childNodes.get(name);
         if (child == null && childNodeCount > MAX_CHILD_NODE_NAMES) {
             String childPath = getChildPath(name);
-            try {
-                kernel.getNodes(childPath, revision, 0, 0, 0, null);
+            if (kernel.nodeExists(childPath, revision)) {
                 child = new KernelNodeState(kernel, childPath, revision);
-            } catch (MicroKernelException e) {
-                // FIXME: Better way to determine whether a child node exists
             }
         }
         return child;
