@@ -75,14 +75,6 @@ public interface NodeStateEditor {
     NodeStateEditor edit(String name);
 
     /**
-     * Returns an immutable node state that matches the current state of
-     * the editor.
-     *
-     * @return immutable node state
-     */
-    NodeState getNodeState();
-
-    /**
      * Return the base node state of this private branch
      * @return base node state
      */

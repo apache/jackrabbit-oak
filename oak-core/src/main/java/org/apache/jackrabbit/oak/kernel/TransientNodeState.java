@@ -1,5 +1,9 @@
 package org.apache.jackrabbit.oak.kernel;
 
+import org.apache.commons.collections.iterators.EmptyIterator;
+import org.apache.commons.collections.iterators.FilterIterator;
+import org.apache.commons.collections.iterators.IteratorChain;
+import org.apache.commons.collections.iterators.TransformIterator;
 import org.apache.jackrabbit.mk.model.ChildNodeEntry;
 import org.apache.jackrabbit.mk.model.NodeState;
 import org.apache.jackrabbit.mk.model.PropertyState;
@@ -9,8 +13,9 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.NoSuchElementException;
 import java.util.Set;
+
+import static org.apache.jackrabbit.oak.kernel.TransientNodeState.Iterators.*;
 
 public class TransientNodeState {
     private final KernelNodeStateEditor editor;
@@ -115,111 +120,74 @@ public class TransientNodeState {
     }
 
     public Iterable<PropertyState> getProperties() {
+        final Iterable<? extends PropertyState> persisted = persistentState == null
+                ? null
+                : persistentState.getProperties();
+
         final Set<String> removed = new HashSet<String>();
         removed.addAll(removedProperties);
 
-        final Map<String, PropertyState> added = new HashMap<String, PropertyState>();
-        added.putAll(addedProperties);
+        final Set<PropertyState> added = new HashSet<PropertyState>();
+        added.addAll(addedProperties.values());
 
-        final Iterable<? extends PropertyState>
-                persistedProperties = persistentState.getProperties(); // fixme check for null
-
+        // persisted - removed + added
         return new Iterable<PropertyState>() {
             @Override
             public Iterator<PropertyState> iterator() {
-                return new Iterator<PropertyState>() {
-                    private final Iterator<? extends PropertyState>
-                            properties = persistedProperties.iterator();
-                    private PropertyState next;
+                Iterator<? extends PropertyState> properties = persisted == null
+                    ? Iterators.<PropertyState>empty()
+                    : persisted.iterator();
 
-                    @Override
-                    public boolean hasNext() {
-                        if (next == null) {
-                            while (properties.hasNext()) {
-                                PropertyState prop = properties.next();
-                                if (added.containsKey(prop.getName())) {
-                                    next = added.get(prop.getName());
-                                    break;
-                                }
-                                if (!removed.contains(prop.getName())) {
-                                    next = prop;
-                                    break;
-                                }
-                            }
+                Iterator<PropertyState> persistedMinusRemoved =
+                    filter(properties, new Predicate<PropertyState>() {
+                        @Override
+                        public boolean evaluate(PropertyState state) {
+                            return !removed.contains(state.getName());
                         }
-                        return next != null;
-                    }
+                });
 
-                    @Override
-                    public PropertyState next() {
-                        if (!hasNext()) {
-                            throw new NoSuchElementException();
-                        }
-                        PropertyState e = next;
-                        next = null;
-                        return e;
-                    }
-
-                    @Override
-                    public void remove() {
-                        throw new UnsupportedOperationException("remove");
-                    }
-                };
+                return add(persistedMinusRemoved, added.iterator());
             }
         };
     }
 
     public Iterable<TransientNodeState> getChildNodes(long offset, int count) {
+        final Iterable<? extends ChildNodeEntry> persisted = persistentState == null
+            ? null
+            : persistentState.getChildNodeEntries(offset, count);
+
         final Set<String> removed = new HashSet<String>();
         removed.addAll(removedNodes);
 
-        final Map<String, TransientNodeState> added = new HashMap<String, TransientNodeState>();
-        added.putAll(addedNodes);
+        final Set<TransientNodeState> added = new HashSet<TransientNodeState>();
+        added.addAll(addedNodes.values());
 
-        final Iterable<? extends ChildNodeEntry>
-                persistedNodes = persistentState.getChildNodeEntries(offset, count); // fixme check for null
-
+        // persisted - removed + added
         return new Iterable<TransientNodeState>() {
             @Override
             public Iterator<TransientNodeState> iterator() {
-                return new Iterator<TransientNodeState>() {
-                    private final Iterator<? extends ChildNodeEntry>
-                            nodes = persistedNodes.iterator();
-                    private TransientNodeState next;
+                Iterator<? extends ChildNodeEntry> nodes = persisted == null
+                    ? Iterators.<ChildNodeEntry>empty()
+                    : persisted.iterator();
 
-                    @Override
-                    public boolean hasNext() {
-                        if (next == null) {
-                            while (nodes.hasNext()) {
-                                final ChildNodeEntry entry = nodes.next();
-                                if (added.containsKey(entry.getName())) {
-                                    next = added.get(entry.getName());
-                                    break;
-                                }
-                                if (!removed.contains(entry.getName())) {
-                                    next = getExistingChildNode(entry.getName());
-                                    break;
-                                }
+                Iterator<ChildNodeEntry> persistedMinusRemovedEntries =
+                    filter(nodes, new Predicate<ChildNodeEntry>() {
+                        @Override
+                        public boolean evaluate(ChildNodeEntry entry) {
+                            return !removed.contains(entry.getName());
+                        }
+                });
+
+                Iterator<TransientNodeState> persistedMinusRemoved =
+                    map(persistedMinusRemovedEntries,
+                        new Function1<ChildNodeEntry, TransientNodeState>() {
+                            @Override
+                            public TransientNodeState apply(ChildNodeEntry entry) {
+                                return getExistingChildNode(entry.getName());
                             }
-                        }
-                        return next != null;
-                    }
+                });
 
-                    @Override
-                    public TransientNodeState next() {
-                        if (!hasNext()) {
-                            throw new NoSuchElementException();
-                        }
-                        TransientNodeState e = next;
-                        next = null;
-                        return e;
-                    }
-
-                    @Override
-                    public void remove() {
-                        throw new UnsupportedOperationException("remove");
-                    }
-                };
+                return add(persistedMinusRemoved, added.iterator());
             }
         };
     }
@@ -300,4 +268,98 @@ public class TransientNodeState {
         return persistentState != null && persistentState.getProperty(name) != null;
     }
 
+    // TODO: move to a more suitable location
+    static final class Iterators {
+        private Iterators() { }
+
+        /**
+         * Returns an empty iterator of type {@code T}.
+         *
+         * @param <T>
+         * @return
+         */
+        @SuppressWarnings("unchecked")
+        public static <T> Iterator<T> empty() {
+            return EmptyIterator.INSTANCE;
+        }
+
+        /**
+         * Returns an iterator for the concatenation of {@code iterator1} and
+         * {@code iterator2}.
+         *
+         * @param <T>
+         * @param iterator1
+         * @param iterator2
+         * @return
+         */
+        @SuppressWarnings("unchecked")
+        public static <T> Iterator<T> add(Iterator<? extends T> iterator1,
+                Iterator<? extends T> iterator2) {
+
+            return new IteratorChain(iterator1, iterator2);
+        }
+
+        /**
+         * Returns an iterator containing only the elements from an original
+         * {@code iterator} where the given {@code predicate} matches.
+         *
+         * @param <T>
+         * @param iterator
+         * @param predicate
+         * @return
+         */
+        @SuppressWarnings("unchecked")
+        public static <T> Iterator<T> filter(Iterator<? extends T> iterator,
+                final Predicate<? super T> predicate) {
+
+            return new FilterIterator(iterator, new org.apache.commons.collections.Predicate() {
+                @Override
+                public boolean evaluate(Object object) {
+                    return predicate.evaluate((T) object);
+                }
+            });
+        }
+
+        /**
+         * Returns an iterator with elements of an original  {@code iterator} mapped by
+         * a function {@code f}.
+         *
+         * @param <T>
+         * @param <R>
+         * @param <S>
+         * @param iterator
+         * @param f
+         * @return
+         */
+        @SuppressWarnings("unchecked")
+        public static <T, R, S extends T> Iterator<R> map(Iterator<? extends T> iterator,
+                final Function1<S, ? super R> f) {
+
+            return new TransformIterator(iterator, new org.apache.commons.collections.Transformer() {
+                @Override
+                public Object transform(Object input) {
+                    return f.apply((S) input);
+                }
+            });
+        }
+
+        /**
+         * Type safe counter part of {@link org.apache.commons.collections.Predicate}.
+         *
+         * @param <T> type of values this predicate is defined on
+         */
+        interface Predicate<T> {
+            boolean evaluate(T arg);
+        }
+
+        /**
+         * Type safe counter part of {@link org.apache.commons.collections.Transformer}.
+         *
+         * @param <S>  argument type to transform from
+         * @param <T>  result type to transform to
+         */
+        public interface Function1<S, T> {
+            T apply(S argument);
+        }
+    }
 }

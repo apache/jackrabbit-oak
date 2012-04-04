@@ -130,12 +130,6 @@ public class KernelNodeStateEditor implements NodeStateEditor {
     }
 
     @Override
-    public NodeState getNodeState() {
-        // todo implement getNodeState
-        return null;
-    }
-
-    @Override
     public NodeState getBaseNodeState() {
         return base;
     }
