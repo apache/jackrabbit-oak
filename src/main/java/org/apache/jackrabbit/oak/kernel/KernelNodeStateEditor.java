@@ -22,7 +22,10 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.model.NodeState;
 import org.apache.jackrabbit.mk.model.NodeStateEditor;
 import org.apache.jackrabbit.mk.model.PropertyState;
-import org.apache.jackrabbit.mk.util.PathUtils;
+
+import static org.apache.jackrabbit.mk.util.PathUtils.elements;
+import static org.apache.jackrabbit.mk.util.PathUtils.getName;
+import static org.apache.jackrabbit.mk.util.PathUtils.getParentPath;
 
 /**
  * This {@code NodeStateEditor} implementation accumulates all changes into a json diff
@@ -38,16 +41,32 @@ import org.apache.jackrabbit.mk.util.PathUtils;
  * - spool write operations through to the private working copy on a background thread
  */
 public class KernelNodeStateEditor implements NodeStateEditor {
+
+    /** Base node state of this private branch */
     private final NodeState base;
+
+    /** Transient state this editor is acting upon */
     private final TransientNodeState transientState;
+
+    /** Json diff of this private branch */
     private final StringBuilder jsop;
 
+    /**
+     * Create a new node state editor representing the root of a fresh
+     * private branch.
+     * @param base  base node state of the private branch
+     */
     KernelNodeStateEditor(NodeState base) {
         this.base = base;
         transientState = new TransientNodeState(base, this, null, "");
         jsop = new StringBuilder();
     }
 
+    /**
+     * Create a new node state editor for a given transient node state.
+     * @param parentEditor  editor of the parent of {@code state}
+     * @param state  transient node state for which to create the node state editor
+     */
     KernelNodeStateEditor(KernelNodeStateEditor parentEditor, TransientNodeState state) {
         base = parentEditor.base;
         transientState = state;
@@ -85,14 +104,14 @@ public class KernelNodeStateEditor implements NodeStateEditor {
 
     @Override
     public void move(String sourcePath, String destPath) {
-        TransientNodeState sourceParent = getTransientState(PathUtils.getAncestorPath(sourcePath, 1));
-        String sourceName = PathUtils.getName(sourcePath);
+        TransientNodeState sourceParent = getTransientState(getParentPath(sourcePath));
+        String sourceName = getName(sourcePath);
         if (sourceParent == null || !sourceParent.hasNode(sourceName)) {
             return;
         }
         
-        TransientNodeState destParent = getTransientState(PathUtils.getAncestorPath(destPath, 1));
-        String destName = PathUtils.getName(destPath);
+        TransientNodeState destParent = getTransientState(getParentPath(sourcePath));
+        String destName = getName(destPath);
         if (destParent == null || destParent.hasNode(destName)) {
             return;
         }
@@ -104,14 +123,14 @@ public class KernelNodeStateEditor implements NodeStateEditor {
 
     @Override
     public void copy(String sourcePath, String destPath) {
-        TransientNodeState sourceParent = getTransientState(PathUtils.getAncestorPath(sourcePath, 1));
-        String sourceName = PathUtils.getName(sourcePath);
+        TransientNodeState sourceParent = getTransientState(getParentPath(sourcePath));
+        String sourceName = getName(sourcePath);
         if (sourceParent == null || !sourceParent.hasNode(sourceName)) {
             return;
         }
 
-        TransientNodeState destParent = getTransientState(PathUtils.getAncestorPath(destPath, 1));
-        String destName = PathUtils.getName(destPath);
+        TransientNodeState destParent = getTransientState(getParentPath(sourcePath));
+        String destName = getName(destPath);
         if (destParent == null || destParent.hasNode(destName)) {
             return;
         }
@@ -136,6 +155,14 @@ public class KernelNodeStateEditor implements NodeStateEditor {
 
     //------------------------------------------------------------< internal >---
 
+    /**
+     * Atomically merges the changes from this branch back into the
+     * {@code target}.
+     *
+     * @param microkernel Microkernel instance for applying the changes
+     * @param target target of the merge operation
+     * @return node state resulting from merging
+     */
     NodeState mergeInto(MicroKernel microkernel, KernelNodeState target) {
         String targetPath = target.getRevision();
         String targetRevision = target.getPath();
@@ -143,13 +170,24 @@ public class KernelNodeStateEditor implements NodeStateEditor {
         return new KernelNodeState(microkernel, targetPath, rev);
     }
 
+    /**
+     * @return the {@link TransientNodeState} instance this editor is
+     *         acting upon.
+     */
     TransientNodeState getTransientState() {
         return transientState;
     }
 
+    /**
+     * Get a transient node state for the node identified by
+     * {@code path}
+     * @param path  the path to the node state
+     * @return  a {@link TransientNodeState} instance for the item
+     *          at {@code path} or {@code null} if no such item exits.
+     */
     private TransientNodeState getTransientState(String path) {
         TransientNodeState state = transientState;
-        for (String name : PathUtils.elements(path)) {
+        for (String name : elements(path)) {
             state = state.getChildNode(name);
             if (state == null) {
                 return null;
@@ -158,6 +196,11 @@ public class KernelNodeStateEditor implements NodeStateEditor {
         return state;
     }
 
+    /**
+     * Path of the item {@code name}
+     * @param name
+     * @return relative path of the item {@code name}
+     */
     private String path(String name) {
         String path = transientState.getPath();
         return path.isEmpty() ? name : path + '/' + name;
