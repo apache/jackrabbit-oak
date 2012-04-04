@@ -18,11 +18,13 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
+import org.apache.jackrabbit.mk.model.NodeState;
 import org.apache.jackrabbit.mk.model.PropertyState;
 import org.apache.jackrabbit.mk.model.Scalar;
 import org.apache.jackrabbit.mk.model.Scalar.Type;
 import org.apache.jackrabbit.mk.model.ScalarImpl;
 import org.apache.jackrabbit.mk.simple.SimpleKernelImpl;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -112,6 +114,99 @@ public class KernelNodeStateEditorTest {
         }
 
         assertTrue(expectedProperties.isEmpty());
+    }
+
+    @Test
+    public void addNode() {
+        KernelNodeStateEditor editor = new KernelNodeStateEditor(state);
+        TransientNodeState transientState = editor.getTransientState();
+
+        assertFalse(transientState.hasNode("new"));
+        editor.addNode("new");
+        assertTrue(transientState.hasNode("new"));
+
+        NodeState newState = editor.mergeInto(microkernel, state);
+        assertNotNull(newState.getChildNode("new"));
+    }
+
+    @Test
+    public void removeNode() {
+        KernelNodeStateEditor editor = new KernelNodeStateEditor(state);
+        TransientNodeState transientState = editor.getTransientState();
+
+        assertTrue(transientState.hasNode("x"));
+        editor.removeNode("x");
+        assertFalse(transientState.hasNode("x"));
+
+        NodeState newState = editor.mergeInto(microkernel, state);
+        assertNull(newState.getChildNode("x"));
+    }
+
+    @Test
+    public void setProperty() {
+        KernelNodeStateEditor editor = new KernelNodeStateEditor(state);
+        TransientNodeState transientState = editor.getTransientState();
+
+        assertFalse(transientState.hasProperty("new"));
+        Scalar value = ScalarImpl.stringScalar("value");
+        editor.setProperty(new KernelPropertyState("new", value));
+        PropertyState property = transientState.getProperty("new");
+        assertNotNull(property);
+        assertEquals("new", property.getName());
+        assertEquals(value, property.getScalar());
+
+        NodeState newState = editor.mergeInto(microkernel, state);
+        property = newState.getProperty("new");
+        assertNotNull(property);
+        assertEquals("new", property.getName());
+        assertEquals(value, property.getScalar());
+    }
+
+    @Test
+    public void removeProperty() {
+        KernelNodeStateEditor editor = new KernelNodeStateEditor(state);
+        TransientNodeState transientState = editor.getTransientState();
+
+        assertTrue(transientState.hasProperty("a"));
+        editor.removeProperty("a");
+        assertFalse(transientState.hasProperty("a"));
+
+        NodeState newState = editor.mergeInto(microkernel, state);
+        Assert.assertNull(newState.getProperty("a"));
+    }
+
+    @Test
+    public void move() {
+        KernelNodeStateEditor editor = new KernelNodeStateEditor(state);
+        TransientNodeState transientState = editor.getTransientState();
+        TransientNodeState y = transientState.getChildNode("y");
+
+        assertTrue(transientState.hasNode("x"));
+        editor.move("x", "y/xx");
+        assertFalse(transientState.hasNode("x"));
+        assertTrue(y.hasNode("xx"));
+
+        NodeState newState = editor.mergeInto(microkernel, state);
+        assertNull(newState.getChildNode("x"));
+        assertNotNull(newState.getChildNode("y"));
+        assertNotNull(newState.getChildNode("y").getChildNode("xx"));
+    }
+
+    @Test
+    public void copy() {
+        KernelNodeStateEditor editor = new KernelNodeStateEditor(state);
+        TransientNodeState transientState = editor.getTransientState();
+        TransientNodeState y = transientState.getChildNode("y");
+
+        assertTrue(transientState.hasNode("x"));
+        editor.copy("x", "y/xx");
+        assertTrue(transientState.hasNode("x"));
+        assertTrue(y.hasNode("xx"));
+
+        NodeState newState = editor.mergeInto(microkernel, state);
+        assertNotNull(newState.getChildNode("x"));
+        assertNotNull(newState.getChildNode("y"));
+        assertNotNull(newState.getChildNode("y").getChildNode("xx"));
     }
 
 }
