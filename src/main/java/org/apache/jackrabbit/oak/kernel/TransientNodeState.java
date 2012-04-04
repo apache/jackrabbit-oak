@@ -1,7 +1,5 @@
 package org.apache.jackrabbit.oak.kernel;
 
-import org.apache.jackrabbit.mk.model.AbstractChildNodeEntry;
-import org.apache.jackrabbit.mk.model.AbstractNodeState;
 import org.apache.jackrabbit.mk.model.ChildNodeEntry;
 import org.apache.jackrabbit.mk.model.NodeState;
 import org.apache.jackrabbit.mk.model.PropertyState;
@@ -14,13 +12,14 @@ import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Set;
 
-// fixme: this should be immutable as mandated by the NodeState interface
-public class TransientNodeState extends AbstractNodeState {
+public class TransientNodeState {
     private final KernelNodeStateEditor editor;
     private final NodeState persistentState;
 
-    private final Map<String, TransientNodeState>
-            addedNodes = new HashMap<String, TransientNodeState>();
+    private final Map<NodeState, TransientNodeState> existingChildNodes =
+            new HashMap<NodeState, TransientNodeState>();
+    private final Map<String, TransientNodeState> addedNodes =
+            new HashMap<String, TransientNodeState>();
     private final Set<String> removedNodes = new HashSet<String>();
     private final Map<String, PropertyState> addedProperties = new HashMap<String, PropertyState>();
     private final Set<String> removedProperties = new HashSet<String>();
@@ -38,9 +37,15 @@ public class TransientNodeState extends AbstractNodeState {
     }
 
     private TransientNodeState(KernelNodeStateEditor parentEditor, String name) {
+        this(parentEditor, name, null);
+    }
+    
+    private TransientNodeState(KernelNodeStateEditor parentEditor, String name,
+            NodeState persistedState) {
+
         editor = new KernelNodeStateEditor(parentEditor, this);
-        persistentState = null;
-        parent = parentEditor.getNodeState();
+        this.persistentState = persistedState;
+        parent = parentEditor.getTransientState();
         this.name = name;
     }
 
@@ -63,7 +68,6 @@ public class TransientNodeState extends AbstractNodeState {
         this.removedProperties.addAll(state.removedProperties);
     }
 
-    @Override
     public PropertyState getProperty(String name) {
         PropertyState state = addedProperties.get(name);
         if (state != null) {
@@ -75,36 +79,18 @@ public class TransientNodeState extends AbstractNodeState {
             : persistentState.getProperty(name);
     }
 
-    @Override
-    public long getPropertyCount() {
-        // todo optimise getPropertyCount
-        // persistentCount - removedCount + addedCount won't work however since
-        // persisted properties might be overlaid
-        return super.getPropertyCount();
-    }
-
-    @Override
-    public NodeState getChildNode(String name) {
-        NodeState state = addedNodes.get(name);
+    public TransientNodeState getChildNode(String name) {
+        TransientNodeState state = addedNodes.get(name);
         if (state != null) {
             return state;
         }
 
         return removedNodes.contains(name)
             ? null
-            : persistentState.getChildNode(name);
+            : getExistingChildNode(name);
     }
 
-    @Override
-    public long getChildNodeCount() {
-        // todo optimise getChildNodeCount
-        // persistentCount - removedCount + addedCount won't work however since
-        // persisted nodes might be overlaid
-        return super.getChildNodeCount();
-    }
-
-    @Override
-    public Iterable<? extends PropertyState> getProperties() {
+    public Iterable<PropertyState> getProperties() {
         final Set<String> removed = new HashSet<String>();
         removed.addAll(removedProperties);
 
@@ -159,46 +145,35 @@ public class TransientNodeState extends AbstractNodeState {
         };
     }
 
-    @Override
-    public Iterable<? extends ChildNodeEntry> getChildNodeEntries(long offset, int count) {
+    public Iterable<TransientNodeState> getChildNodes(long offset, int count) {
         final Set<String> removed = new HashSet<String>();
         removed.addAll(removedNodes);
 
-        final Map<String, NodeState> added = new HashMap<String, NodeState>();
+        final Map<String, TransientNodeState> added = new HashMap<String, TransientNodeState>();
         added.putAll(addedNodes);
 
         final Iterable<? extends ChildNodeEntry>
-                baseNodes = persistentState.getChildNodeEntries(offset, count);
+                persistedNodes = persistentState.getChildNodeEntries(offset, count);
 
-        return new Iterable<ChildNodeEntry>() {
+        return new Iterable<TransientNodeState>() {
             @Override
-            public Iterator<ChildNodeEntry> iterator() {
-                return new Iterator<ChildNodeEntry>() {
+            public Iterator<TransientNodeState> iterator() {
+                return new Iterator<TransientNodeState>() {
                     private final Iterator<? extends ChildNodeEntry>
-                            properties = baseNodes.iterator();
-                    private ChildNodeEntry next;
+                            nodes = persistedNodes.iterator();
+                    private TransientNodeState next;
 
                     @Override
                     public boolean hasNext() {
                         if (next == null) {
-                            while (properties.hasNext()) {
-                                final ChildNodeEntry entry = properties.next();
+                            while (nodes.hasNext()) {
+                                final ChildNodeEntry entry = nodes.next();
                                 if (added.containsKey(entry.getName())) {
-                                    next = new AbstractChildNodeEntry() {
-                                        @Override
-                                        public String getName() {
-                                            return entry.getName();
-                                        }
-
-                                        @Override
-                                        public NodeState getNode() {
-                                            return added.get(entry.getName());
-                                        }
-                                    };
+                                    next = added.get(entry.getName());
                                     break;
                                 }
                                 if (!removed.contains(entry.getName())) {
-                                    next = entry;
+                                    next = getExistingChildNode(entry.getName());
                                     break;
                                 }
                             }
@@ -207,11 +182,11 @@ public class TransientNodeState extends AbstractNodeState {
                     }
 
                     @Override
-                    public ChildNodeEntry next() {
+                    public TransientNodeState next() {
                         if (!hasNext()) {
                             throw new NoSuchElementException();
                         }
-                        ChildNodeEntry e = next;
+                        TransientNodeState e = next;
                         next = null;
                         return e;
                     }
@@ -262,7 +237,7 @@ public class TransientNodeState extends AbstractNodeState {
     }
 
     void move(String name, TransientNodeState destParent, String destName) {
-        TransientNodeState state = editor.edit(name).getNodeState();
+        TransientNodeState state = getChildNode(name);
         removeNode(name);
 
         state.name = destName;
@@ -271,9 +246,19 @@ public class TransientNodeState extends AbstractNodeState {
     }
 
     void copy(String name, TransientNodeState destParent, String destName) {
-        TransientNodeState state = editor.edit(name).getNodeState();
         destParent.addedNodes.put(destName,
-                new TransientNodeState(state, destParent, destName));
+                new TransientNodeState(getChildNode(name), destParent, destName));
+    }
+
+    private TransientNodeState getExistingChildNode(String name) {
+        NodeState state = persistentState.getChildNode(name);
+
+        TransientNodeState transientState = existingChildNodes.get(state);
+        if (transientState == null) {
+            transientState = new TransientNodeState(editor, name, state);
+            existingChildNodes.put(state, transientState);
+        }
+        return transientState;
     }
 
 }
