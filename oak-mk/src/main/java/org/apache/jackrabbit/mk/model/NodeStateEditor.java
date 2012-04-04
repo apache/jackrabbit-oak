@@ -52,7 +52,10 @@ public interface NodeStateEditor {
 
     /**
      * Move the node state located at {@code sourcePath} to a node
-     * state at {@code destPath}.
+     * state at {@code destPath}. Do noting if either the source
+     * does not exist, the parent of the destination does not exist
+     * of the destination exists already.
+     *
      * @param sourcePath source path relative to this node state
      * @param destPath destination path relative to this node state
      */
@@ -60,7 +63,10 @@ public interface NodeStateEditor {
 
     /**
      * Copy the node state located at {@code sourcePath} to a node
-     * state at {@code destPath}.
+     * state at {@code destPath}. Do noting if either the source
+     * does not exist, the parent of the destination does not exist
+     * of the destination exists already.
+     *
      * @param sourcePath source path relative to this node state
      * @param destPath destination path relative to this node state
      */
