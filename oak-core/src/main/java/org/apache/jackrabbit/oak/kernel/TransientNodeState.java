@@ -228,7 +228,9 @@ public class TransientNodeState {
 
     void removeNode(String name) {
         addedNodes.remove(name);
-        removedNodes.add(name);
+        if (hasExistingNode(name)) {
+            removedNodes.add(name);
+        }
     }
 
     void setProperty(PropertyState state) {
@@ -237,7 +239,9 @@ public class TransientNodeState {
 
     void removeProperty(String name) {
         addedProperties.remove(name);
-        removedProperties.add(name);
+        if (hasExistingProperty(name)) {
+            removedProperties.add(name);
+        }
     }
 
     void move(String name, TransientNodeState destParent, String destName) {
@@ -266,6 +270,14 @@ public class TransientNodeState {
             existingChildNodes.put(state, transientState);
         }
         return transientState;
+    }
+    
+    private boolean hasExistingNode(String name) {
+        return persistentState != null && persistentState.getChildNode(name) != null;
+    }
+
+    private boolean hasExistingProperty(String name) {
+        return persistentState != null && persistentState.getProperty(name) != null;
     }
 
 }
