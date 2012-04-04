@@ -132,14 +132,14 @@ public class TransientNodeState {
         this.name = name;
 
         // recursively copy all existing node states
-        for (Entry<String, TransientNodeState> existing : existingChildNodes.entrySet()) {
+        for (Entry<String, TransientNodeState> existing : state.existingChildNodes.entrySet()) {
             String existingName = existing.getKey();
             this.existingChildNodes.put(existingName,
                     new TransientNodeState(existing.getValue(), this, existingName));
         }
         
         // recursively copy all added node states
-        for (Entry<String, TransientNodeState> added : addedNodes.entrySet()) {
+        for (Entry<String, TransientNodeState> added : state.addedNodes.entrySet()) {
             String addedName = added.getKey();
             this.addedNodes.put(addedName,
                     new TransientNodeState(added.getValue(), this, addedName));

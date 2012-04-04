@@ -93,6 +93,8 @@ public class KernelNodeStateEditorTest {
             assertTrue(expectedPaths.remove(node.getPath()));
         }
         assertTrue(expectedPaths.isEmpty());
+        
+        assertEquals(3, transientState.getChildNodeCount());
     }
 
     @Test
@@ -114,6 +116,8 @@ public class KernelNodeStateEditorTest {
         }
 
         assertTrue(expectedProperties.isEmpty());
+        
+        assertEquals(3, transientState.getPropertyCount());
     }
 
     @Test
@@ -207,6 +211,24 @@ public class KernelNodeStateEditorTest {
         assertNotNull(newState.getChildNode("x"));
         assertNotNull(newState.getChildNode("y"));
         assertNotNull(newState.getChildNode("y").getChildNode("xx"));
+    }
+
+    @Test
+    public void deepCopy() {
+        KernelNodeStateEditor editor = new KernelNodeStateEditor(state);
+        TransientNodeState transientState = editor.getTransientState();
+        TransientNodeState y = transientState.getChildNode("y");
+
+        editor.edit("x").addNode("x1");
+        editor.copy("x", "y/xx");
+        assertTrue(y.hasNode("xx"));
+        assertTrue(y.getChildNode("xx").hasNode("x1"));
+
+        NodeState newState = editor.mergeInto(microkernel, state);
+        assertNotNull(newState.getChildNode("x"));
+        assertNotNull(newState.getChildNode("y"));
+        assertNotNull(newState.getChildNode("y").getChildNode("xx"));
+        assertNotNull(newState.getChildNode("y").getChildNode("xx").getChildNode("x1"));
     }
 
 }
