@@ -78,6 +78,18 @@ public class TransientNodeState {
             ? null
             : persistentState.getProperty(name);
     }
+    
+    public boolean hasProperty(String name) {
+        return getProperty(name) != null;
+    }
+    
+    public long getPropertyCount() {
+        long persistentCount = persistentState == null
+            ? 0
+            : persistentState.getPropertyCount();
+        
+        return persistentCount + addedProperties.size() - removedProperties.size();
+    }
 
     public TransientNodeState getChildNode(String name) {
         TransientNodeState state = addedNodes.get(name);
@@ -92,6 +104,14 @@ public class TransientNodeState {
 
     public boolean hasNode(String name) {
         return getChildNode(name) != null;
+    }
+    
+    public long getChildNodeCount() {
+        long persistentCount = persistentState == null
+                ? 0
+                : persistentState.getChildNodeCount();
+
+        return persistentCount + addedNodes.size() - removedNodes.size();
     }
 
     public Iterable<PropertyState> getProperties() {
