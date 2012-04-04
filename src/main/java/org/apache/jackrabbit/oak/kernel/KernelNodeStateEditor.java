@@ -58,7 +58,7 @@ public class KernelNodeStateEditor implements NodeStateEditor {
      */
     KernelNodeStateEditor(NodeState base) {
         this.base = base;
-        transientState = new TransientNodeState(base, this, null, "");
+        transientState = new TransientNodeState(base, this);
         jsop = new StringBuilder();
     }
 
