@@ -56,7 +56,7 @@ public class KernelNodeStateEditor implements NodeStateEditor {
 
     @Override
     public void addNode(String name) {
-        if (!hasNode(transientState, name)) {
+        if (!transientState.hasNode(name)) {
             transientState.addNode(name);
             jsop.append("+\"").append(path(name)).append("\":{}");
         }
@@ -64,7 +64,7 @@ public class KernelNodeStateEditor implements NodeStateEditor {
 
     @Override
     public void removeNode(String name) {
-        if (hasNode(transientState, name)) {
+        if (transientState.hasNode(name)) {
             transientState.removeNode(name);
             jsop.append("-\"").append(path(name)).append('"');
         }
@@ -87,13 +87,13 @@ public class KernelNodeStateEditor implements NodeStateEditor {
     public void move(String sourcePath, String destPath) {
         TransientNodeState sourceParent = getTransientState(PathUtils.getAncestorPath(sourcePath, 1));
         String sourceName = PathUtils.getName(sourcePath);
-        if (sourceParent == null || !hasNode(sourceParent, sourceName)) {
+        if (sourceParent == null || !sourceParent.hasNode(sourceName)) {
             return;
         }
         
         TransientNodeState destParent = getTransientState(PathUtils.getAncestorPath(destPath, 1));
         String destName = PathUtils.getName(destPath);
-        if (destParent == null || hasNode(destParent, destName)) {
+        if (destParent == null || destParent.hasNode(destName)) {
             return;
         }
 
@@ -106,13 +106,13 @@ public class KernelNodeStateEditor implements NodeStateEditor {
     public void copy(String sourcePath, String destPath) {
         TransientNodeState sourceParent = getTransientState(PathUtils.getAncestorPath(sourcePath, 1));
         String sourceName = PathUtils.getName(sourcePath);
-        if (sourceParent == null || !hasNode(sourceParent, sourceName)) {
+        if (sourceParent == null || !sourceParent.hasNode(sourceName)) {
             return;
         }
 
         TransientNodeState destParent = getTransientState(PathUtils.getAncestorPath(destPath, 1));
         String destName = PathUtils.getName(destPath);
-        if (destParent == null || hasNode(destParent, destName)) {
+        if (destParent == null || destParent.hasNode(destName)) {
             return;
         }
 
@@ -167,10 +167,6 @@ public class KernelNodeStateEditor implements NodeStateEditor {
     private String path(String name) {
         String path = transientState.getPath();
         return path.isEmpty() ? name : path + '/' + name;
-    }
-
-    private static boolean hasNode(TransientNodeState state, String name) {
-        return state.getChildNode(name) != null;
     }
 
 }

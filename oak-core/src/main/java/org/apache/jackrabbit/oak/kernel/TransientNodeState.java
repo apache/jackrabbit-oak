@@ -90,6 +90,10 @@ public class TransientNodeState {
             : getExistingChildNode(name);
     }
 
+    public boolean hasNode(String name) {
+        return getChildNode(name) != null;
+    }
+
     public Iterable<PropertyState> getProperties() {
         final Set<String> removed = new HashSet<String>();
         removed.addAll(removedProperties);
