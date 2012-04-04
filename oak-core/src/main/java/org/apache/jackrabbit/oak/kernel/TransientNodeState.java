@@ -455,6 +455,9 @@ public class TransientNodeState {
         TransientNodeState transientState = existingChildNodes.get(name);
         if (transientState == null) {
             NodeState state = persistentState.getChildNode(name);
+            if (state == null) {
+                return null;
+            }
             transientState = new TransientNodeState(editor, name, state);
             existingChildNodes.put(name, transientState);
         }
