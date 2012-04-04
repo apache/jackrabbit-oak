@@ -110,7 +110,7 @@ public class KernelNodeStateEditor implements NodeStateEditor {
             return;
         }
         
-        TransientNodeState destParent = getTransientState(getParentPath(sourcePath));
+        TransientNodeState destParent = getTransientState(getParentPath(destPath));
         String destName = getName(destPath);
         if (destParent == null || destParent.hasNode(destName)) {
             return;
@@ -129,7 +129,7 @@ public class KernelNodeStateEditor implements NodeStateEditor {
             return;
         }
 
-        TransientNodeState destParent = getTransientState(getParentPath(sourcePath));
+        TransientNodeState destParent = getTransientState(getParentPath(destPath));
         String destName = getName(destPath);
         if (destParent == null || destParent.hasNode(destName)) {
             return;
