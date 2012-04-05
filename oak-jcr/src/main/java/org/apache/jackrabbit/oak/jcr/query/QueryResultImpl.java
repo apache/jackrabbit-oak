@@ -52,7 +52,7 @@ public class QueryResultImpl implements QueryResult {
     public RowIterator getRows() throws RepositoryException {
         Iterator<RowImpl> it = new Iterator<RowImpl>() {
 
-            private Iterator<? extends ResultRow> it = result.getRows();
+            private Iterator<? extends ResultRow> it = result.getRows().iterator();
 
             @Override
             public boolean hasNext() {

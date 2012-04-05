@@ -82,7 +82,7 @@ public class QueryManagerImpl implements QueryManager {
 
     public List<String> parse(String statement, String language) throws InvalidQueryException {
         try {
-            return queryEngine.getBindVariableNames(statement, convertLanguage(language));
+            return queryEngine.getBindVariableNames(statement, language);
         } catch (ParseException e) {
             throw new InvalidQueryException(e);
         }
@@ -92,21 +92,10 @@ public class QueryManagerImpl implements QueryManager {
             HashMap<String, Value> bindVariableMap, long limit, long offset) throws RepositoryException {
         try {
             HashMap<String, CoreValue> bindMap = convertMap(bindVariableMap);
-            Result r = queryEngine.executeQuery(statement, convertLanguage(language), bindMap);
+            Result r = queryEngine.executeQuery(statement, language, bindMap);
             return new QueryResultImpl(r);
         } catch (ParseException e) {
             throw new InvalidQueryException(e);
-        }
-    }
-
-    @SuppressWarnings("deprecation")
-    private static String convertLanguage(String jcrLanguage) throws InvalidQueryException {
-        if (jcrLanguage.equals(Query.JCR_SQL2)) {
-            return QueryEngine.SQL2;
-        } else if (jcrLanguage.equals(Query.XPATH)) {
-            return QueryEngine.XPATH;
-        } else {
-            throw new InvalidQueryException("Unsupported language: " + jcrLanguage);
         }
     }
 
