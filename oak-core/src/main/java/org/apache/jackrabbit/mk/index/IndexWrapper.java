@@ -19,7 +19,6 @@ package org.apache.jackrabbit.mk.index;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Iterator;
-import org.apache.jackrabbit.mk.MicroKernelFactory;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.json.JsopReader;
@@ -51,12 +50,6 @@ public class IndexWrapper extends MicroKernelWrapperBase implements MicroKernel 
     public IndexWrapper(MicroKernel mk) {
         this.mk = MicroKernelWrapperBase.wrap(mk);
         this.indexer = new Indexer(mk);
-    }
-
-    public static synchronized IndexWrapper get(String url) {
-        String u = url.substring("index:".length());
-        IndexWrapper w = new IndexWrapper(MicroKernelFactory.getInstance(u));
-        return w;
     }
 
     public String getHeadRevision() {
