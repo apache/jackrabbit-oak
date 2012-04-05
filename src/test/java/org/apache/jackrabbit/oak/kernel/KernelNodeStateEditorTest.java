@@ -90,7 +90,7 @@ public class KernelNodeStateEditorTest {
     public void getNodes() {
         KernelNodeStateEditor editor = new KernelNodeStateEditor(state);
         TransientNodeState transientState = editor.getTransientState();
-        Iterable<TransientNodeState> nodes = transientState.getChildNodes(0, -1);
+        Iterable<TransientNodeState> nodes = transientState.getChildNodes();
 
         Set<String> expectedPaths = new HashSet<String>();
         Collections.addAll(expectedPaths, "x", "y", "z");
@@ -290,6 +290,27 @@ public class KernelNodeStateEditorTest {
 
         transientState.setProperty(new KernelPropertyState("a", value));
         assertEquals(4, transientState.getPropertyCount());
+    }
+    
+    @Test
+    public void largeChildNodeList() {
+        KernelNodeStateEditor editor = new KernelNodeStateEditor(state);
+
+        editor.addNode("large");
+        editor = editor.edit("large");
+        for (int c = 0; c < 10000; c++) {
+            editor.addNode("n" + c);
+        }
+
+        KernelNodeState newState = editor.mergeInto(microkernel, state);
+        editor = new KernelNodeStateEditor(newState);
+        editor = editor.edit("large");
+
+        int c = 0;
+        for (TransientNodeState q : editor.getTransientState().getChildNodes()) {
+            assertEquals("n" + c++, q.getName());
+        }
+
     }
 
 }
