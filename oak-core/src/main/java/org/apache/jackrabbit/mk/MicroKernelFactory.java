@@ -54,66 +54,68 @@ public class MicroKernelFactory {
      * @return a new instance
      */
     public static synchronized MicroKernel getInstance(String url) {
-        if (url.startsWith("mem:") || url.startsWith("simple:")) {
+        int colon = url.indexOf(':');
+        if (colon == -1) {
+            throw new IllegalArgumentException("Unknown repository URL: " + url);
+        }
+
+        String head = url.substring(0, colon);
+        String tail = url.substring(colon + 1);
+        if (head.equals("mem") || head.equals("simple")) {
             boolean clean = false;
-            if (url.endsWith(";clean")) {
-                url = url.substring(0, url.length() - ";clean".length());
+            if (tail.endsWith(";clean")) {
+                tail = tail.substring(0, tail.length() - ";clean".length());
                 clean = true;
             }
 
-            url = url.replaceAll("\\{homeDir\\}", System.getProperty("homeDir", "."));
-
-            String name;
-            if (url.startsWith("simple:")) {
-                name = url.substring("simple:".length());
-            } else {
-                name = url.substring("mem:".length());
-            }
+            tail = tail.replaceAll("\\{homeDir\\}", System.getProperty("homeDir", "."));
 
             if (clean) {
-                String dir = url.substring(url.lastIndexOf(':') + 1);
+                String dir = tail.substring(tail.lastIndexOf(':') + 1);
                 try {
                     FileUtils.deleteRecursive(dir, false);
                 } catch (Exception e) {
                     throw ExceptionFactory.convert(e);
                 }
-                INSTANCES.remove(name);
+                INSTANCES.remove(tail);
             }
 
-            SimpleKernelImpl instance = INSTANCES.get(name);
+            SimpleKernelImpl instance = INSTANCES.get(tail);
             if (instance == null) {
-                instance = new SimpleKernelImpl(name);
-                INSTANCES.put(name, instance);
+                instance = new SimpleKernelImpl(tail);
+                INSTANCES.put(tail, instance);
             }
             return instance;
-        } else if (url.startsWith("log:")) {
-            return new LogWrapper(getInstance(url.substring("log:".length())));
-        } else if (url.startsWith("sec:")) {
+        } else if (head.equals("log")) {
+            return new LogWrapper(getInstance(tail));
+        } else if (head.equals("sec")) {
             return SecurityWrapper.get(url);
-        } else if (url.startsWith("virtual:")) {
+        } else if (head.equals("virtual")) {
             return VirtualRepositoryWrapper.get(url);
-        } else if (url.startsWith("index:")) {
-            return new IndexWrapper(getInstance(url.substring("index:".length())));
-        } else if (url.startsWith("fs:")) {
+        } else if (head.equals("index")) {
+            return new IndexWrapper(getInstance(tail));
+        } else if (head.equals("fs:")) {
             boolean clean = false;
-            if (url.endsWith(";clean")) {
-                url = url.substring(0, url.length() - ";clean".length());
+            if (tail.endsWith(";clean")) {
+                tail = tail.substring(0, tail.length() - ";clean".length());
                 clean = true;
             }
-            String dir = url.substring("fs:".length());
-            dir = dir.replaceAll("\\{homeDir\\}", System.getProperty("homeDir", "."));
+
+            tail = tail.replaceAll("\\{homeDir\\}", System.getProperty("homeDir", "."));
+
             if (clean) {
                 try {
-                    FileUtils.deleteRecursive(dir + "/" + ".mk", false);
+                    FileUtils.deleteRecursive(tail + "/" + ".mk", false);
                 } catch (IOException e) {
                     throw ExceptionFactory.convert(e);
                 }
             }
-            return new MicroKernelImpl(dir);
-        } else if (url.startsWith("http:")) {
+
+            return new MicroKernelImpl(tail);
+        } else if (head.equals("http")) {
             return new Client(url);
-        } else if (url.startsWith("http-bridge:")) {
-            MicroKernel mk = getInstance(url.substring("http-bridge:".length()));
+        } else if (head.equals("http-bridge")) {
+            MicroKernel mk = getInstance(tail);
 
             final Server server = new Server(mk);
             try {
