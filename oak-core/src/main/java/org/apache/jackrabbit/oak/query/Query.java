@@ -261,6 +261,10 @@ public class Query {
     }
 
     public ResultImpl executeQuery(String revisionId) {
+        return new ResultImpl(this, revisionId);
+    }
+
+    Iterator<ResultRowImpl> getRows(String revisionId) {
         prepare();
         Iterator<ResultRowImpl> it;
         if (explain) {
@@ -282,7 +286,7 @@ public class Query {
                 it = list.iterator();
             }
         }
-        return new ResultImpl(this, it);
+        return it;
     }
 
     public int compareRows(CoreValue[] orderValues, CoreValue[] orderValues2) {

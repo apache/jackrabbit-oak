@@ -28,12 +28,12 @@ import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
  */
 public class ResultImpl implements Result {
 
-    private final Query query;
-    private final Iterator<ResultRowImpl> it;
+    protected final Query query;
+    protected final String revisionId;
 
-    ResultImpl(Query query, Iterator<ResultRowImpl> it) {
+    ResultImpl(Query query, String revisionId) {
         this.query = query;
-        this.it = it;
+        this.revisionId = revisionId;
     }
 
     @Override
@@ -57,8 +57,14 @@ public class ResultImpl implements Result {
     }
 
     @Override
-    public Iterator<? extends ResultRow> getRows() {
-        return it;
+    public Iterable<? extends ResultRow> getRows() {
+        return new Iterable<ResultRowImpl>() {
+
+            @Override
+            public Iterator<ResultRowImpl> iterator() {
+                return query.getRows(revisionId);
+            }
+        };
     }
 
 }
