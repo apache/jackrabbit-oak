@@ -24,21 +24,9 @@ import org.apache.jackrabbit.oak.query.CoreValue;
 /**
  * The query engine allows to parse and execute queries.
  * <p>
- * At least the query languages {@code QueryEngine.XPATH} and {@code
- * QueryEngine.SQL2} are supported. Other query languages might be supported
- * depending on the configured query parsers.
+ * What query languages are supported depends on the registered query parsers.
  */
 public interface QueryEngine {
-
-    /**
-     * The XPath query language.
-     */
-    String XPATH = "xpath";
-
-    /**
-     * The SQL-2 query language.
-     */
-    String SQL2 = "sql2";
 
     /**
      * Parse the query (check if it's valid) and get the list of bind variable names.

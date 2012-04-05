@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.api;
 
-import java.util.Iterator;
-
 /**
  * A result from executing a query.
  */
@@ -27,6 +25,6 @@ public interface Result {
 
     String[] getSelectorNames();
 
-    Iterator<? extends ResultRow> getRows();
+    Iterable<? extends ResultRow> getRows();
 
 }
