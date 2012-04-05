@@ -20,7 +20,6 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.blobs.AbstractBlobStore;
 import org.apache.jackrabbit.mk.blobs.FileBlobStore;
 import org.apache.jackrabbit.mk.blobs.MemoryBlobStore;
-import org.apache.jackrabbit.mk.fs.FileUtils;
 import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopStream;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
@@ -37,7 +36,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 
 /*
 
@@ -61,8 +59,6 @@ Node structure:
  * A simple MicroKernel implementation.
  */
 public class SimpleKernelImpl extends MicroKernelWrapperBase implements MicroKernel {
-
-    private static final HashMap<String, SimpleKernelImpl> INSTANCES = new HashMap<String, SimpleKernelImpl>();
 
     private static final int REV_SKIP_OFFSET = 20;
 
@@ -120,47 +116,6 @@ public class SimpleKernelImpl extends MicroKernelWrapperBase implements MicroKer
                 throw ExceptionFactory.convert(e);
             }
         }
-    }
-
-    /**
-     * Get or open the object. The following prefixes are supported:
-     * <ul><li>fs: store the binaries in the file system
-     * </li><li>server: also start the server
-     * </li></ul>
-     *
-     * @param url the url
-     * @return the object
-     */
-    public static synchronized SimpleKernelImpl get(String url) {
-        boolean clean = false;
-        if (url.endsWith(";clean")) {
-            url = url.substring(0, url.length() - ";clean".length());
-            clean = true;
-        }
-        url = url.replaceAll("\\{homeDir\\}", System.getProperty("homeDir", "."));
-        if (clean) {
-            String dir = url.substring(url.lastIndexOf(':') + 1);
-            try {
-                FileUtils.deleteRecursive(dir, false);
-            } catch (Exception e) {
-                throw ExceptionFactory.convert(e);
-            }
-        }
-        String name;
-        if (url.startsWith("simple:")) {
-            name = url.substring("simple:".length());
-        } else {
-            name = url.substring("mem:".length());
-        }
-        if (clean) {
-            INSTANCES.remove(name);
-        }
-        SimpleKernelImpl instance = INSTANCES.get(name);
-        if (instance == null) {
-            instance = new SimpleKernelImpl(name);
-            INSTANCES.put(name, instance);
-        }
-        return instance;
     }
 
     private void applyConfig(NodeImpl head) {
@@ -593,7 +548,6 @@ public class SimpleKernelImpl extends MicroKernelWrapperBase implements MicroKer
             gate.commit("end");
             nodeMap.close();
             ds.close();
-            INSTANCES.remove(name);
             if (server != null) {
                 server.stop();
                 server = null;
