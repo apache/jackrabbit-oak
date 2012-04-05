@@ -63,17 +63,21 @@ public class XPathToSQL2Converter {
         Expression condition = null;
         String from = "nt:base";
         ArrayList<Expression> columnList = new ArrayList<Expression>();
-        boolean includeChildren = true;
+        boolean children = true;
+        boolean descendants = true;
         while (true) {
             String nodeType;
             if (readIf("/")) {
                 if (readIf("/")) {
-                    includeChildren = true;
+                    descendants = true;
                 } else if (readIf("jcr:root")) {
                     path = "/";
                     read("/");
+                    if (readIf("/")) {
+                        descendants = true;
+                    }
                 } else {
-                    includeChildren = false;
+                    descendants = false;
                 }
                 if (readIf("*")) {
                     nodeType = "nt:base";
@@ -82,16 +86,19 @@ public class XPathToSQL2Converter {
                     read("(");
                     if (readIf("*")) {
                         // any
-                        if (!includeChildren) {
-                            path = PathUtils.concat(path, "%");
-                        }
+                        children = true;
                     } else {
+                        children = false;
                         String name = readIdentifier();
                         path = PathUtils.concat(path, name);
                     }
-                    read(",");
-                    nodeType = readIdentifier();
-                    from = nodeType;
+                    if (readIf(",")) {
+                        nodeType = readIdentifier();
+                        from = nodeType;
+                    } else {
+                        nodeType = "nt:base";
+                        from = nodeType;
+                    }
                     read(")");
                 } else if (readIf("@")) {
                     Property p = new Property(readIdentifier());
@@ -122,15 +129,22 @@ public class XPathToSQL2Converter {
         } else if (path.equals("%")) {
             // ignore
         } else {
-            Condition c = new Condition(new Property("jcr:path"), "like", Literal.newString(path));
-            if (!includeChildren && path.endsWith("%")) {
-                Condition c2 = new Condition(new Property("jcr:path"), "like", Literal.newString(path + '/'));
-                c = new Condition(c, "and", new Condition(null, "not", c2));
-            } else if (includeChildren && !path.endsWith("%")) {
-                Condition c2 = new Condition(new Property("jcr:path"), "like", Literal.newString(path + "/%"));
-                c = new Condition(c, "or", c2);
+            if (descendants) {
+                Function f1 = new Function("issamenode");
+                f1.params.add(Literal.newString(path));
+                Function f2 = new Function("isdescendantnode");
+                f2.params.add(Literal.newString(path));
+                Condition c = new Condition(f1, "or", f2);
+                condition = add(condition, c);
+            } else if (children) {
+                Function f = new Function("ischildnode");
+                f.params.add(Literal.newString(path));
+                condition = add(condition, f);
+            } else {
+                // TODO jcr:path is only a pseudo-property
+                Condition c = new Condition(new Property("jcr:path"), "=", Literal.newString(path));
+                condition = add(condition, c);
             }
-            condition = add(condition, c);
         }
         ArrayList<Order> orderList = new ArrayList<Order>();
         if (readIf("order")) {
@@ -163,7 +177,7 @@ public class XPathToSQL2Converter {
         buff.append(" from ");
         buff.append('[' + from + ']');
         if (condition != null) {
-            buff.append(" where ").append(condition);
+            buff.append(" where ").append(removeParens(condition.toString()));
         }
         if (!orderList.isEmpty()) {
             buff.append(" order by ");
@@ -211,14 +225,13 @@ public class XPathToSQL2Converter {
                 c = new Condition(c.left, "is null", null);
                 a = c;
             } else {
-                Function f = new Function();
-                f.name = "not";
+                Function f = new Function("not");
                 f.params.add(a);
                 a = f;
             }
             read(")");
         } else if (readIf("(")) {
-            a = new Parenthesis(parseConstraint());
+            a = parseConstraint();
             read(")");
         } else {
             Expression e = parseExpression();
@@ -253,6 +266,10 @@ public class XPathToSQL2Converter {
     private Expression parseExpression() throws ParseException {
         if (readIf("@")) {
             return new Property(readIdentifier());
+        } else if (readIf("true")) {
+            return Literal.newBoolean(true);
+        } else if (readIf("false")) {
+            return Literal.newBoolean(false);
         } else if (currentTokenType == VALUE_NUMBER) {
             Literal l = Literal.newNumber(currentToken);
             read();
@@ -263,6 +280,17 @@ public class XPathToSQL2Converter {
             return l;
         } else if (currentTokenType == IDENTIFIER) {
             String name = readIdentifier();
+            // relative properties
+            if (readIf("/")) {
+                do {
+                    if (readIf("@")) {
+                        name = name + "/" + readIdentifier();
+                        return new Property(name);
+                    } else {
+                        name = name + "/" + readIdentifier();
+                    }
+                } while (readIf("/"));
+            }
             read("(");
             return parseFunction(name);
         } else if (readIf("-")) {
@@ -290,8 +318,7 @@ public class XPathToSQL2Converter {
             read(")");
             return c;
         } else if ("jcr:contains".equals(functionName)) {
-            Function f = new Function();
-            f.name = "contains";
+            Function f = new Function("contains");
             if (readIf(".")) {
                 // special case: jcr:contains(., expr)
                 f.params.add(new Literal("*"));
@@ -303,11 +330,15 @@ public class XPathToSQL2Converter {
             read(")");
             return f;
         } else if ("jcr:score".equals(functionName)) {
-            Function f = new Function();
-            f.name = "score";
+            Function f = new Function("score");
             // TODO score: support parameters?
             read(")");
             return f;
+        } else if ("xs:dateTime".equals(functionName)) {
+            Expression expr = parseExpression();
+            Cast c = new Cast(expr, "date");
+            read(")");
+            return c;
         // } else if ("jcr:deref".equals(functionName)) {
             // TODO support jcr:deref?
         } else {
@@ -625,19 +656,29 @@ public class XPathToSQL2Converter {
     }
 
     abstract static class Expression {
+
         boolean isCondition() {
             return false;
         }
+
     }
 
     static class Literal extends Expression {
+
         final String value;
+
         Literal(String value) {
             this.value = value;
         }
+
+        public static Expression newBoolean(boolean value) {
+            return new Literal("" + value);
+        }
+
         static Literal newNumber(String s) {
             return new Literal(s);
         }
+
         static Literal newString(String s) {
             return new Literal(SQL2Parser.escapeStringLiteral(s));
         }
@@ -646,10 +687,13 @@ public class XPathToSQL2Converter {
         public String toString() {
             return value;
         }
+
     }
 
     static class Property extends Expression {
+
         final String name;
+
         Property(String name) {
             this.name = name;
         }
@@ -658,24 +702,15 @@ public class XPathToSQL2Converter {
         public String toString() {
             return '[' + name + ']';
         }
-    }
 
-    static class Parenthesis extends Expression {
-        final Expression expr;
-        public Parenthesis(Expression expr) {
-            this.expr = expr;
-        }
-
-        @Override
-        public String toString() {
-            return "(" + expr + ')';
-        }
     }
 
     static class Condition extends Expression {
+
         final Expression left;
         final String operator;
         Expression right;
+
         Condition(Expression left, String operator, Expression right) {
             this.left = left;
             this.operator = operator;
@@ -685,19 +720,28 @@ public class XPathToSQL2Converter {
         @Override
         public String toString() {
             return
+                "(" +
                 (left == null ? "" : left + " ") +
                 operator +
-                (right == null ? "" : " " + right);
+                (right == null ? "" : " " + right) +
+                ")";
         }
+
         @Override
         boolean isCondition() {
             return true;
         }
+
     }
 
     static class Function extends Expression {
-        String name;
+
+        final String name;
         final ArrayList<Expression> params = new ArrayList<Expression>();
+
+        Function(String name) {
+            this.name = name;
+        }
 
         @Override
         public String toString() {
@@ -707,18 +751,46 @@ public class XPathToSQL2Converter {
                 if (i > 0) {
                     buff.append(", ");
                 }
-                buff.append(params.get(i));
+                buff.append(removeParens(params.get(i).toString()));
             }
             buff.append(')');
             return buff.toString();
         }
+
         @Override
         boolean isCondition() {
             return name.equals("contains") || name.equals("not");
         }
+
+    }
+
+    static class Cast extends Expression {
+
+        final Expression expr;
+        final String type;
+
+        Cast(Expression expr, String type) {
+            this.expr = expr;
+            this.type = type;
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder buff = new StringBuilder("cast(");
+            buff.append(removeParens(expr.toString()));
+            buff.append(" as ").append(type).append(')');
+            return buff.toString();
+        }
+
+        @Override
+        boolean isCondition() {
+            return false;
+        }
+
     }
 
     static class Order {
+
         boolean descending;
         Expression expr;
 
@@ -726,6 +798,14 @@ public class XPathToSQL2Converter {
         public String toString() {
             return expr + (descending ? " desc" : "");
         }
+
+    }
+
+    static String removeParens(String s) {
+        if (s.startsWith("(") && s.endsWith(")")) {
+            return s.substring(1, s.length() - 1);
+        }
+        return s;
     }
 
 }
