@@ -302,9 +302,8 @@ public class KernelNodeStateEditorFuzzTest {
                     op = createMoveNode();
                     break;
                 case 5:
-                    // todo: copy is currently broken due to OAK-47
-                    // op = createCopyNode();
-                    op = null;
+                    // Too many copy ops make the test way slow
+                    op = random.nextInt(10) == 0 ? createCopyNode() : null;
                     break;
                 case 6:
                     op = createAddProperty();
