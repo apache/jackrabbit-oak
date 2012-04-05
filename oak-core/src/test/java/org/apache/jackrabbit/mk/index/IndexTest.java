@@ -91,6 +91,30 @@ public class IndexTest extends MultiMkTestBase {
     }
 
     @Test
+    public void copy() {
+        Indexer indexer = new Indexer(mk);
+        PropertyIndex index = indexer.createPropertyIndex("id", false);
+
+        mk.commit("/", "+ \"test\": { \"test2\": { \"id\": 2 }, \"id\": 1 }", mk.getHeadRevision(), "");
+        Assert.assertEquals("/test", index.getPath("1", mk.getHeadRevision()));
+        Assert.assertEquals("/test/test2", index.getPath("2", mk.getHeadRevision()));
+
+        mk.commit("/", "* \"test\": \"copied\"", mk.getHeadRevision(), "");
+        Iterator<String> it = index.getPaths("1", mk.getHeadRevision());
+        Assert.assertTrue(it.hasNext());
+        Assert.assertEquals("/copied", it.next());
+        Assert.assertTrue(it.hasNext());
+        Assert.assertEquals("/test", it.next());
+        Assert.assertFalse(it.hasNext());
+        it = index.getPaths("2", mk.getHeadRevision());
+        Assert.assertTrue(it.hasNext());
+        Assert.assertEquals("/copied/test2", it.next());
+        Assert.assertTrue(it.hasNext());
+        Assert.assertEquals("/test/test2", it.next());
+        Assert.assertFalse(it.hasNext());
+    }
+
+    @Test
     public void ascending() {
         Indexer indexer = new Indexer(mk);
         BTree tree = new BTree(indexer, "test", true);
