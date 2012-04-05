@@ -141,6 +141,13 @@ public class CommitBuilder {
         MutableNode destParent = getOrCreateStagedNode(destParentPath);
         destParent.add(new ChildNode(destNodeName, srcCNE.getId()));
 
+        if (srcCNE.getId() == null) {
+            // a 'new' node is being copied
+
+            // update staging area
+            copyStagedNodes(srcPath, destPath);
+        }
+
         // update change log
         changeLog.add(new CopyNode(srcPath, destPath));
     }
@@ -265,6 +272,17 @@ public class CommitBuilder {
             for (Iterator<String> it = node.getChildNodeNames(0, -1); it.hasNext(); ) {
                 String childName = it.next();
                 moveStagedNodes(PathUtils.concat(srcPath, childName), PathUtils.concat(destPath, childName));
+            }
+        }
+    }
+
+    void copyStagedNodes(String srcPath, String destPath) throws Exception {
+        MutableNode node = staged.get(srcPath);
+        if (node != null) {
+            staged.put(destPath, new MutableNode(node, store, destPath));
+            for (Iterator<String> it = node.getChildNodeNames(0, -1); it.hasNext(); ) {
+                String childName = it.next();
+                copyStagedNodes(PathUtils.concat(srcPath, childName), PathUtils.concat(destPath, childName));
             }
         }
     }
