@@ -28,7 +28,6 @@ import javax.net.SocketFactory;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
-import org.apache.jackrabbit.mk.server.Server;
 import org.apache.jackrabbit.mk.util.IOUtils;
 
 /**
@@ -49,47 +48,32 @@ public class Client implements MicroKernel {
     private final AtomicBoolean disposed = new AtomicBoolean();
     
     private HttpExecutor executor;
-    
+
     /**
-     * Create a new instance of this class, given a URL to connect to.
+     * Returns the socket address of the given URL.
      * 
-     * @param url url
-     * @return micro kernel
+     * @param url URL
+     * @return socket address
      */
-    public static MicroKernel createHttpClient(String url) {
+    private static InetSocketAddress getAddress(String url) {
         try {
             URI uri = new URI(url);
-            return new Client(new InetSocketAddress(uri.getHost(), uri.getPort()));
+            return new InetSocketAddress(uri.getHost(), uri.getPort());
         } catch (URISyntaxException e) {
-            throw new IllegalArgumentException(e.getMessage());
+            throw new IllegalArgumentException(e);
         }
     }
     
-    /**
-     * Create a new instance of this class, where every request goes through an HTTP bridge
-     * before being delivered to a given micro kernel implementation.
-     * 
-     * @param mk micro kernel 
-     * @return bridged micro kernel
-     */
-    public static MicroKernel createHttpBridge(MicroKernel mk) {
-        final Server server = new Server(mk);
-        
-        try {
-            server.start();
-        } catch (IOException e) {
-            throw new IllegalArgumentException(e.getMessage());
-        }
 
-        return new Client(server.getAddress()) {
-            @Override
-            public synchronized void dispose() {
-                super.dispose();
-                server.stop();
-            }
-        };
+    /**
+     * Create a new instance of this class.
+     * 
+     * @param addr socket address
+     */
+    public Client(String url) {
+        this(getAddress(url));
     }
-    
+
     /**
      * Create a new instance of this class.
      * 
