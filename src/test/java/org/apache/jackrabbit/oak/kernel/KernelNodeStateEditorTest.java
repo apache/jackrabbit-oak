@@ -24,6 +24,7 @@ import org.apache.jackrabbit.mk.model.Scalar;
 import org.apache.jackrabbit.mk.model.Scalar.Type;
 import org.apache.jackrabbit.mk.model.ScalarImpl;
 import org.apache.jackrabbit.mk.simple.SimpleKernelImpl;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -53,6 +54,11 @@ public class KernelNodeStateEditorTest {
         String revision = microkernel.commit(
                 "/", jsop, microkernel.getHeadRevision(), "test data");
         state = new KernelNodeState(microkernel, "/test", revision);
+    }
+    
+    @After
+    public void tearDown() {
+        microkernel.dispose();
     }
 
     @Test
@@ -248,6 +254,42 @@ public class KernelNodeStateEditorTest {
         NodeState x = newState.getChildNode("x");
         NodeState xx = newState.getChildNode("y").getChildNode("xx");
         assertEquals(x, xx);
+    }
+    
+    @Test
+    public void getChildNodeCount() {
+        KernelNodeStateEditor editor = new KernelNodeStateEditor(state);
+        TransientNodeState transientState = editor.getTransientState();
+        assertEquals(3, transientState.getChildNodeCount());
+
+        transientState.removeNode("x");
+        assertEquals(2, transientState.getChildNodeCount());
+
+        transientState.addNode("a");
+        assertEquals(3, transientState.getChildNodeCount());
+
+        transientState.addNode("x");
+        assertEquals(4, transientState.getChildNodeCount());
+    }
+    
+    @Test
+    public void getPropertyCount() {
+        KernelNodeStateEditor editor = new KernelNodeStateEditor(state);
+        TransientNodeState transientState = editor.getTransientState();
+        assertEquals(3, transientState.getPropertyCount());
+
+        Scalar value = ScalarImpl.stringScalar("foo");
+        transientState.setProperty(new KernelPropertyState("a", value));
+        assertEquals(3, transientState.getPropertyCount());
+
+        transientState.removeProperty("a");
+        assertEquals(2, transientState.getPropertyCount());
+
+        transientState.setProperty(new KernelPropertyState("x", value));
+        assertEquals(3, transientState.getPropertyCount());
+
+        transientState.setProperty(new KernelPropertyState("a", value));
+        assertEquals(4, transientState.getPropertyCount());
     }
 
 }

@@ -346,6 +346,13 @@ public class TransientNodeState {
     }
 
     /**
+     * @return  the name of this transient node state
+     */
+    String getName() {
+        return name;
+    }
+
+    /**
      * @return  relative path of this transient node state
      */
     String getPath() {
@@ -388,6 +395,9 @@ public class TransientNodeState {
      * @param state  a property state
      */
     void setProperty(PropertyState state) {
+        if (hasExistingProperty(state.getName())) {
+            removedProperties.add(state.getName());
+        }
         addedProperties.put(state.getName(), state);
     }
 
