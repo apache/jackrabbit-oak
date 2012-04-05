@@ -262,13 +262,13 @@ public class KernelNodeStateEditorTest {
         TransientNodeState transientState = editor.getTransientState();
         assertEquals(3, transientState.getChildNodeCount());
 
-        transientState.removeNode("x");
+        editor.removeNode("x");
         assertEquals(2, transientState.getChildNodeCount());
 
-        transientState.addNode("a");
+        editor.addNode("a");
         assertEquals(3, transientState.getChildNodeCount());
 
-        transientState.addNode("x");
+        editor.addNode("x");
         assertEquals(4, transientState.getChildNodeCount());
     }
     
@@ -279,16 +279,16 @@ public class KernelNodeStateEditorTest {
         assertEquals(3, transientState.getPropertyCount());
 
         Scalar value = ScalarImpl.stringScalar("foo");
-        transientState.setProperty(new KernelPropertyState("a", value));
+        editor.setProperty(new KernelPropertyState("a", value));
         assertEquals(3, transientState.getPropertyCount());
 
-        transientState.removeProperty("a");
+        editor.removeProperty("a");
         assertEquals(2, transientState.getPropertyCount());
 
-        transientState.setProperty(new KernelPropertyState("x", value));
+        editor.setProperty(new KernelPropertyState("x", value));
         assertEquals(3, transientState.getPropertyCount());
 
-        transientState.setProperty(new KernelPropertyState("a", value));
+        editor.setProperty(new KernelPropertyState("a", value));
         assertEquals(4, transientState.getPropertyCount());
     }
     
