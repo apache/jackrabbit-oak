@@ -22,7 +22,9 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketAddress;
 import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -196,7 +198,22 @@ public class Server {
         if (!started.get() || stopped.get()) {
             return null;
         }
-        return (InetSocketAddress) ss.getLocalSocketAddress();
+        SocketAddress address = ss.getLocalSocketAddress();
+        if (address instanceof InetSocketAddress) {
+            InetSocketAddress isa = (InetSocketAddress) address;
+            if (isa.getAddress().isAnyLocalAddress()) {
+                try {
+                    return new InetSocketAddress(
+                            InetAddress.getByName("localhost"),
+                            ss.getLocalPort());
+                } catch (UnknownHostException e) {
+                    throw new RuntimeException(e);
+                }
+            } else {
+                return isa;
+            }
+        }
+        return null;
     }
 
     /**
