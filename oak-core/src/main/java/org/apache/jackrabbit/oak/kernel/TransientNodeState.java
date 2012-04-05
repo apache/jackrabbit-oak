@@ -25,15 +25,21 @@ import org.apache.commons.collections.iterators.TransformIterator;
 import org.apache.jackrabbit.mk.model.ChildNodeEntry;
 import org.apache.jackrabbit.mk.model.NodeState;
 import org.apache.jackrabbit.mk.model.PropertyState;
+import org.apache.jackrabbit.oak.kernel.TransientNodeState.Iterators.PagedIterator;
 
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NoSuchElementException;
 import java.util.Set;
 
-import static org.apache.jackrabbit.oak.kernel.TransientNodeState.Iterators.*;
+import static org.apache.jackrabbit.oak.kernel.TransientNodeState.Iterators.Function1;
+import static org.apache.jackrabbit.oak.kernel.TransientNodeState.Iterators.Predicate;
+import static org.apache.jackrabbit.oak.kernel.TransientNodeState.Iterators.add;
+import static org.apache.jackrabbit.oak.kernel.TransientNodeState.Iterators.filter;
+import static org.apache.jackrabbit.oak.kernel.TransientNodeState.Iterators.map;
 
 /**
  * A transient node state represents a node being edited. All edit operations are
@@ -286,12 +292,7 @@ public class TransientNodeState {
      * the returned iterable.
      * @return  An {@code Iterable} for all child node states
      */
-    public Iterable<TransientNodeState> getChildNodes(long offset, int count) {
-        // Persisted child node states
-        final Iterable<? extends ChildNodeEntry> persisted = persistentState == null
-            ? null
-            : persistentState.getChildNodeEntries(offset, count);
-
+    public Iterable<TransientNodeState> getChildNodes() {
         // Copy od removed child node states
         final Set<String> removed = new HashSet<String>();
         removed.addAll(removedNodes);
@@ -307,13 +308,12 @@ public class TransientNodeState {
             @Override
             public Iterator<TransientNodeState> iterator() {
                 // persisted entries
-                Iterator<? extends ChildNodeEntry> nodes = persisted == null
-                    ? Iterators.<ChildNodeEntry>empty()
-                    : persisted.iterator();
+                final Iterator<? extends ChildNodeEntry> persisted =
+                    getPersistedChildNodeEntries(persistentState);
 
                 // persisted entries - removed entries
                 Iterator<ChildNodeEntry> persistedMinusRemovedEntries =
-                    filter(nodes, new Predicate<ChildNodeEntry>() {
+                    filter(persisted, new Predicate<ChildNodeEntry>() {
                         @Override
                         public boolean evaluate(ChildNodeEntry entry) {
                             return !removed.contains(entry.getName());
@@ -498,6 +498,30 @@ public class TransientNodeState {
         return persistentState != null && persistentState.getProperty(name) != null;
     }
 
+    /**
+     * Iterator over all persisted child node entries of the given
+     * {@code persistentState}. This iterator reads the child node entries page wise
+     * with a page size of 1024 items.
+     * @param persistentState  persistent state for retrieving the child node entries from
+     * @return  iterator of child node entries
+     */
+    private static Iterator<? extends ChildNodeEntry> getPersistedChildNodeEntries(
+            final NodeState persistentState) {
+
+        if (persistentState == null) {
+            return Iterators.empty();
+        }
+        else {
+            return Iterators.flatten(
+                new PagedIterator<ChildNodeEntry>(1024) {
+                    @Override
+                    protected Iterator<? extends ChildNodeEntry> getPage(long pos, int size) {
+                        return persistentState.getChildNodeEntries(pos, size).iterator();
+                    }
+                });
+        }
+    }
+
     // TODO: move to a more suitable location
     static final class Iterators {
         private Iterators() { }
@@ -591,5 +615,108 @@ public class TransientNodeState {
         public interface Function1<S, T> {
             T apply(S argument);
         }
+
+        /**
+         * Flattens an iterator of iterators into a single iterator.
+         * @param iterators
+         * @param <T>
+         * @return
+         */
+        public static <T> Iterator<? extends T> flatten(
+                final Iterator<Iterator<? extends T>> iterators) {
+
+            return new Iterator<T>() {
+                private Iterator<? extends T> current;
+
+                @Override
+                public boolean hasNext() {
+                    if (current != null && current.hasNext()) {
+                        return true;
+                    }
+                    else if (!iterators.hasNext()) {
+                        return false;
+                    }
+                    else {
+                        do {
+                            current = iterators.next();
+                        } while (!current.hasNext() && iterators.hasNext());
+                        return current.hasNext();
+                    }
+                }
+
+                @Override
+                public T next() {
+                    if (!hasNext()) {
+                        throw new NoSuchElementException();
+                    }
+
+                    return current.next();
+                }
+
+                @Override
+                public void remove() {
+                    if (current == null) {
+                        throw new IllegalStateException();
+                    }
+
+                    current.remove();
+                }
+            };
+        }
+
+        /**
+         * A {@code PagedIterator} is an iterator of several pages. A page itself is
+         * an iterator. The abstract {@code getPage} method is called whenever this
+         * iterator needs to fetch another page.<p/>
+         *
+         * Lazy flattening (e.g. with {@link Iterators#flatten(java.util.Iterator)}
+         * results in an iterator which does batch reading from its back end.
+         *
+         * @param <T>
+         */
+        public abstract static class PagedIterator<T>
+                implements Iterator<Iterator<? extends T>> {
+
+            private final int pageSize;
+            private long pos;
+            private Iterator<? extends T> current;
+
+            protected PagedIterator(int pageSize) {
+                this.pageSize = pageSize;
+            }
+
+            /**
+             * @param pos  start index
+             * @param size  maximal number of elements
+             * @return  iterator starting at index {@code pos} containing at most {@code size} elements.
+             */
+            protected abstract Iterator<? extends T> getPage(long pos, int size);
+
+            @Override
+            public boolean hasNext() {
+                if (current == null) {
+                    current = getPage(pos, pageSize);
+                    pos += pageSize;
+                }
+
+                return current.hasNext();
+            }
+
+            @Override
+            public Iterator<? extends T> next() {
+                if (!hasNext()) {
+                    throw new NoSuchElementException();
+                }
+                Iterator<? extends T> e = current;
+                current = null;
+                return e;
+            }
+
+            @Override
+            public void remove() {
+                throw new UnsupportedOperationException("remove");
+            }
+        }
+
     }
 }
