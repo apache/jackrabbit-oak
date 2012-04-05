@@ -69,13 +69,13 @@ public class SessionImpl extends AbstractSession {
 
     private final SessionContext<SessionImpl> sessionContext = new Context();
 
-    SessionImpl(GlobalContext globalContext, Connection connection) {
+    SessionImpl(GlobalContext globalContext, Repository repository, Connection connection) {
 
         this.globalContext = globalContext;
+        this.repository = repository;
         this.connection = connection;
 
         valueFactory = new ValueFactoryImpl();
-        repository = new RepositoryAdaptor(globalContext.getInstance(Repository.class), valueFactory);
         workspace = new WorkspaceImpl(sessionContext);
 
         transientSpace = new TransientSpace(sessionContext.getWorkspaceName(), sessionContext.getMicrokernel());

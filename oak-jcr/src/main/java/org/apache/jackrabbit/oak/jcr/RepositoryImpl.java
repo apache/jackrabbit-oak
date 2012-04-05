@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import org.apache.jackrabbit.commons.SimpleValueFactory;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.Connection;
 import org.apache.jackrabbit.oak.api.RepositoryService;
@@ -40,6 +41,7 @@ public class RepositoryImpl implements Repository {
     private static final Logger log = LoggerFactory.getLogger(RepositoryImpl.class);
 
     private final GlobalContext context;
+    private final Descriptors descriptors = new Descriptors(new SimpleValueFactory());
 
     /**
      * Utility constructor that creates a JCR binding for an initially empty,
@@ -54,40 +56,61 @@ public class RepositoryImpl implements Repository {
     }
 
     //---------------------------------------------------------< Repository >---
+    /**
+     * @see javax.jcr.Repository#getDescriptorKeys()
+     */
     @Override
     public String[] getDescriptorKeys() {
-        // TODO
-        throw new UnsupportedOperationException();
+        return descriptors.getKeys();
     }
 
+    /**
+     * @see Repository#isStandardDescriptor(String)
+     */
     @Override
     public boolean isStandardDescriptor(String key) {
-        // TODO
-        throw new UnsupportedOperationException();
+        return descriptors.isStandardDescriptor(key);
     }
 
+    /**
+     * @see javax.jcr.Repository#getDescriptor(String)
+     */
     @Override
     public String getDescriptor(String key) {
-        // TODO
-        throw new UnsupportedOperationException();
+        try {
+            Value v = getDescriptorValue(key);
+            return v == null
+                    ? null
+                    : v.getString();
+        }
+        catch (RepositoryException e) {
+            log.debug("Error converting value for descriptor with key {} to string", key);
+            return null;
+        }
     }
 
+    /**
+     * @see javax.jcr.Repository#getDescriptorValue(String)
+     */
     @Override
     public Value getDescriptorValue(String key) {
-        // TODO
-        throw new UnsupportedOperationException();
+        return descriptors.getValue(key);
     }
 
+    /**
+     * @see javax.jcr.Repository#getDescriptorValues(String)
+     */
     @Override
     public Value[] getDescriptorValues(String key) {
-        // TODO
-        throw new UnsupportedOperationException();
+        return descriptors.getValues(key);
     }
 
+    /**
+     * @see javax.jcr.Repository#isSingleValueDescriptor(String)
+     */
     @Override
     public boolean isSingleValueDescriptor(String key) {
-        // TODO
-        throw new UnsupportedOperationException();
+        return descriptors.isSingleValueDescriptor(key);
     }
 
     /**
@@ -100,7 +123,7 @@ public class RepositoryImpl implements Repository {
         RepositoryService service = context.getInstance(RepositoryService.class);
         try {
             Connection connection = service.login(credentials, workspaceName);
-            return new SessionImpl(context, connection);
+            return new SessionImpl(context, this, connection);
         } catch (LoginException e) {
             throw new javax.jcr.LoginException(e.getMessage());
         }
