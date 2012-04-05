@@ -49,14 +49,10 @@ public class ExceptionFactory {
                 if (in == null) {
                     in = new FileInputStream("target/maven-archiver/pom.properties");
                 }
-                if (in == null) {
-                    version = "";
-                } else {
-                    Properties prop = new Properties();
-                    prop.load(in);
-                    in.close();
-                    version = "[" + prop.getProperty("artifactId") + "-" + prop.getProperty("version") + "]";
-                }
+                Properties prop = new Properties();
+                prop.load(in);
+                in.close();
+                version = "[" + prop.getProperty("artifactId") + "-" + prop.getProperty("version") + "]";
             } catch (IOException e) {
                 version = "";
             }
