@@ -18,7 +18,6 @@ package org.apache.jackrabbit.mk.wrapper;
 
 import java.io.InputStream;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.jackrabbit.mk.MicroKernelFactory;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.mk.util.ExceptionFactory;
@@ -36,14 +35,6 @@ public class LogWrapper implements MicroKernel {
 
     public LogWrapper(MicroKernel mk) {
         this.mk = mk;
-    }
-
-    public static synchronized LogWrapper get(String url) {
-        String u = url.substring("log:".length());
-        LogWrapper w = new LogWrapper(MicroKernelFactory.getInstance(u));
-        w.log("MicroKernel mk" + w.id + " = MicroKernelFactory.getInstance("
-                + JsopBuilder.encode(u) + ");");
-        return w;
     }
 
     public String commit(String path, String jsonDiff, String revisionId, String message) {

@@ -25,6 +25,7 @@ import org.apache.jackrabbit.mk.client.Client;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.mk.fs.FileUtils;
 import org.apache.jackrabbit.mk.index.IndexWrapper;
+import org.apache.jackrabbit.mk.server.Server;
 import org.apache.jackrabbit.mk.simple.SimpleKernelImpl;
 import org.apache.jackrabbit.mk.util.ExceptionFactory;
 import org.apache.jackrabbit.mk.wrapper.LogWrapper;
@@ -86,13 +87,13 @@ public class MicroKernelFactory {
             }
             return instance;
         } else if (url.startsWith("log:")) {
-            return LogWrapper.get(url);
+            return new LogWrapper(getInstance(url.substring("log:".length())));
         } else if (url.startsWith("sec:")) {
             return SecurityWrapper.get(url);
         } else if (url.startsWith("virtual:")) {
             return VirtualRepositoryWrapper.get(url);
         } else if (url.startsWith("index:")) {
-            return IndexWrapper.get(url);
+            return new IndexWrapper(getInstance(url.substring("index:".length())));
         } else if (url.startsWith("fs:")) {
             boolean clean = false;
             if (url.endsWith(";clean")) {
@@ -110,10 +111,24 @@ public class MicroKernelFactory {
             }
             return new MicroKernelImpl(dir);
         } else if (url.startsWith("http:")) {
-            return Client.createHttpClient(url);
+            return new Client(url);
         } else if (url.startsWith("http-bridge:")) {
-            MicroKernel mk = MicroKernelFactory.getInstance(url.substring("http-bridge:".length()));
-            return Client.createHttpBridge(mk);
+            MicroKernel mk = getInstance(url.substring("http-bridge:".length()));
+
+            final Server server = new Server(mk);
+            try {
+                server.start();
+            } catch (IOException e) {
+                throw new IllegalArgumentException(e.getMessage());
+            }
+
+            return new Client(server.getAddress()) {
+                @Override
+                public synchronized void dispose() {
+                    super.dispose();
+                    server.stop();
+                }
+            };
         } else {
             throw new IllegalArgumentException(url);
         }
