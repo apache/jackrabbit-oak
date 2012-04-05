@@ -25,6 +25,9 @@ import org.apache.jackrabbit.oak.api.QueryEngine;
 
 public class QueryEngineImpl implements QueryEngine {
 
+    static final String SQL2 = "JCR-SQL2";
+    private static final String XPATH = "xpath";
+
     private final MicroKernel mk;
     private final CoreValueFactory vf = new CoreValueFactory();
     private final SQL2Parser parserSQL2;

@@ -26,7 +26,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import org.apache.jackrabbit.mk.MicroKernelFactory;
 import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.junit.After;
 import org.junit.Before;
@@ -65,31 +64,37 @@ public class QueryTest {
 
     @Test
     public void bindVariableTest() throws Exception {
-        head = mk.commit("/", "+ \"test\": { \"hello\": {\"id\": \"1\"}, \"world\": {\"id\": \"2\"}}", null, null);
+        head = mk.commit("/", "+ \"test\": { \"hello\": {\"id\": \"1\"}, \"world\": {\"id\": \"2\"}}",
+                null, null);
         HashMap<String, CoreValue> sv = new HashMap<String, CoreValue>();
         CoreValueFactory vf = new CoreValueFactory();
         sv.put("id", vf.createValue("1"));
         Iterator<? extends ResultRow> result;
-        result = qe.executeQuery("select * from [nt:base] where id = $id", QueryEngine.SQL2, sv).getRows();
+        result = qe.executeQuery("select * from [nt:base] where id = $id",
+                QueryEngineImpl.SQL2, sv).getRows().iterator();
         assertTrue(result.hasNext());
         assertEquals("/test/hello", result.next().getPath());
 
         sv.put("id", vf.createValue("2"));
-        result = qe.executeQuery("select * from [nt:base] where id = $id", QueryEngine.SQL2, sv).getRows();
+        result = qe.executeQuery("select * from [nt:base] where id = $id",
+                QueryEngineImpl.SQL2, sv).getRows().iterator();
         assertTrue(result.hasNext());
         assertEquals("/test/world", result.next().getPath());
 
 
-        result = qe.executeQuery("explain select * from [nt:base] where id = 1 order by id", QueryEngine.SQL2, null).getRows();
+        result = qe.executeQuery("explain select * from [nt:base] where id = 1 order by id",
+                QueryEngineImpl.SQL2, null).getRows().iterator();
         assertTrue(result.hasNext());
-        assertEquals("nt:base AS nt:base /* traverse \"//*\" */", result.next().getValue("plan").getString());
+        assertEquals("nt:base AS nt:base /* traverse \"//*\" */",
+                result.next().getValue("plan").getString());
 
     }
 
     private void test(String file) throws Exception {
         InputStream in = getClass().getResourceAsStream(file);
         LineNumberReader r = new LineNumberReader(new InputStreamReader(in));
-        PrintWriter w = new PrintWriter(new OutputStreamWriter(new FileOutputStream("target/" + file)));
+        PrintWriter w = new PrintWriter(new OutputStreamWriter(
+                new FileOutputStream("target/" + file)));
         boolean errors = false;
         try {
             while (true) {
@@ -117,7 +122,8 @@ public class QueryTest {
                     }
                 } else if (line.startsWith("select") || line.startsWith("explain")) {
                     w.println(line);
-                    Iterator<? extends ResultRow> result = qe.executeQuery(line, QueryEngine.SQL2, null).getRows();
+                    Iterator<? extends ResultRow> result = qe.executeQuery(line,
+                            QueryEngineImpl.SQL2, null).getRows().iterator();
                     boolean readEnd = true;
                     while (result.hasNext()) {
                         ResultRow row = result.next();
