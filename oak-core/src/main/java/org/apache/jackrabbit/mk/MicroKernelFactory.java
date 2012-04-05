@@ -17,6 +17,8 @@
 package org.apache.jackrabbit.mk;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.client.Client;
@@ -34,6 +36,9 @@ import org.apache.jackrabbit.mk.wrapper.VirtualRepositoryWrapper;
  */
 public class MicroKernelFactory {
 
+    private static final Map<String, SimpleKernelImpl> INSTANCES =
+            new HashMap<String, SimpleKernelImpl>();
+
     /**
      * Get an instance. Supported URLs:
      * <ul>
@@ -47,11 +52,39 @@ public class MicroKernelFactory {
      * @param url the repository URL
      * @return a new instance
      */
-    public static MicroKernel getInstance(String url) {
-        if (url.startsWith("mem:")) {
-            return SimpleKernelImpl.get(url);
-        } else if (url.startsWith("simple:")) {
-                return SimpleKernelImpl.get(url);
+    public static synchronized MicroKernel getInstance(String url) {
+        if (url.startsWith("mem:") || url.startsWith("simple:")) {
+            boolean clean = false;
+            if (url.endsWith(";clean")) {
+                url = url.substring(0, url.length() - ";clean".length());
+                clean = true;
+            }
+
+            url = url.replaceAll("\\{homeDir\\}", System.getProperty("homeDir", "."));
+
+            String name;
+            if (url.startsWith("simple:")) {
+                name = url.substring("simple:".length());
+            } else {
+                name = url.substring("mem:".length());
+            }
+
+            if (clean) {
+                String dir = url.substring(url.lastIndexOf(':') + 1);
+                try {
+                    FileUtils.deleteRecursive(dir, false);
+                } catch (Exception e) {
+                    throw ExceptionFactory.convert(e);
+                }
+                INSTANCES.remove(name);
+            }
+
+            SimpleKernelImpl instance = INSTANCES.get(name);
+            if (instance == null) {
+                instance = new SimpleKernelImpl(name);
+                INSTANCES.put(name, instance);
+            }
+            return instance;
         } else if (url.startsWith("log:")) {
             return LogWrapper.get(url);
         } else if (url.startsWith("sec:")) {
