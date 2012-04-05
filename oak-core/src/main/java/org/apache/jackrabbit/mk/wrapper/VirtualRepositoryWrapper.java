@@ -40,7 +40,6 @@ import org.apache.jackrabbit.mk.util.PathUtils;
  */
 public class VirtualRepositoryWrapper extends MicroKernelWrapperBase implements MicroKernel {
 
-    private static final String PREFIX = "virtual:";
     private static final String MOUNT = "/:mount";
 
     /**
@@ -74,38 +73,27 @@ public class VirtualRepositoryWrapper extends MicroKernelWrapperBase implements 
 
     private final NodeMap map = new NodeMap();
 
-    private VirtualRepositoryWrapper(MicroKernel mk) {
+    public VirtualRepositoryWrapper(MicroKernel mk) {
         this.mk = MicroKernelWrapperBase.wrap(mk);
-    }
 
-    public static synchronized VirtualRepositoryWrapper get(String url) {
-        String urlMeta = url.substring(PREFIX.length());
-        MicroKernel mk = MicroKernelFactory.getInstance(urlMeta);
-        try {
-            String head = mk.getHeadRevision();
-            VirtualRepositoryWrapper vm = new VirtualRepositoryWrapper(mk);
-            if (mk.nodeExists(MOUNT, head)) {
-                String mounts = mk.getNodes(MOUNT, head);
-                NodeMap map = new NodeMap();
-                JsopReader t = new JsopTokenizer(mounts);
-                t.read('{');
-                NodeImpl n = NodeImpl.parse(map, t, 0);
-                for (long pos = 0;; pos++) {
-                    String childName = n.getChildNodeName(pos);
-                    if (childName == null) {
-                        break;
-                    }
-                    NodeImpl mount = n.getNode(childName);
-                    String mountUrl = JsopTokenizer.decodeQuoted(mount.getProperty("url"));
-                    String[] paths = JsopTokenizer.decodeQuoted(mount.getProperty("paths")).split(",");
-                    vm.addMount(childName, mountUrl, paths);
-                    vm.getHeadRevision();
+        String head = mk.getHeadRevision();
+        if (mk.nodeExists(MOUNT, head)) {
+            String mounts = mk.getNodes(MOUNT, head);
+            NodeMap map = new NodeMap();
+            JsopReader t = new JsopTokenizer(mounts);
+            t.read('{');
+            NodeImpl n = NodeImpl.parse(map, t, 0);
+            for (long pos = 0;; pos++) {
+                String childName = n.getChildNodeName(pos);
+                if (childName == null) {
+                    break;
                 }
+                NodeImpl mount = n.getNode(childName);
+                String mountUrl = JsopTokenizer.decodeQuoted(mount.getProperty("url"));
+                String[] paths = JsopTokenizer.decodeQuoted(mount.getProperty("paths")).split(",");
+                addMount(childName, mountUrl, paths);
+                getHeadRevision();
             }
-            return vm;
-        } catch (MicroKernelException e) {
-            mk.dispose();
-            throw e;
         }
     }
 
