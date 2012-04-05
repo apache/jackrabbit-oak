@@ -61,7 +61,7 @@ public class MicroKernelFactory {
 
         String head = url.substring(0, colon);
         String tail = url.substring(colon + 1);
-        if (head.equals("mem") || head.equals("simple")) {
+        if (head.equals("mem") || head.equals("simple") || head.equals("fs")) {
             boolean clean = false;
             if (tail.endsWith(";clean")) {
                 tail = tail.substring(0, tail.length() - ";clean".length());
@@ -71,21 +71,31 @@ public class MicroKernelFactory {
             tail = tail.replaceAll("\\{homeDir\\}", System.getProperty("homeDir", "."));
 
             if (clean) {
-                String dir = tail.substring(tail.lastIndexOf(':') + 1);
+                String dir;
+                if (head.equals("fs")) {
+                    dir = tail + "/.mk";
+                } else {
+                    dir = tail.substring(tail.lastIndexOf(':') + 1);
+                    INSTANCES.remove(tail);
+                }
+
                 try {
                     FileUtils.deleteRecursive(dir, false);
                 } catch (Exception e) {
                     throw ExceptionFactory.convert(e);
                 }
-                INSTANCES.remove(tail);
             }
 
-            SimpleKernelImpl instance = INSTANCES.get(tail);
-            if (instance == null) {
-                instance = new SimpleKernelImpl(tail);
-                INSTANCES.put(tail, instance);
+            if (head.equals("fs")) {
+                return new MicroKernelImpl(tail);
+            } else {
+                SimpleKernelImpl instance = INSTANCES.get(tail);
+                if (instance == null) {
+                    instance = new SimpleKernelImpl(tail);
+                    INSTANCES.put(tail, instance);
+                }
+                return instance;
             }
-            return instance;
         } else if (head.equals("log")) {
             return new LogWrapper(getInstance(tail));
         } else if (head.equals("sec")) {
@@ -94,24 +104,6 @@ public class MicroKernelFactory {
             return VirtualRepositoryWrapper.get(url);
         } else if (head.equals("index")) {
             return new IndexWrapper(getInstance(tail));
-        } else if (head.equals("fs:")) {
-            boolean clean = false;
-            if (tail.endsWith(";clean")) {
-                tail = tail.substring(0, tail.length() - ";clean".length());
-                clean = true;
-            }
-
-            tail = tail.replaceAll("\\{homeDir\\}", System.getProperty("homeDir", "."));
-
-            if (clean) {
-                try {
-                    FileUtils.deleteRecursive(tail + "/" + ".mk", false);
-                } catch (IOException e) {
-                    throw ExceptionFactory.convert(e);
-                }
-            }
-
-            return new MicroKernelImpl(tail);
         } else if (head.equals("http")) {
             return new Client(url);
         } else if (head.equals("http-bridge")) {
