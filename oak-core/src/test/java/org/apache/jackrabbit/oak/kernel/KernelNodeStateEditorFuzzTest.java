@@ -439,7 +439,7 @@ public class KernelNodeStateEditorFuzzTest {
             assertEquals(property1, state2.getProperty(property1.getName()));
         }
 
-        for (TransientNodeState node1 : state1.getChildNodes(0, -1)) {
+        for (TransientNodeState node1 : state1.getChildNodes()) {
             checkEqual(node1, state2.getChildNode(node1.getName()));
         }
     }
