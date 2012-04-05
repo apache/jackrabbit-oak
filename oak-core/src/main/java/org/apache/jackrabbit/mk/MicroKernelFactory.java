@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.client.Client;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.mk.fs.FileUtils;
@@ -53,7 +54,7 @@ public class MicroKernelFactory {
      * @param url the repository URL
      * @return a new instance
      */
-    public static synchronized MicroKernel getInstance(String url) {
+    public static MicroKernel getInstance(String url) {
         int colon = url.indexOf(':');
         if (colon == -1) {
             throw new IllegalArgumentException("Unknown repository URL: " + url);
@@ -89,19 +90,36 @@ public class MicroKernelFactory {
             if (head.equals("fs")) {
                 return new MicroKernelImpl(tail);
             } else {
-                SimpleKernelImpl instance = INSTANCES.get(tail);
-                if (instance == null) {
-                    instance = new SimpleKernelImpl(tail);
-                    INSTANCES.put(tail, instance);
+                final String name = tail;
+                synchronized (INSTANCES) {
+                    SimpleKernelImpl instance = INSTANCES.get(name);
+                    if (instance == null) {
+                        instance = new SimpleKernelImpl(name) {
+                            @Override
+                            public synchronized void dispose() {
+                                super.dispose();
+                                synchronized (INSTANCES) {
+                                    INSTANCES.remove(name);
+                                }
+                            }
+                        };
+                        INSTANCES.put(name, instance);
+                    }
+                    return instance;
                 }
-                return instance;
             }
         } else if (head.equals("log")) {
             return new LogWrapper(getInstance(tail));
         } else if (head.equals("sec")) {
             return SecurityWrapper.get(url);
         } else if (head.equals("virtual")) {
-            return VirtualRepositoryWrapper.get(url);
+            MicroKernel mk = getInstance(tail);
+            try {
+                return new VirtualRepositoryWrapper(mk);
+            } catch (MicroKernelException e) {
+                mk.dispose();
+                throw e;
+            }
         } else if (head.equals("index")) {
             return new IndexWrapper(getInstance(tail));
         } else if (head.equals("http")) {

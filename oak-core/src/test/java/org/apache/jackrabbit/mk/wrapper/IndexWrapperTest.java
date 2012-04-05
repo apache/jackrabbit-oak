@@ -17,8 +17,8 @@
 package org.apache.jackrabbit.mk.wrapper;
 
 import static org.junit.Assert.assertEquals;
-import org.apache.jackrabbit.mk.MicroKernelFactory;
 import org.apache.jackrabbit.mk.MultiMkTestBase;
+import org.apache.jackrabbit.mk.index.IndexWrapper;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -39,9 +39,7 @@ public class IndexWrapperTest extends MultiMkTestBase {
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        mk.dispose();
-        url = "index:" + url;
-        mk = MicroKernelFactory.getInstance(url);
+        mk = new IndexWrapper(mk);
     }
 
     @Test
