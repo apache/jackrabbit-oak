@@ -163,7 +163,7 @@ public class KernelNodeStateEditor implements NodeStateEditor {
      * @param target target of the merge operation
      * @return node state resulting from merging
      */
-    NodeState mergeInto(MicroKernel microkernel, KernelNodeState target) {
+    KernelNodeState mergeInto(MicroKernel microkernel, KernelNodeState target) {
         String targetPath = target.getPath();
         String targetRevision = target.getRevision();
         String rev = microkernel.commit(targetPath, jsop.toString(), targetRevision, null);
