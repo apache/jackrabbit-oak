@@ -25,7 +25,6 @@ import org.apache.jackrabbit.mk.model.ChildNodeEntriesMap;
 import org.apache.jackrabbit.mk.model.Id;
 import org.apache.jackrabbit.mk.model.MutableCommit;
 import org.apache.jackrabbit.mk.model.MutableNode;
-import org.apache.jackrabbit.mk.model.NodeState;
 import org.apache.jackrabbit.mk.model.StoredCommit;
 import org.apache.jackrabbit.mk.model.StoredNode;
 import org.apache.jackrabbit.mk.persistence.Persistence;
@@ -36,7 +35,8 @@ import org.apache.jackrabbit.mk.util.SimpleLRUCache;
  * Default revision store implementation, passing calls to a <code>Persistence</code>
  * and a <code>BlobStore</code>, respectively and providing caching. 
  */
-public class DefaultRevisionStore implements RevisionStore, Closeable {
+public class DefaultRevisionStore extends AbstractRevisionStore
+        implements Closeable {
 
     public static final String CACHE_SIZE = "mk.cacheSize";
     public static final int DEFAULT_CACHE_SIZE = 10000;
@@ -206,14 +206,6 @@ public class DefaultRevisionStore implements RevisionStore, Closeable {
 
     //-----------------------------------------------------< RevisionProvider >
 
-    public NodeState getNodeState(StoredNode node) {
-        return new StoredNodeAsState(node, this);
-    }
-
-    public Id getId(NodeState node) {
-        return ((StoredNodeAsState) node).getId();
-    }
-
     public StoredNode getNode(Id id) throws NotFoundException, Exception {
         verifyInitialized();
 
@@ -277,4 +269,5 @@ public class DefaultRevisionStore implements RevisionStore, Closeable {
             headLock.readLock().unlock();
         }
     }
+
 }

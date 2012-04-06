@@ -24,7 +24,6 @@ import org.apache.jackrabbit.mk.model.ChildNodeEntriesMap;
 import org.apache.jackrabbit.mk.model.Id;
 import org.apache.jackrabbit.mk.model.MutableCommit;
 import org.apache.jackrabbit.mk.model.MutableNode;
-import org.apache.jackrabbit.mk.model.NodeState;
 import org.apache.jackrabbit.mk.model.StoredCommit;
 import org.apache.jackrabbit.mk.model.StoredNode;
 
@@ -36,8 +35,8 @@ import org.apache.jackrabbit.mk.model.StoredNode;
  * In the current design, the head revision and all the nodes it references are
  * reachable.
  */
-public class CopyingGC implements RevisionStore {
-    
+public class CopyingGC extends AbstractRevisionStore {
+
     /**
      * From store.
      */
@@ -133,14 +132,6 @@ public class CopyingGC implements RevisionStore {
     }
     
     // ---------------------------------------------------------- RevisionStore
-
-    public NodeState getNodeState(StoredNode node) {
-        return new StoredNodeAsState(node, this);
-    }
-
-    public Id getId(NodeState node) {
-        return ((StoredNodeAsState) node).getId();
-    }
 
     public StoredNode getNode(Id id) throws NotFoundException, Exception {
         if (runState.get() == STARTED) {

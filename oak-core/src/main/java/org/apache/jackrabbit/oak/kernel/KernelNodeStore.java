@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.kernel;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.model.NodeState;
+import org.apache.jackrabbit.mk.model.NodeStateDiff;
 import org.apache.jackrabbit.mk.model.NodeStateEditor;
 import org.apache.jackrabbit.mk.model.NodeStore;
 
@@ -54,6 +55,11 @@ public class KernelNodeStore implements NodeStore {
         }
 
         return ((KernelNodeStateEditor) branch).mergeInto(kernel, (KernelNodeState) target);
+    }
+
+    @Override
+    public void compare(NodeState before, NodeState after, NodeStateDiff diff) {
+        throw new UnsupportedOperationException(); // TODO
     }
 
 }
