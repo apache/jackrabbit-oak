@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
 <!--
    Licensed to the Apache Software Foundation (ASF) under one or more
    contributor license agreements.  See the NOTICE file distributed with
@@ -16,28 +15,17 @@
    See the License for the specific language governing permissions and
    limitations under the License.
   -->
+<configuration>
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd ">
-  <modelVersion>4.0.0</modelVersion>
+  <appender name="file" class="ch.qos.logback.core.FileAppender">
+    <file>target/test.log</file>
+    <encoder>
+      <pattern>%date{HH:mm:ss.SSS} %-5level %-40([%thread] %F:%L) %msg%n</pattern>
+    </encoder>
+  </appender>
 
-  <parent>
-    <groupId>org.apache.jackrabbit</groupId>
-    <artifactId>oak-parent</artifactId>
-    <version>0.2-SNAPSHOT</version>
-    <relativePath>../oak-parent/pom.xml</relativePath>
-  </parent>
+  <root level="INFO">
+    <appender-ref ref="file"/>
+  </root>
 
-  <artifactId>oak-it</artifactId>
-  <name>Oak Integration Tests</name>
-  <packaging>pom</packaging>
-
-  <properties>
-    <skip.deployment>true</skip.deployment>
-  </properties>
-
-  <modules>
-    <module>jcr</module>
-    <module>mk</module>
-  </modules>
-
-</project>
+</configuration>
