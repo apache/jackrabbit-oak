@@ -25,7 +25,6 @@ import org.apache.jackrabbit.mk.model.Scalar;
 import org.apache.jackrabbit.mk.model.ScalarImpl;
 import org.apache.jackrabbit.mk.simple.SimpleKernelImpl;
 import org.apache.jackrabbit.mk.util.PathUtils;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -56,8 +55,8 @@ public class KernelNodeStateEditorFuzzTest {
 
     private final Random random;
 
-    private MicroKernel mk1;
-    private MicroKernel mk2;
+    private final MicroKernel mk1 = new SimpleKernelImpl("mem:");
+    private final MicroKernel mk2 = new SimpleKernelImpl("mem:");
 
     @Parameters
     public static List<Object[]> seeds() {
@@ -76,17 +75,8 @@ public class KernelNodeStateEditorFuzzTest {
 
     @Before
     public void setup() {
-        mk1 = new SimpleKernelImpl("mem:mk1");
         mk1.commit("", "+\"/root\":{}", mk1.getHeadRevision(), "");
-
-        mk2 = new SimpleKernelImpl("mem:mk2");
         mk2.commit("", "+\"/root\":{}", mk2.getHeadRevision(), "");
-    }
-
-    @After
-    public void tearDown() {
-        mk1.dispose();
-        mk2.dispose();
     }
 
     @Test
@@ -94,7 +84,7 @@ public class KernelNodeStateEditorFuzzTest {
         KernelNodeState state1 = new KernelNodeState(mk1, "/", mk1.getHeadRevision());
         KernelNodeStateEditor editor1 = new KernelNodeStateEditor(state1);
 
-        KernelNodeState state2 = new KernelNodeState(mk1, "/", mk2.getHeadRevision());
+        KernelNodeState state2 = new KernelNodeState(mk2, "/", mk2.getHeadRevision());
         KernelNodeStateEditor editor2 = new KernelNodeStateEditor(state2);
 
         for (Operation op : operations(OP_COUNT)) {
@@ -107,7 +97,7 @@ public class KernelNodeStateEditorFuzzTest {
             editor1 = new KernelNodeStateEditor(state1);
             if (op instanceof Save) {
                 state2 = editor2.mergeInto(mk2, state2);
-                editor2 = new KernelNodeStateEditor(state1);
+                editor2 = new KernelNodeStateEditor(state2);
                 assertEquals(state1, state2);
             }
         }
