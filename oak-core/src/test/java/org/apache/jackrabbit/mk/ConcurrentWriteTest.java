@@ -19,30 +19,19 @@ package org.apache.jackrabbit.mk;
 import java.util.Random;
 import junit.framework.TestCase;
 import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 
 public class ConcurrentWriteTest extends TestCase {
 
     protected static final String TEST_PATH = "/" + ConcurrentWriteTest.class.getName();
 
-    private static final String URL = "fs:{homeDir}/target;clean";
-    // private static final String URL = "fs:{homeDir}/target";
-    // private static final String URL = "simple:";
-    //private static final String URL = "simple:fs:target/temp;clean";
-
     private static final int NUM_THREADS = 20;
     private static final int NUM_CHILDNODES = 1000;
 
-    MicroKernel mk;
+    final MicroKernel mk = new MicroKernelImpl();
 
     public void setUp() throws Exception {
-        mk = MicroKernelFactory.getInstance(URL);
         mk.commit("/", "+ \"" + TEST_PATH.substring(1) + "\": {\"jcr:primaryType\":\"nt:unstructured\"}", mk.getHeadRevision(), null);
-    }
-
-    public void tearDown() throws InterruptedException {
-        String head = mk.commit("/", "- \"" + TEST_PATH.substring(1) + "\"", mk.getHeadRevision(), null);
-        //System.out.println("new HEAD: " + head);
-        mk.dispose();
     }
 
     /**

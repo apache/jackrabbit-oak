@@ -18,13 +18,13 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
+import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.model.NodeState;
 import org.apache.jackrabbit.mk.model.PropertyState;
 import org.apache.jackrabbit.mk.model.Scalar;
 import org.apache.jackrabbit.mk.model.Scalar.Type;
 import org.apache.jackrabbit.mk.model.ScalarImpl;
 import org.apache.jackrabbit.mk.simple.SimpleKernelImpl;
-import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -42,23 +42,19 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class KernelNodeStateEditorTest {
-    private SimpleKernelImpl microkernel;
+
+    private final MicroKernel microkernel = new SimpleKernelImpl("mem:");
+
     private KernelNodeState state;
 
     @Before
     public void setUp() {
-        microkernel = new SimpleKernelImpl("mem:KernelNodeStateTest");
         String jsop =
                 "+\"test\":{\"a\":1,\"b\":2,\"c\":3,"
                         + "\"x\":{},\"y\":{},\"z\":{}}";
         String revision = microkernel.commit(
                 "/", jsop, microkernel.getHeadRevision(), "test data");
         state = new KernelNodeState(microkernel, "/test", revision);
-    }
-    
-    @After
-    public void tearDown() {
-        microkernel.dispose();
     }
 
     @Test

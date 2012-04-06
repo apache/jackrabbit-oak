@@ -21,9 +21,16 @@ package org.apache.jackrabbit.oak.query.index;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import org.apache.jackrabbit.mk.MicroKernelFactory;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.junit.After;
+import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -32,18 +39,13 @@ import org.junit.Test;
  */
 public class TraversingCursorTest {
 
-    MicroKernel mk;
+    private final MicroKernel mk = new MicroKernelImpl();
+
     String head;
 
     @Before
     public void setUp() {
-        mk = MicroKernelFactory.getInstance("simple:/target/temp;clear");
         head = mk.getHeadRevision();
-    }
-
-    @After
-    public void tearDown() {
-        mk.dispose();
     }
 
     @Test
@@ -63,17 +65,21 @@ public class TraversingCursorTest {
         head = mk.commit("/", "+ \"parents\": { \"p0\": {\"id\": \"0\"}, \"p1\": {\"id\": \"1\"}, \"p2\": {\"id\": \"2\"}}", head, "");
         head = mk.commit("/", "+ \"children\": { \"c1\": {\"p\": \"1\"}, \"c2\": {\"p\": \"1\"}, \"c3\": {\"p\": \"2\"}, \"c4\": {\"p\": \"3\"}}", head, "");
         Filter f = new Filter(null);
-        Cursor c;
+ 
         f.setPath("/");
-        c = t.query(f, head);
-        String[] list = {"/", "/parents", "/parents/p0", "/parents/p1",  "/parents/p2",
-                "/children", "/children/c1", "/children/c2", "/children/c3", "/children/c4"};
-        for (String s : list) {
-            assertTrue(c.next());
-            assertEquals(s, c.currentPath());
+        List<String> paths = new ArrayList<String>();
+        Cursor c = t.query(f, head);
+        while (c.next()) {
+            paths.add(c.currentPath());
         }
+        Collections.sort(paths);
+        assertEquals(Arrays.asList(
+                "/", "/children", "/children/c1", "/children/c2",
+                "/children/c3", "/children/c4", "/parents",
+                "/parents/p0", "/parents/p1",  "/parents/p2"),
+                paths);
         assertFalse(c.next());
-        assertFalse(c.next());
+
         f.setPath("/nowhere");
         c = t.query(f, head);
         assertFalse(c.next());

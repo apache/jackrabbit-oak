@@ -58,14 +58,17 @@ public class MicroKernelImpl implements MicroKernel {
     public MicroKernelImpl(String homeDir) throws MicroKernelException {
         init(homeDir);
     }
-    
+
     /**
-     * Argument-less constructor, used for in-memory kernel.
+     * Creates a new in-memory kernel instance that doesn't need to be
+     * explicitly closed, i.e. standard Java garbage collection will take
+     * care of releasing any acquired resources when no longer needed.
+     * Useful especially for test cases and other similar scenarios.
      */
     public MicroKernelImpl() {
         this(new Repository());
     }
-    
+
     /**
      * Alternate constructor, used for testing.
      * 
