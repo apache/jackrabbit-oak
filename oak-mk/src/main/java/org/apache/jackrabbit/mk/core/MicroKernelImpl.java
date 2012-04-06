@@ -271,7 +271,7 @@ public class MicroKernelImpl implements MicroKernel {
                 return buff.newline().toString();
             }
 
-            TraversingNodeDiffHandler diffHandler = new TraversingNodeDiffHandler() {
+            TraversingNodeDiffHandler diffHandler = new TraversingNodeDiffHandler(rp) {
                 @Override
                 public void propertyAdded(PropertyState after) {
                     buff.tag('+').
@@ -331,7 +331,7 @@ public class MicroKernelImpl implements MicroKernel {
 
                 // TODO refactor code, avoid duplication
 
-                diffHandler = new TraversingNodeDiffHandler() {
+                diffHandler = new TraversingNodeDiffHandler(rp) {
                     @Override
                     public void propertyAdded(PropertyState after) {
                         buff.tag('+').

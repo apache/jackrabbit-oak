@@ -65,7 +65,7 @@ public class NodeDelta {
             RevisionProvider provider, NodeState node1, NodeState node2) {
         this.provider = provider;
         this.node1 = node1;
-        new DiffHandler().compare(node1, node2);
+        provider.compare(node1,  node2, new DiffHandler());
     }
 
     public Map<String, String> getAddedProperties() {
@@ -173,7 +173,7 @@ public class NodeDelta {
 
     //--------------------------------------------------------< inner classes >
 
-    private class DiffHandler extends NodeStateDiff {
+    private class DiffHandler implements NodeStateDiff {
 
         @Override
         public void propertyAdded(PropertyState after) {

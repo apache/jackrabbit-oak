@@ -23,18 +23,20 @@ import org.apache.jackrabbit.mk.util.PathUtils;
 /**
  *
  */
-public abstract class TraversingNodeDiffHandler extends NodeStateDiff {
+public abstract class TraversingNodeDiffHandler implements NodeStateDiff {
+
+    private final NodeStore store;
 
     protected Stack<String> paths = new Stack<String>();
 
-    public void start(NodeState before, NodeState after) {
-        start(before, after, "/");
+    public TraversingNodeDiffHandler(NodeStore store) {
+        this.store = store;
     }
 
     public void start(NodeState before, NodeState after, String path) {
         paths.clear();
         paths.push(path);
-        compare(before, after);
+        store.compare(before, after, this);
     }
 
     protected String getCurrentPath() {
@@ -45,7 +47,7 @@ public abstract class TraversingNodeDiffHandler extends NodeStateDiff {
     public void childNodeChanged(
             String name, NodeState before, NodeState after) {
         paths.push(PathUtils.concat(getCurrentPath(), name));
-        compare(before, after);
+        store.compare(before, after, this);
         paths.pop();
     }
 
