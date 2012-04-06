@@ -22,12 +22,16 @@ import java.io.LineNumberReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
-import org.apache.jackrabbit.mk.MicroKernelFactory;
+import java.util.List;
+
 import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.mk.core.MicroKernelImpl;
+import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -36,20 +40,15 @@ import org.junit.Test;
  */
 public class QueryTest {
 
-    MicroKernel mk;
+    private final MicroKernel mk = new MicroKernelImpl();
+
     String head;
     QueryEngineImpl qe;
 
     @Before
     public void setUp() {
-        mk = MicroKernelFactory.getInstance("simple:/target/temp;clear");
         head = mk.getHeadRevision();
         qe = new QueryEngineImpl(mk);
-    }
-
-    @After
-    public void tearDown() {
-        mk.dispose();
     }
 
     @Test
@@ -122,12 +121,8 @@ public class QueryTest {
                     }
                 } else if (line.startsWith("select") || line.startsWith("explain")) {
                     w.println(line);
-                    Iterator<? extends ResultRow> result = qe.executeQuery(line,
-                            QueryEngineImpl.SQL2, null).getRows().iterator();
                     boolean readEnd = true;
-                    while (result.hasNext()) {
-                        ResultRow row = result.next();
-                        String resultLine = readRow(line, row);
+                    for (String resultLine : executeQuery(line)) {
                         w.println(resultLine);
                         if (readEnd) {
                             line = r.readLine();
@@ -172,21 +167,34 @@ public class QueryTest {
         }
         if (errors) {
             throw new Exception("Results in target/queryTest.txt don't match expected " +
-                    "results in src/test/resources/quersTest.txt; compare the files for details");
+                    "results in src/test/resources/queryTest.txt; compare the files for details");
         }
     }
 
-    private String readRow(String query, ResultRow row) {
-        StringBuilder buff = new StringBuilder();
-        CoreValue[] values = row.getValues();
-        for (int i = 0; i < values.length; i++) {
-            if (i > 0) {
-                buff.append(", ");
+    private List<String> executeQuery(String query) throws ParseException {
+        List<String> lines = new ArrayList<String>();
+
+        Result result = qe.executeQuery(query, QueryEngineImpl.SQL2, null);
+        Iterator<? extends ResultRow> iterator = result.getRows().iterator();
+        while (iterator.hasNext()) {
+            ResultRow row = iterator.next();
+            StringBuilder buff = new StringBuilder();
+            CoreValue[] values = row.getValues();
+            for (int i = 0; i < values.length; i++) {
+                if (i > 0) {
+                    buff.append(", ");
+                }
+                CoreValue v = values[i];
+                buff.append(v == null ? "null" : v.getString());
             }
-            CoreValue v = values[i];
-            buff.append(v == null ? "null" : v.getString());
+            lines.add(buff.toString());
         }
-        return buff.toString();
+
+        if (!query.contains("order by")) {
+            Collections.sort(lines);
+        }
+
+        return lines;
     }
 
 }
