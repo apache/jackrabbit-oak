@@ -18,9 +18,7 @@ package org.apache.jackrabbit.mk.core;
 
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -31,6 +29,7 @@ import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.mk.model.ChildNodeEntry;
 import org.apache.jackrabbit.mk.model.Commit;
 import org.apache.jackrabbit.mk.model.CommitBuilder;
+import org.apache.jackrabbit.mk.model.CommitBuilder.NodeTree;
 import org.apache.jackrabbit.mk.model.Id;
 import org.apache.jackrabbit.mk.model.NodeState;
 import org.apache.jackrabbit.mk.model.PropertyState;
@@ -40,7 +39,6 @@ import org.apache.jackrabbit.mk.store.NotFoundException;
 import org.apache.jackrabbit.mk.store.RevisionProvider;
 import org.apache.jackrabbit.mk.util.CommitGate;
 import org.apache.jackrabbit.mk.util.PathUtils;
-import org.apache.jackrabbit.mk.util.SimpleLRUCache;
 
 /**
  *
@@ -49,11 +47,6 @@ public class MicroKernelImpl implements MicroKernel {
 
     protected Repository rep;
     private final CommitGate gate = new CommitGate();
-    
-    /**
-     * Key: revision id, Value: diff string
-     */
-    private final Map<Id, String> diffCache = Collections.synchronizedMap(SimpleLRUCache.<Id, String>newInstance(100));
 
     public MicroKernelImpl(String homeDir) throws MicroKernelException {
         init(homeDir);
@@ -97,7 +90,6 @@ public class MicroKernelImpl implements MicroKernel {
             }
             rep = null;
         }
-        diffCache.clear();
     }
 
     public String getHeadRevision() throws MicroKernelException {
@@ -211,13 +203,8 @@ public class MicroKernelImpl implements MicroKernel {
             commitBuff.object().
                     key("id").value(commit.getId().toString()).
                     key("ts").value(commit.getCommitTS()).
-                    key("msg").value(commit.getMsg());
-            String diff = diffCache.get(commit.getId());
-            if (diff == null) {
-                diff = diff(commit.getParentId(), commit.getId(), filter);
-                diffCache.put(commit.getId(), diff);
-            }
-            commitBuff.key("changes").value(diff).endObject();
+                    key("msg").value(commit.getMsg()).
+                    key("changes").value(commit.getChanges()).endObject();
         }
         return commitBuff.endArray().toString();
     }
@@ -478,12 +465,7 @@ public class MicroKernelImpl implements MicroKernel {
                             }
                             String parentPath = PathUtils.getParentPath(nodePath);
                             String nodeName = PathUtils.getName(nodePath);
-                            // build the list of added nodes recursively
-                            LinkedList<AddNodeOperation> list = new LinkedList<AddNodeOperation>();
-                            addNode(list, parentPath, nodeName, t);
-                            for (AddNodeOperation op : list) {
-                                cb.addNode(op.path, op.name, op.props);
-                            }
+                            cb.addNode(parentPath, nodeName, parseNode(t));
                         } else {
                             String value;
                             if (t.matches(JsopTokenizer.NULL)) {
@@ -637,30 +619,20 @@ public class MicroKernelImpl implements MicroKernel {
         }
     }
     
-    static void addNode(LinkedList<AddNodeOperation> list, String path, String name, JsopTokenizer t) throws Exception {
-        AddNodeOperation op = new AddNodeOperation();
-        op.path = path;
-        op.name = name;
-        list.add(op);
+    NodeTree parseNode(JsopTokenizer t) throws Exception {
+        NodeTree node = new NodeTree();
         if (!t.matches('}')) {
             do {
                 String key = t.readString();
                 t.read(':');
                 if (t.matches('{')) {
-                    addNode(list, PathUtils.concat(path, name), key, t);
+                    node.nodes.put(key, parseNode(t));
                 } else {
-                    op.props.put(key, t.readRawValue().trim());
+                    node.props.put(key, t.readRawValue().trim());
                 }
             } while (t.matches(','));
             t.read('}');
         }
+        return node;
     }
-
-    //--------------------------------------------------------< inner classes >
-    static class AddNodeOperation {
-        String path;
-        String name;
-        Map<String, String> props = new HashMap<String, String>();
-    }
-
 }
