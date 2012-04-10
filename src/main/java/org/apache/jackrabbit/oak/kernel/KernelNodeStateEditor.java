@@ -22,6 +22,9 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.model.NodeState;
 import org.apache.jackrabbit.mk.model.NodeStateEditor;
 import org.apache.jackrabbit.mk.model.PropertyState;
+import org.apache.jackrabbit.mk.model.Scalar;
+
+import java.util.List;
 
 import static org.apache.jackrabbit.mk.util.PathUtils.elements;
 import static org.apache.jackrabbit.mk.util.PathUtils.getName;
@@ -90,10 +93,19 @@ public class KernelNodeStateEditor implements NodeStateEditor {
     }
 
     @Override
-    public void setProperty(PropertyState state) {
-        transientState.setProperty(state);
-        jsop.append("^\"").append(path(state.getName())).append("\":")
-                .append(state.getEncodedValue());
+    public void setProperty(String name, Scalar value) {
+        PropertyState propertyState = new KernelPropertyState(name, value);
+        transientState.setProperty(propertyState);
+        jsop.append("^\"").append(path(propertyState.getName())).append("\":")
+                .append(propertyState.getEncodedValue());
+    }
+
+    @Override
+    public void setProperty(String name, List<Scalar> values) {
+        PropertyState propertyState = new KernelPropertyState(name, values);
+        transientState.setProperty(propertyState);
+        jsop.append("^\"").append(path(propertyState.getName())).append("\":")
+                .append(propertyState.getEncodedValue());
     }
 
     @Override
