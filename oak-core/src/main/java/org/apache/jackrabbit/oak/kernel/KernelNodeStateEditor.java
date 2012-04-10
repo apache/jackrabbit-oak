@@ -153,6 +153,14 @@ public class KernelNodeStateEditor implements NodeStateEditor {
         return base;
     }
 
+    /**
+     * @return the {@link TransientNodeState} instance this editor is
+     *         acting upon.
+     */
+    public TransientNodeState getTransientState() {
+        return transientState;
+    }
+
     //------------------------------------------------------------< internal >---
 
     /**
@@ -168,14 +176,6 @@ public class KernelNodeStateEditor implements NodeStateEditor {
         String targetRevision = target.getRevision();
         String rev = microkernel.commit(targetPath, jsop.toString(), targetRevision, null);
         return new KernelNodeState(microkernel, targetPath, rev);
-    }
-
-    /**
-     * @return the {@link TransientNodeState} instance this editor is
-     *         acting upon.
-     */
-    TransientNodeState getTransientState() {
-        return transientState;
     }
 
     /**

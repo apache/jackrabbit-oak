@@ -16,11 +16,14 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import org.apache.jackrabbit.mk.model.NodeStateEditor;
 import org.apache.jackrabbit.mk.model.PropertyState;
-import org.apache.jackrabbit.oak.jcr.state.TransientNodeState;
+import org.apache.jackrabbit.mk.util.PathUtils;
 import org.apache.jackrabbit.oak.jcr.util.LogUtil;
-import org.apache.jackrabbit.oak.jcr.util.Path;
 import org.apache.jackrabbit.oak.jcr.util.ValueConverter;
+import org.apache.jackrabbit.oak.kernel.KernelNodeStateEditor;
+import org.apache.jackrabbit.oak.kernel.KernelPropertyState;
+import org.apache.jackrabbit.oak.kernel.TransientNodeState;
 import org.apache.jackrabbit.value.ValueHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,35 +54,13 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     private static final Logger log = LoggerFactory.getLogger(PropertyImpl.class);
 
-    private final TransientNodeState parentState;
-    private final PropertyState state;
+    private final NodeStateEditor parentEditor;
+    private final PropertyState propertyState;
 
-    static Property create(SessionContext<SessionImpl> sessionContext, Path path) throws PathNotFoundException,
-            ItemNotFoundException {
-
-        TransientNodeState parentState = getNodeState(sessionContext, path.getParent());
-        if (parentState == null) {
-            throw new PathNotFoundException(path.toJcrPath());
-        }
-
-        String name = path.getName();
-        PropertyState state = parentState.getPropertyState(name);
-        return new PropertyImpl(sessionContext, parentState, state);
-    }
-
-    static Property create(SessionContext<SessionImpl> sessionContext, TransientNodeState parentState, PropertyState state) {
-        return new PropertyImpl(sessionContext, parentState, state);
-    }
-
-    public static boolean exist(SessionContext<SessionImpl> sessionContext, Path path) {
-        TransientNodeState parentState = getNodeState(sessionContext, path.getParent());
-        return parentState != null && parentState.hasProperty(path.getName());
-    }
-
-    private PropertyImpl(SessionContext<SessionImpl> sessionContext, TransientNodeState parentState, PropertyState state) {
+    PropertyImpl(SessionContext<SessionImpl> sessionContext, NodeStateEditor parentEditor, PropertyState propertyState) {
         super(sessionContext);
-        this.parentState = parentState;
-        this.state = state;
+        this.parentEditor = parentEditor;
+        this.propertyState = propertyState;
     }
 
     //---------------------------------------------------------------< Item >---
@@ -96,7 +77,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @Override
     public String getName() throws RepositoryException {
-        return state.getName();
+        return propertyState.getName();
     }
 
     /**
@@ -104,7 +85,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @Override
     public String getPath() throws RepositoryException {
-        return parentState.getPath().concat(state.getName()).toJcrPath();
+        return '/' + parentState().getPath() + '/' + propertyState.getName();
     }
 
     /**
@@ -112,7 +93,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @Override
     public Node getParent() throws RepositoryException {
-        return NodeImpl.create(sessionContext, parentState);
+        return new NodeImpl(sessionContext, parentEditor);
     }
 
     /**
@@ -132,7 +113,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @Override
     public int getDepth() throws RepositoryException {
-        return parentState.getPath().getDepth() + 1;
+        return PathUtils.getDepth(getPath());
     }
 
     /**
@@ -140,7 +121,8 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @Override
     public boolean isNew() {
-        return parentState.isPropertyNew(state.getName());
+        // todo implement isNew
+        return false;
     }
 
     /**
@@ -148,7 +130,8 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @Override
     public boolean isModified() {
-        return parentState.isPropertyModified(state.getName());
+        // todo implement isModified
+        return false;
     }
 
     /**
@@ -156,7 +139,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @Override
     public void remove() throws RepositoryException {
-        parentState.removeProperty(state.getName());
+        parentEditor.removeProperty(propertyState.getName());
     }
 
     /**
@@ -357,7 +340,7 @@ public class PropertyImpl extends ItemImpl implements Property {
             throw new ValueFormatException(LogUtil.safeGetJCRPath(this) + " is multi-valued.");
         }
 
-        return ValueConverter.toValue(getValueFactory(), state.getScalar());
+        return ValueConverter.toValue(getValueFactory(), propertyState.getScalar());
     }
 
     @Override
@@ -367,7 +350,7 @@ public class PropertyImpl extends ItemImpl implements Property {
             throw new ValueFormatException(LogUtil.safeGetJCRPath(this) + " is not multi-valued.");
         }
 
-        return ValueConverter.toValues(getValueFactory(), state.getArray());
+        return ValueConverter.toValues(getValueFactory(), propertyState.getArray());
     }
 
     /**
@@ -542,7 +525,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @Override
     public boolean isMultiple() throws RepositoryException {
-        return state.isArray();
+        return propertyState.isArray();
     }
 
     //------------------------------------------------------------< private >---
@@ -582,7 +565,8 @@ public class PropertyImpl extends ItemImpl implements Property {
             remove();
         }
         else {
-            parentState.setProperty(state.getName(), ValueConverter.toScalar(value));
+            parentEditor.setProperty(new KernelPropertyState(
+                    propertyState.getName(), ValueConverter.toScalar(value)));
         }
     }
 
@@ -602,7 +586,8 @@ public class PropertyImpl extends ItemImpl implements Property {
             remove();
         }
         else {
-            parentState.setProperty(state.getName(), ValueConverter.toScalar(values));
+            parentEditor.setProperty(new KernelPropertyState(
+                    propertyState.getName(), ValueConverter.toScalar(values)));
         }
     }
 
@@ -620,6 +605,11 @@ public class PropertyImpl extends ItemImpl implements Property {
         else {
             return value.getString().length();
         }
+    }
+
+    private TransientNodeState parentState() {
+        // fixme: resolve parent state in case a refresh has occurred
+        return ((KernelNodeStateEditor) parentEditor).getTransientState();
     }
 
 }
