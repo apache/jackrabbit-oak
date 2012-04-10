@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import org.apache.jackrabbit.commons.SimpleValueFactory;
-import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.Connection;
 import org.apache.jackrabbit.oak.api.RepositoryService;
 import org.slf4j.Logger;
@@ -48,7 +47,7 @@ public class RepositoryImpl implements Repository {
      * newly constructed Oak repository.
      */
     public RepositoryImpl() {
-        this(new GlobalContext(new MicroKernelImpl()));
+        context = null; // fixme this(new GlobalContext(new MicroKernelImpl()));
     }
 
     public RepositoryImpl(GlobalContext context) {

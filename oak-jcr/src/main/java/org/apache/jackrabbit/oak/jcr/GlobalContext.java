@@ -19,8 +19,6 @@
 
 package org.apache.jackrabbit.oak.jcr;
 
-import org.apache.jackrabbit.mk.MicroKernelFactory;
-import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.RepositoryService;
 import org.apache.jackrabbit.oak.core.TmpRepositoryService;
 import org.apache.jackrabbit.oak.jcr.configuration.RepositoryConfiguration;
@@ -45,12 +43,12 @@ public class GlobalContext {
     private final Map<Class<?>, Object> instances = new HashMap<Class<?>, Object>();
     
     public GlobalContext(RepositoryConfiguration repositoryConfiguration) throws RepositoryException {
-        this(MicroKernelFactory.getInstance(repositoryConfiguration.getMicrokernelUrl()));
+        this(repositoryConfiguration.getMicrokernelUrl());
         put(RepositoryConfiguration.class, repositoryConfiguration);
     }
 
-    public GlobalContext(MicroKernel mk) {
-        RepositoryService repositoryService = new TmpRepositoryService(mk);
+    public GlobalContext(String microKernelUrl) {
+        RepositoryService repositoryService = new TmpRepositoryService(microKernelUrl);
         put(RepositoryService.class, repositoryService);
         put(Repository.class, new RepositoryImpl(this));
     }
