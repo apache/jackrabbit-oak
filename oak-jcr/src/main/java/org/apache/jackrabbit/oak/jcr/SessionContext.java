@@ -30,4 +30,5 @@ public interface SessionContext<T extends Session> {
     String getWorkspaceName();
     Connection getConnection();
     ValueFactory getValueFactory();
+    ItemStateProvider getItemStateProvider();
 }

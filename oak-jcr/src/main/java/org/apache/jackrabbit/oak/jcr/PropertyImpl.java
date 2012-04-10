@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import org.apache.jackrabbit.mk.model.NodeStateEditor;
 import org.apache.jackrabbit.mk.model.PropertyState;
 import org.apache.jackrabbit.mk.util.PathUtils;
 import org.apache.jackrabbit.oak.jcr.util.LogUtil;
@@ -53,12 +52,14 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     private static final Logger log = LoggerFactory.getLogger(PropertyImpl.class);
 
-    private final NodeStateEditor parentEditor;
-    private final PropertyState propertyState;
+    private TransientNodeState parentState;
+    private PropertyState propertyState;
 
-    PropertyImpl(SessionContext<SessionImpl> sessionContext, NodeStateEditor parentEditor, PropertyState propertyState) {
+    PropertyImpl(SessionContext<SessionImpl> sessionContext, TransientNodeState parentState,
+            PropertyState propertyState) {
+
         super(sessionContext);
-        this.parentEditor = parentEditor;
+        this.parentState = parentState;
         this.propertyState = propertyState;
     }
 
@@ -76,7 +77,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @Override
     public String getName() throws RepositoryException {
-        return propertyState.getName();
+        return getStateName();
     }
 
     /**
@@ -84,7 +85,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @Override
     public String getPath() throws RepositoryException {
-        return '/' + parentState().getPath() + '/' + propertyState.getName();
+        return '/' + getParentState().getPath() + '/' + getStateName();
     }
 
     /**
@@ -92,7 +93,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @Override
     public Node getParent() throws RepositoryException {
-        return new NodeImpl(sessionContext, parentEditor);
+        return new NodeImpl(sessionContext, getParentState());
     }
 
     /**
@@ -138,7 +139,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @Override
     public void remove() throws RepositoryException {
-        parentEditor.removeProperty(propertyState.getName());
+        getEditor().removeProperty(getStateName());
     }
 
     /**
@@ -339,7 +340,7 @@ public class PropertyImpl extends ItemImpl implements Property {
             throw new ValueFormatException(LogUtil.safeGetJCRPath(this) + " is multi-valued.");
         }
 
-        return ValueConverter.toValue(getValueFactory(), propertyState.getScalar());
+        return ValueConverter.toValue(getValueFactory(), getPropertyState().getScalar());
     }
 
     @Override
@@ -349,7 +350,7 @@ public class PropertyImpl extends ItemImpl implements Property {
             throw new ValueFormatException(LogUtil.safeGetJCRPath(this) + " is not multi-valued.");
         }
 
-        return ValueConverter.toValues(getValueFactory(), propertyState.getArray());
+        return ValueConverter.toValues(getValueFactory(), getPropertyState().getArray());
     }
 
     /**
@@ -524,7 +525,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @Override
     public boolean isMultiple() throws RepositoryException {
-        return propertyState.isArray();
+        return getPropertyState().isArray();
     }
 
     //------------------------------------------------------------< private >---
@@ -562,8 +563,9 @@ public class PropertyImpl extends ItemImpl implements Property {
 
         if (value == null) {
             remove();
-        } else {
-            parentEditor.setProperty(propertyState.getName(), ValueConverter.toScalar(value));
+        }
+        else {
+            getEditor().setProperty(getStateName(), ValueConverter.toScalar(value));
         }
     }
 
@@ -581,8 +583,9 @@ public class PropertyImpl extends ItemImpl implements Property {
 
         if (values == null) {
             remove();
-        } else {
-            parentEditor.setProperty(propertyState.getName(), ValueConverter.toScalar(values));
+        }
+        else {
+            getEditor().setProperty(getStateName(), ValueConverter.toScalar(values));
         }
     }
 
@@ -602,9 +605,32 @@ public class PropertyImpl extends ItemImpl implements Property {
         }
     }
 
-    private TransientNodeState parentState() {
-        // fixme: resolve parent state in case a refresh has occurred
-        return ((KernelNodeStateEditor) parentEditor).getTransientState();
+    private ItemStateProvider getItemStateProvider() {
+        return sessionContext.getItemStateProvider();
+    }
+
+    private TransientNodeState getParentState() {
+        resolve();
+        return parentState;
+    }
+
+    private KernelNodeStateEditor getEditor() {
+        return getParentState().getEditor();
+    }
+
+    private PropertyState getPropertyState() {
+        resolve();
+        return propertyState;
+    }
+
+    private String getStateName() {
+        return getPropertyState().getName();
+    }
+
+    private void resolve() {
+        parentState = getItemStateProvider().getNodeState(parentState.getPath());
+        propertyState = getItemStateProvider().getPropertyState(
+                PathUtils.concat(parentState.getPath(), propertyState.getName()));
     }
 
 }

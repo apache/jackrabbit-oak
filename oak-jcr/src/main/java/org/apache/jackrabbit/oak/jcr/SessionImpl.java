@@ -21,6 +21,7 @@ import org.apache.jackrabbit.mk.model.NodeState;
 import org.apache.jackrabbit.mk.model.NodeStateEditor;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Connection;
+import org.apache.jackrabbit.oak.kernel.KernelNodeStateEditor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.ContentHandler;
@@ -53,21 +54,24 @@ public class SessionImpl extends AbstractSession {
     private final Workspace workspace;
     private final Connection connection;
     private final ValueFactory valueFactory;
-
     private final GlobalContext globalContext;
     private final SessionContext<SessionImpl> sessionContext = new Context();
+    private boolean isAlive = true;
 
     private NodeStateEditor editor;
-    private boolean isAlive = true;
+    private ItemStateProvider itemStateProvider;
 
     SessionImpl(GlobalContext globalContext, Repository repository, Connection connection) {
 
         this.globalContext = globalContext;
         this.repository = repository;
         this.connection = connection;
+        this.valueFactory = new ValueFactoryImpl();
 
-        editor = connection.getNodeStateEditor(connection.getCurrentRoot());
-        valueFactory = new ValueFactoryImpl();
+        this.editor = connection.getNodeStateEditor(connection.getCurrentRoot());
+        // fixme: don't cast to implementation
+        this.itemStateProvider = new ItemStateProvider(((KernelNodeStateEditor) editor).getTransientState());
+
         workspace = new WorkspaceImpl(sessionContext);
     }
 
@@ -121,7 +125,7 @@ public class SessionImpl extends AbstractSession {
     @Override
     public Node getRootNode() throws RepositoryException {
         checkIsAlive();
-        return new NodeImpl(sessionContext, editor);
+        return new NodeImpl(sessionContext, itemStateProvider.getNodeState("/"));
     }
 
     @Override
@@ -156,6 +160,8 @@ public class SessionImpl extends AbstractSession {
         try {
             NodeState newState = connection.commit(editor);
             editor = connection.getNodeStateEditor(newState);
+            // fixme: don't cast to implementation
+            itemStateProvider = new ItemStateProvider(((KernelNodeStateEditor) editor).getTransientState());
         } catch (CommitFailedException e) {
             throw new RepositoryException(e);
         }
@@ -165,7 +171,11 @@ public class SessionImpl extends AbstractSession {
     public void refresh(boolean keepChanges) throws RepositoryException {
         checkIsAlive();
         try {
-            connection.commit(connection.getNodeStateEditor(connection.getCurrentRoot()));  // todo: need a better way to update a connection to head
+            // todo: need a better way to update a connection to head
+            NodeState newState = connection.commit(connection.getNodeStateEditor(connection.getCurrentRoot()));
+            editor = connection.getNodeStateEditor(newState);
+            // fixme: don't cast to implementation
+            itemStateProvider = new ItemStateProvider(((KernelNodeStateEditor) editor).getTransientState());
         } catch (CommitFailedException e) {
             throw new RepositoryException(e);
         }
@@ -437,5 +447,9 @@ public class SessionImpl extends AbstractSession {
             return valueFactory;
         }
 
+        @Override
+        public ItemStateProvider getItemStateProvider() {
+            return itemStateProvider;
+        }
     }
 }
