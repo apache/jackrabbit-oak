@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.jcr;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
 import org.apache.jackrabbit.commons.iterator.PropertyIteratorAdapter;
-import org.apache.jackrabbit.mk.model.NodeStateEditor;
 import org.apache.jackrabbit.mk.model.PropertyState;
 import org.apache.jackrabbit.mk.model.ScalarImpl;
 import org.apache.jackrabbit.mk.util.PathUtils;
@@ -72,11 +71,11 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     private static final Logger log = LoggerFactory.getLogger(NodeImpl.class);
 
-    private final NodeStateEditor editor;
+    private TransientNodeState nodeState;
 
-    NodeImpl(SessionContext<SessionImpl> sessionContext, NodeStateEditor editor) {
+    NodeImpl(SessionContext<SessionImpl> sessionContext, TransientNodeState nodeState) {
         super(sessionContext);
-        this.editor = editor;
+        this.nodeState = nodeState;
     }
 
     //---------------------------------------------------------------< Item >---
@@ -93,7 +92,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public String getName() throws RepositoryException {
-        return state().getName();
+        return getNodeState().getName();
     }
 
     /**
@@ -109,11 +108,11 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public Node getParent() throws RepositoryException {
-        if (state().getParent() == null) {
+        if (getNodeState().getParent() == null) {
             throw new ItemNotFoundException("Root has no parent");
         }
 
-        return new NodeImpl(sessionContext, state().getParent().getEditor());
+        return new NodeImpl(sessionContext, getNodeState().getParent());
     }
 
     /**
@@ -156,7 +155,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public void remove() throws RepositoryException {
-        state().getParent().getEditor().removeNode(getName());
+        getNodeState().getParent().getEditor().removeNode(getName());
     }
 
     /**
@@ -176,17 +175,15 @@ public class NodeImpl extends ItemImpl implements Node  {
     public Node addNode(String relPath) throws RepositoryException {
         checkStatus();
 
-        NodeStateEditor editor = this.editor;
-        for (String name : PathUtils.elements(PathUtils.getParentPath(relPath))) {
-            editor = editor.edit(name);
-            if (editor == null) {
-                throw new PathNotFoundException();
-            }
+        String parentPath = PathUtils.concat(path(), PathUtils.getParentPath(relPath));
+        TransientNodeState parentState = getItemStateProvider().getNodeState(parentPath);
+        if (parentState == null) {
+            throw new PathNotFoundException(relPath);
         }
 
         String name = PathUtils.getName(relPath);
-        editor.addNode(name);
-        return new NodeImpl(sessionContext, editor.edit(name));
+        parentState.getEditor().addNode(name);
+        return new NodeImpl(sessionContext, parentState.getChildNode(name));
     }
 
     @Override
@@ -223,7 +220,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     public Property setProperty(String name, Value value, int type) throws RepositoryException {
         checkStatus();
 
-        editor.setProperty(name, ValueConverter.toScalar(value));
+        getEditor().setProperty(name, ValueConverter.toScalar(value));
         return getProperty(name);
     }
 
@@ -245,7 +242,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     public Property setProperty(String name, Value[] values, int type) throws RepositoryException {
         checkStatus();
 
-        editor.setProperty(name, ValueConverter.toScalar(values));
+        getEditor().setProperty(name, ValueConverter.toScalar(values));
         return getProperty(name);
     }
 
@@ -376,7 +373,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     public NodeIterator getNodes() throws RepositoryException {
         checkStatus();
 
-        Iterable<TransientNodeState> childNodeStates = state().getChildNodes();
+        Iterable<TransientNodeState> childNodeStates = getNodeState().getChildNodes();
         return new NodeIteratorAdapter(nodeIterator(childNodeStates.iterator()));
     }
 
@@ -384,7 +381,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     public NodeIterator getNodes(final String namePattern) throws RepositoryException {
         checkStatus();
 
-        Iterator<TransientNodeState> childNodeStates = filter(state().getChildNodes().iterator(),
+        Iterator<TransientNodeState> childNodeStates = filter(getNodeState().getChildNodes().iterator(),
                 new Predicate<TransientNodeState>() {
                     @Override
                     public boolean evaluate(TransientNodeState state) {
@@ -399,7 +396,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     public NodeIterator getNodes(final String[] nameGlobs) throws RepositoryException {
         checkStatus();
 
-        Iterator<TransientNodeState> childNodeStates = filter(state().getChildNodes().iterator(),
+        Iterator<TransientNodeState> childNodeStates = filter(getNodeState().getChildNodes().iterator(),
                 new Predicate<TransientNodeState>() {
                     @Override
                     public boolean evaluate(TransientNodeState state) {
@@ -426,7 +423,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     public PropertyIterator getProperties() throws RepositoryException {
         checkStatus();
 
-        Iterable<PropertyState> properties = state().getProperties();
+        Iterable<PropertyState> properties = getNodeState().getProperties();
         return new PropertyIteratorAdapter(propertyIterator(properties.iterator()));
     }
 
@@ -434,7 +431,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     public PropertyIterator getProperties(final String namePattern) throws RepositoryException {
         checkStatus();
 
-        Iterator<PropertyState> properties = filter(state().getProperties().iterator(),
+        Iterator<PropertyState> properties = filter(getNodeState().getProperties().iterator(),
                 new Predicate<PropertyState>() {
                     @Override
                     public boolean evaluate(PropertyState entry) {
@@ -447,7 +444,7 @@ public class NodeImpl extends ItemImpl implements Node  {
 
     @Override
     public PropertyIterator getProperties(final String[] nameGlobs) throws RepositoryException {
-        Iterator<PropertyState> propertyNames = filter(state().getProperties().iterator(),
+        Iterator<PropertyState> propertyNames = filter(getNodeState().getProperties().iterator(),
                 new Predicate<PropertyState>() {
                     @Override
                     public boolean evaluate(PropertyState entry) {
@@ -555,14 +552,14 @@ public class NodeImpl extends ItemImpl implements Node  {
     public boolean hasNodes() throws RepositoryException {
         checkStatus();
 
-        return state().getChildNodeCount() != 0;
+        return getNodeState().getChildNodeCount() != 0;
     }
 
     @Override
     public boolean hasProperties() throws RepositoryException {
         checkStatus();
 
-        return state().getPropertyCount() != 0;
+        return getNodeState().getPropertyCount() != 0;
     }
 
     @Override
@@ -593,7 +590,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     public void setPrimaryType(String nodeTypeName) throws RepositoryException {
         checkStatus();
 
-        editor.setProperty(JcrConstants.JCR_PRIMARYTYPE, ScalarImpl.stringScalar(nodeTypeName));
+        getEditor().setProperty(JcrConstants.JCR_PRIMARYTYPE, ScalarImpl.stringScalar(nodeTypeName));
     }
 
     @Override
@@ -818,11 +815,6 @@ public class NodeImpl extends ItemImpl implements Node  {
 
     }
 
-    //-----------------------------------------------------< implementation >---
-    public NodeStateEditor getEditor() {
-        return editor;
-    }
-
     //------------------------------------------------------------< private >---
     /**
      * Shortcut to retrieve the version manager from the workspace associated
@@ -846,20 +838,27 @@ public class NodeImpl extends ItemImpl implements Node  {
         return getSession().getWorkspace().getLockManager();
     }
 
-    private TransientNodeState state() {
-        // fixme: need to resolve state in case a refresh occurred
-        return ((KernelNodeStateEditor) editor).getTransientState();
+    private ItemStateProvider getItemStateProvider() {
+        return sessionContext.getItemStateProvider();
+    }
+    
+    private TransientNodeState getNodeState() {
+        return nodeState = getItemStateProvider().getNodeState(nodeState.getPath());
+    }
+
+    private KernelNodeStateEditor getEditor() {
+        return getNodeState().getEditor();
     }
 
     private String path() {
-        return state().getPath();
+        return getNodeState().getPath();
     }
 
     private Iterator<Node> nodeIterator(Iterator<TransientNodeState> childNodeStates) {
         return Iterators.map(childNodeStates, new Function1<TransientNodeState, Node>() {
             @Override
             public Node apply(TransientNodeState state) {
-                return new NodeImpl(sessionContext, state.getEditor());
+                return new NodeImpl(sessionContext, state);
             }
         });
     }
@@ -868,39 +867,30 @@ public class NodeImpl extends ItemImpl implements Node  {
         return Iterators.map(properties, new Function1<PropertyState, Property>() {
             @Override
             public Property apply(PropertyState propertyState) {
-                return new PropertyImpl(sessionContext, editor, propertyState);
+                return new PropertyImpl(sessionContext, getNodeState(), propertyState);
             }
         });
     }
 
     private NodeImpl getNodeOrNull(String relPath) {
-        NodeStateEditor editor = this.editor;
-
-        for (String name : PathUtils.elements(relPath)) {
-            editor = editor.edit(name);
-            if (editor == null) {
-                return null;
-            }
-        }
-
-        return new NodeImpl(sessionContext, editor);
+        String absPath = PathUtils.concat(path(), relPath);
+        TransientNodeState nodeState = getItemStateProvider().getNodeState(absPath);
+        return nodeState == null
+            ? null
+            : new NodeImpl(sessionContext, nodeState);
     }
     
     private PropertyImpl getPropertyOrNull(String relPath) {
-        String parentPath = PathUtils.getParentPath(relPath);
-        NodeStateEditor editor = this.editor;
-        for (String name : PathUtils.elements(parentPath)) {
-            editor = editor.edit(name);
-            if (editor == null) {
-                return null;
-            }
+        String absPath = PathUtils.concat(path(), PathUtils.getParentPath(relPath));
+        TransientNodeState parentState = getItemStateProvider().getNodeState(absPath);
+        if (parentState == null) {
+            return null;
         }
 
         String name = PathUtils.getName(relPath);
-        // fixme: don't cast to implementation
-        PropertyState state = ((KernelNodeStateEditor) editor).getTransientState().getProperty(name);
-        return state == null
+        PropertyState propertyState = parentState.getProperty(name);
+        return propertyState == null
             ? null
-            : new PropertyImpl(sessionContext, editor, state);
+            : new PropertyImpl(sessionContext, parentState, propertyState);
     }
 }
