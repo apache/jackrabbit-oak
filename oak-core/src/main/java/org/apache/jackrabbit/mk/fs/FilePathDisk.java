@@ -200,6 +200,10 @@ public class FilePathDisk extends FilePath {
 
     @Override
     public boolean isAbsolute() {
+        if (File.separatorChar != '/') {
+            // Windows requires backslashes for isAbsolute() to work
+            name = name.replace('/', File.separatorChar);
+        }
         return new File(name).isAbsolute();
     }
 
