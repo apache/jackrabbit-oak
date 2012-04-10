@@ -218,11 +218,13 @@ public class KernelNodeStateEditorFuzzTest {
 
         static class SetProperty extends Operation {
             private final String parentPath;
-            private KernelPropertyState propertyState;
+            private String propertyName;
+            private Scalar propertyValue;
 
             SetProperty(String parentPath, String name, Scalar value) {
                 this.parentPath = parentPath;
-                this.propertyState = new KernelPropertyState(name, value);
+                this.propertyName = name;
+                this.propertyValue = value;
             }
 
             @Override
@@ -230,13 +232,13 @@ public class KernelNodeStateEditorFuzzTest {
                 for (String element : PathUtils.elements(parentPath)) {
                     editor = editor.edit(element);
                 }
-                editor.setProperty(propertyState);
+                editor.setProperty(propertyName, propertyValue);
             }
 
             @Override
             public String toString() {
-                return '^' + PathUtils.concat(parentPath, propertyState.getName()) + ':'
-                        + propertyState.getEncodedValue();
+                return '^' + PathUtils.concat(parentPath, propertyName) + ':'
+                        + propertyValue;
             }
         }
 
