@@ -30,7 +30,6 @@ import org.apache.jackrabbit.oak.jcr.util.LogUtil;
 import org.apache.jackrabbit.oak.jcr.util.Predicate;
 import org.apache.jackrabbit.oak.jcr.util.ValueConverter;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStateEditor;
-import org.apache.jackrabbit.oak.kernel.KernelPropertyState;
 import org.apache.jackrabbit.oak.kernel.TransientNodeState;
 import org.apache.jackrabbit.value.ValueHelper;
 import org.slf4j.Logger;
