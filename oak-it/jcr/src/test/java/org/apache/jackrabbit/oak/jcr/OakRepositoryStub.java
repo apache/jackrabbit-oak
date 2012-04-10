@@ -16,28 +16,28 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import java.security.Principal;
-import java.util.Properties;
+import org.apache.jackrabbit.test.NotExecutableException;
+import org.apache.jackrabbit.test.RepositoryStub;
 
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
-
-import org.apache.jackrabbit.test.NotExecutableException;
-import org.apache.jackrabbit.test.RepositoryStub;
+import java.security.Principal;
+import java.util.Properties;
 
 public class OakRepositoryStub extends RepositoryStub {
 
-    private final Repository repository = new RepositoryImpl();
+    private final Repository repository;
 
     /**
      * Constructor as required by the JCR TCK.
      *
      * @param settings repository settings
      */
-    public OakRepositoryStub(Properties settings) {
+    public OakRepositoryStub(Properties settings) throws RepositoryException {
         super(settings);
+        repository = new RepositoryImpl();
     }
 
     /**
@@ -45,6 +45,7 @@ public class OakRepositoryStub extends RepositoryStub {
      *
      * @return the configured repository instance.
      */
+    @Override
     public synchronized Repository getRepository() {
         return repository;
     }
@@ -55,6 +56,7 @@ public class OakRepositoryStub extends RepositoryStub {
     }
 
     private static Principal UNKNOWN_PRINCIPAL = new Principal() {
+        @Override
         public String getName() {
             return "an_unknown_user";
         }

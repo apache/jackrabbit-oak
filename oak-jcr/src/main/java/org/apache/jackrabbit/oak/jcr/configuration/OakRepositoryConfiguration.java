@@ -28,7 +28,6 @@ import static java.text.MessageFormat.format;
 public class OakRepositoryConfiguration implements RepositoryConfiguration {
     private final Map<String, String> parameters;
     private final String microkernelUrl;
-    private final int nodeStateCacheSize;
 
     private OakRepositoryConfiguration(Map<String, String> parameters) throws RepositoryException {
         this.parameters = Collections.unmodifiableMap(parameters);
@@ -37,16 +36,6 @@ public class OakRepositoryConfiguration implements RepositoryConfiguration {
         if (microkernelUrl == null) {
             throw new RepositoryException(format("Missing configuration value for {0}", MICROKERNEL_URL));
         }
-
-        String size = getParameterMap().get(NODE_STATE_CACHE_SIZE);
-        try {
-            nodeStateCacheSize = size == null ? 0 : Integer.parseInt(size);
-        }
-        catch (NumberFormatException e) {
-            throw new RepositoryException(format("Invalid configuration value {0} for {1}",
-                    size, NODE_STATE_CACHE_SIZE), e);
-        }
-
     }
 
     public static RepositoryConfiguration create(Map<String, String> parameters) throws RepositoryException {
@@ -63,8 +52,4 @@ public class OakRepositoryConfiguration implements RepositoryConfiguration {
         return microkernelUrl;
     }
 
-    @Override
-    public int getNodeStateCacheSize() {
-        return nodeStateCacheSize;
-    }
 }
