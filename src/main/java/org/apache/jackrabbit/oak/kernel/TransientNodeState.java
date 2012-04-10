@@ -157,6 +157,39 @@ public class TransientNodeState {
     }
 
     /**
+     * @return  the name of this transient node state
+     */
+    public String getName() {
+        return name;
+    }
+
+    /**
+     * @return  relative path of this transient node state
+     */
+    public String getPath() {
+        if (parent == null) {
+            return name;
+        }
+        else {
+            String path = parent.getPath();
+            return path.isEmpty()
+                    ? name
+                    : path + '/' + name;
+        }
+    }
+
+    public TransientNodeState getParent() {
+        return parent;
+    }
+
+    /**
+     * @return  editor acting upon this instance
+     */
+    public KernelNodeStateEditor getEditor() {
+        return editor;
+    }
+
+    /**
      * Get a property state
      * @param name name of the property state
      * @return  the property state with the given {@code name} or {@code null}
@@ -337,35 +370,6 @@ public class TransientNodeState {
     }
 
     //------------------------------------------------------------< internal >---
-
-    /**
-     * @return  editor acting upon this instance
-     */
-    KernelNodeStateEditor getEditor() {
-        return editor;
-    }
-
-    /**
-     * @return  the name of this transient node state
-     */
-    String getName() {
-        return name;
-    }
-
-    /**
-     * @return  relative path of this transient node state
-     */
-    String getPath() {
-        if (parent == null) {
-            return name;
-        }
-        else {
-            String path = parent.getPath();
-            return path.isEmpty()
-                ? name
-                : path + '/' + name;
-        }
-    }
 
     /**
      * Add a new child node state with the given {@code name}.

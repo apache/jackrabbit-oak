@@ -100,14 +100,7 @@ public class ConnectionImpl implements Connection {
 
     @Override
     public NodeState commit(NodeStateEditor editor) throws CommitFailedException {
-        if (workspaceName == null) {
-            return root = store.getRoot();
-        }
-        else {
-            return root = store.getRoot().getChildNode(workspaceName);
-        }
-
-        // todo return store.merge(editor, editor.getBaseNodeState());
+        return store.merge(editor, editor.getBaseNodeState());
     }
 
     @Override
