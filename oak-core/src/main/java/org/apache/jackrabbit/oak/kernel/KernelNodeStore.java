@@ -50,7 +50,7 @@ public class KernelNodeStore implements NodeStore {
         if (!(branch instanceof KernelNodeStateEditor)) {
             throw new IllegalArgumentException("Branch does not belong to this store");
         }
-        if (!(target instanceof KernelNodeStore)) {
+        if (!(target instanceof KernelNodeState)) {
             throw new IllegalArgumentException("Target does not belong to this store");
         }
 

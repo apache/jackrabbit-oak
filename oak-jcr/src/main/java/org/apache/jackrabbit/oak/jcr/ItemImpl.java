@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import org.apache.jackrabbit.oak.jcr.state.TransientNodeState;
-import org.apache.jackrabbit.oak.jcr.util.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -130,10 +128,6 @@ abstract class ItemImpl implements Item {
      */
     ValueFactory getValueFactory() {
         return sessionContext.getValueFactory();
-    }
-
-    protected static TransientNodeState getNodeState(SessionContext<SessionImpl> sessionContext, Path path) {
-        return sessionContext.getNodeStateProvider().getNodeState(path);
     }
 
 }

@@ -52,7 +52,6 @@ public class GlobalContext {
     public GlobalContext(MicroKernel mk) {
         RepositoryService repositoryService = new TmpRepositoryService(mk);
         put(RepositoryService.class, repositoryService);
-        put(MicroKernel.class, mk);
         put(Repository.class, new RepositoryImpl(this));
     }
 

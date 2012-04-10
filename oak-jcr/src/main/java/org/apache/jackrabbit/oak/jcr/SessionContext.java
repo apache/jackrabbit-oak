@@ -19,9 +19,7 @@
 
 package org.apache.jackrabbit.oak.jcr;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.Connection;
-import org.apache.jackrabbit.oak.jcr.state.NodeStateProvider;
 
 import javax.jcr.Session;
 import javax.jcr.ValueFactory;
@@ -31,7 +29,5 @@ public interface SessionContext<T extends Session> {
     GlobalContext getGlobalContext();
     String getWorkspaceName();
     Connection getConnection();
-    MicroKernel getMicrokernel(); // TODO: this should be superfluous when Connection is used for communication
     ValueFactory getValueFactory();
-    NodeStateProvider getNodeStateProvider();
 }

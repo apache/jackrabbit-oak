@@ -17,18 +17,21 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.mk.model.ScalarImpl;
 import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
 import org.apache.jackrabbit.commons.iterator.PropertyIteratorAdapter;
+import org.apache.jackrabbit.mk.model.NodeStateEditor;
 import org.apache.jackrabbit.mk.model.PropertyState;
-import org.apache.jackrabbit.oak.jcr.state.TransientNodeState;
+import org.apache.jackrabbit.mk.model.ScalarImpl;
+import org.apache.jackrabbit.mk.util.PathUtils;
 import org.apache.jackrabbit.oak.jcr.util.Function1;
 import org.apache.jackrabbit.oak.jcr.util.ItemNameMatcher;
 import org.apache.jackrabbit.oak.jcr.util.Iterators;
 import org.apache.jackrabbit.oak.jcr.util.LogUtil;
-import org.apache.jackrabbit.oak.jcr.util.Path;
 import org.apache.jackrabbit.oak.jcr.util.Predicate;
 import org.apache.jackrabbit.oak.jcr.util.ValueConverter;
+import org.apache.jackrabbit.oak.kernel.KernelNodeStateEditor;
+import org.apache.jackrabbit.oak.kernel.KernelPropertyState;
+import org.apache.jackrabbit.oak.kernel.TransientNodeState;
 import org.apache.jackrabbit.value.ValueHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,28 +73,11 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     private static final Logger log = LoggerFactory.getLogger(NodeImpl.class);
 
-    private final TransientNodeState state;
+    private final NodeStateEditor editor;
 
-    static boolean exist(SessionContext<SessionImpl> sessionContext, Path path) {
-        return getNodeState(sessionContext, path) != null;
-    }
-
-    static Node create(SessionContext<SessionImpl> sessionContext, Path path) throws PathNotFoundException {
-        TransientNodeState state = getNodeState(sessionContext, path);
-        if (state == null) {
-            throw new PathNotFoundException(path.toJcrPath());
-        }
-
-        return new NodeImpl(sessionContext, state);
-    }
-
-    static Node create(SessionContext<SessionImpl> sessionContext, TransientNodeState state) {
-        return new NodeImpl(sessionContext, state);
-    }
-
-    private NodeImpl(SessionContext<SessionImpl> sessionContext, TransientNodeState state) {
+    NodeImpl(SessionContext<SessionImpl> sessionContext, NodeStateEditor editor) {
         super(sessionContext);
-        this.state = state;
+        this.editor = editor;
     }
 
     //---------------------------------------------------------------< Item >---
@@ -108,7 +94,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public String getName() throws RepositoryException {
-        return state.getName();
+        return state().getName();
     }
 
     /**
@@ -116,7 +102,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public String getPath() throws RepositoryException {
-        return path().toJcrPath();
+        return '/' + path();
     }
 
     /**
@@ -124,11 +110,11 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public Node getParent() throws RepositoryException {
-        if (state.isRoot()) {
+        if (state().getParent() == null) {
             throw new ItemNotFoundException("Root has no parent");
         }
 
-        return create(sessionContext, path().getParent());
+        return new NodeImpl(sessionContext, state().getParent().getEditor());
     }
 
     /**
@@ -136,12 +122,8 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public Item getAncestor(int depth) throws RepositoryException {
-        Path parent = path().getAncestor(depth);
-        if (parent == null) {
-            throw new ItemNotFoundException(path().toJcrPath() + "has no ancestor of depth " + depth);
-        }
-
-        return create(sessionContext, parent);
+        // todo implement getAncestor
+        return null;
     }
 
     /**
@@ -149,7 +131,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public int getDepth() throws RepositoryException {
-        return path().getDepth();
+        return PathUtils.getDepth(path());
     }
 
     /**
@@ -157,7 +139,8 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public boolean isNew() {
-        return state.isNew();
+        // todo implement isNew
+        return false;
     }
 
     /**
@@ -165,7 +148,8 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public boolean isModified() {
-        return state.isModified();
+        // todo implement isModified
+        return false;
     }
 
     /**
@@ -173,7 +157,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public void remove() throws RepositoryException {
-        state.remove();
+        state().getParent().getEditor().removeNode(getName());
     }
 
     /**
@@ -192,10 +176,18 @@ public class NodeImpl extends ItemImpl implements Node  {
     @Override
     public Node addNode(String relPath) throws RepositoryException {
         checkStatus();
-        Path newPath = path().concat(relPath);
-        TransientNodeState parentState = getNodeState(sessionContext, newPath.getParent());
-        TransientNodeState childState = parentState.addNode(newPath.getName());
-        return create(sessionContext, childState);
+
+        NodeStateEditor editor = this.editor;
+        for (String name : PathUtils.elements(PathUtils.getParentPath(relPath))) {
+            editor = editor.edit(name);
+            if (editor == null) {
+                throw new PathNotFoundException();
+            }
+        }
+
+        String name = PathUtils.getName(relPath);
+        editor.addNode(name);
+        return new NodeImpl(sessionContext, editor.edit(name));
     }
 
     @Override
@@ -232,7 +224,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     public Property setProperty(String name, Value value, int type) throws RepositoryException {
         checkStatus();
 
-        state.setProperty(name, ValueConverter.toScalar(value));
+        editor.setProperty(new KernelPropertyState(name, ValueConverter.toScalar(value)));
         return getProperty(name);
     }
 
@@ -254,7 +246,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     public Property setProperty(String name, Value[] values, int type) throws RepositoryException {
         checkStatus();
 
-        state.setProperty(name, ValueConverter.toScalar(values));
+        editor.setProperty(new KernelPropertyState(name, ValueConverter.toScalar(values)));
         return getProperty(name);
     }
 
@@ -370,22 +362,30 @@ public class NodeImpl extends ItemImpl implements Node  {
 
     @Override
     public Node getNode(String relPath) throws RepositoryException {
-        return create(sessionContext, path().concat(relPath));
+        checkStatus();
+
+        NodeImpl node = getNodeOrNull(relPath);
+        if (node == null) {
+            throw new PathNotFoundException(relPath);
+        }
+        else {
+            return node;
+        }
     }
 
     @Override
     public NodeIterator getNodes() throws RepositoryException {
         checkStatus();
 
-        Iterator<TransientNodeState> childNodeStates = state.getNodes();
-        return new NodeIteratorAdapter(nodeIterator(childNodeStates));
+        Iterable<TransientNodeState> childNodeStates = state().getChildNodes();
+        return new NodeIteratorAdapter(nodeIterator(childNodeStates.iterator()));
     }
 
     @Override
     public NodeIterator getNodes(final String namePattern) throws RepositoryException {
         checkStatus();
 
-        Iterator<TransientNodeState> childNodeStates = filter(state.getNodes(),
+        Iterator<TransientNodeState> childNodeStates = filter(state().getChildNodes().iterator(),
                 new Predicate<TransientNodeState>() {
                     @Override
                     public boolean evaluate(TransientNodeState state) {
@@ -400,7 +400,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     public NodeIterator getNodes(final String[] nameGlobs) throws RepositoryException {
         checkStatus();
 
-        Iterator<TransientNodeState> childNodeStates = filter(state.getNodes(),
+        Iterator<TransientNodeState> childNodeStates = filter(state().getChildNodes().iterator(),
                 new Predicate<TransientNodeState>() {
                     @Override
                     public boolean evaluate(TransientNodeState state) {
@@ -415,22 +415,28 @@ public class NodeImpl extends ItemImpl implements Node  {
     public Property getProperty(String relPath) throws RepositoryException {
         checkStatus();
 
-        return PropertyImpl.create(sessionContext, path().concat(relPath));
+        Property property = getPropertyOrNull(relPath);
+        if (property == null) {
+            throw new PathNotFoundException(relPath);
+        }
+        else {
+            return property;
+        }
     }
 
     @Override
     public PropertyIterator getProperties() throws RepositoryException {
         checkStatus();
 
-        Iterator<PropertyState> properties = state.getProperties();
-        return new PropertyIteratorAdapter(propertyIterator(properties));
+        Iterable<PropertyState> properties = state().getProperties();
+        return new PropertyIteratorAdapter(propertyIterator(properties.iterator()));
     }
 
     @Override
     public PropertyIterator getProperties(final String namePattern) throws RepositoryException {
         checkStatus();
 
-        Iterator<PropertyState> properties = filter(state.getProperties(),
+        Iterator<PropertyState> properties = filter(state().getProperties().iterator(),
                 new Predicate<PropertyState>() {
                     @Override
                     public boolean evaluate(PropertyState entry) {
@@ -443,7 +449,7 @@ public class NodeImpl extends ItemImpl implements Node  {
 
     @Override
     public PropertyIterator getProperties(final String[] nameGlobs) throws RepositoryException {
-        Iterator<PropertyState> propertyNames = filter(state.getProperties(),
+        Iterator<PropertyState> propertyNames = filter(state().getProperties().iterator(),
                 new Predicate<PropertyState>() {
                     @Override
                     public boolean evaluate(PropertyState entry) {
@@ -492,7 +498,7 @@ public class NodeImpl extends ItemImpl implements Node  {
         checkStatus();
 
         // TODO
-        return path().toMkPath();
+        return path();
     }
 
     @Override
@@ -537,28 +543,28 @@ public class NodeImpl extends ItemImpl implements Node  {
     public boolean hasNode(String relPath) throws RepositoryException {
         checkStatus();
 
-        return exist(sessionContext, path().concat(relPath));
+        return getNodeOrNull(relPath) != null;
     }
 
     @Override
     public boolean hasProperty(String relPath) throws RepositoryException {
         checkStatus();
 
-        return PropertyImpl.exist(sessionContext, path().concat(relPath));
+        return getPropertyOrNull(relPath) != null;
     }
 
     @Override
     public boolean hasNodes() throws RepositoryException {
         checkStatus();
 
-        return state.hasNodes();
+        return state().getChildNodeCount() != 0;
     }
 
     @Override
     public boolean hasProperties() throws RepositoryException {
         checkStatus();
 
-        return state.hasProperties();
+        return state().getPropertyCount() != 0;
     }
 
     @Override
@@ -589,7 +595,8 @@ public class NodeImpl extends ItemImpl implements Node  {
     public void setPrimaryType(String nodeTypeName) throws RepositoryException {
         checkStatus();
 
-        state.setProperty(JcrConstants.JCR_PRIMARYTYPE, ScalarImpl.stringScalar(nodeTypeName));
+        editor.setProperty(new KernelPropertyState(
+                JcrConstants.JCR_PRIMARYTYPE, ScalarImpl.stringScalar(nodeTypeName)));
     }
 
     @Override
@@ -837,15 +844,20 @@ public class NodeImpl extends ItemImpl implements Node  {
         return getSession().getWorkspace().getLockManager();
     }
 
-    private Path path() {
-        return state.getPath();
+    private TransientNodeState state() {
+        // fixme: need to resolve state in case a refresh occurred
+        return ((KernelNodeStateEditor) editor).getTransientState();
+    }
+
+    private String path() {
+        return state().getPath();
     }
 
     private Iterator<Node> nodeIterator(Iterator<TransientNodeState> childNodeStates) {
         return Iterators.map(childNodeStates, new Function1<TransientNodeState, Node>() {
             @Override
             public Node apply(TransientNodeState state) {
-                return NodeImpl.create(sessionContext, state);
+                return new NodeImpl(sessionContext, state.getEditor());
             }
         });
     }
@@ -854,8 +866,39 @@ public class NodeImpl extends ItemImpl implements Node  {
         return Iterators.map(properties, new Function1<PropertyState, Property>() {
             @Override
             public Property apply(PropertyState propertyState) {
-                return PropertyImpl.create(sessionContext, state, propertyState);
+                return new PropertyImpl(sessionContext, editor, propertyState);
             }
         });
+    }
+
+    private NodeImpl getNodeOrNull(String relPath) {
+        NodeStateEditor editor = this.editor;
+
+        for (String name : PathUtils.elements(relPath)) {
+            editor = editor.edit(name);
+            if (editor == null) {
+                return null;
+            }
+        }
+
+        return new NodeImpl(sessionContext, editor);
+    }
+    
+    private PropertyImpl getPropertyOrNull(String relPath) {
+        String parentPath = PathUtils.getParentPath(relPath);
+        NodeStateEditor editor = this.editor;
+        for (String name : PathUtils.elements(parentPath)) {
+            editor = editor.edit(name);
+            if (editor == null) {
+                return null;
+            }
+        }
+
+        String name = PathUtils.getName(relPath);
+        // fixme: don't cast to implementation
+        PropertyState state = ((KernelNodeStateEditor) editor).getTransientState().getProperty(name);
+        return state == null
+            ? null
+            : new PropertyImpl(sessionContext, editor, state);
     }
 }

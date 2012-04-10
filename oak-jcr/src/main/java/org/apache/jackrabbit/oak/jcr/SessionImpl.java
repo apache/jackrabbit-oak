@@ -17,24 +17,17 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import org.apache.jackrabbit.commons.AbstractSession;
-import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.mk.model.NodeState;
+import org.apache.jackrabbit.mk.model.NodeStateEditor;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Connection;
-import org.apache.jackrabbit.oak.jcr.state.NodeStateProvider;
-import org.apache.jackrabbit.oak.jcr.state.TransientNodeState;
-import org.apache.jackrabbit.oak.jcr.state.TransientSpace;
-import org.apache.jackrabbit.oak.jcr.util.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.ContentHandler;
 
 import javax.jcr.Credentials;
 import javax.jcr.InvalidItemStateException;
-import javax.jcr.Item;
-import javax.jcr.ItemNotFoundException;
 import javax.jcr.Node;
-import javax.jcr.PathNotFoundException;
-import javax.jcr.Property;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -62,9 +55,8 @@ public class SessionImpl extends AbstractSession {
     private final ValueFactory valueFactory;
 
     private final GlobalContext globalContext;
-    private final TransientSpace transientSpace;
-    private final NodeStateProvider nodeStateProvider;
 
+    private NodeStateEditor editor;
     private boolean isAlive = true;
 
     private final SessionContext<SessionImpl> sessionContext = new Context();
@@ -75,11 +67,9 @@ public class SessionImpl extends AbstractSession {
         this.repository = repository;
         this.connection = connection;
 
+        editor = connection.getNodeStateEditor(connection.getCurrentRoot());
         valueFactory = new ValueFactoryImpl();
         workspace = new WorkspaceImpl(sessionContext);
-
-        transientSpace = new TransientSpace(sessionContext.getWorkspaceName(), sessionContext.getMicrokernel());
-        nodeStateProvider = new NodeStateProvider(sessionContext, transientSpace);
     }
 
 
@@ -132,48 +122,7 @@ public class SessionImpl extends AbstractSession {
     @Override
     public Node getRootNode() throws RepositoryException {
         checkIsAlive();
-        return NodeImpl.create(sessionContext, Path.create(sessionContext.getWorkspaceName()));
-    }
-
-    @Override
-    public Item getItem(String absPath) throws RepositoryException {
-        if (nodeExists(absPath)) {
-            return getNode(absPath);
-        }
-        else {
-            return getProperty(absPath);
-        }
-    }
-
-    @Override
-    public boolean itemExists(String absPath) throws RepositoryException {
-        return nodeExists(absPath) || propertyExists(absPath);
-    }
-
-    @Override
-    public Node getNode(String absPath) throws RepositoryException {
-        return NodeImpl.create(sessionContext, Path.create(sessionContext.getWorkspaceName(), absPath));
-    }
-
-    @Override
-    public boolean nodeExists(String absPath) throws RepositoryException {
-        Path path = Path.create(sessionContext.getWorkspaceName(), absPath);
-        return path.isRoot() || NodeImpl.exist(sessionContext, path);
-    }
-
-    @Override
-    public Property getProperty(String absPath) throws RepositoryException {
-        if ("/".equals(absPath)) {
-            throw new ItemNotFoundException(absPath);
-        }
-
-        return PropertyImpl.create(sessionContext, Path.create(sessionContext.getWorkspaceName(), absPath));
-    }
-
-    @Override
-    public boolean propertyExists(String absPath) throws RepositoryException {
-        Path path = Path.create(sessionContext.getWorkspaceName(), absPath);
-        return !path.isRoot() && PropertyImpl.exist(sessionContext, path);
+        return new NodeImpl(sessionContext, editor);
     }
 
     @Override
@@ -197,13 +146,7 @@ public class SessionImpl extends AbstractSession {
     @Override
     public void move(String srcAbsPath, String destAbsPath) throws RepositoryException {
         checkIsAlive();
-        Path sourcePath = Path.create(sessionContext.getWorkspaceName(), srcAbsPath);
-        TransientNodeState sourceParent = nodeStateProvider.getNodeState(sourcePath.getParent());
-        if (sourceParent == null) {
-            throw new PathNotFoundException(srcAbsPath);
-        }
-
-        sourceParent.move(sourcePath.getName(), Path.create(sessionContext.getWorkspaceName(), destAbsPath));
+        // todo implement move
     }
 
     //------------------------------------------------------------< state >---
@@ -212,9 +155,8 @@ public class SessionImpl extends AbstractSession {
     public void save() throws RepositoryException {
         checkIsAlive();
         try {
-            transientSpace.save();
-            connection.commit(connection.getNodeStateEditor(connection.getCurrentRoot()));  // todo: need a better way to update a connection to head
-            nodeStateProvider.clear();
+            NodeState newState = connection.commit(editor);
+            editor = connection.getNodeStateEditor(newState);
         }
         catch (CommitFailedException e) {
             throw new RepositoryException(e);
@@ -225,9 +167,7 @@ public class SessionImpl extends AbstractSession {
     public void refresh(boolean keepChanges) throws RepositoryException {
         checkIsAlive();
         try {
-            transientSpace.refresh(keepChanges);
             connection.commit(connection.getNodeStateEditor(connection.getCurrentRoot()));  // todo: need a better way to update a connection to head
-            nodeStateProvider.clear();
         }
         catch (CommitFailedException e) {
             throw new RepositoryException(e);
@@ -237,7 +177,9 @@ public class SessionImpl extends AbstractSession {
     @Override
     public boolean hasPendingChanges() throws RepositoryException {
         checkIsAlive();
-        return transientSpace.isDirty();
+
+        // todo implement hasPendingChanges
+        return false;
     }
 
     //----------------------------------------------------------< Lifecycle >---
@@ -495,18 +437,9 @@ public class SessionImpl extends AbstractSession {
         }
 
         @Override
-        public MicroKernel getMicrokernel() {
-            return globalContext.getInstance(MicroKernel.class);
-        }
-
-        @Override
         public ValueFactory getValueFactory() {
             return valueFactory;
         }
 
-        @Override
-        public NodeStateProvider getNodeStateProvider() {
-            return nodeStateProvider;
-        }
     }
 }
