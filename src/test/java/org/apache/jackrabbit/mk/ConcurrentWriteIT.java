@@ -21,9 +21,9 @@ import junit.framework.TestCase;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 
-public class ConcurrentWriteTest extends TestCase {
+public class ConcurrentWriteIT extends TestCase {
 
-    protected static final String TEST_PATH = "/" + ConcurrentWriteTest.class.getName();
+    protected static final String TEST_PATH = "/" + ConcurrentWriteIT.class.getName();
 
     private static final int NUM_THREADS = 20;
     private static final int NUM_CHILDNODES = 1000;

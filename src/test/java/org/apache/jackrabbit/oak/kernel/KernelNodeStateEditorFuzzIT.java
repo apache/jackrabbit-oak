@@ -38,18 +38,18 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 
-import static org.apache.jackrabbit.oak.kernel.KernelNodeStateEditorFuzzTest.Operation.AddNode;
-import static org.apache.jackrabbit.oak.kernel.KernelNodeStateEditorFuzzTest.Operation.MoveNode;
-import static org.apache.jackrabbit.oak.kernel.KernelNodeStateEditorFuzzTest.Operation.CopyNode;
-import static org.apache.jackrabbit.oak.kernel.KernelNodeStateEditorFuzzTest.Operation.RemoveNode;
-import static org.apache.jackrabbit.oak.kernel.KernelNodeStateEditorFuzzTest.Operation.RemoveProperty;
-import static org.apache.jackrabbit.oak.kernel.KernelNodeStateEditorFuzzTest.Operation.Save;
-import static org.apache.jackrabbit.oak.kernel.KernelNodeStateEditorFuzzTest.Operation.SetProperty;
+import static org.apache.jackrabbit.oak.kernel.KernelNodeStateEditorFuzzIT.Operation.AddNode;
+import static org.apache.jackrabbit.oak.kernel.KernelNodeStateEditorFuzzIT.Operation.MoveNode;
+import static org.apache.jackrabbit.oak.kernel.KernelNodeStateEditorFuzzIT.Operation.CopyNode;
+import static org.apache.jackrabbit.oak.kernel.KernelNodeStateEditorFuzzIT.Operation.RemoveNode;
+import static org.apache.jackrabbit.oak.kernel.KernelNodeStateEditorFuzzIT.Operation.RemoveProperty;
+import static org.apache.jackrabbit.oak.kernel.KernelNodeStateEditorFuzzIT.Operation.Save;
+import static org.apache.jackrabbit.oak.kernel.KernelNodeStateEditorFuzzIT.Operation.SetProperty;
 import static org.junit.Assert.assertEquals;
 
 @RunWith(Parameterized.class)
-public class KernelNodeStateEditorFuzzTest {
-    static final Logger log = LoggerFactory.getLogger(KernelNodeStateEditorFuzzTest.class);
+public class KernelNodeStateEditorFuzzIT {
+    static final Logger log = LoggerFactory.getLogger(KernelNodeStateEditorFuzzIT.class);
 
     private static final int OP_COUNT = 5000;
 
@@ -68,7 +68,7 @@ public class KernelNodeStateEditorFuzzTest {
         });
     }
 
-    public KernelNodeStateEditorFuzzTest(int seed) {
+    public KernelNodeStateEditorFuzzIT(int seed) {
         log.info("Seed = {}", seed);
         random = new Random(seed);
     }
