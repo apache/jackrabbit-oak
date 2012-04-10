@@ -55,11 +55,10 @@ public class SessionImpl extends AbstractSession {
     private final ValueFactory valueFactory;
 
     private final GlobalContext globalContext;
+    private final SessionContext<SessionImpl> sessionContext = new Context();
 
     private NodeStateEditor editor;
     private boolean isAlive = true;
-
-    private final SessionContext<SessionImpl> sessionContext = new Context();
 
     SessionImpl(GlobalContext globalContext, Repository repository, Connection connection) {
 
@@ -157,8 +156,7 @@ public class SessionImpl extends AbstractSession {
         try {
             NodeState newState = connection.commit(editor);
             editor = connection.getNodeStateEditor(newState);
-        }
-        catch (CommitFailedException e) {
+        } catch (CommitFailedException e) {
             throw new RepositoryException(e);
         }
     }
@@ -168,8 +166,7 @@ public class SessionImpl extends AbstractSession {
         checkIsAlive();
         try {
             connection.commit(connection.getNodeStateEditor(connection.getCurrentRoot()));  // todo: need a better way to update a connection to head
-        }
-        catch (CommitFailedException e) {
+        } catch (CommitFailedException e) {
             throw new RepositoryException(e);
         }
     }
@@ -202,8 +199,7 @@ public class SessionImpl extends AbstractSession {
 
         try {
             connection.close();
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             log.warn("Error while closing connection", e);
         }
     }
