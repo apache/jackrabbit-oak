@@ -46,7 +46,7 @@ public class RepositoryImpl implements Repository {
      * Utility constructor that creates a JCR binding for an initially empty,
      * newly constructed Oak repository.
      */
-    public RepositoryImpl() {
+    public RepositoryImpl() throws RepositoryException {
         context = new GlobalContext("mem:oak");
     }
 

@@ -24,9 +24,7 @@ import java.util.Map;
 
 public interface RepositoryConfiguration {
     String MICROKERNEL_URL = RepositoryConfiguration.class.getName() + ".microkernel-url";
-    String NODE_STATE_CACHE_SIZE = RepositoryConfiguration.class.getName() + ".node-state-cache-size";
 
     Map<String, String> getParameterMap();
     String getMicrokernelUrl() throws RepositoryException;
-    int getNodeStateCacheSize();
 }

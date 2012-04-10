@@ -21,11 +21,13 @@ package org.apache.jackrabbit.oak.jcr;
 
 import org.apache.jackrabbit.oak.api.RepositoryService;
 import org.apache.jackrabbit.oak.core.TmpRepositoryService;
+import org.apache.jackrabbit.oak.jcr.configuration.OakRepositoryConfiguration;
 import org.apache.jackrabbit.oak.jcr.configuration.RepositoryConfiguration;
 import org.apache.jackrabbit.oak.jcr.util.Unchecked;
 
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -42,14 +44,14 @@ public class GlobalContext {
     private final Map<Class<?>, Object> instances = new HashMap<Class<?>, Object>();
     
     public GlobalContext(RepositoryConfiguration repositoryConfiguration) throws RepositoryException {
-        this(repositoryConfiguration.getMicrokernelUrl());
         put(RepositoryConfiguration.class, repositoryConfiguration);
+        put(RepositoryService.class, new TmpRepositoryService(repositoryConfiguration.getMicrokernelUrl()));
+        put(Repository.class, new RepositoryImpl(this));
     }
 
-    public GlobalContext(String microKernelUrl) {
-        RepositoryService repositoryService = new TmpRepositoryService(microKernelUrl);
-        put(RepositoryService.class, repositoryService);
-        put(Repository.class, new RepositoryImpl(this));
+    public GlobalContext(String microKernelUrl) throws RepositoryException {
+        this(OakRepositoryConfiguration.create(Collections.singletonMap(
+                RepositoryConfiguration.MICROKERNEL_URL, microKernelUrl)));
     }
 
     public <T> T getInstance(Class<T> forClass) {
