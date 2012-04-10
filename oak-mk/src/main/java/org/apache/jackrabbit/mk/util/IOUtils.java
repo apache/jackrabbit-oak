@@ -108,7 +108,7 @@ public class IOUtils {
     }
 
     /**
-     * Read a byte array. This will first read the length as 4 bytes, and then 
+     * Read a byte array. This will first read the length as 4 bytes, and then
      * the actual bytes.
      *
      * @param in the data input stream
@@ -154,7 +154,11 @@ public class IOUtils {
         }
         x &= 0x7f;
         for (int s = 7;; s += 7) {
-            int b = (byte) in.read();
+            int b = in.read();
+            if (b < 0) {
+                throw new EOFException();
+            }
+            b = (byte) b;
             x |= (b & 0x7f) << s;
             if (b >= 0) {
                 return x;
@@ -237,7 +241,11 @@ public class IOUtils {
         }
         x &= 0x7f;
         for (int s = 7;; s += 7) {
-            long b = (byte) in.read();
+            long b = in.read();
+            if (b < 0) {
+                throw new EOFException();
+            }
+            b = (byte) b;
             x |= (b & 0x7f) << s;
             if (b >= 0) {
                 return x;

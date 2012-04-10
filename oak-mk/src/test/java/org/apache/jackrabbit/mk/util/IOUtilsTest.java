@@ -197,6 +197,20 @@ public class IOUtilsTest extends TestCase {
         assertEquals(-1, in.read());
     }
 
+    public void testVarEOF() throws IOException {
+        try {
+            IOUtils.readVarInt(new ByteArrayInputStream(new byte[0]));
+            fail();
+        } catch (EOFException e) {
+            // expected
+        }
+        try {
+            IOUtils.readVarLong(new ByteArrayInputStream(new byte[0]));
+            fail();
+        } catch (EOFException e) {
+            // expected
+        }
+    }
 
     private void testVarInt(int x, int expectedLen) throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
