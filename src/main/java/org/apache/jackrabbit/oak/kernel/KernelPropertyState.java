@@ -24,8 +24,7 @@ import org.apache.jackrabbit.mk.model.Scalar;
 import java.util.Collections;
 import java.util.List;
 
-public class KernelPropertyState extends AbstractPropertyState { // fixme make package private
-
+class KernelPropertyState extends AbstractPropertyState {
     private final String name;
     private final Scalar value;
     private final List<Scalar> values;
