@@ -31,7 +31,7 @@ public class ConcurrentWriteTest extends TestCase {
     MicroKernel mk;
 
     public void setUp() throws Exception {
-        String homeDir = System.getProperty("homeDir", ".");
+        String homeDir = System.getProperty("homeDir", "target");
         mk = new MicroKernelImpl(homeDir);
         mk.commit("/", "+ \"" + TEST_PATH.substring(1) + "\": {\"jcr:primaryType\":\"nt:unstructured\"}", mk.getHeadRevision(), null);
     }
