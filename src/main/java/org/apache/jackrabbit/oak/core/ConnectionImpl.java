@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import org.apache.jackrabbit.mk.MicroKernelFactory;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.model.NodeState;
 import org.apache.jackrabbit.mk.model.NodeStateEditor;
@@ -60,7 +61,18 @@ public class ConnectionImpl implements Connection {
     }
 
     static Connection createWorkspaceConnection(SimpleCredentials credentials,
-            String workspace, MicroKernel microKernel, String revision) throws NoSuchWorkspaceException {
+            String workspace, boolean create, String microKernelUrl, String revision)
+            throws NoSuchWorkspaceException {
+
+        MicroKernel microKernel = MicroKernelFactory.getInstance(microKernelUrl);
+
+        // FIXME: workspace must be done elsewhere...
+        if (create) {
+            String headRev = microKernel.getHeadRevision();
+            if (!microKernel.nodeExists('/' + workspace, headRev)) {
+                microKernel.commit("/", "+ \"" + workspace + "\" : {}", headRev, null);
+            }
+        }
 
         NodeStore store = new KernelNodeStore(microKernel); // TODO: pass revision?
         NodeState wspRoot = store.getRoot().getChildNode(workspace);

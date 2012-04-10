@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.Connection;
 import org.apache.jackrabbit.oak.api.RepositoryService;
 import org.slf4j.Logger;
@@ -40,20 +39,16 @@ public class TmpRepositoryService implements RepositoryService {
     // TODO: retrieve default wsp-name from configuration
     private static final String DEFAULT_WORKSPACE_NAME = "default";
 
-    private final MicroKernel mk;
+    private final String microKernelUrl;
 
-    public TmpRepositoryService(MicroKernel mk) {
-        this.mk = mk;
-
-        // FIXME: default mk-setup must be done elsewhere...
-        String headRev = mk.getHeadRevision();
-        if (!mk.nodeExists('/' + DEFAULT_WORKSPACE_NAME, headRev)) {
-            mk.commit("/", "+ \"" + DEFAULT_WORKSPACE_NAME + "\" : {}", headRev, null);
-        }
+    public TmpRepositoryService(String microKernelUrl) {
+        this.microKernelUrl = microKernelUrl;
     }
 
     @Override
-    public Connection login(Object credentials, String workspaceName) throws LoginException, NoSuchWorkspaceException {
+    public Connection login(Object credentials, String workspaceName)
+            throws LoginException, NoSuchWorkspaceException {
+
         // TODO: add proper implementation
         // TODO  - authentication against configurable spi-authentication
         // TODO  - validation of workspace name (including access rights for the given 'user')
@@ -71,7 +66,9 @@ public class TmpRepositoryService implements RepositoryService {
         final String revision = getRevision(credentials);
 
         if (sc != null) {
-            return ConnectionImpl.createWorkspaceConnection(sc, wspName, mk, revision);
+            return ConnectionImpl.createWorkspaceConnection(
+                    sc, wspName, wspName.equals(DEFAULT_WORKSPACE_NAME),
+                    microKernelUrl, getRevision(credentials));
         } else {
             throw new LoginException("login failed...");
         }
@@ -79,11 +76,11 @@ public class TmpRepositoryService implements RepositoryService {
 
     /**
      * @param credentials The credentials object used for authentication.
-     * @return The microkernal revision. If the give credentials don't specify
-     * a specific revision number the current head revision is returned.
+     * @return The microkernel revision or {@code null} if the give credentials doesn't
+     * specify a specific revision number.
      */
     private String getRevision(Object credentials) {
         // TODO: define if/how desired revision can be passed in by the credentials object.
-        return mk.getHeadRevision();
+        return null;
     }
 }
