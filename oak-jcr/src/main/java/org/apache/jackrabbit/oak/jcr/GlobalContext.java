@@ -34,7 +34,6 @@ import static java.text.MessageFormat.format;
 /**
  * Poor man's dependency injection
  * todo: OAK-17: replace by some more sophisticated mechanism
- * todo: OAK-20: remove usages of mk on oak-jcr
  * This class implements a poor man's dependency injection mechanism.
  * It should be replaced by a more sophisticated mechanism for compile
  * time dependency injection mechanism.

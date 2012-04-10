@@ -47,7 +47,7 @@ public class RepositoryImpl implements Repository {
      * newly constructed Oak repository.
      */
     public RepositoryImpl() {
-        context = null; // fixme this(new GlobalContext(new MicroKernelImpl()));
+        context = new GlobalContext("mem:oak");
     }
 
     public RepositoryImpl(GlobalContext context) {
