@@ -77,23 +77,6 @@
             <skip>${skip.deployment}</skip>
           </configuration>
         </plugin>
-        <plugin>
-          <artifactId>maven-failsafe-plugin</artifactId>
-          <version>2.12</version>
-          <executions>
-            <execution>
-              <goals>
-                <goal>integration-test</goal>
-                <goal>verify</goal>
-              </goals>
-              <configuration>
-                <systemPropertyVariables>
-                  <known.issues>${known.issues}</known.issues>
-                </systemPropertyVariables>
-              </configuration>
-            </execution>
-          </executions>
-        </plugin>
       </plugins>
     </pluginManagement>
   </build>
@@ -107,4 +90,33 @@
       </dependency>
     </dependencies>
   </dependencyManagement>
+
+  <profiles>
+    <profile>
+      <id>integrationTesting</id>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <version>2.12</version>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>integration-test</goal>
+                  <goal>verify</goal>
+                </goals>
+                <configuration>
+                  <systemPropertyVariables>
+                    <known.issues>${known.issues}</known.issues>
+                  </systemPropertyVariables>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+
 </project>
+

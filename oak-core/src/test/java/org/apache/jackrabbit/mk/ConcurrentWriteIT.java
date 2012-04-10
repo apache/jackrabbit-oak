@@ -21,30 +21,28 @@ import junit.framework.TestCase;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 
-public class ConcurrentWriteTest extends TestCase {
+public class ConcurrentWriteIT extends TestCase {
 
-    protected static final String TEST_PATH = "/" + ConcurrentWriteTest.class.getName();
+    protected static final String TEST_PATH = "/" + ConcurrentWriteIT.class.getName();
 
     private static final int NUM_THREADS = 20;
     private static final int NUM_CHILDNODES = 1000;
 
-    MicroKernel mk;
+    final MicroKernel mk = new MicroKernelImpl();
 
     public void setUp() throws Exception {
-        String homeDir = System.getProperty("homeDir", "target");
-        mk = new MicroKernelImpl(homeDir);
         mk.commit("/", "+ \"" + TEST_PATH.substring(1) + "\": {\"jcr:primaryType\":\"nt:unstructured\"}", mk.getHeadRevision(), null);
-    }
-
-    public void tearDown() throws InterruptedException {
-        String head = mk.commit("/", "- \"" + TEST_PATH.substring(1) + "\"", mk.getHeadRevision(), null);
-        mk.dispose();
     }
 
     /**
      * Runs the test.
      */
     public void testConcurrentWriting() throws Exception {
+
+        Profiler prof = new Profiler();
+        prof.depth = 8;
+        prof.interval = 1;
+        // prof.startCollecting();
 
         String oldHead = mk.getHeadRevision();
 
@@ -65,12 +63,25 @@ public class ConcurrentWriteTest extends TestCase {
 
         long t1 = System.currentTimeMillis();
 
+        System.out.println("duration: " + (t1 - t0) + "ms");
+
         String head = mk.getHeadRevision();
         mk.getNodes("/", head, Integer.MAX_VALUE, 0, -1, null);
+        // System.out.println(json);
+        System.out.println("new HEAD: " + head);
+        System.out.println();
 
         String history = mk.getRevisions(t0, -1);
+        System.out.println("History:");
+        System.out.println(history);
+        System.out.println();
 
         mk.getJournal(oldHead, head, null);
+        // System.out.println("Journal:");
+        // System.out.println(journal);
+        // System.out.println();
+
+        // System.out.println(prof.getTop(5));
     }
 
     class TestThread extends Thread {
