@@ -66,7 +66,7 @@ public class ConnectionImpl implements Connection {
 
         MicroKernel microKernel = MicroKernelFactory.getInstance(microKernelUrl);
 
-        // FIXME: workspace must be done elsewhere...
+        // FIXME: workspace setup must be done elsewhere...
         if (create) {
             String headRev = microKernel.getHeadRevision();
             if (!microKernel.nodeExists('/' + workspace, headRev)) {
