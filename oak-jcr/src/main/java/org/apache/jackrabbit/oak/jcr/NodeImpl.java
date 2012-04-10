@@ -224,7 +224,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     public Property setProperty(String name, Value value, int type) throws RepositoryException {
         checkStatus();
 
-        editor.setProperty(new KernelPropertyState(name, ValueConverter.toScalar(value)));
+        editor.setProperty(name, ValueConverter.toScalar(value));
         return getProperty(name);
     }
 
@@ -246,7 +246,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     public Property setProperty(String name, Value[] values, int type) throws RepositoryException {
         checkStatus();
 
-        editor.setProperty(new KernelPropertyState(name, ValueConverter.toScalar(values)));
+        editor.setProperty(name, ValueConverter.toScalar(values));
         return getProperty(name);
     }
 
@@ -418,8 +418,7 @@ public class NodeImpl extends ItemImpl implements Node  {
         Property property = getPropertyOrNull(relPath);
         if (property == null) {
             throw new PathNotFoundException(relPath);
-        }
-        else {
+        } else {
             return property;
         }
     }
@@ -595,8 +594,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     public void setPrimaryType(String nodeTypeName) throws RepositoryException {
         checkStatus();
 
-        editor.setProperty(new KernelPropertyState(
-                JcrConstants.JCR_PRIMARYTYPE, ScalarImpl.stringScalar(nodeTypeName)));
+        editor.setProperty(JcrConstants.JCR_PRIMARYTYPE, ScalarImpl.stringScalar(nodeTypeName));
     }
 
     @Override
@@ -819,6 +817,11 @@ public class NodeImpl extends ItemImpl implements Node  {
     public String[] getAllowedLifecycleTransistions() throws RepositoryException {
         throw new UnsupportedRepositoryOperationException("Lifecycle Management is not supported");
 
+    }
+
+    //-----------------------------------------------------< implementation >---
+    public NodeStateEditor getEditor() {
+        return editor;
     }
 
     //------------------------------------------------------------< private >---

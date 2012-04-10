@@ -22,7 +22,6 @@ import org.apache.jackrabbit.mk.util.PathUtils;
 import org.apache.jackrabbit.oak.jcr.util.LogUtil;
 import org.apache.jackrabbit.oak.jcr.util.ValueConverter;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStateEditor;
-import org.apache.jackrabbit.oak.kernel.KernelPropertyState;
 import org.apache.jackrabbit.oak.kernel.TransientNodeState;
 import org.apache.jackrabbit.value.ValueHelper;
 import org.slf4j.Logger;
@@ -563,10 +562,8 @@ public class PropertyImpl extends ItemImpl implements Property {
 
         if (value == null) {
             remove();
-        }
-        else {
-            parentEditor.setProperty(new KernelPropertyState(
-                    propertyState.getName(), ValueConverter.toScalar(value)));
+        } else {
+            parentEditor.setProperty(propertyState.getName(), ValueConverter.toScalar(value));
         }
     }
 
@@ -584,10 +581,8 @@ public class PropertyImpl extends ItemImpl implements Property {
 
         if (values == null) {
             remove();
-        }
-        else {
-            parentEditor.setProperty(new KernelPropertyState(
-                    propertyState.getName(), ValueConverter.toScalar(values)));
+        } else {
+            parentEditor.setProperty(propertyState.getName(), ValueConverter.toScalar(values));
         }
     }
 

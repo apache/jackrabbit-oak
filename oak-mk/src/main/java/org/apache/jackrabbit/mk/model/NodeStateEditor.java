@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.mk.model;
 
+import java.util.List;
+
 /**
  * An editor for modifying existing and creating new
  * {@link NodeState node states}.
@@ -39,10 +41,20 @@ public interface NodeStateEditor {
     void removeNode(String name);
 
     /**
-     * Set a property on this node state
-     * @param state property state to set
+     * Set a single valued property state on this node state.
+     *
+     * @param name The name of this property
+     * @param value The value of this property
      */
-    void setProperty(PropertyState state);
+    void setProperty(String name, Scalar value);
+
+    /**
+     * Set a multivalued valued property state on this node state.
+     *
+     * @param name The name of this property
+     * @param values The value of this property
+     */
+    void setProperty(String name, List<Scalar> values);
 
     /**
      * Remove a property from this node state
