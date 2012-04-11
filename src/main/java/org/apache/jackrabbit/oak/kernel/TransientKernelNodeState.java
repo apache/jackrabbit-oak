@@ -25,7 +25,8 @@ import org.apache.commons.collections.iterators.TransformIterator;
 import org.apache.jackrabbit.oak.api.ChildNodeEntry;
 import org.apache.jackrabbit.oak.api.NodeState;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.kernel.TransientNodeState.Iterators.PagedIterator;
+import org.apache.jackrabbit.oak.api.TransientNodeState;
+import org.apache.jackrabbit.oak.kernel.TransientKernelNodeState.Iterators.PagedIterator;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -35,25 +36,13 @@ import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Set;
 
-import static org.apache.jackrabbit.oak.kernel.TransientNodeState.Iterators.Function1;
-import static org.apache.jackrabbit.oak.kernel.TransientNodeState.Iterators.Predicate;
-import static org.apache.jackrabbit.oak.kernel.TransientNodeState.Iterators.add;
-import static org.apache.jackrabbit.oak.kernel.TransientNodeState.Iterators.filter;
-import static org.apache.jackrabbit.oak.kernel.TransientNodeState.Iterators.map;
+import static org.apache.jackrabbit.oak.kernel.TransientKernelNodeState.Iterators.Function1;
+import static org.apache.jackrabbit.oak.kernel.TransientKernelNodeState.Iterators.Predicate;
+import static org.apache.jackrabbit.oak.kernel.TransientKernelNodeState.Iterators.add;
+import static org.apache.jackrabbit.oak.kernel.TransientKernelNodeState.Iterators.filter;
+import static org.apache.jackrabbit.oak.kernel.TransientKernelNodeState.Iterators.map;
 
-/**
- * A transient node state represents a node being edited. All edit operations are
- * done through an associated {@link org.apache.jackrabbit.oak.api.NodeStateEditor}.
- * <p>
- * A transient node state contains the current state of a node and is
- * in contrast to {@link org.apache.jackrabbit.mk.model.NodeState} instances
- * mutable and not thread safe.
- * <p>
- * The various accessors on this class mirror these of {@code NodeState}. However,
- * since instances of this class are mutable return values may change between
- * invocations.
- */
-public class TransientNodeState {
+public class TransientKernelNodeState implements TransientNodeState {
     /** Editor acting upon this instance */
     private final KernelNodeStateEditor editor;
 
@@ -64,12 +53,12 @@ public class TransientNodeState {
     private final NodeState persistentState;
 
     /** Resolved persistent child states */
-    private final Map<String, TransientNodeState> existingChildNodes =
-            new HashMap<String, TransientNodeState>();
+    private final Map<String, TransientKernelNodeState> existingChildNodes =
+            new HashMap<String, TransientKernelNodeState>();
 
     /** Transiently added node states */
-    private final Map<String, TransientNodeState> addedNodes =
-            new HashMap<String, TransientNodeState>();
+    private final Map<String, TransientKernelNodeState> addedNodes =
+            new HashMap<String, TransientKernelNodeState>();
 
     /** Transiently removed node stated */
     private final Set<String> removedNodes = new HashSet<String>();
@@ -92,7 +81,7 @@ public class TransientNodeState {
      * @param persistentState  underlying persistent state
      * @param editor  editor acting upon the transient node state
      */
-    TransientNodeState(NodeState persistentState, KernelNodeStateEditor editor) {
+    TransientKernelNodeState(NodeState persistentState, KernelNodeStateEditor editor) {
         this.editor = editor;
         this.persistentState = persistentState;
         this.parent = null;
@@ -104,7 +93,7 @@ public class TransientNodeState {
      * @param parentEditor  editor of the parent state
      * @param name  name of the state
      */
-    private TransientNodeState(KernelNodeStateEditor parentEditor, String name) {
+    private TransientKernelNodeState(KernelNodeStateEditor parentEditor, String name) {
         this(parentEditor, name, null);
     }
 
@@ -114,7 +103,7 @@ public class TransientNodeState {
      * @param name  name of the state
      * @param persistedState  underlying persistent state
      */
-    private TransientNodeState(KernelNodeStateEditor parentEditor, String name,
+    private TransientKernelNodeState(KernelNodeStateEditor parentEditor, String name,
             NodeState persistedState) {
 
         editor = new KernelNodeStateEditor(parentEditor, this);
@@ -130,7 +119,7 @@ public class TransientNodeState {
      * @param parent  parent of the copied state
      * @param name  name of the copied state
      */
-    private TransientNodeState(TransientNodeState state, TransientNodeState parent,
+    private TransientKernelNodeState(TransientKernelNodeState state, TransientNodeState parent,
             String name) {
 
         editor = new KernelNodeStateEditor(parent.getEditor(), this);
@@ -139,17 +128,17 @@ public class TransientNodeState {
         this.name = name;
 
         // recursively copy all existing node states
-        for (Entry<String, TransientNodeState> existing : state.existingChildNodes.entrySet()) {
+        for (Entry<String, TransientKernelNodeState> existing : state.existingChildNodes.entrySet()) {
             String existingName = existing.getKey();
             this.existingChildNodes.put(existingName,
-                    new TransientNodeState(existing.getValue(), this, existingName));
+                    new TransientKernelNodeState(existing.getValue(), this, existingName));
         }
         
         // recursively copy all added node states
-        for (Entry<String, TransientNodeState> added : state.addedNodes.entrySet()) {
+        for (Entry<String, TransientKernelNodeState> added : state.addedNodes.entrySet()) {
             String addedName = added.getKey();
             this.addedNodes.put(addedName,
-                    new TransientNodeState(added.getValue(), this, addedName));
+                    new TransientKernelNodeState(added.getValue(), this, addedName));
         }
 
         this.removedNodes.addAll(state.removedNodes);
@@ -157,16 +146,12 @@ public class TransientNodeState {
         this.removedProperties.addAll(state.removedProperties);
     }
 
-    /**
-     * @return  the name of this transient node state
-     */
+    @Override
     public String getName() {
         return name;
     }
 
-    /**
-     * @return  relative path of this transient node state
-     */
+    @Override
     public String getPath() {
         if (parent == null) {
             return name;
@@ -179,23 +164,17 @@ public class TransientNodeState {
         }
     }
 
+    @Override
     public TransientNodeState getParent() {
         return parent;
     }
 
-    /**
-     * @return  editor acting upon this instance
-     */
+    @Override
     public KernelNodeStateEditor getEditor() {
         return editor;
     }
 
-    /**
-     * Get a property state
-     * @param name name of the property state
-     * @return  the property state with the given {@code name} or {@code null}
-     *          if no such property state exists.
-     */
+    @Override
     public PropertyState getProperty(String name) {
         PropertyState state = addedProperties.get(name);
         if (state != null) {
@@ -209,20 +188,12 @@ public class TransientNodeState {
             : persistentState.getProperty(name);
     }
 
-    /**
-     * Determine if a property state exists
-     * @param name  name of the property state
-     * @return  {@code true} if and only if a property with the given {@code name}
-     *          exists.
-     */
+    @Override
     public boolean hasProperty(String name) {
         return getProperty(name) != null;
     }
 
-    /**
-     * Determine the number of properties.
-     * @return  number of properties
-     */
+    @Override
     public long getPropertyCount() {
         long persistentCount = persistentState == null
             ? 0
@@ -231,14 +202,9 @@ public class TransientNodeState {
         return persistentCount + addedProperties.size() - removedProperties.size();
     }
 
-    /**
-     * Get a child node state
-     * @param name  name of the child node state
-     * @return  the child node state with the given {@code name} or {@code null}
-     *          if no such child node state exists.
-     */
-    public TransientNodeState getChildNode(String name) {
-        TransientNodeState state = addedNodes.get(name);
+    @Override
+    public TransientKernelNodeState getChildNode(String name) {
+        TransientKernelNodeState state = addedNodes.get(name);
         if (state != null) {
             // Added or removed and re-added child node
             return state;
@@ -250,20 +216,12 @@ public class TransientNodeState {
             : getExistingChildNode(name);
     }
 
-    /**
-     * Determine if a child node state exists
-     * @param name  name of the child node state
-     * @return  {@code true} if and only if a child node with the given {@code name}
-     *          exists.
-     */
+    @Override
     public boolean hasNode(String name) {
         return getChildNode(name) != null;
     }
 
-    /**
-     * Determine the number of child nodes.
-     * @return  number of child nodes.
-     */
+    @Override
     public long getChildNodeCount() {
         long persistentCount = persistentState == null
                 ? 0
@@ -272,13 +230,7 @@ public class TransientNodeState {
         return persistentCount + addedNodes.size() - removedNodes.size();
     }
 
-    /**
-     * All property states. The returned {@code Iterable} has snapshot semantics. That
-     * is, it reflect the state of this transient node state instance at the time of the
-     * call. Later changes to this instance are no visible to iterators obtained from
-     * the returned iterable.
-     * @return  An {@code Iterable} for all property states
-     */
+    @Override
     public Iterable<PropertyState> getProperties() {
         // Persisted property states
         final Iterable<? extends PropertyState> persisted = persistentState == null
@@ -319,13 +271,7 @@ public class TransientNodeState {
         };
     }
 
-    /**
-     * All child node states. The returned {@code Iterable} has snapshot semantics. That
-     * is, it reflect the state of this transient node state instance at the time of the
-     * call. Later changes to this instance are no visible to iterators obtained from
-     * the returned iterable.
-     * @return  An {@code Iterable} for all child node states
-     */
+    @Override
     public Iterable<TransientNodeState> getChildNodes() {
         // Copy od removed child node states
         final Set<String> removed = new HashSet<String>();
@@ -379,7 +325,7 @@ public class TransientNodeState {
      * @param name  name of the child node state
      */
     void addNode(String name) {
-        addedNodes.put(name, new TransientNodeState(editor, name));
+        addedNodes.put(name, new TransientKernelNodeState(editor, name));
     }
 
     /**
@@ -429,8 +375,8 @@ public class TransientNodeState {
      * @param destParent  parent of the moved node state
      * @param destName  name of the moved node state
      */
-    void move(String name, TransientNodeState destParent, String destName) {
-        TransientNodeState state = getChildNode(name);
+    void move(String name, TransientKernelNodeState destParent, String destName) {
+        TransientKernelNodeState state = getChildNode(name);
         removeNode(name);
 
         state.name = destName;
@@ -447,9 +393,9 @@ public class TransientNodeState {
      * @param destParent  parent of the moved node state
      * @param destName  name of the moved node state
      */
-    void copy(String name, TransientNodeState destParent, String destName) {
+    void copy(String name, TransientKernelNodeState destParent, String destName) {
         destParent.addedNodes.put(destName,
-                new TransientNodeState(getChildNode(name), destParent, destName));
+                new TransientKernelNodeState(getChildNode(name), destParent, destName));
     }
 
     /**
@@ -462,18 +408,18 @@ public class TransientNodeState {
      *          or the underlying persistent state does not have a child
      *          node state with the given {@code name}.
      */
-    private TransientNodeState getExistingChildNode(String name) {
+    private TransientKernelNodeState getExistingChildNode(String name) {
         if (persistentState == null) {
             return null;
         }
 
-        TransientNodeState transientState = existingChildNodes.get(name);
+        TransientKernelNodeState transientState = existingChildNodes.get(name);
         if (transientState == null) {
             NodeState state = persistentState.getChildNode(name);
             if (state == null) {
                 return null;
             }
-            transientState = new TransientNodeState(editor, name, state);
+            transientState = new TransientKernelNodeState(editor, name, state);
             existingChildNodes.put(name, transientState);
         }
         return transientState;

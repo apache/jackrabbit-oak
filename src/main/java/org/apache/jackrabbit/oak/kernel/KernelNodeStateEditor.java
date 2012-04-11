@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.api.NodeState;
 import org.apache.jackrabbit.oak.api.NodeStateEditor;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Scalar;
+import org.apache.jackrabbit.oak.api.TransientNodeState;
 
 import java.util.List;
 
@@ -50,7 +51,7 @@ public class KernelNodeStateEditor implements NodeStateEditor {
     private final NodeState base;
 
     /** Transient state this editor is acting upon */
-    private final TransientNodeState transientState;
+    private final TransientKernelNodeState transientState;
 
     /** Json diff of this private branch */
     private final StringBuilder jsop;
@@ -62,7 +63,7 @@ public class KernelNodeStateEditor implements NodeStateEditor {
      */
     KernelNodeStateEditor(NodeState base) {
         this.base = base;
-        transientState = new TransientNodeState(base, this);
+        transientState = new TransientKernelNodeState(base, this);
         jsop = new StringBuilder();
     }
 
@@ -71,7 +72,7 @@ public class KernelNodeStateEditor implements NodeStateEditor {
      * @param parentEditor  editor of the parent of {@code state}
      * @param state  transient node state for which to create the node state editor
      */
-    KernelNodeStateEditor(KernelNodeStateEditor parentEditor, TransientNodeState state) {
+    KernelNodeStateEditor(KernelNodeStateEditor parentEditor, TransientKernelNodeState state) {
         base = parentEditor.base;
         transientState = state;
         jsop = parentEditor.jsop;
@@ -117,13 +118,13 @@ public class KernelNodeStateEditor implements NodeStateEditor {
 
     @Override
     public void move(String sourcePath, String destPath) {
-        TransientNodeState sourceParent = getTransientState(getParentPath(sourcePath));
+        TransientKernelNodeState sourceParent = getTransientState(getParentPath(sourcePath));
         String sourceName = getName(sourcePath);
         if (sourceParent == null || !sourceParent.hasNode(sourceName)) {
             return;
         }
         
-        TransientNodeState destParent = getTransientState(getParentPath(destPath));
+        TransientKernelNodeState destParent = getTransientState(getParentPath(destPath));
         String destName = getName(destPath);
         if (destParent == null || destParent.hasNode(destName)) {
             return;
@@ -136,13 +137,13 @@ public class KernelNodeStateEditor implements NodeStateEditor {
 
     @Override
     public void copy(String sourcePath, String destPath) {
-        TransientNodeState sourceParent = getTransientState(getParentPath(sourcePath));
+        TransientKernelNodeState sourceParent = getTransientState(getParentPath(sourcePath));
         String sourceName = getName(sourcePath);
         if (sourceParent == null || !sourceParent.hasNode(sourceName)) {
             return;
         }
 
-        TransientNodeState destParent = getTransientState(getParentPath(destPath));
+        TransientKernelNodeState destParent = getTransientState(getParentPath(destPath));
         String destName = getName(destPath);
         if (destParent == null || destParent.hasNode(destName)) {
             return;
@@ -166,10 +167,7 @@ public class KernelNodeStateEditor implements NodeStateEditor {
         return base;
     }
 
-    /**
-     * @return the {@link TransientNodeState} instance this editor is
-     *         acting upon.
-     */
+    @Override
     public TransientNodeState getTransientState() {
         return transientState;
     }
@@ -195,11 +193,11 @@ public class KernelNodeStateEditor implements NodeStateEditor {
      * Get a transient node state for the node identified by
      * {@code path}
      * @param path  the path to the node state
-     * @return  a {@link TransientNodeState} instance for the item
+     * @return  a {@link TransientKernelNodeState} instance for the item
      *          at {@code path} or {@code null} if no such item exits.
      */
-    private TransientNodeState getTransientState(String path) {
-        TransientNodeState state = transientState;
+    private TransientKernelNodeState getTransientState(String path) {
+        TransientKernelNodeState state = transientState;
         for (String name : elements(path)) {
             state = state.getChildNode(name);
             if (state == null) {
