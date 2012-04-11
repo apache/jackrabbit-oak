@@ -170,8 +170,10 @@ public class SessionImpl extends AbstractSession {
         try {
             // todo: need a better way to update a connection to head
             NodeState newState = connection.commit(connection.getNodeStateEditor(connection.getCurrentRoot()));
-            editor = connection.getNodeStateEditor(newState);
-            itemStateProvider = new ItemStateProvider(editor.getTransientState());
+            if (!keepChanges) {
+                editor = connection.getNodeStateEditor(newState);
+                itemStateProvider = new ItemStateProvider(editor.getTransientState());
+            }
         } catch (CommitFailedException e) {
             throw new RepositoryException(e);
         }
