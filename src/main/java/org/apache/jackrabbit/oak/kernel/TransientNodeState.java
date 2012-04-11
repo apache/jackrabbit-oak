@@ -43,7 +43,7 @@ import static org.apache.jackrabbit.oak.kernel.TransientNodeState.Iterators.map;
 
 /**
  * A transient node state represents a node being edited. All edit operations are
- * done through an associated {@link org.apache.jackrabbit.mk.model.NodeStateEditor}.
+ * done through an associated {@link org.apache.jackrabbit.oak.api.NodeStateEditor}.
  * <p>
  * A transient node state contains the current state of a node and is
  * in contrast to {@link org.apache.jackrabbit.mk.model.NodeState} instances
