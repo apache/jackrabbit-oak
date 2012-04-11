@@ -119,7 +119,7 @@ public class TransientKernelNodeState implements TransientNodeState {
      * @param parent  parent of the copied state
      * @param name  name of the copied state
      */
-    private TransientKernelNodeState(TransientKernelNodeState state, TransientNodeState parent,
+    private TransientKernelNodeState(TransientKernelNodeState state, TransientKernelNodeState parent,
             String name) {
 
         editor = new KernelNodeStateEditor(parent.getEditor(), this);
