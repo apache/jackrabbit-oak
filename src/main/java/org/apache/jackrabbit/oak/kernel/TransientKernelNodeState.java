@@ -18,29 +18,27 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
-import org.apache.commons.collections.iterators.EmptyIterator;
-import org.apache.commons.collections.iterators.FilterIterator;
-import org.apache.commons.collections.iterators.IteratorChain;
-import org.apache.commons.collections.iterators.TransformIterator;
 import org.apache.jackrabbit.oak.api.ChildNodeEntry;
 import org.apache.jackrabbit.oak.api.NodeState;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.TransientNodeState;
-import org.apache.jackrabbit.oak.kernel.TransientKernelNodeState.Iterators.PagedIterator;
+import org.apache.jackrabbit.oak.util.Function1;
+import org.apache.jackrabbit.oak.util.Iterators;
+import org.apache.jackrabbit.oak.util.PagedIterator;
+import org.apache.jackrabbit.oak.util.Predicate;
 
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.NoSuchElementException;
 import java.util.Set;
 
-import static org.apache.jackrabbit.oak.kernel.TransientKernelNodeState.Iterators.Function1;
-import static org.apache.jackrabbit.oak.kernel.TransientKernelNodeState.Iterators.Predicate;
-import static org.apache.jackrabbit.oak.kernel.TransientKernelNodeState.Iterators.add;
-import static org.apache.jackrabbit.oak.kernel.TransientKernelNodeState.Iterators.filter;
-import static org.apache.jackrabbit.oak.kernel.TransientKernelNodeState.Iterators.map;
+import static org.apache.jackrabbit.oak.util.Iterators.chain;
+import static org.apache.jackrabbit.oak.util.Iterators.empty;
+import static org.apache.jackrabbit.oak.util.Iterators.filter;
+import static org.apache.jackrabbit.oak.util.Iterators.flatten;
+import static org.apache.jackrabbit.oak.util.Iterators.map;
 
 public class TransientKernelNodeState implements TransientNodeState {
     /** Editor acting upon this instance */
@@ -258,15 +256,15 @@ public class TransientKernelNodeState implements TransientNodeState {
 
                 // persisted states - removed states
                 Iterator<PropertyState> persistedMinusRemoved =
-                    filter(properties, new Predicate<PropertyState>() {
-                        @Override
-                        public boolean evaluate(PropertyState state) {
-                            return !removed.contains(state.getName());
-                        }
-                });
+                        filter(properties, new Predicate<PropertyState>() {
+                            @Override
+                            public boolean evaluate(PropertyState state) {
+                                return !removed.contains(state.getName());
+                            }
+                        });
 
                 // persisted states - removed states + added states
-                return add(persistedMinusRemoved, added.iterator());
+                return chain(persistedMinusRemoved, added.iterator());
             }
         };
     }
@@ -298,7 +296,7 @@ public class TransientKernelNodeState implements TransientNodeState {
                         public boolean evaluate(ChildNodeEntry entry) {
                             return !removed.contains(entry.getName());
                         }
-                });
+                    });
 
                 // persisted states - removed states
                 Iterator<TransientNodeState> persistedMinusRemoved =
@@ -308,10 +306,10 @@ public class TransientKernelNodeState implements TransientNodeState {
                             public TransientNodeState apply(ChildNodeEntry entry) {
                                 return getExistingChildNode(entry.getName());
                             }
-                });
+                        });
 
                 // persisted states - removed states + added states
-                return add(persistedMinusRemoved, added.iterator());
+                return chain(persistedMinusRemoved, added.iterator());
             }
         };
     }
@@ -460,10 +458,10 @@ public class TransientKernelNodeState implements TransientNodeState {
             final NodeState persistentState) {
 
         if (persistentState == null) {
-            return Iterators.empty();
+            return empty();
         }
         else {
-            return Iterators.flatten(
+            return flatten(
                 new PagedIterator<ChildNodeEntry>(1024) {
                     @Override
                     protected Iterator<? extends ChildNodeEntry> getPage(long pos, int size) {
@@ -473,201 +471,4 @@ public class TransientKernelNodeState implements TransientNodeState {
         }
     }
 
-    // TODO: move to a more suitable location
-    static final class Iterators {
-        private Iterators() { }
-
-        /**
-         * Returns an empty iterator of type {@code T}.
-         *
-         * @param <T>
-         * @return
-         */
-        @SuppressWarnings("unchecked")
-        public static <T> Iterator<T> empty() {
-            return EmptyIterator.INSTANCE;
-        }
-
-        /**
-         * Returns an iterator for the concatenation of {@code iterator1} and
-         * {@code iterator2}.
-         *
-         * @param <T>
-         * @param iterator1
-         * @param iterator2
-         * @return
-         */
-        @SuppressWarnings("unchecked")
-        public static <T> Iterator<T> add(Iterator<? extends T> iterator1,
-                Iterator<? extends T> iterator2) {
-
-            return new IteratorChain(iterator1, iterator2);
-        }
-
-        /**
-         * Returns an iterator containing only the elements from an original
-         * {@code iterator} where the given {@code predicate} matches.
-         *
-         * @param <T>
-         * @param iterator
-         * @param predicate
-         * @return
-         */
-        @SuppressWarnings("unchecked")
-        public static <T> Iterator<T> filter(Iterator<? extends T> iterator,
-                final Predicate<? super T> predicate) {
-
-            return new FilterIterator(iterator, new org.apache.commons.collections.Predicate() {
-                @Override
-                public boolean evaluate(Object object) {
-                    return predicate.evaluate((T) object);
-                }
-            });
-        }
-
-        /**
-         * Returns an iterator with elements of an original  {@code iterator} mapped by
-         * a function {@code f}.
-         *
-         * @param <T>
-         * @param <R>
-         * @param <S>
-         * @param iterator
-         * @param f
-         * @return
-         */
-        @SuppressWarnings("unchecked")
-        public static <T, R, S extends T> Iterator<R> map(Iterator<? extends T> iterator,
-                final Function1<S, ? super R> f) {
-
-            return new TransformIterator(iterator, new org.apache.commons.collections.Transformer() {
-                @Override
-                public Object transform(Object input) {
-                    return f.apply((S) input);
-                }
-            });
-        }
-
-        /**
-         * Type safe counter part of {@link org.apache.commons.collections.Predicate}.
-         *
-         * @param <T> type of values this predicate is defined on
-         */
-        interface Predicate<T> {
-            boolean evaluate(T arg);
-        }
-
-        /**
-         * Type safe counter part of {@link org.apache.commons.collections.Transformer}.
-         *
-         * @param <S>  argument type to transform from
-         * @param <T>  result type to transform to
-         */
-        public interface Function1<S, T> {
-            T apply(S argument);
-        }
-
-        /**
-         * Flattens an iterator of iterators into a single iterator.
-         * @param iterators
-         * @param <T>
-         * @return
-         */
-        public static <T> Iterator<? extends T> flatten(
-                final Iterator<Iterator<? extends T>> iterators) {
-
-            return new Iterator<T>() {
-                private Iterator<? extends T> current;
-
-                @Override
-                public boolean hasNext() {
-                    if (current != null && current.hasNext()) {
-                        return true;
-                    }
-                    else if (!iterators.hasNext()) {
-                        return false;
-                    }
-                    else {
-                        do {
-                            current = iterators.next();
-                        } while (!current.hasNext() && iterators.hasNext());
-                        return current.hasNext();
-                    }
-                }
-
-                @Override
-                public T next() {
-                    if (!hasNext()) {
-                        throw new NoSuchElementException();
-                    }
-
-                    return current.next();
-                }
-
-                @Override
-                public void remove() {
-                    if (current == null) {
-                        throw new IllegalStateException();
-                    }
-
-                    current.remove();
-                }
-            };
-        }
-
-        /**
-         * A {@code PagedIterator} is an iterator of several pages. A page itself is
-         * an iterator. The abstract {@code getPage} method is called whenever this
-         * iterator needs to fetch another page.<p/>
-         *
-         * Lazy flattening (e.g. with {@link Iterators#flatten(java.util.Iterator)}
-         * results in an iterator which does batch reading from its back end.
-         *
-         * @param <T>
-         */
-        public abstract static class PagedIterator<T>
-                implements Iterator<Iterator<? extends T>> {
-
-            private final int pageSize;
-            private long pos;
-            private Iterator<? extends T> current;
-
-            protected PagedIterator(int pageSize) {
-                this.pageSize = pageSize;
-            }
-
-            /**
-             * @param pos  start index
-             * @param size  maximal number of elements
-             * @return  iterator starting at index {@code pos} containing at most {@code size} elements.
-             */
-            protected abstract Iterator<? extends T> getPage(long pos, int size);
-
-            @Override
-            public boolean hasNext() {
-                if (current == null) {
-                    current = getPage(pos, pageSize);
-                    pos += pageSize;
-                }
-
-                return current.hasNext();
-            }
-
-            @Override
-            public Iterator<? extends T> next() {
-                if (!hasNext()) {
-                    throw new NoSuchElementException();
-                }
-                Iterator<? extends T> e = current;
-                current = null;
-                return e;
-            }
-
-            @Override
-            public void remove() {
-                throw new UnsupportedOperationException("remove");
-            }
-        }
-
-    }
 }
