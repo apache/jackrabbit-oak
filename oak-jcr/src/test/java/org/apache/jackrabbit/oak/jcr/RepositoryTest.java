@@ -1190,7 +1190,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
         }
     }
 
-    @Ignore // TODO implement move
     @Test
     public void move() throws RepositoryException {
         Session session = getSession();
