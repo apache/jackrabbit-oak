@@ -34,7 +34,7 @@ import static org.apache.jackrabbit.mk.util.PathUtils.getParentPath;
 /**
  * This {@code NodeStateEditor} implementation accumulates all changes into a json diff
  * and applies them to the microkernel on
- * {@link org.apache.jackrabbit.mk.model.NodeStore#merge(NodeStateEditor, NodeState)}.
+ * {@link org.apache.jackrabbit.oak.api.NodeStore#merge(NodeStateEditor, NodeState)}
  *
  * TODO: review/rewrite when OAK-45 is resolved
  * When the MicroKernel has support for branching and merging private working copies,
@@ -219,7 +219,7 @@ public class KernelNodeStateEditor implements NodeStateEditor {
         return path.isEmpty() ? name : path + '/' + name;
     }
 
-    private String encode(PropertyState state) {
+    private static String encode(PropertyState state) {
         if (state.isArray()) {
             return encode(state.getArray());
         } else {
@@ -227,7 +227,7 @@ public class KernelNodeStateEditor implements NodeStateEditor {
         }
     }
 
-    private String encode(Scalar scalar) {
+    private static String encode(Scalar scalar) {
         switch (scalar.getType()) {
             case BOOLEAN: return JsonBuilder.encode(scalar.getBoolean());
             case LONG:    return JsonBuilder.encode(scalar.getLong());
@@ -239,14 +239,16 @@ public class KernelNodeStateEditor implements NodeStateEditor {
         throw new IllegalStateException("unreachable");  // Make javac happy
     }
 
-    private String encode(Iterable<Scalar> scalars) {
+    private static String encode(Iterable<Scalar> scalars) {
         StringBuilder sb = new StringBuilder();
         sb.append('[');
         for (Scalar scalar : scalars) {
             sb.append(encode(scalar));
             sb.append(',');
         }
-        sb.deleteCharAt(sb.length() - 1);
+        if (sb.length() > 1) {
+            sb.deleteCharAt(sb.length() - 1);
+        }
         sb.append(']');
         return sb.toString();
     }
