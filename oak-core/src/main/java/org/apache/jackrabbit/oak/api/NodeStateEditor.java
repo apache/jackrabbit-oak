@@ -97,4 +97,10 @@ public interface NodeStateEditor {
      * @return base node state
      */
     NodeState getBaseNodeState();
+
+    /**
+     * Return the transient state which this editor is acting upon
+     * @return transient node state
+     */
+    TransientNodeState getTransientState();
 }

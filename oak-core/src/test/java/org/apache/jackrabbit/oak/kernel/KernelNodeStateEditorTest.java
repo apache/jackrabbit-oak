@@ -23,6 +23,7 @@ import org.apache.jackrabbit.mk.simple.SimpleKernelImpl;
 import org.apache.jackrabbit.oak.api.NodeState;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Scalar;
+import org.apache.jackrabbit.oak.api.TransientNodeState;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;

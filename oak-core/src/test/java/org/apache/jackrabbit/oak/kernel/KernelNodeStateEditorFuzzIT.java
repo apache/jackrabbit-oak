@@ -24,6 +24,7 @@ import org.apache.jackrabbit.mk.util.PathUtils;
 import org.apache.jackrabbit.oak.api.ChildNodeEntry;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Scalar;
+import org.apache.jackrabbit.oak.api.TransientNodeState;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;

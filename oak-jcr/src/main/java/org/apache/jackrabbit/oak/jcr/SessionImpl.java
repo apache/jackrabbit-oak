@@ -21,7 +21,6 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Connection;
 import org.apache.jackrabbit.oak.api.NodeState;
 import org.apache.jackrabbit.oak.api.NodeStateEditor;
-import org.apache.jackrabbit.oak.kernel.KernelNodeStateEditor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.ContentHandler;
@@ -69,8 +68,7 @@ public class SessionImpl extends AbstractSession {
         this.valueFactory = new ValueFactoryImpl();
 
         this.editor = connection.getNodeStateEditor(connection.getCurrentRoot());
-        // fixme: don't cast to implementation
-        this.itemStateProvider = new ItemStateProvider(((KernelNodeStateEditor) editor).getTransientState());
+        this.itemStateProvider = new ItemStateProvider(editor.getTransientState());
 
         workspace = new WorkspaceImpl(sessionContext);
     }
@@ -160,8 +158,7 @@ public class SessionImpl extends AbstractSession {
         try {
             NodeState newState = connection.commit(editor);
             editor = connection.getNodeStateEditor(newState);
-            // fixme: don't cast to implementation
-            itemStateProvider = new ItemStateProvider(((KernelNodeStateEditor) editor).getTransientState());
+            itemStateProvider = new ItemStateProvider(editor.getTransientState());
         } catch (CommitFailedException e) {
             throw new RepositoryException(e);
         }
@@ -174,8 +171,7 @@ public class SessionImpl extends AbstractSession {
             // todo: need a better way to update a connection to head
             NodeState newState = connection.commit(connection.getNodeStateEditor(connection.getCurrentRoot()));
             editor = connection.getNodeStateEditor(newState);
-            // fixme: don't cast to implementation
-            itemStateProvider = new ItemStateProvider(((KernelNodeStateEditor) editor).getTransientState());
+            itemStateProvider = new ItemStateProvider(editor.getTransientState());
         } catch (CommitFailedException e) {
             throw new RepositoryException(e);
         }
