@@ -167,15 +167,10 @@ public class SessionImpl extends AbstractSession {
     @Override
     public void refresh(boolean keepChanges) throws RepositoryException {
         checkIsAlive();
-        try {
-            // todo: need a better way to update a connection to head
-            NodeState newState = connection.commit(connection.getNodeStateEditor(connection.getCurrentRoot()));
-            if (!keepChanges) {
-                editor = connection.getNodeStateEditor(newState);
-                itemStateProvider = new ItemStateProvider(editor.getTransientState());
-            }
-        } catch (CommitFailedException e) {
-            throw new RepositoryException(e);
+        connection.refresh();
+        if (!keepChanges) {
+            editor = connection.getNodeStateEditor(connection.getCurrentRoot());
+            itemStateProvider = new ItemStateProvider(editor.getTransientState());
         }
     }
 

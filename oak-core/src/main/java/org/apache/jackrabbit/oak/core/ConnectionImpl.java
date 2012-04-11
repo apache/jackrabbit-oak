@@ -48,16 +48,17 @@ public class ConnectionImpl implements Connection {
     private final SimpleCredentials credentials;
     private final String workspaceName;
     private final NodeStore store;
-    private final NodeState root;
     private final QueryEngine queryEngine;
 
-    public ConnectionImpl(SimpleCredentials credentials, String workspaceName,
+    private NodeState root;
+
+    private ConnectionImpl(SimpleCredentials credentials, String workspaceName,
             NodeStore store, NodeState root, QueryEngine queryEngine) {
         this.credentials = credentials;
         this.workspaceName = workspaceName;
         this.store = store;
-        this.root = root;
         this.queryEngine = queryEngine;
+        this.root = root;
     }
 
     static Connection createWorkspaceConnection(SimpleCredentials credentials,
@@ -109,11 +110,18 @@ public class ConnectionImpl implements Connection {
     public NodeState getCurrentRoot() {
         return root;
     }
+    
+    @Override
+    public void refresh() {
+        root = workspaceName == null
+            ? store.getRoot()
+            : store.getRoot().getChildNode(workspaceName);
+    }
 
     @Override
     public NodeState commit(NodeStateEditor editor) throws CommitFailedException {
         try {
-            return store.merge(editor, editor.getBaseNodeState());
+            return root = store.merge(editor, editor.getBaseNodeState());
         }
         catch (MicroKernelException e) {
             throw new CommitFailedException(e);
