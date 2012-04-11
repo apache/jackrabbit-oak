@@ -29,12 +29,12 @@ import org.junit.runners.Parameterized;
  * Test moving nodes.
  */
 @RunWith(Parameterized.class)
-public class MoveNodeTest extends MultiMkTestBase {
+public class MoveNodeIT extends MultiMkTestBase {
 
     private String head;
     private String journalRevision;
 
-    public MoveNodeTest(String url) {
+    public MoveNodeIT(String url) {
         super(url);
     }
 
