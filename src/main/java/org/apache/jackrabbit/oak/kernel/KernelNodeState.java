@@ -55,6 +55,15 @@ class KernelNodeState extends AbstractNodeState {
 
     private Map<String, NodeState> childNodes; // TODO: WeakReference?
 
+    /**
+     * Create a new instance of this class representing the node at the
+     * given {@code path} and {@code revision}. It is an error if the
+     * underlying Microkernel does not contain such a node.
+     *
+     * @param kernel
+     * @param path
+     * @param revision
+     */
     public KernelNodeState(MicroKernel kernel, String path, String revision) {
         this.kernel = kernel;
         this.path = path;
