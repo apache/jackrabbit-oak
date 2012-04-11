@@ -122,7 +122,7 @@ public class RepositoryImpl implements Repository {
         RepositoryService service = context.getInstance(RepositoryService.class);
         try {
             Connection connection = service.login(credentials, workspaceName);
-            return new SessionImpl(context, this, connection);
+            return new SessionImpl(context, connection);
         } catch (LoginException e) {
             throw new javax.jcr.LoginException(e.getMessage());
         }

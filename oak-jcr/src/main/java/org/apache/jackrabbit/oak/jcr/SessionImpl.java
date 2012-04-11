@@ -49,28 +49,24 @@ public class SessionImpl extends AbstractSession {
      */
     private static final Logger log = LoggerFactory.getLogger(SessionImpl.class);
 
-    private final Repository repository;
-    private final Workspace workspace;
+    private final GlobalContext globalContext;
     private final Connection connection;
     private final ValueFactory valueFactory;
-    private final GlobalContext globalContext;
+    private final Workspace workspace;
     private final SessionContext<SessionImpl> sessionContext = new Context();
     private boolean isAlive = true;
 
     private NodeStateEditor editor;
     private ItemStateProvider itemStateProvider;
 
-    SessionImpl(GlobalContext globalContext, Repository repository, Connection connection) {
-
+    SessionImpl(GlobalContext globalContext, Connection connection) {
         this.globalContext = globalContext;
-        this.repository = repository;
         this.connection = connection;
         this.valueFactory = new ValueFactoryImpl();
+        workspace = new WorkspaceImpl(sessionContext);
 
         this.editor = connection.getNodeStateEditor(connection.getCurrentRoot());
         this.itemStateProvider = new ItemStateProvider(editor.getTransientState());
-
-        workspace = new WorkspaceImpl(sessionContext);
     }
 
 
@@ -78,7 +74,7 @@ public class SessionImpl extends AbstractSession {
 
     @Override
     public Repository getRepository() {
-        return repository;
+        return globalContext.getInstance(Repository.class);
     }
 
     @Override
