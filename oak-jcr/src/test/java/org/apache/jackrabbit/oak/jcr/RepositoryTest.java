@@ -69,7 +69,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 public class RepositoryTest extends AbstractRepositoryTest {
     private static final String TEST_NODE = "test_node";
@@ -1062,7 +1061,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
         }
     }
 
-    @Ignore("WIP")  // fixme
     @Test
     public void sessionRefresh() throws RepositoryException {
         Session session = getRepository().login();
@@ -1123,8 +1121,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         }
     }
 
-    @Ignore("WIP")  // fixme
-    @Test
+    @Test(expected = RepositoryException.class)
     public void refreshConflict() throws RepositoryException {
         Session session1 = getRepository().login();
         Session session2 = getRepository().login();
@@ -1134,13 +1131,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
             session1.save();
             session2.refresh(true);
-            try {
-                session2.save();
-                fail();
-            }
-            catch (RepositoryException e) {
-                // expected
-            }
+            session2.save();
         }
         finally {
             session1.logout();
@@ -1148,8 +1139,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         }
     }
 
-    @Ignore("WIP")  // fixme
-    @Test
+    @Test(expected = RepositoryException.class)
     public void refreshConflict2() throws RepositoryException {
         getSession().getRootNode().addNode("node");
         getSession().save();
@@ -1161,13 +1151,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
             session2.getNode("/node").addNode("2");
 
             session1.save();
-            try {
-                session2.save();
-                fail();
-            }
-            catch (RepositoryException e) {
-                // expected
-            }
+            session2.save();
         }
         finally {
             session1.logout();

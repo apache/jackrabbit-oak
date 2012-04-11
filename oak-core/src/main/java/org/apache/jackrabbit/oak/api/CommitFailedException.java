@@ -27,4 +27,18 @@ package org.apache.jackrabbit.oak.api;
  *       - CommitFailedException transports status code that are then converted to jcr exceptions
  */
 public class CommitFailedException extends Exception {
+    public CommitFailedException() {
+    }
+
+    public CommitFailedException(String message) {
+        super(message);
+    }
+
+    public CommitFailedException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
+    public CommitFailedException(Throwable cause) {
+        super(cause);
+    }
 }

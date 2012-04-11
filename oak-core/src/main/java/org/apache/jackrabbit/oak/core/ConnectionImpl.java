@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.core;
 
 import org.apache.jackrabbit.mk.MicroKernelFactory;
 import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Connection;
@@ -111,7 +112,12 @@ public class ConnectionImpl implements Connection {
 
     @Override
     public NodeState commit(NodeStateEditor editor) throws CommitFailedException {
-        return store.merge(editor, editor.getBaseNodeState());
+        try {
+            return store.merge(editor, editor.getBaseNodeState());
+        }
+        catch (MicroKernelException e) {
+            throw new CommitFailedException(e);
+        }
     }
 
     @Override
