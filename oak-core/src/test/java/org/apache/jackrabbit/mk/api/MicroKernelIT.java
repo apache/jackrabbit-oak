@@ -29,9 +29,9 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 @RunWith(Parameterized.class)
-public class MicroKernelTest extends MultiMkTestBase {
+public class MicroKernelIT extends MultiMkTestBase {
 
-    public MicroKernelTest(String url) {
+    public MicroKernelIT(String url) {
         super(url);
     }
 
