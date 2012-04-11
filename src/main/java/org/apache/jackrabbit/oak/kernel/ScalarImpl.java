@@ -25,12 +25,16 @@ import org.apache.jackrabbit.oak.api.Scalar;
 
 public abstract class ScalarImpl implements Scalar {
 
+    private static final NullScalar NULL_SCALAR = new NullScalar();
+
+    private static final BooleanScalar TRUE_SCALAR = new BooleanScalar(true);
+    private static final BooleanScalar FALSE_SCALAR = new BooleanScalar(false);
+
     public static Scalar numberScalar(String value) {
-        // todo improve
+        // TODO don't use exception handling for flow control
         try {
             return longScalar(Long.parseLong(value));
-        }
-        catch (NumberFormatException e) {
+        } catch (NumberFormatException e) {
             return doubleScalar(Double.parseDouble(value));
         }
     }
@@ -38,7 +42,7 @@ public abstract class ScalarImpl implements Scalar {
     public static Scalar booleanScalar(final boolean value) {
         return value ? TRUE_SCALAR : FALSE_SCALAR;
     }
-    
+
     public static Scalar longScalar(final long value) {
         return new LongScalar(value);
     }
@@ -46,25 +50,25 @@ public abstract class ScalarImpl implements Scalar {
     public static Scalar nullScalar() {
         return NULL_SCALAR;
     }
-    
+
     public static Scalar doubleScalar(final double value) {
         return new DoubleScalar(value);
     }
-    
+
     public static Scalar stringScalar(final String value) {
         if (value == null) {
             throw new IllegalArgumentException("Value must not be null");
         }
         return new StringScalar(value);
     }
-    
+
     public static Scalar binaryScalar(final String value) {
         if (value == null) {
             throw new IllegalArgumentException("Value must not be null");
         }
         return new SmallBinaryScalar(value);
     }
-    
+
     public static Scalar binaryScalar(final Callable<InputStream> valueProvider) {
         if (valueProvider == null) {
             throw new IllegalArgumentException("Value must not be null");
@@ -91,10 +95,9 @@ public abstract class ScalarImpl implements Scalar {
     public InputStream getInputStream() {
         try {
             return new ByteArrayInputStream(getString().getBytes("UTF-8"));
-        }
-        catch (UnsupportedEncodingException e) {
-            // todo handle UnsupportedEncodingException
-            return null;
+        } catch (UnsupportedEncodingException e) {
+            // TODO handle UnsupportedEncodingException
+            throw new RuntimeException(e);
         }
     }
 
@@ -104,9 +107,6 @@ public abstract class ScalarImpl implements Scalar {
     }
 
     //------------------------------------------------------------< private >---
-
-    private static final BooleanScalar TRUE_SCALAR = new BooleanScalar(true);
-    private static final BooleanScalar FALSE_SCALAR = new BooleanScalar(false);
 
     private static final class BooleanScalar extends ScalarImpl {
         private final boolean value;
@@ -145,13 +145,11 @@ public abstract class ScalarImpl implements Scalar {
 
         @Override
         public int hashCode() {
-            return (value ? 1 : 0);
+            return value ? 1 : 0;
         }
     }
 
-    private static final NullScalar NULL_SCALAR = new NullScalar();
-
-    private static final class NullScalar extends ScalarImpl {
+    static final class NullScalar extends ScalarImpl {
 
         @Override
         public Type getType() {
@@ -353,16 +351,16 @@ public abstract class ScalarImpl implements Scalar {
         public InputStream getInputStream() {
             try {
                 return valueProvider.call();
-            }
-            catch (Exception e) {
-                // todo handle Exception
-                return null;
+            } catch (Exception e) {
+                // TODO handle Exception
+                throw new RuntimeException(e);
             }
         }
 
         @Override
         public String getString() {
-            return ""; // todo implement getString
+            // TODO implement getString
+            return "";
         }
 
         @Override
