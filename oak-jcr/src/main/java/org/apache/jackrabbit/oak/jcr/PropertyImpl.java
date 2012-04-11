@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import org.apache.jackrabbit.mk.util.PathUtils;
 import org.apache.jackrabbit.oak.api.NodeStateEditor;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.TransientNodeState;
@@ -113,7 +112,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @Override
     public int getDepth() throws RepositoryException {
-        return PathUtils.getDepth(getPath());
+        return Paths.getDepth(getPath());
     }
 
     /**
@@ -632,7 +631,7 @@ public class PropertyImpl extends ItemImpl implements Property {
     private void resolve() {
         parentState = getItemStateProvider().getNodeState(parentState.getPath());
         propertyState = getItemStateProvider().getPropertyState(
-                PathUtils.concat(parentState.getPath(), propertyState.getName()));
+                Paths.concat(parentState.getPath(), propertyState.getName()));
     }
 
 }

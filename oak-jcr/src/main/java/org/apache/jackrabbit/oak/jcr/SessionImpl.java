@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import org.apache.jackrabbit.commons.AbstractSession;
-import org.apache.jackrabbit.mk.util.PathUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Connection;
 import org.apache.jackrabbit.oak.api.NodeState;
@@ -149,8 +148,8 @@ public class SessionImpl extends AbstractSession {
     public void move(String srcAbsPath, String destAbsPath) throws RepositoryException {
         checkIsAlive();
 
-        String srcPath = PathUtils.relativize("/", srcAbsPath);
-        String destPath = PathUtils.relativize("/", destAbsPath);
+        String srcPath = Paths.relativize("/", srcAbsPath);
+        String destPath = Paths.relativize("/", destAbsPath);
         editor.move(srcPath, destPath);
     }
 
