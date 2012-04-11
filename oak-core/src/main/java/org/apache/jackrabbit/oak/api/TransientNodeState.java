@@ -1,8 +1,5 @@
 package org.apache.jackrabbit.oak.api;
 
-import org.apache.jackrabbit.oak.kernel.KernelNodeStateEditor;
-import org.apache.jackrabbit.oak.kernel.TransientKernelNodeState;
-
 /**
  * A transient node state represents a node being edited. All edit operations are
  * done through an associated {@link org.apache.jackrabbit.oak.api.NodeStateEditor}.
@@ -34,7 +31,7 @@ public interface TransientNodeState {
     /**
      * @return  editor acting upon this instance
      */
-    KernelNodeStateEditor getEditor();
+    NodeStateEditor getEditor();
 
     /**
      * Get a property state
@@ -64,7 +61,7 @@ public interface TransientNodeState {
      * @return  the child node state with the given {@code name} or {@code null}
      *          if no such child node state exists.
      */
-    TransientKernelNodeState getChildNode(String name);
+    TransientNodeState getChildNode(String name);
 
     /**
      * Determine if a child node state exists
