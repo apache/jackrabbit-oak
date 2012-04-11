@@ -232,6 +232,7 @@ public class PropertyImpl extends ItemImpl implements Property {
     /**
      * @see Property#setValue(InputStream)
      */
+    @SuppressWarnings("deprecation")
     @Override
     public void setValue(InputStream value) throws RepositoryException {
         checkStatus();
@@ -364,6 +365,7 @@ public class PropertyImpl extends ItemImpl implements Property {
     /**
      * @see Property#getStream()
      */
+    @SuppressWarnings("deprecation")
     @Override
     public InputStream getStream() throws RepositoryException {
         return getValue().getStream();

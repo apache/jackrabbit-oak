@@ -18,13 +18,13 @@
  */
 package org.apache.jackrabbit.oak.jcr.query;
 
-import javax.jcr.ItemNotFoundException;
+import org.apache.jackrabbit.oak.api.ResultRow;
+import org.apache.jackrabbit.oak.query.CoreValue;
+
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.query.Row;
-import org.apache.jackrabbit.oak.api.ResultRow;
-import org.apache.jackrabbit.oak.query.CoreValue;
 
 /**
  * The implementation of the corresponding JCR interface.
@@ -37,38 +37,46 @@ public class RowImpl implements Row {
         this.row = row;
     }
 
+    @Override
     public Node getNode() throws RepositoryException {
         // TODO row node
         return null;
     }
 
+    @Override
     public Node getNode(String selectorName) throws RepositoryException {
         // TODO row node
         return null;
     }
 
+    @Override
     public String getPath() throws RepositoryException {
         return row.getPath();
     }
 
+    @Override
     public String getPath(String selectorName) throws RepositoryException {
         return row.getPath(selectorName);
     }
 
+    @Override
     public double getScore() throws RepositoryException {
         // TODO row score
         return 0;
     }
 
+    @Override
     public double getScore(String selectorName) throws RepositoryException {
         // TODO row score
         return 0;
     }
 
-    public Value getValue(String columnName) throws ItemNotFoundException, RepositoryException {
+    @Override
+    public Value getValue(String columnName) throws RepositoryException {
         return ValueConverter.convert(row.getValue(columnName));
     }
 
+    @Override
     public Value[] getValues() throws RepositoryException {
         CoreValue[] values = row.getValues();
         int len = values.length;
