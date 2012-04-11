@@ -37,15 +37,14 @@ public abstract class AbstractMicroKernelIT {
      * @return available {@link MicroKernelFixture} services
      */
     @Parameters
-    public static Collection<MicroKernelFixture> loadFixtures() {
-        Collection<MicroKernelFixture> fixtures =
-                new ArrayList<MicroKernelFixture>();
+    public static Collection<Object[]> loadFixtures() {
+        Collection<Object[]> fixtures = new ArrayList<Object[]>();
 
         Class<MicroKernelFixture> iface = MicroKernelFixture.class;
         ServiceLoader<MicroKernelFixture> loader =
                 ServiceLoader.load(iface, iface.getClassLoader());
         for (MicroKernelFixture fixture : loader) {
-            fixtures.add(fixture);
+            fixtures.add(new Object[] { fixture });
         }
 
         return fixtures;
@@ -90,6 +89,17 @@ public abstract class AbstractMicroKernelIT {
     public void setUp() {
         fixture.setUpCluster(mks);
         mk = mks[0];
+        addInitialTestContent();
+    }
+
+    /**
+     * Adds initial content used by the test case. This method is
+     * called by the {@link #setUp()} method after the {@link MicroKernel}
+     * cluster has been set up and before the actual test is run.
+     * The default implementation does nothing, but subclasses can
+     * override this method to perform extra initialization.
+     */
+    protected void addInitialTestContent() {
     }
 
     /**
