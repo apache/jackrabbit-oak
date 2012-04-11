@@ -22,7 +22,9 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 /**
- *
+ * For now this class contains copies of some methods from PathUtils in
+ * oak-mk.
+ * TODO: Implement JCR path handling. See OAK-61
  */
 public class Paths {
 
