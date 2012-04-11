@@ -27,12 +27,10 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
-import org.junit.Before;
 import org.junit.Test;
 
 /**
@@ -41,15 +39,7 @@ import org.junit.Test;
 public class QueryTest {
 
     private final MicroKernel mk = new MicroKernelImpl();
-
-    String head;
-    QueryEngineImpl qe;
-
-    @Before
-    public void setUp() {
-        head = mk.getHeadRevision();
-        qe = new QueryEngineImpl(mk);
-    }
+    private QueryEngineImpl qe = new QueryEngineImpl(mk);
 
     @Test
     public void script() throws Exception {
@@ -63,7 +53,7 @@ public class QueryTest {
 
     @Test
     public void bindVariableTest() throws Exception {
-        head = mk.commit("/", "+ \"test\": { \"hello\": {\"id\": \"1\"}, \"world\": {\"id\": \"2\"}}",
+        mk.commit("/", "+ \"test\": { \"hello\": {\"id\": \"1\"}, \"world\": {\"id\": \"2\"}}",
                 null, null);
         HashMap<String, CoreValue> sv = new HashMap<String, CoreValue>();
         CoreValueFactory vf = new CoreValueFactory();
@@ -79,7 +69,6 @@ public class QueryTest {
                 QueryEngineImpl.SQL2, sv).getRows().iterator();
         assertTrue(result.hasNext());
         assertEquals("/test/world", result.next().getPath());
-
 
         result = qe.executeQuery("explain select * from [nt:base] where id = 1 order by id",
                 QueryEngineImpl.SQL2, null).getRows().iterator();
@@ -166,35 +155,34 @@ public class QueryTest {
             r.close();
         }
         if (errors) {
-            throw new Exception("Results in target/queryTest.txt don't match expected " +
-                    "results in src/test/resources/queryTest.txt; compare the files for details");
+            throw new Exception("Results in target/" + file + " don't match expected " +
+                    "results in src/test/resources/" + file + "; compare the files for details");
         }
     }
 
     private List<String> executeQuery(String query) throws ParseException {
         List<String> lines = new ArrayList<String>();
-
         Result result = qe.executeQuery(query, QueryEngineImpl.SQL2, null);
-        Iterator<? extends ResultRow> iterator = result.getRows().iterator();
-        while (iterator.hasNext()) {
-            ResultRow row = iterator.next();
-            StringBuilder buff = new StringBuilder();
-            CoreValue[] values = row.getValues();
-            for (int i = 0; i < values.length; i++) {
-                if (i > 0) {
-                    buff.append(", ");
-                }
-                CoreValue v = values[i];
-                buff.append(v == null ? "null" : v.getString());
-            }
-            lines.add(buff.toString());
+        for (ResultRow row : result.getRows()) {
+            lines.add(readRow(row));
         }
-
         if (!query.contains("order by")) {
             Collections.sort(lines);
         }
-
         return lines;
+    }
+
+    private String readRow(ResultRow row) {
+        StringBuilder buff = new StringBuilder();
+        CoreValue[] values = row.getValues();
+        for (int i = 0; i < values.length; i++) {
+            if (i > 0) {
+                buff.append(", ");
+            }
+            CoreValue v = values[i];
+            buff.append(v == null ? "null" : v.getString());
+        }
+        return buff.toString();
     }
 
 }
