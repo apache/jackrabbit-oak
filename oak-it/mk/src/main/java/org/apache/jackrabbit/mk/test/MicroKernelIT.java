@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.api;
+package org.apache.jackrabbit.mk.test;
 
 import junit.framework.Assert;
-import org.apache.jackrabbit.mk.MultiMkTestBase;
-import org.junit.Before;
+
+import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -29,22 +29,19 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 @RunWith(Parameterized.class)
-public class MicroKernelIT extends MultiMkTestBase {
+public class MicroKernelIT extends AbstractMicroKernelIT {
 
-    public MicroKernelIT(String url) {
-        super(url);
+    public MicroKernelIT(MicroKernelFixture fixture) {
+        super(fixture, 1);
     }
 
-    @Before
-    public void setUp() throws Exception {
-        super.setUp();
-
-        String head = mk.getHeadRevision();
+    @Override
+    protected void addInitialTestContent() {
         mk.commit("/", "+\"test\" : {" +
                 "\"stringProp\":\"stringVal\"," +
                 "\"intProp\":42," +
                 "\"floatProp\":42.2," +
-                "\"multiIntProp\":[1,2,3]} ", head, "");
+                "\"multiIntProp\":[1,2,3]}", null, "");
     }
 
     @Test
@@ -243,20 +240,6 @@ public class MicroKernelIT extends MultiMkTestBase {
         } catch (MicroKernelException e) {
             // expected
         }
-    }
-
-    @Test
-    public void reorderNode() {
-        if (!isSimpleKernel(mk)) {
-            return;
-        }
-        String head = mk.getHeadRevision();
-        String node = "reorderNode_" + System.currentTimeMillis();
-        head = mk.commit("/", "+\"" + node + "\" : {\"a\":{}, \"b\":{}, \"c\":{}}", head, "");
-        // System.out.println(mk.getNodes('/' + node, head).replaceAll("\"", "").replaceAll(":childNodeCount:.", ""));
-
-        head = mk.commit("/", ">\"" + node + "/a\" : {\"before\":\"" + node + "/c\"}", head, "");
-        // System.out.println(mk.getNodes('/' + node, head).replaceAll("\"", "").replaceAll(":childNodeCount:.", ""));
     }
 
     @Test
