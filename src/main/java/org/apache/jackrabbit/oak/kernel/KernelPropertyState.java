@@ -18,11 +18,10 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
-import org.apache.jackrabbit.mk.model.AbstractPropertyState;
-import org.apache.jackrabbit.mk.model.Scalar;
-
 import java.util.Collections;
 import java.util.List;
+
+import org.apache.jackrabbit.oak.api.Scalar;
 
 class KernelPropertyState extends AbstractPropertyState {
     private final String name;

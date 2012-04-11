@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.api;
 
-import org.apache.jackrabbit.mk.model.NodeState;
-import org.apache.jackrabbit.mk.model.NodeStateEditor;
-
 import java.io.Closeable;
 
 /**

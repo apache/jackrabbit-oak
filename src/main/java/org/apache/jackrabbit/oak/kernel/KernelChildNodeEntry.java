@@ -18,8 +18,7 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
-import org.apache.jackrabbit.mk.model.AbstractChildNodeEntry;
-import org.apache.jackrabbit.mk.model.NodeState;
+import org.apache.jackrabbit.oak.api.NodeState;
 
 class KernelChildNodeEntry extends AbstractChildNodeEntry {
 
