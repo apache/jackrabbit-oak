@@ -19,17 +19,16 @@ package org.apache.jackrabbit.oak.jcr;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
 import org.apache.jackrabbit.commons.iterator.PropertyIteratorAdapter;
-import org.apache.jackrabbit.mk.util.PathUtils;
 import org.apache.jackrabbit.oak.api.NodeStateEditor;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.TransientNodeState;
-import org.apache.jackrabbit.oak.util.Function1;
 import org.apache.jackrabbit.oak.jcr.util.ItemNameMatcher;
-import org.apache.jackrabbit.oak.util.Iterators;
 import org.apache.jackrabbit.oak.jcr.util.LogUtil;
-import org.apache.jackrabbit.oak.util.Predicate;
 import org.apache.jackrabbit.oak.jcr.util.ValueConverter;
 import org.apache.jackrabbit.oak.kernel.ScalarImpl;
+import org.apache.jackrabbit.oak.util.Function1;
+import org.apache.jackrabbit.oak.util.Iterators;
+import org.apache.jackrabbit.oak.util.Predicate;
 import org.apache.jackrabbit.value.ValueHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -129,7 +128,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public int getDepth() throws RepositoryException {
-        return PathUtils.getDepth(path());
+        return Paths.getDepth(path());
     }
 
     /**
@@ -175,13 +174,13 @@ public class NodeImpl extends ItemImpl implements Node  {
     public Node addNode(String relPath) throws RepositoryException {
         checkStatus();
 
-        String parentPath = PathUtils.concat(path(), PathUtils.getParentPath(relPath));
+        String parentPath = Paths.concat(path(), Paths.getParentPath(relPath));
         TransientNodeState parentState = getItemStateProvider().getNodeState(parentPath);
         if (parentState == null) {
             throw new PathNotFoundException(relPath);
         }
 
-        String name = PathUtils.getName(relPath);
+        String name = Paths.getName(relPath);
         parentState.getEditor().addNode(name);
         return new NodeImpl(sessionContext, parentState.getChildNode(name));
     }
@@ -874,7 +873,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     }
 
     private NodeImpl getNodeOrNull(String relPath) {
-        String absPath = PathUtils.concat(path(), relPath);
+        String absPath = Paths.concat(path(), relPath);
         TransientNodeState nodeState = getItemStateProvider().getNodeState(absPath);
         return nodeState == null
             ? null
@@ -882,13 +881,13 @@ public class NodeImpl extends ItemImpl implements Node  {
     }
     
     private PropertyImpl getPropertyOrNull(String relPath) {
-        String absPath = PathUtils.concat(path(), PathUtils.getParentPath(relPath));
+        String absPath = Paths.concat(path(), Paths.getParentPath(relPath));
         TransientNodeState parentState = getItemStateProvider().getNodeState(absPath);
         if (parentState == null) {
             return null;
         }
 
-        String name = PathUtils.getName(relPath);
+        String name = Paths.getName(relPath);
         PropertyState propertyState = parentState.getProperty(name);
         return propertyState == null
             ? null
