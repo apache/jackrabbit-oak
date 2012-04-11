@@ -16,8 +16,15 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import org.apache.jackrabbit.mk.MicroKernelFactory;
+import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.Connection;
+import org.apache.jackrabbit.oak.api.NodeState;
+import org.apache.jackrabbit.oak.api.NodeStateEditor;
+import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.RepositoryService;
+import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
+import org.apache.jackrabbit.oak.query.QueryEngineImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,10 +46,12 @@ public class TmpRepositoryService implements RepositoryService {
     // TODO: retrieve default wsp-name from configuration
     private static final String DEFAULT_WORKSPACE_NAME = "default";
 
-    private final String microKernelUrl;
+    private final MicroKernel microKernel;
+    private final KernelNodeStore nodeStore;
 
     public TmpRepositoryService(String microKernelUrl) {
-        this.microKernelUrl = microKernelUrl;
+        microKernel = MicroKernelFactory.getInstance(microKernelUrl);
+        nodeStore = new KernelNodeStore(microKernel);
     }
 
     @Override
@@ -61,17 +70,28 @@ public class TmpRepositoryService implements RepositoryService {
         } else {
             sc = null;
         }
+        
+        if (sc == null) {
+            throw new LoginException("login failed");
+        }
 
         final String wspName = (workspaceName == null) ? DEFAULT_WORKSPACE_NAME : workspaceName;
         final String revision = getRevision(credentials);
 
-        if (sc != null) {
-            return ConnectionImpl.createWorkspaceConnection(
-                    sc, wspName, wspName.equals(DEFAULT_WORKSPACE_NAME),
-                    microKernelUrl, revision);
-        } else {
-            throw new LoginException("login failed...");
+        // FIXME: workspace setup must be done elsewhere...
+        if (wspName.equals(DEFAULT_WORKSPACE_NAME)) {
+            NodeState root = nodeStore.getRoot();
+            NodeState wspNode = root.getChildNode(wspName);
+            if (wspNode == null) {
+                NodeStateEditor editor = nodeStore.branch(root);
+                editor.addNode(wspName);
+                nodeStore.merge(editor, editor.getBaseNodeState());
+            }
         }
+
+        QueryEngine queryEngine = new QueryEngineImpl(microKernel);
+        return ConnectionImpl.createWorkspaceConnection(sc, wspName, nodeStore, revision,
+                queryEngine);
     }
 
     /**

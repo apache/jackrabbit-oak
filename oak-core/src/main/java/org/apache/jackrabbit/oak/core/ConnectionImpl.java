@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import org.apache.jackrabbit.mk.MicroKernelFactory;
-import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -26,8 +24,6 @@ import org.apache.jackrabbit.oak.api.NodeState;
 import org.apache.jackrabbit.oak.api.NodeStateEditor;
 import org.apache.jackrabbit.oak.api.NodeStore;
 import org.apache.jackrabbit.oak.api.QueryEngine;
-import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
-import org.apache.jackrabbit.oak.query.QueryEngineImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,25 +58,14 @@ public class ConnectionImpl implements Connection {
     }
 
     static Connection createWorkspaceConnection(SimpleCredentials credentials,
-            String workspace, boolean create, String microKernelUrl, String revision)
+            String workspace, NodeStore store, String revision, QueryEngine queryEngine)
             throws NoSuchWorkspaceException {
 
-        MicroKernel microKernel = MicroKernelFactory.getInstance(microKernelUrl);
-
-        // FIXME: workspace setup must be done elsewhere...
-        if (create) {
-            String headRev = microKernel.getHeadRevision();
-            if (!microKernel.nodeExists('/' + workspace, headRev)) {
-                microKernel.commit("/", "+ \"" + workspace + "\" : {}", headRev, null);
-            }
-        }
-
-        NodeStore store = new KernelNodeStore(microKernel); // TODO: pass revision?
+        // TODO set revision!?
         NodeState wspRoot = store.getRoot().getChildNode(workspace);
         if (wspRoot == null) {
             throw new NoSuchWorkspaceException(workspace);
         }
-        QueryEngine queryEngine = new QueryEngineImpl(microKernel);
 
         return new ConnectionImpl(credentials, workspace, store, wspRoot, queryEngine);
     }
