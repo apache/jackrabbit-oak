@@ -14,11 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.model;
+package org.apache.jackrabbit.oak.api;
 
 /**
  * Storage abstraction for content trees. At any given point in time
  * the stored content tree is rooted at a single immutable node state.
+ * Changes in the tree are constructed by branching off a private copy
+ * using the {@link #branch(NodeState)} method which can be modified
+ * and merged back using the {@link #merge(NodeStateEditor, NodeState)}
+ * method.
  * <p>
  * This is a low-level interface that doesn't cover functionality like
  * merging concurrent changes or rejecting new tree states based on some
@@ -32,6 +36,28 @@ public interface NodeStore {
      * @return root node state
      */
     NodeState getRoot();
+
+    /**
+     * Creates a private branch from a {@code base} node state
+     * for editing. The branch can later be merged back into
+     * the node store using the {@link #merge(NodeStateEditor, NodeState) merge}
+     * method.
+     *
+     * @param base base node state
+     * @return a private branch rooted at {@code base}
+     */
+    NodeStateEditor branch(NodeState base);
+
+    /**
+     * Atomically merges the changes from {@code branch} back into the
+     * {@code target}.
+     *
+     * @param branch branch for merging into {@code target}
+     * @param target target of the merge operation
+     * @return node state resulting from merging {@code branch} into
+     *         {@code target}.
+     */
+    NodeState merge(NodeStateEditor branch, NodeState target);
 
     /**
      * Compares the given two node states. Any found differences are

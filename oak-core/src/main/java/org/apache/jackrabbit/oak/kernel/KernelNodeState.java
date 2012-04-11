@@ -18,15 +18,13 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
-import org.apache.jackrabbit.mk.model.Scalar;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
-import org.apache.jackrabbit.mk.model.AbstractNodeState;
-import org.apache.jackrabbit.mk.model.ChildNodeEntry;
-import org.apache.jackrabbit.mk.model.NodeState;
-import org.apache.jackrabbit.mk.model.PropertyState;
-import org.apache.jackrabbit.mk.model.ScalarImpl;
+import org.apache.jackrabbit.oak.api.ChildNodeEntry;
+import org.apache.jackrabbit.oak.api.NodeState;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Scalar;
 
 import java.util.ArrayList;
 import java.util.Iterator;

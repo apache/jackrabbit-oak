@@ -23,7 +23,6 @@ import org.apache.jackrabbit.mk.model.ChildNodeEntry;
 import org.apache.jackrabbit.mk.model.Id;
 import org.apache.jackrabbit.mk.model.NodeState;
 import org.apache.jackrabbit.mk.model.NodeStateDiff;
-import org.apache.jackrabbit.mk.model.NodeStateEditor;
 import org.apache.jackrabbit.mk.model.PropertyState;
 import org.apache.jackrabbit.mk.model.StoredNode;
 
@@ -61,16 +60,6 @@ abstract class AbstractRevisionStore implements RevisionStore {
             throw new RuntimeException(
                     "Failed to access the root node in revision " + id, e);
         }
-    }
-
-    @Override
-    public NodeStateEditor branch(NodeState base) {
-        throw new UnsupportedOperationException(); // TODO
-    }
-
-    @Override
-    public NodeState merge(NodeStateEditor branch, NodeState target) {
-        throw new UnsupportedOperationException(); // TODO
     }
 
     @Override

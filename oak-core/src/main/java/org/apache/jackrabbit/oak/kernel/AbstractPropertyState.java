@@ -14,7 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.model;
+package org.apache.jackrabbit.oak.kernel;
+
+import java.util.Iterator;
+
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Scalar;
 
 /**
  * Abstract base class for {@link PropertyState} implementations.
@@ -39,10 +44,25 @@ public abstract class AbstractPropertyState implements PropertyState {
             return true;
         } else if (that instanceof PropertyState) {
             PropertyState other = (PropertyState) that;
-            return getName().equals(other.getName())
-                    && getEncodedValue().equals(other.getEncodedValue());
+            return getName().equals(other.getName()) && valueEquals(other);
         } else {
             return false;
+        }
+    }
+
+    private boolean valueEquals(PropertyState other) {
+        if (isArray() != other.isArray()) {
+            return false;
+        } else if (isArray()) {
+            Iterator<Scalar> iterator = other.getArray().iterator();
+            for (Scalar scalar : getArray()) {
+                if (!iterator.hasNext() || !scalar.equals(iterator.next())) {
+                    return false;
+                }
+            }
+            return !iterator.hasNext();
+        } else {
+            return getScalar().equals(other.getScalar());
         }
     }
 

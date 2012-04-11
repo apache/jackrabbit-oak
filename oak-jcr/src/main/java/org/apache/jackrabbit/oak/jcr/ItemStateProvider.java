@@ -1,7 +1,7 @@
 package org.apache.jackrabbit.oak.jcr;
 
-import org.apache.jackrabbit.mk.model.PropertyState;
 import org.apache.jackrabbit.mk.util.PathUtils;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.kernel.TransientNodeState;
 
 public class ItemStateProvider {

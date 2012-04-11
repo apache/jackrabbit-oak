@@ -17,10 +17,10 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import org.apache.jackrabbit.commons.AbstractSession;
-import org.apache.jackrabbit.mk.model.NodeState;
-import org.apache.jackrabbit.mk.model.NodeStateEditor;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Connection;
+import org.apache.jackrabbit.oak.api.NodeState;
+import org.apache.jackrabbit.oak.api.NodeStateEditor;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStateEditor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.mk.model;
+package org.apache.jackrabbit.oak.api;
 
 import java.util.List;
 

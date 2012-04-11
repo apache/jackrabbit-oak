@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,32 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.model;
-
-import java.io.InputStream;
+package org.apache.jackrabbit.oak.api;
 
 /**
- * An immutable, typed scalar value.
+ * TODO: document
+ *
+ * <h2>Equality and hash codes</h2>
+ * <p>
+ * Two child node entries are considered equal if and only if their names
+ * and referenced node states match. The {@link Object#equals(Object)}
+ * method needs to be implemented so that it complies with this definition.
+ * And while child node entries are not meant for use as hash keys, the
+ * {@link Object#hashCode()} method should still be implemented according
+ * to this equality contract.
  */
-public interface Scalar {
-    enum Type {BOOLEAN, LONG, DOUBLE, BINARY, STRING, NULL}
+public interface ChildNodeEntry {
 
     /**
-     * Returns the value type.
-     * <p>
-     *
-     * @return value type
+     * TODO: document
      */
-    Type getType();
+    String getName();
 
-    boolean getBoolean();
-
-    long getLong();
-
-    double getDouble();
-
-    InputStream getInputStream();
-
-    String getString();
+    /**
+     * TODO: document
+     */
+    NodeState getNode();
 
 }

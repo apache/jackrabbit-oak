@@ -19,8 +19,8 @@
 
 package org.apache.jackrabbit.oak.jcr.util;
 
-import org.apache.jackrabbit.mk.model.Scalar;
-import org.apache.jackrabbit.mk.model.ScalarImpl;
+import org.apache.jackrabbit.oak.api.Scalar;
+import org.apache.jackrabbit.oak.kernel.ScalarImpl; // FIXME: Use only the API
 
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
