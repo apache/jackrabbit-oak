@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.jcr.util;
+package org.apache.jackrabbit.oak.util;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -27,7 +27,7 @@ import java.util.NoSuchElementException;
  * an iterator. The abstract {@code getPage} method is called whenever this
  * iterator needs to fetch another page.<p/>
  *
- * Lazy flattening (e.g. with {@link org.apache.jackrabbit.oak.jcr.util.Iterators#flatten(java.util.Iterator)}
+ * Lazy flattening (e.g. with {@link Iterators#flatten(java.util.Iterator)}
  * results in an iterator which does batch reading from its back end.
  *
  * @param <T>
