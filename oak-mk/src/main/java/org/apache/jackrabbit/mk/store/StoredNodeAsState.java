@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.mk.store;
 
-import org.apache.jackrabbit.mk.json.JsopReader;
-import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.mk.model.AbstractChildNodeEntry;
 import org.apache.jackrabbit.mk.model.AbstractNodeState;
 import org.apache.jackrabbit.mk.model.AbstractPropertyState;
@@ -26,14 +24,10 @@ import org.apache.jackrabbit.mk.model.ChildNodeEntry;
 import org.apache.jackrabbit.mk.model.Id;
 import org.apache.jackrabbit.mk.model.NodeState;
 import org.apache.jackrabbit.mk.model.PropertyState;
-import org.apache.jackrabbit.mk.model.Scalar;
-import org.apache.jackrabbit.mk.model.ScalarImpl;
 import org.apache.jackrabbit.mk.model.StoredNode;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 
 class StoredNodeAsState extends AbstractNodeState {
@@ -69,50 +63,6 @@ class StoredNodeAsState extends AbstractNodeState {
         @Override
         public String getEncodedValue() {
             return value;
-        }
-
-        @Override
-        public boolean isArray() {
-            return !value.isEmpty() && value.charAt(0) == '[';
-        }
-
-        @Override
-        public Scalar getScalar() {
-            if (isArray()) {
-                throw new IllegalStateException("Array cannot be accessed as scalar");
-            }
-
-            return readScalar(new JsopTokenizer(value));
-        }
-
-        @Override
-        public Iterable<Scalar> getArray() {
-            if (!isArray()) {
-                throw new IllegalStateException("Scalar cannot be accessed as array");
-            }
-
-            List<Scalar> scalars = new ArrayList<Scalar>();
-            JsopReader reader = new JsopTokenizer(value);
-            reader.read('[');
-            while (!reader.matches(']')) {
-                scalars.add(readScalar(reader));
-                reader.matches(',');
-            }
-            return scalars;
-        }
-
-        private static Scalar readScalar(JsopReader reader) {
-            if (reader.matches(JsopTokenizer.NUMBER)) {
-                return ScalarImpl.numberScalar(reader.getToken());
-            } else if (reader.matches(JsopTokenizer.STRING)) {
-                return ScalarImpl.stringScalar(reader.getToken());
-            } else if (reader.matches(JsopTokenizer.TRUE)) {
-                return ScalarImpl.booleanScalar(true);
-            } else if (reader.matches(JsopTokenizer.FALSE)) {
-                return ScalarImpl.booleanScalar(false);
-            } else {
-                throw new IllegalArgumentException("Unexpected token: " + reader.getToken());
-            }
         }
 
     }

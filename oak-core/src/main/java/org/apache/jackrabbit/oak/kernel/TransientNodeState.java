@@ -22,9 +22,9 @@ import org.apache.commons.collections.iterators.EmptyIterator;
 import org.apache.commons.collections.iterators.FilterIterator;
 import org.apache.commons.collections.iterators.IteratorChain;
 import org.apache.commons.collections.iterators.TransformIterator;
-import org.apache.jackrabbit.mk.model.ChildNodeEntry;
-import org.apache.jackrabbit.mk.model.NodeState;
-import org.apache.jackrabbit.mk.model.PropertyState;
+import org.apache.jackrabbit.oak.api.ChildNodeEntry;
+import org.apache.jackrabbit.oak.api.NodeState;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.kernel.TransientNodeState.Iterators.PagedIterator;
 
 import java.util.HashMap;
@@ -75,7 +75,8 @@ public class TransientNodeState {
     private final Set<String> removedNodes = new HashSet<String>();
 
     /** Transiently added property states */
-    private final Map<String, PropertyState> addedProperties = new HashMap<String, PropertyState>();
+    private final Map<String, PropertyState> addedProperties =
+            new HashMap<String, PropertyState>();
 
     /** Transiently removed property states */
     private final Set<String> removedProperties = new HashSet<String>();

@@ -29,10 +29,10 @@ import java.util.Collections;
 import java.util.List;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.model.ChildNodeEntry;
-import org.apache.jackrabbit.mk.model.NodeState;
-import org.apache.jackrabbit.mk.model.PropertyState;
 import org.apache.jackrabbit.mk.simple.SimpleKernelImpl;
+import org.apache.jackrabbit.oak.api.ChildNodeEntry;
+import org.apache.jackrabbit.oak.api.NodeState;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -59,26 +59,27 @@ public class KernelNodeStateTest {
     @Test
     public void testGetProperty() {
         assertEquals("a", state.getProperty("a").getName());
-        assertEquals("1", state.getProperty("a").getEncodedValue());
+        assertEquals(1, state.getProperty("a").getScalar().getLong());
         assertEquals("b", state.getProperty("b").getName());
-        assertEquals("2", state.getProperty("b").getEncodedValue());
+        assertEquals(2, state.getProperty("b").getScalar().getLong());
         assertEquals("c", state.getProperty("c").getName());
-        assertEquals("3", state.getProperty("c").getEncodedValue());
+        assertEquals(3, state.getProperty("c").getScalar().getLong());
         assertNull(state.getProperty("x"));
     }
 
     @Test
     public void testGetProperties() {
         List<String> names = new ArrayList<String>();
-        List<String> values = new ArrayList<String>();
+        List<Long> values = new ArrayList<Long>();
         for (PropertyState property : state.getProperties()) {
             names.add(property.getName());
-            values.add(property.getEncodedValue());
+            values.add(property.getScalar().getLong());
         }
         Collections.sort(names);
         Collections.sort(values);
         assertEquals(Arrays.asList("a", "b", "c"), names);
-        assertEquals(Arrays.asList("1", "2", "3"), values);
+        assertEquals(Arrays.asList(
+                Long.valueOf(1), Long.valueOf(2), Long.valueOf(3)), values);
     }
 
     @Test

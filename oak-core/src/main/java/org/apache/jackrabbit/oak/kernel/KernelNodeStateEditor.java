@@ -19,10 +19,11 @@
 package org.apache.jackrabbit.oak.kernel;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.model.NodeState;
-import org.apache.jackrabbit.mk.model.NodeStateEditor;
-import org.apache.jackrabbit.mk.model.PropertyState;
-import org.apache.jackrabbit.mk.model.Scalar;
+import org.apache.jackrabbit.mk.json.JsonBuilder;
+import org.apache.jackrabbit.oak.api.NodeState;
+import org.apache.jackrabbit.oak.api.NodeStateEditor;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Scalar;
 
 import java.util.List;
 
@@ -97,7 +98,7 @@ public class KernelNodeStateEditor implements NodeStateEditor {
         PropertyState propertyState = new KernelPropertyState(name, value);
         transientState.setProperty(propertyState);
         jsop.append("^\"").append(path(propertyState.getName())).append("\":")
-                .append(propertyState.getEncodedValue());
+                .append(encode(propertyState));
     }
 
     @Override
@@ -105,7 +106,7 @@ public class KernelNodeStateEditor implements NodeStateEditor {
         PropertyState propertyState = new KernelPropertyState(name, values);
         transientState.setProperty(propertyState);
         jsop.append("^\"").append(path(propertyState.getName())).append("\":")
-                .append(propertyState.getEncodedValue());
+                .append(encode(propertyState));
     }
 
     @Override
@@ -216,6 +217,38 @@ public class KernelNodeStateEditor implements NodeStateEditor {
     private String path(String name) {
         String path = transientState.getPath();
         return path.isEmpty() ? name : path + '/' + name;
+    }
+
+    private String encode(PropertyState state) {
+        if (state.isArray()) {
+            return encode(state.getArray());
+        } else {
+            return encode(state.getScalar());
+        }
+    }
+
+    private String encode(Scalar scalar) {
+        switch (scalar.getType()) {
+            case BOOLEAN: return JsonBuilder.encode(scalar.getBoolean());
+            case LONG:    return JsonBuilder.encode(scalar.getLong());
+            case DOUBLE:  return JsonBuilder.encode(scalar.getDouble());
+            case BINARY:  return null; // TODO implement encoding of binaries
+            case STRING:  return JsonBuilder.encode(scalar.getString());
+            case NULL:    return "null";
+        }
+        throw new IllegalStateException("unreachable");  // Make javac happy
+    }
+
+    private String encode(Iterable<Scalar> scalars) {
+        StringBuilder sb = new StringBuilder();
+        sb.append('[');
+        for (Scalar scalar : scalars) {
+            sb.append(encode(scalar));
+            sb.append(',');
+        }
+        sb.deleteCharAt(sb.length() - 1);
+        sb.append(']');
+        return sb.toString();
     }
 
 }

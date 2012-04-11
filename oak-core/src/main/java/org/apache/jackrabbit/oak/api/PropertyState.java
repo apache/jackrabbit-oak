@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.model;
+package org.apache.jackrabbit.oak.api;
 
 /**
  * Immutable property state. A property consists of a name and
@@ -37,8 +37,21 @@ public interface PropertyState {
     String getName();
 
     /**
-     * @return the JSON encoded value of this property state.
+     * Determine whether this is a multi valued property
+     * @return  {@code true} if and only if this is a multi valued property.
      */
-    String getEncodedValue();
+    boolean isArray();
+
+    /**
+     * @return  the single value of this property or {@code null} if this is a multi
+     * valued property.
+     */
+    Scalar getScalar();
+
+    /**
+     * @return  an iterable of the values of this multi valued property or
+     * {@code null} if this is not a multi valued property.
+     */
+    Iterable<Scalar> getArray();
 
 }

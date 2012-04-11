@@ -14,12 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.model;
+package org.apache.jackrabbit.oak.kernel;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.concurrent.Callable;
+
+import org.apache.jackrabbit.oak.api.Scalar;
 
 public abstract class ScalarImpl implements Scalar {
 
