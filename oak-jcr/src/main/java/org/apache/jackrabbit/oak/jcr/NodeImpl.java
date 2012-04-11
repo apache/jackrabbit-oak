@@ -23,11 +23,11 @@ import org.apache.jackrabbit.mk.util.PathUtils;
 import org.apache.jackrabbit.oak.api.NodeStateEditor;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.TransientNodeState;
-import org.apache.jackrabbit.oak.jcr.util.Function1;
+import org.apache.jackrabbit.oak.util.Function1;
 import org.apache.jackrabbit.oak.jcr.util.ItemNameMatcher;
-import org.apache.jackrabbit.oak.jcr.util.Iterators;
+import org.apache.jackrabbit.oak.util.Iterators;
 import org.apache.jackrabbit.oak.jcr.util.LogUtil;
-import org.apache.jackrabbit.oak.jcr.util.Predicate;
+import org.apache.jackrabbit.oak.util.Predicate;
 import org.apache.jackrabbit.oak.jcr.util.ValueConverter;
 import org.apache.jackrabbit.oak.kernel.ScalarImpl;
 import org.apache.jackrabbit.value.ValueHelper;
@@ -59,7 +59,7 @@ import java.math.BigDecimal;
 import java.util.Calendar;
 import java.util.Iterator;
 
-import static org.apache.jackrabbit.oak.jcr.util.Iterators.filter;
+import static org.apache.jackrabbit.oak.util.Iterators.filter;
 
 /**
  * {@code NodeImpl}...

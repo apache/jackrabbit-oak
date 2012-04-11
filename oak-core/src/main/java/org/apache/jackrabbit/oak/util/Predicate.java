@@ -14,7 +14,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package org.apache.jackrabbit.oak.jcr.util;
+package org.apache.jackrabbit.oak.util;
 
 /**
  * Type safe counter part of {@link org.apache.commons.collections.Predicate}.
