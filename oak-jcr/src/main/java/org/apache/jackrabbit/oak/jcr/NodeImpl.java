@@ -20,6 +20,7 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
 import org.apache.jackrabbit.commons.iterator.PropertyIteratorAdapter;
 import org.apache.jackrabbit.mk.util.PathUtils;
+import org.apache.jackrabbit.oak.api.NodeStateEditor;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.jcr.util.Function1;
 import org.apache.jackrabbit.oak.jcr.util.ItemNameMatcher;
@@ -27,7 +28,6 @@ import org.apache.jackrabbit.oak.jcr.util.Iterators;
 import org.apache.jackrabbit.oak.jcr.util.LogUtil;
 import org.apache.jackrabbit.oak.jcr.util.Predicate;
 import org.apache.jackrabbit.oak.jcr.util.ValueConverter;
-import org.apache.jackrabbit.oak.kernel.KernelNodeStateEditor;
 import org.apache.jackrabbit.oak.kernel.ScalarImpl;
 import org.apache.jackrabbit.oak.kernel.TransientNodeState;
 import org.apache.jackrabbit.value.ValueHelper;
@@ -846,7 +846,7 @@ public class NodeImpl extends ItemImpl implements Node  {
         return nodeState = getItemStateProvider().getNodeState(nodeState.getPath());
     }
 
-    private KernelNodeStateEditor getEditor() {
+    private NodeStateEditor getEditor() {
         return getNodeState().getEditor();
     }
 

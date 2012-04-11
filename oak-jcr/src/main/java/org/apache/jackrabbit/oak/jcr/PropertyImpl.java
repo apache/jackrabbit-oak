@@ -17,10 +17,10 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import org.apache.jackrabbit.mk.util.PathUtils;
+import org.apache.jackrabbit.oak.api.NodeStateEditor;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.jcr.util.LogUtil;
 import org.apache.jackrabbit.oak.jcr.util.ValueConverter;
-import org.apache.jackrabbit.oak.kernel.KernelNodeStateEditor;
 import org.apache.jackrabbit.oak.kernel.TransientNodeState;
 import org.apache.jackrabbit.value.ValueHelper;
 import org.slf4j.Logger;
@@ -614,7 +614,7 @@ public class PropertyImpl extends ItemImpl implements Property {
         return parentState;
     }
 
-    private KernelNodeStateEditor getEditor() {
+    private NodeStateEditor getEditor() {
         return getParentState().getEditor();
     }
 
