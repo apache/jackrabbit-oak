@@ -47,9 +47,8 @@ public class ConnectionImpl implements Connection {
     private final SimpleCredentials credentials;
     private final String workspaceName;
     private final NodeStore store;
+    private final NodeState root;
     private final QueryEngine queryEngine;
-
-    private NodeState root;
 
     public ConnectionImpl(SimpleCredentials credentials, String workspaceName,
             NodeStore store, NodeState root, QueryEngine queryEngine) {

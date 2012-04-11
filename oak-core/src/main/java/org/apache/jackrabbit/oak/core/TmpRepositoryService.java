@@ -68,7 +68,7 @@ public class TmpRepositoryService implements RepositoryService {
         if (sc != null) {
             return ConnectionImpl.createWorkspaceConnection(
                     sc, wspName, wspName.equals(DEFAULT_WORKSPACE_NAME),
-                    microKernelUrl, getRevision(credentials));
+                    microKernelUrl, revision);
         } else {
             throw new LoginException("login failed...");
         }
