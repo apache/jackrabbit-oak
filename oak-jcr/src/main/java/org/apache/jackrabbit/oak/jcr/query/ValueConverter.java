@@ -18,14 +18,15 @@
  */
 package org.apache.jackrabbit.oak.jcr.query;
 
+import org.apache.jackrabbit.commons.SimpleValueFactory;
+import org.apache.jackrabbit.oak.query.CoreValue;
+import org.apache.jackrabbit.oak.query.CoreValueFactory;
+
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 import javax.jcr.ValueFormatException;
-import org.apache.jackrabbit.commons.SimpleValueFactory;
-import org.apache.jackrabbit.oak.query.CoreValue;
-import org.apache.jackrabbit.oak.query.CoreValueFactory;
 
 /**
  * Convert values to the jcr-core flavor.
@@ -34,6 +35,9 @@ public class ValueConverter {
 
     private static final CoreValueFactory coreValueFactory = new CoreValueFactory();
     private static final ValueFactory jcrValueFactory = new SimpleValueFactory();
+
+    private ValueConverter() {
+    }
 
     public static CoreValue convert(Value v) throws RepositoryException {
         switch (v.getType()) {

@@ -289,6 +289,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     /**
      * @see Node#setProperty(String, InputStream)
      */
+    @SuppressWarnings("deprecation")
     @Override
     public Property setProperty(String name, InputStream value) throws RepositoryException {
         Value v = (value == null ? null : getValueFactory().createValue(value));

@@ -18,7 +18,9 @@
  */
 package org.apache.jackrabbit.oak.jcr.query.qom;
 
-import static org.junit.Assert.assertEquals;
+import org.apache.jackrabbit.commons.SimpleValueFactory;
+import org.junit.Test;
+
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
@@ -53,22 +55,15 @@ import javax.jcr.query.qom.SameNodeJoinCondition;
 import javax.jcr.query.qom.Selector;
 import javax.jcr.query.qom.Source;
 import javax.jcr.query.qom.UpperCase;
-import org.apache.jackrabbit.commons.SimpleValueFactory;
-import org.junit.Before;
-import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  * Tests the QueryObjectModelFactory and other QOM classes.
  */
 public class QomTest {
-
-    QueryObjectModelFactory f = new QueryObjectModelFactoryImpl();
-    private ValueFactory vf;
-
-    @Before
-    public void setup() {
-        vf = new SimpleValueFactory();
-    }
+    private final QueryObjectModelFactory f = new QueryObjectModelFactoryImpl();
+    private final ValueFactory vf = new SimpleValueFactory();
 
     @Test
     public void and() throws RepositoryException {

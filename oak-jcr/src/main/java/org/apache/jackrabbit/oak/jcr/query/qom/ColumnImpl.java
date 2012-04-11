@@ -33,14 +33,17 @@ public class ColumnImpl extends QOMNode implements Column {
         this.columnName = columnName;
     }
 
+    @Override
     public String getColumnName() {
         return columnName;
     }
 
+    @Override
     public String getPropertyName() {
         return propertyName;
     }
 
+    @Override
     public String getSelectorName() {
         return selectorName;
     }

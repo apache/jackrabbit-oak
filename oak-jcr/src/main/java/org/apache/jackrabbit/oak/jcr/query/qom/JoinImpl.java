@@ -21,9 +21,9 @@ import javax.jcr.query.qom.Join;
 public class JoinImpl extends SourceImpl implements Join {
 
     private final JoinConditionImpl joinCondition;
-    private JoinType joinType;
-    private SourceImpl left;
-    private SourceImpl right;
+    private final JoinType joinType;
+    private final SourceImpl left;
+    private final SourceImpl right;
 
     public JoinImpl(SourceImpl left, SourceImpl right, JoinType joinType,
             JoinConditionImpl joinCondition) {

@@ -32,10 +32,12 @@ public class SelectorImpl extends SourceImpl implements Selector {
         this.selectorName = selectorName;
     }
 
+    @Override
     public String getNodeTypeName() {
         return nodeTypeName;
     }
 
+    @Override
     public String getSelectorName() {
         return selectorName;
     }

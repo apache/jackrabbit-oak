@@ -13,13 +13,12 @@
  */
 package org.apache.jackrabbit.oak.jcr.query.qom;
 
-import java.util.ArrayList;
-import java.util.HashMap;
+import org.apache.jackrabbit.commons.SimpleValueFactory;
+
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
-import javax.jcr.query.InvalidQueryException;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.qom.Column;
 import javax.jcr.query.qom.Constraint;
@@ -27,7 +26,8 @@ import javax.jcr.query.qom.Ordering;
 import javax.jcr.query.qom.QueryObjectModel;
 import javax.jcr.query.qom.Selector;
 import javax.jcr.query.qom.Source;
-import org.apache.jackrabbit.commons.SimpleValueFactory;
+import java.util.ArrayList;
+import java.util.HashMap;
 
 /**
  * The implementation of the corresponding JCR interface.
@@ -106,7 +106,7 @@ public class QueryObjectModelImpl implements QueryObjectModel {
     }
 
     @Override
-    public QueryResult execute() throws InvalidQueryException, RepositoryException {
+    public QueryResult execute() throws RepositoryException {
         // TODO Auto-generated method stub
         return null;
     }
