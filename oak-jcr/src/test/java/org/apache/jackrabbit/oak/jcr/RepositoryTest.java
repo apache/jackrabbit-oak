@@ -114,14 +114,13 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertNotNull(getSession());
     }
 
-    @Ignore("WIP")
     @Test(expected = NoSuchWorkspaceException.class)
     public void loginInvalidWorkspace() throws RepositoryException {
         Repository repository = getRepository();
         repository.login("invalid");
     }
 
-    @Ignore("WIP")
+    @Ignore("WIP") // TODO implement workspace management
     @Test
     public void getWorkspaceNames() throws RepositoryException {
         String[] workspaces = getSession().getWorkspace().getAccessibleWorkspaceNames();
@@ -134,7 +133,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertTrue(names.containsAll(asList(workspaces)));
     }
 
-    @Ignore("WIP")
+    @Ignore("WIP") // TODO implement workspace management
     @Test
     public void createDeleteWorkspace() throws RepositoryException {
         getSession().getWorkspace().createWorkspace("new");
@@ -185,8 +184,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertEquals("/foo", node.getPath());
     }
 
+    @Ignore  // TODO implement getNodeByIdentifier
     @Test
-    @Ignore  // todo implement getNodeByIdentifier
     public void getNodeByIdentifier() throws RepositoryException {
         Node node = getNode("/foo");
         String id = node.getIdentifier();
@@ -484,15 +483,15 @@ public class RepositoryTest extends AbstractRepositoryTest {
         }
     }
 
+    @Ignore // TODO implement value coding in ValueConverter
     @Test
-    @Ignore // todo implement value coding in ValueConverter
     public void addDecimalProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
         addProperty(parentNode, "decimal", getSession().getValueFactory().createValue(BigDecimal.valueOf(21)));
     }
 
+    @Ignore // TODO implement value coding in ValueConverter
     @Test
-    @Ignore // todo implement value coding in ValueConverter
     public void addMultiValuedDecimal() throws RepositoryException {
         Node parentNode = getNode(TEST_PATH);
         Value[] values = new Value[2];
@@ -517,15 +516,15 @@ public class RepositoryTest extends AbstractRepositoryTest {
         }
     }
 
+    @Ignore // TODO implement value coding in ValueConverter
     @Test
-    @Ignore // todo implement value coding in ValueConverter
     public void addDateProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
         addProperty(parentNode, "date", getSession().getValueFactory().createValue(Calendar.getInstance()));
     }
 
+    @Ignore // TODO implement value coding in ValueConverter
     @Test
-    @Ignore // todo implement value coding in ValueConverter
     public void addMultiValuedDate() throws RepositoryException {
         Node parentNode = getNode(TEST_PATH);
         Value[] values = new Value[2];
@@ -552,15 +551,15 @@ public class RepositoryTest extends AbstractRepositoryTest {
         }
     }
 
+    @Ignore // TODO implement value coding in ValueConverter
     @Test
-    @Ignore // todo implement value coding in ValueConverter
     public void addURIProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
         addProperty(parentNode, "uri", getSession().getValueFactory().createValue("http://www.day.com/", PropertyType.URI));
     }
 
+    @Ignore // TODO implement value coding in ValueConverter
     @Test
-    @Ignore // todo implement value coding in ValueConverter
     public void addMultiValuedURI() throws RepositoryException {
         Node parentNode = getNode(TEST_PATH);
         Value[] values = new Value[2];
@@ -585,15 +584,15 @@ public class RepositoryTest extends AbstractRepositoryTest {
         }
     }
 
+    @Ignore // TODO implement value coding in ValueConverter
     @Test
-    @Ignore // todo implement value coding in ValueConverter
     public void addNameProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
         addProperty(parentNode, "name", getSession().getValueFactory().createValue("jcr:something\"", PropertyType.NAME));
     }
 
+    @Ignore // TODO implement value coding in ValueConverter
     @Test
-    @Ignore // todo implement value coding in ValueConverter
     public void addMultiValuedName() throws RepositoryException {
         Node parentNode = getNode(TEST_PATH);
         Value[] values = new Value[2];
@@ -618,15 +617,15 @@ public class RepositoryTest extends AbstractRepositoryTest {
         }
     }
 
+    @Ignore // TODO implement value coding in ValueConverter
     @Test
-    @Ignore // todo implement value coding in ValueConverter
     public void addPathProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
         addProperty(parentNode, "path", getSession().getValueFactory().createValue("/jcr:foo/bar\"", PropertyType.PATH));
     }
 
+    @Ignore // TODO implement value coding in ValueConverter
     @Test
-    @Ignore // todo implement value coding in ValueConverter
     public void addMultiValuedPath() throws RepositoryException {
         Node parentNode = getNode(TEST_PATH);
         Value[] values = new Value[2];
@@ -651,8 +650,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
         }
     }
 
+    @Ignore // TODO implement value coding in ValueConverter
     @Test
-    @Ignore // todo implement value coding in ValueConverter
     public void addBinaryProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
         InputStream is = new ByteArrayInputStream("foo\"".getBytes());
@@ -660,8 +659,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
         addProperty(parentNode, "binary", getSession().getValueFactory().createValue(bin));
     }
 
+    @Ignore // TODO implement value coding in ValueConverter
     @Test
-    @Ignore // todo implement value coding in ValueConverter
     public void addSmallBinaryProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
         InputStream is = new NumberStream(1234);
@@ -669,8 +668,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
         addProperty(parentNode, "bigBinary", getSession().getValueFactory().createValue(bin));
     }
 
+    @Ignore // TODO implement value coding in ValueConverter
     @Test
-    @Ignore // todo implement value coding in ValueConverter
     public void addBigBinaryProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
         InputStream is = new NumberStream(123456);
@@ -678,8 +677,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
         addProperty(parentNode, "bigBinary", getSession().getValueFactory().createValue(bin));
     }
 
+    @Ignore // TODO implement value coding in ValueConverter
     @Test
-    @Ignore // todo implement value coding in ValueConverter
     public void addMultiValuedBinary() throws RepositoryException {
         Node parentNode = getNode(TEST_PATH);
         Value[] values = new Value[2];
@@ -710,8 +709,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
         }
     }
 
+    @Ignore // TODO implement node type support
     @Test
-    @Ignore // todo implement node type support
     public void addReferenceProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
         Node referee = getSession().getNode("/foo");
@@ -721,8 +720,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
         addProperty(parentNode, "reference", getSession().getValueFactory().createValue(referee));
     }
 
+    @Ignore // TODO implement node type support
     @Test
-    @Ignore // todo implement node type support
     public void addMultiValuedReference() throws RepositoryException {
         Node parentNode = getNode(TEST_PATH);
         Node referee = getSession().getNode("/foo");
@@ -751,8 +750,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
         }
     }
 
+    @Ignore // TODO implement node type support
     @Test
-    @Ignore // todo implement node type support
     public void addWeakReferenceProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
         Node referee = getSession().getNode("/foo");
@@ -762,8 +761,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
         addProperty(parentNode, "weak reference", getSession().getValueFactory().createValue(referee, true));
     }
 
+    @Ignore // TODO implement node type support
     @Test
-    @Ignore // todo implement node type support
     public void addMultiValuedWeakReference() throws RepositoryException {
         Node parentNode = getNode(TEST_PATH);
         Node referee = getSession().getNode("/foo");
@@ -792,8 +791,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
         }
     }
 
+    @Ignore // TODO implement value coding in ValueConverter
     @Test
-    @Ignore // todo implement value coding in ValueConverter
     public void addEmptyMultiValuedProperty() throws RepositoryException {
         Node parentNode = getNode(TEST_PATH);
         Value[] values = new Value[0];
@@ -814,8 +813,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
         }
     }
 
+    @Ignore // TODO implement value coding in ValueConverter
     @Test
-    @Ignore
     public void addEmptyMultiValuedProperty_JCR_2992_WorkaroundTest() throws RepositoryException {
         Node parentNode = getNode(TEST_PATH);
         Value[] values = new Value[0];
@@ -896,8 +895,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
         }
     }
 
+    @Ignore // TODO implement value coding in ValueConverter
     @Test
-    @Ignore // todo implement value coding in ValueConverter
     public void setDoubleNaNProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
         addProperty(parentNode, "NaN", getSession().getValueFactory().createValue(Double.NaN));
@@ -1063,8 +1062,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
         }
     }
 
-    @Test
     @Ignore("WIP")  // fixme
+    @Test
     public void sessionRefresh() throws RepositoryException {
         Session session = getRepository().login();
         try {
@@ -1124,8 +1123,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
         }
     }
 
-    @Test
     @Ignore("WIP")  // fixme
+    @Test
     public void refreshConflict() throws RepositoryException {
         Session session1 = getRepository().login();
         Session session2 = getRepository().login();
@@ -1149,8 +1148,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
         }
     }
 
-    @Test
     @Ignore("WIP")  // fixme
+    @Test
     public void refreshConflict2() throws RepositoryException {
         getSession().getRootNode().addNode("node");
         getSession().save();
@@ -1207,8 +1206,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
         }
     }
 
+    @Ignore // TODO implement move
     @Test
-    @Ignore("WIP")
     public void move() throws RepositoryException {
         Session session = getSession();
 
@@ -1230,8 +1229,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertTrue(node.hasNode("target/moved"));
     }
 
+    @Ignore // TODO implement node type support
     @Test
-    @Ignore // todo implement node type support
     public void setPrimaryType() throws RepositoryException {
         Node testNode = getNode(TEST_PATH);
         assertEquals("nt:unstructured", testNode.getPrimaryNodeType().getName());
@@ -1251,8 +1250,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
         }
     }
 
+    @Ignore // TODO implement orderBefore, orderable child nodes
     @Test
-    @Ignore // todo implement orderBefore, orderable child nodes
     public void reorderTest() throws RepositoryException {
         Node testNode = getNode(TEST_PATH);
         testNode.addNode("a");
@@ -1270,8 +1269,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
         // todo: check order
     }
 
+    @Ignore // TODO implement node type support
     @Test
-    @Ignore // todo implement node type support
     public void nodeTypeRegistry() throws RepositoryException {
         NodeTypeManager ntMgr = getSession().getWorkspace().getNodeTypeManager();
         assertFalse(ntMgr.hasNodeType("foo"));
@@ -1285,8 +1284,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertFalse(ntMgr.hasNodeType("foo"));
     }
 
+    @Ignore // TODO implement node type support
     @Test
-    @Ignore // todo implement node type support
     public void nameSpaceRegistry() throws RepositoryException {
         NamespaceRegistry nsReg = getSession().getWorkspace().getNamespaceRegistry();
         assertFalse(contains(nsReg.getPrefixes(), "foo"));
@@ -1301,8 +1300,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertFalse(contains(nsReg.getURIs(), "file:///foo"));
     }
 
+    @Ignore // TODO implement node type support
     @Test
-    @Ignore // todo implement node type support
     public void mixin() throws RepositoryException {
         NodeTypeManager ntMgr = getSession().getWorkspace().getNodeTypeManager();
         NodeTypeTemplate mixTest = ntMgr.createNodeTypeTemplate();
@@ -1340,8 +1339,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
         }
     }
 
+    @Ignore // TODO implement observation
     @Test
-    @Ignore // todo implement observation
     public void observation() throws RepositoryException {
         final Set<String> addNodes = toSet(
                 TEST_PATH + "/1",
@@ -1439,8 +1438,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertTrue(setProperties.isEmpty());
     }
 
+    @Ignore // TODO implement observation
     @Test
-    @Ignore // todo implement observation
     public void observation2() throws RepositoryException {
         final Set<String> addNodes = toSet(
                 TEST_PATH + "/1",
@@ -1507,8 +1506,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertTrue(addProperties.isEmpty());
     }
 
+    @Ignore // TODO implement observation
     @Test
-    @Ignore // todo implement observation
     public void observationNoEvents() throws RepositoryException, InterruptedException {
         final List<Event> failedEvents = new ArrayList<Event>();
 
@@ -1529,8 +1528,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertTrue(failedEvents.isEmpty());
     }
 
+    @Ignore // TODO implement observation
     @Test
-    @Ignore // todo implement observation
     public void observationDispose() throws RepositoryException, ExecutionException, TimeoutException,
                 InterruptedException {
 
