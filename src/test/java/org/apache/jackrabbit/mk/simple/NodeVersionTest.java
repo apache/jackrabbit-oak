@@ -14,49 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.large;
+package org.apache.jackrabbit.mk.simple;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import org.apache.jackrabbit.mk.MultiMkTestBase;
+import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.simple.NodeImpl;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
 /**
  * Test moving nodes.
  */
-@RunWith(Parameterized.class)
-public class NodeVersionTest extends MultiMkTestBase {
+public class NodeVersionTest {
 
-    private String head;
-
-    public NodeVersionTest(String url) {
-        super(url);
-    }
-
-    @Before
-    public void setUp() throws Exception {
-        super.setUp();
-    }
-
-    @After
-    public void tearDown() throws InterruptedException {
-        if (isSimpleKernel(mk)) {
-            head = mk.commit("/:root/head/config", "^ \"nodeVersion\": false", head, "");
-            head = mk.commit("/:root/head/config", "^ \"nodeVersion\": null", head, "");
-        }
-        super.tearDown();
-    }
+    private final MicroKernel mk = new SimpleKernelImpl("mem:NodeVersionTest");
 
     @Test
     public void nodeVersion() {
-        if (!isSimpleKernel(mk)) {
-            return;
-        }
         String head = mk.getHeadRevision();
         head = mk.commit("/:root/head/config", "^ \"nodeVersion\": true", head, "");
 
