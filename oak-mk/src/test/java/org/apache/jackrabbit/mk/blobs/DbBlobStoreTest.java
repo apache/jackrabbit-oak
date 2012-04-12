@@ -44,10 +44,11 @@ public class DbBlobStoreTest extends TestCase {
 
     protected AbstractBlobStore store;
     private Connection sentinel;
+    private JdbcConnectionPool cp;
 
     public void setUp() throws Exception {
         Class.forName("org.h2.Driver");
-        JdbcConnectionPool cp = JdbcConnectionPool.create("jdbc:h2:mem:", "", "");
+        cp = JdbcConnectionPool.create("jdbc:h2:mem:", "", "");
         sentinel = cp.getConnection();
         DbBlobStore blobStore = new DbBlobStore();
         blobStore.setConnectionPool(cp);
@@ -61,6 +62,7 @@ public class DbBlobStoreTest extends TestCase {
             sentinel.close();
         }
         store.close();
+        cp.dispose();
     }
 
     public void testAddFile() throws Exception {
@@ -213,10 +215,11 @@ public class DbBlobStoreTest extends TestCase {
         store.clearCache();
 
         // https://issues.apache.org/jira/browse/OAK-60
+        // endure there is at least one old entry (with age 1 ms)
         try {
             Thread.sleep(1);
         } catch (InterruptedException e) {
-
+            // ignore
         }
 
         store.startMark();
