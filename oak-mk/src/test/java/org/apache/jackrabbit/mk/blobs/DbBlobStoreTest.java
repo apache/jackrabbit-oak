@@ -211,6 +211,14 @@ public class DbBlobStoreTest extends TestCase {
 
         store.clearInUse();
         store.clearCache();
+
+        // https://issues.apache.org/jira/browse/OAK-60
+        try {
+            Thread.sleep(1);
+        } catch (InterruptedException e) {
+
+        }
+
         store.startMark();
         count = store.sweep();
         assertTrue("count: " + count, count > 0);
@@ -225,13 +233,6 @@ public class DbBlobStoreTest extends TestCase {
             }
         }
         assertTrue("failedCount: " + failedCount, failedCount > 0);
-
-
-//        try {
-//            Thread.sleep(10);
-//        } catch (InterruptedException e) {
-//
-//        }
     }
 
     private void doTest(int maxLength, int count) throws Exception {
