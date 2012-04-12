@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.Connection;
+import org.apache.jackrabbit.oak.api.NodeStateEditor;
 import org.apache.jackrabbit.oak.jcr.query.QueryManagerImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,8 +77,19 @@ public class WorkspaceImpl implements Workspace {
         getSessionImpl().checkSupportedOption(Repository.LEVEL_2_SUPPORTED);
         getSessionImpl().checkIsAlive();
 
-        // TODO -> SPI
+        try {
+            Connection connection = sessionContext.getConnection();
+            NodeStateEditor editor = connection.getNodeStateEditor(connection.getCurrentRoot());
 
+            String srcPath = Paths.relativize("/", srcAbsPath);
+            String destPath = Paths.relativize("/", destAbsPath);
+            editor.copy(srcPath, destPath);
+
+            connection.commit(editor);
+        }
+        catch (CommitFailedException e) {
+            throw new RepositoryException(e);
+        }
     }
 
     @SuppressWarnings("deprecation")
@@ -94,8 +108,19 @@ public class WorkspaceImpl implements Workspace {
         getSessionImpl().checkSupportedOption(Repository.LEVEL_2_SUPPORTED);
         getSessionImpl().checkIsAlive();
 
-        // TODO -> SPI
+        try {
+            Connection connection = sessionContext.getConnection();
+            NodeStateEditor editor = connection.getNodeStateEditor(connection.getCurrentRoot());
 
+            String srcPath = Paths.relativize("/", srcAbsPath);
+            String destPath = Paths.relativize("/", destAbsPath);
+            editor.move(srcPath, destPath);
+
+            connection.commit(editor);
+        }
+        catch (CommitFailedException e) {
+            throw new RepositoryException(e);
+        }
     }
 
     @Override
