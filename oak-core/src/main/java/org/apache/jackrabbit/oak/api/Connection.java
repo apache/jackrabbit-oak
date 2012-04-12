@@ -87,14 +87,12 @@ public interface Connection extends Closeable {
 
     /**
      * Atomically apply all changes in the passed {@code editor} to the underlying
-     * Microkernel. On success this connection is implicitly refreshed to the state
-     * created by applying the editor.
+     * Microkernel.
      *
      * @param editor  editor carrying the changes to be applies
-     * @return  node state resulting from applying the changed
      * @throws CommitFailedException
      */
-    NodeState commit(NodeStateEditor editor) throws CommitFailedException;
+    void commit(NodeStateEditor editor) throws CommitFailedException;
 
     /**
      * Get an node state editor for the given state. Use {@link #commit(NodeStateEditor)}
