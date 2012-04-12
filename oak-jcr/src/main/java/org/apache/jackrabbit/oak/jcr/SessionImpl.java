@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.jcr;
 import org.apache.jackrabbit.commons.AbstractSession;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Connection;
-import org.apache.jackrabbit.oak.api.NodeState;
 import org.apache.jackrabbit.oak.api.NodeStateEditor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -155,8 +154,9 @@ public class SessionImpl extends AbstractSession {
     public void save() throws RepositoryException {
         checkIsAlive();
         try {
-            NodeState newState = connection.commit(editor);
-            editor = connection.getNodeStateEditor(newState);
+            connection.commit(editor);
+            connection.refresh();
+            editor = connection.getNodeStateEditor(connection.getCurrentRoot());
             itemStateProvider = new ItemStateProvider(editor.getTransientState());
         } catch (CommitFailedException e) {
             throw new RepositoryException(e);
