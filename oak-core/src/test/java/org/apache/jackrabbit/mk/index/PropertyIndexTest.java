@@ -17,23 +17,18 @@
 package org.apache.jackrabbit.mk.index;
 
 import junit.framework.Assert;
-import org.apache.jackrabbit.mk.MultiMkTestBase;
+import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
 /**
  * Test the property index.
  */
-@RunWith(Parameterized.class)
-public class PropertyIndexTest extends MultiMkTestBase {
-
-    public PropertyIndexTest(String url) {
-        super(url);
-    }
+public class PropertyIndexTest {
 
     @Test
     public void test() {
+        MicroKernel mk = new MicroKernelImpl();
         Indexer indexer = new Indexer(mk, "index");
         PropertyIndex index = indexer.createPropertyIndex("id", true);
 
@@ -64,8 +59,7 @@ public class PropertyIndexTest extends MultiMkTestBase {
 
         Assert.assertEquals("/test/test", index.getPath("3", head));
 
-        reconnect();
-
+        // Recreate the indexer
         indexer = new Indexer(mk);
         index = indexer.createPropertyIndex("id", true);
         head = mk.getHeadRevision();
