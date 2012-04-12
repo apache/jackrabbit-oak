@@ -24,6 +24,7 @@ import org.apache.jackrabbit.mk.MultiMkTestBase;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -79,6 +80,7 @@ public class VirtualRepositoryWrapperTest extends MultiMkTestBase {
         }
     }
 
+    @Ignore("https://issues.apache.org/jira/browse/OAK-58")
     @Test
     public void commit() {
         if (!isSimpleKernel(mk)) {
@@ -128,6 +130,7 @@ public class VirtualRepositoryWrapperTest extends MultiMkTestBase {
 
     }
 
+    @Ignore("https://issues.apache.org/jira/browse/OAK-58")
     @Test
     public void binary() {
         int len = 1000;
