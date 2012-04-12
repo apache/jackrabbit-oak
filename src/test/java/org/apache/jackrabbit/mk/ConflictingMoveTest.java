@@ -21,7 +21,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -34,11 +33,6 @@ public class ConflictingMoveTest extends MultiMkTestBase {
 
     public ConflictingMoveTest(String url) {
         super(url);
-    }
-
-    @Before
-    public void setUp() throws Exception {
-        super.setUp();
     }
 
     @Test
@@ -91,18 +85,6 @@ public class ConflictingMoveTest extends MultiMkTestBase {
         } catch (MicroKernelException e) {
             // expected to fail since /b doesn't exist anymore
         }
-    }
-
-    @Test
-    public void doubleDelete() {
-        if (!isSimpleKernel(mk)) {
-            // TODO
-            return;
-        }
-        String head = mk.getHeadRevision();
-        head = mk.commit("/", "+\"a\": {}", head, "");
-        mk.commit("/", "-\"a\"", head, "");
-        mk.commit("/", "-\"a\"", head, "");
     }
 
 }
