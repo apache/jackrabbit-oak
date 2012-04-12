@@ -3,7 +3,7 @@ package org.apache.jackrabbit.oak.jcr;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.TransientNodeState;
 
-public class ItemStateProvider {
+class ItemStateProvider {
     private final TransientNodeState root;
 
     ItemStateProvider(TransientNodeState root) {

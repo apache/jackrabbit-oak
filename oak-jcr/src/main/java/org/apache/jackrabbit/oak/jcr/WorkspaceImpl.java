@@ -74,8 +74,8 @@ public class WorkspaceImpl implements Workspace {
     @SuppressWarnings("deprecation")
     @Override
     public void copy(String srcWorkspace, String srcAbsPath, String destAbsPath) throws RepositoryException {
-        getSessionImpl().checkSupportedOption(Repository.LEVEL_2_SUPPORTED);
-        getSessionImpl().checkIsAlive();
+        ensureSupportedOption(Repository.LEVEL_2_SUPPORTED);
+        ensureIsAlive();
 
         try {
             Connection connection = sessionContext.getConnection();
@@ -95,8 +95,8 @@ public class WorkspaceImpl implements Workspace {
     @SuppressWarnings("deprecation")
     @Override
     public void clone(String srcWorkspace, String srcAbsPath, String destAbsPath, boolean removeExisting) throws RepositoryException {
-        getSessionImpl().checkSupportedOption(Repository.LEVEL_2_SUPPORTED);
-        getSessionImpl().checkIsAlive();
+        ensureSupportedOption(Repository.LEVEL_2_SUPPORTED);
+        ensureIsAlive();
 
         // TODO -> SPI
 
@@ -105,8 +105,8 @@ public class WorkspaceImpl implements Workspace {
     @SuppressWarnings("deprecation")
     @Override
     public void move(String srcAbsPath, String destAbsPath) throws RepositoryException {
-        getSessionImpl().checkSupportedOption(Repository.LEVEL_2_SUPPORTED);
-        getSessionImpl().checkIsAlive();
+        ensureSupportedOption(Repository.LEVEL_2_SUPPORTED);
+        ensureIsAlive();
 
         try {
             Connection connection = sessionContext.getConnection();
@@ -130,8 +130,8 @@ public class WorkspaceImpl implements Workspace {
 
     @Override
     public LockManager getLockManager() throws RepositoryException {
-        getSessionImpl().checkIsAlive();
-        getSessionImpl().checkSupportedOption(Repository.OPTION_LOCKING_SUPPORTED);
+        ensureIsAlive();
+        ensureSupportedOption(Repository.OPTION_LOCKING_SUPPORTED);
 
         // TODO
         return null;
@@ -139,7 +139,7 @@ public class WorkspaceImpl implements Workspace {
 
     @Override
     public QueryManager getQueryManager() throws RepositoryException {
-        getSessionImpl().checkIsAlive();
+        ensureIsAlive();
         if (queryManager == null) {
             queryManager = new QueryManagerImpl(this, sessionContext);
         }
@@ -148,7 +148,7 @@ public class WorkspaceImpl implements Workspace {
 
     @Override
     public NamespaceRegistry getNamespaceRegistry() throws RepositoryException {
-        getSessionImpl().checkIsAlive();
+        ensureIsAlive();
 
         // TODO
         return null;
@@ -156,7 +156,7 @@ public class WorkspaceImpl implements Workspace {
 
     @Override
     public NodeTypeManager getNodeTypeManager() throws RepositoryException {
-        getSessionImpl().checkIsAlive();
+        ensureIsAlive();
 
         // TODO
         return null;
@@ -164,8 +164,8 @@ public class WorkspaceImpl implements Workspace {
 
     @Override
     public ObservationManager getObservationManager() throws RepositoryException {
-        getSessionImpl().checkSupportedOption(Repository.OPTION_OBSERVATION_SUPPORTED);
-        getSessionImpl().checkIsAlive();
+        ensureSupportedOption(Repository.OPTION_OBSERVATION_SUPPORTED);
+        ensureIsAlive();
 
         // TODO
         return null;
@@ -173,8 +173,8 @@ public class WorkspaceImpl implements Workspace {
 
     @Override
     public VersionManager getVersionManager() throws RepositoryException {
-        getSessionImpl().checkIsAlive();
-        getSessionImpl().checkSupportedOption(Repository.OPTION_VERSIONING_SUPPORTED);
+        ensureIsAlive();
+        ensureSupportedOption(Repository.OPTION_VERSIONING_SUPPORTED);
 
         // TODO
         return null;
@@ -182,7 +182,7 @@ public class WorkspaceImpl implements Workspace {
 
     @Override
     public String[] getAccessibleWorkspaceNames() throws RepositoryException {
-        getSessionImpl().checkIsAlive();
+        ensureIsAlive();
 
         // TODO -> SPI
         return null;
@@ -191,8 +191,8 @@ public class WorkspaceImpl implements Workspace {
     @SuppressWarnings("deprecation")
     @Override
     public ContentHandler getImportContentHandler(String parentAbsPath, int uuidBehavior) throws RepositoryException {
-        getSessionImpl().checkSupportedOption(Repository.LEVEL_2_SUPPORTED);
-        getSessionImpl().checkIsAlive();
+        ensureSupportedOption(Repository.LEVEL_2_SUPPORTED);
+        ensureIsAlive();
 
         // TODO
         return null;
@@ -201,38 +201,44 @@ public class WorkspaceImpl implements Workspace {
     @SuppressWarnings("deprecation")
     @Override
     public void importXML(String parentAbsPath, InputStream in, int uuidBehavior) throws IOException, RepositoryException {
-        getSessionImpl().checkSupportedOption(Repository.LEVEL_2_SUPPORTED);
-        getSessionImpl().checkIsAlive();
+        ensureSupportedOption(Repository.LEVEL_2_SUPPORTED);
+        ensureIsAlive();
 
         // TODO -> SPI
     }
 
     @Override
     public void createWorkspace(String name) throws RepositoryException {
-        getSessionImpl().checkIsAlive();
-        getSessionImpl().checkSupportedOption(Repository.OPTION_WORKSPACE_MANAGEMENT_SUPPORTED);
+        ensureIsAlive();
+        ensureSupportedOption(Repository.OPTION_WORKSPACE_MANAGEMENT_SUPPORTED);
 
         // TODO -> SPI
     }
 
     @Override
     public void createWorkspace(String name, String srcWorkspace) throws RepositoryException {
-        getSessionImpl().checkIsAlive();
-        getSessionImpl().checkSupportedOption(Repository.OPTION_WORKSPACE_MANAGEMENT_SUPPORTED);
+        ensureIsAlive();
+        ensureSupportedOption(Repository.OPTION_WORKSPACE_MANAGEMENT_SUPPORTED);
 
         // TODO -> SPI
     }
 
     @Override
     public void deleteWorkspace(String name) throws RepositoryException {
-        getSessionImpl().checkIsAlive();
-        getSessionImpl().checkSupportedOption(Repository.OPTION_WORKSPACE_MANAGEMENT_SUPPORTED);
+        ensureIsAlive();
+        ensureSupportedOption(Repository.OPTION_WORKSPACE_MANAGEMENT_SUPPORTED);
 
         // TODO -> SPI
     }
 
     //------------------------------------------------------------< private >---
-    private SessionImpl getSessionImpl() {
-        return sessionContext.getSession();
+
+    private void ensureIsAlive() throws RepositoryException {
+        sessionContext.getSession().ensureIsAlive();
     }
+
+    private void ensureSupportedOption(String option) throws RepositoryException {
+        sessionContext.getSession().ensureSupportsOption(option);
+    }
+
 }
