@@ -18,23 +18,18 @@ package org.apache.jackrabbit.mk.index;
 
 import java.util.Iterator;
 import junit.framework.Assert;
-import org.apache.jackrabbit.mk.MultiMkTestBase;
+import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
 /**
  * Test the prefix index.
  */
-@RunWith(Parameterized.class)
-public class PrefixIndexTest extends MultiMkTestBase {
-
-    public PrefixIndexTest(String url) {
-        super(url);
-    }
+public class PrefixIndexTest {
 
     @Test
     public void test() {
+        MicroKernel mk = new MicroKernelImpl();
         Indexer indexer = new Indexer(mk, "index");
         PrefixIndex index = indexer.createPrefixIndex("d:");
 

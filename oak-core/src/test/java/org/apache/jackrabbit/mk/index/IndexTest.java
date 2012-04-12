@@ -20,21 +20,16 @@ import java.util.Iterator;
 import java.util.Random;
 import java.util.TreeMap;
 import junit.framework.Assert;
-import org.apache.jackrabbit.mk.MultiMkTestBase;
 import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
 /**
  * Tests the indexing mechanism.
  */
-@RunWith(Parameterized.class)
-public class IndexTest extends MultiMkTestBase {
+public class IndexTest {
 
-    public IndexTest(String url) {
-        super(url);
-    }
+    private final MicroKernel mk = new MicroKernelImpl();
 
     @Test
     public void createIndexAfterAddingData() {
