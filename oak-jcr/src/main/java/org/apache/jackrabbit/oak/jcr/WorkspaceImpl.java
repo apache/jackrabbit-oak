@@ -28,6 +28,7 @@ import javax.jcr.NamespaceRegistry;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Workspace;
 import javax.jcr.lock.LockManager;
 import javax.jcr.nodetype.NodeTypeManager;
@@ -76,6 +77,10 @@ public class WorkspaceImpl implements Workspace {
     public void copy(String srcWorkspace, String srcAbsPath, String destAbsPath) throws RepositoryException {
         ensureSupportedOption(Repository.LEVEL_2_SUPPORTED);
         ensureIsAlive();
+
+        if (!getName().equals(srcWorkspace)) {
+            throw new UnsupportedRepositoryOperationException("Not implemented.");
+        }
 
         try {
             Connection connection = sessionContext.getConnection();
