@@ -17,36 +17,24 @@
 package org.apache.jackrabbit.mk.wrapper;
 
 import static org.junit.Assert.assertEquals;
-import org.apache.jackrabbit.mk.MultiMkTestBase;
+import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.index.IndexWrapper;
-import org.junit.Before;
+import org.apache.jackrabbit.mk.simple.SimpleKernelImpl;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
 /**
  * Test the index wrapper.
  */
-@RunWith(Parameterized.class)
-public class IndexWrapperTest extends MultiMkTestBase {
+public class IndexWrapperTest {
+
+    // TODO: Remove SimpleKernelImpl-specific assumptions from the test
+    private final MicroKernel mk =
+            new IndexWrapper(new SimpleKernelImpl("mem:IndexWrapperTest"));
 
     private String head;
 
-    public IndexWrapperTest(String url) {
-        super(url);
-    }
-
-    @Before
-    public void setUp() throws Exception {
-        super.setUp();
-        mk = new IndexWrapper(mk);
-    }
-
     @Test
     public void prefix() {
-        if (!isSimpleKernel(mk)) {
-            return;
-        }
         head = mk.commit("/index", "+ \"prefix:x\": {}", head, "");
         head = mk.commit("/", "+ \"n1\": { \"value\":\"a:no\" }", head, "");
         head = mk.commit("/", "+ \"n2\": { \"value\":\"x:yes\" }", head, "");
@@ -62,9 +50,6 @@ public class IndexWrapperTest extends MultiMkTestBase {
 
     @Test
     public void propertyUnique() {
-        if (!isSimpleKernel(mk)) {
-            return;
-        }
         head = mk.commit("/index", "+ \"property:id,unique\": {}", head, "");
         head = mk.commit("/", "+ \"n1\": { \"value\":\"empty\" }", head, "");
         head = mk.commit("/", "+ \"n2\": { \"id\":\"1\" }", head, "");
@@ -76,9 +61,6 @@ public class IndexWrapperTest extends MultiMkTestBase {
 
     @Test
     public void propertyNonUnique() {
-        if (!isSimpleKernel(mk)) {
-            return;
-        }
         head = mk.commit("/index", "+ \"property:ref\": {}", head, "");
         head = mk.commit("/", "+ \"n1\": { \"ref\":\"a\" }", head, "");
         head = mk.commit("/", "+ \"n2\": { \"ref\":\"b\" }", head, "");
