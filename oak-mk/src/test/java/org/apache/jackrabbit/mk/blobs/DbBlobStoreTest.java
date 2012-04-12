@@ -62,7 +62,10 @@ public class DbBlobStoreTest extends TestCase {
             sentinel.close();
         }
         store.close();
-        cp.dispose();
+
+        if (cp != null) {
+            cp.dispose();
+        }
     }
 
     public void testAddFile() throws Exception {
