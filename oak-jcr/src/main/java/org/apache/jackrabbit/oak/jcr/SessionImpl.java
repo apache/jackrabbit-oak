@@ -101,7 +101,7 @@ public class SessionImpl extends AbstractSession {
      */
     @Override
     public Session impersonate(Credentials credentials) throws RepositoryException {
-        checkIsAlive();
+        ensureIsAlive();
 
         // TODO
         return null;
@@ -109,7 +109,7 @@ public class SessionImpl extends AbstractSession {
 
     @Override
     public ValueFactory getValueFactory() throws RepositoryException {
-        checkIsAlive();
+        ensureIsAlive();
         return sessionContext.getValueFactory();
     }
 
@@ -117,13 +117,13 @@ public class SessionImpl extends AbstractSession {
 
     @Override
     public Node getRootNode() throws RepositoryException {
-        checkIsAlive();
+        ensureIsAlive();
         return new NodeImpl(sessionContext, itemStateProvider.getNodeState("/"));
     }
 
     @Override
     public Node getNodeByUUID(String uuid) throws RepositoryException {
-        checkIsAlive();
+        ensureIsAlive();
 
         // TODO
         return null;
@@ -131,7 +131,7 @@ public class SessionImpl extends AbstractSession {
 
     @Override
     public Node getNodeByIdentifier(String id) throws RepositoryException {
-        checkIsAlive();
+        ensureIsAlive();
 
         // TODO
         return null;
@@ -141,7 +141,7 @@ public class SessionImpl extends AbstractSession {
 
     @Override
     public void move(String srcAbsPath, String destAbsPath) throws RepositoryException {
-        checkIsAlive();
+        ensureIsAlive();
 
         String srcPath = Paths.relativize("/", srcAbsPath);
         String destPath = Paths.relativize("/", destAbsPath);
@@ -152,7 +152,7 @@ public class SessionImpl extends AbstractSession {
 
     @Override
     public void save() throws RepositoryException {
-        checkIsAlive();
+        ensureIsAlive();
         try {
             connection.commit(editor);
             connection.refresh();
@@ -165,7 +165,7 @@ public class SessionImpl extends AbstractSession {
 
     @Override
     public void refresh(boolean keepChanges) throws RepositoryException {
-        checkIsAlive();
+        ensureIsAlive();
         connection.refresh();
         if (!keepChanges) {
             editor = connection.getNodeStateEditor(connection.getCurrentRoot());
@@ -175,7 +175,7 @@ public class SessionImpl extends AbstractSession {
 
     @Override
     public boolean hasPendingChanges() throws RepositoryException {
-        checkIsAlive();
+        ensureIsAlive();
 
         // todo implement hasPendingChanges
         return false;
@@ -210,7 +210,7 @@ public class SessionImpl extends AbstractSession {
 
     @Override
     public ContentHandler getImportContentHandler(String parentAbsPath, int uuidBehavior) throws RepositoryException {
-        checkIsAlive();
+        ensureIsAlive();
 
         // TODO
         return null;
@@ -258,7 +258,7 @@ public class SessionImpl extends AbstractSession {
 
     @Override
     public boolean hasPermission(String absPath, String actions) throws RepositoryException {
-        checkIsAlive();
+        ensureIsAlive();
 
         // TODO
         return false;
@@ -276,7 +276,7 @@ public class SessionImpl extends AbstractSession {
 
     @Override
     public boolean hasCapability(String methodName, Object target, Object[] arguments) throws RepositoryException {
-        checkIsAlive();
+        ensureIsAlive();
 
         // TODO
         return false;
@@ -284,7 +284,7 @@ public class SessionImpl extends AbstractSession {
 
     @Override
     public AccessControlManager getAccessControlManager() throws RepositoryException {
-        checkIsAlive();
+        ensureIsAlive();
 
         // TODO
         return null;
@@ -300,12 +300,12 @@ public class SessionImpl extends AbstractSession {
     //--------------------------------------------------------------------------
 
     /**
-     * Performs a sanity check on this session.
+     * Ensure that this session is alive and throw an exception otherwise.
      *
      * @throws RepositoryException if this session has been rendered invalid
      * for some reason (e.g. if this session has been closed explicitly by logout)
      */
-    void checkIsAlive() throws RepositoryException {
+    void ensureIsAlive() throws RepositoryException {
         // check session status
         if (!isAlive) {
             throw new RepositoryException("This session has been closed.");
@@ -354,7 +354,8 @@ public class SessionImpl extends AbstractSession {
     }
 
     /**
-     * Make sure the repository supports the option indicated by the given string.
+     * Make sure the repository supports the option indicated by the given string
+     * and throw an exception otherwise.
      *
      * @param option Any of the option constants defined by {@link Repository}
      * that either returns 'true' or 'false'. I.e.
@@ -389,19 +390,20 @@ public class SessionImpl extends AbstractSession {
      * @throws RepositoryException If another error occurs.
      * @see javax.jcr.Repository#getDescriptorKeys()
      */
-    void checkSupportedOption(String option) throws RepositoryException {
+    void ensureSupportsOption(String option) throws RepositoryException {
         if (!isSupportedOption(option)) {
             throw new UnsupportedRepositoryOperationException(option + " is not supported by this repository.");
         }
     }
 
     /**
-     * Checks if this session has pending changes.
+     * Ensure that this session has no pending changes and throw an exception
+     * otherwise.
      *
      * @throws InvalidItemStateException if this nodes session has pending changes
      * @throws RepositoryException
      */
-    void checkHasPendingChanges() throws RepositoryException {
+    void ensureNoPendingChanges() throws RepositoryException {
         // check for pending changes
         if (hasPendingChanges()) {
             String msg = "Unable to perform operation. Session has pending changes.";

@@ -101,7 +101,7 @@ public class QueryManagerImpl implements QueryManager {
 
     private static HashMap<String, CoreValue> convertMap(HashMap<String, Value> bindVariableMap)
             throws RepositoryException {
-        
+
         HashMap<String, CoreValue> map = new HashMap<String, CoreValue>();
         for (Entry<String, Value> e : bindVariableMap.entrySet()) {
             map.put(e.getKey(), ValueConverter.convert(e.getValue()));

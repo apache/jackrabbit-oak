@@ -628,7 +628,7 @@ public class PropertyImpl extends ItemImpl implements Property {
         return getPropertyState().getName();
     }
 
-    private void resolve() {
+    private synchronized void resolve() {
         parentState = getItemStateProvider().getNodeState(parentState.getPath());
         propertyState = getItemStateProvider().getPropertyState(
                 Paths.concat(parentState.getPath(), propertyState.getName()));

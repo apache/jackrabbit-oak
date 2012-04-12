@@ -634,7 +634,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     @Override
     public void update(String srcWorkspace) throws RepositoryException {
         checkStatus();
-        checkSessionHasPendingChanges();
+        ensureNoPendingSessionChanges();
 
         // TODO
     }
@@ -842,7 +842,7 @@ public class NodeImpl extends ItemImpl implements Node  {
         return sessionContext.getItemStateProvider();
     }
     
-    private TransientNodeState getNodeState() {
+    private synchronized TransientNodeState getNodeState() {
         return nodeState = getItemStateProvider().getNodeState(nodeState.getPath());
     }
 

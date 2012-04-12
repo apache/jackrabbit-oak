@@ -106,19 +106,20 @@ abstract class ItemImpl implements Item {
      */
     void checkStatus() throws RepositoryException {
         // check session status
-        sessionContext.getSession().checkIsAlive();
+        sessionContext.getSession().ensureIsAlive();
 
         // TODO: validate item state.
     }
 
     /**
-     * Checks if the associated session has pending changes.
+     * Ensure that the associated session has no pending changes and throw an
+     * exception otherwise.
      *
      * @throws InvalidItemStateException if this nodes session has pending changes
      * @throws RepositoryException
      */
-    void checkSessionHasPendingChanges() throws RepositoryException {
-        sessionContext.getSession().checkHasPendingChanges();
+    void ensureNoPendingSessionChanges() throws RepositoryException {
+        sessionContext.getSession().ensureNoPendingChanges();
     }
 
     /**
