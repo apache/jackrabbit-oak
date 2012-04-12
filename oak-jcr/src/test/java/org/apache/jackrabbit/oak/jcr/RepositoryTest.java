@@ -1212,6 +1212,51 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertTrue(node.hasNode("target/moved"));
     }
 
+    @Test
+    public void workspaceMove() throws RepositoryException {
+        Session session = getSession();
+
+        Node node = getNode(TEST_PATH);
+        node.addNode("source").addNode("node");
+        node.addNode("target");
+        session.save();
+
+        session.getWorkspace().move(TEST_PATH + "/source/node", TEST_PATH + "/target/moved");
+
+        // Move must not be visible in session
+        assertTrue(node.hasNode("source/node"));
+        assertFalse(node.hasNode("target/moved"));
+
+        session.refresh(false);
+
+        // Move must be visible in session after refresh
+        assertFalse(node.hasNode("source/node"));
+        assertTrue(node.hasNode("source"));
+        assertTrue(node.hasNode("target/moved"));
+    }
+
+    @Test
+    public void workspaceCopy() throws RepositoryException {
+        Session session = getSession();
+
+        Node node = getNode(TEST_PATH);
+        node.addNode("source").addNode("node");
+        node.addNode("target");
+        session.save();
+
+        session.getWorkspace().copy(TEST_PATH + "/source/node", TEST_PATH + "/target/copied");
+
+        // Copy must not be visible in session
+        assertTrue(node.hasNode("source/node"));
+        assertFalse(node.hasNode("target/copied"));
+
+        session.refresh(false);
+
+        // Copy must be visible in session after refresh
+        assertTrue(node.hasNode("source/node"));
+        assertTrue(node.hasNode("target/copied"));
+    }
+
     @Ignore // TODO implement node type support
     @Test
     public void setPrimaryType() throws RepositoryException {
