@@ -104,9 +104,9 @@ public class ConnectionImpl implements Connection {
     }
 
     @Override
-    public NodeState commit(NodeStateEditor editor) throws CommitFailedException {
+    public void commit(NodeStateEditor editor) throws CommitFailedException {
         try {
-            return root = store.merge(editor, editor.getBaseNodeState());
+            store.merge(editor, editor.getBaseNodeState());
         }
         catch (MicroKernelException e) {
             throw new CommitFailedException(e);
