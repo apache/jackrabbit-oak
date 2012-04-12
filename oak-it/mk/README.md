@@ -29,10 +29,10 @@ tests included in this component:
     import org.junit.runner.RunWith;
     import org.junit.runners.Suite;
 
+    import org.apache.jackrabbit.mk.test.MicroKernelTestSuite;
+
     @RunWith(Suite.class)
-    @Suite.SuiteClasses({
-        MicroKernelIT.class
-    })
+    @Suite.SuiteClasses({ MicroKernelTestSuite.class })
     public class EverythingIT {
     }
 
