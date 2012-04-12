@@ -38,7 +38,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * Tests a BlobStore implementation.
  */
-abstract class AbstractBlobStoreTest extends TestCase {
+public abstract class AbstractBlobStoreTest extends TestCase {
 
     protected AbstractBlobStore store;
 
