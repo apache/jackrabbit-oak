@@ -38,37 +38,6 @@ import java.util.List;
 public final class ValueConverter {
     private ValueConverter() {}
 
-    public static Scalar toScalar(String value, int propertyType) throws RepositoryException {
-        switch (propertyType) {
-            case PropertyType.STRING: {
-                return ScalarImpl.stringScalar(value);
-            }
-            case PropertyType.DOUBLE: {
-                return ScalarImpl.doubleScalar(Double.parseDouble(value));
-            }
-            case PropertyType.LONG: {
-                return ScalarImpl.longScalar(Long.parseLong(value));
-            }
-            case PropertyType.BOOLEAN: {
-                return ScalarImpl.booleanScalar(Boolean.parseBoolean(value));
-            }
-            case PropertyType.BINARY: {
-                return ScalarImpl.binaryScalar(value);
-            }
-            case PropertyType.DECIMAL:
-            case PropertyType.DATE:
-            case PropertyType.NAME:
-            case PropertyType.PATH:
-            case PropertyType.REFERENCE:
-            case PropertyType.WEAKREFERENCE:
-            case PropertyType.URI:
-            default: {
-                // todo implement toScalar
-                throw new UnsupportedRepositoryOperationException("toScalar");
-            }
-        }
-    }
-
     public static Scalar toScalar(Value value) throws RepositoryException {
         switch (value.getType()) {
             case PropertyType.STRING: {
