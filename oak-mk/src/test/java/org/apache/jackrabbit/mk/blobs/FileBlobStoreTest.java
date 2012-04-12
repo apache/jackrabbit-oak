@@ -19,7 +19,7 @@ package org.apache.jackrabbit.mk.blobs;
 /**
  * Tests the FileBlobStore implementation.
  */
-public class FileBlobStoreTest extends DbBlobStoreTest {
+public class FileBlobStoreTest extends AbstractBlobStoreTest {
 
     public void setUp() throws Exception {
         FileBlobStore store = new FileBlobStore("target/temp");
