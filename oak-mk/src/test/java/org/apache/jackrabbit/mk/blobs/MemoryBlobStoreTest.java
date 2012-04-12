@@ -19,7 +19,7 @@ package org.apache.jackrabbit.mk.blobs;
 /**
  * Tests the MemoryBlobStore implementation.
  */
-public class MemoryBlobStoreTest extends DbBlobStoreTest {
+public class MemoryBlobStoreTest extends AbstractBlobStoreTest {
 
     public void setUp() throws Exception {
         store = new MemoryBlobStore();
