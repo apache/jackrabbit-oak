@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
-import org.apache.jackrabbit.oak.api.ChildNodeEntry;
-import org.apache.jackrabbit.oak.api.NodeState;
 import org.apache.jackrabbit.oak.api.PropertyState;
 
 /**

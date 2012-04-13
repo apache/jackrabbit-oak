@@ -19,10 +19,7 @@
 package org.apache.jackrabbit.oak.kernel;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.oak.api.NodeState;
-import org.apache.jackrabbit.oak.api.NodeStateDiff;
 import org.apache.jackrabbit.oak.api.NodeStateEditor;
-import org.apache.jackrabbit.oak.api.NodeStore;
 
 /**
  * {@link MicroKernel}-based {@link NodeStore} implementation.
@@ -46,10 +43,13 @@ public class KernelNodeStore implements NodeStore {
     }
 
     @Override
-    public NodeState merge(NodeStateEditor branch, NodeState target) {
+    public NodeState merge(NodeStateEditor branch) {
         if (!(branch instanceof KernelNodeStateEditor)) {
             throw new IllegalArgumentException("Branch does not belong to this store");
         }
+
+        KernelNodeStateEditor kne = (KernelNodeStateEditor) branch;
+        NodeState target = kne.getBaseNodeState();
         if (!(target instanceof KernelNodeState)) {
             throw new IllegalArgumentException("Target does not belong to this store");
         }

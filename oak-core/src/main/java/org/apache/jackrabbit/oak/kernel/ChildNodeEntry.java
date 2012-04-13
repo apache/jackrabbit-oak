@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.api;
+package org.apache.jackrabbit.oak.kernel;
 
 /**
- * TODO: document
+ * TODO: document OR replace by mk.model ChildNodeEntry interface
  *
  * <h2>Equality and hash codes</h2>
  * <p>

@@ -85,7 +85,7 @@ public class WorkspaceImpl implements Workspace {
 
         try {
             Connection connection = sessionContext.getConnection();
-            NodeStateEditor editor = connection.getNodeStateEditor(connection.getCurrentRoot());
+            NodeStateEditor editor = connection.getNodeStateEditor();
 
             String srcPath = Paths.relativize("/", srcAbsPath);
             String destPath = Paths.relativize("/", destAbsPath);
@@ -116,7 +116,7 @@ public class WorkspaceImpl implements Workspace {
 
         try {
             Connection connection = sessionContext.getConnection();
-            NodeStateEditor editor = connection.getNodeStateEditor(connection.getCurrentRoot());
+            NodeStateEditor editor = connection.getNodeStateEditor();
 
             String srcPath = Paths.relativize("/", srcAbsPath);
             String destPath = Paths.relativize("/", destAbsPath);

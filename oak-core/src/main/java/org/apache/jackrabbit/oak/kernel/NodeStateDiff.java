@@ -14,7 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.api;
+package org.apache.jackrabbit.oak.kernel;
+
+import org.apache.jackrabbit.oak.api.PropertyState;
 
 /**
  * Handler of node state differences.
@@ -25,6 +27,8 @@ package org.apache.jackrabbit.oak.api;
  * added, changed or deleted methods where appropriate. Differences in
  * the ordering of properties or child nodes do not affect the comparison,
  * and the order in which such differences are reported is unspecified.
+ *
+ * TODO: check if can be replaced by mk.model.NodeStateDiff
  */
 public interface NodeStateDiff {
 

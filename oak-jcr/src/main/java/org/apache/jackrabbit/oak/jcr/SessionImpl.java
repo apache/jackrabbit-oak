@@ -64,7 +64,7 @@ public class SessionImpl extends AbstractSession {
         this.valueFactory = new ValueFactoryImpl();
         workspace = new WorkspaceImpl(sessionContext);
 
-        this.editor = connection.getNodeStateEditor(connection.getCurrentRoot());
+        this.editor = connection.getNodeStateEditor();
         this.itemStateProvider = new ItemStateProvider(editor.getTransientState());
     }
 
@@ -156,7 +156,7 @@ public class SessionImpl extends AbstractSession {
         try {
             connection.commit(editor);
             connection.refresh();
-            editor = connection.getNodeStateEditor(connection.getCurrentRoot());
+            editor = connection.getNodeStateEditor();
             itemStateProvider = new ItemStateProvider(editor.getTransientState());
         } catch (CommitFailedException e) {
             throw new RepositoryException(e);
@@ -168,7 +168,7 @@ public class SessionImpl extends AbstractSession {
         ensureIsAlive();
         connection.refresh();
         if (!keepChanges) {
-            editor = connection.getNodeStateEditor(connection.getCurrentRoot());
+            editor = connection.getNodeStateEditor();
             itemStateProvider = new ItemStateProvider(editor.getTransientState());
         }
     }
