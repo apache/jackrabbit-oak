@@ -38,6 +38,6 @@ public interface ChildNodeEntry {
     /**
      * TODO: document
      */
-    NodeState getNode();
+    NodeState getNodeState();
 
 }

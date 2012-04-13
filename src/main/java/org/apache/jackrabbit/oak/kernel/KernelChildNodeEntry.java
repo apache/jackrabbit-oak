@@ -37,7 +37,7 @@ class KernelChildNodeEntry extends AbstractChildNodeEntry {
     }
 
     @Override
-    public NodeState getNode() {
+    public NodeState getNodeState() {
         return node;
     }
 

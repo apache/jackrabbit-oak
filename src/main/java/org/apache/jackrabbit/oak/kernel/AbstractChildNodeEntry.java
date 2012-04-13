@@ -43,7 +43,7 @@ public abstract class AbstractChildNodeEntry implements ChildNodeEntry {
         } else if (that instanceof ChildNodeEntry) {
             ChildNodeEntry other = (ChildNodeEntry) that;
             return getName().equals(other.getName())
-                    && getNode().equals(other.getNode());
+                    && getNodeState().equals(other.getNodeState());
         } else {
             return false;
         }
