@@ -582,7 +582,19 @@ public class NodeImpl extends ItemImpl implements Node  {
     public boolean isNodeType(String nodeTypeName) throws RepositoryException {
         checkStatus();
 
-        // TODO
+        if (getProperty(JcrConstants.JCR_PRIMARYTYPE).getString().equals(nodeTypeName)) {
+            return true;
+        }
+        if (hasProperty(JcrConstants.JCR_MIXINTYPES)) {
+            Value[] mixins = getProperty(JcrConstants.JCR_MIXINTYPES).getValues();
+            for (Value mixin : mixins) {
+                if (mixin.getString().equals(nodeTypeName)) {
+                    return true;
+                }
+            }
+        }
+
+        // TODO evaluate effective node type
         return false;
     }
 
@@ -815,6 +827,17 @@ public class NodeImpl extends ItemImpl implements Node  {
 
     }
 
+    //--------------------------------------------------------------------------
+    /**
+     * Access to KernelNodeStateEditor to allow code in other packages to
+     * access item states.
+     *
+     * @return The node state editor.
+     */
+    public NodeStateEditor getEditor() {
+        return getNodeState().getEditor();
+    }
+
     //------------------------------------------------------------< private >---
     /**
      * Shortcut to retrieve the version manager from the workspace associated
@@ -844,10 +867,6 @@ public class NodeImpl extends ItemImpl implements Node  {
     
     private synchronized TransientNodeState getNodeState() {
         return nodeState = getItemStateProvider().getNodeState(nodeState.getPath());
-    }
-
-    private NodeStateEditor getEditor() {
-        return getNodeState().getEditor();
     }
 
     private String path() {
