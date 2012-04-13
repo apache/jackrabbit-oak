@@ -290,10 +290,6 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
 
     @Override
     public Iterator<ChildNode> getAdded(final ChildNodeEntries other) {
-        if (equals(other)) {
-            return EMPTY.iterator();
-        }
-
         if (other instanceof ChildNodeEntriesTree) {
             List<ChildNode> added = new ArrayList<ChildNode>();
             ChildNodeEntriesTree otherEntries = (ChildNodeEntriesTree) other;
@@ -367,10 +363,6 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
 
     @Override
     public Iterator<ChildNode> getRemoved(final ChildNodeEntries other) {
-        if (equals(other)) {
-            return EMPTY.iterator();
-        }
-
         if (other instanceof ChildNodeEntriesTree) {
             List<ChildNode> removed = new ArrayList<ChildNode>();
             ChildNodeEntriesTree otherEntries = (ChildNodeEntriesTree) other;
@@ -444,10 +436,6 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
 
     @Override
     public Iterator<ChildNode> getModified(final ChildNodeEntries other) {
-        if (equals(other)) {
-            return EMPTY.iterator();
-        }
-
         if (other instanceof ChildNodeEntriesTree) {
             List<ChildNode> modified = new ArrayList<ChildNode>();
             ChildNodeEntriesTree otherEntries = (ChildNodeEntriesTree) other;

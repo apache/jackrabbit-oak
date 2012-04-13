@@ -52,7 +52,7 @@ public interface Persistence {
     StoredCommit readCommit(Id id) throws NotFoundException, Exception;
 
     /**
-     * Persist a commit, with an id that is selected by the caller.
+     * Persist a commit with an id provided by the caller.
      * 
      * @param id commit id
      * @param commit commit

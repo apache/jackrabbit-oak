@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.mk.persistence;
 
+import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
@@ -258,12 +259,9 @@ public class MongoPersistence implements Persistence, Closeable, BlobStore {
             File file = new File(tempFilePath);
             InputStream in = null;
             try {
-                in = new FileInputStream(file);
+                in = new BufferedInputStream(new FileInputStream(file));
                 return writeBlob(in);
             } finally {
-                if (in != null) {
-                    in.close();
-                }
                 file.delete();
             }
         } catch (Exception e) {
@@ -276,6 +274,8 @@ public class MongoPersistence implements Persistence, Closeable, BlobStore {
         //f.save(0x20000);   // save in 128k chunks
         f.save();
 
+        IOUtils.closeQuietly(in);
+
         return f.getId().toString();
     }
 
@@ -286,7 +286,8 @@ public class MongoPersistence implements Persistence, Closeable, BlobStore {
         if (f == null) {
             throw new NotFoundException(blobId);
         }
-        // todo provide a more efficient implementation
+        // todo provide a more efficient implementation (gridfs stores the data in chunks)
+        //long nChunk = pos / f.getChunkSize();
         InputStream in = f.getInputStream();
         try {
             in.skip(pos);
