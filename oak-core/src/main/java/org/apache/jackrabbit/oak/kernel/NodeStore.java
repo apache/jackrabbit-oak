@@ -57,9 +57,8 @@ public interface NodeStore {
      * {@code target}.
      *
      *
-     * @param branch branch for merging into {@code target}
-     * @return node state resulting from merging {@code branch} into
-     *         {@code target}.
+     * @param branch branch for merging.
+     * @return node state resulting from merging {@code branch}.
      */
     NodeState merge(NodeStateEditor branch);
 
