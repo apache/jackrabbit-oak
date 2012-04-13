@@ -283,7 +283,7 @@ public class SecurityWrapper extends MicroKernelWrapperBase implements MicroKern
             throw ExceptionFactory.get("Node not found: " + path);
         }
         JsopReader t = mk.getNodesStream(path, revisionId, depth, offset, count, filter);
-        if (admin) {
+        if (admin || t == null) {
             return t;
         }
         t.read('{');

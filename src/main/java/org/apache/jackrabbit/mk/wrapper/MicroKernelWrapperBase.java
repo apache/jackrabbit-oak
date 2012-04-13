@@ -37,11 +37,22 @@ public abstract class MicroKernelWrapperBase implements MicroKernel, MicroKernel
     }
 
     public final String getNodes(String path, String revisionId) {
-        return getNodesStream(path, revisionId).toString();
+        JsopReader reader = getNodesStream(path, revisionId);
+        if (reader != null) {
+            return reader.toString();
+        } else {
+            return null;
+        }
     }
 
     public final String getNodes(String path, String revisionId, int depth, long offset, int count, String filter) {
-        return getNodesStream(path, revisionId, depth, offset, count, filter).toString();
+        JsopReader reader =
+                getNodesStream(path, revisionId, depth, offset, count, filter);
+        if (reader != null) {
+            return reader.toString();
+        } else {
+            return null;
+        }
     }
 
     public final String diff(String fromRevisionId, String toRevisionId, String filter) {
@@ -76,11 +87,22 @@ public abstract class MicroKernelWrapperBase implements MicroKernel, MicroKernel
             }
 
             public JsopReader getNodesStream(String path, String revisionId) {
-                return new JsopTokenizer(wrapped.getNodes(path, revisionId));
+                String json = wrapped.getNodes(path, revisionId);
+                if (json != null) {
+                    return new JsopTokenizer(json);
+                } else {
+                    return null;
+                }
             }
 
             public JsopReader getNodesStream(String path, String revisionId, int depth, long offset, int count, String filter) {
-                return new JsopTokenizer(wrapped.getNodes(path, revisionId, depth, offset, count, filter));
+                String json = wrapped.getNodes(
+                        path, revisionId, depth, offset, count, filter);
+                if (json != null) {
+                    return new JsopTokenizer(json);
+                } else {
+                    return null;
+                }
             }
 
             public JsopReader getRevisionsStream(long since, int maxEntries) {

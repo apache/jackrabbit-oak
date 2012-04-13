@@ -482,7 +482,7 @@ public class SimpleKernelImpl extends MicroKernelWrapperBase implements MicroKer
             n = getRevisionDataRoot(revisionId).getNode(path.substring(1));
         }
         if (n == null) {
-            throw ExceptionFactory.get("Path not found: " + path);
+            return null;
         }
         JsopStream json = new JsopStream();
         n.append(json, depth, offset, count, true);
@@ -509,7 +509,12 @@ public class SimpleKernelImpl extends MicroKernelWrapperBase implements MicroKer
             return head;
         } else {
             long rev = Revision.parseId(revisionId);
-            return getRevisionNode(node, rev, rev).getNode("head");
+            NodeImpl rnode = getRevisionNode(node, rev, rev);
+            if (rnode != null) {
+                return rnode.getNode("head");
+            } else {
+                return null;
+            }
         }
     }
 
