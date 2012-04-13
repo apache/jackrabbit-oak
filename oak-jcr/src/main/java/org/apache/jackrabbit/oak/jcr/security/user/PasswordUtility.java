@@ -37,9 +37,9 @@ public class PasswordUtility {
     public static final int DEFAULT_ITERATIONS = 10000;
 
     /**
-     * Avoid instanciation
+     * Avoid instantiation
      */
-    private PasswordUtility() {};
+    private PasswordUtility() {}
 
     public static boolean isSame(String passwordHash, String toTest) {
         // TODO

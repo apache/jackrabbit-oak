@@ -10,7 +10,7 @@ TODO:
 ================================================================================
 
 - PrivilegeManager#registerPrivilege
-  missing implementataion (still struggling with oak-api. what we need here
+  missing implementation (still struggling with oak-api. what we need here
   was the ability to add multiple items at once without the jcr-layer being able
   to retrieve those items before they are being persisted)....
 
