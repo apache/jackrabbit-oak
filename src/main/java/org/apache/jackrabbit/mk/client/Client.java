@@ -132,14 +132,14 @@ public class Client implements MicroKernel {
         }
     }
 
-    public synchronized String waitForCommit(String oldHeadRevision, long maxWaitMillis)
+    public synchronized String waitForCommit(String oldHeadRevisionId, long maxWaitMillis)
             throws MicroKernelException, InterruptedException {
 
         Request request = null;
 
         try {
             request = createRequest("waitForCommit");
-            request.addParameter("revision_id", oldHeadRevision);
+            request.addParameter("revision_id", oldHeadRevisionId);
             request.addParameter("max_wait_millis", maxWaitMillis);
             return request.getString();
         } catch (IOException e) {

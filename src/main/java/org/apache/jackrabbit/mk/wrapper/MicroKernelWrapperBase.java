@@ -139,8 +139,8 @@ public abstract class MicroKernelWrapperBase implements MicroKernel, MicroKernel
                 return wrapped.read(blobId, pos, buff, off, length);
             }
 
-            public String waitForCommit(String oldHeadRevision, long maxWaitMillis) throws InterruptedException {
-                return wrapped.waitForCommit(oldHeadRevision, maxWaitMillis);
+            public String waitForCommit(String oldHeadRevisionId, long maxWaitMillis) throws InterruptedException {
+                return wrapped.waitForCommit(oldHeadRevisionId, maxWaitMillis);
             }
 
             public String write(InputStream in) {
