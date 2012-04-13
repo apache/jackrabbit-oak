@@ -59,7 +59,7 @@ public abstract class AbstractNodeState implements NodeState {
     public NodeState getChildNode(String name) {
         for (ChildNodeEntry entry : getChildNodeEntries(0, -1)) {
             if (name.equals(entry.getName())) {
-                return entry.getNode();
+                return entry.getNodeState();
             }
         }
         return null;
@@ -108,7 +108,7 @@ public abstract class AbstractNodeState implements NodeState {
 
         long childNodeCount = 0;
         for (ChildNodeEntry entry : getChildNodeEntries(0, -1)) {
-            if (!entry.getNode().equals(other.getChildNode(entry.getName()))) {
+            if (!entry.getNodeState().equals(other.getChildNode(entry.getName()))) {
                 return false;
             }
             childNodeCount++;
