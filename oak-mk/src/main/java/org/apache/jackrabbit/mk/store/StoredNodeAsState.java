@@ -45,6 +45,10 @@ class StoredNodeAsState extends AbstractNodeState {
         return node.getId();
     }
 
+    StoredNode unwrap() {
+        return node;
+    }
+
     private static class SimplePropertyState extends AbstractPropertyState {
         private final String name;
         private final String value;

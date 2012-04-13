@@ -16,27 +16,20 @@
  */
 package org.apache.jackrabbit.mk.model;
 
-import org.apache.jackrabbit.mk.store.Binding;
-import org.apache.jackrabbit.mk.store.NotFoundException;
-
-import java.util.Iterator;
-import java.util.Map;
-
 /**
  *
  */
-public interface Node {
+public interface NodeDiffHandler {
 
-    Map<String, String> getProperties();
-    
-    ChildNode getChildNodeEntry(String name);
+    void propAdded(String propName, String value);
 
-    Iterator<String> getChildNodeNames(int offset, int count);
-    int getChildNodeCount();
-    
-    Iterator<ChildNode> getChildNodeEntries(int offset, int count);
+    void propChanged(String propName, String oldValue, String newValue);
 
-    void diff(Node other, NodeDiffHandler handler);
+    void propDeleted(String propName, String value);
 
-    void serialize(Binding binding) throws Exception;
+    void childNodeAdded(ChildNode added);
+
+    void childNodeDeleted(ChildNode deleted);
+
+    void childNodeChanged(ChildNode changed, Id newId);
 }

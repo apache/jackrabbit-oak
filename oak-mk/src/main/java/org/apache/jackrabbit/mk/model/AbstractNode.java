@@ -20,8 +20,10 @@ import org.apache.jackrabbit.mk.store.Binding;
 import org.apache.jackrabbit.mk.store.RevisionProvider;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 
 /**
  *
@@ -78,6 +80,71 @@ public abstract class AbstractNode implements Node {
 
     public Iterator<ChildNode> getChildNodeEntries(int offset, int count) {
         return childEntries.getEntries(offset, count);
+    }
+
+    public void diff(Node other, NodeDiffHandler handler) {
+        // compare properties
+
+        Map<String, String> oldProps = getProperties();
+        Map<String, String> newProps = other.getProperties();
+
+        for (Map.Entry<String, String> entry : oldProps.entrySet()) {
+            String name = entry.getKey();
+            String val = oldProps.get(name);
+            String newVal = newProps.get(name);
+            if (newVal == null) {
+                handler.propDeleted(name, val);
+            } else {
+                if (!val.equals(newVal)) {
+                    handler.propChanged(name, val, newVal);
+                }
+            }
+        }
+        for (Map.Entry<String, String> entry : newProps.entrySet()) {
+            String name = entry.getKey();
+            if (!oldProps.containsKey(name)) {
+                handler.propAdded(name, entry.getValue());
+            }
+        }
+
+        // compare child node entries
+
+        if (other instanceof AbstractNode) {
+            // OAK-46: Efficient diffing of large child node lists
+
+            // delegate to ChildNodeEntries implementation
+            ChildNodeEntries otherEntries = ((AbstractNode) other).childEntries;
+            for (Iterator<ChildNode> it = childEntries.getAdded(otherEntries); it.hasNext(); ) {
+                handler.childNodeAdded(it.next());
+            }
+            for (Iterator<ChildNode> it = childEntries.getRemoved(otherEntries); it.hasNext(); ) {
+                handler.childNodeDeleted(it.next());
+            }
+            for (Iterator<ChildNode> it = childEntries.getModified(otherEntries); it.hasNext(); ) {
+                ChildNode old = it.next();
+                ChildNode modified = otherEntries.get(old.getName());
+                handler.childNodeChanged(old, modified.getId());
+            }
+            return;
+        }
+
+        for (Iterator<ChildNode> it = getChildNodeEntries(0, -1); it.hasNext(); ) {
+            ChildNode child = it.next();
+            ChildNode newChild = other.getChildNodeEntry(child.getName());
+            if (newChild == null) {
+                handler.childNodeDeleted(child);
+            } else {
+                if (!child.getId().equals(newChild.getId())) {
+                    handler.childNodeChanged(child, newChild.getId());
+                }
+            }
+        }
+        for (Iterator<ChildNode> it = other.getChildNodeEntries(0, -1); it.hasNext(); ) {
+            ChildNode child = it.next();
+            if (getChildNodeEntry(child.getName()) == null) {
+                handler.childNodeAdded(child);
+            }
+        }
     }
 
     public void serialize(Binding binding) throws Exception {
