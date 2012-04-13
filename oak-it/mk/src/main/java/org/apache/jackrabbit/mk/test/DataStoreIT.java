@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.blobs;
+package org.apache.jackrabbit.mk.test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Random;
 import junit.framework.Assert;
-import org.apache.jackrabbit.mk.MultiMkTestBase;
 import org.apache.jackrabbit.mk.util.MicroKernelInputStream;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -32,10 +31,10 @@ import org.junit.runners.Parameterized;
  * Test the data store using the MicroKernel API.
  */
 @RunWith(Parameterized.class)
-public class DataStoreTest extends MultiMkTestBase {
+public class DataStoreIT extends AbstractMicroKernelIT {
 
-    public DataStoreTest(String url) {
-        super(url);
+    public DataStoreIT(MicroKernelFixture fixture) {
+        super(fixture, 1);
     }
 
     @Test
