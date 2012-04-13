@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
-import org.apache.jackrabbit.oak.api.ChildNodeEntry;
-
 /**
  * Abstract base class for {@link ChildNodeEntry} implementations.
  * This base class contains default implementations of the

@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.kernel;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.json.JsonBuilder;
-import org.apache.jackrabbit.oak.api.NodeState;
 import org.apache.jackrabbit.oak.api.NodeStateEditor;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Scalar;
@@ -35,7 +34,7 @@ import static org.apache.jackrabbit.mk.util.PathUtils.getParentPath;
 /**
  * This {@code NodeStateEditor} implementation accumulates all changes into a json diff
  * and applies them to the microkernel on
- * {@link org.apache.jackrabbit.oak.api.NodeStore#merge(NodeStateEditor, NodeState)}
+ * {@link NodeStore#merge(org.apache.jackrabbit.oak.api.NodeStateEditor)}
  *
  * TODO: review/rewrite when OAK-45 is resolved
  * When the MicroKernel has support for branching and merging private working copies,
@@ -165,16 +164,18 @@ public class KernelNodeStateEditor implements NodeStateEditor {
     }
 
     @Override
-    public NodeState getBaseNodeState() {
-        return base;
-    }
-
-    @Override
     public TransientNodeState getTransientState() {
         return transientState;
     }
 
     //------------------------------------------------------------< internal >---
+    /**
+     * Return the base node state of this private branch
+     * @return base node state
+     */
+    NodeState getBaseNodeState() {
+        return base;
+    }
 
     /**
      * Atomically merges the changes from this branch back into the

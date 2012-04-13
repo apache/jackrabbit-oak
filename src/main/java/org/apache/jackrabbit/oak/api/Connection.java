@@ -79,8 +79,6 @@ public interface Connection extends Closeable {
      */
     Connection getRepositoryConnection();
 
-    NodeState getCurrentRoot();
-
     /**
      * Refresh this connection to the latest revision of the underlying Microkernel.
      */
@@ -96,13 +94,12 @@ public interface Connection extends Closeable {
     void commit(NodeStateEditor editor) throws CommitFailedException;
 
     /**
-     * Get an node state editor for the given state. Use {@link #commit(NodeStateEditor)}
+     * Get an node state editor for the current root. Use {@link #commit(NodeStateEditor)}
      * to atomically apply the changes made in this editor to the underlying Microkernel.
      *
-     * @param state  node state to edit
-     * @return  editor for the passed {@code state}
+     * @return editor for the current root.
      */
-    NodeStateEditor getNodeStateEditor(NodeState state);
+    NodeStateEditor getNodeStateEditor();
 
     /**
      * Get the query engine.

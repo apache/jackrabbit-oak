@@ -20,9 +20,9 @@ import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Connection;
-import org.apache.jackrabbit.oak.api.NodeState;
+import org.apache.jackrabbit.oak.kernel.NodeState;
 import org.apache.jackrabbit.oak.api.NodeStateEditor;
-import org.apache.jackrabbit.oak.api.NodeStore;
+import org.apache.jackrabbit.oak.kernel.NodeStore;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -90,11 +90,6 @@ public class ConnectionImpl implements Connection {
             }
         };
     }
-
-    @Override
-    public NodeState getCurrentRoot() {
-        return root;
-    }
     
     @Override
     public void refresh() {
@@ -106,15 +101,15 @@ public class ConnectionImpl implements Connection {
     @Override
     public void commit(NodeStateEditor editor) throws CommitFailedException {
         try {
-            store.merge(editor, editor.getBaseNodeState());
+            store.merge(editor);
         } catch (MicroKernelException e) {
             throw new CommitFailedException(e);
         }
     }
 
     @Override
-    public NodeStateEditor getNodeStateEditor(NodeState state) {
-        return store.branch(state);
+    public NodeStateEditor getNodeStateEditor() {
+        return store.branch(root);
     }
 
     @Override
