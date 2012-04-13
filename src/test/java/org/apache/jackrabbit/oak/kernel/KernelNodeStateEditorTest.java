@@ -127,11 +127,30 @@ public class KernelNodeStateEditorTest {
         TransientNodeState transientState = editor.getTransientState();
 
         assertFalse(transientState.hasNode("new"));
-        editor.addNode("new");
+        TransientNodeState newNode = editor.addNode("new");
+        assertNotNull(newNode);
+        assertEquals("new", newNode.getName());
         assertTrue(transientState.hasNode("new"));
 
         NodeState newState = editor.mergeInto(microkernel, state);
         assertNotNull(newState.getChildNode("new"));
+    }
+
+    @Test
+    public void addExistingNode() {
+        KernelNodeStateEditor editor = new KernelNodeStateEditor(state);
+        TransientNodeState transientState = editor.getTransientState();
+
+        assertFalse(transientState.hasNode("new"));
+        TransientNodeState newNode = editor.addNode("new");
+        NodeState newState = editor.mergeInto(microkernel, state);
+
+        editor = new KernelNodeStateEditor(newState);
+        transientState = editor.getTransientState();
+        assertTrue(transientState.hasNode("new"));
+        newNode = editor.addNode("new");
+        assertNotNull(newNode);
+        assertEquals("new", newNode.getName());
     }
 
     @Test
