@@ -95,6 +95,7 @@ public interface NodeStateEditor {
      * @param name name of the child node state to edit.
      * @return editor for the child node state of the given name or
      *         {@code null} if no such node state exists.
+     * TODO broaden to accept a path instead of a name
      */
     NodeStateEditor edit(String name);
 
