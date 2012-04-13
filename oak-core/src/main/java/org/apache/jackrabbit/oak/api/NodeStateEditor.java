@@ -21,8 +21,7 @@ package org.apache.jackrabbit.oak.api;
 import java.util.List;
 
 /**
- * An editor for modifying existing and creating new
- * {@link NodeState node states}.
+ * An editor for modifying existing and creating new node states.
  */
 public interface NodeStateEditor {
 
@@ -97,12 +96,6 @@ public interface NodeStateEditor {
      *         {@code null} if no such node state exists.
      */
     NodeStateEditor edit(String name);
-
-    /**
-     * Return the base node state of this private branch
-     * @return base node state
-     */
-    NodeState getBaseNodeState();
 
     /**
      * Return the transient state which this editor is acting upon

@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.kernel;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.simple.SimpleKernelImpl;
-import org.apache.jackrabbit.oak.api.NodeState;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Scalar;
 import org.apache.jackrabbit.oak.api.TransientNodeState;

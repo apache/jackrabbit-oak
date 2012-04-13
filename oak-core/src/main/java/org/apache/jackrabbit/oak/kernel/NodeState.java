@@ -14,7 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.api;
+package org.apache.jackrabbit.oak.kernel;
+
+import org.apache.jackrabbit.oak.api.PropertyState;
 
 /**
  * A content tree consists of nodes and properties, each of which
@@ -88,6 +90,8 @@ package org.apache.jackrabbit.oak.api;
  * implemented according to this equality contract.
  */
 public interface NodeState {
+
+    // TODO: check if can be replaced by the mk.model interface
 
     /**
      * Returns the named property. The name is an opaque string and
