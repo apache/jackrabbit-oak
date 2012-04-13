@@ -90,6 +90,7 @@ public class Repository {
         }
 
         H2Persistence pm = new H2Persistence(homeDir);
+        //org.apache.jackrabbit.mk.persistence.MongoPersistence pm = new org.apache.jackrabbit.mk.persistence.MongoPersistence();
         pm.initialize();
         
         DefaultRevisionStore rs = new DefaultRevisionStore(pm);
@@ -157,8 +158,7 @@ public class Repository {
         return rs.getCommit(id);
     }
 
-    public NodeState getNodeState(Id revId, String path)
-            throws NotFoundException, Exception {
+    public NodeState getNodeState(Id revId, String path) throws Exception {
         if (!initialized) {
             throw new IllegalStateException("not initialized");
         } else if (!PathUtils.isAbsolute(path)) {
@@ -169,34 +169,27 @@ public class Repository {
         for (String name : PathUtils.split(path)) {
             node = node.getChildNode(name);
             if (node == null) {
-                throw new NotFoundException(
-                        "Path " + path + " not found in revision " + revId);
+                break;
             }
         }
         return node;
     }
 
-    public boolean nodeExists(Id revId, String path) {
+    public boolean nodeExists(Id revId, String path) throws Exception {
         if (!initialized) {
             throw new IllegalStateException("not initialized");
         } else if (!PathUtils.isAbsolute(path)) {
             throw new IllegalArgumentException("illegal path");
         }
 
-        try {
-            NodeState node = rs.getNodeState(rs.getRootNode(revId));
-            for (String name : PathUtils.split(path)) {
-                node = node.getChildNode(name);
-                if (node == null) {
-                    return false;
-                }
+        NodeState node = rs.getNodeState(rs.getRootNode(revId));
+        for (String name : PathUtils.split(path)) {
+            node = node.getChildNode(name);
+            if (node == null) {
+                return false;
             }
-            return true;
-        } catch (Exception e) {
-            throw new RuntimeException(
-                    "Failed to check for existence of path "
-                    + path + " in revision " + revId, e);
         }
+        return true;
     }
 
     public CommitBuilder getCommitBuilder(Id revId, String msg) throws Exception {

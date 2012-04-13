@@ -35,7 +35,6 @@ import org.apache.jackrabbit.mk.model.NodeState;
 import org.apache.jackrabbit.mk.model.PropertyState;
 import org.apache.jackrabbit.mk.model.StoredCommit;
 import org.apache.jackrabbit.mk.model.TraversingNodeDiffHandler;
-import org.apache.jackrabbit.mk.store.NotFoundException;
 import org.apache.jackrabbit.mk.store.RevisionProvider;
 import org.apache.jackrabbit.mk.util.CommitGate;
 import org.apache.jackrabbit.mk.util.PathUtils;
@@ -232,17 +231,8 @@ public class MicroKernelImpl implements MicroKernel {
             // to detect 'move' operations
             final HashMap<Id, String> addedNodes = new HashMap<Id, String>();
             final HashMap<Id, String> removedNodes = new HashMap<Id, String>();
-            NodeState node1, node2;
-            try {
-                node1 = rep.getNodeState(fromRevisionId, path);
-            } catch (NotFoundException e) {
-                node1 = null;
-            }
-            try {
-                node2 = rep.getNodeState(toRevisionId, path);
-            } catch (NotFoundException e) {
-                node2 = null;
-            }
+            NodeState node1 = rep.getNodeState(fromRevisionId, path);
+            NodeState node2 = rep.getNodeState(toRevisionId, path);
 
             if (node1 == null) {
                 if (node2 != null) {
@@ -389,52 +379,66 @@ public class MicroKernelImpl implements MicroKernel {
         }
     }
 
-    public boolean nodeExists(String path, String revision) throws MicroKernelException {
+    public boolean nodeExists(String path, String revisionId) throws MicroKernelException {
         if (rep == null) {
             throw new IllegalStateException("this instance has already been disposed");
         }
 
-        Id revisionId = revision == null ? getHeadRevisionId() : Id.fromString(revision);
-        return rep.nodeExists(revisionId, path);
-    }
-
-    public long getChildNodeCount(String path, String revision) throws MicroKernelException {
-        if (rep == null) {
-            throw new IllegalStateException("this instance has already been disposed");
-        }
-
-        Id revisionId = revision == null ? getHeadRevisionId() : Id.fromString(revision);
-
+        Id revId = revisionId == null ? getHeadRevisionId() : Id.fromString(revisionId);
         try {
-            return rep.getNodeState(revisionId, path).getChildNodeCount();
+            return rep.nodeExists(revId, path);
         } catch (Exception e) {
             throw new MicroKernelException(e);
         }
     }
 
-    public String getNodes(String path, String revision) throws MicroKernelException {
-        return getNodes(path, revision, 1, 0, -1, null);
-    }
-
-    public String getNodes(String path, String revision, int depth, long offset, int count, String filter) throws MicroKernelException {
+    public long getChildNodeCount(String path, String revisionId) throws MicroKernelException {
         if (rep == null) {
             throw new IllegalStateException("this instance has already been disposed");
         }
 
-        Id revisionId = revision == null ? getHeadRevisionId() : Id.fromString(revision);
+        Id revId = revisionId == null ? getHeadRevisionId() : Id.fromString(revisionId);
+
+        NodeState nodeState;
+        try {
+            nodeState = rep.getNodeState(revId, path);
+        } catch (Exception e) {
+            throw new MicroKernelException(e);
+        }
+        if (nodeState != null) {
+            return nodeState.getChildNodeCount();
+        } else {
+            throw new MicroKernelException("Path " + path + " not found in revision " + revisionId);
+        }
+    }
+
+    public String getNodes(String path, String revisionId) throws MicroKernelException {
+        return getNodes(path, revisionId, 1, 0, -1, null);
+    }
+
+    public String getNodes(String path, String revisionId, int depth, long offset, int count, String filter) throws MicroKernelException {
+        if (rep == null) {
+            throw new IllegalStateException("this instance has already been disposed");
+        }
+
+        Id revId = revisionId == null ? getHeadRevisionId() : Id.fromString(revisionId);
 
         // TODO extract and evaluate filter criteria (such as e.g. ':hash') specified in 'filter' parameter
 
         try {
+            NodeState nodeState = rep.getNodeState(revId, path);
+            if (nodeState == null) {
+                return null;
+            }
             JsopBuilder buf = new JsopBuilder().object();
-            toJson(buf, rep.getNodeState(revisionId, path), depth, (int) offset, count, true);
+            toJson(buf, nodeState, depth, (int) offset, count, true);
             return buf.endObject().toString();
         } catch (Exception e) {
             throw new MicroKernelException(e);
         }
     }
 
-    public String commit(String path, String jsonDiff, String revision, String message) throws MicroKernelException {
+    public String commit(String path, String jsonDiff, String revisionId, String message) throws MicroKernelException {
         if (rep == null) {
             throw new IllegalStateException("this instance has already been disposed");
         }
@@ -442,11 +446,11 @@ public class MicroKernelImpl implements MicroKernel {
             throw new IllegalArgumentException("absolute path expected: " + path);
         }
 
-        Id revisionId = revision == null ? getHeadRevisionId() : Id.fromString(revision);
+        Id revId = revisionId == null ? getHeadRevisionId() : Id.fromString(revisionId);
 
         try {
             JsopTokenizer t = new JsopTokenizer(jsonDiff);
-            CommitBuilder cb = rep.getCommitBuilder(revisionId, message);
+            CommitBuilder cb = rep.getCommitBuilder(revId, message);
             while (true) {
                 int r = t.read();
                 if (r == JsopTokenizer.END) {
@@ -555,7 +559,7 @@ public class MicroKernelImpl implements MicroKernel {
                 }
             }
             Id newHead = cb.doCommit();
-            if (!newHead.equals(revisionId)) {
+            if (!newHead.equals(revId)) {
                 // non-empty commit
                 gate.commit(newHead.toString());
             }

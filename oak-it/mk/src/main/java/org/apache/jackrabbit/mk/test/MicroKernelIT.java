@@ -25,6 +25,7 @@ import org.junit.runners.Parameterized;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -69,6 +70,35 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
 
         String json = mk.getNodes("/test", head, 0, 0, -1, null);
         assertTrue(json.contains("stringProp"));
+    }
+
+    @Test
+    public void getNodesNonExistingPath() {
+        String head = mk.getHeadRevision();
+
+        String nonExistingPath = "/test/" + System.currentTimeMillis();
+        assertFalse(mk.nodeExists(nonExistingPath, head));
+
+        assertNull(mk.getNodes(nonExistingPath, head, 0, 0, -1, null));
+    }
+
+    @Test
+    public void getNodesNonExistingRevision() {
+        String nonExistingRev = "12345678";
+
+        try {
+            mk.nodeExists("/test", nonExistingRev);
+            Assert.fail("Success with non-existing revision: " + nonExistingRev);
+        } catch (MicroKernelException e) {
+            // expected
+        }
+
+        try {
+            mk.getNodes("/test", nonExistingRev, 0, 0, -1, null);
+            Assert.fail("Success with non-existing revision: " + nonExistingRev);
+        } catch (MicroKernelException e) {
+            // expected
+        }
     }
 
     @Test
