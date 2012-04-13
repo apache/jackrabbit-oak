@@ -51,6 +51,7 @@ public class WorkspaceImpl implements Workspace {
 
     private final SessionContext<SessionImpl> sessionContext;
     private QueryManagerImpl queryManager;
+    private NamespaceRegistry nsRegistry;
 
     public WorkspaceImpl(SessionContext<SessionImpl> sessionContext) {
         this.sessionContext = sessionContext;
@@ -154,9 +155,10 @@ public class WorkspaceImpl implements Workspace {
     @Override
     public NamespaceRegistry getNamespaceRegistry() throws RepositoryException {
         ensureIsAlive();
-
-        // TODO
-        return null;
+        if (nsRegistry == null) {
+            nsRegistry = new NamespaceRegistryImpl();
+        }
+        return nsRegistry;
     }
 
     @Override
