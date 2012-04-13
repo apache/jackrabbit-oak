@@ -1,0 +1,40 @@
+differences regarding jackrabbit 2.x implementation
+================================================================================
+
+General:
+- user management always associated with editing Session
+- changes made to user-mgt API are always transient + require Session#save()
+- in case of failure Session#refresh is not called anymore
+
+Unsupported Operations:
+- UserManager#autoSave(boolean)
+- User#getCredentials()
+
+UserManager:
+- UserManager#isAutoSave() always returns false
+- password not mandatory upon creation (TODO: check again)
+
+Authorizable:
+- setProperty, removeProperty executes no extra shortcut check for protected properties
+- not relying on rep:principalName to exist -> using ID as fallback
+-
+
+User:
+
+Group:
+
+
+TODO:
+================================================================================
+
+- Namespace handling on session level
+
+- Path handling that rely on oak-core implementation
+
+- Configuration based on oak-core implementation
+
+
+
+
+
+
