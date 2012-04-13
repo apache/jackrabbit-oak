@@ -68,7 +68,7 @@ public class Client implements MicroKernel {
     /**
      * Create a new instance of this class.
      * 
-     * @param addr socket address
+     * @param url socket address
      */
     public Client(String url) {
         this(getAddress(url));
@@ -237,7 +237,9 @@ public class Client implements MicroKernel {
             request.addParameter("offset", offset);
             request.addParameter("count", count);
             request.addParameter("filter", filter);
-            return request.getString();
+            // OAK-48: MicroKernel.getNodes() should return null for not existing nodes instead of throwing an exception
+            String result = request.getString();
+            return result.equals("null") ? null : result;
         } catch (IOException e) {
             throw toMicroKernelException(e);
         } finally {
