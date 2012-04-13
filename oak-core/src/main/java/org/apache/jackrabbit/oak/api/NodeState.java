@@ -94,12 +94,12 @@ public interface NodeState {
      * is not parsed or otherwise interpreted by this method.
      * <p>
      * The namespace of properties and child nodes is shared, so if
-     * this method returns a non-<code>null</code> value for a given
+     * this method returns a non-{@code null} value for a given
      * name, then {@link #getChildNode(String)} is guaranteed to return
-     * <code>null</code> for the same name.
+     * {@code null} for the same name.
      *
      * @param name name of the property to return
-     * @return named property, or <code>null</code> if not found
+     * @return named property, or {@code null} if not found
      */
     PropertyState getProperty(String name);
 
@@ -125,12 +125,12 @@ public interface NodeState {
      * is not parsed or otherwise interpreted by this method.
      * <p>
      * The namespace of properties and child nodes is shared, so if
-     * this method returns a non-<code>null</code> value for a given
+     * this method returns a non-{@code null} value for a given
      * name, then {@link #getProperty(String)} is guaranteed to return
-     * <code>null</code> for the same name.
+     * {@code null} for the same name.
      *
      * @param name name of the child node to return
-     * @return named child node, or <code>null</code> if not found
+     * @return named child node, or {@code null} if not found
      */
     NodeState getChildNode(String name);
 
