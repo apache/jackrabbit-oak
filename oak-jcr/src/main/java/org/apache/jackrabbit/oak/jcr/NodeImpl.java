@@ -833,6 +833,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * access item states.
      *
      * @return The node state editor.
+     * FIXME this should not be public in order to avoid clients to access internals through casting to the implementation
      */
     public NodeStateEditor getEditor() {
         return getTransientNodeState().getEditor();
