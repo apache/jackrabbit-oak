@@ -22,7 +22,7 @@ import java.io.Closeable;
  * The {@code Connection} interface ...
  *
  * - retrieving information from persistent layer (MK) that are accessible to
- *   a given session
+ *   a given JCR session
  *
  * - validate information being written back to the persistent layer. this includes
  *   permission evaluation, node type and name constraints etc.
@@ -43,6 +43,7 @@ import java.io.Closeable;
  *   {@link RepositoryService#login(Object, String)} are bound to the workspace
  *   passed to the login method. Connections acquired by
  *   {@link Connection#getRepositoryConnection()} are bound to the whole repository.
+ *   TODO: check if that is really necessary, desirable and feasible.
  *
  * TODO: describe how this interface is intended to handle validation: nt, names, ac, constraints...
  */
