@@ -14,15 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.test;
+package org.apache.jackrabbit.mk.simple;
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.mk.test.MicroKernelFixture;
 
-@RunWith(Suite.class)
-@Suite.SuiteClasses({
-    MicroKernelIT.class,
-    DataStoreIT.class
-})
-public class MicroKernelTestSuite {
+public class SimpleKernelImplFixture implements MicroKernelFixture {
+
+    @Override
+    public void setUpCluster(MicroKernel[] cluster) {
+        MicroKernel mk =
+                new SimpleKernelImpl("mem:SimpleKernelImplFixture");
+        for (int i = 0; i < cluster.length; i++) {
+            cluster[i] = mk;
+        }
+    }
+
+    @Override
+    public void syncMicroKernelCluster(MicroKernel... nodes) {
+    }
+
+    @Override
+    public void tearDownCluster(MicroKernel[] cluster) {
+    }
+
 }

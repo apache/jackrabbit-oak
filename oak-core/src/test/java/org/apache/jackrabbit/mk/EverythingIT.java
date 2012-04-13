@@ -14,15 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.test;
+package org.apache.jackrabbit.mk;
 
+import org.apache.jackrabbit.mk.test.MicroKernelTestSuite;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
 @RunWith(Suite.class)
-@Suite.SuiteClasses({
-    MicroKernelIT.class,
-    DataStoreIT.class
-})
-public class MicroKernelTestSuite {
+@Suite.SuiteClasses({ MicroKernelTestSuite.class })
+public class EverythingIT {
 }

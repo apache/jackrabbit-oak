@@ -78,6 +78,12 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-it-mk</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>com.googlecode.json-simple</groupId>
       <artifactId>json-simple</artifactId>
       <version>1.1</version>
