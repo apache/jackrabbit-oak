@@ -111,7 +111,32 @@ public class MicroKernelFactory {
         } else if (head.equals("log")) {
             return new LogWrapper(getInstance(tail));
         } else if (head.equals("sec")) {
-            return SecurityWrapper.get(url);
+            String userPassUrl = tail;
+            int index = userPassUrl.indexOf(':');
+            if (index < 0) {
+                throw ExceptionFactory.get("Expected url format: sec:user@pass:<url>");
+            }
+            String u = userPassUrl.substring(index + 1);
+            String userPass = userPassUrl.substring(0, index);
+            index = userPass.indexOf('@');
+            if (index < 0) {
+                throw ExceptionFactory.get("Expected url format: sec:user@pass:<url>");
+            }
+            String user = userPass.substring(0, index);
+            String pass = userPass.substring(index + 1);
+            final MicroKernel mk = getInstance(u);
+            try {
+                return new SecurityWrapper(mk, user, pass) {
+                    @Override
+                    public void dispose() {
+                        super.dispose();
+                        mk.dispose();
+                    }
+                };
+            } catch (MicroKernelException e) {
+                mk.dispose();
+                throw e;
+            }
         } else if (head.equals("virtual")) {
             MicroKernel mk = getInstance(tail);
             try {

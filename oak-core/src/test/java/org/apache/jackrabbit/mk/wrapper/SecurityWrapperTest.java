@@ -21,64 +21,40 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import junit.framework.Assert;
-import org.apache.jackrabbit.mk.MicroKernelFactory;
-import org.apache.jackrabbit.mk.MultiMkTestBase;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
-import org.junit.After;
+import org.apache.jackrabbit.mk.simple.SimpleKernelImpl;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
 /**
  * Test the security wrapper.
  */
-@RunWith(Parameterized.class)
-public class SecurityWrapperTest extends MultiMkTestBase {
+public class SecurityWrapperTest {
+
+    // TODO: Remove SimpleKernelImpl-specific assumptions from the test
+    private final MicroKernel mk =
+            new SimpleKernelImpl("mem:SecurityWrapperTest");
 
     private String head;
     private MicroKernel mkAdmin;
     private MicroKernel mkGuest;
 
-    public SecurityWrapperTest(String url) {
-        super(url);
-    }
-
     @Before
     public void setUp() throws Exception {
-        super.setUp();
-        if (!isSimpleKernel(mk)) {
-            return;
-        }
         head = mk.getHeadRevision();
         head = mk.commit("/", "+ \":user\": { \":rights\":\"admin\" }", head, "");
         head = mk.commit("/", "+ \":user/guest\": {\"password\": \"guest\", \"rights\":\"read\" }", head, "");
         head = mk.commit("/", "+ \":user/sa\": {\"password\": \"abc\", \"rights\":\"admin\" }", head, "");
-        mkAdmin = MicroKernelFactory.getInstance("sec:sa@abc:" + url);
-        mkGuest = MicroKernelFactory.getInstance("sec:guest@guest:" + url);
-    }
-
-    @After
-    public void tearDown() throws InterruptedException {
-        try {
-            if (mkAdmin != null) {
-                mkAdmin.dispose();
-            }
-            if (mkGuest != null) {
-                mkGuest.dispose();
-            }
-            super.tearDown();
-        } catch (Throwable e) {
-            e.printStackTrace();
-        }
+        mkAdmin = new SecurityWrapper(mk, "sa", "abc");
+        mkGuest = new SecurityWrapper(mk, "guest", "guest");
     }
 
     @Test
     public void wrongPassword() {
         try {
-            MicroKernelFactory.getInstance("sec:sa@xyz:" + url);
+            new SecurityWrapper(mk, "sa", "xyz");
             fail();
         } catch (Throwable e) {
             // expected (wrong password)
@@ -87,9 +63,6 @@ public class SecurityWrapperTest extends MultiMkTestBase {
 
     @Test
     public void commit() {
-        if (!isSimpleKernel(mk)) {
-            return;
-        }
         head = mkAdmin.commit("/", "+ \"test\": { \"data\": \"Hello\" }", head, null);
         head = mkAdmin.commit("/", "- \"test\"", head, null);
         try {
@@ -102,9 +75,6 @@ public class SecurityWrapperTest extends MultiMkTestBase {
 
     @Test
     public void getJournal() {
-        if (!isSimpleKernel(mk)) {
-            return;
-        }
         String fromRevision = mkAdmin.getHeadRevision();
         String toRevision = mkAdmin.commit("/", "+ \"test\": { \"data\": \"Hello\" }", head, "");
         toRevision = mkAdmin.commit("/", "^ \"test/data\": \"Hallo\"", toRevision, "");
@@ -129,9 +99,6 @@ public class SecurityWrapperTest extends MultiMkTestBase {
 
     @Test
     public void getNodes() {
-        if (!isSimpleKernel(mk)) {
-            return;
-        }
         head = mk.getHeadRevision();
         assertTrue(mkAdmin.nodeExists("/:user", head));
         assertFalse(mkGuest.nodeExists("/:user", head));

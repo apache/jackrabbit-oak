@@ -17,9 +17,7 @@
 package org.apache.jackrabbit.mk.wrapper;
 
 import java.io.InputStream;
-import org.apache.jackrabbit.mk.MicroKernelFactory;
 import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopStream;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
@@ -50,11 +48,29 @@ public class SecurityWrapper extends MicroKernelWrapperBase implements MicroKern
     private final SimpleLRUCache<String, NodeImpl> cache = SimpleLRUCache.newInstance(100);
     private String rightsRevision;
 
-    private SecurityWrapper(MicroKernel mk, String[] rights) {
-        // TODO security for the index mechanism
+    /**
+     * Decorates the given {@link MicroKernel} with authentication and
+     * authorization. The responsibility of properly disposing the given
+     * MikroKernel instance remains with the caller.
+     */
+    public SecurityWrapper(MicroKernel mk, String user, String pass) {
         this.mk = MicroKernelWrapperBase.wrap(mk);
+        // TODO security for the index mechanism
+
+        String role = mk.getNodes("/:user/" + user, mk.getHeadRevision());
+        NodeMap map = new NodeMap();
+        JsopReader t = new JsopTokenizer(role);
+        t.read('{');
+        NodeImpl n = NodeImpl.parse(map, t, 0);
+        String password = JsopTokenizer.decodeQuoted(n.getProperty("password"));
+        if (!pass.equals(password)) {
+            throw ExceptionFactory.get("Wrong password");
+        }
+        String[] rights =
+                JsopTokenizer.decodeQuoted(n.getProperty("rights")).split(",");
         this.userRights = rights;
-        boolean isAdmin = false, canWrite = false;
+        boolean isAdmin = false;
+        boolean canWrite = false;
         for (String r : rights) {
             if (r.equals("admin")) {
                 isAdmin = true;
@@ -62,41 +78,8 @@ public class SecurityWrapper extends MicroKernelWrapperBase implements MicroKern
                 canWrite = true;
             }
         }
-        admin = isAdmin;
-        write = canWrite;
-    }
-
-    public static synchronized SecurityWrapper get(String url) {
-        String userPassUrl = url.substring("sec:".length());
-        int index = userPassUrl.indexOf(':');
-        if (index < 0) {
-            throw ExceptionFactory.get("Expected url format: sec:user@pass:<url>");
-        }
-        String u = userPassUrl.substring(index + 1);
-        String userPass = userPassUrl.substring(0, index);
-        index = userPass.indexOf('@');
-        if (index < 0) {
-            throw ExceptionFactory.get("Expected url format: sec:user@pass:<url>");
-        }
-        String user = userPass.substring(0, index);
-        String pass = userPass.substring(index + 1);
-        MicroKernel mk = MicroKernelFactory.getInstance(u);
-        try {
-            String role = mk.getNodes("/:user/" + user, mk.getHeadRevision());
-            NodeMap map = new NodeMap();
-            JsopReader t = new JsopTokenizer(role);
-            t.read('{');
-            NodeImpl n = NodeImpl.parse(map, t, 0);
-            String password = JsopTokenizer.decodeQuoted(n.getProperty("password"));
-            if (!pass.equals(password)) {
-                throw ExceptionFactory.get("Wrong password");
-            }
-            String rights = JsopTokenizer.decodeQuoted(n.getProperty("rights"));
-            return new SecurityWrapper(mk, rights.split(","));
-        } catch (MicroKernelException e) {
-            mk.dispose();
-            throw e;
-        }
+        this.admin = isAdmin;
+        this.write = canWrite;
     }
 
     public String commitStream(String rootPath, JsopReader jsonDiff, String revisionId, String message) {
@@ -108,7 +91,6 @@ public class SecurityWrapper extends MicroKernelWrapperBase implements MicroKern
     }
 
     public void dispose() {
-        mk.dispose();
     }
 
     public String getHeadRevision() {
