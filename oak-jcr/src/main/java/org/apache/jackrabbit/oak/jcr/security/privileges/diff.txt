@@ -1,0 +1,24 @@
+differences regarding jackrabbit 2.x implementation
+================================================================================
+
+- privileges stored in repository content
+- PrivilegeManager used for JCR Access Control API but not for internal
+  permission evaluation (-> delegated to oak-core)
+
+
+TODO:
+================================================================================
+
+- PrivilegeManager#registerPrivilege
+  missing implementataion (still struggling with oak-api. what we need here
+  was the ability to add multiple items at once without the jcr-layer being able
+  to retrieve those items before they are being persisted)....
+
+- Privilege#getAggregates
+  since the privilege manager cannot really rely on proper validation,
+  it should make sure no circular aggregation has been introduced in a
+  deeper level).
+
+- Namespace handling on session level
+
+- Path/Name/NodeTypes handling that rely on oak-core implementation
