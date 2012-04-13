@@ -50,7 +50,7 @@ public class ImpersonationImpl implements Impersonation {
 
     private final UserImpl user;
 
-    ImpersonationImpl(UserImpl user) throws RepositoryException {
+    ImpersonationImpl(UserImpl user) {
         this.user = user;
     }
 

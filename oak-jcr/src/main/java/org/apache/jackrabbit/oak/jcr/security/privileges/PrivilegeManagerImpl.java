@@ -19,10 +19,10 @@ package org.apache.jackrabbit.oak.jcr.security.privileges;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.jcr.NodeImpl;
 import org.apache.jackrabbit.oak.jcr.SessionContext;
+import org.apache.jackrabbit.oak.jcr.SessionImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.jcr.AccessDeniedException;
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
@@ -55,9 +55,9 @@ public class PrivilegeManagerImpl implements PrivilegeManager {
     private static final String REP_IS_ABSTRACT = "rep:isAbstract";
     private static final String REP_CONTAINS = "rep:contains";
 
-    private final SessionContext sessionContext;
+    private final SessionContext<SessionImpl> sessionContext;
 
-    public PrivilegeManagerImpl(SessionContext sessionContext) throws RepositoryException {
+    public PrivilegeManagerImpl(SessionContext<SessionImpl> sessionContext) {
         this.sessionContext = sessionContext;
         // TODO: add additional validation ??
     }
@@ -77,7 +77,7 @@ public class PrivilegeManagerImpl implements PrivilegeManager {
     }
 
     @Override
-    public Privilege getPrivilege(String privilegeName) throws AccessControlException, RepositoryException {
+    public Privilege getPrivilege(String privilegeName) throws RepositoryException {
         NodeImpl privilegeRoot = getPrivilegeRoot();
         if (privilegeRoot.hasNode(privilegeName)) {
             return getPrivilege(privilegeRoot.getNode(privilegeName), new HashMap<String, Privilege>(1));
@@ -89,7 +89,7 @@ public class PrivilegeManagerImpl implements PrivilegeManager {
     @Override
     public Privilege registerPrivilege(String privilegeName, boolean isAbstract,
                                        String[] declaredAggregateNames)
-            throws AccessDeniedException, RepositoryException {
+            throws RepositoryException {
 
         // TODO
         return null;
@@ -153,7 +153,7 @@ public class PrivilegeManagerImpl implements PrivilegeManager {
 
         @Override
         public boolean isAggregate() {
-            return declaredAggregateNames.size() > 0;
+            return !declaredAggregateNames.isEmpty();
         }
 
         @Override

@@ -30,7 +30,6 @@ import javax.jcr.Property;
 import javax.jcr.PropertyIterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Value;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.PropertyDefinition;
@@ -193,7 +192,7 @@ abstract class AuthorizableImpl implements Authorizable {
     }
 
     @Override
-    public String getPath() throws UnsupportedRepositoryOperationException, RepositoryException {
+    public String getPath() throws RepositoryException {
         return node.getPath();
     }
 

@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.jcr.security.user;
 
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.user.Authorizable;
-import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.Query;
 import org.apache.jackrabbit.api.security.user.User;
@@ -26,6 +25,7 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Scalar;
 import org.apache.jackrabbit.oak.jcr.NodeImpl;
 import org.apache.jackrabbit.oak.jcr.SessionContext;
+import org.apache.jackrabbit.oak.jcr.SessionImpl;
 import org.apache.jackrabbit.oak.jcr.util.ValueConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,11 +52,11 @@ public class UserManagerImpl implements UserManager {
      */
     private static final Logger log = LoggerFactory.getLogger(UserManagerImpl.class);
 
-    private final SessionContext sessionContext;
+    private final SessionContext<SessionImpl> sessionContext;
     private final UserManagerConfig config;
     private final AuthorizableNodeCreator nodeCreator;
 
-    public UserManagerImpl(SessionContext sessionContext, UserManagerConfig config) {
+    public UserManagerImpl(SessionContext<SessionImpl> sessionContext, UserManagerConfig config) {
         this.sessionContext = sessionContext;
         this.config = config;
         nodeCreator = new AuthorizableNodeCreator(sessionContext);
@@ -109,7 +109,7 @@ public class UserManagerImpl implements UserManager {
     }
 
     @Override
-    public Authorizable getAuthorizableByPath(String path) throws UnsupportedRepositoryOperationException, RepositoryException {
+    public Authorizable getAuthorizableByPath(String path) throws RepositoryException {
         // TODO
         return null;
     }
@@ -133,7 +133,7 @@ public class UserManagerImpl implements UserManager {
     }
 
     @Override
-    public User createUser(final String userID, String password) throws AuthorizableExistsException, RepositoryException {
+    public User createUser(final String userID, String password) throws RepositoryException {
         Principal principal = new Principal() {
             @Override
             public String getName() {
@@ -144,10 +144,10 @@ public class UserManagerImpl implements UserManager {
     }
 
     @Override
-    public User createUser(String userID, String password, Principal principal, String intermediatePath) throws AuthorizableExistsException, RepositoryException {
+    public User createUser(String userID, String password, Principal principal, String intermediatePath) throws RepositoryException {
         checkValidID(userID);
 
-        NodeImpl userNode = (NodeImpl) nodeCreator.createUserNode(userID, intermediatePath);
+        NodeImpl userNode = nodeCreator.createUserNode(userID, intermediatePath);
         setPrincipal(userNode, principal);
         setPassword(userNode, password, true);
 
@@ -159,7 +159,7 @@ public class UserManagerImpl implements UserManager {
     }
 
     @Override
-    public Group createGroup(final String groupID) throws AuthorizableExistsException, RepositoryException {
+    public Group createGroup(final String groupID) throws RepositoryException {
         Principal principal = new Principal() {
             @Override
             public String getName() {
@@ -170,21 +170,21 @@ public class UserManagerImpl implements UserManager {
     }
 
     @Override
-    public Group createGroup(Principal principal) throws AuthorizableExistsException, RepositoryException {
+    public Group createGroup(Principal principal) throws RepositoryException {
         return createGroup(principal, null);
     }
 
     @Override
-    public Group createGroup(Principal principal, String intermediatePath) throws AuthorizableExistsException, RepositoryException {
+    public Group createGroup(Principal principal, String intermediatePath) throws RepositoryException {
         String groupID = buildGroupID(principal.getName());
         return createGroup(groupID, principal, intermediatePath);
     }
 
     @Override
-    public Group createGroup(String groupID, Principal principal, String intermediatePath) throws AuthorizableExistsException, RepositoryException {
+    public Group createGroup(String groupID, Principal principal, String intermediatePath) throws RepositoryException {
         checkValidID(groupID);
 
-        NodeImpl groupNode = (NodeImpl) nodeCreator.createGroupNode(groupID, intermediatePath);
+        NodeImpl groupNode = nodeCreator.createGroupNode(groupID, intermediatePath);
         setPrincipal(groupNode, principal);
 
         Group group = new GroupImpl(groupNode, this);
@@ -213,14 +213,14 @@ public class UserManagerImpl implements UserManager {
      * @see UserManager#autoSave(boolean)
      */
     @Override
-    public void autoSave(boolean enable) throws UnsupportedRepositoryOperationException, RepositoryException {
+    public void autoSave(boolean enable) throws RepositoryException {
         throw new UnsupportedRepositoryOperationException("Session#save() is always required.");
     }
 
 
     //--------------------------------------------------------------------------
     /**
-     * Let the configured <code>AuthorizableAction</code>s perform additional
+     * Let the configured {@code AuthorizableAction}s perform additional
      * tasks associated with the creation of the new user before the
      * corresponding new node is persisted.
      *
@@ -233,7 +233,7 @@ public class UserManagerImpl implements UserManager {
     }
 
     /**
-     * Let the configured <code>AuthorizableAction</code>s perform additional
+     * Let the configured {@code AuthorizableAction}s perform additional
      * tasks associated with the creation of the new group before the
      * corresponding new node is persisted.
      *
@@ -245,7 +245,7 @@ public class UserManagerImpl implements UserManager {
     }
 
     /**
-     * Let the configured <code>AuthorizableAction</code>s perform any clean
+     * Let the configured {@code AuthorizableAction}s perform any clean
      * up tasks related to the authorizable removal (before the corresponding
      * node gets removed).
      *
@@ -257,7 +257,7 @@ public class UserManagerImpl implements UserManager {
     }
 
     /**
-     * Let the configured <code>AuthorizableAction</code>s perform additional
+     * Let the configured {@code AuthorizableAction}s perform additional
      * tasks associated with password changing of a given user before the
      * corresponding property is being changed.
      *
@@ -328,8 +328,8 @@ public class UserManagerImpl implements UserManager {
     void setInternalProperty(NodeImpl userNode, String name, String[] values, int type) throws RepositoryException {
         // TODO: check again if this really makes a transient modification with marking the property modified/new
         List<Scalar> scalarList = new ArrayList<Scalar>(values.length);
-        for (int i = 0; i < values.length; i++) {
-            scalarList.add(ValueConverter.toScalar(values[i], PropertyType.STRING));
+        for (String value : values) {
+            scalarList.add(ValueConverter.toScalar(value, PropertyType.STRING));
         }
         userNode.getEditor().setProperty(name, scalarList);
     }

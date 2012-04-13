@@ -91,7 +91,7 @@ public class UserManagerConfig {
         } else {
             str = configProperty.getString();
         }
-        Class targetClass = (defaultValue == null) ? String.class : defaultValue.getClass();
+        Class<?> targetClass = (defaultValue == null) ? String.class : defaultValue.getClass();
         try {
             if (targetClass == String.class) {
                 value = (T) str;

@@ -20,6 +20,7 @@ import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
 import org.apache.jackrabbit.commons.iterator.RangeIteratorDecorator;
 
+import javax.jcr.RangeIterator;
 import java.security.Principal;
 import java.util.Collection;
 import java.util.Iterator;
@@ -38,6 +39,14 @@ public class PrincipalIteratorAdapter extends RangeIteratorDecorator
      */
     public static final PrincipalIteratorAdapter EMPTY = new PrincipalIteratorAdapter(RangeIteratorAdapter.EMPTY);
 
+    /**
+     * Creates an adapter for the given {@link javax.jcr.RangeIterator}.
+     *
+     * @param iterator iterator of {@link java.security.Principal}s
+     */
+    public PrincipalIteratorAdapter(RangeIterator iterator) {
+        super(iterator);
+    }
 
     /**
      * Creates an adapter for the given {@link java.util.Iterator} of principals.
@@ -49,7 +58,7 @@ public class PrincipalIteratorAdapter extends RangeIteratorDecorator
     }
 
     /**
-     * Creates an iterator for the given collection of <code>Principal</code>s.
+     * Creates an iterator for the given collection of {@code Principal}s.
      *
      * @param collection collection of {@link Principal} objects.
      */
@@ -64,6 +73,7 @@ public class PrincipalIteratorAdapter extends RangeIteratorDecorator
      * @return next policy.
      * @throws java.util.NoSuchElementException if there is no next policy.
      */
+    @Override
     public Principal nextPrincipal() throws NoSuchElementException {
         return (Principal) next();
     }
