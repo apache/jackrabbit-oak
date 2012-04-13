@@ -107,8 +107,7 @@ public class ConnectionImpl implements Connection {
     public void commit(NodeStateEditor editor) throws CommitFailedException {
         try {
             store.merge(editor, editor.getBaseNodeState());
-        }
-        catch (MicroKernelException e) {
+        } catch (MicroKernelException e) {
             throw new CommitFailedException(e);
         }
     }
