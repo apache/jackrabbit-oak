@@ -23,7 +23,7 @@ import org.apache.jackrabbit.test.JCRTestSuite;
 /**
  * Test suite that includes all test suites from jackrabbit-jcr-tests.
  */
-public class JcrTckIT extends TestCase {
+public class JcrTckITest extends TestCase {
 
     public static Test suite() {
         return new JCRTestSuite();

@@ -32,7 +32,18 @@
 
   <properties>
     <skip.deployment>true</skip.deployment>
-    <known.issues>
+  </properties>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <systemProperties>
+            <property>
+              <name>known.issues</name>
+              <value>
 org.apache.jackrabbit.test.api
 org.apache.jackrabbit.test.api.query
 org.apache.jackrabbit.test.api.query.qom
@@ -44,9 +55,14 @@ org.apache.jackrabbit.test.api.version.simple
 org.apache.jackrabbit.test.api.observation
 org.apache.jackrabbit.test.api.retention
 org.apache.jackrabbit.test.api.security
-    </known.issues>
-  </properties>
-
+              </value>
+            </property>
+          </systemProperties>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+  
   <dependencies>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
