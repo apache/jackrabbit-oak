@@ -374,8 +374,8 @@ public class SimpleKernelImpl extends MicroKernelWrapperBase implements MicroKer
         return buff.endArray();
     }
 
-    public String waitForCommit(String oldHeadRevision, long maxWaitMillis) throws InterruptedException {
-        return gate.waitForCommit(oldHeadRevision, maxWaitMillis);
+    public String waitForCommit(String oldHeadRevisionId, long maxWaitMillis) throws InterruptedException {
+        return gate.waitForCommit(oldHeadRevisionId, maxWaitMillis);
     }
 
     public JsopReader getJournalStream(String fromRevisionId, String toRevisionId, String filter) {
