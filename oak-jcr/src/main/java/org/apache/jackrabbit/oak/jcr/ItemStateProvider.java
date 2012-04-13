@@ -10,7 +10,7 @@ class ItemStateProvider {
         this.root = root;
     }
 
-    TransientNodeState getNodeState(String path){
+    TransientNodeState getTransientNodeState(String path){
         TransientNodeState state = root;
 
         for (String name : Paths.elements(path)) {
@@ -24,7 +24,7 @@ class ItemStateProvider {
     }
 
     PropertyState getPropertyState(String path) {
-        TransientNodeState parentState = getNodeState(Paths.getParentPath(path));
+        TransientNodeState parentState = getTransientNodeState(Paths.getParentPath(path));
 
         if (parentState == null) {
             return null;

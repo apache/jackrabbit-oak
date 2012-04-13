@@ -118,7 +118,7 @@ public class SessionImpl extends AbstractSession {
     @Override
     public Node getRootNode() throws RepositoryException {
         ensureIsAlive();
-        return new NodeImpl(sessionContext, itemStateProvider.getNodeState("/"));
+        return new NodeImpl(sessionContext, itemStateProvider.getTransientNodeState("/"));
     }
 
     @Override
