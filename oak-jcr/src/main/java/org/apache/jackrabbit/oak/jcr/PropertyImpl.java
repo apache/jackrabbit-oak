@@ -629,7 +629,7 @@ public class PropertyImpl extends ItemImpl implements Property {
     }
 
     private synchronized void resolve() {
-        parentState = getItemStateProvider().getNodeState(parentState.getPath());
+        parentState = getItemStateProvider().getTransientNodeState(parentState.getPath());
         propertyState = getItemStateProvider().getPropertyState(
                 Paths.concat(parentState.getPath(), propertyState.getName()));
     }
