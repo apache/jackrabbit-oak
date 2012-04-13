@@ -142,10 +142,7 @@ public class KernelNodeStateEditorFuzzIT {
 
             @Override
             void apply(KernelNodeStateEditor editor) {
-                for (String element : PathUtils.elements(parentPath)) {
-                    editor = editor.edit(element);
-                }
-                editor.addNode(name);
+                editor.edit(parentPath).addNode(name);
             }
 
             @Override
@@ -163,10 +160,9 @@ public class KernelNodeStateEditorFuzzIT {
 
             @Override
             void apply(KernelNodeStateEditor editor) {
-                for (String element : PathUtils.elements(PathUtils.getParentPath(path))) {
-                    editor = editor.edit(element);
-                }
-                editor.removeNode(PathUtils.getName(path));
+                String parentPath = PathUtils.getParentPath(path);
+                String name = PathUtils.getName(path);
+                editor.edit(parentPath).removeNode(name);
             }
 
             @Override
@@ -228,10 +224,7 @@ public class KernelNodeStateEditorFuzzIT {
 
             @Override
             void apply(KernelNodeStateEditor editor) {
-                for (String element : PathUtils.elements(parentPath)) {
-                    editor = editor.edit(element);
-                }
-                editor.setProperty(propertyName, propertyValue);
+                editor.edit(parentPath).setProperty(propertyName, propertyValue);
             }
 
             @Override
@@ -252,10 +245,7 @@ public class KernelNodeStateEditorFuzzIT {
 
             @Override
             void apply(KernelNodeStateEditor editor) {
-                for (String element : PathUtils.elements(parentPath)) {
-                    editor = editor.edit(element);
-                }
-                editor.removeProperty(name);
+                editor.edit(parentPath).removeProperty(name);
             }
 
             @Override
