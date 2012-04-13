@@ -229,6 +229,7 @@ public class VirtualRepositoryWrapper extends MicroKernelWrapperBase implements 
         for (MicroKernel m : mounts.values()) {
             m.dispose();
         }
+        mk.dispose();
     }
 
     public String getHeadRevision() {
