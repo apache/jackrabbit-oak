@@ -3,53 +3,71 @@
 # * lines starting with "xpath" are xpath queries, followed by expected sql2 query
 # * use ascii character only
 
+xpath //*[@name='Hello']
+select * from [nt:base] where [name] = 'Hello'
+
+xpath /jcr:root//*[@name='Hello']
+select * from [nt:base] where ([name] = 'Hello') and isdescendantnode('/')
+
+xpath content/*
+select * from [nt:base] where ischildnode('/content')
+
+xpath content//*
+select * from [nt:base] where isdescendantnode('/content')
+
+xpath content//*[@name='Hello']
+select * from [nt:base] where ([name] = 'Hello') and isdescendantnode('/content')
+
+xpath /jcr:root/content//*[@name='Hello']
+select * from [nt:base] where ([name] = 'Hello') and isdescendantnode('/content')
+
+xpath //*[jcr:contains(., 'test')] order by @jcr:score
+select * from [nt:base] where contains(*, 'test') order by [jcr:score]
+
 xpath /jcr:root//*[jcr:contains(., 'test')] order by @jcr:score
-select * from [nt:base] where contains(*, 'test') and (issamenode('/') or isdescendantnode('/')) order by [jcr:score]
+select * from [nt:base] where contains(*, 'test') and isdescendantnode('/') order by [jcr:score]
 
 xpath /jcr:root//element(*, test)
-select * from [test] where issamenode('/') or isdescendantnode('/')
-
-xpath /jcr:root//element(*, test)
-select * from [test] where issamenode('/') or isdescendantnode('/')
+select * from [test] where isdescendantnode('/')
 
 xpath /jcr:root//element(*, user)[test/@jcr:primaryType]
-select * from [user] where ([test/jcr:primaryType] is not null) and (issamenode('/') or isdescendantnode('/'))
+select * from [user] where ([test/jcr:primaryType] is not null) and isdescendantnode('/')
 
 xpath /jcr:root/content//*[(@sling:resourceType = 'start')]
-select * from [nt:base] where ([sling:resourceType] = 'start') and (issamenode('/content') or isdescendantnode('/content'))
+select * from [nt:base] where ([sling:resourceType] = 'start') and isdescendantnode('/content')
 
 xpath /jcr:root/content//*[(@sling:resourceType = 'page')]
-select * from [nt:base] where ([sling:resourceType] = 'page') and (issamenode('/content') or isdescendantnode('/content'))
+select * from [nt:base] where ([sling:resourceType] = 'page') and isdescendantnode('/content')
 
 xpath /jcr:root/content//*[@offTime > xs:dateTime('2012-03-28T15:56:18.327+02:00') or @onTime > xs:dateTime('2012-03-28T15:56:18.327+02:00')]
-select * from [nt:base] where (([offTime] > cast('2012-03-28T15:56:18.327+02:00' as date)) or ([onTime] > cast('2012-03-28T15:56:18.327+02:00' as date))) and (issamenode('/content') or isdescendantnode('/content'))
+select * from [nt:base] where (([offTime] > cast('2012-03-28T15:56:18.327+02:00' as date)) or ([onTime] > cast('2012-03-28T15:56:18.327+02:00' as date))) and isdescendantnode('/content')
 
 xpath /jcr:root/content/campaigns//*[@jcr:primaryType='Page'] order by jcr:content/@lastModified descending
-select * from [nt:base] where ([jcr:primaryType] = 'Page') and (issamenode('/content/campaigns') or isdescendantnode('/content/campaigns')) order by [jcr:content/lastModified] desc
+select * from [nt:base] where ([jcr:primaryType] = 'Page') and isdescendantnode('/content/campaigns') order by [jcr:content/lastModified] desc
 
 xpath /jcr:root/content/campaigns//element(*, PageContent)[(@sling:resourceType = 'teaser' or @sling:resourceType = 'newsletter' or @teaserPageType = 'newsletter' or @teaserPageType = 'tweet') and ((@onTime < xs:dateTime('2012-04-01T00:00:00.000+02:00')) or not(@onTime)) and ((@offTime >= xs:dateTime('2012-02-26T00:00:00.000+01:00')) or not(@offTime))] order by @onTime
-select * from [PageContent] where (((((([sling:resourceType] = 'teaser') or ([sling:resourceType] = 'newsletter')) or ([teaserPageType] = 'newsletter')) or ([teaserPageType] = 'tweet')) and (([onTime] < cast('2012-04-01T00:00:00.000+02:00' as date)) or ([onTime] is null))) and (([offTime] >= cast('2012-02-26T00:00:00.000+01:00' as date)) or ([offTime] is null))) and (issamenode('/content/campaigns') or isdescendantnode('/content/campaigns')) order by [onTime]
+select * from [PageContent] where (((((([sling:resourceType] = 'teaser') or ([sling:resourceType] = 'newsletter')) or ([teaserPageType] = 'newsletter')) or ([teaserPageType] = 'tweet')) and (([onTime] < cast('2012-04-01T00:00:00.000+02:00' as date)) or ([onTime] is null))) and (([offTime] >= cast('2012-02-26T00:00:00.000+01:00' as date)) or ([offTime] is null))) and isdescendantnode('/content/campaigns') order by [onTime]
 
 xpath /jcr:root/content/dam//element(*, asset)[jcr:content/metadata/@dam:scene]
-select * from [asset] where ([jcr:content/metadata/dam:scene] is not null) and (issamenode('/content/dam') or isdescendantnode('/content/dam'))
+select * from [asset] where ([jcr:content/metadata/dam:scene] is not null) and isdescendantnode('/content/dam')
 
 xpath /jcr:root/etc/cloud//*[(@sling:resourceType = 'framework')]
-select * from [nt:base] where ([sling:resourceType] = 'framework') and (issamenode('/etc/cloud') or isdescendantnode('/etc/cloud'))
+select * from [nt:base] where ([sling:resourceType] = 'framework') and isdescendantnode('/etc/cloud')
 
 xpath /jcr:root/etc/cloud//*[(@sling:resourceType = 'analytics')]
-select * from [nt:base] where ([sling:resourceType] = 'analytics') and (issamenode('/etc/cloud') or isdescendantnode('/etc/cloud'))
+select * from [nt:base] where ([sling:resourceType] = 'analytics') and isdescendantnode('/etc/cloud')
 
 xpath /jcr:root/etc/reports//*[@jcr:primaryType='Page'] order by jcr:content/@lastModified descending
-select * from [nt:base] where ([jcr:primaryType] = 'Page') and (issamenode('/etc/reports') or isdescendantnode('/etc/reports')) order by [jcr:content/lastModified] desc
+select * from [nt:base] where ([jcr:primaryType] = 'Page') and isdescendantnode('/etc/reports') order by [jcr:content/lastModified] desc
 
 xpath /jcr:root/etc/segment//*[@jcr:primaryType='Page'] order by jcr:content/@lastModified descending
-select * from [nt:base] where ([jcr:primaryType] = 'Page') and (issamenode('/etc/segment') or isdescendantnode('/etc/segment')) order by [jcr:content/lastModified] desc
+select * from [nt:base] where ([jcr:primaryType] = 'Page') and isdescendantnode('/etc/segment') order by [jcr:content/lastModified] desc
 
 xpath /jcr:root/etc/workflow//element(*,Item)[not(meta/@archived) and not(meta/@archived = true)]
-select * from [Item] where (([meta/archived] is null) and not([meta/archived] = true)) and (issamenode('/etc/workflow') or isdescendantnode('/etc/workflow'))
+select * from [Item] where (([meta/archived] is null) and not([meta/archived] = true)) and isdescendantnode('/etc/workflow')
 
 xpath /jcr:root/home//element(*)
-select * from [nt:base] where issamenode('/home') or isdescendantnode('/home')
+select * from [nt:base] where isdescendantnode('/home')
 
 # other queries
 
@@ -66,7 +84,7 @@ xpath //element(*, my:type)/(@my:title | @my:text)
 select [my:title], [my:text] from [my:type]
 
 xpath /jcr:root/nodes//element(*, my:type)
-select * from [my:type] where issamenode('/nodes') or isdescendantnode('/nodes')
+select * from [my:type] where isdescendantnode('/nodes')
 
 xpath /jcr:root/some/element(nodes, my:type)
 select * from [my:type] where [jcr:path] = '/some/nodes'
@@ -75,7 +93,7 @@ xpath /jcr:root/some/nodes/element(*, my:type)
 select * from [my:type] where ischildnode('/some/nodes')
 
 xpath /jcr:root/some/nodes//element(*, my:type)
-select * from [my:type] where issamenode('/some/nodes') or isdescendantnode('/some/nodes')
+select * from [my:type] where isdescendantnode('/some/nodes')
 
 xpath //element(*, my:type)[@my:title = 'JSR 170']
 select * from [my:type] where [my:title] = 'JSR 170'
@@ -128,8 +146,8 @@ select * from [my:type] where contains(*, 'jcr') order by score() desc
 xpath //element(*, my:type)[jcr:contains(@my:title, 'jcr')] order by jcr:score() descending
 select * from [my:type] where contains([my:title], 'jcr') order by score() desc
 
-xpath invalid/query
-invalid: Query: invalid(*)/query; expected: <end>
+xpath [invalid/query
+invalid: Query: /jcr:root/[(*)invalid/query; expected: identifier
 
 xpath //element(*, my:type)[@my:value = -'x']
 invalid: Query: //element(*, my:type)[@my:value = -'x'(*)]

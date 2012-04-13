@@ -56,6 +56,10 @@ public class XPathToSQL2Converter {
      * @throws ParseException if parsing fails
      */
     public String convert(String query) throws ParseException {
+        // TODO verify this is correct
+        if (!query.startsWith("/")) {
+            query = "/jcr:root/" + query;
+        }
         initialize(query);
         expected = new ArrayList<String>();
         read();
@@ -126,15 +130,10 @@ public class XPathToSQL2Converter {
         }
         if (path.isEmpty()) {
             // no condition
-        } else if (path.equals("%")) {
-            // ignore
         } else {
             if (descendants) {
-                Function f1 = new Function("issamenode");
-                f1.params.add(Literal.newString(path));
-                Function f2 = new Function("isdescendantnode");
-                f2.params.add(Literal.newString(path));
-                Condition c = new Condition(f1, "or", f2);
+                Function c = new Function("isdescendantnode");
+                c.params.add(Literal.newString(path));
                 condition = add(condition, c);
             } else if (children) {
                 Function f = new Function("ischildnode");
