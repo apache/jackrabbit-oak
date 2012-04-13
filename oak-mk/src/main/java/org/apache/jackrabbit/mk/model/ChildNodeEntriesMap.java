@@ -158,10 +158,6 @@ public class ChildNodeEntriesMap implements ChildNodeEntries {
 
     @Override
     public Iterator<ChildNode> getAdded(final ChildNodeEntries other) {
-        if (equals(other)) {
-            return EMPTY.iterator();            
-        }
-        
         return new AbstractFilteringIterator<ChildNode>(other.getEntries(0, -1)) {
             @Override
             protected boolean include(ChildNode entry) {
@@ -172,10 +168,6 @@ public class ChildNodeEntriesMap implements ChildNodeEntries {
 
     @Override
     public Iterator<ChildNode> getRemoved(final ChildNodeEntries other) {
-        if (equals(other)) {
-            return EMPTY.iterator();
-        }
-
         return new AbstractFilteringIterator<ChildNode>(entries.values().iterator()) {
             @Override
             protected boolean include(ChildNode entry) {
@@ -186,9 +178,6 @@ public class ChildNodeEntriesMap implements ChildNodeEntries {
 
     @Override
     public Iterator<ChildNode> getModified(final ChildNodeEntries other) {
-        if (equals(other)) {
-            return EMPTY.iterator();
-        }
         return new AbstractFilteringIterator<ChildNode>(getEntries(0, -1)) {
             @Override
             protected boolean include(ChildNode entry) {
