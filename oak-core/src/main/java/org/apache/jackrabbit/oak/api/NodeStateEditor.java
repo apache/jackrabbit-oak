@@ -30,7 +30,8 @@ public interface NodeStateEditor {
      * if such a child node already exists.
      *
      * @param name name of the new node state
-     * @return the transient state of the child node with that name.
+     * @return the transient state of the child node with that name or {@code null}
+     * if no such node exists.
      */
     TransientNodeState addNode(String name);
 
