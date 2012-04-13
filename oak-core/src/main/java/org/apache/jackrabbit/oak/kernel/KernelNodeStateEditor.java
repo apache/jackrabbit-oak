@@ -79,11 +79,13 @@ public class KernelNodeStateEditor implements NodeStateEditor {
     }
 
     @Override
-    public void addNode(String name) {
+    public TransientNodeState addNode(String name) {
         if (!transientState.hasNode(name)) {
             transientState.addNode(name);
             jsop.append("+\"").append(path(name)).append("\":{}");
         }
+
+        return transientState.getChildNode(name);
     }
 
     @Override
@@ -209,7 +211,7 @@ public class KernelNodeStateEditor implements NodeStateEditor {
 
     /**
      * Path of the item {@code name}
-     * @param name
+     * @param name The item name.
      * @return relative path of the item {@code name}
      */
     private String path(String name) {
