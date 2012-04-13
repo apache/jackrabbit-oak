@@ -37,7 +37,7 @@ public class PrincipalIteratorAdapter extends RangeIteratorDecorator
     /**
      * Static instance of an empty {@link PrincipalIterator}.
      */
-    public static final PrincipalIteratorAdapter EMPTY = new PrincipalIteratorAdapter(RangeIteratorAdapter.EMPTY);
+    public static final PrincipalIteratorAdapter EMPTY = new PrincipalIteratorAdapter((Iterator<? extends Principal>) RangeIteratorAdapter.EMPTY);
 
     /**
      * Creates an adapter for the given {@link javax.jcr.RangeIterator}.
