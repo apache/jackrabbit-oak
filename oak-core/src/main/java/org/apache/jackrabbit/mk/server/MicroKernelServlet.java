@@ -223,6 +223,10 @@ class MicroKernelServlet {
 
             response.setContentType("application/json");
             String json = mk.getNodes(path, revisionId, depth, offset, count, filter);
+            // OAK-48: MicroKernel.getNodes() should return null for not existing nodes instead of throwing an exception
+            if (json == null) {
+                json = "null";
+            }
             if (request.getHeaders().containsKey("User-Agent")) {
                 json = JsopBuilder.prettyPrint(json);
             }

@@ -109,7 +109,7 @@ public interface MicroKernel {
      * </pre>
      *
      * @param fromRevisionId id of first revision to be returned in journal
-     * @param toRevisionId   id of last revision to be returned in journal, if null the current head revision is assumed
+     * @param toRevisionId   id of last revision to be returned in journal, if {@code null} the current head revision is assumed
      * @param filter         (optional) filter criteria
      *                       (e.g. path, property names, etc);
      *                       TODO specify format and semantics
@@ -133,7 +133,7 @@ public interface MicroKernel {
      * </pre>
      *
      * @param fromRevisionId a revision id
-     * @param toRevisionId   another revision id, if null the current head revision is assumed
+     * @param toRevisionId   another revision id, if {@code null} the current head revision is assumed
      * @param filter         (optional) filter criteria
      *                       (e.g. path, property names, etc);
      *                       TODO specify format and semantics
@@ -150,7 +150,7 @@ public interface MicroKernel {
      * Determines whether the specified node exists.
      *
      * @param path       path denoting node
-     * @param revisionId revision id, if null the current head revision is assumed
+     * @param revisionId revision id, if {@code null} the current head revision is assumed
      * @return {@code true} if the specified node exists, otherwise {@code false}
      * @throws MicroKernelException if an error occurs
      */
@@ -165,9 +165,9 @@ public interface MicroKernel {
      *
      *
      * @param path       path denoting node
-     * @param revisionId revision id, if null the current head revision is assumed
+     * @param revisionId revision id, if {@code null} the current head revision is assumed
      * @return the number of child nodes
-     * @throws MicroKernelException if an error occurs
+     * @throws MicroKernelException if the specified node does not exist or if an error occurs
      */
     long getChildNodeCount(String path, String revisionId) throws MicroKernelException;
 
@@ -203,9 +203,9 @@ public interface MicroKernel {
      * {@code getNodes(path, revisionId, 1, 0, -1, null)}
      *
      * @param path       path denoting root of node tree to be retrieved
-     * @param revisionId revision id, if null the current head revision is assumed
-     * @return node tree in JSON format
-     * @throws MicroKernelException if an error occurs
+     * @param revisionId revision id, if {@code null} the current head revision is assumed
+     * @return node tree in JSON format or {@code null} if the specified node does not exist
+     * @throws MicroKernelException if the specified revision does not exist or if another error occurs
      */
     String /* jsonTree */ getNodes(String path, String revisionId) throws MicroKernelException;
 
@@ -234,7 +234,7 @@ public interface MicroKernel {
      * direct child nodes of the root of the returned node tree.
      *
      * @param path       path denoting root of node tree to be retrieved
-     * @param revisionId revision id, if null the current head revision is assumed
+     * @param revisionId revision id, if {@code null} the current head revision is assumed
      * @param depth      maximum depth of returned tree
      * @param offset     start position in the iteration order of child nodes (0 to start at the
      *                   beginning)
@@ -242,8 +242,8 @@ public interface MicroKernel {
      * @param filter     (optional) filter criteria
      *                   (e.g. names of properties to be included, etc);
      *                   TODO specify format and semantics
-     * @return node tree in JSON format
-     * @throws MicroKernelException if an error occurs
+     * @return node tree in JSON format or {@code null} if the specified node does not exist
+     * @throws MicroKernelException if the specified revision does not exist or if another error occurs
      */
     String /* jsonTree */ getNodes(String path, String revisionId, int depth, long offset, int count, String filter) throws MicroKernelException;
 
@@ -262,7 +262,7 @@ public interface MicroKernel {
      *
      * @param path path denoting target node
      * @param jsonDiff changes to be applied in JSON diff format.
-     * @param revisionId id of revision the changes are based on, if null the current head revision is assumed
+     * @param revisionId id of revision the changes are based on, if {@code null} the current head revision is assumed
      * @param message commit message
      * @return id of newly created revision
      * @throws MicroKernelException if an error occurs
