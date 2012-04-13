@@ -29,9 +29,11 @@ public interface NodeStateEditor {
     /**
      * Add the child node state with the given {@code name}. Does nothing
      * if such a child node already exists.
+     *
      * @param name name of the new node state
+     * @return the transient state of the child node with that name.
      */
-    void addNode(String name);
+    TransientNodeState addNode(String name);
 
     /**
      * Remove the child node state with the given {@code name}. Does nothing
