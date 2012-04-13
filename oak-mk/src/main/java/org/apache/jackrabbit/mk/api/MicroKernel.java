@@ -83,16 +83,17 @@ public interface MicroKernel {
      * Wait for a commit to occur that is newer than the given revision number.
      * <p/>
      * This method is useful efficient polling. The method will return the current head revision
-     * if it is newer than the given old revision number, or wait until the given number of
+     * if it is newer than the given revision ID, or wait until the given number of
      * milliseconds passed or a new head revision is available.
      *
+     * @param oldHeadRevisionId A revision Id
      * @param maxWaitMillis the maximum number of milliseconds to wait (0 if the
      *                      method should not wait).
-     * @return the current head revision
+     * @return the current head revision Id
      * @throws MicroKernelException if an error occurs
      * @throws InterruptedException if the thread was interrupted
      */
-    String waitForCommit(String oldHeadRevision, long maxWaitMillis) throws MicroKernelException, InterruptedException;
+    String waitForCommit(String oldHeadRevisionId, long maxWaitMillis) throws MicroKernelException, InterruptedException;
 
     /**
      * Returns a revision journal, starting with <code>fromRevisionId</code>

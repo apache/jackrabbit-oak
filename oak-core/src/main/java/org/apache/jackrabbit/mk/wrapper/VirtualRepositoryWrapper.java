@@ -315,8 +315,8 @@ public class VirtualRepositoryWrapper extends MicroKernelWrapperBase implements 
         return mk.read(blobId, pos, buff, off, length);
     }
 
-    public String waitForCommit(String oldHeadRevision, long maxWaitMillis) throws InterruptedException {
-        return mk.waitForCommit(oldHeadRevision, maxWaitMillis);
+    public String waitForCommit(String oldHeadRevisionId, long maxWaitMillis) throws InterruptedException {
+        return mk.waitForCommit(oldHeadRevisionId, maxWaitMillis);
     }
 
     public String write(InputStream in) {

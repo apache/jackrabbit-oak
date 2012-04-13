@@ -146,8 +146,8 @@ public class MicroKernelImpl implements MicroKernel {
         return buff.endArray().toString();
     }
 
-    public String waitForCommit(String oldHeadRevision, long maxWaitMillis) throws MicroKernelException, InterruptedException {
-        return gate.waitForCommit(oldHeadRevision, maxWaitMillis);
+    public String waitForCommit(String oldHeadRevisionId, long maxWaitMillis) throws MicroKernelException, InterruptedException {
+        return gate.waitForCommit(oldHeadRevisionId, maxWaitMillis);
     }
 
     public String getJournal(String fromRevision, String toRevision, String filter) throws MicroKernelException {

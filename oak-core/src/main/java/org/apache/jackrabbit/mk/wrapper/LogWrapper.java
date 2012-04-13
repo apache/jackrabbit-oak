@@ -180,10 +180,10 @@ public class LogWrapper implements MicroKernel {
         }
     }
 
-    public String waitForCommit(String oldHeadRevision, long maxWaitMillis) throws InterruptedException {
+    public String waitForCommit(String oldHeadRevisionId, long maxWaitMillis) throws InterruptedException {
         try {
-            logMethod("waitForCommit", oldHeadRevision, maxWaitMillis);
-            String result = mk.waitForCommit(oldHeadRevision, maxWaitMillis);
+            logMethod("waitForCommit", oldHeadRevisionId, maxWaitMillis);
+            String result = mk.waitForCommit(oldHeadRevisionId, maxWaitMillis);
             logResult(result);
             return result;
         } catch (InterruptedException e) {
