@@ -91,13 +91,15 @@ public interface NodeStateEditor {
     void copy(String sourcePath, String destPath);
 
     /**
-     * Edit the child node state with the given {@code name}.
-     * @param name name of the child node state to edit.
-     * @return editor for the child node state of the given name or
+     * Edit the child node state at the given {@code path}.
+     * The path must resolve to a node state located in the subtree
+     * below the transient state this editor is acting upon.
+     *
+     * @param path path of the child node state to edit.
+     * @return editor for the child node state at the given path or
      *         {@code null} if no such node state exists.
-     * TODO broaden to accept a path instead of a name
      */
-    NodeStateEditor edit(String name);
+    NodeStateEditor edit(String path);
 
     /**
      * Return the transient state which this editor is acting upon

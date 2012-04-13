@@ -156,11 +156,11 @@ public class KernelNodeStateEditor implements NodeStateEditor {
     }
 
     @Override
-    public KernelNodeStateEditor edit(String name) {
-        TransientKernelNodeState childState = transientState.getChildNode(name);
-        return childState == null
+    public KernelNodeStateEditor edit(String path) {
+        TransientKernelNodeState state = getTransientState(path);
+        return state == null
             ? null
-            : childState.getEditor();
+            : state.getEditor();
     }
 
     @Override
