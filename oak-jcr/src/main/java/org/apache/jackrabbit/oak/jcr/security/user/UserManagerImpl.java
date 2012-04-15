@@ -322,7 +322,7 @@ public class UserManagerImpl implements UserManager {
     void setInternalProperty(NodeImpl userNode, String name, String value, int type) throws RepositoryException {
         // TODO: check again if this really makes a transient modification with marking the property modified/new
         Scalar scalar = ValueConverter.toScalar(value, type);
-        userNode.getEditor().setProperty(name, scalar);
+        userNode.getState().setProperty(name, scalar);
     }
 
     void setInternalProperty(NodeImpl userNode, String name, String[] values, int type) throws RepositoryException {
@@ -331,12 +331,12 @@ public class UserManagerImpl implements UserManager {
         for (String value : values) {
             scalarList.add(ValueConverter.toScalar(value, PropertyType.STRING));
         }
-        userNode.getEditor().setProperty(name, scalarList);
+        userNode.getState().setProperty(name, scalarList);
     }
 
     void removeInternalProperty(NodeImpl userNode, String name) {
         // TODO: check again if this really makes a transient modification with marking the property modified
-        userNode.getEditor().removeProperty(name);
+        userNode.getState().removeProperty(name);
     }
 
     private Authorizable getAuthorizable(NodeImpl node) throws RepositoryException {

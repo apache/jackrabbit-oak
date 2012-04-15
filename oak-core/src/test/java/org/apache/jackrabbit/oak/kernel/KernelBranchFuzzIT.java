@@ -37,18 +37,18 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 
-import static org.apache.jackrabbit.oak.kernel.KernelNodeStateEditorFuzzIT.Operation.AddNode;
-import static org.apache.jackrabbit.oak.kernel.KernelNodeStateEditorFuzzIT.Operation.MoveNode;
-import static org.apache.jackrabbit.oak.kernel.KernelNodeStateEditorFuzzIT.Operation.CopyNode;
-import static org.apache.jackrabbit.oak.kernel.KernelNodeStateEditorFuzzIT.Operation.RemoveNode;
-import static org.apache.jackrabbit.oak.kernel.KernelNodeStateEditorFuzzIT.Operation.RemoveProperty;
-import static org.apache.jackrabbit.oak.kernel.KernelNodeStateEditorFuzzIT.Operation.Save;
-import static org.apache.jackrabbit.oak.kernel.KernelNodeStateEditorFuzzIT.Operation.SetProperty;
+import static org.apache.jackrabbit.oak.kernel.KernelBranchFuzzIT.Operation.AddNode;
+import static org.apache.jackrabbit.oak.kernel.KernelBranchFuzzIT.Operation.MoveNode;
+import static org.apache.jackrabbit.oak.kernel.KernelBranchFuzzIT.Operation.CopyNode;
+import static org.apache.jackrabbit.oak.kernel.KernelBranchFuzzIT.Operation.RemoveNode;
+import static org.apache.jackrabbit.oak.kernel.KernelBranchFuzzIT.Operation.RemoveProperty;
+import static org.apache.jackrabbit.oak.kernel.KernelBranchFuzzIT.Operation.Save;
+import static org.apache.jackrabbit.oak.kernel.KernelBranchFuzzIT.Operation.SetProperty;
 import static org.junit.Assert.assertEquals;
 
 @RunWith(Parameterized.class)
-public class KernelNodeStateEditorFuzzIT {
-    static final Logger log = LoggerFactory.getLogger(KernelNodeStateEditorFuzzIT.class);
+public class KernelBranchFuzzIT {
+    static final Logger log = LoggerFactory.getLogger(KernelBranchFuzzIT.class);
 
     private static final int OP_COUNT = 5000;
 
@@ -67,7 +67,7 @@ public class KernelNodeStateEditorFuzzIT {
         });
     }
 
-    public KernelNodeStateEditorFuzzIT(int seed) {
+    public KernelBranchFuzzIT(int seed) {
         log.info("Seed = {}", seed);
         random = new Random(seed);
     }
@@ -81,22 +81,22 @@ public class KernelNodeStateEditorFuzzIT {
     @Test
     public void fuzzTest() throws Exception {
         KernelNodeState state1 = new KernelNodeState(mk1, "/", mk1.getHeadRevision());
-        KernelNodeStateEditor editor1 = new KernelNodeStateEditor(state1);
+        KernelBranch branch1 = new KernelBranch(state1);
 
         KernelNodeState state2 = new KernelNodeState(mk2, "/", mk2.getHeadRevision());
-        KernelNodeStateEditor editor2 = new KernelNodeStateEditor(state2);
+        KernelBranch branch2 = new KernelBranch(state2);
 
         for (Operation op : operations(OP_COUNT)) {
             log.info("{}", op);
-            op.apply(editor1);
-            op.apply(editor2);
-            checkEqual(editor1.getTransientState(), editor2.getTransientState());
+            op.apply(branch1);
+            op.apply(branch2);
+            checkEqual(branch1.getNode("/"), branch2.getNode("/"));
 
-            state1 = editor1.mergeInto(mk1, state1);
-            editor1 = new KernelNodeStateEditor(state1);
+            state1 = branch1.mergeInto(mk1, state1);
+            branch1 = new KernelBranch(state1);
             if (op instanceof Save) {
-                state2 = editor2.mergeInto(mk2, state2);
-                editor2 = new KernelNodeStateEditor(state2);
+                state2 = branch2.mergeInto(mk2, state2);
+                branch2 = new KernelBranch(state2);
                 assertEquals(state1, state2);
             }
         }
@@ -129,7 +129,7 @@ public class KernelNodeStateEditorFuzzIT {
     }
 
     abstract static class Operation {
-        abstract void apply(KernelNodeStateEditor editor);
+        abstract void apply(KernelBranch branch);
 
         static class AddNode extends Operation {
             private final String parentPath;
@@ -141,8 +141,8 @@ public class KernelNodeStateEditorFuzzIT {
             }
 
             @Override
-            void apply(KernelNodeStateEditor editor) {
-                editor.edit(parentPath).addNode(name);
+            void apply(KernelBranch branch) {
+                branch.getNode(parentPath).addNode(name);
             }
 
             @Override
@@ -159,10 +159,10 @@ public class KernelNodeStateEditorFuzzIT {
             }
 
             @Override
-            void apply(KernelNodeStateEditor editor) {
+            void apply(KernelBranch branch) {
                 String parentPath = PathUtils.getParentPath(path);
                 String name = PathUtils.getName(path);
-                editor.edit(parentPath).removeNode(name);
+                branch.getNode(parentPath).removeNode(name);
             }
 
             @Override
@@ -181,8 +181,8 @@ public class KernelNodeStateEditorFuzzIT {
             }
 
             @Override
-            void apply(KernelNodeStateEditor editor) {
-                editor.move(source.substring(1), destination.substring(1));
+            void apply(KernelBranch branch) {
+                branch.move(source.substring(1), destination.substring(1));
             }
 
             @Override
@@ -201,8 +201,8 @@ public class KernelNodeStateEditorFuzzIT {
             }
 
             @Override
-            void apply(KernelNodeStateEditor editor) {
-                editor.copy(source.substring(1), destination.substring(1));
+            void apply(KernelBranch branch) {
+                branch.copy(source.substring(1), destination.substring(1));
             }
 
             @Override
@@ -223,8 +223,8 @@ public class KernelNodeStateEditorFuzzIT {
             }
 
             @Override
-            void apply(KernelNodeStateEditor editor) {
-                editor.edit(parentPath).setProperty(propertyName, propertyValue);
+            void apply(KernelBranch branch) {
+                branch.getNode(parentPath).setProperty(propertyName, propertyValue);
             }
 
             @Override
@@ -244,8 +244,8 @@ public class KernelNodeStateEditorFuzzIT {
             }
 
             @Override
-            void apply(KernelNodeStateEditor editor) {
-                editor.edit(parentPath).removeProperty(name);
+            void apply(KernelBranch branch) {
+                branch.getNode(parentPath).removeProperty(name);
             }
 
             @Override
@@ -256,7 +256,7 @@ public class KernelNodeStateEditorFuzzIT {
 
         static class Save extends Operation {
             @Override
-            void apply(KernelNodeStateEditor editor) {
+            void apply(KernelBranch branch) {
                 // empty
             }
 

@@ -18,9 +18,10 @@
  */
 package org.apache.jackrabbit.oak.api;
 
+import java.util.List;
+
 /**
- * A transient node state represents a node being edited. All edit operations are
- * done through an associated {@link org.apache.jackrabbit.oak.api.NodeStateEditor}.
+ * A transient node state represents a mutable node.
  * <p>
  * A transient node state contains the current state of a node and is
  * in contrast to {@link org.apache.jackrabbit.mk.model.NodeState} instances
@@ -47,9 +48,9 @@ public interface TransientNodeState {
     TransientNodeState getParent();
 
     /**
-     * @return  editor acting upon this instance
+     * @return  the branch this state belongs to
      */
-    NodeStateEditor getEditor();
+    Branch getBranch();
 
     /**
      * Get a property state
@@ -74,6 +75,15 @@ public interface TransientNodeState {
     long getPropertyCount();
 
     /**
+     * All property states. The returned {@code Iterable} has snapshot semantics. That
+     * is, it reflect the state of this transient node state instance at the time of the
+     * call. Later changes to this instance are no visible to iterators obtained from
+     * the returned iterable.
+     * @return  An {@code Iterable} for all property states
+     */
+    Iterable<PropertyState> getProperties();
+
+    /**
      * Get a child node state
      * @param name  name of the child node state
      * @return  the child node state with the given {@code name} or {@code null}
@@ -96,15 +106,6 @@ public interface TransientNodeState {
     long getChildNodeCount();
 
     /**
-     * All property states. The returned {@code Iterable} has snapshot semantics. That
-     * is, it reflect the state of this transient node state instance at the time of the
-     * call. Later changes to this instance are no visible to iterators obtained from
-     * the returned iterable.
-     * @return  An {@code Iterable} for all property states
-     */
-    Iterable<PropertyState> getProperties();
-
-    /**
      * All child node states. The returned {@code Iterable} has snapshot semantics. That
      * is, it reflect the state of this transient node state instance at the time of the
      * call. Later changes to this instance are no visible to iterators obtained from
@@ -112,4 +113,44 @@ public interface TransientNodeState {
      * @return  An {@code Iterable} for all child node states
      */
     Iterable<TransientNodeState> getChildNodes();
+
+    /**
+     * Add the child node state with the given {@code name}. Does nothing
+     * if such a child node already exists.
+     *
+     * @param name name of the new node state
+     * @return the transient state of the child node with that name or {@code null}
+     * if no such node exists.
+     */
+    TransientNodeState addNode(String name);
+
+    /**
+     * Remove the child node state with the given {@code name}. Does nothing
+     * if no such child node exists.
+     * @param name  name of the node state to remove
+     */
+    void removeNode(String name);
+
+    /**
+     * Set a single valued property state on this node state.
+     *
+     * @param name The name of this property
+     * @param value The value of this property
+     */
+    void setProperty(String name, Scalar value);
+
+    /**
+     * Set a multivalued valued property state on this node state.
+     *
+     * @param name The name of this property
+     * @param values The value of this property
+     */
+    void setProperty(String name, List<Scalar> values);
+
+    /**
+     * Remove a property from this node state
+     * @param name name of the property
+     */
+    void removeProperty(String name);
+
 }

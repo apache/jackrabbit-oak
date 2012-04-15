@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import org.apache.jackrabbit.oak.api.NodeStateEditor;
+import org.apache.jackrabbit.oak.api.Branch;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.TransientNodeState;
 import org.apache.jackrabbit.oak.jcr.util.LogUtil;
@@ -138,7 +138,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @Override
     public void remove() throws RepositoryException {
-        getEditor().removeProperty(getStateName());
+        getParentState().removeProperty(getStateName());
     }
 
     /**
@@ -566,7 +566,7 @@ public class PropertyImpl extends ItemImpl implements Property {
             remove();
         }
         else {
-            getEditor().setProperty(getStateName(), ValueConverter.toScalar(value));
+            getParentState().setProperty(getStateName(), ValueConverter.toScalar(value));
         }
     }
 
@@ -586,7 +586,7 @@ public class PropertyImpl extends ItemImpl implements Property {
             remove();
         }
         else {
-            getEditor().setProperty(getStateName(), ValueConverter.toScalar(values));
+            getParentState().setProperty(getStateName(), ValueConverter.toScalar(values));
         }
     }
 
@@ -606,17 +606,13 @@ public class PropertyImpl extends ItemImpl implements Property {
         }
     }
 
-    private ItemStateProvider getItemStateProvider() {
-        return sessionContext.getItemStateProvider();
+    private Branch getBranch() {
+        return sessionContext.getBranch();
     }
 
     private TransientNodeState getParentState() {
         resolve();
         return parentState;
-    }
-
-    private NodeStateEditor getEditor() {
-        return getParentState().getEditor();
     }
 
     private PropertyState getPropertyState() {
@@ -629,9 +625,15 @@ public class PropertyImpl extends ItemImpl implements Property {
     }
 
     private synchronized void resolve() {
-        parentState = getItemStateProvider().getTransientNodeState(parentState.getPath());
-        propertyState = getItemStateProvider().getPropertyState(
-                Paths.concat(parentState.getPath(), propertyState.getName()));
+        parentState = getBranch().getNode(parentState.getPath());
+        String path = Paths.concat(parentState.getPath(), propertyState.getName());
+
+        if (parentState == null) {
+            propertyState = null;
+        }
+        else {
+            propertyState = parentState.getProperty(Paths.getName(path));
+        }
     }
 
 }

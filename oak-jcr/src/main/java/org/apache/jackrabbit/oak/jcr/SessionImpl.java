@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.jcr;
 import org.apache.jackrabbit.commons.AbstractSession;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Connection;
-import org.apache.jackrabbit.oak.api.NodeStateEditor;
+import org.apache.jackrabbit.oak.api.Branch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.ContentHandler;
@@ -55,8 +55,7 @@ public class SessionImpl extends AbstractSession {
     private final SessionContext<SessionImpl> sessionContext = new Context();
     private boolean isAlive = true;
 
-    private NodeStateEditor editor;
-    private ItemStateProvider itemStateProvider;
+    private Branch branch;
 
     SessionImpl(GlobalContext globalContext, Connection connection) {
         this.globalContext = globalContext;
@@ -64,8 +63,7 @@ public class SessionImpl extends AbstractSession {
         this.valueFactory = new ValueFactoryImpl();
         workspace = new WorkspaceImpl(sessionContext);
 
-        this.editor = connection.getNodeStateEditor();
-        this.itemStateProvider = new ItemStateProvider(editor.getTransientState());
+        this.branch = connection.branchRoot();
     }
 
 
@@ -118,7 +116,7 @@ public class SessionImpl extends AbstractSession {
     @Override
     public Node getRootNode() throws RepositoryException {
         ensureIsAlive();
-        return new NodeImpl(sessionContext, itemStateProvider.getTransientNodeState("/"));
+        return new NodeImpl(sessionContext, branch.getNode("/"));
     }
 
     @Override
@@ -145,7 +143,7 @@ public class SessionImpl extends AbstractSession {
 
         String srcPath = Paths.relativize("/", srcAbsPath);
         String destPath = Paths.relativize("/", destAbsPath);
-        editor.move(srcPath, destPath);
+        branch.move(srcPath, destPath);
     }
 
     //------------------------------------------------------------< state >---
@@ -154,10 +152,9 @@ public class SessionImpl extends AbstractSession {
     public void save() throws RepositoryException {
         ensureIsAlive();
         try {
-            connection.commit(editor);
+            connection.commit(branch);
             connection.refresh();
-            editor = connection.getNodeStateEditor();
-            itemStateProvider = new ItemStateProvider(editor.getTransientState());
+            branch = connection.branchRoot();
         } catch (CommitFailedException e) {
             throw new RepositoryException(e);
         }
@@ -168,8 +165,7 @@ public class SessionImpl extends AbstractSession {
         ensureIsAlive();
         connection.refresh();
         if (!keepChanges) {
-            editor = connection.getNodeStateEditor();
-            itemStateProvider = new ItemStateProvider(editor.getTransientState());
+            branch = connection.branchRoot();
         }
     }
 
@@ -442,8 +438,8 @@ public class SessionImpl extends AbstractSession {
         }
 
         @Override
-        public ItemStateProvider getItemStateProvider() {
-            return itemStateProvider;
+        public Branch getBranch() {
+            return branch;
         }
     }
 }

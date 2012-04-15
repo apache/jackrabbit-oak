@@ -20,7 +20,7 @@ import org.apache.jackrabbit.mk.MicroKernelFactory;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.Connection;
 import org.apache.jackrabbit.oak.kernel.NodeState;
-import org.apache.jackrabbit.oak.api.NodeStateEditor;
+import org.apache.jackrabbit.oak.api.Branch;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.RepositoryService;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
@@ -83,9 +83,9 @@ public class TmpRepositoryService implements RepositoryService {
             NodeState root = nodeStore.getRoot();
             NodeState wspNode = root.getChildNode(wspName);
             if (wspNode == null) {
-                NodeStateEditor editor = nodeStore.branch(root);
-                editor.addNode(wspName);
-                nodeStore.merge(editor);
+                Branch branch = nodeStore.branch(root);
+                branch.getNode("/").addNode(wspName);
+                nodeStore.merge(branch);
             }
         }
 
