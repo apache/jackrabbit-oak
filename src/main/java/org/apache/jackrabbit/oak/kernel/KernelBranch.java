@@ -20,8 +20,7 @@ package org.apache.jackrabbit.oak.kernel;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.json.JsonBuilder;
-import org.apache.jackrabbit.oak.api.NodeStateEditor;
-import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Branch;
 import org.apache.jackrabbit.oak.api.Scalar;
 import org.apache.jackrabbit.oak.api.TransientNodeState;
 
@@ -32,9 +31,9 @@ import static org.apache.jackrabbit.mk.util.PathUtils.getName;
 import static org.apache.jackrabbit.mk.util.PathUtils.getParentPath;
 
 /**
- * This {@code NodeStateEditor} implementation accumulates all changes into a json diff
+ * This {@code Branch} implementation accumulates all changes into a json diff
  * and applies them to the microkernel on
- * {@link NodeStore#merge(org.apache.jackrabbit.oak.api.NodeStateEditor)}
+ * {@link NodeStore#merge(org.apache.jackrabbit.oak.api.Branch)}
  *
  * TODO: review/rewrite when OAK-45 is resolved
  * When the MicroKernel has support for branching and merging private working copies,
@@ -44,77 +43,25 @@ import static org.apache.jackrabbit.mk.util.PathUtils.getParentPath;
  *   transient space gets too big.
  * - spool write operations through to the private working copy on a background thread
  */
-public class KernelNodeStateEditor implements NodeStateEditor {
+public class KernelBranch implements Branch {
 
     /** Base node state of this private branch */
     private final NodeState base;
 
-    /** Transient state this editor is acting upon */
-    private final TransientKernelNodeState transientState;
+    /** Root state of this branch */
+    private final TransientKernelNodeState root;
 
     /** Json diff of this private branch */
     private final StringBuilder jsop;
 
     /**
-     * Create a new node state editor representing the root of a fresh
-     * private branch.
+     * Create a new branch for the given base node state
      * @param base  base node state of the private branch
      */
-    KernelNodeStateEditor(NodeState base) {
+    KernelBranch(NodeState base) {
         this.base = base;
-        transientState = new TransientKernelNodeState(base, this);
+        root = new TransientKernelNodeState(this, base);
         jsop = new StringBuilder();
-    }
-
-    /**
-     * Create a new node state editor for a given transient node state.
-     * @param parentEditor  editor of the parent of {@code state}
-     * @param state  transient node state for which to create the node state editor
-     */
-    KernelNodeStateEditor(KernelNodeStateEditor parentEditor, TransientKernelNodeState state) {
-        base = parentEditor.base;
-        transientState = state;
-        jsop = parentEditor.jsop;
-    }
-
-    @Override
-    public TransientNodeState addNode(String name) {
-        if (!transientState.hasNode(name)) {
-            transientState.addNode(name);
-            jsop.append("+\"").append(path(name)).append("\":{}");
-        }
-
-        return transientState.getChildNode(name);
-    }
-
-    @Override
-    public void removeNode(String name) {
-        if (transientState.hasNode(name)) {
-            transientState.removeNode(name);
-            jsop.append("-\"").append(path(name)).append('"');
-        }
-    }
-
-    @Override
-    public void setProperty(String name, Scalar value) {
-        PropertyState propertyState = new KernelPropertyState(name, value);
-        transientState.setProperty(propertyState);
-        jsop.append("^\"").append(path(propertyState.getName())).append("\":")
-                .append(encode(propertyState));
-    }
-
-    @Override
-    public void setProperty(String name, List<Scalar> values) {
-        PropertyState propertyState = new KernelPropertyState(name, values);
-        transientState.setProperty(propertyState);
-        jsop.append("^\"").append(path(propertyState.getName())).append("\":")
-                .append(encode(propertyState));
-    }
-
-    @Override
-    public void removeProperty(String name) {
-        transientState.removeProperty(name);
-        jsop.append("^\"").append(path(name)).append("\":null");
     }
 
     @Override
@@ -132,8 +79,8 @@ public class KernelNodeStateEditor implements NodeStateEditor {
         }
 
         sourceParent.move(sourceName, destParent, destName);
-        jsop.append(">\"").append(path(sourcePath))
-                .append("\":\"").append(path(destPath)).append('"');
+        jsop.append(">\"").append(sourcePath)
+                .append("\":\"").append(destPath).append('"');
     }
 
     @Override
@@ -151,22 +98,15 @@ public class KernelNodeStateEditor implements NodeStateEditor {
         }
 
         sourceParent.copy(sourceName, destParent, destName);
-        jsop.append("*\"").append(path(sourcePath)).append("\":\"")
-                .append(path(destPath)).append('"');
+        jsop.append("*\"").append(sourcePath).append("\":\"")
+                .append(destPath).append('"');
     }
 
     @Override
-    public KernelNodeStateEditor edit(String path) {
-        TransientKernelNodeState state = getTransientState(path);
-        return state == null
-            ? null
-            : state.getEditor();
+    public TransientNodeState getNode(String path) {
+        return getTransientState(path);
     }
 
-    @Override
-    public TransientNodeState getTransientState() {
-        return transientState;
-    }
 
     //------------------------------------------------------------< internal >---
     /**
@@ -192,6 +132,26 @@ public class KernelNodeStateEditor implements NodeStateEditor {
         return new KernelNodeState(microkernel, targetPath, rev);
     }
 
+    void addNode(TransientKernelNodeState state, String name) {
+        jsop.append("+\"").append(path(state, name)).append("\":{}");
+    }
+
+    void removeNode(TransientKernelNodeState state, String name) {
+        jsop.append("-\"").append(path(state, name)).append('"');
+    }
+
+    void setProperty(TransientKernelNodeState state, String name, Scalar value) {
+        jsop.append("^\"").append(path(state, name)).append("\":").append(encode(value));
+    }
+
+    void setProperty(TransientKernelNodeState state, String name, List<Scalar> values) {
+        jsop.append("^\"").append(path(state, name)).append("\":").append(encode(values));
+    }
+
+    void removeProperty(TransientKernelNodeState state, String name) {
+        jsop.append("^\"").append(path(state, name)).append("\":null");
+    }
+
     /**
      * Get a transient node state for the node identified by
      * {@code path}
@@ -200,7 +160,7 @@ public class KernelNodeStateEditor implements NodeStateEditor {
      *          at {@code path} or {@code null} if no such item exits.
      */
     private TransientKernelNodeState getTransientState(String path) {
-        TransientKernelNodeState state = transientState;
+        TransientKernelNodeState state = root;
         for (String name : elements(path)) {
             state = state.getChildNode(name);
             if (state == null) {
@@ -211,21 +171,15 @@ public class KernelNodeStateEditor implements NodeStateEditor {
     }
 
     /**
-     * Path of the item {@code name}
+     * Path of the item {@code name} of the given {@code state}
+     *
+     * @param state
      * @param name The item name.
      * @return relative path of the item {@code name}
      */
-    private String path(String name) {
-        String path = transientState.getPath();
+    private static String path(TransientKernelNodeState state, String name) {
+        String path = state.getPath();
         return path.isEmpty() ? name : path + '/' + name;
-    }
-
-    private static String encode(PropertyState state) {
-        if (state.isArray()) {
-            return encode(state.getArray());
-        } else {
-            return encode(state.getScalar());
-        }
     }
 
     private static String encode(Scalar scalar) {
