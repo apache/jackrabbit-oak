@@ -85,21 +85,21 @@ public interface Connection extends Closeable {
     void refresh();
 
     /**
-     * Atomically apply all changes in the passed {@code editor} to the underlying
+     * Atomically apply all changes in the passed {@code branch} to the underlying
      * Microkernel.
      *
-     * @param editor  editor carrying the changes to be applies
+     * @param branch  branch carrying the changes to be applies
      * @throws CommitFailedException
      */
-    void commit(NodeStateEditor editor) throws CommitFailedException;
+    void commit(Branch branch) throws CommitFailedException;
 
     /**
-     * Get an node state editor for the current root. Use {@link #commit(NodeStateEditor)}
-     * to atomically apply the changes made in this editor to the underlying Microkernel.
+     * Branch the current root. Use {@link #commit(Branch)} to atomically apply the
+     * changes made in this branch to the underlying Microkernel.
      *
-     * @return editor for the current root.
+     * @return branch of the current root.
      */
-    NodeStateEditor getNodeStateEditor();
+    Branch branchRoot();
 
     /**
      * Get the query engine.

@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.jcr;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
 import org.apache.jackrabbit.commons.iterator.PropertyIteratorAdapter;
-import org.apache.jackrabbit.oak.api.NodeStateEditor;
+import org.apache.jackrabbit.oak.api.Branch;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.TransientNodeState;
 import org.apache.jackrabbit.oak.jcr.util.ItemNameMatcher;
@@ -154,7 +154,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public void remove() throws RepositoryException {
-        getTransientNodeState().getParent().getEditor().removeNode(getName());
+        getTransientNodeState().getParent().removeNode(getName());
     }
 
     /**
@@ -175,13 +175,13 @@ public class NodeImpl extends ItemImpl implements Node  {
         checkStatus();
 
         String parentPath = Paths.concat(path(), Paths.getParentPath(relPath));
-        TransientNodeState parentState = getItemStateProvider().getTransientNodeState(parentPath);
+        TransientNodeState parentState = getBranch().getNode(parentPath);
         if (parentState == null) {
             throw new PathNotFoundException(relPath);
         }
 
         String name = Paths.getName(relPath);
-        parentState.getEditor().addNode(name);
+        parentState.addNode(name);
         return new NodeImpl(sessionContext, parentState.getChildNode(name));
     }
 
@@ -219,7 +219,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     public Property setProperty(String name, Value value, int type) throws RepositoryException {
         checkStatus();
 
-        getEditor().setProperty(name, ValueConverter.toScalar(value));
+        getState().setProperty(name, ValueConverter.toScalar(value));
         return getProperty(name);
     }
 
@@ -241,7 +241,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     public Property setProperty(String name, Value[] values, int type) throws RepositoryException {
         checkStatus();
 
-        getEditor().setProperty(name, ValueConverter.toScalar(values));
+        getState().setProperty(name, ValueConverter.toScalar(values));
         return getProperty(name);
     }
 
@@ -602,7 +602,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     public void setPrimaryType(String nodeTypeName) throws RepositoryException {
         checkStatus();
 
-        getEditor().setProperty(JcrConstants.JCR_PRIMARYTYPE, ScalarImpl.stringScalar(nodeTypeName));
+        getState().setProperty(JcrConstants.JCR_PRIMARYTYPE, ScalarImpl.stringScalar(nodeTypeName));
     }
 
     @Override
@@ -829,14 +829,14 @@ public class NodeImpl extends ItemImpl implements Node  {
 
     //--------------------------------------------------------------------------
     /**
-     * Access to KernelNodeStateEditor to allow code in other packages to
+     * Access to TransientNodeState to allow code in other packages to
      * access item states.
      *
-     * @return The node state editor.
+     * @return The node state.
      * FIXME this should not be public in order to avoid clients to access internals through casting to the implementation
      */
-    public NodeStateEditor getEditor() {
-        return getTransientNodeState().getEditor();
+    public TransientNodeState getState() {
+        return getTransientNodeState();
     }
 
     //------------------------------------------------------------< private >---
@@ -862,12 +862,12 @@ public class NodeImpl extends ItemImpl implements Node  {
         return getSession().getWorkspace().getLockManager();
     }
 
-    private ItemStateProvider getItemStateProvider() {
-        return sessionContext.getItemStateProvider();
+    private Branch getBranch() {
+        return sessionContext.getBranch();
     }
     
     private synchronized TransientNodeState getTransientNodeState() {
-        return transientNodeState = getItemStateProvider().getTransientNodeState(transientNodeState.getPath());
+        return transientNodeState = getBranch().getNode(transientNodeState.getPath());
     }
 
     private String path() {
@@ -894,7 +894,7 @@ public class NodeImpl extends ItemImpl implements Node  {
 
     private NodeImpl getNodeOrNull(String relPath) {
         String absPath = Paths.concat(path(), relPath);
-        TransientNodeState nodeState = getItemStateProvider().getTransientNodeState(absPath);
+        TransientNodeState nodeState = getBranch().getNode(absPath);
         return nodeState == null
             ? null
             : new NodeImpl(sessionContext, nodeState);
@@ -902,7 +902,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     
     private PropertyImpl getPropertyOrNull(String relPath) {
         String absPath = Paths.concat(path(), Paths.getParentPath(relPath));
-        TransientNodeState parentState = getItemStateProvider().getTransientNodeState(absPath);
+        TransientNodeState parentState = getBranch().getNode(absPath);
         if (parentState == null) {
             return null;
         }

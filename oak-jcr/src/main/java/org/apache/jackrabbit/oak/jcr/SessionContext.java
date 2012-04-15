@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import org.apache.jackrabbit.oak.api.Connection;
+import org.apache.jackrabbit.oak.api.Branch;
 
 import javax.jcr.Session;
 import javax.jcr.ValueFactory;
@@ -30,5 +31,5 @@ public interface SessionContext<T extends Session> {
     String getWorkspaceName();
     Connection getConnection();
     ValueFactory getValueFactory();
-    ItemStateProvider getItemStateProvider();
+    Branch getBranch();
 }

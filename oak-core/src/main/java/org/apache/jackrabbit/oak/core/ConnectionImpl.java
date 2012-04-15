@@ -21,7 +21,7 @@ import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Connection;
 import org.apache.jackrabbit.oak.kernel.NodeState;
-import org.apache.jackrabbit.oak.api.NodeStateEditor;
+import org.apache.jackrabbit.oak.api.Branch;
 import org.apache.jackrabbit.oak.kernel.NodeStore;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.slf4j.Logger;
@@ -99,16 +99,16 @@ public class ConnectionImpl implements Connection {
     }
 
     @Override
-    public void commit(NodeStateEditor editor) throws CommitFailedException {
+    public void commit(Branch branch) throws CommitFailedException {
         try {
-            store.merge(editor);
+            store.merge(branch);
         } catch (MicroKernelException e) {
             throw new CommitFailedException(e);
         }
     }
 
     @Override
-    public NodeStateEditor getNodeStateEditor() {
+    public Branch branchRoot() {
         return store.branch(root);
     }
 

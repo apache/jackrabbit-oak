@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.kernel;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Scalar;
 import org.apache.jackrabbit.oak.api.TransientNodeState;
 import org.apache.jackrabbit.oak.util.Function1;
 import org.apache.jackrabbit.oak.util.Iterators;
@@ -28,6 +29,7 @@ import org.apache.jackrabbit.oak.util.Predicate;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -39,8 +41,8 @@ import static org.apache.jackrabbit.oak.util.Iterators.flatten;
 import static org.apache.jackrabbit.oak.util.Iterators.map;
 
 public class TransientKernelNodeState implements TransientNodeState {
-    /** Editor acting upon this instance */
-    private final KernelNodeStateEditor editor;
+    /** Branch this state belongs to */
+    private final KernelBranch branch;
 
     /**
      * Underlying persistent state or {@code null} if this instance represents an
@@ -73,38 +75,37 @@ public class TransientKernelNodeState implements TransientNodeState {
     private TransientNodeState parent;
 
     /**
-     * Create a new instance representing the root of a sub-tree.
+     * Create a new instance representing the root of a branch.
+     * @param branch  the branch this state belongs to
      * @param persistentState  underlying persistent state
-     * @param editor  editor acting upon the transient node state
      */
-    TransientKernelNodeState(NodeState persistentState, KernelNodeStateEditor editor) {
-        this.editor = editor;
-        this.persistentState = persistentState;
-        this.parent = null;
-        this.name = "";
+    TransientKernelNodeState(KernelBranch branch, NodeState persistentState) {
+        this(branch, persistentState, null, "");
     }
 
     /**
      * Create a new instance representing a added node state
-     * @param parentEditor  editor of the parent state
+     * @param branch  the branch the state belongs to
+     * @param parent  the parent state of the state
      * @param name  name of the state
      */
-    private TransientKernelNodeState(KernelNodeStateEditor parentEditor, String name) {
-        this(parentEditor, name, null);
+    private TransientKernelNodeState(KernelBranch branch, TransientNodeState parent, String name) {
+        this(branch, null, parent, name);
     }
 
     /**
      * Create a new instance with an underlying persistent state
-     * @param parentEditor  editor of the parent state
-     * @param name  name of the state
+     * @param branch  the branch the state belongs to
      * @param persistedState  underlying persistent state
+     * @param parent  the parent state of the state
+     * @param name  name of the state
      */
-    private TransientKernelNodeState(KernelNodeStateEditor parentEditor, String name,
-            NodeState persistedState) {
+    private TransientKernelNodeState(KernelBranch branch, NodeState persistedState,
+            TransientNodeState parent, String name) {
 
-        editor = new KernelNodeStateEditor(parentEditor, this);
+        this.branch = branch;
         this.persistentState = persistedState;
-        parent = parentEditor.getTransientState();
+        this.parent = parent;
         this.name = name;
     }
 
@@ -118,7 +119,7 @@ public class TransientKernelNodeState implements TransientNodeState {
     private TransientKernelNodeState(TransientKernelNodeState state, TransientKernelNodeState parent,
             String name) {
 
-        editor = new KernelNodeStateEditor(parent.getEditor(), this);
+        branch = state.branch;
         persistentState = state.persistentState;
         this.parent = parent;
         this.name = name;
@@ -166,8 +167,8 @@ public class TransientKernelNodeState implements TransientNodeState {
     }
 
     @Override
-    public KernelNodeStateEditor getEditor() {
-        return editor;
+    public KernelBranch getBranch() {
+        return branch;
     }
 
     @Override
@@ -312,24 +313,51 @@ public class TransientKernelNodeState implements TransientNodeState {
         };
     }
 
-    //------------------------------------------------------------< internal >---
+    @Override
+    public TransientNodeState addNode(String name) {
+        if (!hasNode(name)) {
+            addedNodes.put(name, new TransientKernelNodeState(branch, this, name));
+            branch.addNode(this, name);
+        }
 
-    /**
-     * Add a new child node state with the given {@code name}.
-     * The behaviour of this method is not defined if a node state with that
-     * {@code name} already exists.
-     * @param name  name of the child node state
-     */
-    void addNode(String name) {
-        addedNodes.put(name, new TransientKernelNodeState(editor, name));
+        return getChildNode(name);
     }
 
-    /**
-     * Remove the child node state with the given {@code name}.
-     * Does nothing if there is no node state with the given {@code name}.
-     * @param name  name of the child node state
-     */
-    void removeNode(String name) {
+    @Override
+    public void removeNode(String name) {
+        if (hasNode(name)) {
+            markNodeRemoved(name);
+            branch.removeNode(this, name);
+        }
+    }
+
+    @Override
+    public void setProperty(String name, Scalar value) {
+        PropertyState propertyState = new KernelPropertyState(name, value);
+        setProperty(propertyState);
+        branch.setProperty(this, name, value);
+    }
+
+    @Override
+    public void setProperty(String name, List<Scalar> values) {
+        PropertyState propertyState = new KernelPropertyState(name, values);
+        setProperty(propertyState);
+        branch.setProperty(this, name, values);
+    }
+
+    @Override
+    public void removeProperty(String name) {
+        addedProperties.remove(name);
+        if (hasExistingProperty(name)) {
+            // Mark as removed if removing existing
+            removedProperties.add(name);
+        }
+        branch.removeProperty(this, name);
+    }
+
+//------------------------------------------------------------< internal >---
+
+    void markNodeRemoved(String name) {
         addedNodes.remove(name);
         if (hasExistingNode(name)) {
             // Mark as removed if removing existing
@@ -337,10 +365,6 @@ public class TransientKernelNodeState implements TransientNodeState {
         }
     }
 
-    /**
-     * Set a property state.
-     * @param state  a property state
-     */
     void setProperty(PropertyState state) {
         if (hasExistingProperty(state.getName())) {
             removedProperties.add(state.getName());
@@ -348,47 +372,15 @@ public class TransientKernelNodeState implements TransientNodeState {
         addedProperties.put(state.getName(), state);
     }
 
-    /**
-     * Remove the property state with the given {@code name}.
-     * Does nothing if there is no property state with the given {@code name}.
-     * @param name  a property state
-     */
-    void removeProperty(String name) {
-        addedProperties.remove(name);
-        if (hasExistingProperty(name)) {
-            // Mark as removed if removing existing
-            removedProperties.add(name);
-        }
-    }
-
-    /**
-     * Move the child node state with the given {@code name} to the new parent at
-     * The behaviour of this method is undefined if either this node state has
-     * no child node state with the given {@code name} or {@code destParent} already
-     * has a child node state of {@code destName}.
-     *
-     * @param name  name of the child node state to move
-     * @param destParent  parent of the moved node state
-     * @param destName  name of the moved node state
-     */
     void move(String name, TransientKernelNodeState destParent, String destName) {
         TransientKernelNodeState state = getChildNode(name);
-        removeNode(name);
+        markNodeRemoved(name);
 
         state.name = destName;
         state.parent = destParent;
         destParent.addedNodes.put(destName, state);
     }
 
-    /**
-     * Copy the child node state with the given {@code name} to the new parent at
-     * The behaviour of this method is undefined if {@code destParent} already
-     * has a child node state of {@code destName}.
-     *
-     * @param name  name of the child node state to move
-     * @param destParent  parent of the moved node state
-     * @param destName  name of the moved node state
-     */
     void copy(String name, TransientKernelNodeState destParent, String destName) {
         destParent.addedNodes.put(destName,
                 new TransientKernelNodeState(getChildNode(name), destParent, destName));
@@ -415,7 +407,7 @@ public class TransientKernelNodeState implements TransientNodeState {
             if (state == null) {
                 return null;
             }
-            transientState = new TransientKernelNodeState(editor, name, state);
+            transientState = new TransientKernelNodeState(branch, state, this, name);
             existingChildNodes.put(name, transientState);
         }
         return transientState;
