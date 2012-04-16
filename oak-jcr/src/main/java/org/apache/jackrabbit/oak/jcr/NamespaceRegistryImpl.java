@@ -40,6 +40,7 @@ public class NamespaceRegistryImpl implements NamespaceRegistry {
         map.put(PREFIX_MIX, NAMESPACE_MIX);
         map.put(PREFIX_NT, NAMESPACE_NT);
         map.put(PREFIX_XML, NAMESPACE_XML);
+        map.put("sv", "http://www.jcp.org/jcr/sv/1.0");
     }
 
     @Override
