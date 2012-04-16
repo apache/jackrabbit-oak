@@ -72,7 +72,7 @@ public class TransientKernelNodeState implements TransientNodeState {
     private String name;
 
     /** Parent of this state */
-    private TransientNodeState parent;
+    private TransientKernelNodeState parent;
 
     /**
      * Create a new instance representing the root of a branch.
@@ -89,7 +89,7 @@ public class TransientKernelNodeState implements TransientNodeState {
      * @param parent  the parent state of the state
      * @param name  name of the state
      */
-    private TransientKernelNodeState(KernelBranch branch, TransientNodeState parent, String name) {
+    private TransientKernelNodeState(KernelBranch branch, TransientKernelNodeState parent, String name) {
         this(branch, null, parent, name);
     }
 
@@ -101,7 +101,7 @@ public class TransientKernelNodeState implements TransientNodeState {
      * @param name  name of the state
      */
     private TransientKernelNodeState(KernelBranch branch, NodeState persistedState,
-            TransientNodeState parent, String name) {
+            TransientKernelNodeState parent, String name) {
 
         this.branch = branch;
         this.persistentState = persistedState;
@@ -355,9 +355,36 @@ public class TransientKernelNodeState implements TransientNodeState {
         branch.removeProperty(this, name);
     }
 
-//------------------------------------------------------------< internal >---
+    //------------------------------------------------------------< internal >---
 
-    void markNodeRemoved(String name) {
+    /**
+     * Move this node state to the parent node state at {@code destParent}
+     * with the new name {@code destName}.
+     *
+     * @param destParent  new parent for this node state
+     * @param destName  new name for this node state
+     */
+    void move(TransientKernelNodeState destParent, String destName) {
+        parent.markNodeRemoved(name);
+
+        name = destName;
+        parent = destParent;
+        destParent.addedNodes.put(destName, this);
+    }
+
+    /**
+     * Copy this node state to the parent node state at {@code destParent}
+     * with the name {@code destName}.
+     *
+     * @param destParent  parent for the copied node state
+     * @param destName  name for the copied node state
+     */
+    void copy(TransientKernelNodeState destParent, String destName) {
+        destParent.addedNodes.put(destName,
+                new TransientKernelNodeState(this, destParent, destName));
+    }
+
+    private void markNodeRemoved(String name) {
         addedNodes.remove(name);
         if (hasExistingNode(name)) {
             // Mark as removed if removing existing
@@ -365,25 +392,11 @@ public class TransientKernelNodeState implements TransientNodeState {
         }
     }
 
-    void setProperty(PropertyState state) {
+    private void setProperty(PropertyState state) {
         if (hasExistingProperty(state.getName())) {
             removedProperties.add(state.getName());
         }
         addedProperties.put(state.getName(), state);
-    }
-
-    void move(String name, TransientKernelNodeState destParent, String destName) {
-        TransientKernelNodeState state = getChildNode(name);
-        markNodeRemoved(name);
-
-        state.name = destName;
-        state.parent = destParent;
-        destParent.addedNodes.put(destName, state);
-    }
-
-    void copy(String name, TransientKernelNodeState destParent, String destName) {
-        destParent.addedNodes.put(destName,
-                new TransientKernelNodeState(getChildNode(name), destParent, destName));
     }
 
     /**
