@@ -66,28 +66,25 @@ public class KernelBranch implements Branch {
 
     @Override
     public void move(String sourcePath, String destPath) {
-        TransientKernelNodeState sourceParent = getTransientState(getParentPath(sourcePath));
-        String sourceName = getName(sourcePath);
-        if (sourceParent == null || !sourceParent.hasNode(sourceName)) {
+        TransientKernelNodeState sourceNode = getTransientState(sourcePath);
+        if (sourceNode == null) {
             return;
         }
-        
+
         TransientKernelNodeState destParent = getTransientState(getParentPath(destPath));
         String destName = getName(destPath);
         if (destParent == null || destParent.hasNode(destName)) {
             return;
         }
 
-        sourceParent.move(sourceName, destParent, destName);
-        jsop.append(">\"").append(sourcePath)
-                .append("\":\"").append(destPath).append('"');
+        sourceNode.move(destParent, destName);
+        jsop.append(">\"").append(sourcePath).append("\":\"").append(destPath).append('"');
     }
 
     @Override
     public void copy(String sourcePath, String destPath) {
-        TransientKernelNodeState sourceParent = getTransientState(getParentPath(sourcePath));
-        String sourceName = getName(sourcePath);
-        if (sourceParent == null || !sourceParent.hasNode(sourceName)) {
+        TransientKernelNodeState sourceNode = getTransientState(sourcePath);
+        if (sourceNode == null) {
             return;
         }
 
@@ -97,9 +94,8 @@ public class KernelBranch implements Branch {
             return;
         }
 
-        sourceParent.copy(sourceName, destParent, destName);
-        jsop.append("*\"").append(sourcePath).append("\":\"")
-                .append(destPath).append('"');
+        sourceNode.copy(destParent, destName);
+        jsop.append("*\"").append(sourcePath).append("\":\"").append(destPath).append('"');
     }
 
     @Override
