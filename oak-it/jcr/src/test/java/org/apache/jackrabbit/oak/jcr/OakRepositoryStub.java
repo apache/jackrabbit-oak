@@ -32,17 +32,25 @@ public class OakRepositoryStub extends RepositoryStub {
 
     /**
      * Constructor as required by the JCR TCK.
-     *
-     * @param settings repository settings
+     * 
+     * @param settings
+     *            repository settings
      */
     public OakRepositoryStub(Properties settings) throws RepositoryException {
         super(settings);
         repository = new RepositoryImpl();
+        Session session = repository.login(superuser);
+        try {
+            TestContentLoader loader = new TestContentLoader();
+            loader.loadTestContent(session);
+        } finally {
+            session.logout();
+        }
     }
 
     /**
      * Returns the configured repository instance.
-     *
+     * 
      * @return the configured repository instance.
      */
     @Override
@@ -66,6 +74,5 @@ public class OakRepositoryStub extends RepositoryStub {
     public Principal getUnknownPrincipal(Session session) throws RepositoryException, NotExecutableException {
         return UNKNOWN_PRINCIPAL;
     }
-
 
 }
