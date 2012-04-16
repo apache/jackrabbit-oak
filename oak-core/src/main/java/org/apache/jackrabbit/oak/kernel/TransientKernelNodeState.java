@@ -41,14 +41,21 @@ import static org.apache.jackrabbit.oak.util.Iterators.flatten;
 import static org.apache.jackrabbit.oak.util.Iterators.map;
 
 public class TransientKernelNodeState implements TransientNodeState {
-    /** Branch this state belongs to */
-    private final KernelBranch branch;
 
     /**
      * Underlying persistent state or {@code null} if this instance represents an
      * added node state
      */
     private final NodeState persistentState;
+
+    /** Parent of this state */
+    private TransientKernelNodeState parent;
+
+    /** Name of this state */
+    private String name;
+
+    /** Listener for changes on this node state */
+    private final Listener listener;
 
     /** Resolved persistent child states */
     private final Map<String, TransientKernelNodeState> existingChildNodes =
@@ -68,45 +75,98 @@ public class TransientKernelNodeState implements TransientNodeState {
     /** Transiently removed property states */
     private final Set<String> removedProperties = new HashSet<String>();
 
-    /** Name of this state */
-    private String name;
+    /**
+     * Listener for changes on {@code TransientKernelNodeState}s
+     */
+    interface Listener {
 
-    /** Parent of this state */
-    private TransientKernelNodeState parent;
+        /**
+         * The node of the given {@code name} has been added to {@code state}.
+         * @param state  parent state to which a node was added
+         * @param name  name of the added node
+         */
+        void addNode(TransientKernelNodeState state, String name);
+
+        /**
+         * The node of the given {@code name} has been removed from {@code state}
+         * @param state  parent state from which a node was removed
+         * @param name  name of the removed node
+         */
+        void removeNode(TransientKernelNodeState state, String name);
+
+        /**
+         * The property of the given {@code name} and {@code value} has been set.
+         * @param state  state on which the property was set.
+         * @param name  name of the property
+         * @param value  value of the property
+         */
+        void setProperty(TransientKernelNodeState state, String name, Scalar value);
+
+        /**
+         * The property of the given {@code name} and {@code values} has been set.
+         * @param state  state on which the property was set.
+         * @param name  name of the property
+         * @param values  values of the property
+         */
+        void setProperty(TransientKernelNodeState state, String name, List<Scalar> values);
+
+        /**
+         * The property of the given {@code name} has been removed.
+         * @param state  state on which the property was removed.
+         * @param name  name of the property
+         */
+        void removeProperty(TransientKernelNodeState state, String name);
+
+        /**
+         * The node of the given {@code name} has been moved.
+         * @param state  parent state from which the property was moved
+         * @param name  name of the moved property
+         * @param moved  moved property
+         */
+        void move(TransientKernelNodeState state, String name, TransientKernelNodeState moved);
+
+        /**
+         * The node of the given {@code name} been copies.
+         * @param state  parent state from which the property way copies
+         * @param name  name of the copied property
+         * @param copied  copied property
+         */
+        void copy(TransientKernelNodeState state, String name, TransientKernelNodeState copied);
+    }
 
     /**
      * Create a new instance representing the root of a branch.
-     * @param branch  the branch this state belongs to
      * @param persistentState  underlying persistent state
+     * @param listener  change listener
      */
-    TransientKernelNodeState(KernelBranch branch, NodeState persistentState) {
-        this(branch, persistentState, null, "");
+    TransientKernelNodeState(NodeState persistentState, Listener listener) {
+        this(persistentState, null, "", listener);
     }
 
     /**
      * Create a new instance representing a added node state
-     * @param branch  the branch the state belongs to
      * @param parent  the parent state of the state
      * @param name  name of the state
+     * @param listener  change listener
      */
-    private TransientKernelNodeState(KernelBranch branch, TransientKernelNodeState parent, String name) {
-        this(branch, null, parent, name);
+    private TransientKernelNodeState(TransientKernelNodeState parent, String name, Listener listener) {
+        this(null, parent, name, listener);
     }
 
     /**
      * Create a new instance with an underlying persistent state
-     * @param branch  the branch the state belongs to
      * @param persistedState  underlying persistent state
      * @param parent  the parent state of the state
      * @param name  name of the state
+     * @param listener  change listener
      */
-    private TransientKernelNodeState(KernelBranch branch, NodeState persistedState,
-            TransientKernelNodeState parent, String name) {
+    private TransientKernelNodeState(NodeState persistedState, TransientKernelNodeState parent,
+            String name, Listener listener) {
 
-        this.branch = branch;
         this.persistentState = persistedState;
         this.parent = parent;
         this.name = name;
+        this.listener = listener;
     }
 
     /**
@@ -119,7 +179,7 @@ public class TransientKernelNodeState implements TransientNodeState {
     private TransientKernelNodeState(TransientKernelNodeState state, TransientKernelNodeState parent,
             String name) {
 
-        branch = state.branch;
+        listener = state.listener;
         persistentState = state.persistentState;
         this.parent = parent;
         this.name = name;
@@ -164,11 +224,6 @@ public class TransientKernelNodeState implements TransientNodeState {
     @Override
     public TransientNodeState getParent() {
         return parent;
-    }
-
-    @Override
-    public KernelBranch getBranch() {
-        return branch;
     }
 
     @Override
@@ -316,8 +371,10 @@ public class TransientKernelNodeState implements TransientNodeState {
     @Override
     public TransientNodeState addNode(String name) {
         if (!hasNode(name)) {
-            addedNodes.put(name, new TransientKernelNodeState(branch, this, name));
-            branch.addNode(this, name);
+            addedNodes.put(name, new TransientKernelNodeState(this, name, listener));
+            if (listener != null) {
+                listener.addNode(this, name);
+            }
         }
 
         return getChildNode(name);
@@ -327,7 +384,9 @@ public class TransientKernelNodeState implements TransientNodeState {
     public void removeNode(String name) {
         if (hasNode(name)) {
             markNodeRemoved(name);
-            branch.removeNode(this, name);
+            if (listener != null) {
+                listener.removeNode(this, name);
+            }
         }
     }
 
@@ -335,14 +394,18 @@ public class TransientKernelNodeState implements TransientNodeState {
     public void setProperty(String name, Scalar value) {
         PropertyState propertyState = new KernelPropertyState(name, value);
         setProperty(propertyState);
-        branch.setProperty(this, name, value);
+        if (listener != null) {
+            listener.setProperty(this, name, value);
+        }
     }
 
     @Override
     public void setProperty(String name, List<Scalar> values) {
         PropertyState propertyState = new KernelPropertyState(name, values);
         setProperty(propertyState);
-        branch.setProperty(this, name, values);
+        if (listener != null) {
+            listener.setProperty(this, name, values);
+        }
     }
 
     @Override
@@ -352,10 +415,10 @@ public class TransientKernelNodeState implements TransientNodeState {
             // Mark as removed if removing existing
             removedProperties.add(name);
         }
-        branch.removeProperty(this, name);
+        if (listener != null) {
+            listener.removeProperty(this, name);
+        }
     }
-
-    //------------------------------------------------------------< internal >---
 
     /**
      * Move this node state to the parent node state at {@code destParent}
@@ -364,12 +427,18 @@ public class TransientKernelNodeState implements TransientNodeState {
      * @param destParent  new parent for this node state
      * @param destName  new name for this node state
      */
-    void move(TransientKernelNodeState destParent, String destName) {
+    public void move(TransientKernelNodeState destParent, String destName) {
         parent.markNodeRemoved(name);
+
+        TransientKernelNodeState oldParent = parent;
+        String oldName = name;
 
         name = destName;
         parent = destParent;
         destParent.addedNodes.put(destName, this);
+        if (listener != null) {
+            listener.move(oldParent, oldName, this);
+        }
     }
 
     /**
@@ -379,10 +448,15 @@ public class TransientKernelNodeState implements TransientNodeState {
      * @param destParent  parent for the copied node state
      * @param destName  name for the copied node state
      */
-    void copy(TransientKernelNodeState destParent, String destName) {
-        destParent.addedNodes.put(destName,
-                new TransientKernelNodeState(this, destParent, destName));
+    public void copy(TransientKernelNodeState destParent, String destName) {
+        TransientKernelNodeState copy = new TransientKernelNodeState(this, destParent, destName);
+        destParent.addedNodes.put(destName, copy);
+        if (listener != null) {
+            listener.copy(parent, name, copy);
+        }
     }
+
+    //------------------------------------------------------------< internal >---
 
     private void markNodeRemoved(String name) {
         addedNodes.remove(name);
@@ -420,7 +494,7 @@ public class TransientKernelNodeState implements TransientNodeState {
             if (state == null) {
                 return null;
             }
-            transientState = new TransientKernelNodeState(branch, state, this, name);
+            transientState = new TransientKernelNodeState(state, this, name, listener);
             existingChildNodes.put(name, transientState);
         }
         return transientState;
