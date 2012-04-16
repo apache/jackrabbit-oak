@@ -23,6 +23,7 @@ import org.apache.jackrabbit.mk.json.JsonBuilder;
 import org.apache.jackrabbit.oak.api.Branch;
 import org.apache.jackrabbit.oak.api.Scalar;
 import org.apache.jackrabbit.oak.api.TransientNodeState;
+import org.apache.jackrabbit.oak.kernel.TransientKernelNodeState.Listener;
 
 import java.util.List;
 
@@ -45,14 +46,14 @@ import static org.apache.jackrabbit.mk.util.PathUtils.getParentPath;
  */
 public class KernelBranch implements Branch {
 
+    /** Log of changes to this branch */
+    private final ChangeLog changeLog = new ChangeLog();
+
     /** Base node state of this private branch */
     private final NodeState base;
 
     /** Root state of this branch */
     private final TransientKernelNodeState root;
-
-    /** Json diff of this private branch */
-    private final StringBuilder jsop;
 
     /**
      * Create a new branch for the given base node state
@@ -60,8 +61,7 @@ public class KernelBranch implements Branch {
      */
     KernelBranch(NodeState base) {
         this.base = base;
-        root = new TransientKernelNodeState(this, base);
-        jsop = new StringBuilder();
+        root = new TransientKernelNodeState(base, changeLog);
     }
 
     @Override
@@ -78,7 +78,6 @@ public class KernelBranch implements Branch {
         }
 
         sourceNode.move(destParent, destName);
-        jsop.append(">\"").append(sourcePath).append("\":\"").append(destPath).append('"');
     }
 
     @Override
@@ -95,7 +94,6 @@ public class KernelBranch implements Branch {
         }
 
         sourceNode.copy(destParent, destName);
-        jsop.append("*\"").append(sourcePath).append("\":\"").append(destPath).append('"');
     }
 
     @Override
@@ -124,28 +122,8 @@ public class KernelBranch implements Branch {
     KernelNodeState mergeInto(MicroKernel microkernel, KernelNodeState target) {
         String targetPath = target.getPath();
         String targetRevision = target.getRevision();
-        String rev = microkernel.commit(targetPath, jsop.toString(), targetRevision, null);
+        String rev = microkernel.commit(targetPath, changeLog.toJsop(), targetRevision, null);
         return new KernelNodeState(microkernel, targetPath, rev);
-    }
-
-    void addNode(TransientKernelNodeState state, String name) {
-        jsop.append("+\"").append(path(state, name)).append("\":{}");
-    }
-
-    void removeNode(TransientKernelNodeState state, String name) {
-        jsop.append("-\"").append(path(state, name)).append('"');
-    }
-
-    void setProperty(TransientKernelNodeState state, String name, Scalar value) {
-        jsop.append("^\"").append(path(state, name)).append("\":").append(encode(value));
-    }
-
-    void setProperty(TransientKernelNodeState state, String name, List<Scalar> values) {
-        jsop.append("^\"").append(path(state, name)).append("\":").append(encode(values));
-    }
-
-    void removeProperty(TransientKernelNodeState state, String name) {
-        jsop.append("^\"").append(path(state, name)).append("\":null");
     }
 
     /**
@@ -173,7 +151,7 @@ public class KernelBranch implements Branch {
      * @param name The item name.
      * @return relative path of the item {@code name}
      */
-    private static String path(TransientKernelNodeState state, String name) {
+    private static String path(TransientNodeState state, String name) {
         String path = state.getPath();
         return path.isEmpty() ? name : path + '/' + name;
     }
@@ -204,4 +182,52 @@ public class KernelBranch implements Branch {
         return sb.toString();
     }
 
+    /**
+     * This {@code Listener} implementation records all changes to
+     * a associated branch as JSOP.
+     */
+    private static class ChangeLog implements Listener {
+        private final StringBuilder jsop = new StringBuilder();
+
+        @Override
+        public void addNode(TransientKernelNodeState state, String name) {
+            jsop.append("+\"").append(path(state, name)).append("\":{}");
+        }
+
+        @Override
+        public void removeNode(TransientKernelNodeState state, String name) {
+            jsop.append("-\"").append(path(state, name)).append('"');
+        }
+
+        @Override
+        public void setProperty(TransientKernelNodeState state, String name, Scalar value) {
+            jsop.append("^\"").append(path(state, name)).append("\":").append(encode(value));
+        }
+
+        @Override
+        public void setProperty(TransientKernelNodeState state, String name, List<Scalar> values) {
+            jsop.append("^\"").append(path(state, name)).append("\":").append(encode(values));
+        }
+
+        @Override
+        public void removeProperty(TransientKernelNodeState state, String name) {
+            jsop.append("^\"").append(path(state, name)).append("\":null");
+        }
+
+        @Override
+        public void move(TransientKernelNodeState state, String name, TransientKernelNodeState moved) {
+            jsop.append(">\"").append(path(state, name)).append("\":\"")
+                    .append(moved.getPath()).append('"');
+        }
+
+        @Override
+        public void copy(TransientKernelNodeState state, String name, TransientKernelNodeState copied) {
+            jsop.append("*\"").append(path(state, name)).append("\":\"")
+                    .append(copied.getPath()).append('"');
+        }
+
+        public String toJsop() {
+            return jsop.toString();
+        }
+    }
 }
