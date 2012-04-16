@@ -48,11 +48,6 @@ public interface TransientNodeState {
     TransientNodeState getParent();
 
     /**
-     * @return  the branch this state belongs to
-     */
-    Branch getBranch();
-
-    /**
      * Get a property state
      * @param name name of the property state
      * @return  the property state with the given {@code name} or {@code null}
