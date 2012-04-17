@@ -30,7 +30,7 @@ import java.util.Iterator;
 /**
  * GroupImpl...
  */
-public class GroupImpl extends AuthorizableImpl implements Group {
+class GroupImpl extends AuthorizableImpl implements Group {
 
     /**
      * logger instance
@@ -42,11 +42,17 @@ public class GroupImpl extends AuthorizableImpl implements Group {
     }
 
     //-------------------------------------------------------< Authorizable >---
+    /**
+     * @see org.apache.jackrabbit.api.security.user.Authorizable#isGroup()
+     */
     @Override
     public boolean isGroup() {
         return true;
     }
 
+    /**
+     * @see org.apache.jackrabbit.api.security.user.Authorizable#getPrincipal()
+     */
     @Override
     public Principal getPrincipal() throws RepositoryException {
         return new GroupPrincipal(getPrincipalName(), getNode().getPath());

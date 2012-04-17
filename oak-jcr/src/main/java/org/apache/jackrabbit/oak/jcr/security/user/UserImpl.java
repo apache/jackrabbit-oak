@@ -25,12 +25,13 @@ import org.slf4j.LoggerFactory;
 import javax.jcr.Credentials;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
+import javax.jcr.UnsupportedRepositoryOperationException;
 import java.security.Principal;
 
 /**
  * UserImpl...
  */
-public class UserImpl extends AuthorizableImpl implements User {
+class UserImpl extends AuthorizableImpl implements User {
 
     /**
      * logger instance
@@ -42,11 +43,17 @@ public class UserImpl extends AuthorizableImpl implements User {
     }
 
     //-------------------------------------------------------< Authorizable >---
+    /**
+     * @see org.apache.jackrabbit.api.security.user.Authorizable#isGroup()
+     */
     @Override
     public boolean isGroup() {
         return false;
     }
 
+    /**
+     * @see org.apache.jackrabbit.api.security.user.Authorizable#getPrincipal()
+     */
     @Override
     public Principal getPrincipal() throws RepositoryException {
         String principalName = getPrincipalName();
@@ -55,6 +62,9 @@ public class UserImpl extends AuthorizableImpl implements User {
     }
 
     //---------------------------------------------------------------< User >---
+    /**
+     * @see org.apache.jackrabbit.api.security.user.User#isAdmin()
+     */
     @Override
     public boolean isAdmin() {
         try {
@@ -66,16 +76,27 @@ public class UserImpl extends AuthorizableImpl implements User {
         }
     }
 
+    /**
+     * Always throws {@code UnsupportedRepositoryOperationException}
+     *
+     * @see org.apache.jackrabbit.api.security.user.User#getCredentials()
+     */
     @Override
     public Credentials getCredentials() throws RepositoryException {
-        throw new UnsupportedOperationException("Not implemented.");
+        throw new UnsupportedRepositoryOperationException("Not implemented.");
     }
 
+    /**
+     * @see org.apache.jackrabbit.api.security.user.User#getImpersonation()
+     */
     @Override
     public Impersonation getImpersonation() throws RepositoryException {
        return new ImpersonationImpl(this);
     }
 
+    /**
+     * @see org.apache.jackrabbit.api.security.user.User#changePassword(String)
+     */
     @Override
     public void changePassword(String password) throws RepositoryException {
         UserManagerImpl userManager = getUserManager();
@@ -83,6 +104,9 @@ public class UserImpl extends AuthorizableImpl implements User {
         userManager.setPassword(getNode(), password, true);
     }
 
+    /**
+     * @see org.apache.jackrabbit.api.security.user.User#changePassword(String, String)
+     */
     @Override
     public void changePassword(String password, String oldPassword) throws RepositoryException {
         // make sure the old password matches.
@@ -96,6 +120,9 @@ public class UserImpl extends AuthorizableImpl implements User {
         changePassword(password);
     }
 
+    /**
+     * @see org.apache.jackrabbit.api.security.user.User#disable(String)
+     */
     @Override
     public void disable(String reason) throws RepositoryException {
         if (isAdmin()) {
@@ -111,11 +138,17 @@ public class UserImpl extends AuthorizableImpl implements User {
         }
     }
 
+    /**
+     * @see org.apache.jackrabbit.api.security.user.User#isDisabled()
+     */
     @Override
     public boolean isDisabled() throws RepositoryException {
         return getNode().hasProperty(REP_DISABLED);
     }
 
+    /**
+     * @see org.apache.jackrabbit.api.security.user.User#getDisabledReason()
+     */
     @Override
     public String getDisabledReason() throws RepositoryException {
         if (isDisabled()) {

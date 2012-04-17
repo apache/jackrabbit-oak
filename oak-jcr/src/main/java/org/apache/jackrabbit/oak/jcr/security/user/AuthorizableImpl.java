@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.jcr.security.user;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
-import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.jcr.NodeImpl;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
@@ -85,6 +84,9 @@ abstract class AuthorizableImpl implements Authorizable {
         return null;
     }
 
+    /**
+     * @see org.apache.jackrabbit.api.security.user.Authorizable#remove()
+     */
     @Override
     public void remove() throws RepositoryException {
         // don't allow for removal of the administrator even if the executing
@@ -97,11 +99,17 @@ abstract class AuthorizableImpl implements Authorizable {
         node.remove();
     }
 
+    /**
+     * @see org.apache.jackrabbit.api.security.user.Authorizable#getPropertyNames()
+     */
     @Override
     public Iterator<String> getPropertyNames() throws RepositoryException {
         return getPropertyNames(".");
     }
 
+    /**
+     * @see Authorizable#getPropertyNames(String)
+     */
     @Override
     public Iterator<String> getPropertyNames(String relPath) throws RepositoryException {
         Node n = node.getNode(relPath);
@@ -119,11 +127,17 @@ abstract class AuthorizableImpl implements Authorizable {
         }
     }
 
+    /**
+     * @see org.apache.jackrabbit.api.security.user.Authorizable#hasProperty(String)
+     */
     @Override
     public boolean hasProperty(String relPath) throws RepositoryException {
         return node.hasProperty(relPath) && isAuthorizableProperty(node.getProperty(relPath), true);
     }
 
+    /**
+     * @see org.apache.jackrabbit.api.security.user.Authorizable#getProperty(String)
+     */
     @Override
     public Value[] getProperty(String relPath) throws RepositoryException {
         Value[] values = null;
@@ -140,6 +154,9 @@ abstract class AuthorizableImpl implements Authorizable {
         return values;
     }
 
+    /**
+     * @see org.apache.jackrabbit.api.security.user.Authorizable#setProperty(String, javax.jcr.Value)
+     */
     @Override
     public void setProperty(String relPath, Value value) throws RepositoryException {
         String name = Text.getName(relPath);
@@ -158,6 +175,9 @@ abstract class AuthorizableImpl implements Authorizable {
         n.setProperty(name, value);
     }
 
+    /**
+     * @see org.apache.jackrabbit.api.security.user.Authorizable#setProperty(String, javax.jcr.Value[])
+     */
     @Override
     public void setProperty(String relPath, Value[] values) throws RepositoryException {
         String name = Text.getName(relPath);
@@ -176,6 +196,9 @@ abstract class AuthorizableImpl implements Authorizable {
         n.setProperty(name, values);
     }
 
+    /**
+     * @see org.apache.jackrabbit.api.security.user.Authorizable#removeProperty(String)
+     */
     @Override
     public boolean removeProperty(String relPath) throws RepositoryException {
         String name = Text.getName(relPath);
@@ -191,12 +214,18 @@ abstract class AuthorizableImpl implements Authorizable {
         return false;
     }
 
+    /**
+     * @see org.apache.jackrabbit.api.security.user.Authorizable#getPath()
+     */
     @Override
     public String getPath() throws RepositoryException {
         return node.getPath();
     }
 
     //-------------------------------------------------------------< Object >---
+    /**
+     * @see Object#hashCode()
+     */
     @Override
     public int hashCode() {
         if (hashCode == 0) {
@@ -213,6 +242,9 @@ abstract class AuthorizableImpl implements Authorizable {
         return hashCode;
     }
 
+    /**
+     * @see Object#equals(Object)
+     */
     @Override
     public boolean equals(Object obj) {
         if (obj instanceof AuthorizableImpl) {
@@ -226,6 +258,9 @@ abstract class AuthorizableImpl implements Authorizable {
         return false;
     }
 
+    /**
+     * @see Object#toString()
+     */
     @Override
     public String toString() {
         try {
@@ -238,16 +273,23 @@ abstract class AuthorizableImpl implements Authorizable {
 
     //--------------------------------------------------------------------------
     /**
-     * @return node The node associated with this authorizable instance.
+     * @return The node associated with this authorizable instance.
      */
     NodeImpl getNode() {
         return node;
     }
 
+    /**
+     * @return The user manager associated with this authorizable.
+     */
     UserManagerImpl getUserManager() {
         return userManager;
     }
 
+    /**
+     * @return The principal name of this authorizable.
+     * @throws RepositoryException If no principal name can be retrieved.
+     */
     String getPrincipalName() throws RepositoryException {
         String principalName;
         if (node.hasProperty(REP_PRINCIPAL_NAME)) {
@@ -293,18 +335,37 @@ abstract class AuthorizableImpl implements Authorizable {
     }
 
     /**
+     * Retrieves the node at {@code relPath} relative to node associated with
+     * this authorizable. If no such node exist it and any missing intermediate
+     * nodes are created.
      *
      * @param relPath A relative path.
      * @return The corresponding node.
-     * @throws RepositoryException If an error occurs.
+     * @throws RepositoryException If an error occurs or if {@code relPath} refers
+     * to a node that is outside of the scope of this authorizable.
      */
     private Node getOrCreateTargetNode(String relPath) throws RepositoryException {
         Node n;
         if (relPath != null) {
-            n = JcrUtils.getOrCreateByPath(node, relPath, false, null, null, false);
-            if (!Text.isDescendantOrEqual(node.getPath(), n.getPath())) {
-                node.refresh(false);
-                throw new RepositoryException("Relative path " + relPath + " outside of scope of " + this);
+            String userPath = node.getPath();
+            if (node.hasNode(relPath)) {
+                n = node.getNode(relPath);
+                if (!Text.isDescendantOrEqual(userPath, n.getPath())) {
+                    throw new RepositoryException("Relative path " + relPath + " outside of scope of " + this);
+                }
+            } else {
+                n = node;
+                for (String segment : Text.explode(relPath, '/')) {
+                    if (n.hasNode(segment)) {
+                        n = n.getNode(segment);
+                    } else {
+                        if (Text.isDescendantOrEqual(userPath, n.getPath())) {
+                            n = n.addNode(segment);
+                        } else {
+                            throw new RepositoryException("Relative path " + relPath + " outside of scope of " + this);
+                        }
+                    }
+                }
             }
         } else {
             n = node;
