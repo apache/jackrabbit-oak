@@ -33,8 +33,11 @@ import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.ValueFactory;
 import javax.jcr.Workspace;
+import javax.jcr.lock.LockManager;
+import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.retention.RetentionManager;
 import javax.jcr.security.AccessControlManager;
+import javax.jcr.version.VersionManager;
 import java.io.IOException;
 import java.security.AccessControlException;
 
@@ -435,6 +438,21 @@ public class SessionImpl extends AbstractSession {
         @Override
         public ValueFactory getValueFactory() {
             return valueFactory;
+        }
+
+        @Override
+        public LockManager getLockManager() throws RepositoryException {
+            return getWorkspace().getLockManager();
+        }
+
+        @Override
+        public NodeTypeManager getNodeTypeManager() throws RepositoryException {
+            return getWorkspace().getNodeTypeManager();
+        }
+
+        @Override
+        public VersionManager getVersionManager() throws RepositoryException {
+            return getWorkspace().getVersionManager();
         }
 
         @Override

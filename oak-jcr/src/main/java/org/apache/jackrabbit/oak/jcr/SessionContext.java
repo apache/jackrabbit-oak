@@ -22,8 +22,12 @@ package org.apache.jackrabbit.oak.jcr;
 import org.apache.jackrabbit.oak.api.Connection;
 import org.apache.jackrabbit.oak.api.Branch;
 
+import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.ValueFactory;
+import javax.jcr.lock.LockManager;
+import javax.jcr.nodetype.NodeTypeManager;
+import javax.jcr.version.VersionManager;
 
 public interface SessionContext<T extends Session> {
     T getSession();
@@ -31,5 +35,8 @@ public interface SessionContext<T extends Session> {
     String getWorkspaceName();
     Connection getConnection();
     ValueFactory getValueFactory();
+    LockManager getLockManager() throws RepositoryException;
+    NodeTypeManager getNodeTypeManager() throws RepositoryException;
+    VersionManager getVersionManager() throws RepositoryException;
     Branch getBranch();
 }
