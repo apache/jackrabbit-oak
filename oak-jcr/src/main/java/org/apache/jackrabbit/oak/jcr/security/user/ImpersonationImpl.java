@@ -39,7 +39,7 @@ import java.util.Set;
 /**
  * ImpersonationImpl...
  */
-public class ImpersonationImpl implements Impersonation {
+class ImpersonationImpl implements Impersonation {
 
     /**
      * logger instance
