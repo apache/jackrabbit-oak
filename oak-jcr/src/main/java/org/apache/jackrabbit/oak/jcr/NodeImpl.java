@@ -505,8 +505,8 @@ public class NodeImpl extends ItemImpl implements Node  {
 
     @Override
     public int getIndex() throws RepositoryException {
-        // TODO
-        return 0;
+        // as long as we don not support same name siblings, index always is 1
+        return 1;
     }
 
     /**
