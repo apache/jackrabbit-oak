@@ -25,7 +25,7 @@ public interface Branch {
 
     /**
      * Move the node state located at {@code sourcePath} to a node
-     * state at {@code destPath}. Do noting if either the source
+     * state at {@code destPath}. Do nothing if either the source
      * does not exist, the parent of the destination does not exist
      * or the destination exists already. Both paths must resolve
      * to node states located in this branch.
@@ -37,7 +37,7 @@ public interface Branch {
 
     /**
      * Copy the node state located at {@code sourcePath} to a node
-     * state at {@code destPath}. Do noting if either the source
+     * state at {@code destPath}. Do nothing if either the source
      * does not exist, the parent of the destination does not exist
      * or the destination exists already. Both paths must resolve
      * to node states located in this branch.
