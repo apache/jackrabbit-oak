@@ -19,7 +19,6 @@ package org.apache.jackrabbit.mk.persistence;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
@@ -55,7 +54,7 @@ import com.mongodb.gridfs.GridFSInputFile;
 /**
  * 
  */
-public class MongoPersistence implements Persistence, Closeable, BlobStore {
+public class MongoPersistence implements Persistence, BlobStore {
 
     private static final boolean BINARY_FORMAT = false;
 
@@ -76,7 +75,7 @@ public class MongoPersistence implements Persistence, Closeable, BlobStore {
     // TODO: make this configurable
     private IdFactory idFactory = IdFactory.getDigestFactory();
     
-    public void initialize() throws Exception {
+    public void initialize(File homeDir) throws Exception {
         con = new Mongo();
         //con = new Mongo("localhost", 27017);
 

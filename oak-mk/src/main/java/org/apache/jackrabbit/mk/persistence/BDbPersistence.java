@@ -47,7 +47,6 @@ import com.sleepycat.je.OperationStatus;
 public class BDbPersistence implements Persistence, Closeable {
 
     private final static byte[] HEAD_ID = new byte[]{0};
-    private final File homeDir;
     private Environment dbEnv;
     private Database db;
     private Database head;
@@ -55,11 +54,7 @@ public class BDbPersistence implements Persistence, Closeable {
     // TODO: make this configurable
     private IdFactory idFactory = IdFactory.getDigestFactory();
     
-    public BDbPersistence(File homeDir) {
-        this.homeDir = homeDir;
-    }
-    
-    public void initialize() throws Exception {
+    public void initialize(File homeDir) throws Exception {
         File dbDir = new File(homeDir, "db");
         if (!dbDir.exists()) {
             dbDir.mkdirs();

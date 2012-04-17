@@ -38,19 +38,13 @@ import org.apache.jackrabbit.mk.util.IOUtils;
  */
 public class FSPersistence implements Persistence {
 
-    private final File homeDir;
     private File dataDir;
     private File head;
 
     // TODO: make this configurable
     private IdFactory idFactory = IdFactory.getDigestFactory();
     
-    
-    public FSPersistence(File homeDir) {
-        this.homeDir = homeDir;
-    }
-    
-    public void initialize() throws Exception {
+    public void initialize(File homeDir) throws Exception {
         dataDir = new File(homeDir, "data");
         if (!dataDir.exists()) {
             dataDir.mkdirs();
@@ -191,5 +185,10 @@ public class FSPersistence implements Persistence {
         } finally {
             tmp.delete();
         }
+    }
+    
+    @Override
+    public void close() {
+        // nothing to do here
     }
 }

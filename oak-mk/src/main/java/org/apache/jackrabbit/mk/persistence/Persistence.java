@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.mk.persistence;
 
+import java.io.Closeable;
+import java.io.File;
+
 import org.apache.jackrabbit.mk.model.ChildNodeEntriesMap;
 import org.apache.jackrabbit.mk.model.Commit;
 import org.apache.jackrabbit.mk.model.Id;
@@ -28,8 +31,10 @@ import org.apache.jackrabbit.mk.store.NotFoundException;
  * Defines the methods exposed by a persistence manager, that stores head
  * revision id, nodes, child node entries and blobs.
  */
-public interface Persistence {
+public interface Persistence extends Closeable {
 
+    public void initialize(File homeDir) throws Exception;
+    
     Id readHead() throws Exception;
 
     void writeHead(Id id) throws Exception;
