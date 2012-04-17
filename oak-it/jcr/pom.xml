@@ -44,7 +44,6 @@
             <property>
               <name>known.issues</name>
               <value>
-org.apache.jackrabbit.test.api.RootNodeTest#testGetDepth
 org.apache.jackrabbit.test.api.NodeReadMethodsTest
 org.apache.jackrabbit.test.api.NamespaceRegistryReadMethodsTest
 org.apache.jackrabbit.test.api.PropertyReadMethodsTest

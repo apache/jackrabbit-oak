@@ -118,8 +118,16 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public Item getAncestor(int depth) throws RepositoryException {
-        // todo implement getAncestor
-        return null;
+        int current = getDepth();
+        if (depth < 0 || depth > current) {
+            throw new ItemNotFoundException("ancestor at depth " + depth + " does not exist");
+        }
+        TransientNodeState ancestor = getTransientNodeState();
+        while (depth < current) {
+            ancestor = ancestor.getParent();
+            current -= 1;
+        }
+        return new NodeImpl(sessionContext, ancestor);
     }
 
     /**
@@ -127,7 +135,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public int getDepth() throws RepositoryException {
-        return Paths.getDepth(path());
+        return Paths.getDepth(getPath());
     }
 
     /**
