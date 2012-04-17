@@ -33,9 +33,6 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import java.io.File;
-import java.io.IOException;
-
 /**
  * Use-case: start off a new revision store that contains just the head revision
  * and its nodes.

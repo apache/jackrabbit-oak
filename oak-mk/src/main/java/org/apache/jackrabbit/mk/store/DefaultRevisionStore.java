@@ -89,9 +89,9 @@ public class DefaultRevisionStore extends AbstractRevisionStore
         verifyInitialized();
 
         cache.clear();
-        if (pm instanceof Closeable) {
-            IOUtils.closeQuietly((Closeable) pm);
-        }
+
+        IOUtils.closeQuietly((Closeable) pm);
+
         initialized = false;
     }
 

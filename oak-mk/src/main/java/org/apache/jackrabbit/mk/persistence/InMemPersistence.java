@@ -18,6 +18,7 @@ package org.apache.jackrabbit.mk.persistence;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -35,16 +36,21 @@ import org.apache.jackrabbit.mk.store.NotFoundException;
 /**
  *
  */
-public class InMemPersistence implements Persistence {
+public class InMemPersistence implements GCPersistence {
 
-    private final Map<Id, byte[]> nodes = Collections.synchronizedMap(new HashMap<Id, byte[]>());
-    private final Map<Id, StoredCommit> commits = Collections.synchronizedMap(new HashMap<Id, StoredCommit>());
-    private final Map<Id, ChildNodeEntriesMap> cneMaps = Collections.synchronizedMap(new HashMap<Id, ChildNodeEntriesMap>());
+    private final Map<Id, byte[]> objects = Collections.synchronizedMap(new HashMap<Id, byte[]>());
+    private final Map<Id, byte[]> marked = Collections.synchronizedMap(new HashMap<Id, byte[]>());
 
     private Id head;
+    private long gcStart;
 
     // TODO: make this configurable
     private IdFactory idFactory = IdFactory.getDigestFactory();
+    
+    @Override
+    public void initialize(File homeDir) {
+        // nothing to initialize
+    }
     
     public Id readHead() {
         return head;
@@ -56,12 +62,12 @@ public class InMemPersistence implements Persistence {
 
     public void readNode(StoredNode node) throws NotFoundException, Exception {
         Id id = node.getId();
-        byte[] bytes = nodes.get(id);
+        byte[] bytes = objects.get(id);
         if (bytes != null) {
             node.deserialize(new BinaryBinding(new ByteArrayInputStream(bytes)));
-        } else {
-            throw new NotFoundException(id.toString());
+            return;
         }
+        throw new NotFoundException(id.toString());
     }
 
     public Id writeNode(Node node) throws Exception {
@@ -70,20 +76,21 @@ public class InMemPersistence implements Persistence {
         byte[] bytes = out.toByteArray();
         Id id = new Id(idFactory.createContentId(bytes));
 
-        if (!nodes.containsKey(id)) {
-            nodes.put(id, bytes);
+        if (!objects.containsKey(id)) {
+            objects.put(id, bytes);
         }
-
+        if (gcStart != 0) {
+            marked.put(id, bytes);
+        }
         return id;
     }
 
-    public StoredCommit readCommit(Id id) throws NotFoundException {
-        StoredCommit commit = commits.get(id);
-        if (commit != null) {
-            return commit;
-        } else {
-            throw new NotFoundException(id.toString());
+    public StoredCommit readCommit(Id id) throws NotFoundException, Exception {
+        byte[] bytes = objects.get(id);
+        if (bytes != null) {
+            return StoredCommit.deserialize(id, new BinaryBinding(new ByteArrayInputStream(bytes)));
         }
+        throw new NotFoundException(id.toString());
     }
 
     public void writeCommit(Id id, Commit commit) throws Exception {
@@ -91,18 +98,20 @@ public class InMemPersistence implements Persistence {
         commit.serialize(new BinaryBinding(out));
         byte[] bytes = out.toByteArray();
 
-        if (!commits.containsKey(id)) {
-            commits.put(id, StoredCommit.deserialize(id, new BinaryBinding(new ByteArrayInputStream(bytes))));
+        if (!objects.containsKey(id)) {
+            objects.put(id, bytes);
+        }
+        if (gcStart != 0) {
+            marked.put(id, bytes);
         }
     }
 
-    public ChildNodeEntriesMap readCNEMap(Id id) throws NotFoundException {
-        ChildNodeEntriesMap map = cneMaps.get(id);
-        if (map != null) {
-            return map;
-        } else {
-            throw new NotFoundException(id.toString());
+    public ChildNodeEntriesMap readCNEMap(Id id) throws NotFoundException, Exception {
+        byte[] bytes = objects.get(id);
+        if (bytes != null) {
+            return ChildNodeEntriesMap.deserialize(new BinaryBinding(new ByteArrayInputStream(bytes)));
         }
+        throw new NotFoundException(id.toString());
     }
 
     public Id writeCNEMap(ChildNodeEntriesMap map) throws Exception {
@@ -111,10 +120,54 @@ public class InMemPersistence implements Persistence {
         byte[] bytes = out.toByteArray();
         Id id = new Id(idFactory.createContentId(bytes));
 
-        if (!cneMaps.containsKey(id)) {
-            cneMaps.put(id, ChildNodeEntriesMap.deserialize(new BinaryBinding(new ByteArrayInputStream(bytes))));
+        if (!objects.containsKey(id)) {
+            objects.put(id, bytes);
         }
-
+        if (gcStart != 0) {
+            marked.put(id, bytes);
+        }
         return id;
+    }
+
+    @Override
+    public void close() {
+        // nothing to do here
+    }
+    
+    @Override
+    public void start() {
+        gcStart = System.currentTimeMillis();
+        marked.clear();
+    }
+
+    @Override
+    public boolean markCommit(Id id) throws NotFoundException {
+        return markObject(id);
+    }
+
+    @Override
+    public boolean markNode(Id id) throws NotFoundException {
+        return markObject(id);
+    }
+
+    @Override
+    public boolean markCNEMap(Id id) throws NotFoundException {
+        return markObject(id);
+    }
+    
+    private boolean markObject(Id id) throws NotFoundException {
+        byte[] data = objects.get(id);
+        if (data != null) {
+            return marked.put(id, data) == null;
+        }
+        throw new NotFoundException(id.toString());
+    }
+
+    @Override
+    public void sweep() {
+        objects.clear();
+        objects.putAll(marked);
+        
+        gcStart = 0;
     }
 }

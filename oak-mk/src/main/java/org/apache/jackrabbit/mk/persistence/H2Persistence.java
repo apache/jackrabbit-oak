@@ -18,12 +18,12 @@ package org.apache.jackrabbit.mk.persistence;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.Closeable;
 import java.io.File;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.sql.Timestamp;
 
 import org.apache.jackrabbit.mk.model.ChildNodeEntriesMap;
 import org.apache.jackrabbit.mk.model.Commit;
@@ -39,23 +39,19 @@ import org.h2.jdbcx.JdbcConnectionPool;
 /**
  *
  */
-public class H2Persistence implements Persistence, Closeable {
+public class H2Persistence implements GCPersistence {
 
     private static final boolean FAST = Boolean.getBoolean("mk.fastDb");
 
-    private final File homeDir;
     private JdbcConnectionPool cp;
+    private long gcStart;
     
     // TODO: make this configurable
     private IdFactory idFactory = IdFactory.getDigestFactory();
 
-    public H2Persistence(File homeDir) throws Exception {
-        this.homeDir = homeDir;
-    }
-    
     //---------------------------------------------------< Persistence >
 
-    public void initialize() throws Exception {
+    public void initialize(File homeDir) throws Exception {
         File dbDir = new File(homeDir, "db");
         if (!dbDir.exists()) {
             dbDir.mkdirs();
@@ -71,7 +67,7 @@ public class H2Persistence implements Persistence, Closeable {
         Connection con = cp.getConnection();
         try {
             Statement stmt = con.createStatement();
-            stmt.execute("create table if not exists REVS(ID binary primary key, DATA binary)");
+            stmt.execute("create table if not exists REVS(ID binary primary key, DATA binary, TIME timestamp)");
             stmt.execute("create table if not exists HEAD(ID binary) as select null");
             stmt.execute("create sequence if not exists DATASTORE_ID");
 /*
@@ -149,7 +145,7 @@ public class H2Persistence implements Persistence, Closeable {
         try {
             PreparedStatement stmt = con
                     .prepareStatement(
-                            "insert into REVS (ID, DATA) select ?, ? where not exists (select 1 from REVS where ID = ?)");
+                            "insert into REVS (ID, DATA, TIME) select ?, ?, CURRENT_TIMESTAMP() where not exists (select 1 from REVS where ID = ?)");
             try {
                 stmt.setBytes(1, rawId);
                 stmt.setBytes(2, bytes);
@@ -194,7 +190,7 @@ public class H2Persistence implements Persistence, Closeable {
         try {
             PreparedStatement stmt = con
                     .prepareStatement(
-                            "insert into REVS (ID, DATA) select ?, ? where not exists (select 1 from REVS where ID = ?)");
+                            "insert into REVS (ID, DATA, TIME) select ?, ?, CURRENT_TIMESTAMP() where not exists (select 1 from REVS where ID = ?)");
             try {
                 stmt.setBytes(1, id.getBytes());
                 stmt.setBytes(2, bytes);
@@ -239,7 +235,7 @@ public class H2Persistence implements Persistence, Closeable {
         try {
             PreparedStatement stmt = con
                     .prepareStatement(
-                            "insert into REVS (ID, DATA) select ?, ? where not exists (select 1 from REVS where ID = ?)");
+                            "insert into REVS (ID, DATA, TIME) select ?, ?, CURRENT_TIMESTAMP() where not exists (select 1 from REVS where ID = ?)");
             try {
                 stmt.setBytes(1, rawId);
                 stmt.setBytes(2, bytes);
@@ -253,4 +249,65 @@ public class H2Persistence implements Persistence, Closeable {
         }
         return new Id(rawId);
     }
+
+    @Override
+    public void start() {
+        gcStart = System.currentTimeMillis();
+    }
+    
+    @Override
+    public boolean markCommit(Id id) throws Exception {
+        return touch(id, gcStart);
+    }
+
+    @Override
+    public boolean markNode(Id id) throws Exception {
+        return touch(id, gcStart);
+    }
+
+    @Override
+    public boolean markCNEMap(Id id) throws Exception {
+        return touch(id, gcStart);
+    }
+    
+    private boolean touch(Id id, long timeMillis) throws Exception {
+        Timestamp ts = new Timestamp(timeMillis);
+
+        Connection con = cp.getConnection();
+        try {
+            PreparedStatement stmt = con
+                    .prepareStatement(
+                            "update REVS set TIME = ? where ID = ? and TIME < ?");
+            try {
+                stmt.setTimestamp(1, ts);
+                stmt.setBytes(2, id.getBytes());
+                stmt.setTimestamp(3, ts);
+                return stmt.executeUpdate() == 1;
+            } finally {
+                stmt.close();
+            }
+        } finally {
+            con.close();
+        }
+    }
+    
+    @Override
+    public void sweep() throws Exception {
+        Timestamp ts = new Timestamp(gcStart);
+
+        Connection con = cp.getConnection();
+        try {
+            PreparedStatement stmt = con
+                    .prepareStatement(
+                            "delete REVS where TIME < ?");
+            try {
+                stmt.setTimestamp(1, ts);
+                stmt.executeUpdate();
+            } finally {
+                stmt.close();
+            }
+        } finally {
+            con.close();
+        }
+     }
 }
