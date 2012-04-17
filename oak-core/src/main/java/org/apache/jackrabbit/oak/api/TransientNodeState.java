@@ -114,8 +114,7 @@ public interface TransientNodeState {
      * if such a child node already exists.
      *
      * @param name name of the new node state
-     * @return the transient state of the child node with that name or {@code null}
-     * if no such node exists.
+     * @return the transient state of the child node with that name.
      */
     TransientNodeState addNode(String name);
 
