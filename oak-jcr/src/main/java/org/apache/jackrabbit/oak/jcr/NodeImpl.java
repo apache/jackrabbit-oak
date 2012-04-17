@@ -47,12 +47,11 @@ import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Value;
 import javax.jcr.lock.Lock;
-import javax.jcr.lock.LockManager;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeType;
+import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionHistory;
-import javax.jcr.version.VersionManager;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.Calendar;
@@ -562,20 +561,38 @@ public class NodeImpl extends ItemImpl implements Node  {
         return getTransientNodeState().getPropertyCount() != 0;
     }
 
+    /**
+     * @see javax.jcr.Node#getPrimaryNodeType()
+     */
     @Override
     public NodeType getPrimaryNodeType() throws RepositoryException {
         checkStatus();
 
-        // TODO
-        return null;
+        // TODO: check if transient changes to mixin-types are reflected here
+        NodeTypeManager ntMgr = sessionContext.getNodeTypeManager();
+        String primaryNtName = getProperty(JcrConstants.JCR_PRIMARYTYPE).getString();
+        return ntMgr.getNodeType(primaryNtName);
     }
 
+    /**
+     * @see javax.jcr.Node#getMixinNodeTypes()
+     */
     @Override
     public NodeType[] getMixinNodeTypes() throws RepositoryException {
         checkStatus();
 
-        // TODO
-        return new NodeType[0];
+        // TODO: check if transient changes to mixin-types are reflected here
+        if (hasProperty(JcrConstants.JCR_MIXINTYPES)) {
+            NodeTypeManager ntMgr = sessionContext.getNodeTypeManager();
+            Value[] mixinNames = getProperty(JcrConstants.JCR_MIXINTYPES).getValues();
+            NodeType[] mixinTypes = new NodeType[mixinNames.length];
+            for (int i = 0; i < mixinNames.length; i++) {
+                mixinTypes[i] = ntMgr.getNodeType(mixinNames[i].getString());
+            }
+            return mixinTypes;
+        } else {
+            return new NodeType[0];
+        }
     }
 
     @Override
@@ -656,7 +673,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public Version checkin() throws RepositoryException {
-        return getVersionManager().checkin(getPath());
+        return sessionContext.getVersionManager().checkin(getPath());
     }
 
     /**
@@ -664,7 +681,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public void checkout() throws RepositoryException {
-        getVersionManager().checkout(getPath());
+        sessionContext.getVersionManager().checkout(getPath());
     }
 
     /**
@@ -672,7 +689,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public void doneMerge(Version version) throws RepositoryException {
-        getVersionManager().doneMerge(getPath(), version);
+        sessionContext.getVersionManager().doneMerge(getPath(), version);
     }
 
     /**
@@ -680,7 +697,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public void cancelMerge(Version version) throws RepositoryException {
-        getVersionManager().cancelMerge(getPath(), version);
+        sessionContext.getVersionManager().cancelMerge(getPath(), version);
     }
 
     /**
@@ -688,7 +705,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public NodeIterator merge(String srcWorkspace, boolean bestEffort) throws RepositoryException {
-        return getVersionManager().merge(getPath(), srcWorkspace, bestEffort);
+        return sessionContext.getVersionManager().merge(getPath(), srcWorkspace, bestEffort);
     }
 
     /**
@@ -696,7 +713,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public boolean isCheckedOut() throws RepositoryException {
-        return getVersionManager().isCheckedOut(getPath());
+        return sessionContext.getVersionManager().isCheckedOut(getPath());
     }
 
     /**
@@ -704,7 +721,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public void restore(String versionName, boolean removeExisting) throws RepositoryException {
-        getVersionManager().restore(getPath(), versionName, removeExisting);
+        sessionContext.getVersionManager().restore(getPath(), versionName, removeExisting);
     }
 
     /**
@@ -712,7 +729,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public void restore(Version version, boolean removeExisting) throws RepositoryException {
-        getVersionManager().restore(version, removeExisting);
+        sessionContext.getVersionManager().restore(version, removeExisting);
     }
 
     /**
@@ -734,7 +751,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public void restoreByLabel(String versionLabel, boolean removeExisting) throws RepositoryException {
-        getVersionManager().restoreByLabel(getPath(), versionLabel, removeExisting);
+        sessionContext.getVersionManager().restoreByLabel(getPath(), versionLabel, removeExisting);
     }
 
     /**
@@ -742,7 +759,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public VersionHistory getVersionHistory() throws RepositoryException {
-        return getVersionManager().getVersionHistory(getPath());
+        return sessionContext.getVersionManager().getVersionHistory(getPath());
     }
 
     /**
@@ -750,7 +767,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public Version getBaseVersion() throws RepositoryException {
-        return getVersionManager().getBaseVersion(getPath());
+        return sessionContext.getVersionManager().getBaseVersion(getPath());
     }
 
     /**
@@ -758,7 +775,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public Lock lock(boolean isDeep, boolean isSessionScoped) throws RepositoryException {
-        return getLockManager().lock(getPath(), isDeep, isSessionScoped, Long.MAX_VALUE, null);
+        return sessionContext.getLockManager().lock(getPath(), isDeep, isSessionScoped, Long.MAX_VALUE, null);
     }
 
     /**
@@ -766,7 +783,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public Lock getLock() throws RepositoryException {
-        return getLockManager().getLock(getPath());
+        return sessionContext.getLockManager().getLock(getPath());
     }
 
     /**
@@ -774,7 +791,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public void unlock() throws RepositoryException {
-        getLockManager().unlock(getPath());
+        sessionContext.getLockManager().unlock(getPath());
     }
 
     /**
@@ -782,7 +799,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public boolean holdsLock() throws RepositoryException {
-        return getLockManager().holdsLock(getPath());
+        return sessionContext.getLockManager().holdsLock(getPath());
     }
 
     /**
@@ -790,7 +807,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public boolean isLocked() throws RepositoryException {
-        return getLockManager().isLocked(getPath());
+        return sessionContext.getLockManager().isLocked(getPath());
     }
 
 
@@ -840,27 +857,6 @@ public class NodeImpl extends ItemImpl implements Node  {
     }
 
     //------------------------------------------------------------< private >---
-    /**
-     * Shortcut to retrieve the version manager from the workspace associated
-     * with the editing session.
-     *
-     * @return the version manager associated with the editing session.
-     * @throws RepositoryException If an error occurs while retrieving the version manager.
-     */
-    private VersionManager getVersionManager() throws RepositoryException {
-        return getSession().getWorkspace().getVersionManager();
-    }
-
-    /**
-     * Shortcut to retrieve the lock manager from the workspace associated
-     * with the editing session.
-     *
-     * @return the lock manager associated with the editing session.
-     * @throws RepositoryException If an error occurs while retrieving the lock manager.
-     */
-    private LockManager getLockManager() throws RepositoryException {
-        return getSession().getWorkspace().getLockManager();
-    }
 
     private Branch getBranch() {
         return sessionContext.getBranch();
