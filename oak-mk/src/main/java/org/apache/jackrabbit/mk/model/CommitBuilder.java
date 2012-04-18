@@ -97,6 +97,10 @@ public class CommitBuilder {
         }
 
         StoredCommit baseCommit = store.getCommit(baseRevId);
+        if (createBranch && baseCommit.getBranchRootId() != null) {
+            throw new Exception("cannot branch off a private branch");
+        }
+
         boolean privateCommit = createBranch || baseCommit.getBranchRootId() != null;
 
 
