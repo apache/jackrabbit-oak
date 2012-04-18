@@ -19,6 +19,7 @@ package org.apache.jackrabbit.mk.store;
 import java.io.Closeable;
 import java.util.Collections;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.jackrabbit.mk.model.ChildNode;
@@ -48,7 +49,7 @@ public class DefaultRevisionStore extends AbstractRevisionStore
 
     private boolean initialized;
     private Id head;
-    private long headCounter;
+    private AtomicLong commitCounter;
     private final ReentrantReadWriteLock headLock = new ReentrantReadWriteLock();
     private final Persistence pm;
 
@@ -56,6 +57,7 @@ public class DefaultRevisionStore extends AbstractRevisionStore
 
     public DefaultRevisionStore(Persistence pm) {
         this.pm = pm;
+        commitCounter = new AtomicLong();
     }
     
     public void initialize() throws Exception {
@@ -69,7 +71,7 @@ public class DefaultRevisionStore extends AbstractRevisionStore
         head = pm.readHead();
         if (head == null || head.getBytes().length == 0) {
             // assume virgin repository
-            byte[] rawHead = longToBytes(++headCounter);
+            byte[] rawHead = longToBytes(commitCounter.incrementAndGet());
             head = new Id(rawHead);
             
             Id rootNodeId = pm.writeNode(new MutableNode(this, "/"));
@@ -79,7 +81,7 @@ public class DefaultRevisionStore extends AbstractRevisionStore
             pm.writeCommit(head, initialCommit);
             pm.writeHead(head);
         } else {
-            headCounter = Long.parseLong(head.toString(), 16);
+            commitCounter.set(Long.parseLong(head.toString(), 16));
         }
 
         initialized = true;
@@ -171,38 +173,19 @@ public class DefaultRevisionStore extends AbstractRevisionStore
     public Id putHeadCommit(MutableCommit commit) throws Exception {
         verifyInitialized();
         if (!headLock.writeLock().isHeldByCurrentThread()) {
-            throw new IllegalStateException("putCommit called without holding write lock.");
+            throw new IllegalStateException("putHeadCommit called without holding write lock.");
         }
 
-        PersistHook callback = null;
-        if (commit instanceof PersistHook) {
-            callback = (PersistHook) commit;
-            callback.prePersist(this);
-        }
-
-        Id id = commit.getId();
-        if (id == null) {
-            id = new Id(longToBytes(++headCounter));
-        }
-        pm.writeCommit(id, commit);
+        Id id = writeCommit(commit);
         setHeadCommitId(id);
-
-        if (callback != null)  {
-            callback.postPersist(this);
-        }
-        cache.put(id, new StoredCommit(id, commit));
 
         return id;
     }
 
-    private void setHeadCommitId(Id id) throws Exception {
-        pm.writeHead(id);
-        head = id;
-        
-        long headCounter = Long.parseLong(id.toString(), 16);
-        if (headCounter > this.headCounter) {
-            this.headCounter = headCounter;
-        }
+    public Id putCommit(MutableCommit commit) throws Exception {
+        verifyInitialized();
+
+        return writeCommit(commit);
     }
 
     public void unlockHead() {
@@ -275,8 +258,41 @@ public class DefaultRevisionStore extends AbstractRevisionStore
         }
     }
 
-    //------------------------------------------------------------< overrides >
+    //-------------------------------------------------------< implementation >
 
+    private Id writeCommit(MutableCommit commit) throws Exception {
+        PersistHook callback = null;
+        if (commit instanceof PersistHook) {
+            callback = (PersistHook) commit;
+            callback.prePersist(this);
+        }
+
+        Id id = commit.getId();
+        if (id == null) {
+            id = new Id(longToBytes(commitCounter.incrementAndGet()));
+        }
+        pm.writeCommit(id, commit);
+
+        if (callback != null)  {
+            callback.postPersist(this);
+        }
+        cache.put(id, new StoredCommit(id, commit));
+        return id;
+    }
+
+    private void setHeadCommitId(Id id) throws Exception {
+        // non-synchronized since we're called from putHeadCommit
+        // which requires a write lock
+        pm.writeHead(id);
+        head = id;
+
+        long counter = Long.parseLong(id.toString(), 16);
+        if (counter > commitCounter.get()) {
+            commitCounter.set(counter);
+        }
+    }
+
+    //------------------------------------------------------------< overrides >
 
     @Override
     public void compare(final NodeState before, final NodeState after, final NodeStateDiff diff) {
