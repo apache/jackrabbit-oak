@@ -79,6 +79,7 @@ public class GCPersistenceTest {
         MutableNode node = new MutableNode(null, "/");
         Id id = pm.writeNode(node);
 
+        Thread.sleep(1);
         pm.start();
         pm.sweep();
         
