@@ -204,6 +204,11 @@ public class CopyingGC extends AbstractRevisionStore {
         return runState.get() == STARTED ? rsTo.putHeadCommit(commit) : rsFrom.putHeadCommit(commit);
     }
 
+    public Id putCommit(MutableCommit commit) throws Exception {
+        // TODO: review, should GC ignore private branch commits?
+        return runState.get() == STARTED ? rsTo.putCommit(commit) : rsFrom.putCommit(commit);
+    }
+
     // TODO: potentially dangerous, if lock & unlock interfere with GC start
     public void unlockHead() {
         if (runState.get() == STARTED) {

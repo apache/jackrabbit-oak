@@ -18,9 +18,7 @@ package org.apache.jackrabbit.mk.core;
 
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
@@ -30,12 +28,11 @@ import org.apache.jackrabbit.mk.model.ChildNodeEntry;
 import org.apache.jackrabbit.mk.model.Commit;
 import org.apache.jackrabbit.mk.model.CommitBuilder;
 import org.apache.jackrabbit.mk.model.CommitBuilder.NodeTree;
+import org.apache.jackrabbit.mk.model.DiffBuilder;
 import org.apache.jackrabbit.mk.model.Id;
 import org.apache.jackrabbit.mk.model.NodeState;
 import org.apache.jackrabbit.mk.model.PropertyState;
 import org.apache.jackrabbit.mk.model.StoredCommit;
-import org.apache.jackrabbit.mk.model.TraversingNodeDiffHandler;
-import org.apache.jackrabbit.mk.store.RevisionProvider;
 import org.apache.jackrabbit.mk.util.CommitGate;
 import org.apache.jackrabbit.mk.util.PathUtils;
 
@@ -209,176 +206,21 @@ public class MicroKernelImpl implements MicroKernel {
     }
 
     public String diff(String fromRevision, String toRevision, String filter) throws MicroKernelException {
-        Id toRevisionId = toRevision == null ? getHeadRevisionId() : Id.fromString(toRevision);
-        
-        return diff(Id.fromString(fromRevision), toRevisionId, filter);
-    }
-    
-    /**
-     * Same as <code>diff</code>, with typed <code>Id</code> arguments instead of strings.
-     * 
-     * @see #diff(String, String, String) 
-     */
-    private String diff(Id fromRevisionId, Id toRevisionId, String filter) throws MicroKernelException {
         // TODO extract and evaluate filter criteria (such as e.g. 'path') specified in 'filter' parameter
         String path = "/";
 
+        Id toRevisionId = toRevision == null ? getHeadRevisionId() : Id.fromString(toRevision);
+
         try {
-            final JsopBuilder buff = new JsopBuilder();
-            final RevisionProvider rp = rep.getRevisionStore();
-            // maps (key: id of target node, value: path/to/target)
-            // for tracking added/removed nodes; this allows us
-            // to detect 'move' operations
-            final HashMap<Id, String> addedNodes = new HashMap<Id, String>();
-            final HashMap<Id, String> removedNodes = new HashMap<Id, String>();
-            NodeState node1 = rep.getNodeState(fromRevisionId, path);
-            NodeState node2 = rep.getNodeState(toRevisionId, path);
+            NodeState before = rep.getNodeState(Id.fromString(fromRevision), path);
+            NodeState after = rep.getNodeState(toRevisionId, path);
 
-            if (node1 == null) {
-                if (node2 != null) {
-                    buff.tag('+').key(path).object();
-                    toJson(buff, node2, Integer.MAX_VALUE, 0, -1, false);
-                    return buff.endObject().newline().toString();
-                } else {
-                    throw new MicroKernelException("path doesn't exist in the specified revisions: " + path);
-                }
-            } else if (node2 == null) {
-                buff.tag('-');
-                buff.value(path);
-                return buff.newline().toString();
-            }
-
-            TraversingNodeDiffHandler diffHandler = new TraversingNodeDiffHandler(rp) {
-                @Override
-                public void propertyAdded(PropertyState after) {
-                    buff.tag('+').
-                            key(PathUtils.concat(getCurrentPath(), after.getName())).
-                            encodedValue(after.getEncodedValue()).
-                            newline();
-                }
-
-                @Override
-                public void propertyChanged(PropertyState before, PropertyState after) {
-                    buff.tag('^').
-                            key(PathUtils.concat(getCurrentPath(), after.getName())).
-                            encodedValue(after.getEncodedValue()).
-                            newline();
-                }
-
-                @Override
-                public void propertyDeleted(PropertyState before) {
-                    // since property and node deletions can't be distinguished
-                    // using the "- <path>" notation we're representing
-                    // property deletions as "^ <path>:null"
-                    buff.tag('^').
-                            key(PathUtils.concat(getCurrentPath(), before.getName())).
-                            value(null).
-                            newline();
-                }
-
-                @Override
-                public void childNodeAdded(String name, NodeState after) {
-                    addedNodes.put(rp.getId(after), PathUtils.concat(getCurrentPath(), name));
-                    buff.tag('+').
-                            key(PathUtils.concat(getCurrentPath(), name)).object();
-                    toJson(buff, after, Integer.MAX_VALUE, 0, -1, false);
-                    buff.endObject().newline();
-                }
-
-                @Override
-                public void childNodeDeleted(String name, NodeState before) {
-                    removedNodes.put(rp.getId(before), PathUtils.concat(getCurrentPath(), name));
-                    buff.tag('-');
-                    buff.value(PathUtils.concat(getCurrentPath(), name));
-                    buff.newline();
-                }
-            };
-            diffHandler.start(node1, node2, path);
-
-            // check if this commit includes 'move' operations
-            // by building intersection of added and removed nodes
-            addedNodes.keySet().retainAll(removedNodes.keySet());
-            if (!addedNodes.isEmpty()) {
-                // this commit includes 'move' operations
-                removedNodes.keySet().retainAll(addedNodes.keySet());
-                // addedNodes & removedNodes now only contain information about moved nodes
-
-                // re-build the diff in a 2nd pass, this time representing moves correctly
-                buff.resetWriter();
-
-                // TODO refactor code, avoid duplication
-
-                diffHandler = new TraversingNodeDiffHandler(rp) {
-                    @Override
-                    public void propertyAdded(PropertyState after) {
-                        buff.tag('+').
-                                key(PathUtils.concat(getCurrentPath(), after.getName())).
-                                encodedValue(after.getEncodedValue()).
-                                newline();
-                    }
-
-                    @Override
-                    public void propertyChanged(PropertyState before, PropertyState after) {
-                        buff.tag('^').
-                                key(PathUtils.concat(getCurrentPath(), after.getName())).
-                                encodedValue(after.getEncodedValue()).
-                                newline();
-                    }
-
-                    @Override
-                    public void propertyDeleted(PropertyState before) {
-                        // since property and node deletions can't be distinguished
-                        // using the "- <path>" notation we're representing
-                        // property deletions as "^ <path>:null"
-                        buff.tag('^').
-                                key(PathUtils.concat(getCurrentPath(), before.getName())).
-                                value(null).
-                                newline();
-                    }
-
-                    @Override
-                    public void childNodeAdded(String name, NodeState after) {
-                        if (addedNodes.containsKey(rp.getId(after))) {
-                            // moved node, will be processed separately
-                            return;
-                        }
-                        buff.tag('+').
-                                key(PathUtils.concat(getCurrentPath(), name)).object();
-                        toJson(buff, after, Integer.MAX_VALUE, 0, -1, false);
-                        buff.endObject().newline();
-                    }
-
-                    @Override
-                    public void childNodeDeleted(String name, NodeState before) {
-                        if (addedNodes.containsKey(rp.getId(before))) {
-                            // moved node, will be processed separately
-                            return;
-                        }
-                        buff.tag('-');
-                        buff.value(PathUtils.concat(getCurrentPath(), name));
-                        buff.newline();
-                    }
-
-                };
-                diffHandler.start(node1, node2, path);
-
-                // finally process moved nodes
-                for (Map.Entry<Id, String> entry : addedNodes.entrySet()) {
-                    buff.tag('>').
-                            // path/to/deleted/node
-                            key(removedNodes.get(entry.getKey())).
-                            // path/to/added/node
-                            value(entry.getValue()).
-                            newline();
-                }
-            }
-            return buff.toString();
-
+            return new DiffBuilder(before, after, path, rep.getRevisionStore(), filter).build();
         } catch (Exception e) {
             throw new MicroKernelException(e);
         }
     }
-
+    
     public boolean nodeExists(String path, String revisionId) throws MicroKernelException {
         if (rep == null) {
             throw new IllegalStateException("this instance has already been disposed");
@@ -564,6 +406,40 @@ public class MicroKernelImpl implements MicroKernel {
                 gate.commit(newHead.toString());
             }
             return newHead.toString();
+        } catch (Exception e) {
+            throw new MicroKernelException(e);
+        }
+    }
+
+    public String branch(String publicRevisionId) throws MicroKernelException {
+        // create a private branch
+
+        if (rep == null) {
+            throw new IllegalStateException("this instance has already been disposed");
+        }
+
+        Id revId = publicRevisionId == null ? getHeadRevisionId() : Id.fromString(publicRevisionId);
+
+        try {
+            CommitBuilder cb = rep.getCommitBuilder(revId, "");
+            return cb.doCommit(true).toString();
+        } catch (Exception e) {
+            throw new MicroKernelException(e);
+        }
+    }
+
+    public String merge(String privateRevisionId) throws MicroKernelException {
+        // create a private branch
+
+        if (rep == null) {
+            throw new IllegalStateException("this instance has already been disposed");
+        }
+
+        Id revId = Id.fromString(privateRevisionId);
+
+        try {
+            CommitBuilder cb = rep.getCommitBuilder(revId, "");
+            return cb.doMerge().toString();
         } catch (Exception e) {
             throw new MicroKernelException(e);
         }

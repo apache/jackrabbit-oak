@@ -33,6 +33,7 @@ public interface RevisionStore extends RevisionProvider {
      * Lock the head. Must be called prior to putting a new head commit.
      * 
      * @see #putHeadCommit(MutableCommit)
+     * @see #unlockHead()
      */
     void lockHead();
     
@@ -49,6 +50,21 @@ public interface RevisionStore extends RevisionProvider {
     
     /**
      * Unlock the head.
+     *
+     * @see #lockHead()
      */
     void unlockHead();
+
+    /**
+     * Store a new commit.
+     * <p/>
+     * Unlike {@code putHeadCommit(MutableCommit)}, this method
+     * does not affect the current head commit and therefore doesn't
+     * require a lock on the head.
+     *
+     * @param commit commit
+     * @return new commit id
+     * @throws Exception if an error occurs
+     */
+    Id /*id*/ putCommit(MutableCommit commit) throws Exception;
 }

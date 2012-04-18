@@ -38,6 +38,9 @@ public abstract class AbstractCommit implements Commit {
     // id of parent commit
     protected Id parentId;
 
+    // id of branch root commit
+    protected Id branchRootId;
+
     protected AbstractCommit() {
     }
 
@@ -47,6 +50,7 @@ public abstract class AbstractCommit implements Commit {
         this.msg = other.getMsg();
         this.changes = other.getChanges();
         this.commitTS = other.getCommitTS();
+        this.branchRootId = other.getBranchRootId();
     }
 
     public Id getParentId() {
@@ -69,11 +73,16 @@ public abstract class AbstractCommit implements Commit {
         return changes;
     }
 
+    public Id getBranchRootId() {
+        return branchRootId;
+    }
+
     public void serialize(Binding binding) throws Exception {
         binding.write("rootNodeId", rootNodeId.getBytes());
         binding.write("commitTS", commitTS);
         binding.write("msg", msg == null ? "" : msg);
         binding.write("changes", changes == null ? "" : changes);
         binding.write("parentId", parentId == null ? "" : parentId.toString());
+        binding.write("branchRootId", branchRootId == null ? "" : branchRootId.toString());
     }
 }

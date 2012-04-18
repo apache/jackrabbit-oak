@@ -40,6 +40,7 @@ public class MutableCommit extends AbstractCommit {
         setCommitTS(other.getCommitTS());
         setMsg(other.getMsg());
         setChanges(other.getChanges());
+        setBranchRootId(other.getBranchRootId());
         this.id = other.getId();
     }
 
@@ -61,6 +62,10 @@ public class MutableCommit extends AbstractCommit {
 
     public void setChanges(String changes) {
         this.changes = changes;
+    }
+
+    public void setBranchRootId(Id branchRootId) {
+        this.branchRootId = branchRootId;
     }
 
     /**

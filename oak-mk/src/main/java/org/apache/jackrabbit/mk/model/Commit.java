@@ -25,13 +25,25 @@ public interface Commit {
     
     Id getRootNodeId();
 
-    public Id getParentId();
+    Id getParentId();
 
-    public long getCommitTS();
+    long getCommitTS();
 
-    public String getMsg();
+    String getMsg();
 
-    public String getChanges();
+    String getChanges();
+
+    /**
+     * Returns {@code null} if this commit does not represent a branch.
+     * <p/>
+     * Otherwise, returns the id of the branch root commit
+     * (i.e. the <i>public</i> commit that this <i>private</i> branch is based upon).
+     *
+     *
+     * @return the id of the branch root commit or {@code null} if this commit
+     * does not represent a branch.
+     */
+    Id getBranchRootId();
 
     void serialize(Binding binding) throws Exception;
 }
