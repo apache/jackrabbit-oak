@@ -335,7 +335,7 @@ public class PathUtils {
 
     /**
      * Relativize a path wrt. a parent path such that
-     * <code>relativize(parentPath, concat(parentPath, path)) == paths</code>
+     * {@code relativize(parentPath, concat(parentPath, path)) == paths}
      * holds.
      *
      * @param parentPath parent pth

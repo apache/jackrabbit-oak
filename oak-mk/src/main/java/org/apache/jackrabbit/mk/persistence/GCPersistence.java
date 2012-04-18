@@ -37,8 +37,8 @@ public interface GCPersistence extends Persistence {
      * 
      * @param id
      *            commit id
-     * @return <code>true</code> if the commit was not marked before;
-     *         <code>false</code> otherwise
+     * @return {@code true} if the commit was not marked before;
+     *         {@code false} otherwise
      * 
      * @throws Exception if an error occurs
      */
@@ -49,8 +49,8 @@ public interface GCPersistence extends Persistence {
      * 
      * @param id
      *            node id
-     * @return <code>true</code> if the node was not marked before;
-     *         <code>false</code> otherwise
+     * @return {@code true} if the node was not marked before;
+     *         {@code false} otherwise
      * 
      * @throws Exception if an error occurs
      */
@@ -61,8 +61,8 @@ public interface GCPersistence extends Persistence {
      * 
      * @param id
      *            child node entry map id
-     * @return <code>true</code> if the child node entry map was not marked before;
-     *         <code>false</code> otherwise
+     * @return {@code true} if the child node entry map was not marked before;
+     *         {@code false} otherwise
      * 
      * @throws Exception if an error occurs
      */

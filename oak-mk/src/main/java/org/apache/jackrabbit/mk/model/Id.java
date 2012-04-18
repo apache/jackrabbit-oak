@@ -29,9 +29,9 @@ import java.util.Arrays;
  * or the string representation.
  * <p/>
  * <b>Important Note:</b><p/>
- * An {@link Id} is considered immutable. The <code>byte[]</code> 
+ * An {@link Id} is considered immutable. The {@code byte[]}
  * passed to {@link Id#Id(byte[])} must not be reused or modified, the same
- * applies for the <code>byte[]</code> returned by {@link Id#getBytes()}.
+ * applies for the {@code byte[]} returned by {@link Id#getBytes()}.
  */
 public class Id implements Comparable<Id> {
 
@@ -39,10 +39,10 @@ public class Id implements Comparable<Id> {
     private final byte[] raw;
 
     /**
-     * Creates a new instance based on the passed <code>byte[]</code>.
+     * Creates a new instance based on the passed {@code byte[]}.
      * <p/>
-     * The passed <code>byte[]</code> mus not be reused, it's assumed
-     * to be owned by the new <code>Id</code> instance.
+     * The passed {@code byte[]} mus not be reused, it's assumed
+     * to be owned by the new {@code Id} instance.
      *
      * @param raw the byte representation
      */
@@ -52,7 +52,7 @@ public class Id implements Comparable<Id> {
     }
 
     /**
-     * Creates an <code>Id</code> instance from its
+     * Creates an {@code Id} instance from its
      * string representation as returned by {@link #toString()}.
      * <p/>
      * The following condition holds true:
@@ -61,8 +61,8 @@ public class Id implements Comparable<Id> {
      * assert(Id.fromString(someId.toString()).equals(someId));
      * </pre>
      *
-     * @param s a string representation of an <code>Id</code>
-     * @return an <code>Id</code> instance
+     * @param s a string representation of an {@code Id}
+     * @return an {@code Id} instance
      */
     public static Id fromString(String s) {
         return new Id(StringUtils.convertHexToBytes(s));
@@ -105,7 +105,7 @@ public class Id implements Comparable<Id> {
     /**
      * Returns the raw byte representation of this identifier.
      * <p/>
-     * The returned <code>byte[]</code> <i>MUST NOT</i> be modified!
+     * The returned {@code byte[]} <i>MUST NOT</i> be modified!
      *
      * @return the raw byte representation
      */

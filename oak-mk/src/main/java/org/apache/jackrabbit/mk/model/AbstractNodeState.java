@@ -78,8 +78,8 @@ public abstract class AbstractNodeState implements NodeState {
      * more efficient equality check if one is available.
      *
      * @param that target of the comparison
-     * @return <code>true</code> if the objects are equal,
-     *         <code>false</code> otherwise
+     * @return {@code true} if the objects are equal,
+     *         {@code false} otherwise
      */
     @Override
     public boolean equals(Object that) {
