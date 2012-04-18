@@ -332,8 +332,8 @@ public class CommitBuilder {
     }
 
     /**
-     * Performs a three-way merge of the trees rooted at <code>ourRoot</code>,
-     * <code>theirRoot</code>, using the tree at <code>baseRoot</code> as reference.
+     * Performs a three-way merge of the trees rooted at {@code ourRoot},
+     * {@code theirRoot}, using the tree at {@code baseRoot} as reference.
      *
      * @param baseRoot
      * @param ourRoot

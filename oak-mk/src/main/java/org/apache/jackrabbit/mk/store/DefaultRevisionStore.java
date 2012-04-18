@@ -38,8 +38,8 @@ import org.apache.jackrabbit.mk.util.IOUtils;
 import org.apache.jackrabbit.mk.util.SimpleLRUCache;
 
 /**
- * Default revision store implementation, passing calls to a <code>Persistence</code>
- * and a <code>BlobStore</code>, respectively and providing caching. 
+ * Default revision store implementation, passing calls to a {@code Persistence}
+ * and a {@code BlobStore}, respectively and providing caching.
  */
 public class DefaultRevisionStore extends AbstractRevisionStore
         implements Closeable {

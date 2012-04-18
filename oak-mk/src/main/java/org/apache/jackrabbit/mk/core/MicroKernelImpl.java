@@ -96,7 +96,7 @@ public class MicroKernelImpl implements MicroKernel {
     }
     
     /**
-     * Same as <code>getHeadRevisionId</code>, with typed <code>Id</code> return value instead of string.
+     * Same as {@code getHeadRevisionId}, with typed {@code Id} return value instead of string.
      * 
      * @see #getHeadRevision()
      */

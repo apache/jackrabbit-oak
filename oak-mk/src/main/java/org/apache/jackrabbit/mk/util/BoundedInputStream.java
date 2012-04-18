@@ -21,8 +21,8 @@ import java.io.IOException;
 import java.io.InputStream;
 
 /**
- * Implementation of an <code>InputStream</code> that is bounded by a limit
- * and will return <code>-1</code> on reads when this limit is exceeded.
+ * Implementation of an {@code InputStream} that is bounded by a limit
+ * and will return {@code -1} on reads when this limit is exceeded.
  */
 public class BoundedInputStream extends FilterInputStream {
     

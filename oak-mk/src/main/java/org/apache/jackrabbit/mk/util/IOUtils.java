@@ -269,7 +269,7 @@ public class IOUtils {
     }
 
     /**
-     * Unconditionally close a <code>Closeable</code>.
+     * Unconditionally close a {@code Closeable}.
      * <p>
      * Equivalent to {@link Closeable#close()}, except any exceptions will be ignored.
      * This is typically used in finally blocks.
@@ -287,7 +287,7 @@ public class IOUtils {
     }
 
     /**
-     * Unconditionally close a <code>Socket</code>.
+     * Unconditionally close a {@code Socket}.
      * <p>
      * Equivalent to {@link Socket#close()}, except any exceptions will be ignored.
      * This is typically used in finally blocks.
@@ -305,14 +305,14 @@ public class IOUtils {
     }
 
     /**
-     * Copy bytes from an <code>InputStream</code> to an
-     * <code>OutputStream</code>.
+     * Copy bytes from an {@code InputStream} to an
+     * {@code OutputStream}.
      * <p>
      * This method buffers the input internally, so there is no need to use a
-     * <code>BufferedInputStream</code>.
+     * {@code BufferedInputStream}.
      *
-     * @param input  the <code>InputStream</code> to read from
-     * @param output  the <code>OutputStream</code> to write to
+     * @param input  the {@code InputStream} to read from
+     * @param output  the {@code OutputStream} to write to
      * @return the number of bytes copied
      * @throws IOException if an I/O error occurs
      */

@@ -52,8 +52,8 @@ public interface ChildNodeEntries extends Cloneable {
     //-------------------------------------------------------------< diff ops >
 
     /**
-     * Returns those entries that exist in <code>other</code> but not in
-     * <code>this</code>.
+     * Returns those entries that exist in {@code other} but not in
+     * {@code this}.
      *
      * @param other
      * @return
@@ -61,8 +61,8 @@ public interface ChildNodeEntries extends Cloneable {
     Iterator<ChildNode> getAdded(final ChildNodeEntries other);
 
     /**
-     * Returns those entries that exist in <code>this</code> but not in
-     * <code>other</code>.
+     * Returns those entries that exist in {@code this} but not in
+     * {@code other}.
      *
      * @param other
      * @return
@@ -70,8 +70,8 @@ public interface ChildNodeEntries extends Cloneable {
     Iterator<ChildNode> getRemoved(final ChildNodeEntries other);
 
     /**
-     * Returns <code>this</code> instance's entries that have namesakes in
-     * <code>other</code> but with different <code>id</code>s.
+     * Returns {@code this} instance's entries that have namesakes in
+     * {@code other} but with different {@code id}s.
      *
      * @param other
      * @return

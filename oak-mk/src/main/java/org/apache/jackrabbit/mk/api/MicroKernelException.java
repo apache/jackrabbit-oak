@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.mk.api;
 
 /**
- * Exception thrown by methods of the <code>MicroKernel</code> API
+ * Exception thrown by methods of the {@code MicroKernel} API
  */
 public class MicroKernelException extends RuntimeException {
 

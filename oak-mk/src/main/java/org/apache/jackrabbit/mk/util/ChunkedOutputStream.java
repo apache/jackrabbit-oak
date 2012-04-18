@@ -58,8 +58,8 @@ public class ChunkedOutputStream extends FilterOutputStream {
      *
      * @param out underlying output stream.
      * @param size internal buffer size
-     * @throws IllegalArgumentException if <code>size</code> is smaller than 1
-     *         or bigger than <code>65535</code>
+     * @throws IllegalArgumentException if {@code size} is smaller than 1
+     *         or bigger than {@code 65535}
      */
     public ChunkedOutputStream(OutputStream out, int size) {
         super(out);
@@ -169,7 +169,7 @@ public class ChunkedOutputStream extends FilterOutputStream {
      * Close this output stream. Flush the contents of the internal buffer
      * and writes the last chunk to the underlying output stream. Sets
      * the internal reference to the underlying output stream to 
-     * <code>null</code>. Does <b>not</b> close the underlying output stream.
+     * {@code null}. Does <b>not</b> close the underlying output stream.
      *
      * @see java.io.FilterOutputStream#close()
      */
