@@ -21,8 +21,8 @@ import org.apache.jackrabbit.mk.model.Id;
 /**
  * Advanced persistence implementation offering GC support.
  * <p>
- * The persistence implementation must ensure that objects written after {@link #start()}
- * was invoked are not swept.
+ * The persistence implementation must ensure that objects written between {@link #start()}
+ * and {@link #sweep()} are not swept, in other words, they must be marked implicitely.
  */
 public interface GCPersistence extends Persistence {
 
