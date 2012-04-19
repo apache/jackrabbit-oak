@@ -266,6 +266,39 @@ public class Client implements MicroKernel {
         }
     }
 
+    public synchronized String branch(String trunkRevisionId)
+            throws MicroKernelException {
+
+        Request request = null;
+
+        try {
+            request = createRequest("branch");
+            request.addParameter("trunk_revision_id", trunkRevisionId);
+            return request.getString();
+        } catch (IOException e) {
+            throw toMicroKernelException(e);
+        } finally {
+            IOUtils.closeQuietly(request);
+        }
+    }
+
+    public synchronized String merge(String branchRevisionId, String message)
+            throws MicroKernelException {
+
+        Request request = null;
+
+        try {
+            request = createRequest("merge");
+            request.addParameter("branch_revision_id", branchRevisionId);
+            request.addParameter("message", message);
+            return request.getString();
+        } catch (IOException e) {
+            throw toMicroKernelException(e);
+        } finally {
+            IOUtils.closeQuietly(request);
+        }
+    }
+
     public synchronized long getLength(String blobId) throws MicroKernelException {
         Request request = null;
 

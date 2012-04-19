@@ -411,14 +411,14 @@ public class MicroKernelImpl implements MicroKernel {
         }
     }
 
-    public String branch(String publicRevisionId) throws MicroKernelException {
+    public String branch(String trunkRevisionId) throws MicroKernelException {
         // create a private branch
 
         if (rep == null) {
             throw new IllegalStateException("this instance has already been disposed");
         }
 
-        Id revId = publicRevisionId == null ? getHeadRevisionId() : Id.fromString(publicRevisionId);
+        Id revId = trunkRevisionId == null ? getHeadRevisionId() : Id.fromString(trunkRevisionId);
 
         try {
             CommitBuilder cb = rep.getCommitBuilder(revId, "");
@@ -428,18 +428,17 @@ public class MicroKernelImpl implements MicroKernel {
         }
     }
 
-    public String merge(String privateRevisionId) throws MicroKernelException {
-        // create a private branch
+    public String merge(String branchRevisionId, String message) throws MicroKernelException {
+        // merge a private branch with current head revision
 
         if (rep == null) {
             throw new IllegalStateException("this instance has already been disposed");
         }
 
-        Id revId = Id.fromString(privateRevisionId);
+        Id revId = Id.fromString(branchRevisionId);
 
         try {
-            CommitBuilder cb = rep.getCommitBuilder(revId, "");
-            return cb.doMerge().toString();
+            return rep.getCommitBuilder(revId, message).doMerge().toString();
         } catch (Exception e) {
             throw new MicroKernelException(e);
         }

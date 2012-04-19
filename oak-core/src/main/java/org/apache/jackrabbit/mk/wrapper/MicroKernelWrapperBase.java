@@ -117,6 +117,14 @@ public abstract class MicroKernelWrapperBase implements MicroKernel, MicroKernel
                 return wrapped.commit(path, jsonDiff, revisionId, message);
             }
 
+            public String branch(String trunkRevisionId) {
+                return wrapped.branch(trunkRevisionId);
+            }
+
+            public String merge(String branchRevisionId, String message) {
+                return wrapped.merge(branchRevisionId, message);
+            }
+
             public String diff(String fromRevisionId, String toRevisionId, String path) {
                 return wrapped.diff(fromRevisionId, toRevisionId, path);
             }

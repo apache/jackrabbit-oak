@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.mk.simple;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.blobs.AbstractBlobStore;
 import org.apache.jackrabbit.mk.blobs.FileBlobStore;
 import org.apache.jackrabbit.mk.blobs.MemoryBlobStore;
@@ -567,4 +568,13 @@ public class SimpleKernelImpl extends MicroKernelWrapperBase implements MicroKer
         return "simple:" + name;
     }
 
+    public String branch(String trunkRevisionId) throws MicroKernelException {
+        // TODO OAK-45 support
+        throw new UnsupportedOperationException();
+    }
+
+    public String merge(String branchRevisionId, String message) throws MicroKernelException {
+        // TODO OAK-45 support
+        throw new UnsupportedOperationException();
+    }
 }
