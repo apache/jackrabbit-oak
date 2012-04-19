@@ -80,6 +80,14 @@ public class IndexWrapper extends MicroKernelWrapperBase implements MicroKernel 
         return mk.write(in);
     }
 
+    public String branch(String trunkRevisionId) {
+        return mk.branch(trunkRevisionId);
+    }
+
+    public String merge(String branchRevisionId, String message) {
+        return mk.merge(branchRevisionId, message);
+    }
+
     public String commitStream(String rootPath, JsopReader jsonDiff, String revisionId, String message) {
         if (!rootPath.startsWith(INDEX_PATH)) {
             String rev = mk.commitStream(rootPath, jsonDiff, revisionId, message);

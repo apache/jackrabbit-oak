@@ -82,6 +82,8 @@ class MicroKernelServlet {
         COMMANDS.put("getChildNodeCount", new GetChildNodeCount());
         COMMANDS.put("getNodes", new GetNodes());
         COMMANDS.put("commit", new Commit());
+        COMMANDS.put("branch", new Branch());
+        COMMANDS.put("merge", new Merge());
         COMMANDS.put("getLength", new GetLength());
         COMMANDS.put("read", new Read());
         COMMANDS.put("write", new Write());
@@ -251,6 +253,37 @@ class MicroKernelServlet {
             response.setContentType("text/plain");
             response.write(newRevision);
         }        
+    }
+
+    static class Branch implements Command {
+
+        public void execute(MicroKernel mk, Request request, Response response)
+                throws IOException, MicroKernelException {
+
+            String headRevision = mk.getHeadRevision();
+
+            String trunkRevisionId = request.getParameter("trunk_revision_id", headRevision);
+
+            String newRevision = mk.branch(trunkRevisionId);
+
+            response.setContentType("text/plain");
+            response.write(newRevision);
+        }
+    }
+
+    static class Merge implements Command {
+
+        public void execute(MicroKernel mk, Request request, Response response)
+                throws IOException, MicroKernelException {
+
+            String branchRevisionId = request.getParameter("branch_revision_id");
+            String message = request.getParameter("message");
+
+            String newRevision = mk.merge(branchRevisionId, message);
+
+            response.setContentType("text/plain");
+            response.write(newRevision);
+        }
     }
 
     static class GetLength implements Command {

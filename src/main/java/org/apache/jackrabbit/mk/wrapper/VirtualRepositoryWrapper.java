@@ -324,5 +324,14 @@ public class VirtualRepositoryWrapper extends MicroKernelWrapperBase implements 
         return mk.write(in);
     }
 
+    public String branch(String trunkRevisionId) {
+        // TODO OAK-45 support
+        return mk.branch(trunkRevisionId);
+    }
+
+    public String merge(String branchRevisionId, String message) {
+        // TODO OAK-45 support
+        return mk.merge(branchRevisionId, message);
+    }
 }
 
