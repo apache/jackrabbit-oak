@@ -109,7 +109,8 @@ public interface MicroKernel {
      * </pre>
      *
      * @param fromRevisionId id of first revision to be returned in journal
-     * @param toRevisionId   id of last revision to be returned in journal, if {@code null} the current head revision is assumed
+     * @param toRevisionId   id of last revision to be returned in journal,
+     *                       if {@code null} the current head revision is assumed
      * @param filter         (optional) filter criteria
      *                       (e.g. path, property names, etc);
      *                       TODO specify format and semantics
@@ -262,7 +263,8 @@ public interface MicroKernel {
      *
      * @param path path denoting target node
      * @param jsonDiff changes to be applied in JSON diff format.
-     * @param revisionId id of revision the changes are based on, if {@code null} the current head revision is assumed
+     * @param revisionId id of revision the changes are based on,
+     *                   if {@code null} the current head revision is assumed
      * @param message commit message
      * @return id of newly created revision
      * @throws MicroKernelException if an error occurs
@@ -270,6 +272,45 @@ public interface MicroKernel {
     String /* revisionId */ commit(String path, String jsonDiff, String revisionId, String message)
             throws MicroKernelException;
 
+    /**
+     * Creates a <i>private</i> branch revision off the specified <i>public</i>
+     * trunk revision.
+     * <p/>
+     * A {@code MicroKernelException} is thrown if {@code trunkRevisionId} doesn't
+     * exist, if it's not a <i>trunk</i> revision (i.e. it's not reachable
+     * by traversing the revision history backwards starting from the current
+     * head revision) or if another error occurs.
+     *
+     * @param trunkRevisionId id of public trunk revision to base branch on,
+     *                        if {@code null} the current head revision is assumed
+     * @return id of newly created private branch revision
+     * @throws MicroKernelException if {@code trunkRevisionId} doesn't exist,
+     *                              if it's not a <i>trunk</i> revision
+     *                              or if another error occurs
+     * @see #merge(String, String)
+     */
+    String /* revisionId */ branch(String trunkRevisionId)
+            throws MicroKernelException;
+
+    /**
+     * Merges the specified <i>private</i> branch revision with the current
+     * head revision.
+     * <p/>
+     * A {@code MicroKernelException} is thrown if {@code branchRevisionId} doesn't
+     * exist, if it's not a branch revision, if the merge fails because of
+     * conflicting changes or if another error occurs.
+     *
+     * @param branchRevisionId id of private branch revision
+     * @param message commit message
+     * @return id of newly created head revision
+     * @throws MicroKernelException if {@code branchRevisionId} doesn't exist,
+     *                              if it's not a branch revision, if the merge
+     *                              fails because of conflicting changes or if
+     *                              another error occurs.
+     * @see #branch(String)
+     */
+    String /* revisionId */ merge(String branchRevisionId, String message)
+            throws MicroKernelException;
 
     //--------------------------------------------------< BLOB READ/WRITE ops >
 

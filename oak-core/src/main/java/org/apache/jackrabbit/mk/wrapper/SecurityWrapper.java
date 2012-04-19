@@ -334,6 +334,16 @@ public class SecurityWrapper extends MicroKernelWrapperBase implements MicroKern
         return mk.write(in);
     }
 
+    public String branch(String trunkRevisionId) {
+        // TODO OAK-45 support
+        return mk.branch(trunkRevisionId);
+    }
+
+    public String merge(String branchRevisionId, String message) {
+        // TODO OAK-45 support
+        return mk.merge(branchRevisionId, message);
+    }
+
     private NodeImpl filterAccess(String path, NodeImpl n) {
         if (!checkRights(path, false)) {
             return null;

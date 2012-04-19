@@ -207,6 +207,30 @@ public class LogWrapper implements MicroKernel {
         }
     }
 
+    public String branch(String trunkRevisionId) {
+        try {
+            logMethod("branch", trunkRevisionId);
+            String result = mk.branch(trunkRevisionId);
+            logResult(result);
+            return result;
+        } catch (Exception e) {
+            logException(e);
+            throw convert(e);
+        }
+    }
+
+    public String merge(String branchRevisionId, String message) {
+        try {
+            logMethod("merge", branchRevisionId, message);
+            String result = mk.merge(branchRevisionId, message);
+            logResult(result);
+            return result;
+        } catch (Exception e) {
+            logException(e);
+            throw convert(e);
+        }
+    }
+
     private void logMethod(String methodName, Object... args) {
         StringBuilder buff = new StringBuilder("mk");
         buff.append(id).append('.').append(methodName).append('(');
