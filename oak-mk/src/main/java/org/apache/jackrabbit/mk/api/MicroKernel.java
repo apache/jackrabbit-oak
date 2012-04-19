@@ -101,11 +101,21 @@ public interface MicroKernel {
 
     /**
      * Returns a revision journal, starting with {@code fromRevisionId}
-     * and ending with @code toRevisionId}.
+     * and ending with {@code toRevisionId} in ascending chronological order
+     * the revision denoted by {@code fromRevisionId} is expected to be older
+     * i.e. than the one denoted by {@code toRevisionId});
      * <p/>
      * Format:
      * <pre>
-     * [ { "id" : "&lt;revisionId&gt;", "ts" : "&lt;revisionTimestamp&gt;", "msg" : "&lt;commitMessage&gt;", "changes" : "&lt;JSON diff&gt;" }, ... ]
+     * [
+     *   {
+     *     "id" : "&lt;revisionId&gt;",
+     *     "ts" : "&lt;revisionTimestamp&gt;",
+     *     "msg" : "&lt;commitMessage&gt;",
+     *     "changes" : "&lt;JSON diff&gt;"
+     *   },
+     *   ...
+     * ]
      * </pre>
      *
      * @param fromRevisionId id of first revision to be returned in journal
@@ -124,16 +134,10 @@ public interface MicroKernel {
     /**
      * Returns the JSON diff representation of the changes between the specified
      * revisions. The changes will be consolidated if the specified range
-     * covers intermediary revisions. The revisions need not be in a specified
-     * chronological order.
+     * covers intermediary revisions. {@code fromRevisionId} and {@code toRevisionId}
+     * don't need not be in a specific chronological order.
      *
-     * <p/>
-     * Format:
-     * <pre>
-     * [ { "id" : "&lt;revisionId&gt;", "ts" : "&lt;revisionTimestamp&gt;", "msg" : "&lt;commitMessage&gt;", "changes" : "&lt;JSON diff&gt;" }, ... ]
-     * </pre>
-     *
-     * @param fromRevisionId a revision id
+     * @param fromRevisionId a revision id, if {@code null} the current head revision is assumed
      * @param toRevisionId   another revision id, if {@code null} the current head revision is assumed
      * @param filter         (optional) filter criteria
      *                       (e.g. path, property names, etc);
