@@ -432,7 +432,7 @@ public class DefaultRevisionStore extends AbstractRevisionStore
     private void markCommit(StoredCommit commit) 
             throws Exception {
         
-        if (gcpm.markCommit(commit.getId())) {
+        if (!gcpm.markCommit(commit.getId())) {
             return;
         }
         
@@ -442,7 +442,7 @@ public class DefaultRevisionStore extends AbstractRevisionStore
     private void markNode(StoredNode node) 
             throws Exception {
         
-        if (gcpm.markNode(node.getId())) {
+        if (!gcpm.markNode(node.getId())) {
             return;
         }
         Iterator<ChildNode> iter = node.getChildNodeEntries(0, -1);
