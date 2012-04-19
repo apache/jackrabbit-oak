@@ -96,35 +96,18 @@ public class GCPersistenceTest {
         MutableNode node = new MutableNode(null, "/");
         Id id = pm.writeNode(node);
 
-        pm.start();
-        pm.markNode(id);
-        pm.sweep();
-        
-        pm.readNode(new StoredNode(id, null));
-    }
-
-    @Test
-    public void testOldNodeIsUnmarked() throws Exception {
-        MutableNode node = new MutableNode(null, "/");
-        Id id = pm.writeNode(node);
-        
         // small delay needed
         Thread.sleep(100);
         
         pm.start();
+
+        // old node must not be marked 
         assertTrue(pm.markNode(id));
+        
+        pm.sweep();
+        pm.readNode(new StoredNode(id, null));
     }
     
-    @Test
-    public void testNewNodeIsMarked() throws Exception {
-        pm.start();
-        
-        MutableNode node = new MutableNode(null, "/");
-        Id id = pm.writeNode(node);
-        
-        assertFalse(pm.markNode(id));
-    }
-
     @Test
     public void testNewNodeIsNotSwept() throws Exception {
         pm.start();
@@ -132,6 +115,9 @@ public class GCPersistenceTest {
         MutableNode node = new MutableNode(null, "/");
         Id id = pm.writeNode(node);
         
+        // new node must already be marked 
+        assertFalse(pm.markNode(id));
+
         pm.sweep();
         pm.readNode(new StoredNode(id, null));
     }
