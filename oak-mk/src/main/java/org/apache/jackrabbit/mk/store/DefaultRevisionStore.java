@@ -404,6 +404,7 @@ public class DefaultRevisionStore extends AbstractRevisionStore
             /* unable to perform GC */
             gcState.set(NOT_ACTIVE);
             e.printStackTrace();
+            return;
         }
 
         gcState.set(SWEEPING);
