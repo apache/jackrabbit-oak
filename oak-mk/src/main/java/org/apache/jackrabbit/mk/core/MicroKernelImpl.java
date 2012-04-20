@@ -158,6 +158,9 @@ public class MicroKernelImpl implements MicroKernel {
         List<StoredCommit> commits = new ArrayList<StoredCommit>();
         try {
             StoredCommit toCommit = rep.getCommit(toRevisionId);
+            if (toCommit.getBranchRootId() != null) {
+                throw new MicroKernelException("branch revisions are not supported: " + toRevisionId);
+            }
 
             Commit fromCommit;
             if (toRevisionId.equals(fromRevisionId)) {
@@ -165,9 +168,12 @@ public class MicroKernelImpl implements MicroKernel {
             } else {
                 fromCommit = rep.getCommit(fromRevisionId);
                 if (fromCommit.getCommitTS() > toCommit.getCommitTS()) {
-                    // negative range, return empty array
+                    // negative range, return empty journal
                     return "[]";
                 }
+            }
+            if (fromCommit.getBranchRootId() != null) {
+                throw new MicroKernelException("branch revisions are not supported: " + fromRevisionId);
             }
 
             // collect commits, starting with toRevisionId
@@ -181,9 +187,14 @@ public class MicroKernelImpl implements MicroKernel {
                 }
                 Id commitId = commit.getParentId();
                 if (commitId == null) {
+                    // shouldn't get here, ignore
                     break;
                 }
                 commit = rep.getCommit(commitId);
+                if (commit.getCommitTS() < fromCommit.getCommitTS()) {
+                    // shouldn't get here, ignore
+                    break;
+                }
             }
         } catch (Exception e) {
             throw new MicroKernelException(e);

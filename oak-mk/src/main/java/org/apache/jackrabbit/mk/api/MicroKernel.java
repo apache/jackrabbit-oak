@@ -112,9 +112,6 @@ public interface MicroKernel {
      * Returns a revision journal, starting with {@code fromRevisionId}
      * and ending with {@code toRevisionId} in chronological order.
      * <p/>
-     * The revision denoted by {@code fromRevisionId} is expected to be older
-     * i.e. than the one denoted by {@code toRevisionId});
-     * <p/>
      * Format:
      * <pre>
      * [
@@ -127,6 +124,12 @@ public interface MicroKernel {
      *   ...
      * ]
      * </pre>
+     * If {@code fromRevisionId} and {@code toRevisionId} are not in chronological
+     * order the returned journal will be empty (i.e. {@code []})
+     * <p/>
+     * A {@code MicroKernelException} is thrown if either {@code fromRevisionId}
+     * or {@code toRevisionId}  doesn't exist, denotes a <i>private</i> branch
+     * revision or if another error occurs.
      *
      * @param fromRevisionId id of first revision to be returned in journal
      * @param toRevisionId   id of last revision to be returned in journal,
