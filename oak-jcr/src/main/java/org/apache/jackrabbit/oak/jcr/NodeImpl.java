@@ -861,10 +861,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     //------------------------------------------------------------< private >---
 
     /**
-     * Access to TransientNodeState to allow code in other packages to
-     * access item states.
-     *
-     * @return The node state.
+     * @return The node state associated with this node
      */
     private TransientNodeState getState() {
         return getTransientNodeState();
