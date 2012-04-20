@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.jcr.util.ItemNameMatcher;
 import org.apache.jackrabbit.oak.jcr.util.LogUtil;
 import org.apache.jackrabbit.oak.jcr.util.ValueConverter;
 import org.apache.jackrabbit.oak.kernel.ScalarImpl;
+import org.apache.jackrabbit.oak.namepath.Paths;
 import org.apache.jackrabbit.oak.util.Function1;
 import org.apache.jackrabbit.oak.util.Iterators;
 import org.apache.jackrabbit.oak.util.Predicate;
