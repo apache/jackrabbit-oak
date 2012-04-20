@@ -132,10 +132,10 @@ public class LogWrapper implements MicroKernel {
         }
     }
 
-    public String getRevisions(long since, int maxEntries) {
+    public String getRevisionHistory(long since, int maxEntries) {
         try {
-            logMethod("getRevisions", since, maxEntries);
-            String result = mk.getRevisions(since, maxEntries);
+            logMethod("getRevisionHistory", since, maxEntries);
+            String result = mk.getRevisionHistory(since, maxEntries);
             logResult(result);
             return result;
         } catch (Exception e) {

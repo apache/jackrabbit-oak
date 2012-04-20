@@ -259,7 +259,7 @@ public class MoveNodeIT {
 
     private String getJournal() {
         if (journalRevision == null) {
-            String revs = mk.getRevisions(0, 1);
+            String revs = mk.getRevisionHistory(0, 1);
             JsopTokenizer t = new JsopTokenizer(revs);
             t.read('[');
             do {
@@ -271,6 +271,10 @@ public class MoveNodeIT {
                 Assert.assertEquals("ts", t.readString());
                 t.read(':');
                 t.read(JsopTokenizer.NUMBER);
+                t.read(',');
+                Assert.assertEquals("msg", t.readString());
+                t.read(':');
+                t.read();
                 t.read('}');
             } while (t.matches(','));
         }

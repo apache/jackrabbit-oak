@@ -105,6 +105,7 @@ public class Revision implements Comparable<Revision>, Cache.Value {
         return new JsopBuilder().object().
             key("id").value(formatId(id)).
             key("ts").value(nanos / 1000000).
+            key("msg").value(getMsg()).
         endObject().toString();
     }
 

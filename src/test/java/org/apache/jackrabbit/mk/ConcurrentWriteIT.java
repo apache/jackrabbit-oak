@@ -71,7 +71,7 @@ public class ConcurrentWriteIT extends TestCase {
         System.out.println("new HEAD: " + head);
         System.out.println();
 
-        String history = mk.getRevisions(t0, -1);
+        String history = mk.getRevisionHistory(t0, -1);
         System.out.println("History:");
         System.out.println(history);
         System.out.println();
