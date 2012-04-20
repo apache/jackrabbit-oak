@@ -284,4 +284,39 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         String json = mk.getNodes('/' + node, head);
         assertEquals("{\":childNodeCount\":0}", json);
     }
+
+    @Test
+    public void branchAndMerge() {
+        // make sure /branch doesn't exist in head
+        assertFalse(mk.nodeExists("/branch", null));
+
+        // create a branch on head
+        String branchRev = mk.branch(null);
+
+        // add a node /branch in branchRev
+        branchRev = mk.commit("", "+\"/branch\":{}", branchRev, "");
+        // make sure /branch doesn't exist in head
+        assertFalse(mk.nodeExists("/branch", null));
+        // make sure /branch does exist in branchRev
+        assertTrue(mk.nodeExists("/branch", branchRev));
+
+        // add a node /branch/foo in branchRev
+        branchRev = mk.commit("", "+\"/branch/foo\":{}", branchRev, "");
+
+        String hist = mk.getRevisionHistory(0, -1);
+        // make sure branchRev doesn't show up in revision history
+        assertFalse(hist.contains(branchRev));
+
+        // add a node /test123 in head
+        mk.commit("", "+\"/test123\":{}", null, "");
+        // make sure /test123 doesn't exist in branchRev
+        assertFalse(mk.nodeExists("/test123", branchRev));
+
+        // merge branchRev with head
+        mk.merge(branchRev, "");
+        // make sure /test123 still exists in head
+        assertTrue(mk.nodeExists("/test123", null));
+        // make sure /branch/foo does now exist in head
+        assertTrue(mk.nodeExists("/branch/foo", null));
+    }
 }
