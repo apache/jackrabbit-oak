@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.jcr;
 
 import org.apache.jackrabbit.oak.api.Connection;
 import org.apache.jackrabbit.oak.api.Branch;
+import org.apache.jackrabbit.oak.api.TransientNodeState;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -39,4 +40,5 @@ public interface SessionContext<T extends Session> {
     NodeTypeManager getNodeTypeManager() throws RepositoryException;
     VersionManager getVersionManager() throws RepositoryException;
     Branch getBranch();
+    TransientNodeState getState(NodeImpl node);
 }
