@@ -68,7 +68,7 @@ public class ConcurrentWriteIT extends TestCase {
         String head = mk.getHeadRevision();
         mk.getNodes("/", head, Integer.MAX_VALUE, 0, -1, null);
 
-        String history = mk.getRevisions(t0, -1);
+        String history = mk.getRevisionHistory(t0, -1);
 
         mk.getJournal(oldHead, head, null);
     }

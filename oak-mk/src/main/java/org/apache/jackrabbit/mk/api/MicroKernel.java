@@ -62,21 +62,29 @@ public interface MicroKernel {
     String getHeadRevision() throws MicroKernelException;
 
     /**
-     * Returns a chronological list of all revisions since a specific point
-     * in time.
+     * Returns a list of all currently available (historical) head revisions in
+     * chronological order since a specific point. <i>Private</i> branch
+     * revisions won't be included in the result.
      * <p/>
      * Format:
      * <pre>
-     * [ { "id" : "<revisionId>", "ts" : <revisionTimestamp> }, ... ]
+     * [
+     *   {
+     *     "id" : "&lt;revisionId&gt;",
+     *     "ts" : &lt;revisionTimestamp&gt;,
+     *     "msg" : "&lt;commitMessage&gt;"
+     *   },
+     *   ...
+     * ]
      * </pre>
      *
      * @param since      timestamp (ms) of earliest revision to be returned
      * @param maxEntries maximum #entries to be returned;
      *                   if < 0, no limit will be applied.
-     * @return a chronological list of revisions in JSON format.
+     * @return a list of revisions in chronological order in JSON format.
      * @throws MicroKernelException if an error occurs
      */
-    String /* jsonArray */ getRevisions(long since, int maxEntries)
+    String /* jsonArray */ getRevisionHistory(long since, int maxEntries)
             throws MicroKernelException;
 
     /**
@@ -91,18 +99,20 @@ public interface MicroKernel {
      * will return immediately, i.e. calling {@code waitForCommit(0)} is
      * equivalent to calling {@code getHeadRevision()}.
      *
-     * @param oldHeadRevisionId id of previous head revision
+     * @param oldHeadRevisionId id of earlier head revision
      * @param timeout the maximum time to wait in milliseconds
      * @return the id of the head revision
      * @throws MicroKernelException if an error occurs
      * @throws InterruptedException if the thread was interrupted
      */
-    String waitForCommit(String oldHeadRevisionId, long timeout) throws MicroKernelException, InterruptedException;
+    String waitForCommit(String oldHeadRevisionId, long timeout)
+            throws MicroKernelException, InterruptedException;
 
     /**
      * Returns a revision journal, starting with {@code fromRevisionId}
-     * and ending with {@code toRevisionId} in ascending chronological order
-     * the revision denoted by {@code fromRevisionId} is expected to be older
+     * and ending with {@code toRevisionId} in chronological order.
+     * <p/>
+     * The revision denoted by {@code fromRevisionId} is expected to be older
      * i.e. than the one denoted by {@code toRevisionId});
      * <p/>
      * Format:
@@ -110,7 +120,7 @@ public interface MicroKernel {
      * [
      *   {
      *     "id" : "&lt;revisionId&gt;",
-     *     "ts" : "&lt;revisionTimestamp&gt;",
+     *     "ts" : &lt;revisionTimestamp&gt;,
      *     "msg" : "&lt;commitMessage&gt;",
      *     "changes" : "&lt;JSON diff&gt;"
      *   },
@@ -250,7 +260,9 @@ public interface MicroKernel {
      * @return node tree in JSON format or {@code null} if the specified node does not exist
      * @throws MicroKernelException if the specified revision does not exist or if another error occurs
      */
-    String /* jsonTree */ getNodes(String path, String revisionId, int depth, long offset, int count, String filter) throws MicroKernelException;
+    String /* jsonTree */ getNodes(String path, String revisionId, int depth,
+                                   long offset, int count, String filter)
+            throws MicroKernelException;
 
     //------------------------------------------------------------< WRITE ops >
 
@@ -273,7 +285,8 @@ public interface MicroKernel {
      * @return id of newly created revision
      * @throws MicroKernelException if an error occurs
      */
-    String /* revisionId */ commit(String path, String jsonDiff, String revisionId, String message)
+    String /* revisionId */ commit(String path, String jsonDiff,
+                                   String revisionId, String message)
             throws MicroKernelException;
 
     /**
@@ -282,8 +295,8 @@ public interface MicroKernel {
      * <p/>
      * A {@code MicroKernelException} is thrown if {@code trunkRevisionId} doesn't
      * exist, if it's not a <i>trunk</i> revision (i.e. it's not reachable
-     * by traversing the revision history backwards starting from the current
-     * head revision) or if another error occurs.
+     * by traversing the revision history in reverse chronological order starting
+     * from the current head revision) or if another error occurs.
      *
      * @param trunkRevisionId id of public trunk revision to base branch on,
      *                        if {@code null} the current head revision is assumed
