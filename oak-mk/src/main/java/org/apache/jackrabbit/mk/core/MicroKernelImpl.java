@@ -108,7 +108,7 @@ public class MicroKernelImpl implements MicroKernel {
         }
     }
 
-    public String getRevisions(long since, int maxEntries) throws MicroKernelException {
+    public String getRevisionHistory(long since, int maxEntries) throws MicroKernelException {
         if (rep == null) {
             throw new IllegalStateException("this instance has already been disposed");
         }
@@ -137,6 +137,7 @@ public class MicroKernelImpl implements MicroKernel {
             buff.object().
                     key("id").value(commit.getId().toString()).
                     key("ts").value(commit.getCommitTS()).
+                    key("msg").value(commit.getMsg()).
                     endObject();
         }
         return buff.endArray().toString();
@@ -209,10 +210,22 @@ public class MicroKernelImpl implements MicroKernel {
         // TODO extract and evaluate filter criteria (such as e.g. 'path') specified in 'filter' parameter
         String path = "/";
 
-        Id toRevisionId = toRevision == null ? getHeadRevisionId() : Id.fromString(toRevision);
+        Id fromRevisionId, toRevisionId;
+        if (fromRevision == null || toRevision == null) {
+            Id head = getHeadRevisionId();
+            fromRevisionId = fromRevision == null ? head : Id.fromString(fromRevision);
+            toRevisionId = toRevision == null ? head : Id.fromString(toRevision);
+        } else {
+            fromRevisionId = Id.fromString(fromRevision);
+            toRevisionId = Id.fromString(toRevision);
+        }
+
+        if (fromRevisionId.equals(toRevisionId)) {
+            return "";
+        }
 
         try {
-            NodeState before = rep.getNodeState(Id.fromString(fromRevision), path);
+            NodeState before = rep.getNodeState(fromRevisionId, path);
             NodeState after = rep.getNodeState(toRevisionId, path);
 
             return new DiffBuilder(before, after, path, rep.getRevisionStore(), filter).build();

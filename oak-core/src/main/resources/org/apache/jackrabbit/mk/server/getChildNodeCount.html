@@ -1,6 +1,6 @@
 <html>
 <head>
-<title>&micro;Kernel prototype: getRevisions</title>
+<title>&micro;Kernel prototype: getLength</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
 <link rel="stylesheet" type="text/css" href="main.css"/>
 </head>
@@ -8,16 +8,16 @@
 <body>
     <script src="header.js"></script>
     <div class="content">
-        <h1>Revision Operations: getRevisions</h1>
+        <h1>Read Operations: getChildNodeCount</h1>
         <form method="POST" target="result">
         <table class="formtable">
             <tr>
-                <td>Since</td>
-                <td><input class="text" type="text" name="since" id="since" value="0"></td>
+                <td>Path</td>
+                <td><input class="text" type="text" name="path" id="path" value="/"></td>
             </tr>
             <tr>
-                <td>Max Entries</td>
-                <td><input class="text" type="text" name="max_entries" id="max_entries" value="10"></td>
+                <td>Revision ID</td>
+                <td><input class="text" type="text" name="revision_id" id="revision_id" value=""></td>
             </tr>
             <tr><td>&nbsp;</td><td>
             <input type="submit"><br></td></tr></table>

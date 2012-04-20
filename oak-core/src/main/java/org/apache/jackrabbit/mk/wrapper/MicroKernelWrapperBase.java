@@ -59,7 +59,7 @@ public abstract class MicroKernelWrapperBase implements MicroKernel, MicroKernel
         return diffStream(fromRevisionId, toRevisionId, filter).toString();
     }
 
-    public final String getRevisions(long since, int maxEntries) {
+    public final String getRevisionHistory(long since, int maxEntries) {
         return getRevisionsStream(since, maxEntries).toString();
     }
 
@@ -106,7 +106,7 @@ public abstract class MicroKernelWrapperBase implements MicroKernel, MicroKernel
             }
 
             public JsopReader getRevisionsStream(long since, int maxEntries) {
-                return new JsopTokenizer(wrapped.getRevisions(since, maxEntries));
+                return new JsopTokenizer(wrapped.getRevisionHistory(since, maxEntries));
             }
 
             public JsopReader diffStream(String fromRevisionId, String toRevisionId, String path) {
@@ -153,8 +153,8 @@ public abstract class MicroKernelWrapperBase implements MicroKernel, MicroKernel
                 return wrapped.getNodes(path, revisionId, depth, offset, count, filter);
             }
 
-            public String getRevisions(long since, int maxEntries) {
-                return wrapped.getRevisions(since, maxEntries);
+            public String getRevisionHistory(long since, int maxEntries) {
+                return wrapped.getRevisionHistory(since, maxEntries);
             }
 
             public boolean nodeExists(String path, String revisionId) {

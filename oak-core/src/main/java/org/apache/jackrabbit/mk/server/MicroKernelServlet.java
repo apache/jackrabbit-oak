@@ -74,7 +74,7 @@ class MicroKernelServlet {
 
     static {
         COMMANDS.put("getHeadRevision", new GetHeadRevision());
-        COMMANDS.put("getRevisions", new GetRevisions());
+        COMMANDS.put("getRevisionHistory", new GetRevisionHistory());
         COMMANDS.put("waitForCommit", new WaitForCommit());
         COMMANDS.put("getJournal", new GetJournal());
         COMMANDS.put("diff", new Diff());
@@ -99,7 +99,7 @@ class MicroKernelServlet {
         }        
     }
 
-    static class GetRevisions implements Command {
+    static class GetRevisionHistory implements Command {
         
         public void execute(MicroKernel mk, Request request, Response response)
                 throws IOException, MicroKernelException {
@@ -108,7 +108,7 @@ class MicroKernelServlet {
             int maxEntries = request.getParameter("max_entries", 10);
 
             response.setContentType("application/json");
-            String json = mk.getRevisions(since, maxEntries);
+            String json = mk.getRevisionHistory(since, maxEntries);
             if (request.getHeaders().containsKey("User-Agent")) {
                 json = JsopBuilder.prettyPrint(json);
             }

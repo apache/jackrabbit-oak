@@ -115,13 +115,13 @@ public class Client implements MicroKernel {
         }
     }
 
-    public synchronized String getRevisions(long since, int maxEntries)
+    public synchronized String getRevisionHistory(long since, int maxEntries)
             throws MicroKernelException {
 
         Request request = null;
 
         try {
-            request = createRequest("getRevisions");
+            request = createRequest("getRevisionHistory");
             request.addParameter("since", since);
             request.addParameter("max_entries", maxEntries);
             return request.getString();
