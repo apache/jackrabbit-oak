@@ -60,8 +60,8 @@ public class DefaultRevisionStore extends AbstractRevisionStore
     private final Persistence pm;
     private final GCPersistence gcpm;
 
-    private int initialCacheSize;
-    private Map<Id, Object> cache;
+    /* avoid synthetic accessor */ int initialCacheSize;
+    /* avoid synthetic accessor */ Map<Id, Object> cache;
 
     /**
      * GC run state constants.
@@ -118,7 +118,9 @@ public class DefaultRevisionStore extends AbstractRevisionStore
             gcExecutor.scheduleWithFixedDelay(new Runnable() {
                 @Override
                 public void run() {
-                    doGC();
+                    if (cache.size() >= initialCacheSize) {
+                        gc();
+                    }
                 }
             }, 60, 60, TimeUnit.SECONDS);
         }
@@ -135,7 +137,7 @@ public class DefaultRevisionStore extends AbstractRevisionStore
 
         cache.clear();
 
-        IOUtils.closeQuietly((Closeable) pm);
+        IOUtils.closeQuietly(pm);
 
         initialized = false;
     }
@@ -382,12 +384,12 @@ public class DefaultRevisionStore extends AbstractRevisionStore
 
     //----------------------------------------------------------------------- GC
 
-    void doGC() {
-        if (cache.size() < initialCacheSize) {
-            // GC unneeded
-            return;
-        }
-        if (!gcState.compareAndSet(NOT_ACTIVE, STARTING)) {
+    /**
+     * Perform a garbage collection. If a garbage collection cycle is already
+     * running, this method returns immediately. 
+     */
+    public void gc() {
+        if (gcpm == null || !gcState.compareAndSet(NOT_ACTIVE, STARTING)) {
             // already running
             return;
         }
@@ -397,20 +399,7 @@ public class DefaultRevisionStore extends AbstractRevisionStore
         gcState.set(MARKING);
         
         try {
-            StoredCommit commit = getHeadCommit();
-            long tsLimit = commit.getCommitTS() - (60 * 60 * 1000);
-            
-            for (;;) {
-                markCommit(commit);
-                Id id = commit.getParentId();
-                if (id == null) {
-                    break;
-                }
-                commit = getCommit(id);
-                if (commit.getCommitTS() < tsLimit) {
-                    break;
-                }
-            }
+            doMark();
         } catch (Exception e) {
             /* unable to perform GC */
             gcState.set(NOT_ACTIVE);
@@ -428,8 +417,32 @@ public class DefaultRevisionStore extends AbstractRevisionStore
             gcState.set(NOT_ACTIVE);
         }
     }
+    
+    /**
+     * Mark all commits and nodes in a garbage collection cycle. Can be
+     * customized by subclasses. If this method throws an exception, the
+     * cycle will be stopped without sweeping.
+     * 
+     * @throws Exception if an error occurs
+     */
+    protected void doMark() throws Exception {
+        StoredCommit commit = getHeadCommit();
+        long tsLimit = commit.getCommitTS() - (60 * 60 * 1000);
+        
+        for (;;) {
+            markCommit(commit);
+            Id id = commit.getParentId();
+            if (id == null) {
+                break;
+            }
+            commit = getCommit(id);
+            if (commit.getCommitTS() < tsLimit) {
+                break;
+            }
+        }
+    }
 
-    private void markCommit(StoredCommit commit) 
+    protected void markCommit(StoredCommit commit) 
             throws Exception {
         
         if (!gcpm.markCommit(commit.getId())) {
