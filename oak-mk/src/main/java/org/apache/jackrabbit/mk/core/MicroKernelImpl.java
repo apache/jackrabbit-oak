@@ -187,12 +187,12 @@ public class MicroKernelImpl implements MicroKernel {
                 }
                 Id commitId = commit.getParentId();
                 if (commitId == null) {
-                    // shouldn't get here, ignore
+                    // inconsistent revision history, ignore silently...
                     break;
                 }
                 commit = rep.getCommit(commitId);
                 if (commit.getCommitTS() < fromCommit.getCommitTS()) {
-                    // shouldn't get here, ignore
+                    // inconsistent revision history, ignore silently...
                     break;
                 }
             }

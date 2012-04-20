@@ -130,6 +130,8 @@ public class SimpleKernelImpl extends MicroKernelWrapperBase implements MicroKer
     }
 
     public synchronized String commitStream(String rootPath, JsopReader jsonDiff, String revisionId, String message) {
+        revisionId = revisionId == null ? headRevision : revisionId;
+
         // TODO message should be json
         // TODO read / write version
         // TODO getJournal and getRevision don't have a path,
@@ -380,6 +382,9 @@ public class SimpleKernelImpl extends MicroKernelWrapperBase implements MicroKer
     }
 
     public JsopReader getJournalStream(String fromRevisionId, String toRevisionId, String filter) {
+        fromRevisionId = fromRevisionId == null ? headRevision : fromRevisionId;
+        toRevisionId = toRevisionId == null ? headRevision : toRevisionId;
+
         long fromRev = Revision.parseId(fromRevisionId);
         long toRev = Revision.parseId(toRevisionId);
         NodeImpl node = getRoot();
@@ -444,6 +449,8 @@ public class SimpleKernelImpl extends MicroKernelWrapperBase implements MicroKer
 
 
     public JsopReader diffStream(String fromRevisionId, String toRevisionId, String filter) {
+        fromRevisionId = fromRevisionId == null ? headRevision : fromRevisionId;
+        toRevisionId = toRevisionId == null ? headRevision : toRevisionId;
         // TODO implement if required
         return new JsopStream();
     }
@@ -463,6 +470,8 @@ public class SimpleKernelImpl extends MicroKernelWrapperBase implements MicroKer
     }
 
     public JsopReader getNodesStream(String path, String revisionId, int depth, long offset, int count, String filter) {
+        revisionId = revisionId == null ? headRevision : revisionId;
+
         // TODO offset > 0 should mean the properties are not included
         if (count < 0) {
             count = nodeMap.getMaxMemoryChildren();
@@ -520,6 +529,8 @@ public class SimpleKernelImpl extends MicroKernelWrapperBase implements MicroKer
     }
 
     public boolean nodeExists(String path, String revisionId) {
+        revisionId = revisionId == null ? headRevision : revisionId;
+
         if (!PathUtils.isAbsolute(path)) {
             throw ExceptionFactory.get("Not an absolute path: " + path);
         }
@@ -532,6 +543,8 @@ public class SimpleKernelImpl extends MicroKernelWrapperBase implements MicroKer
     }
 
     public long getChildNodeCount(String path, String revisionId) {
+        revisionId = revisionId == null ? headRevision : revisionId;
+
         if (!PathUtils.isAbsolute(path)) {
             throw ExceptionFactory.get("Not an absolute path: " + path);
         }
@@ -569,6 +582,8 @@ public class SimpleKernelImpl extends MicroKernelWrapperBase implements MicroKer
     }
 
     public String branch(String trunkRevisionId) throws MicroKernelException {
+        trunkRevisionId = trunkRevisionId == null ? headRevision : trunkRevisionId;
+
         // TODO OAK-45 support
         throw new UnsupportedOperationException();
     }

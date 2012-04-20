@@ -34,7 +34,7 @@ public class StoredCommit extends AbstractCommit {
         String branchRootId = binding.readStringValue("branchRootId");
         return new StoredCommit(id, "".equals(parentId) ? null : Id.fromString(parentId),
                 commitTS, rootNodeId, "".equals(msg) ? null : msg, changes,
-                "".equals(parentId) ? null : Id.fromString(branchRootId));
+                "".equals(branchRootId) ? null : Id.fromString(branchRootId));
     }
 
     public StoredCommit(Id id, Id parentId, long commitTS, Id rootNodeId, String msg, String changes, Id branchRootId) {
