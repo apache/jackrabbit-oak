@@ -98,7 +98,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public String getPath() throws RepositoryException {
-        return '/' + path();
+        return path();
     }
 
     /**
@@ -852,30 +852,30 @@ public class NodeImpl extends ItemImpl implements Node  {
 
     }
 
-    //--------------------------------------------------------------------------
+    //------------------------------------------------------------< package >---
+
+    String path() {
+        return '/' + getTransientNodeState().getPath();
+    }
+
+    //------------------------------------------------------------< private >---
+
     /**
      * Access to TransientNodeState to allow code in other packages to
      * access item states.
      *
      * @return The node state.
-     * FIXME this should not be public in order to avoid clients to access internals through casting to the implementation
      */
-    public TransientNodeState getState() {
+    private TransientNodeState getState() {
         return getTransientNodeState();
     }
-
-    //------------------------------------------------------------< private >---
 
     private Branch getBranch() {
         return sessionContext.getBranch();
     }
-    
+
     private synchronized TransientNodeState getTransientNodeState() {
         return transientNodeState = getBranch().getNode(transientNodeState.getPath());
-    }
-
-    private String path() {
-        return getTransientNodeState().getPath();
     }
 
     private Iterator<Node> nodeIterator(Iterator<TransientNodeState> childNodeStates) {
