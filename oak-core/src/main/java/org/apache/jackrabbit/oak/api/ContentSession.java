@@ -19,8 +19,9 @@ package org.apache.jackrabbit.oak.api;
 import java.io.Closeable;
 
 /**
- * The {@code Connection} interface ...
- *
+ * Authentication session for accessing (TODO: a workspace inside) a content
+ * repository.
+ * <p>
  * - retrieving information from persistent layer (MK) that are accessible to
  *   a given JCR session
  *
@@ -32,20 +33,14 @@ import java.io.Closeable;
  *
  * - Provide access to authentication and authorization related information
  *
- * - Connection instances are not thread safe.
- *
  * - The implementation of this and all related interfaces are intended to only
  *   hold the state of the persistent layer at a given revision without any
  *   session-related state modifications.
- *
- * - Whether this connection is bound to a workspace or to the whole repository
- *   is determined by how the connection was acquired: connections acquired by
- *   {@link ContentRepository#login(Object, String)} are bound to the workspace
- *   passed to the login method. Connections acquired by
- *   {@link ContentSession#getRepositoryConnection()} are bound to the whole repository.
- *   TODO: check if that is really necessary, desirable and feasible.
- *
- * TODO: describe how this interface is intended to handle validation: nt, names, ac, constraints...
+ * <p>
+ * TODO: describe how this interface is intended to handle validation:
+ * nt, names, ac, constraints...
+ * <p>
+ * This interface is thread-safe.
  */
 public interface ContentSession extends Closeable {
 
@@ -69,15 +64,6 @@ public interface ContentSession extends Closeable {
      * {@code null} if this connection is repository bound.
      */
     String getWorkspaceName();
-
-    /**
-     * Provide access to the whole repository (i.e. all workspaces) respecting
-     * the access rights of the current connection. This method returns the
-     * same connection instance on every invocation.
-     *
-     * @return a {@code Connection} which covers the whole repository.
-     */
-    ContentSession getRepositoryConnection();
 
     /**
      * Refresh this connection to the latest revision of the underlying Microkernel.

@@ -123,11 +123,6 @@ public class ConnectionImpl implements ContentSession {
     }
 
     @Override
-    public ContentSession getRepositoryConnection() {
-        return new ConnectionImpl(credentials, null, store, store.getRoot(), queryEngine);
-    }
-
-    @Override
     public QueryEngine getQueryEngine() {
         return queryEngine;
     }
