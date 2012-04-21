@@ -16,12 +16,12 @@
  */
 package org.apache.jackrabbit.mk.concurrent;
 
+import org.h2.util.Profiler;
+
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-
-import org.h2.util.Profiler;
 
 /**
  * A concurrency test tool.
@@ -29,6 +29,9 @@ import org.h2.util.Profiler;
 public class Concurrent {
 
     private static final boolean PROFILE = false;
+
+    private Concurrent() {
+    }
 
     /**
      * Run a task concurrently in 2 threads for 1 second.
