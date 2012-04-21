@@ -202,6 +202,7 @@ class HttpExecutor implements Closeable {
     /**
      * Close this executor.
      */
+    @Override
     public void close() {
         IOUtils.closeQuietly(socketOut);
         IOUtils.closeQuietly(socketIn);

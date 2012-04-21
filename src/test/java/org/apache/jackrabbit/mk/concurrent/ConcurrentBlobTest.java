@@ -44,6 +44,7 @@ public class ConcurrentBlobTest {
     public void test() throws Exception {
         final AtomicInteger id = new AtomicInteger();
         Concurrent.run("blob", new Concurrent.Task() {
+            @Override
             public void call() throws Exception {
                 int i = id.getAndIncrement();
                 ByteArrayOutputStream out = new ByteArrayOutputStream();

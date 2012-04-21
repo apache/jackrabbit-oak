@@ -99,6 +99,7 @@ public class NodeListTrie implements NodeList {
         children.add(index, c);
     }
 
+    @Override
     public boolean containsKey(String name) {
         int index = getChildIndex(name);
         if (index < 0) {
@@ -120,6 +121,7 @@ public class NodeListTrie implements NodeList {
         return n.getNodeList();
     }
 
+    @Override
     public NodeId get(String name) {
         int index = getChildIndex(name);
         if (index < 0) {
@@ -130,6 +132,7 @@ public class NodeListTrie implements NodeList {
         return list.get(name);
     }
 
+    @Override
     public String getName(long pos) {
         int i = 0;
         for (; i < children.size(); i++) {
@@ -144,6 +147,7 @@ public class NodeListTrie implements NodeList {
         return null;
     }
 
+    @Override
     public Iterator<String> getNames(long offset, final int maxCount) {
         int i = 0;
         for (; i < children.size(); i++) {
@@ -161,6 +165,7 @@ public class NodeListTrie implements NodeList {
             int remaining = maxCount;
             long offset = off;
             Iterator<String> it;
+            @Override
             public boolean hasNext() {
                 if (it != null && it.hasNext()) {
                     return true;
@@ -175,6 +180,7 @@ public class NodeListTrie implements NodeList {
                 return false;
             }
 
+            @Override
             public String next() {
                 if (hasNext()) {
                     remaining--;
@@ -184,6 +190,7 @@ public class NodeListTrie implements NodeList {
                 }
             }
 
+            @Override
             public void remove() {
                 throw new UnsupportedOperationException();
             }
@@ -210,6 +217,7 @@ public class NodeListTrie implements NodeList {
         return -(min + 1);
     }
 
+    @Override
     public void add(String name, NodeId x) {
         int index = getChildIndex(name);
         if (index < 0) {
@@ -225,6 +233,7 @@ public class NodeListTrie implements NodeList {
         size++;
     }
 
+    @Override
     public void replace(String name, NodeId x) {
         int index = getChildIndex(name);
         if (index < 0) {
@@ -236,6 +245,7 @@ public class NodeListTrie implements NodeList {
         }
     }
 
+    @Override
     public NodeId remove(String name) {
         int index = getChildIndex(name);
         if (index < 0) {
@@ -246,6 +256,7 @@ public class NodeListTrie implements NodeList {
         return list.remove(name);
     }
 
+    @Override
     public long size() {
         return size;
     }
@@ -264,6 +275,7 @@ public class NodeListTrie implements NodeList {
 
     }
 
+    @Override
     public NodeList createClone(NodeMap map, long revId) {
         if (revId == this.revId) {
             return this;
@@ -292,12 +304,14 @@ public class NodeListTrie implements NodeList {
         return result;
     }
 
+    @Override
     public void visit(ChildVisitor v) {
         for (Child c : children) {
             v.accept(c.id);
         }
     }
 
+    @Override
     public void append(JsopWriter json, NodeMap map) {
         for (Child c : children) {
             json.key(NodeImpl.CHILDREN);
@@ -349,10 +363,12 @@ public class NodeListTrie implements NodeList {
         return list;
     }
 
+    @Override
     public int getMemory() {
         return children.size() * 100;
     }
 
+    @Override
     public void updateHash(NodeMap map, OutputStream out) throws IOException {
         for (Child c : children) {
             byte[] hash = c.id.getHash();

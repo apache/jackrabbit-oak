@@ -33,6 +33,7 @@ public class ConcurrentCacheTest implements Cache.Backend<Integer, ConcurrentCac
     @Test
     public void test() throws Exception {
         Concurrent.run("cache", new Concurrent.Task() {
+            @Override
             public void call() throws Exception {
                 int k = value++ % 10;
                 Data v = cache.get(k);
@@ -41,6 +42,7 @@ public class ConcurrentCacheTest implements Cache.Backend<Integer, ConcurrentCac
         });
     }
 
+    @Override
     public Data load(Integer key) {
         int start = counter.get();
         try {
@@ -62,6 +64,7 @@ public class ConcurrentCacheTest implements Cache.Backend<Integer, ConcurrentCac
             this.value = value;
         }
 
+        @Override
         public int getMemory() {
             return 1;
         }

@@ -67,6 +67,7 @@ class BoundaryInputStream extends InputStream {
         buf = new byte[size];
     }
 
+    @Override
     public int read() throws IOException {
         if (eos) {
             return -1;

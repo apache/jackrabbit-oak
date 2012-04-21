@@ -97,6 +97,7 @@ public class Revision implements Comparable<Revision>, Cache.Value {
         return "";
     }
 
+    @Override
     public int compareTo(Revision o) {
         return id < o.id ? -1 : id > o.id ? 1 : 0;
     }
@@ -140,6 +141,7 @@ public class Revision implements Comparable<Revision>, Cache.Value {
         endObject().newline();
     }
 
+    @Override
     public int getMemory() {
         return (getDiff().length() + getMsg().length()) * 2;
     }

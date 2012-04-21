@@ -28,10 +28,12 @@ public class Cursor implements Iterator<String> {
     private int pos;
     private String currentValue;
 
+    @Override
     public boolean hasNext() {
         return current != null;
     }
 
+    @Override
     public String next() {
         if (current == null) {
             currentValue = null;
@@ -61,6 +63,7 @@ public class Cursor implements Iterator<String> {
         }
     }
 
+    @Override
     public void remove() {
         throw new UnsupportedOperationException();
     }
@@ -88,14 +91,17 @@ public class Cursor implements Iterator<String> {
                 }
             }
         }
+        @Override
         public boolean hasNext() {
             return value != null;
         }
+        @Override
         public String next() {
             String v = value;
             step();
             return v;
         }
+        @Override
         public void remove() {
             throw new UnsupportedOperationException();
         }

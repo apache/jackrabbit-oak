@@ -16,10 +16,11 @@
  */
 package org.apache.jackrabbit.mk.index;
 
-import java.util.Arrays;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.mk.util.ArrayUtils;
 import org.apache.jackrabbit.mk.util.PathUtils;
+
+import java.util.Arrays;
 
 /**
  * An index leaf page.
@@ -34,10 +35,12 @@ class BTreeLeaf extends BTreePage {
         return parent == null ? null : parent.next(this);
     }
 
+    @Override
     BTreeLeaf firstLeaf() {
         return this;
     }
 
+    @Override
     void split(BTreeNode newParent, String newName, int pos, String siblingName) {
         setParent(newParent, newName, true);
         String[] k2 = Arrays.copyOfRange(keys, pos, keys.length, String[].class);
@@ -67,6 +70,7 @@ class BTreeLeaf extends BTreePage {
         tree.bufferSetArray(getPath(), "values", values);
     }
 
+    @Override
     void writeCreate() {
         tree.modified(this);
         JsopBuilder jsop = new JsopBuilder();

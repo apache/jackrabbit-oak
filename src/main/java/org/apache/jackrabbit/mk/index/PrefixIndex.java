@@ -44,10 +44,12 @@ public class PrefixIndex implements Index {
         return new PrefixIndex(indexer, prefix);
     }
 
+    @Override
     public String getName() {
         return tree.getName();
     }
 
+    @Override
     public void addOrRemoveNode(NodeImpl node, boolean add) {
         String nodePath = node.getPath();
         for (int i = 0, size = node.getPropertyCount(); i < size; i++) {
@@ -57,6 +59,7 @@ public class PrefixIndex implements Index {
         }
     }
 
+    @Override
     public void addOrRemoveProperty(String nodePath, String propertyName,
             String value, boolean add) {
         JsopTokenizer t = new JsopTokenizer(value);

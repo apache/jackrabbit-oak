@@ -82,6 +82,7 @@ public class SecurityWrapper extends MicroKernelWrapperBase implements MicroKern
         this.write = canWrite;
     }
 
+    @Override
     public String commitStream(String rootPath, JsopReader jsonDiff, String revisionId, String message) {
         checkRights(rootPath, true);
         if (!admin) {
@@ -90,13 +91,16 @@ public class SecurityWrapper extends MicroKernelWrapperBase implements MicroKern
         return mk.commitStream(rootPath, jsonDiff, revisionId, message);
     }
 
+    @Override
     public void dispose() {
     }
 
+    @Override
     public String getHeadRevision() {
         return mk.getHeadRevision();
     }
 
+    @Override
     public JsopReader getJournalStream(String fromRevisionId, String toRevisionId, String filter) {
         rightsRevision = getHeadRevision();
         JsopReader t = mk.getJournalStream(fromRevisionId, toRevisionId, filter);
@@ -140,6 +144,7 @@ public class SecurityWrapper extends MicroKernelWrapperBase implements MicroKern
         return buff;
     }
 
+    @Override
     public JsopReader diffStream(String fromRevisionId, String toRevisionId, String path) {
         rightsRevision = getHeadRevision();
         JsopReader diff = mk.diffStream(fromRevisionId, toRevisionId, path);
@@ -269,14 +274,17 @@ public class SecurityWrapper extends MicroKernelWrapperBase implements MicroKern
         return false;
     }
 
+    @Override
     public long getLength(String blobId) {
         return mk.getLength(blobId);
     }
 
+    @Override
     public JsopReader getNodesStream(String path, String revisionId) {
         return getNodesStream(path, revisionId, 1, 0, -1, null);
     }
 
+    @Override
     public JsopReader getNodesStream(String path, String revisionId, int depth, long offset, int count, String filter) {
         rightsRevision = getHeadRevision();
         if (!checkRights(path, false)) {
@@ -300,10 +308,12 @@ public class SecurityWrapper extends MicroKernelWrapperBase implements MicroKern
         return buff;
     }
 
+    @Override
     public JsopReader getRevisionsStream(long since, int maxEntries) {
         return mk.getRevisionsStream(since, maxEntries);
     }
 
+    @Override
     public boolean nodeExists(String path, String revisionId) {
         rightsRevision = getHeadRevision();
         if (!checkRights(path, false)) {
@@ -312,6 +322,7 @@ public class SecurityWrapper extends MicroKernelWrapperBase implements MicroKern
         return mk.nodeExists(path, revisionId);
     }
 
+    @Override
     public long getChildNodeCount(String path, String revisionId) {
         rightsRevision = getHeadRevision();
         if (!checkRights(path, false)) {
@@ -320,25 +331,30 @@ public class SecurityWrapper extends MicroKernelWrapperBase implements MicroKern
         return mk.getChildNodeCount(path, revisionId);
     }
 
+    @Override
     public int read(String blobId, long pos, byte[] buff, int off, int length) {
         return mk.read(blobId, pos, buff, off, length);
     }
 
+    @Override
     public String waitForCommit(String oldHeadRevisionId, long maxWaitMillis) throws InterruptedException {
         return mk.waitForCommit(oldHeadRevisionId, maxWaitMillis);
     }
 
+    @Override
     public String write(InputStream in) {
         rightsRevision = getHeadRevision();
         checkRights(null, true);
         return mk.write(in);
     }
 
+    @Override
     public String branch(String trunkRevisionId) {
         // TODO OAK-45 support
         return mk.branch(trunkRevisionId);
     }
 
+    @Override
     public String merge(String branchRevisionId, String message) {
         // TODO OAK-45 support
         return mk.merge(branchRevisionId, message);
