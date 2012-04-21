@@ -16,12 +16,6 @@
  */
 package org.apache.jackrabbit.mk.simple;
 
-import java.io.OutputStream;
-import java.security.DigestOutputStream;
-import java.security.MessageDigest;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
@@ -33,6 +27,13 @@ import org.apache.jackrabbit.mk.util.PathUtils;
 import org.apache.jackrabbit.mk.util.StringCache;
 import org.apache.jackrabbit.mk.util.StringUtils;
 
+import java.io.OutputStream;
+import java.security.DigestOutputStream;
+import java.security.MessageDigest;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+
 /**
  * An in-memory node, including all child nodes.
  */
@@ -43,7 +44,7 @@ public class NodeImpl implements Cache.Value {
     /**
      * The child node count.
      */
-    public static final String CHILREN_COUNT = ":childNodeCount";
+    public static final String CHILDREN_COUNT = ":childNodeCount";
 
     /**
      * The total number of child nodes.
@@ -306,11 +307,11 @@ public class NodeImpl implements Cache.Value {
         }
         if (childNodes == null) {
             if (childNodeCount) {
-                json.key(CHILREN_COUNT).value(0);
+                json.key(CHILDREN_COUNT).value(0);
             }
         } else {
             if (childNodeCount) {
-                json.key(CHILREN_COUNT).value(childNodes.size());
+                json.key(CHILDREN_COUNT).value(childNodes.size());
             }
             if (descendantCount > childNodes.size()) {
                 if (map.getDescendantCount()) {
@@ -468,7 +469,7 @@ public class NodeImpl implements Cache.Value {
                 } else {
                     String value = t.readRawValue().trim();
                     if (key.length() > 0 && key.charAt(0) == ':') {
-                        if (key.equals(CHILREN_COUNT)) {
+                        if (key.equals(CHILDREN_COUNT)) {
                             node.totalChildNodeCount = Long.parseLong(value);
                         } else if (key.equals(HASH)) {
                             value = JsopTokenizer.decodeQuoted(value);
