@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -27,19 +28,18 @@ import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.SimpleCredentials;
 import java.io.IOException;
 
 /**
- * ConnectionImpl...
+ * {@link MicroKernel}-based implementation of
+ * the {@link ContentSession} interface.
  */
-public class ConnectionImpl implements ContentSession {
+class KernelContentSession implements ContentSession {
 
-    /**
-     * logger instance
-     */
-    private static final Logger log = LoggerFactory.getLogger(ConnectionImpl.class);
+    /** Logger instance */
+    private static final Logger log =
+            LoggerFactory.getLogger(KernelContentSession.class);
 
     private final SimpleCredentials credentials;
     private final String workspaceName;
@@ -48,26 +48,14 @@ public class ConnectionImpl implements ContentSession {
 
     private NodeState root;
 
-    private ConnectionImpl(SimpleCredentials credentials, String workspaceName,
+    public KernelContentSession(
+            SimpleCredentials credentials, String workspaceName,
             NodeStore store, NodeState root, QueryEngine queryEngine) {
         this.credentials = credentials;
         this.workspaceName = workspaceName;
         this.store = store;
         this.queryEngine = queryEngine;
         this.root = root;
-    }
-
-    static ContentSession createWorkspaceConnection(SimpleCredentials credentials,
-            String workspace, NodeStore store, String revision, QueryEngine queryEngine)
-            throws NoSuchWorkspaceException {
-
-        // TODO set revision!?
-        NodeState wspRoot = store.getRoot().getChildNode(workspace);
-        if (wspRoot == null) {
-            throw new NoSuchWorkspaceException(workspace);
-        }
-
-        return new ConnectionImpl(credentials, workspace, store, wspRoot, queryEngine);
     }
 
     @Override
