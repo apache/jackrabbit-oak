@@ -16,22 +16,18 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import javax.jcr.AccessDeniedException;
 import javax.jcr.NamespaceException;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.RepositoryException;
-import javax.jcr.UnsupportedRepositoryOperationException;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * A naive implementation of {@link NamespaceRegistry}, hard-wiring the
  * predefined namespaces for now.
  */
 public class NamespaceRegistryImpl implements NamespaceRegistry {
-
-    private Map<String, String> map;
+    private final Map<String, String> map;
 
     public NamespaceRegistryImpl() {
         map = new HashMap<String, String>();
@@ -44,15 +40,13 @@ public class NamespaceRegistryImpl implements NamespaceRegistry {
     }
 
     @Override
-    public void registerNamespace(String prefix, String uri) throws NamespaceException,
-            UnsupportedRepositoryOperationException, AccessDeniedException, RepositoryException {
+    public void registerNamespace(String prefix, String uri) throws RepositoryException {
         // TODO
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public void unregisterNamespace(String prefix) throws NamespaceException, UnsupportedRepositoryOperationException,
-            AccessDeniedException, RepositoryException {
+    public void unregisterNamespace(String prefix) throws RepositoryException {
         // TODO
         throw new UnsupportedOperationException();
     }
@@ -68,7 +62,7 @@ public class NamespaceRegistryImpl implements NamespaceRegistry {
     }
 
     @Override
-    public String getURI(String prefix) throws NamespaceException, RepositoryException {
+    public String getURI(String prefix) throws RepositoryException {
         String result = map.get(prefix);
         if (result == null) {
             throw new NamespaceException();
@@ -77,7 +71,7 @@ public class NamespaceRegistryImpl implements NamespaceRegistry {
     }
 
     @Override
-    public String getPrefix(String uri) throws NamespaceException, RepositoryException {
+    public String getPrefix(String uri) throws RepositoryException {
         for (Map.Entry<String, String> entry : map.entrySet()) {
             if (entry.getValue().equals(uri)) {
                 return entry.getKey();
