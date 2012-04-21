@@ -51,11 +51,23 @@ public class KernelContentRepository implements ContentRepository {
     public KernelContentRepository(MicroKernel mk) {
         microKernel = mk;
         nodeStore = new KernelNodeStore(microKernel);
+
+        // FIXME: workspace setup must be done elsewhere...
+        NodeState root = nodeStore.getRoot();
+        NodeState wspNode = root.getChildNode(DEFAULT_WORKSPACE_NAME);
+        if (wspNode == null) {
+            Branch branch = nodeStore.branch(root);
+            branch.getNode("/").addNode(DEFAULT_WORKSPACE_NAME);
+            nodeStore.merge(branch);
+        }
     }
 
     @Override
     public ContentSession login(Object credentials, String workspaceName)
             throws LoginException, NoSuchWorkspaceException {
+        if (workspaceName == null) {
+            workspaceName = DEFAULT_WORKSPACE_NAME;
+        }
 
         // TODO: add proper implementation
         // TODO  - authentication against configurable spi-authentication
@@ -74,20 +86,6 @@ public class KernelContentRepository implements ContentRepository {
             throw new LoginException("login failed");
         }
 
-        final String wspName = (workspaceName == null) ? DEFAULT_WORKSPACE_NAME : workspaceName;
-        final String revision = getRevision(credentials);
-
-        // FIXME: workspace setup must be done elsewhere...
-        if (wspName.equals(DEFAULT_WORKSPACE_NAME)) {
-            NodeState root = nodeStore.getRoot();
-            NodeState wspNode = root.getChildNode(wspName);
-            if (wspNode == null) {
-                Branch branch = nodeStore.branch(root);
-                branch.getNode("/").addNode(wspName);
-                nodeStore.merge(branch);
-            }
-        }
-
         QueryEngine queryEngine = new QueryEngineImpl(microKernel);
         // TODO set revision!?
         NodeState wspRoot = nodeStore.getRoot().getChildNode(workspaceName);
@@ -97,16 +95,6 @@ public class KernelContentRepository implements ContentRepository {
 
         return new KernelContentSession(
                 sc, workspaceName, nodeStore, wspRoot, queryEngine);
-    }
-
-    /**
-     * @param credentials The credentials object used for authentication.
-     * @return The microkernel revision or {@code null} if the give credentials doesn't
-     * specify a specific revision number.
-     */
-    private String getRevision(Object credentials) {
-        // TODO: define if/how desired revision can be passed in by the credentials object.
-        return null;
     }
 
 }
