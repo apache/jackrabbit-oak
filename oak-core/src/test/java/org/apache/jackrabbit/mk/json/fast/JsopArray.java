@@ -43,6 +43,7 @@ public class JsopArray extends Jsop implements List<Object> {
         list = new ArrayList<String>();
     }
 
+    @Override
     public Object get(int index) {
         init();
         String s = load(index);
@@ -85,11 +86,13 @@ public class JsopArray extends Jsop implements List<Object> {
         }
     }
 
+    @Override
     public boolean isEmpty() {
         init();
         return list == EMPTY_LIST;
     }
 
+    @Override
     public int size() {
         init();
         load(Integer.MAX_VALUE);
@@ -110,12 +113,14 @@ public class JsopArray extends Jsop implements List<Object> {
         return jsop.substring(start);
     }
 
+    @Override
     public boolean add(Object e) {
         initWrite();
         list.add(toString(e));
         return true;
     }
 
+    @Override
     public void clear() {
         initWrite();
         list.clear();
@@ -130,30 +135,37 @@ public class JsopArray extends Jsop implements List<Object> {
         load(Integer.MAX_VALUE);
     }
 
+    @Override
     public void add(int index, Object element) {
         throw new UnsupportedOperationException();
     }
 
+    @Override
     public boolean addAll(Collection<? extends Object> c) {
         throw new UnsupportedOperationException();
     }
 
+    @Override
     public boolean addAll(int index, Collection<? extends Object> c) {
         throw new UnsupportedOperationException();
     }
 
+    @Override
     public boolean contains(Object o) {
         throw new UnsupportedOperationException();
     }
 
+    @Override
     public boolean containsAll(Collection<?> c) {
         throw new UnsupportedOperationException();
     }
 
+    @Override
     public int indexOf(Object o) {
         throw new UnsupportedOperationException();
     }
 
+    @Override
     public Iterator<Object> iterator() {
         return new Iterator<Object>() {
 
@@ -177,46 +189,57 @@ public class JsopArray extends Jsop implements List<Object> {
         };
     }
 
+    @Override
     public int lastIndexOf(Object o) {
         throw new UnsupportedOperationException();
     }
 
+    @Override
     public ListIterator<Object> listIterator() {
         throw new UnsupportedOperationException();
     }
 
+    @Override
     public ListIterator<Object> listIterator(int index) {
         throw new UnsupportedOperationException();
     }
 
+    @Override
     public boolean remove(Object o) {
         throw new UnsupportedOperationException();
     }
 
+    @Override
     public Object remove(int index) {
         throw new UnsupportedOperationException();
     }
 
+    @Override
     public boolean removeAll(Collection<?> c) {
         throw new UnsupportedOperationException();
     }
 
+    @Override
     public boolean retainAll(Collection<?> c) {
         throw new UnsupportedOperationException();
     }
 
+    @Override
     public Object set(int index, Object element) {
         throw new UnsupportedOperationException();
     }
 
+    @Override
     public List<Object> subList(int fromIndex, int toIndex) {
         throw new UnsupportedOperationException();
     }
 
+    @Override
     public Object[] toArray() {
         throw new UnsupportedOperationException();
     }
 
+    @Override
     public <T> T[] toArray(T[] a) {
         throw new UnsupportedOperationException();
     }

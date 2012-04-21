@@ -38,6 +38,7 @@ public class ManyRevisionsTest extends MultiMkTestBase {
         super(url);
     }
 
+    @Override
     @Before
     public void setUp() throws Exception {
         super.setUp();

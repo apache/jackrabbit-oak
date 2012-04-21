@@ -181,6 +181,7 @@ class Request implements Closeable {
         return count == 0 && len != 0 ? -1 : count;
     }
     
+    @Override
     public void close() {
         IOUtils.closeQuietly(resultIn);
         

@@ -115,6 +115,7 @@ public class Server {
         es = createExecutorService();
 
         new Thread(new Runnable() {
+            @Override
             public void run() {
                 accept();
             }
@@ -126,6 +127,7 @@ public class Server {
             while (!stopped.get()) {
                 final Socket socket = ss.accept();
                 es.execute(new Runnable() {
+                    @Override
                     public void run() {
                         process(socket);
                     }
@@ -157,6 +159,7 @@ public class Server {
         }
 
         HttpProcessor processor = new HttpProcessor(socket, new Servlet() {
+            @Override
             public void service(Request request, Response response)
                     throws IOException {
                 Server.this.service(request, response);
@@ -260,6 +263,7 @@ public class Server {
         server.start();
 
         Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+            @Override
             public void run() {
                 server.stop();
             }

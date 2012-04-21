@@ -79,6 +79,7 @@ public class NodeMapInMongoDb extends NodeMap implements Cache.Backend<Long, Nod
         }
     }
 
+    @Override
     public synchronized NodeId addNode(NodeImpl node) {
         return addNode(node, true);
     }
@@ -98,10 +99,12 @@ public class NodeMapInMongoDb extends NodeMap implements Cache.Backend<Long, Nod
         return x;
     }
 
+    @Override
     public NodeImpl getNode(long x) {
         return x < 0 ? temp.get(x) : cache.get(x);
     }
 
+    @Override
     public NodeImpl load(Long key) {
         try {
             BasicDBObject k = new BasicDBObject(KEY_FIELD, key);
@@ -113,12 +116,14 @@ public class NodeMapInMongoDb extends NodeMap implements Cache.Backend<Long, Nod
         }
     }
 
+    @Override
     public synchronized NodeId commit(NodeImpl newRoot) {
         addNode(newRoot, false);
         try {
             final NodeMap map = this;
             final ArrayList<Long> list = new ArrayList<Long>();
             newRoot.visit(new ChildVisitor() {
+                @Override
                 public void accept(NodeId childId) {
                     if (childId.getLong() < 0) {
                         NodeImpl t = temp.get(childId.getLong());
@@ -161,15 +166,18 @@ public class NodeMapInMongoDb extends NodeMap implements Cache.Backend<Long, Nod
         return root.getId();
     }
 
+    @Override
     public NodeId getId(NodeId id) {
         long x = id.getLong();
         return (x > 0 || !pos.containsKey(x)) ? id : NodeId.get(pos.get(x));
     }
 
+    @Override
     public NodeId getRootId() {
         return root.getId();
     }
 
+    @Override
     public NodeImpl getInfo(String path) {
         NodeImpl n = new NodeImpl(this, 0);
         for (Entry<String, String> e : properties.entrySet()) {
@@ -183,6 +191,7 @@ public class NodeMapInMongoDb extends NodeMap implements Cache.Backend<Long, Nod
         return n;
     }
 
+    @Override
     public synchronized void close() {
         con.close();
     }

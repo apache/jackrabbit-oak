@@ -109,6 +109,7 @@ public class NodeMap {
         if (hash) {
             final NodeMap map = this;
             root.visit(new ChildVisitor() {
+                @Override
                 public void accept(NodeId childId) {
                     if (childId.isInline()) {
                         NodeImpl t = childId.getNode(map);

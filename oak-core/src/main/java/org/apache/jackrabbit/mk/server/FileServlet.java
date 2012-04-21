@@ -33,6 +33,7 @@ class FileServlet implements Servlet {
     /** Just one instance, no need to make constructor public */
     private FileServlet() {}
 
+    @Override
     public void service(Request request, Response response) throws IOException {
         String file = request.getFile();
         if (file.endsWith("/")) {

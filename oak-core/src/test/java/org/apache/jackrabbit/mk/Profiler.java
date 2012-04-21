@@ -82,6 +82,7 @@ public class Profiler implements Runnable {
         }
     }
 
+    @Override
     public void run() {
         time = System.currentTimeMillis();
         while (!stop) {

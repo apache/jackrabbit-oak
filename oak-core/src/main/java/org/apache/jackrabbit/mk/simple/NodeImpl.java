@@ -539,12 +539,15 @@ public class NodeImpl implements Cache.Value {
             try {
                 MessageDigest d = MessageDigest.getInstance("SHA-1");
                 DigestOutputStream out = new DigestOutputStream(new OutputStream() {
+                    @Override
                     public void write(byte[] buff, int off, int length) {
                         // ignore
                     }
+                    @Override
                     public void write(byte[] buff) {
                         // ignore
                     }
+                    @Override
                     public void write(int b) {
                         // ignore
                     }
@@ -691,6 +694,7 @@ public class NodeImpl implements Cache.Value {
         void accept(NodeId childId);
     }
 
+    @Override
     public int getMemory() {
         if (memory == 0) {
             String[] pv = propertyValuePairs;
