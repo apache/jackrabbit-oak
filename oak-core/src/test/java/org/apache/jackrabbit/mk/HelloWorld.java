@@ -24,6 +24,9 @@ import org.json.simple.parser.ParseException;
  */
 public class HelloWorld {
 
+    private HelloWorld() {
+    }
+
     public static void main(String... args) throws ParseException {
         test("fs:{homeDir};clean");
         test("simple:");

@@ -16,10 +16,6 @@
  */
 package org.apache.jackrabbit.mk;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.client.Client;
@@ -33,6 +29,10 @@ import org.apache.jackrabbit.mk.wrapper.LogWrapper;
 import org.apache.jackrabbit.mk.wrapper.SecurityWrapper;
 import org.apache.jackrabbit.mk.wrapper.VirtualRepositoryWrapper;
 
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * A factory to create a MicroKernel instance.
  */
@@ -40,6 +40,9 @@ public class MicroKernelFactory {
 
     private static final Map<String, SimpleKernelImpl> INSTANCES =
             new HashMap<String, SimpleKernelImpl>();
+
+    private MicroKernelFactory() {
+    }
 
     /**
      * Get an instance. Supported URLs:
