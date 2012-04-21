@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import org.apache.jackrabbit.commons.SimpleValueFactory;
+import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.slf4j.Logger;
@@ -44,6 +45,14 @@ public class RepositoryImpl implements Repository {
 
     public RepositoryImpl(GlobalContext context) {
         this.context = context;
+    }
+
+    /**
+     * Utility constructor that creates a new in-memory repository for use
+     * mostly in test cases.
+     */
+    public RepositoryImpl() throws RepositoryException {
+        this(new GlobalContext(new MicroKernelImpl()));
     }
 
     //---------------------------------------------------------< Repository >---
