@@ -32,6 +32,8 @@ import javax.security.auth.login.LoginException;
  * of each particular deployment and not covered by this interface.
  * Repository clients should use a deployment-specific mechanism (JNDI,
  * OSGi service, etc.) to acquire references to ContentRepository instances.
+ * <p>
+ * This interface is thread-safe.
  */
 public interface ContentRepository {
 
@@ -53,6 +55,19 @@ public interface ContentRepository {
      * TODO: Instead of the explicit access credentials, should this method
      * rather take the arguments to be passed to the relevant
      * JAAS {@link javax.security.auth.login.LoginContext} constructor?
+     * <p>
+     * The client should explicitly {@link ContentSession#close()} the
+     * returned session once it is no longer used. The recommended access
+     * pattern is:
+     * <pre>
+     * ContentRepository repository = ...;
+     * ContentSession session = repository.login(...);
+     * try {
+     *     ...; // Use the session
+     * } finally {
+     *     session.close();
+     * }
+     * </pre>
      *
      * @param credentials access credentials, or {@code null}
      * @param workspaceName
