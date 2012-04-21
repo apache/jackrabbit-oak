@@ -39,6 +39,7 @@ public class HashTest extends MultiMkTestBase {
         super(url);
     }
 
+    @Override
     @After
     public void tearDown() throws InterruptedException {
         if (isSimpleKernel(mk)) {

@@ -129,6 +129,7 @@ public class SimpleKernelImpl extends MicroKernelWrapperBase implements MicroKer
         }
     }
 
+    @Override
     public synchronized String commitStream(String rootPath, JsopReader jsonDiff, String revisionId, String message) {
         revisionId = revisionId == null ? headRevision : revisionId;
 
@@ -335,10 +336,12 @@ public class SimpleKernelImpl extends MicroKernelWrapperBase implements MicroKer
         return nodeMap.getRootId().getNode(nodeMap);
     }
 
+    @Override
     public String getHeadRevision() {
         return headRevision;
     }
 
+    @Override
     public JsopReader getRevisionsStream(long since, int maxEntries) {
         NodeImpl node = getRoot();
         long sinceNanos = since * 1000000;
@@ -377,10 +380,12 @@ public class SimpleKernelImpl extends MicroKernelWrapperBase implements MicroKer
         return buff.endArray();
     }
 
+    @Override
     public String waitForCommit(String oldHeadRevisionId, long maxWaitMillis) throws InterruptedException {
         return gate.waitForCommit(oldHeadRevisionId, maxWaitMillis);
     }
 
+    @Override
     public JsopReader getJournalStream(String fromRevisionId, String toRevisionId, String filter) {
         fromRevisionId = fromRevisionId == null ? headRevision : fromRevisionId;
         toRevisionId = toRevisionId == null ? headRevision : toRevisionId;
@@ -448,6 +453,7 @@ public class SimpleKernelImpl extends MicroKernelWrapperBase implements MicroKer
     }
 
 
+    @Override
     public JsopReader diffStream(String fromRevisionId, String toRevisionId, String filter) {
         fromRevisionId = fromRevisionId == null ? headRevision : fromRevisionId;
         toRevisionId = toRevisionId == null ? headRevision : toRevisionId;
@@ -465,10 +471,12 @@ public class SimpleKernelImpl extends MicroKernelWrapperBase implements MicroKer
      * @param revisionId the revision
      * @return the json string
      */
+    @Override
     public JsopReader getNodesStream(String path, String revisionId) {
         return getNodesStream(path, revisionId, 1, 0, -1, null);
     }
 
+    @Override
     public JsopReader getNodesStream(String path, String revisionId, int depth, long offset, int count, String filter) {
         revisionId = revisionId == null ? headRevision : revisionId;
 
@@ -528,6 +536,7 @@ public class SimpleKernelImpl extends MicroKernelWrapperBase implements MicroKer
         }
     }
 
+    @Override
     public boolean nodeExists(String path, String revisionId) {
         revisionId = revisionId == null ? headRevision : revisionId;
 
@@ -542,6 +551,7 @@ public class SimpleKernelImpl extends MicroKernelWrapperBase implements MicroKer
         return getRevisionDataRoot(revisionId).exists(path.substring(1));
     }
 
+    @Override
     public long getChildNodeCount(String path, String revisionId) {
         revisionId = revisionId == null ? headRevision : revisionId;
 
@@ -551,18 +561,22 @@ public class SimpleKernelImpl extends MicroKernelWrapperBase implements MicroKer
         return getRevisionDataRoot(revisionId).getNode(path).getChildNodeCount();
     }
 
+    @Override
     public long getLength(String blobId) {
         return ds.getBlobLength(blobId);
     }
 
+    @Override
     public int read(String blobId, long pos, byte[] buff, int off, int length) {
         return ds.readBlob(blobId, pos, buff, off, length);
     }
 
+    @Override
     public String write(InputStream in) {
         return ds.writeBlob(in);
     }
 
+    @Override
     public synchronized void dispose() {
         if (!disposed) {
             disposed = true;
@@ -581,6 +595,7 @@ public class SimpleKernelImpl extends MicroKernelWrapperBase implements MicroKer
         return "simple:" + name;
     }
 
+    @Override
     public String branch(String trunkRevisionId) throws MicroKernelException {
         trunkRevisionId = trunkRevisionId == null ? headRevision : trunkRevisionId;
 
@@ -588,6 +603,7 @@ public class SimpleKernelImpl extends MicroKernelWrapperBase implements MicroKer
         throw new UnsupportedOperationException();
     }
 
+    @Override
     public String merge(String branchRevisionId, String message) throws MicroKernelException {
         // TODO OAK-45 support
         throw new UnsupportedOperationException();

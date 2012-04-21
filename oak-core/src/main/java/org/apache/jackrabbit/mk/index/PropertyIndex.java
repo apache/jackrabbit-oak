@@ -52,10 +52,12 @@ public class PropertyIndex implements Index {
         return new PropertyIndex(indexer, propertyName, unique);
     }
 
+    @Override
     public String getName() {
         return tree.getName();
     }
 
+    @Override
     public void addOrRemoveNode(NodeImpl node, boolean add) {
         String value = node.getProperty(propertyName);
         if (value != null) {
@@ -63,6 +65,7 @@ public class PropertyIndex implements Index {
         }
     }
 
+    @Override
     public void addOrRemoveProperty(String nodePath, String propertyName,
             String value, boolean add) {
         if (this.propertyName.equals(propertyName)) {

@@ -52,42 +52,52 @@ public class IndexWrapper extends MicroKernelWrapperBase implements MicroKernel 
         this.indexer = new Indexer(mk);
     }
 
+    @Override
     public String getHeadRevision() {
         return mk.getHeadRevision();
     }
 
+    @Override
     public long getLength(String blobId) {
         return mk.getLength(blobId);
     }
 
+    @Override
     public boolean nodeExists(String path, String revisionId) {
         return mk.nodeExists(path, revisionId);
     }
 
+    @Override
     public long getChildNodeCount(String path, String revisionId) {
         return mk.getChildNodeCount(path, revisionId);
     }
 
+    @Override
     public int read(String blobId, long pos, byte[] buff, int off, int length) {
         return mk.read(blobId, pos, buff, off, length);
     }
 
+    @Override
     public String waitForCommit(String oldHeadRevisionId, long maxWaitMillis) throws MicroKernelException, InterruptedException {
         return mk.waitForCommit(oldHeadRevisionId, maxWaitMillis);
     }
 
+    @Override
     public String write(InputStream in) {
         return mk.write(in);
     }
 
+    @Override
     public String branch(String trunkRevisionId) {
         return mk.branch(trunkRevisionId);
     }
 
+    @Override
     public String merge(String branchRevisionId, String message) {
         return mk.merge(branchRevisionId, message);
     }
 
+    @Override
     public String commitStream(String rootPath, JsopReader jsonDiff, String revisionId, String message) {
         if (!rootPath.startsWith(INDEX_PATH)) {
             String rev = mk.commitStream(rootPath, jsonDiff, revisionId, message);
@@ -142,6 +152,7 @@ public class IndexWrapper extends MicroKernelWrapperBase implements MicroKernel 
         return null;
     }
 
+    @Override
     public JsopReader getNodesStream(String path, String revisionId, int depth, long offset, int count, String filter) {
         if (!path.startsWith(INDEX_PATH)) {
             return mk.getNodesStream(path, revisionId, depth, offset, count, filter);
@@ -198,22 +209,27 @@ public class IndexWrapper extends MicroKernelWrapperBase implements MicroKernel 
         return s;
     }
 
+    @Override
     public JsopReader diffStream(String fromRevisionId, String toRevisionId, String filter) {
         return mk.diffStream(fromRevisionId, toRevisionId, filter);
     }
 
+    @Override
     public JsopReader getJournalStream(String fromRevisionId, String toRevisionId, String filter) {
         return mk.getJournalStream(fromRevisionId, toRevisionId, filter);
     }
 
+    @Override
     public JsopReader getNodesStream(String path, String revisionId) {
         return getNodesStream(path, revisionId, 1, 0, -1, null);
     }
 
+    @Override
     public JsopReader getRevisionsStream(long since, int maxEntries) {
         return mk.getRevisionsStream(since, maxEntries);
     }
 
+    @Override
     public void dispose() {
         mk.dispose();
     }

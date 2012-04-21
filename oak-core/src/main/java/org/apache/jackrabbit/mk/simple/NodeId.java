@@ -74,6 +74,7 @@ public class NodeId {
             this.node = node;
         }
 
+        @Override
         public NodeImpl getNode(NodeMap map) {
             return node;
         }
@@ -82,6 +83,7 @@ public class NodeId {
             return node.toString();
         }
 
+        @Override
         public boolean isInline() {
             return true;
         }

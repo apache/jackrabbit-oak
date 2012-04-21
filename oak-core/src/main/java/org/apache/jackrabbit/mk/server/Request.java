@@ -270,6 +270,7 @@ class Request implements Closeable {
         return HTTP_11_PROTOCOL.equals(protocol);
     }
     
+    @Override
     public void close() {
         if (in != null) {
             try {

@@ -35,6 +35,7 @@ public class DescendantCountTest extends MultiMkTestBase {
         super(url);
     }
 
+    @Override
     @After
     public void tearDown() throws InterruptedException {
         if (isSimpleKernel(mk)) {

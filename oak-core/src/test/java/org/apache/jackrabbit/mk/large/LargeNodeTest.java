@@ -36,6 +36,7 @@ public class LargeNodeTest extends MultiMkTestBase {
         super(url);
     }
 
+    @Override
     @Before
     public void setUp() throws Exception {
         super.setUp();
@@ -43,6 +44,7 @@ public class LargeNodeTest extends MultiMkTestBase {
         commit("/", "+ \"t\": {\"a\":{}, \"b\":{}, \"c\":{}}");
     }
 
+    @Override
     @After
     public void tearDown() throws InterruptedException {
         if (isSimpleKernel(mk)) {
