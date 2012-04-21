@@ -31,7 +31,7 @@ import java.util.Map;
  *
  * TODO: expose the relevant methods through the Oak API.
  */
-public class NamespaceRegistry {
+public class NamespaceMappings {
     private final Map<String, String> jcr2NsMap = new HashMap<String, String>();
     private final Map<String, String> ns2MkMap = new HashMap<String, String>();
     private final Map<String, String> mk2JcrMap = new HashMap<String, String>();
@@ -117,8 +117,24 @@ public class NamespaceRegistry {
     public String getJcrPrefix(String namespace) {
         return mk2JcrMap.get(ns2MkMap.get(namespace));
     }
-    
-    //------------------------------------------------------------< internal >--- 
+
+    /**
+     * Return the registered namespaces
+     * @return
+     */
+    public String[] getNamespaces() {
+        return jcr2NsMap.values().toArray(new String[jcr2NsMap.size()]);
+    }
+
+    /**
+     * Return the registered jcr prefixes
+     * @return
+     */
+    public String[] getJcrPrefixes() {
+        return jcr2NsMap.keySet().toArray(new String[jcr2NsMap.size()]);
+    }
+
+    //------------------------------------------------------------< internal >---
 
     /**
      * Retrieve the jcr prefix which maps to {@code mkPrefix} if any
