@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import org.apache.jackrabbit.mk.MicroKernelFactory;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.kernel.NodeState;
@@ -34,14 +33,14 @@ import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.LoginException;
 
 /**
- * TmpRepositoryService...
+ * {@link MicroKernel}-based implementation of
+ * the {@link ContentRepository} interface.
  */
-public class TmpRepositoryService implements ContentRepository {
+public class KernelContentRepository implements ContentRepository {
 
-    /**
-     * logger instance
-     */
-    private static final Logger log = LoggerFactory.getLogger(TmpRepositoryService.class);
+    /** Logger instance */
+    private static final Logger log =
+            LoggerFactory.getLogger(KernelContentRepository.class);
 
     // TODO: retrieve default wsp-name from configuration
     private static final String DEFAULT_WORKSPACE_NAME = "default";
@@ -49,8 +48,8 @@ public class TmpRepositoryService implements ContentRepository {
     private final MicroKernel microKernel;
     private final KernelNodeStore nodeStore;
 
-    public TmpRepositoryService(String microKernelUrl) {
-        microKernel = MicroKernelFactory.getInstance(microKernelUrl);
+    public KernelContentRepository(MicroKernel mk) {
+        microKernel = mk;
         nodeStore = new KernelNodeStore(microKernel);
     }
 
@@ -70,7 +69,7 @@ public class TmpRepositoryService implements ContentRepository {
         } else {
             sc = null;
         }
-        
+
         if (sc == null) {
             throw new LoginException("login failed");
         }
@@ -103,4 +102,5 @@ public class TmpRepositoryService implements ContentRepository {
         // TODO: define if/how desired revision can be passed in by the credentials object.
         return null;
     }
+
 }
