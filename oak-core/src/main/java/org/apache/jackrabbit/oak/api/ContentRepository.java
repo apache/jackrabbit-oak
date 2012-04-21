@@ -24,16 +24,16 @@ import javax.security.auth.login.LoginException;
  * serves the following purposes:
  *
  * <ul>
- * <li> validating a given login request and providing a {@link Connection}
+ * <li> validating a given login request and providing a {@link ContentSession}
  *   that is used for further communication with the persistent layer (i.e.
  *   Microkernel).</li>
  * </ul>
  */
-public interface RepositoryService {
+public interface ContentRepository {
 
     /**
      * Try to login a user identified by the passed {@code credentials}. On success
-     * this method returns a {@link Connection} to the given {@code workspace}.
+     * this method returns a {@link ContentSession} to the given {@code workspace}.
      *
      * @param credentials
      * @param workspaceName
@@ -41,6 +41,6 @@ public interface RepositoryService {
      * @throws LoginException
      * @throws NoSuchWorkspaceException
      */
-    Connection login(Object credentials, String workspaceName)
+    ContentSession login(Object credentials, String workspaceName)
             throws LoginException, NoSuchWorkspaceException;
 }

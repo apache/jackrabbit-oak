@@ -40,14 +40,14 @@ import java.io.Closeable;
  *
  * - Whether this connection is bound to a workspace or to the whole repository
  *   is determined by how the connection was acquired: connections acquired by
- *   {@link RepositoryService#login(Object, String)} are bound to the workspace
+ *   {@link ContentRepository#login(Object, String)} are bound to the workspace
  *   passed to the login method. Connections acquired by
- *   {@link Connection#getRepositoryConnection()} are bound to the whole repository.
+ *   {@link ContentSession#getRepositoryConnection()} are bound to the whole repository.
  *   TODO: check if that is really necessary, desirable and feasible.
  *
  * TODO: describe how this interface is intended to handle validation: nt, names, ac, constraints...
  */
-public interface Connection extends Closeable {
+public interface ContentSession extends Closeable {
 
     /**
      * This methods provides access to information related to authentication
@@ -77,7 +77,7 @@ public interface Connection extends Closeable {
      *
      * @return a {@code Connection} which covers the whole repository.
      */
-    Connection getRepositoryConnection();
+    ContentSession getRepositoryConnection();
 
     /**
      * Refresh this connection to the latest revision of the underlying Microkernel.

@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.jcr;
 
 import org.apache.jackrabbit.oak.api.Branch;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.Connection;
+import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.jcr.query.QueryManagerImpl;
 import org.apache.jackrabbit.oak.namepath.Paths;
 import org.slf4j.Logger;
@@ -85,7 +85,7 @@ public class WorkspaceImpl implements Workspace {
         }
 
         try {
-            Connection connection = sessionContext.getConnection();
+            ContentSession connection = sessionContext.getConnection();
             Branch branch = connection.branchRoot();
 
             String srcPath = Paths.relativize("/", srcAbsPath);
@@ -116,7 +116,7 @@ public class WorkspaceImpl implements Workspace {
         ensureIsAlive();
 
         try {
-            Connection connection = sessionContext.getConnection();
+            ContentSession connection = sessionContext.getConnection();
             Branch branch = connection.branchRoot();
 
             String srcPath = Paths.relativize("/", srcAbsPath);

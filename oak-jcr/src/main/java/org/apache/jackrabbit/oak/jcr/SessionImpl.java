@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.jcr;
 import org.apache.jackrabbit.commons.AbstractSession;
 import org.apache.jackrabbit.oak.api.Branch;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.Connection;
+import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.TransientNodeState;
 import org.apache.jackrabbit.oak.namepath.Paths;
 import org.slf4j.Logger;
@@ -54,7 +54,7 @@ public class SessionImpl extends AbstractSession {
     private static final Logger log = LoggerFactory.getLogger(SessionImpl.class);
 
     private final GlobalContext globalContext;
-    private final Connection connection;
+    private final ContentSession connection;
     private final ValueFactory valueFactory;
     private final Workspace workspace;
     private final SessionContext<SessionImpl> sessionContext = new Context();
@@ -62,7 +62,7 @@ public class SessionImpl extends AbstractSession {
 
     private Branch branch;
 
-    SessionImpl(GlobalContext globalContext, Connection connection) {
+    SessionImpl(GlobalContext globalContext, ContentSession connection) {
         this.globalContext = globalContext;
         this.connection = connection;
         this.valueFactory = new ValueFactoryImpl();
@@ -433,7 +433,7 @@ public class SessionImpl extends AbstractSession {
         }
 
         @Override
-        public Connection getConnection() {
+        public ContentSession getConnection() {
             return connection;
         }
 
