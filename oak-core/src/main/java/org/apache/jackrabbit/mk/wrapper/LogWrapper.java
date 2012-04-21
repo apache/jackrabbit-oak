@@ -37,6 +37,7 @@ public class LogWrapper implements MicroKernel {
         this.mk = mk;
     }
 
+    @Override
     public String commit(String path, String jsonDiff, String revisionId, String message) {
         try {
             logMethod("commit", path, jsonDiff, revisionId, message);
@@ -49,6 +50,7 @@ public class LogWrapper implements MicroKernel {
         }
     }
 
+    @Override
     public void dispose() {
         try {
             logMethod("dispose");
@@ -60,6 +62,7 @@ public class LogWrapper implements MicroKernel {
         }
     }
 
+    @Override
     public String getHeadRevision() {
         try {
             logMethod("getHeadRevision");
@@ -72,6 +75,7 @@ public class LogWrapper implements MicroKernel {
         }
     }
 
+    @Override
     public String getJournal(String fromRevisionId, String toRevisionId, String filter) {
         try {
             logMethod("getJournal", fromRevisionId, toRevisionId);
@@ -84,6 +88,7 @@ public class LogWrapper implements MicroKernel {
         }
     }
 
+    @Override
     public String diff(String fromRevisionId, String toRevisionId, String filter) {
         try {
             logMethod("diff", fromRevisionId, toRevisionId, filter);
@@ -96,6 +101,7 @@ public class LogWrapper implements MicroKernel {
         }
     }
 
+    @Override
     public long getLength(String blobId) {
         try {
             logMethod("getLength", blobId);
@@ -108,6 +114,7 @@ public class LogWrapper implements MicroKernel {
         }
     }
 
+    @Override
     public String getNodes(String path, String revisionId) {
         try {
             logMethod("getNodes", path, revisionId);
@@ -120,6 +127,7 @@ public class LogWrapper implements MicroKernel {
         }
     }
 
+    @Override
     public String getNodes(String path, String revisionId, int depth, long offset, int count, String filter) {
         try {
             logMethod("getNodes", path, revisionId, depth, offset, count, filter);
@@ -132,6 +140,7 @@ public class LogWrapper implements MicroKernel {
         }
     }
 
+    @Override
     public String getRevisionHistory(long since, int maxEntries) {
         try {
             logMethod("getRevisionHistory", since, maxEntries);
@@ -144,6 +153,7 @@ public class LogWrapper implements MicroKernel {
         }
     }
 
+    @Override
     public boolean nodeExists(String path, String revisionId) {
         try {
             logMethod("nodeExists", path, revisionId);
@@ -156,6 +166,7 @@ public class LogWrapper implements MicroKernel {
         }
     }
 
+    @Override
     public long getChildNodeCount(String path, String revisionId) {
         try {
             logMethod("getChildNodeCount", path, revisionId);
@@ -168,6 +179,7 @@ public class LogWrapper implements MicroKernel {
         }
     }
 
+    @Override
     public int read(String blobId, long pos, byte[] buff, int off, int length) {
         try {
             logMethod("read", blobId, pos, buff, off, length);
@@ -180,6 +192,7 @@ public class LogWrapper implements MicroKernel {
         }
     }
 
+    @Override
     public String waitForCommit(String oldHeadRevisionId, long maxWaitMillis) throws InterruptedException {
         try {
             logMethod("waitForCommit", oldHeadRevisionId, maxWaitMillis);
@@ -195,6 +208,7 @@ public class LogWrapper implements MicroKernel {
         }
     }
 
+    @Override
     public String write(InputStream in) {
         try {
             logMethod("write", in.toString());
@@ -207,6 +221,7 @@ public class LogWrapper implements MicroKernel {
         }
     }
 
+    @Override
     public String branch(String trunkRevisionId) {
         try {
             logMethod("branch", trunkRevisionId);
@@ -219,6 +234,7 @@ public class LogWrapper implements MicroKernel {
         }
     }
 
+    @Override
     public String merge(String branchRevisionId, String message) {
         try {
             logMethod("merge", branchRevisionId, message);

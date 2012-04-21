@@ -28,14 +28,17 @@ import org.apache.jackrabbit.mk.json.JsopTokenizer;
  */
 public abstract class MicroKernelWrapperBase implements MicroKernel, MicroKernelWrapper {
 
+    @Override
     public final String commit(String path, String jsonDiff, String revisionId, String message) {
         return commitStream(path, new JsopTokenizer(jsonDiff), revisionId, message);
     }
 
+    @Override
     public final String getJournal(String fromRevisionId, String toRevisionId, String filter) {
         return getJournalStream(fromRevisionId, toRevisionId, filter).toString();
     }
 
+    @Override
     public final String getNodes(String path, String revisionId) {
         JsopReader reader = getNodesStream(path, revisionId);
         if (reader != null) {
@@ -45,6 +48,7 @@ public abstract class MicroKernelWrapperBase implements MicroKernel, MicroKernel
         }
     }
 
+    @Override
     public final String getNodes(String path, String revisionId, int depth, long offset, int count, String filter) {
         JsopReader reader =
                 getNodesStream(path, revisionId, depth, offset, count, filter);
@@ -55,10 +59,12 @@ public abstract class MicroKernelWrapperBase implements MicroKernel, MicroKernel
         }
     }
 
+    @Override
     public final String diff(String fromRevisionId, String toRevisionId, String filter) {
         return diffStream(fromRevisionId, toRevisionId, filter).toString();
     }
 
+    @Override
     public final String getRevisionHistory(long since, int maxEntries) {
         return getRevisionsStream(since, maxEntries).toString();
     }
@@ -78,14 +84,17 @@ public abstract class MicroKernelWrapperBase implements MicroKernel, MicroKernel
 
             MicroKernel wrapped = mk;
 
+            @Override
             public String commitStream(String path, JsopReader jsonDiff, String revisionId, String message) {
                 return wrapped.commit(path, jsonDiff.toString(), revisionId, message);
             }
 
+            @Override
             public JsopReader getJournalStream(String fromRevisionId, String toRevisionId, String filter) {
                 return new JsopTokenizer(wrapped.getJournal(fromRevisionId, toRevisionId, filter));
             }
 
+            @Override
             public JsopReader getNodesStream(String path, String revisionId) {
                 String json = wrapped.getNodes(path, revisionId);
                 if (json != null) {
@@ -95,6 +104,7 @@ public abstract class MicroKernelWrapperBase implements MicroKernel, MicroKernel
                 }
             }
 
+            @Override
             public JsopReader getNodesStream(String path, String revisionId, int depth, long offset, int count, String filter) {
                 String json = wrapped.getNodes(
                         path, revisionId, depth, offset, count, filter);
@@ -105,74 +115,92 @@ public abstract class MicroKernelWrapperBase implements MicroKernel, MicroKernel
                 }
             }
 
+            @Override
             public JsopReader getRevisionsStream(long since, int maxEntries) {
                 return new JsopTokenizer(wrapped.getRevisionHistory(since, maxEntries));
             }
 
+            @Override
             public JsopReader diffStream(String fromRevisionId, String toRevisionId, String path) {
                 return new JsopTokenizer(wrapped.diff(fromRevisionId, toRevisionId, path));
             }
 
+            @Override
             public String commit(String path, String jsonDiff, String revisionId, String message) {
                 return wrapped.commit(path, jsonDiff, revisionId, message);
             }
 
+            @Override
             public String branch(String trunkRevisionId) {
                 return wrapped.branch(trunkRevisionId);
             }
 
+            @Override
             public String merge(String branchRevisionId, String message) {
                 return wrapped.merge(branchRevisionId, message);
             }
 
+            @Override
             public String diff(String fromRevisionId, String toRevisionId, String path) {
                 return wrapped.diff(fromRevisionId, toRevisionId, path);
             }
 
+            @Override
             public void dispose() {
                 wrapped.dispose();
             }
 
+            @Override
             public String getHeadRevision() throws MicroKernelException {
                 return wrapped.getHeadRevision();
             }
 
+            @Override
             public String getJournal(String fromRevisionId, String toRevisionId, String filter) {
                 return wrapped.getJournal(fromRevisionId, toRevisionId, filter);
             }
 
+            @Override
             public long getLength(String blobId) {
                 return wrapped.getLength(blobId);
             }
 
+            @Override
             public String getNodes(String path, String revisionId) {
                 return wrapped.getNodes(path, revisionId);
             }
 
+            @Override
             public String getNodes(String path, String revisionId, int depth, long offset, int count, String filter) {
                 return wrapped.getNodes(path, revisionId, depth, offset, count, filter);
             }
 
+            @Override
             public String getRevisionHistory(long since, int maxEntries) {
                 return wrapped.getRevisionHistory(since, maxEntries);
             }
 
+            @Override
             public boolean nodeExists(String path, String revisionId) {
                 return wrapped.nodeExists(path, revisionId);
             }
 
+            @Override
             public long getChildNodeCount(String path, String revisionId) {
                 return wrapped.getChildNodeCount(path, revisionId);
             }
 
+            @Override
             public int read(String blobId, long pos, byte[] buff, int off, int length) {
                 return wrapped.read(blobId, pos, buff, off, length);
             }
 
+            @Override
             public String waitForCommit(String oldHeadRevisionId, long maxWaitMillis) throws InterruptedException {
                 return wrapped.waitForCommit(oldHeadRevisionId, maxWaitMillis);
             }
 
+            @Override
             public String write(InputStream in) {
                 return wrapped.write(in);
             }
