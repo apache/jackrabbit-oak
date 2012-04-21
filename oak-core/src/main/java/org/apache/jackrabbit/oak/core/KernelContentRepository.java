@@ -89,8 +89,14 @@ public class KernelContentRepository implements ContentRepository {
         }
 
         QueryEngine queryEngine = new QueryEngineImpl(microKernel);
-        return ConnectionImpl.createWorkspaceConnection(sc, wspName, nodeStore, revision,
-                queryEngine);
+        // TODO set revision!?
+        NodeState wspRoot = nodeStore.getRoot().getChildNode(workspaceName);
+        if (wspRoot == null) {
+            throw new NoSuchWorkspaceException(workspaceName);
+        }
+
+        return new KernelContentSession(
+                sc, workspaceName, nodeStore, wspRoot, queryEngine);
     }
 
     /**
