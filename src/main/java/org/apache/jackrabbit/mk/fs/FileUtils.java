@@ -38,7 +38,7 @@ public class FileUtils {
 
     /**
      * Checks if a file exists.
-     * This method is similar to Java 7 <code>java.nio.file.Path.exists</code>.
+     * This method is similar to Java 7 {@code java.nio.file.Path.exists}.
      *
      * @param fileName the file name
      * @return true if it exists
@@ -49,7 +49,7 @@ public class FileUtils {
 
     /**
      * Create a directory (all required parent directories must already exist).
-     * This method is similar to Java 7 <code>java.nio.file.Path.createDirectory</code>.
+     * This method is similar to Java 7 {@code java.nio.file.Path.createDirectory}.
      *
      * @param directoryName the directory name
      */
@@ -59,7 +59,7 @@ public class FileUtils {
 
     /**
      * Create a new file.
-     * This method is similar to Java 7 <code>java.nio.file.Path.createFile</code>, but returns
+     * This method is similar to Java 7 {@code java.nio.file.Path.createFile}, but returns
      * false instead of throwing a exception if the file already existed.
      *
      * @param fileName the file name
@@ -72,7 +72,7 @@ public class FileUtils {
     /**
      * Delete a file or directory if it exists.
      * Directories may only be deleted if they are empty.
-     * This method is similar to Java 7 <code>java.nio.file.Path.deleteIfExists</code>.
+     * This method is similar to Java 7 {@code java.nio.file.Path.deleteIfExists}.
      *
      * @param path the file or directory name
      */
@@ -82,7 +82,7 @@ public class FileUtils {
 
     /**
      * Get the canonical file or directory name.
-     * This method is similar to Java 7 <code>java.nio.file.Path.toRealPath</code>.
+     * This method is similar to Java 7 {@code java.nio.file.Path.toRealPath}.
      *
      * @param fileName the file name
      * @return the normalized file name
@@ -94,7 +94,7 @@ public class FileUtils {
     /**
      * Get the parent directory of a file or directory.
      * This method returns null if there is no parent.
-     * This method is similar to Java 7 <code>java.nio.file.Path.getParent</code>.
+     * This method is similar to Java 7 {@code java.nio.file.Path.getParent}.
      *
      * @param fileName the file or directory name
      * @return the parent directory name
@@ -106,7 +106,7 @@ public class FileUtils {
 
     /**
      * Check if the file name includes a path.
-     * This method is similar to Java 7 <code>java.nio.file.Path.isAbsolute</code>.
+     * This method is similar to Java 7 {@code java.nio.file.Path.isAbsolute}.
      *
      * @param fileName the file name
      * @return if the file name is absolute
@@ -117,7 +117,7 @@ public class FileUtils {
 
     /**
      * Rename a file if this is allowed.
-     * This method is similar to Java 7 <code>java.nio.file.Path.moveTo</code>.
+     * This method is similar to Java 7 {@code java.nio.file.Path.moveTo}.
      *
      * @param oldName the old fully qualified file name
      * @param newName the new fully qualified file name
@@ -128,7 +128,7 @@ public class FileUtils {
 
     /**
      * Get the file or directory name (the last element of the path).
-     * This method is similar to Java 7 <code>java.nio.file.Path.getName</code>.
+     * This method is similar to Java 7 {@code java.nio.file.Path.getName}.
      *
      * @param path the directory and file name
      * @return just the file name
@@ -139,7 +139,7 @@ public class FileUtils {
 
     /**
      * List the files and directories in the given directory.
-     * This method is similar to Java 7 <code>java.nio.file.Path.newDirectoryStream</code>.
+     * This method is similar to Java 7 {@code java.nio.file.Path.newDirectoryStream}.
      *
      * @param path the directory
      * @return the list of fully qualified file names
@@ -157,7 +157,7 @@ public class FileUtils {
     /**
      * Get the last modified date of a file.
      * This method is similar to Java 7
-     * <code>java.nio.file.attribute.Attributes.readBasicFileAttributes(file).lastModified().toMillis()</code>
+     * {@code java.nio.file.attribute.Attributes.readBasicFileAttributes(file).lastModified().toMillis()}
      *
      * @param fileName the file name
      * @return the last modified date
@@ -169,7 +169,7 @@ public class FileUtils {
     /**
      * Get the size of a file in bytes
      * This method is similar to Java 7
-     * <code>java.nio.file.attribute.Attributes.readBasicFileAttributes(file).size()</code>
+     * {@code java.nio.file.attribute.Attributes.readBasicFileAttributes(file).size()}
      *
      * @param fileName the file name
      * @return the size in bytes
@@ -180,7 +180,7 @@ public class FileUtils {
 
     /**
      * Check if it is a file or a directory.
-     * <code>java.nio.file.attribute.Attributes.readBasicFileAttributes(file).isDirectory()</code>
+     * {@code java.nio.file.attribute.Attributes.readBasicFileAttributes(file).isDirectory()}
      *
      * @param fileName the file or directory name
      * @return true if it is a directory
@@ -191,7 +191,7 @@ public class FileUtils {
 
     /**
      * Open a random access file object.
-     * This method is similar to Java 7 <code>java.nio.channels.FileChannel.open</code>.
+     * This method is similar to Java 7 {@code java.nio.channels.FileChannel.open}.
      *
      * @param fileName the file name
      * @param mode the access mode. Supported are r, rw, rws, rwd
@@ -203,7 +203,7 @@ public class FileUtils {
 
     /**
      * Create an input stream to read from the file.
-     * This method is similar to Java 7 <code>java.nio.file.Path.newInputStream</code>.
+     * This method is similar to Java 7 {@code java.nio.file.Path.newInputStream}.
      *
      * @param fileName the file name
      * @return the input stream
@@ -214,7 +214,7 @@ public class FileUtils {
 
     /**
      * Create an output stream to write into the file.
-     * This method is similar to Java 7 <code>java.nio.file.Path.newOutputStream</code>.
+     * This method is similar to Java 7 {@code java.nio.file.Path.newOutputStream}.
      *
      * @param fileName the file name
      * @param append if true, the file will grow, if false, the file will be
@@ -228,7 +228,7 @@ public class FileUtils {
     /**
      * Check if the file is writable.
      * This method is similar to Java 7
-     * <code>java.nio.file.Path.checkAccess(AccessMode.WRITE)</code>
+     * {@code java.nio.file.Path.checkAccess(AccessMode.WRITE)}
      *
      * @param fileName the file name
      * @return if the file is writable

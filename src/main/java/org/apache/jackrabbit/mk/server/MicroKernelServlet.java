@@ -30,7 +30,7 @@ import org.apache.jackrabbit.mk.util.MicroKernelInputStream;
 import org.apache.jackrabbit.mk.util.IOUtils;
 
 /**
- * Servlet handling requests directed at a <code>MicroKernel</code> instance. 
+ * Servlet handling requests directed at a {@code MicroKernel} instance.
  */
 class MicroKernelServlet {
     
