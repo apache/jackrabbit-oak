@@ -26,7 +26,7 @@ public class NameSpaceRegistryTest {
 
     @Test
     public void nameSpaceRegistry() {
-        NamespaceRegistry r = new NamespaceRegistry();
+        NamespaceMappings r = new NamespaceMappings();
 
         r.registerNamespace("p", "n");
         assertEquals(r.getNamespace("p"), "n");

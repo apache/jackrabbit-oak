@@ -1312,7 +1312,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertFalse(ntMgr.hasNodeType("foo"));
     }
 
-    @Ignore // TODO implement node type support
     @Test
     public void nameSpaceRegistry() throws RepositoryException {
         NamespaceRegistry nsReg = getSession().getWorkspace().getNamespaceRegistry();
