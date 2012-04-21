@@ -16,14 +16,12 @@
  */
 package org.apache.jackrabbit.oak.run;
 
-import java.util.Collections;
-
 import javax.jcr.Repository;
 import javax.servlet.Servlet;
 
+import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.jcr.GlobalContext;
-import org.apache.jackrabbit.oak.jcr.configuration.OakRepositoryConfiguration;
-import org.apache.jackrabbit.oak.jcr.configuration.RepositoryConfiguration;
+import org.apache.jackrabbit.oak.jcr.RepositoryImpl;
 import org.apache.jackrabbit.webdav.jcr.JCRWebdavServerServlet;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
@@ -32,16 +30,8 @@ import org.eclipse.jetty.servlet.ServletHolder;
 public class Main {
 
     public static void main(String[] args) throws Exception {
-        String url = "mem:oak";
-        if (args.length > 0) {
-            url = args[0];
-        }
-
-        RepositoryConfiguration configuration =
-                OakRepositoryConfiguration.create(Collections.singletonMap(
-                        RepositoryConfiguration.MICROKERNEL_URL, url));
         final Repository repository =
-                new GlobalContext(configuration).getInstance(Repository.class);
+                new RepositoryImpl(new GlobalContext(new MicroKernelImpl()));
         Servlet servlet = new JCRWebdavServerServlet() {
             @Override
             protected Repository getRepository() {

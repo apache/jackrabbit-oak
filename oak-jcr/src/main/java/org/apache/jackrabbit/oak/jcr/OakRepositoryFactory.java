@@ -16,12 +16,12 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import org.apache.jackrabbit.oak.jcr.configuration.OakRepositoryConfiguration;
-import org.apache.jackrabbit.oak.jcr.configuration.RepositoryConfiguration;
-
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.RepositoryFactory;
+
+import org.apache.jackrabbit.mk.core.MicroKernelImpl;
+
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Map;
@@ -48,12 +48,11 @@ public class OakRepositoryFactory implements RepositoryFactory {
         return null;
     }
 
-    private static Repository getRepository(URI uri, Map<String, String> parameters)
+    private static Repository getRepository(
+            URI uri, Map<String, String> parameters)
             throws RepositoryException {
-
-        // todo correctly interpret uri
-        parameters.put(RepositoryConfiguration.MICROKERNEL_URL, "simple:target/repository-test/repository");
-        GlobalContext context = new GlobalContext(OakRepositoryConfiguration.create(parameters));
+        // TODO correctly interpret uri
+        GlobalContext context = new GlobalContext(new MicroKernelImpl());
         return context.getInstance(Repository.class);
     }
 
