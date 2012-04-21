@@ -91,6 +91,7 @@ class MicroKernelServlet {
     
     static class GetHeadRevision implements Command {
         
+        @Override
         public void execute(MicroKernel mk, Request request, Response response)
                 throws IOException, MicroKernelException {
 
@@ -101,6 +102,7 @@ class MicroKernelServlet {
 
     static class GetRevisionHistory implements Command {
         
+        @Override
         public void execute(MicroKernel mk, Request request, Response response)
                 throws IOException, MicroKernelException {
             
@@ -118,6 +120,7 @@ class MicroKernelServlet {
     
     static class WaitForCommit implements Command {
 
+        @Override
         public void execute(MicroKernel mk, Request request, Response response)
                 throws IOException, MicroKernelException {
 
@@ -141,6 +144,7 @@ class MicroKernelServlet {
 
     static class GetJournal implements Command {
 
+        @Override
         public void execute(MicroKernel mk, Request request, Response response)
                 throws IOException, MicroKernelException {
             
@@ -161,6 +165,7 @@ class MicroKernelServlet {
 
     static class Diff implements Command {
 
+        @Override
         public void execute(MicroKernel mk, Request request, Response response)
                 throws IOException, MicroKernelException {
 
@@ -181,6 +186,7 @@ class MicroKernelServlet {
 
     static class NodeExists implements Command {
 
+        @Override
         public void execute(MicroKernel mk, Request request, Response response)
                 throws IOException, MicroKernelException {
 
@@ -196,6 +202,7 @@ class MicroKernelServlet {
 
     static class GetChildNodeCount implements Command {
 
+        @Override
         public void execute(MicroKernel mk, Request request, Response response)
                 throws IOException, MicroKernelException {
 
@@ -211,6 +218,7 @@ class MicroKernelServlet {
 
     static class GetNodes implements Command {
 
+        @Override
         public void execute(MicroKernel mk, Request request, Response response)
                 throws IOException, MicroKernelException {
             
@@ -238,6 +246,7 @@ class MicroKernelServlet {
 
     static class Commit implements Command {
 
+        @Override
         public void execute(MicroKernel mk, Request request, Response response)
                 throws IOException, MicroKernelException {
             
@@ -257,6 +266,7 @@ class MicroKernelServlet {
 
     static class Branch implements Command {
 
+        @Override
         public void execute(MicroKernel mk, Request request, Response response)
                 throws IOException, MicroKernelException {
 
@@ -273,6 +283,7 @@ class MicroKernelServlet {
 
     static class Merge implements Command {
 
+        @Override
         public void execute(MicroKernel mk, Request request, Response response)
                 throws IOException, MicroKernelException {
 
@@ -288,6 +299,7 @@ class MicroKernelServlet {
 
     static class GetLength implements Command {
 
+        @Override
         public void execute(MicroKernel mk, Request request, Response response)
                 throws IOException, MicroKernelException {
 
@@ -301,6 +313,7 @@ class MicroKernelServlet {
 
     static class Read implements Command {
 
+        @Override
         public void execute(MicroKernel mk, Request request, Response response)
                 throws IOException, MicroKernelException {
 
@@ -326,6 +339,7 @@ class MicroKernelServlet {
 
     static class Write implements Command {
 
+        @Override
         public void execute(MicroKernel mk, Request request, Response response)
                 throws IOException, MicroKernelException {
 
