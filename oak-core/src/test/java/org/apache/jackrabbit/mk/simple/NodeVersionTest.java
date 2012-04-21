@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.mk.simple;
 
+import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.junit.Test;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.simple.NodeImpl;
-import org.junit.Test;
 
 /**
  * Test moving nodes.
