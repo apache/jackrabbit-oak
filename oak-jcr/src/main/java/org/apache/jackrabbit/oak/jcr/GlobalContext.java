@@ -19,15 +19,13 @@
 
 package org.apache.jackrabbit.oak.jcr;
 
+import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.core.TmpRepositoryService;
-import org.apache.jackrabbit.oak.jcr.configuration.OakRepositoryConfiguration;
-import org.apache.jackrabbit.oak.jcr.configuration.RepositoryConfiguration;
+import org.apache.jackrabbit.oak.core.KernelContentRepository;
 import org.apache.jackrabbit.oak.jcr.util.Unchecked;
 
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -41,23 +39,19 @@ import static java.text.MessageFormat.format;
  * time dependency injection mechanism.
  */
 public class GlobalContext {
-    private final Map<Class<?>, Object> instances = new HashMap<Class<?>, Object>();
-    
-    public GlobalContext(RepositoryConfiguration repositoryConfiguration) throws RepositoryException {
-        put(RepositoryConfiguration.class, repositoryConfiguration);
-        put(ContentRepository.class, new TmpRepositoryService(repositoryConfiguration.getMicrokernelUrl()));
-        put(Repository.class, new RepositoryImpl(this));
-    }
 
-    public GlobalContext(String microKernelUrl) throws RepositoryException {
-        this(OakRepositoryConfiguration.create(Collections.singletonMap(
-                RepositoryConfiguration.MICROKERNEL_URL, microKernelUrl)));
+    private final Map<Class<?>, Object> instances = new HashMap<Class<?>, Object>();
+
+    public GlobalContext(MicroKernel mk) throws RepositoryException {
+        put(ContentRepository.class, new KernelContentRepository(mk));
+        put(Repository.class, new RepositoryImpl(this));
     }
 
     public <T> T getInstance(Class<T> forClass) {
         T instance = Unchecked.<T>cast(instances.get(forClass));
         if (instance == null) {
-            throw new IllegalStateException(format("Global context does not contain {0}", forClass));
+            throw new IllegalStateException(
+                    format("Global context does not contain {0}", forClass));
         }
         return instance;
     }
@@ -66,9 +60,9 @@ public class GlobalContext {
 
     private <T, I extends T> void put(Class<T> classType, I instance) {
         if (instances.containsKey(classType)) {
-            throw new IllegalStateException(format("Global context already contains {0}", classType));
+            throw new IllegalStateException(
+                    format("Global context already contains {0}", classType));
         }
-
         instances.put(classType, instance);
     }
 

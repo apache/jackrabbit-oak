@@ -42,14 +42,6 @@ public class RepositoryImpl implements Repository {
     private final GlobalContext context;
     private final Descriptors descriptors = new Descriptors(new SimpleValueFactory());
 
-    /**
-     * Utility constructor that creates a JCR binding for an initially empty,
-     * newly constructed Oak repository.
-     */
-    public RepositoryImpl() throws RepositoryException {
-        context = new GlobalContext("mem:oak");
-    }
-
     public RepositoryImpl(GlobalContext context) {
         this.context = context;
     }
