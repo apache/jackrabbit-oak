@@ -16,54 +16,52 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import org.apache.jackrabbit.oak.namepath.NamespaceMappings;
+
 import javax.jcr.NamespaceException;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.RepositoryException;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * A naive implementation of {@link NamespaceRegistry}, hard-wiring the
  * predefined namespaces for now.
+ * TODO use API only
  */
 public class NamespaceRegistryImpl implements NamespaceRegistry {
-    private final Map<String, String> map;
-
+    NamespaceMappings nsMappings = new NamespaceMappings();
+    
     public NamespaceRegistryImpl() {
-        map = new HashMap<String, String>();
-        map.put(PREFIX_EMPTY, NAMESPACE_EMPTY);
-        map.put(PREFIX_JCR, NAMESPACE_JCR);
-        map.put(PREFIX_MIX, NAMESPACE_MIX);
-        map.put(PREFIX_NT, NAMESPACE_NT);
-        map.put(PREFIX_XML, NAMESPACE_XML);
-        map.put("sv", "http://www.jcp.org/jcr/sv/1.0");
+        nsMappings.registerNamespace(PREFIX_EMPTY, NAMESPACE_EMPTY);
+        nsMappings.registerNamespace(PREFIX_JCR, NAMESPACE_JCR);
+        nsMappings.registerNamespace(PREFIX_MIX, NAMESPACE_MIX);
+        nsMappings.registerNamespace(PREFIX_NT, NAMESPACE_NT);
+        nsMappings.registerNamespace(PREFIX_XML, NAMESPACE_XML);
+        nsMappings.registerNamespace("sv", "http://www.jcp.org/jcr/sv/1.0");
     }
 
     @Override
     public void registerNamespace(String prefix, String uri) throws RepositoryException {
-        // TODO
-        throw new UnsupportedOperationException();
+        nsMappings.registerNamespace(prefix, uri);
     }
 
     @Override
     public void unregisterNamespace(String prefix) throws RepositoryException {
-        // TODO
-        throw new UnsupportedOperationException();
+        nsMappings.unregisterJcrPrefix(prefix);
     }
 
     @Override
     public String[] getPrefixes() throws RepositoryException {
-        return map.keySet().toArray(new String[map.size()]);
+        return nsMappings.getJcrPrefixes();
     }
 
     @Override
     public String[] getURIs() throws RepositoryException {
-        return map.values().toArray(new String[map.size()]);
+        return nsMappings.getNamespaces();
     }
 
     @Override
     public String getURI(String prefix) throws RepositoryException {
-        String result = map.get(prefix);
+        String result = nsMappings.getNamespace(prefix);
         if (result == null) {
             throw new NamespaceException();
         }
@@ -72,11 +70,10 @@ public class NamespaceRegistryImpl implements NamespaceRegistry {
 
     @Override
     public String getPrefix(String uri) throws RepositoryException {
-        for (Map.Entry<String, String> entry : map.entrySet()) {
-            if (entry.getValue().equals(uri)) {
-                return entry.getKey();
-            }
+        String result = nsMappings.getJcrPrefix(uri);
+        if (result == null) {
+            throw new NamespaceException();
         }
-        throw new NamespaceException();
+        return result;
     }
 }
