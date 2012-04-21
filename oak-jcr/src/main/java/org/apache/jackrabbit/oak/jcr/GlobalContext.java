@@ -25,7 +25,6 @@ import org.apache.jackrabbit.oak.core.KernelContentRepository;
 import org.apache.jackrabbit.oak.jcr.util.Unchecked;
 
 import javax.jcr.Repository;
-import javax.jcr.RepositoryException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -42,7 +41,7 @@ public class GlobalContext {
 
     private final Map<Class<?>, Object> instances = new HashMap<Class<?>, Object>();
 
-    public GlobalContext(MicroKernel mk) throws RepositoryException {
+    public GlobalContext(MicroKernel mk) {
         put(ContentRepository.class, new KernelContentRepository(mk));
         put(Repository.class, new RepositoryImpl(this));
     }

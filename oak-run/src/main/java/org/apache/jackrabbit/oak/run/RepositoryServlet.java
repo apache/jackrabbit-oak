@@ -16,15 +16,14 @@
  */
 package org.apache.jackrabbit.oak.run;
 
-import javax.jcr.Repository;
-import javax.jcr.RepositoryException;
-import javax.servlet.ServletException;
-
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.jcr.GlobalContext;
 import org.apache.jackrabbit.oak.jcr.RepositoryImpl;
 import org.apache.jackrabbit.webdav.jcr.JCRWebdavServerServlet;
+
+import javax.jcr.Repository;
+import javax.servlet.ServletException;
 
 class RepositoryServlet extends JCRWebdavServerServlet {
 
@@ -46,14 +45,7 @@ class RepositoryServlet extends JCRWebdavServerServlet {
             kernel = new MicroKernelImpl();
         }
 
-        try {
-            repository = new RepositoryImpl(new GlobalContext(kernel));
-        } catch (RepositoryException e) {
-            kernel.dispose();
-            throw new ServletException(
-                    "Failed to start the repository at " + path, e);
-        }
-
+        repository = new RepositoryImpl(new GlobalContext(kernel));
         super.init();
     }
 

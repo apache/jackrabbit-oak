@@ -81,6 +81,7 @@ public class UserManagerConfig {
 //    }
 
     //--------------------------------------------------------< private >---
+    @SuppressWarnings("unchecked")
     private static <T> T convert(Property configProperty, T defaultValue) throws RepositoryException {
         T value;
         String str;
