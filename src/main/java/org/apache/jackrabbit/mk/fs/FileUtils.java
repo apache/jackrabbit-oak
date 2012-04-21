@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.mk.fs;
 
+import org.apache.jackrabbit.mk.util.IOUtils;
+
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -24,13 +26,15 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.jackrabbit.mk.util.IOUtils;
 
 /**
  * This utility class contains utility functions that use the file system
  * abstraction.
  */
 public class FileUtils {
+
+    private FileUtils() {
+    }
 
     /**
      * Checks if a file exists.
