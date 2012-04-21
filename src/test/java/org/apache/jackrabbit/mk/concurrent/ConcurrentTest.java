@@ -34,6 +34,7 @@ public class ConcurrentTest extends MultiMkTestBase {
     public void test() throws Exception {
         final AtomicInteger id = new AtomicInteger();
         Concurrent.run(url, new Concurrent.Task() {
+            @Override
             public void call() throws Exception {
                 long start = System.currentTimeMillis();
                 String rev = mk.getHeadRevision();

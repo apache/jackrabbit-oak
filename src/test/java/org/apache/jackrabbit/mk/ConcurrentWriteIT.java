@@ -30,6 +30,7 @@ public class ConcurrentWriteIT extends TestCase {
 
     final MicroKernel mk = new MicroKernelImpl();
 
+    @Override
     public void setUp() throws Exception {
         mk.commit("/", "+ \"" + TEST_PATH.substring(1) + "\": {\"jcr:primaryType\":\"nt:unstructured\"}", mk.getHeadRevision(), null);
     }
@@ -94,6 +95,7 @@ public class ConcurrentWriteIT extends TestCase {
             rand = new Random();
         }
 
+        @Override
         public void run() {
             StringBuilder sb = new StringBuilder();
             sb.append("+\"");
