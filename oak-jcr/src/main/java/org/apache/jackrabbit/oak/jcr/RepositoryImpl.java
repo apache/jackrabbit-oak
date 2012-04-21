@@ -120,9 +120,9 @@ public class RepositoryImpl implements Repository {
     public Session login(Credentials credentials, String workspaceName) throws RepositoryException {
         // TODO: needs complete refactoring
 
-        ContentRepository service = context.getInstance(ContentRepository.class);
+        ContentRepository contentRepository = context.getInstance(ContentRepository.class);
         try {
-            ContentSession connection = service.login(credentials, workspaceName);
+            ContentSession connection = contentRepository.login(credentials, workspaceName);
             return new SessionImpl(context, connection);
         } catch (LoginException e) {
             throw new javax.jcr.LoginException(e.getMessage());
