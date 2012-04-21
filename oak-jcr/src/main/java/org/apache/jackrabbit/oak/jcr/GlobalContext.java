@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.jcr;
 
-import org.apache.jackrabbit.oak.api.RepositoryService;
+import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.core.TmpRepositoryService;
 import org.apache.jackrabbit.oak.jcr.configuration.OakRepositoryConfiguration;
 import org.apache.jackrabbit.oak.jcr.configuration.RepositoryConfiguration;
@@ -45,7 +45,7 @@ public class GlobalContext {
     
     public GlobalContext(RepositoryConfiguration repositoryConfiguration) throws RepositoryException {
         put(RepositoryConfiguration.class, repositoryConfiguration);
-        put(RepositoryService.class, new TmpRepositoryService(repositoryConfiguration.getMicrokernelUrl()));
+        put(ContentRepository.class, new TmpRepositoryService(repositoryConfiguration.getMicrokernelUrl()));
         put(Repository.class, new RepositoryImpl(this));
     }
 

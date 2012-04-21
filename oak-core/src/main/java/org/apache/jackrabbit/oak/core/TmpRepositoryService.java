@@ -18,11 +18,11 @@ package org.apache.jackrabbit.oak.core;
 
 import org.apache.jackrabbit.mk.MicroKernelFactory;
 import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.oak.api.Connection;
+import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.kernel.NodeState;
 import org.apache.jackrabbit.oak.api.Branch;
 import org.apache.jackrabbit.oak.api.QueryEngine;
-import org.apache.jackrabbit.oak.api.RepositoryService;
+import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
 import org.slf4j.Logger;
@@ -36,7 +36,7 @@ import javax.security.auth.login.LoginException;
 /**
  * TmpRepositoryService...
  */
-public class TmpRepositoryService implements RepositoryService {
+public class TmpRepositoryService implements ContentRepository {
 
     /**
      * logger instance
@@ -55,7 +55,7 @@ public class TmpRepositoryService implements RepositoryService {
     }
 
     @Override
-    public Connection login(Object credentials, String workspaceName)
+    public ContentSession login(Object credentials, String workspaceName)
             throws LoginException, NoSuchWorkspaceException {
 
         // TODO: add proper implementation

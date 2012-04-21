@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.core;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.Connection;
+import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.kernel.NodeState;
 import org.apache.jackrabbit.oak.api.Branch;
 import org.apache.jackrabbit.oak.kernel.NodeStore;
@@ -34,7 +34,7 @@ import java.io.IOException;
 /**
  * ConnectionImpl...
  */
-public class ConnectionImpl implements Connection {
+public class ConnectionImpl implements ContentSession {
 
     /**
      * logger instance
@@ -57,7 +57,7 @@ public class ConnectionImpl implements Connection {
         this.root = root;
     }
 
-    static Connection createWorkspaceConnection(SimpleCredentials credentials,
+    static ContentSession createWorkspaceConnection(SimpleCredentials credentials,
             String workspace, NodeStore store, String revision, QueryEngine queryEngine)
             throws NoSuchWorkspaceException {
 
@@ -123,7 +123,7 @@ public class ConnectionImpl implements Connection {
     }
 
     @Override
-    public Connection getRepositoryConnection() {
+    public ContentSession getRepositoryConnection() {
         return new ConnectionImpl(credentials, null, store, store.getRoot(), queryEngine);
     }
 

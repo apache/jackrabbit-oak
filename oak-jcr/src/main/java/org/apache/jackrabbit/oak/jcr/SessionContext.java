@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.jcr;
 
-import org.apache.jackrabbit.oak.api.Connection;
+import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Branch;
 import org.apache.jackrabbit.oak.api.TransientNodeState;
 
@@ -34,7 +34,7 @@ public interface SessionContext<T extends Session> {
     T getSession();
     GlobalContext getGlobalContext();
     String getWorkspaceName();
-    Connection getConnection();
+    ContentSession getConnection();
     ValueFactory getValueFactory();
     LockManager getLockManager() throws RepositoryException;
     NodeTypeManager getNodeTypeManager() throws RepositoryException;
