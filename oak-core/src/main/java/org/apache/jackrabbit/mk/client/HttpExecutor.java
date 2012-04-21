@@ -16,6 +16,11 @@
  */
 package org.apache.jackrabbit.mk.client;
 
+import org.apache.jackrabbit.mk.util.BoundedInputStream;
+import org.apache.jackrabbit.mk.util.ChunkedInputStream;
+import org.apache.jackrabbit.mk.util.ChunkedOutputStream;
+import org.apache.jackrabbit.mk.util.IOUtils;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.Closeable;
@@ -29,11 +34,6 @@ import java.security.SecureRandom;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Random;
-
-import org.apache.jackrabbit.mk.util.BoundedInputStream;
-import org.apache.jackrabbit.mk.util.ChunkedInputStream;
-import org.apache.jackrabbit.mk.util.ChunkedOutputStream;
-import org.apache.jackrabbit.mk.util.IOUtils;
 
 /**
  * Executes commands as HTTP requests.
@@ -192,8 +192,8 @@ class HttpExecutor implements Closeable {
     
     /**
      * Return a flag indicating whether the executor is alive.
-     * 
-     * @return <code>true</code> if it is alive; <code>false</code> otherwise
+     *
+     * @return {@code true} if it is alive; {@code false} otherwise
      */
     public boolean isAlive() {
         return !connectionClosed && !socket.isClosed();

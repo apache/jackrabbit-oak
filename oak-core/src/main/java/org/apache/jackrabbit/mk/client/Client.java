@@ -31,7 +31,7 @@ import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.util.IOUtils;
 
 /**
- * Client exposing a <code>MicroKernel</code> interface, that "remotes" commands
+ * Client exposing a {@code MicroKernel} interface, that "remotes" commands
  * to a server.
  * <p/>
  * All public methods inside this class are completely synchronized because

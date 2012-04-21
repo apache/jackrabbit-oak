@@ -106,8 +106,8 @@ class Request implements Closeable {
     }
     
     /**
-     * Read a single line, terminated by a CR LF combination from an <code>InputStream</code>.
-     * 
+     * Read a single line, terminated by a CR LF combination from an {@code InputStream}.
+     *
      * @return line
      * @throws IOException if an I/O error occurs
      */

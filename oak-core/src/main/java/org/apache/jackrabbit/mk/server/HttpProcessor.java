@@ -88,11 +88,11 @@ class HttpProcessor {
     
     /**
      * Process a single request.
-     * 
+     *
      * @param requestNum number of this request on the same persistent connection
-     * @return <code>true</code> if the connection should be kept alive;
-     *         <code>false</code> otherwise
-     *         
+     * @return {@code true} if the connection should be kept alive;
+     *         {@code false} otherwise
+     *
      * @throws IOException if an I/O error occurs
      */
     private boolean process(int requestNum) throws IOException {
