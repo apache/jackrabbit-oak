@@ -16,13 +16,14 @@
  */
 package org.apache.jackrabbit.mk.json.fast;
 
+import org.apache.jackrabbit.mk.json.JsopBuilder;
+import org.apache.jackrabbit.mk.json.JsopTokenizer;
+
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
-import org.apache.jackrabbit.mk.json.JsopBuilder;
-import org.apache.jackrabbit.mk.json.JsopTokenizer;
 
 /**
  * A map.
@@ -191,7 +192,7 @@ public class JsopObject extends Jsop implements Map<String, Object> {
     }
 
     @Override
-    public void putAll(Map<? extends String, ? extends Object> m) {
+    public void putAll(Map<? extends String, ?> m) {
         throw new UnsupportedOperationException();
     }
 

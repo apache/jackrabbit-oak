@@ -16,13 +16,14 @@
  */
 package org.apache.jackrabbit.mk.json.fast;
 
+import org.apache.jackrabbit.mk.json.JsopBuilder;
+import org.apache.jackrabbit.mk.json.JsopTokenizer;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
-import org.apache.jackrabbit.mk.json.JsopBuilder;
-import org.apache.jackrabbit.mk.json.JsopTokenizer;
 
 /**
  * An array of objects.
@@ -141,12 +142,12 @@ public class JsopArray extends Jsop implements List<Object> {
     }
 
     @Override
-    public boolean addAll(Collection<? extends Object> c) {
+    public boolean addAll(Collection<?> c) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public boolean addAll(int index, Collection<? extends Object> c) {
+    public boolean addAll(int index, Collection<?> c) {
         throw new UnsupportedOperationException();
     }
 
