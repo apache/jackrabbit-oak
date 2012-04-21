@@ -20,27 +20,47 @@ import javax.jcr.NoSuchWorkspaceException;
 import javax.security.auth.login.LoginException;
 
 /**
- * The {@code RepositoryService} is the main access point of the oak-api. It
- * serves the following purposes:
- *
- * <ul>
- * <li> validating a given login request and providing a {@link ContentSession}
- *   that is used for further communication with the persistent layer (i.e.
- *   Microkernel).</li>
- * </ul>
+ * Oak content repository. The repository may local or remote, or a cluster
+ * of any size. These deployment details are all hidden behind this interface.
+ * <p>
+ * All access to the repository happens through authenticated
+ * {@link ContentSession} instances acquired through the
+ * {@link #login(Object, String)} method, which is why that is the only
+ * method of this interface.
+ * <p>
+ * Starting and stopping ContentRepository instances is the responsibility
+ * of each particular deployment and not covered by this interface.
+ * Repository clients should use a deployment-specific mechanism (JNDI,
+ * OSGi service, etc.) to acquire references to ContentRepository instances.
  */
 public interface ContentRepository {
 
     /**
-     * Try to login a user identified by the passed {@code credentials}. On success
-     * this method returns a {@link ContentSession} to the given {@code workspace}.
+     * Authenticates a user based on the given credentials or available
+     * out-of-band information and, if successful, returns a
+     * {@link ContentSession} instance for accessing repository content
+     * inside the specified workspace as the authenticated user.
+     * <p>
+     * TODO: Determine whether ContentSessions should cover a single
+     * workspace or the entire repository.
+     * <p>
+     * The exact type of access credentials is undefined, as this method
+     * simply acts as a generic messenger between clients and pluggable
+     * login modules that take care of the actual authentication. See
+     * the documentation of relevant login modules for the kind of access
+     * credentials they expect.
+     * <p>
+     * TODO: Instead of the explicit access credentials, should this method
+     * rather take the arguments to be passed to the relevant
+     * JAAS {@link javax.security.auth.login.LoginContext} constructor?
      *
-     * @param credentials
+     * @param credentials access credentials, or {@code null}
      * @param workspaceName
-     * @return the connection
-     * @throws LoginException
+     * @return authenticated repository session
+     * @throws LoginException if authentication failed
      * @throws NoSuchWorkspaceException
      */
     ContentSession login(Object credentials, String workspaceName)
             throws LoginException, NoSuchWorkspaceException;
+
 }
