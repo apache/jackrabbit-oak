@@ -27,7 +27,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.jackrabbit.mk.util.IOUtils;
 
 /**
- * Contains the details of a request to some remote <code>MicroKernel</code>
+ * Contains the details of a request to some remote {@code MicroKernel}
  * implementation.
  */
 class Request implements Closeable {
@@ -57,9 +57,9 @@ class Request implements Closeable {
     
     /**
      * Add a string parameter.
-     * 
+     *
      * @param name name
-     * @param value value, if <code>null</code> the call is ignored
+     * @param value value, if {@code null} the call is ignored
      */
     public Request addParameter(String name, String value) {
         if (value != null) {
@@ -70,8 +70,8 @@ class Request implements Closeable {
 
     /**
      * Add an integer parameter, equivalent to 
-     * <code>addParameter(name, String.valueOf(value))</code>.
-     * 
+     * {@code addParameter(name, String.valueOf(value))}.
+     *
      * @param name name
      * @param value value
      */
@@ -82,8 +82,8 @@ class Request implements Closeable {
     
     /**
      * Add a long parameter, equivalent to 
-     * <code>addParameter(name, String.valueOf(value))</code>.
-     * 
+     * {@code addParameter(name, String.valueOf(value))}.
+     *
      * @param name name
      * @param value value
      */
@@ -130,9 +130,9 @@ class Request implements Closeable {
 
     /**
      * Return a boolean from the result stream, equivalent to 
-     * <code>Boolean.parseBoolean(getString())</code>.
+     * {@code Boolean.parseBoolean(getString())}.
      * Automatically executes the request first.
-     * 
+     *
      * @return boolean
      * @throws IOException if an I/O error occurs
      */
@@ -144,9 +144,9 @@ class Request implements Closeable {
     
     /**
      * Return a long from the result stream, equivalent to 
-     * <code>Long.parseLong(getString())</code>.
+     * {@code Long.parseLong(getString())}.
      * Automatically executes the request first.
-     * 
+     *
      * @return boolean
      * @throws IOException if an I/O error occurs
      */
@@ -159,12 +159,12 @@ class Request implements Closeable {
     /**
      * Read bytes from the result stream. Automatically executes the
      * request first.
-     * 
+     *
      * @param b buffer
      * @param off offset
      * @param len length
-     * @return number of bytes or <code>-1</code> if no more bytes are available
-     * 
+     * @return number of bytes or {@code -1} if no more bytes are available
+     *
      * @throws IOException if an I/O error occurs
      */
     public int read(byte[] b, int off, int len) throws IOException {

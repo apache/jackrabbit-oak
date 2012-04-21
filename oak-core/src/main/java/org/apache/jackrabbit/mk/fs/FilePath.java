@@ -28,10 +28,10 @@ import java.util.Random;
 import org.apache.jackrabbit.mk.util.StringUtils;
 
 /**
- * A path to a file. It similar to the Java 7 <code>java.nio.file.Path</code>,
+ * A path to a file. It similar to the Java 7 {@code java.nio.file.Path},
  * but simpler, and works with older versions of Java. It also implements the
- * relevant methods found in <code>java.nio.file.FileSystem</code> and
- * <code>FileSystems</code>
+ * relevant methods found in {@code java.nio.file.FileSystem} and
+ * {@code FileSystems}
  */
 public abstract class FilePath {
 
@@ -53,7 +53,7 @@ public abstract class FilePath {
 
     /**
      * Get the file path object for the given path.
-     * This method is similar to Java 7 <code>java.nio.file.FileSystem.getPath</code>.
+     * This method is similar to Java 7 {@code java.nio.file.FileSystem.getPath}.
      * Windows-style '\' is replaced with '/'.
      *
      * @param path the path
@@ -294,7 +294,7 @@ public abstract class FilePath {
 
     /**
      * Get the scheme (prefix) for this file provider.
-     * This is similar to <code>java.nio.file.spi.FileSystemProvider.getScheme</code>.
+     * This is similar to {@code java.nio.file.spi.FileSystemProvider.getScheme}.
      *
      * @return the scheme
      */
@@ -302,7 +302,7 @@ public abstract class FilePath {
 
     /**
      * Convert a file to a path. This is similar to
-     * <code>java.nio.file.spi.FileSystemProvider.getPath</code>, but may
+     * {@code java.nio.file.spi.FileSystemProvider.getPath}, but may
      * return an object even if the scheme doesn't match in case of the the
      * default file provider.
      *
@@ -313,7 +313,7 @@ public abstract class FilePath {
 
     /**
      * Append an element to the path.
-     * This is similar to <code>java.nio.file.spi.FileSystemProvider.resolve</code>.
+     * This is similar to {@code java.nio.file.spi.FileSystemProvider.resolve}.
      *
      * @param other the relative path (might be null)
      * @return the resolved path

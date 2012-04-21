@@ -213,7 +213,7 @@ class Response implements Closeable {
     }
     
     /**
-     * Internal <code>OutputStream</code> passed to servlet handlers.
+     * Internal {@code OutputStream} passed to servlet handlers.
      */
     class BodyOutputStream extends OutputStream {
         

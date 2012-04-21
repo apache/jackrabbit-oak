@@ -21,7 +21,7 @@ import org.apache.jackrabbit.mk.util.PathUtils;
 
 /**
  * A tree allows to query a value for a given key, similar to
- * <code>java.util.SortedMap</code>.
+ * {@code java.util.SortedMap}.
  */
 public class BTree {
 

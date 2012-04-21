@@ -36,7 +36,7 @@ import org.apache.jackrabbit.mk.MicroKernelFactory;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 
 /**
- * Server exposing a <code>MicroKernel</code>.
+ * Server exposing a {@code MicroKernel}.
  */
 public class Server {
 
@@ -195,7 +195,7 @@ public class Server {
     /**
      * Return the server's local socket address.
      *
-     * @return socket address or <code>null</code> if the server is not started
+     * @return socket address or {@code null} if the server is not started
      */
     public InetSocketAddress getAddress() {
         if (!started.get() || stopped.get()) {
