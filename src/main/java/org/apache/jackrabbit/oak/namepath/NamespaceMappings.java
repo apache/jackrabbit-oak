@@ -56,8 +56,8 @@ public class NamespaceMappings {
         if (mk == null) {
             // Generate a mk prefix. Use jcrPrefix if possible, disambiguate otherwise
             mk = jcrPrefix;
-            while (ns2MkMap.containsValue(mk)) {
-                mk += "+"; // todo: use more sophisticated approach for generating unique names
+            for (int i = 2; ns2MkMap.containsValue(mk); i++) {
+                mk = jcrPrefix + i;
             }
             ns2MkMap.put(namespace, mk);
         }
