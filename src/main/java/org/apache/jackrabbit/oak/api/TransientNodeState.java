@@ -122,8 +122,9 @@ public interface TransientNodeState {
      * Remove the child node state with the given {@code name}. Does nothing
      * if no such child node exists.
      * @param name  name of the node state to remove
+     * @return  {@code false} iff no such child node exists.
      */
-    void removeNode(String name);
+    boolean removeNode(String name);
 
     /**
      * Set a single valued property state on this node state.

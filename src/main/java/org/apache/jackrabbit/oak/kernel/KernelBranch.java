@@ -65,35 +65,37 @@ public class KernelBranch implements Branch {
     }
 
     @Override
-    public void move(String sourcePath, String destPath) {
+    public boolean move(String sourcePath, String destPath) {
         TransientKernelNodeState sourceNode = getTransientState(sourcePath);
         if (sourceNode == null) {
-            return;
+            return false;
         }
 
         TransientKernelNodeState destParent = getTransientState(getParentPath(destPath));
         String destName = getName(destPath);
         if (destParent == null || destParent.hasNode(destName)) {
-            return;
+            return false;
         }
 
         sourceNode.move(destParent, destName);
+        return true;
     }
 
     @Override
-    public void copy(String sourcePath, String destPath) {
+    public boolean copy(String sourcePath, String destPath) {
         TransientKernelNodeState sourceNode = getTransientState(sourcePath);
         if (sourceNode == null) {
-            return;
+            return false;
         }
 
         TransientKernelNodeState destParent = getTransientState(getParentPath(destPath));
         String destName = getName(destPath);
         if (destParent == null || destParent.hasNode(destName)) {
-            return;
+            return false;
         }
 
         sourceNode.copy(destParent, destName);
+        return true;
     }
 
     @Override
