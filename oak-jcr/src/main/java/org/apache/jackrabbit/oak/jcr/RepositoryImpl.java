@@ -122,8 +122,8 @@ public class RepositoryImpl implements Repository {
 
         ContentRepository contentRepository = context.getInstance(ContentRepository.class);
         try {
-            ContentSession connection = contentRepository.login(credentials, workspaceName);
-            return new SessionImpl(context, connection);
+            ContentSession contentSession = contentRepository.login(credentials, workspaceName);
+            return new SessionImpl(context, contentSession);
         } catch (LoginException e) {
             throw new javax.jcr.LoginException(e.getMessage());
         }

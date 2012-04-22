@@ -48,7 +48,7 @@ public class QueryManagerImpl implements QueryManager {
     private final QueryEngine queryEngine;
 
     public QueryManagerImpl(WorkspaceImpl workspace, SessionContext<SessionImpl> sessionContext) {
-        queryEngine = sessionContext.getConnection().getQueryEngine();
+        queryEngine = sessionContext.getContentSession().getQueryEngine();
     }
 
     @Override

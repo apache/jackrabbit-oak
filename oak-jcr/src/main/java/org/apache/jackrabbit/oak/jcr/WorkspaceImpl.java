@@ -85,14 +85,14 @@ public class WorkspaceImpl implements Workspace {
         }
 
         try {
-            ContentSession connection = sessionContext.getConnection();
-            Branch branch = connection.branchRoot();
+            ContentSession contentSession = sessionContext.getContentSession();
+            Branch branch = contentSession.branchRoot();
 
             String srcPath = Paths.relativize("/", srcAbsPath);
             String destPath = Paths.relativize("/", destAbsPath);
             branch.copy(srcPath, destPath);
 
-            connection.commit(branch);
+            contentSession.commit(branch);
         }
         catch (CommitFailedException e) {
             throw new RepositoryException(e);
@@ -116,14 +116,14 @@ public class WorkspaceImpl implements Workspace {
         ensureIsAlive();
 
         try {
-            ContentSession connection = sessionContext.getConnection();
-            Branch branch = connection.branchRoot();
+            ContentSession contentSession = sessionContext.getContentSession();
+            Branch branch = contentSession.branchRoot();
 
             String srcPath = Paths.relativize("/", srcAbsPath);
             String destPath = Paths.relativize("/", destAbsPath);
             branch.move(srcPath, destPath);
 
-            connection.commit(branch);
+            contentSession.commit(branch);
         }
         catch (CommitFailedException e) {
             throw new RepositoryException(e);
