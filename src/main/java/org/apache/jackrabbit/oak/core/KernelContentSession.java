@@ -81,9 +81,7 @@ class KernelContentSession implements ContentSession {
     
     @Override
     public void refresh() {
-        root = workspaceName == null
-            ? store.getRoot()
-            : store.getRoot().getChildNode(workspaceName);
+        root = store.getRoot().getChildNode(workspaceName);
     }
 
     @Override
