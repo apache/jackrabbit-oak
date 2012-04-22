@@ -24,39 +24,39 @@ package org.apache.jackrabbit.oak.api;
 public interface Branch {
 
     /**
-     * Move the node state located at {@code sourcePath} to a node
-     * state at {@code destPath}. Do nothing if either the source
+     * Move the child located at {@code sourcePath} to a child
+     * at {@code destPath}. Do nothing if either the source
      * does not exist, the parent of the destination does not exist
      * or the destination exists already. Both paths must resolve
-     * to node states located in this branch.
+     * to a child located in this branch.
      *
-     * @param sourcePath source path relative to this node state
-     * @param destPath destination path relative to this node state
+     * @param sourcePath source path relative to this branch
+     * @param destPath destination path relative to this branch
      * @return  {@code true} on success, {@code false} otherwise.
      */
     boolean move(String sourcePath, String destPath);
 
     /**
-     * Copy the node state located at {@code sourcePath} to a node
-     * state at {@code destPath}. Do nothing if either the source
+     * Copy the child located at {@code sourcePath} to a child
+     * at {@code destPath}. Do nothing if either the source
      * does not exist, the parent of the destination does not exist
      * or the destination exists already. Both paths must resolve
-     * to node states located in this branch.
+     * to a child located in this branch.
      *
-     * @param sourcePath source path relative to this node state
-     * @param destPath destination path relative to this node state
+     * @param sourcePath source path relative to this branch
+     * @param destPath destination path relative to this branch
      * @return  {@code true} on success, {@code false} otherwise.
      */
     boolean copy(String sourcePath, String destPath);
 
     /**
-     * Retrieve the child node state at the given {@code path}.
-     * The path must resolve to a node state located in this branch.
+     * Retrieve the {@code ContentTree} at the given {@code path}.
+     * The path must resolve to a content tree in this branch.
      *
-     * @param path path of the child node state to getNode.
-     * @return transient node state at the given path or {@code null} if no
-     * such node state exists.
+     * @param path path to the content tree
+     * @return content tree at the given path or {@code null} if no
+     * such tree exists
      */
-    TransientNodeState getNode(String path);
+    ContentTree getContentTree(String path);
 
 }
