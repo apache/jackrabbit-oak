@@ -20,7 +20,7 @@ import javax.jcr.NoSuchWorkspaceException;
 import javax.security.auth.login.LoginException;
 
 /**
- * Oak content repository. The repository may local or remote, or a cluster
+ * Oak content repository. The repository may be local or remote, or a cluster
  * of any size. These deployment details are all hidden behind this interface.
  * <p>
  * All access to the repository happens through authenticated

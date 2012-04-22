@@ -46,7 +46,7 @@ public interface ContentSession extends Closeable {
 
     /**
      * This methods provides access to information related to authentication
-     * and authorization of this connection. Multiple calls to this method
+     * and authorization of this content session. Multiple calls to this method
      * may return different instances which are guaranteed to be equal wrt.
      * to {@link Object#equals(Object)}.
      *
@@ -55,18 +55,18 @@ public interface ContentSession extends Closeable {
     AuthInfo getAuthInfo();
 
     /**
-     * The immutable name of the workspace this {@code Connection} instance has
+     * The name of the workspace this {@code ContentSession} instance has
      * been created for. If no workspace name has been specified during
      * repository login this method will return the name of the default
      * workspace.
      *
      * @return name of the workspace this instance has been created for or
-     * {@code null} if this connection is repository bound.
+     * {@code null} if this content session is repository bound.
      */
     String getWorkspaceName();
 
     /**
-     * Refresh this connection to the latest revision of the underlying Microkernel.
+     * Refresh this content session to the latest revision of the underlying Microkernel.
      */
     void refresh();
 
