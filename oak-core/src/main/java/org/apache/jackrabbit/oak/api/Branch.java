@@ -32,8 +32,9 @@ public interface Branch {
      *
      * @param sourcePath source path relative to this node state
      * @param destPath destination path relative to this node state
+     * @return  {@code true} on success, {@code false} otherwise.
      */
-    void move(String sourcePath, String destPath);
+    boolean move(String sourcePath, String destPath);
 
     /**
      * Copy the node state located at {@code sourcePath} to a node
@@ -44,8 +45,9 @@ public interface Branch {
      *
      * @param sourcePath source path relative to this node state
      * @param destPath destination path relative to this node state
+     * @return  {@code true} on success, {@code false} otherwise.
      */
-    void copy(String sourcePath, String destPath);
+    boolean copy(String sourcePath, String destPath);
 
     /**
      * Retrieve the child node state at the given {@code path}.
