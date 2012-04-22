@@ -58,8 +58,8 @@ public class SessionImpl extends AbstractSession {
     private final ValueFactory valueFactory;
     private final Workspace workspace;
     private final SessionContext<SessionImpl> sessionContext = new Context();
-    private boolean isAlive = true;
 
+    private boolean isAlive = true;
     private Branch branch;
 
     SessionImpl(GlobalContext globalContext, ContentSession contentSession) {
@@ -67,7 +67,6 @@ public class SessionImpl extends AbstractSession {
         this.contentSession = contentSession;
         this.valueFactory = new ValueFactoryImpl();
         workspace = new WorkspaceImpl(sessionContext);
-
         this.branch = contentSession.branchRoot();
     }
 

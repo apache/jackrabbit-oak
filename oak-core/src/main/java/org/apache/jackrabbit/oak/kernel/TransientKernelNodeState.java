@@ -381,12 +381,16 @@ public class TransientKernelNodeState implements TransientNodeState {
     }
 
     @Override
-    public void removeNode(String name) {
+    public boolean removeNode(String name) {
         if (hasNode(name)) {
             markNodeRemoved(name);
             if (listener != null) {
                 listener.removeNode(this, name);
             }
+            return true;
+        }
+        else {
+            return false;
         }
     }
 
