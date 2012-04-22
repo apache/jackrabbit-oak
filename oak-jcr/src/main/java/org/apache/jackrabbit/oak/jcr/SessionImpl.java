@@ -20,7 +20,7 @@ import org.apache.jackrabbit.commons.AbstractSession;
 import org.apache.jackrabbit.oak.api.Branch;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.TransientNodeState;
+import org.apache.jackrabbit.oak.api.ContentTree;
 import org.apache.jackrabbit.oak.namepath.Paths;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -120,7 +120,7 @@ public class SessionImpl extends AbstractSession {
     @Override
     public Node getRootNode() throws RepositoryException {
         ensureIsAlive();
-        return new NodeImpl(sessionContext, branch.getNode("/"));
+        return new NodeImpl(sessionContext, branch.getContentTree("/"));
     }
 
     @Override
@@ -462,8 +462,8 @@ public class SessionImpl extends AbstractSession {
         }
 
         @Override
-        public TransientNodeState getState(NodeImpl node) {
-            return branch.getNode(node.path());
+        public ContentTree getContentTree(NodeImpl node) {
+            return branch.getContentTree(node.path());
         }
     }
 }

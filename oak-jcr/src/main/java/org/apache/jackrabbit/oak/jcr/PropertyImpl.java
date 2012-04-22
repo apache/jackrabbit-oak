@@ -17,8 +17,8 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import org.apache.jackrabbit.oak.api.Branch;
+import org.apache.jackrabbit.oak.api.ContentTree;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.TransientNodeState;
 import org.apache.jackrabbit.oak.jcr.util.LogUtil;
 import org.apache.jackrabbit.oak.jcr.util.ValueConverter;
 import org.apache.jackrabbit.oak.namepath.Paths;
@@ -52,14 +52,14 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     private static final Logger log = LoggerFactory.getLogger(PropertyImpl.class);
 
-    private TransientNodeState parentState;
+    private ContentTree parent;
     private PropertyState propertyState;
 
-    PropertyImpl(SessionContext<SessionImpl> sessionContext, TransientNodeState parentState,
+    PropertyImpl(SessionContext<SessionImpl> sessionContext, ContentTree parent,
             PropertyState propertyState) {
 
         super(sessionContext);
-        this.parentState = parentState;
+        this.parent = parent;
         this.propertyState = propertyState;
     }
 
@@ -85,7 +85,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @Override
     public String getPath() throws RepositoryException {
-        return '/' + getParentState().getPath() + '/' + getStateName();
+        return '/' + getParentContentTree().getPath() + '/' + getStateName();
     }
 
     /**
@@ -93,7 +93,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @Override
     public Node getParent() throws RepositoryException {
-        return new NodeImpl(sessionContext, getParentState());
+        return new NodeImpl(sessionContext, getParentContentTree());
     }
 
     /**
@@ -139,7 +139,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @Override
     public void remove() throws RepositoryException {
-        getParentState().removeProperty(getStateName());
+        getParentContentTree().removeProperty(getStateName());
     }
 
     /**
@@ -567,7 +567,7 @@ public class PropertyImpl extends ItemImpl implements Property {
             remove();
         }
         else {
-            getParentState().setProperty(getStateName(), ValueConverter.toScalar(value));
+            getParentContentTree().setProperty(getStateName(), ValueConverter.toScalar(value));
         }
     }
 
@@ -587,7 +587,7 @@ public class PropertyImpl extends ItemImpl implements Property {
             remove();
         }
         else {
-            getParentState().setProperty(getStateName(), ValueConverter.toScalar(values));
+            getParentContentTree().setProperty(getStateName(), ValueConverter.toScalar(values));
         }
     }
 
@@ -611,9 +611,9 @@ public class PropertyImpl extends ItemImpl implements Property {
         return sessionContext.getBranch();
     }
 
-    private TransientNodeState getParentState() {
+    private ContentTree getParentContentTree() {
         resolve();
-        return parentState;
+        return parent;
     }
 
     private PropertyState getPropertyState() {
@@ -626,14 +626,14 @@ public class PropertyImpl extends ItemImpl implements Property {
     }
 
     private synchronized void resolve() {
-        parentState = getBranch().getNode(parentState.getPath());
-        String path = Paths.concat(parentState.getPath(), propertyState.getName());
+        parent = getBranch().getContentTree(parent.getPath());
+        String path = Paths.concat(parent.getPath(), propertyState.getName());
 
-        if (parentState == null) {
+        if (parent == null) {
             propertyState = null;
         }
         else {
-            propertyState = parentState.getProperty(Paths.getName(path));
+            propertyState = parent.getProperty(Paths.getName(path));
         }
     }
 

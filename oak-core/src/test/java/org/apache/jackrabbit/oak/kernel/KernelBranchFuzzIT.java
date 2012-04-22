@@ -21,9 +21,9 @@ package org.apache.jackrabbit.oak.kernel;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.simple.SimpleKernelImpl;
 import org.apache.jackrabbit.mk.util.PathUtils;
+import org.apache.jackrabbit.oak.api.ContentTree;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Scalar;
-import org.apache.jackrabbit.oak.api.TransientNodeState;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -90,7 +90,7 @@ public class KernelBranchFuzzIT {
             log.info("{}", op);
             op.apply(branch1);
             op.apply(branch2);
-            checkEqual(branch1.getNode("/"), branch2.getNode("/"));
+            checkEqual(branch1.getContentTree("/"), branch2.getContentTree("/"));
 
             state1 = branch1.mergeInto(mk1, state1);
             branch1 = new KernelBranch(state1);
@@ -142,7 +142,7 @@ public class KernelBranchFuzzIT {
 
             @Override
             void apply(KernelBranch branch) {
-                branch.getNode(parentPath).addNode(name);
+                branch.getContentTree(parentPath).addChild(name);
             }
 
             @Override
@@ -162,7 +162,7 @@ public class KernelBranchFuzzIT {
             void apply(KernelBranch branch) {
                 String parentPath = PathUtils.getParentPath(path);
                 String name = PathUtils.getName(path);
-                branch.getNode(parentPath).removeNode(name);
+                branch.getContentTree(parentPath).removeChild(name);
             }
 
             @Override
@@ -224,7 +224,7 @@ public class KernelBranchFuzzIT {
 
             @Override
             void apply(KernelBranch branch) {
-                branch.getNode(parentPath).setProperty(propertyName, propertyValue);
+                branch.getContentTree(parentPath).setProperty(propertyName, propertyValue);
             }
 
             @Override
@@ -245,7 +245,7 @@ public class KernelBranchFuzzIT {
 
             @Override
             void apply(KernelBranch branch) {
-                branch.getNode(parentPath).removeProperty(name);
+                branch.getContentTree(parentPath).removeProperty(name);
             }
 
             @Override
@@ -411,17 +411,17 @@ public class KernelBranchFuzzIT {
         return ScalarImpl.stringScalar("V" + counter++);
     }
 
-    private static void checkEqual(TransientNodeState state1, TransientNodeState state2) {
-        assertEquals(state1.getPath(), state2.getPath());
-        assertEquals(state1.getChildNodeCount(), state2.getChildNodeCount());
-        assertEquals(state1.getPropertyCount(), state2.getPropertyCount());
+    private static void checkEqual(ContentTree child2, ContentTree tree2) {
+        assertEquals(child2.getPath(), tree2.getPath());
+        assertEquals(child2.getChildrenCount(), tree2.getChildrenCount());
+        assertEquals(child2.getPropertyCount(), tree2.getPropertyCount());
 
-        for (PropertyState property1 : state1.getProperties()) {
-            assertEquals(property1, state2.getProperty(property1.getName()));
+        for (PropertyState property1 : child2.getProperties()) {
+            assertEquals(property1, tree2.getProperty(property1.getName()));
         }
 
-        for (TransientNodeState node1 : state1.getChildNodes()) {
-            checkEqual(node1, state2.getChildNode(node1.getName()));
+        for (ContentTree child1 : child2.getChildren()) {
+            checkEqual(child1, tree2.getChild(child1.getName()));
         }
     }
 
