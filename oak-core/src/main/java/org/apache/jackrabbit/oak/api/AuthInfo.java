@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.api;
 
 /**
  * {@code AuthInfo} instances provide access to information related
- * to authentication and authorization of a given connection.
+ * to authentication and authorization of a given content session.
  * {@code AuthInfo} instances are guaranteed to be immutable.
  */
 public interface AuthInfo {
