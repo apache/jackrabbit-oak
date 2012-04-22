@@ -54,7 +54,7 @@ public class SessionImpl extends AbstractSession {
     private static final Logger log = LoggerFactory.getLogger(SessionImpl.class);
 
     private final GlobalContext globalContext;
-    private final ContentSession connection;
+    private final ContentSession contentSession;
     private final ValueFactory valueFactory;
     private final Workspace workspace;
     private final SessionContext<SessionImpl> sessionContext = new Context();
@@ -62,13 +62,13 @@ public class SessionImpl extends AbstractSession {
 
     private Branch branch;
 
-    SessionImpl(GlobalContext globalContext, ContentSession connection) {
+    SessionImpl(GlobalContext globalContext, ContentSession contentSession) {
         this.globalContext = globalContext;
-        this.connection = connection;
+        this.contentSession = contentSession;
         this.valueFactory = new ValueFactoryImpl();
         workspace = new WorkspaceImpl(sessionContext);
 
-        this.branch = connection.branchRoot();
+        this.branch = contentSession.branchRoot();
     }
 
 
@@ -81,17 +81,17 @@ public class SessionImpl extends AbstractSession {
 
     @Override
     public String getUserID() {
-        return connection.getAuthInfo().getUserID();
+        return contentSession.getAuthInfo().getUserID();
     }
 
     @Override
     public String[] getAttributeNames() {
-        return connection.getAuthInfo().getAttributeNames();
+        return contentSession.getAuthInfo().getAttributeNames();
     }
 
     @Override
     public Object getAttribute(String name) {
-        return connection.getAuthInfo().getAttribute(name);
+        return contentSession.getAuthInfo().getAttribute(name);
     }
 
     @Override
@@ -157,9 +157,9 @@ public class SessionImpl extends AbstractSession {
     public void save() throws RepositoryException {
         ensureIsAlive();
         try {
-            connection.commit(branch);
-            connection.refresh();
-            branch = connection.branchRoot();
+            contentSession.commit(branch);
+            contentSession.refresh();
+            branch = contentSession.branchRoot();
         } catch (CommitFailedException e) {
             throw new RepositoryException(e);
         }
@@ -168,9 +168,9 @@ public class SessionImpl extends AbstractSession {
     @Override
     public void refresh(boolean keepChanges) throws RepositoryException {
         ensureIsAlive();
-        connection.refresh();
+        contentSession.refresh();
         if (!keepChanges) {
-            branch = connection.branchRoot();
+            branch = contentSession.branchRoot();
         }
     }
 
@@ -201,7 +201,7 @@ public class SessionImpl extends AbstractSession {
         // TODO
 
         try {
-            connection.close();
+            contentSession.close();
         } catch (IOException e) {
             log.warn("Error while closing connection", e);
         }
@@ -429,12 +429,12 @@ public class SessionImpl extends AbstractSession {
 
         @Override
         public String getWorkspaceName() {
-            return connection.getWorkspaceName();
+            return contentSession.getWorkspaceName();
         }
 
         @Override
-        public ContentSession getConnection() {
-            return connection;
+        public ContentSession getContentSession() {
+            return contentSession;
         }
 
         @Override

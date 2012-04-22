@@ -34,7 +34,7 @@ public interface SessionContext<T extends Session> {
     T getSession();
     GlobalContext getGlobalContext();
     String getWorkspaceName();
-    ContentSession getConnection();
+    ContentSession getContentSession();
     ValueFactory getValueFactory();
     LockManager getLockManager() throws RepositoryException;
     NodeTypeManager getNodeTypeManager() throws RepositoryException;
