@@ -20,8 +20,8 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
 import org.apache.jackrabbit.commons.iterator.PropertyIteratorAdapter;
 import org.apache.jackrabbit.oak.api.Branch;
+import org.apache.jackrabbit.oak.api.ContentTree;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.TransientNodeState;
 import org.apache.jackrabbit.oak.jcr.util.ItemNameMatcher;
 import org.apache.jackrabbit.oak.jcr.util.LogUtil;
 import org.apache.jackrabbit.oak.jcr.util.ValueConverter;
@@ -70,11 +70,11 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     private static final Logger log = LoggerFactory.getLogger(NodeImpl.class);
 
-    private TransientNodeState transientNodeState;
+    private ContentTree contentTree;
 
-    NodeImpl(SessionContext<SessionImpl> sessionContext, TransientNodeState transientNodeState) {
+    NodeImpl(SessionContext<SessionImpl> sessionContext, ContentTree contentTree) {
         super(sessionContext);
-        this.transientNodeState = transientNodeState;
+        this.contentTree = contentTree;
     }
 
     //---------------------------------------------------------------< Item >---
@@ -91,7 +91,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public String getName() throws RepositoryException {
-        return getTransientNodeState().getName();
+        return getContentTree().getName();
     }
 
     /**
@@ -107,11 +107,11 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public Node getParent() throws RepositoryException {
-        if (getTransientNodeState().getParent() == null) {
+        if (getContentTree().getParent() == null) {
             throw new ItemNotFoundException("Root has no parent");
         }
 
-        return new NodeImpl(sessionContext, getTransientNodeState().getParent());
+        return new NodeImpl(sessionContext, getContentTree().getParent());
     }
 
     /**
@@ -123,7 +123,7 @@ public class NodeImpl extends ItemImpl implements Node  {
         if (depth < 0 || depth > current) {
             throw new ItemNotFoundException("ancestor at depth " + depth + " does not exist");
         }
-        TransientNodeState ancestor = getTransientNodeState();
+        ContentTree ancestor = getContentTree();
         while (depth < current) {
             ancestor = ancestor.getParent();
             current -= 1;
@@ -162,7 +162,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public void remove() throws RepositoryException {
-        getTransientNodeState().getParent().removeNode(getName());
+        getContentTree().getParent().removeChild(getName());
     }
 
     /**
@@ -183,14 +183,14 @@ public class NodeImpl extends ItemImpl implements Node  {
         checkStatus();
 
         String parentPath = Paths.concat(path(), Paths.getParentPath(relPath));
-        TransientNodeState parentState = getBranch().getNode(parentPath);
+        ContentTree parentState = getBranch().getContentTree(parentPath);
         if (parentState == null) {
             throw new PathNotFoundException(relPath);
         }
 
         String name = Paths.getName(relPath);
-        parentState.addNode(name);
-        return new NodeImpl(sessionContext, parentState.getChildNode(name));
+        parentState.addChild(name);
+        return new NodeImpl(sessionContext, parentState.getChild(name));
     }
 
     @Override
@@ -381,38 +381,38 @@ public class NodeImpl extends ItemImpl implements Node  {
     public NodeIterator getNodes() throws RepositoryException {
         checkStatus();
 
-        Iterable<TransientNodeState> childNodeStates = getTransientNodeState().getChildNodes();
-        return new NodeIteratorAdapter(nodeIterator(childNodeStates.iterator()));
+        Iterable<ContentTree> children = getContentTree().getChildren();
+        return new NodeIteratorAdapter(nodeIterator(children.iterator()));
     }
 
     @Override
     public NodeIterator getNodes(final String namePattern) throws RepositoryException {
         checkStatus();
 
-        Iterator<TransientNodeState> childNodeStates = filter(getTransientNodeState().getChildNodes().iterator(),
-                new Predicate<TransientNodeState>() {
+        Iterator<ContentTree> children = filter(getContentTree().getChildren().iterator(),
+                new Predicate<ContentTree>() {
                     @Override
-                    public boolean evaluate(TransientNodeState state) {
+                    public boolean evaluate(ContentTree state) {
                         return ItemNameMatcher.matches(state.getName(), namePattern);
                     }
                 });
 
-        return new NodeIteratorAdapter(nodeIterator(childNodeStates));
+        return new NodeIteratorAdapter(nodeIterator(children));
     }
 
     @Override
     public NodeIterator getNodes(final String[] nameGlobs) throws RepositoryException {
         checkStatus();
 
-        Iterator<TransientNodeState> childNodeStates = filter(getTransientNodeState().getChildNodes().iterator(),
-                new Predicate<TransientNodeState>() {
+        Iterator<ContentTree> children = filter(getContentTree().getChildren().iterator(),
+                new Predicate<ContentTree>() {
                     @Override
-                    public boolean evaluate(TransientNodeState state) {
+                    public boolean evaluate(ContentTree state) {
                         return ItemNameMatcher.matches(state.getName(), nameGlobs);
                     }
                 });
 
-        return new NodeIteratorAdapter(nodeIterator(childNodeStates));
+        return new NodeIteratorAdapter(nodeIterator(children));
     }
 
     @Override
@@ -431,7 +431,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     public PropertyIterator getProperties() throws RepositoryException {
         checkStatus();
 
-        Iterable<PropertyState> properties = getTransientNodeState().getProperties();
+        Iterable<PropertyState> properties = getContentTree().getProperties();
         return new PropertyIteratorAdapter(propertyIterator(properties.iterator()));
     }
 
@@ -439,7 +439,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     public PropertyIterator getProperties(final String namePattern) throws RepositoryException {
         checkStatus();
 
-        Iterator<PropertyState> properties = filter(getTransientNodeState().getProperties().iterator(),
+        Iterator<PropertyState> properties = filter(getContentTree().getProperties().iterator(),
                 new Predicate<PropertyState>() {
                     @Override
                     public boolean evaluate(PropertyState entry) {
@@ -452,7 +452,7 @@ public class NodeImpl extends ItemImpl implements Node  {
 
     @Override
     public PropertyIterator getProperties(final String[] nameGlobs) throws RepositoryException {
-        Iterator<PropertyState> propertyNames = filter(getTransientNodeState().getProperties().iterator(),
+        Iterator<PropertyState> propertyNames = filter(getContentTree().getProperties().iterator(),
                 new Predicate<PropertyState>() {
                     @Override
                     public boolean evaluate(PropertyState entry) {
@@ -560,14 +560,14 @@ public class NodeImpl extends ItemImpl implements Node  {
     public boolean hasNodes() throws RepositoryException {
         checkStatus();
 
-        return getTransientNodeState().getChildNodeCount() != 0;
+        return getContentTree().getChildrenCount() != 0;
     }
 
     @Override
     public boolean hasProperties() throws RepositoryException {
         checkStatus();
 
-        return getTransientNodeState().getPropertyCount() != 0;
+        return getContentTree().getPropertyCount() != 0;
     }
 
     /**
@@ -856,7 +856,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     //------------------------------------------------------------< package >---
 
     String path() {
-        return '/' + getTransientNodeState().getPath();
+        return '/' + getContentTree().getPath();
     }
 
     //------------------------------------------------------------< private >---
@@ -864,22 +864,22 @@ public class NodeImpl extends ItemImpl implements Node  {
     /**
      * @return The node state associated with this node
      */
-    private TransientNodeState getState() {
-        return getTransientNodeState();
+    private ContentTree getState() {
+        return getContentTree();
     }
 
     private Branch getBranch() {
         return sessionContext.getBranch();
     }
 
-    private synchronized TransientNodeState getTransientNodeState() {
-        return transientNodeState = getBranch().getNode(transientNodeState.getPath());
+    private synchronized ContentTree getContentTree() {
+        return contentTree = getBranch().getContentTree(contentTree.getPath());
     }
 
-    private Iterator<Node> nodeIterator(Iterator<TransientNodeState> childNodeStates) {
-        return Iterators.map(childNodeStates, new Function1<TransientNodeState, Node>() {
+    private Iterator<Node> nodeIterator(Iterator<ContentTree> childNodeStates) {
+        return Iterators.map(childNodeStates, new Function1<ContentTree, Node>() {
             @Override
-            public Node apply(TransientNodeState state) {
+            public Node apply(ContentTree state) {
                 return new NodeImpl(sessionContext, state);
             }
         });
@@ -889,30 +889,30 @@ public class NodeImpl extends ItemImpl implements Node  {
         return Iterators.map(properties, new Function1<PropertyState, Property>() {
             @Override
             public Property apply(PropertyState propertyState) {
-                return new PropertyImpl(sessionContext, getTransientNodeState(), propertyState);
+                return new PropertyImpl(sessionContext, getContentTree(), propertyState);
             }
         });
     }
 
     private NodeImpl getNodeOrNull(String relPath) {
         String absPath = Paths.concat(path(), relPath);
-        TransientNodeState nodeState = getBranch().getNode(absPath);
-        return nodeState == null
+        ContentTree tree = getBranch().getContentTree(absPath);
+        return tree == null
             ? null
-            : new NodeImpl(sessionContext, nodeState);
+            : new NodeImpl(sessionContext, tree);
     }
     
     private PropertyImpl getPropertyOrNull(String relPath) {
         String absPath = Paths.concat(path(), Paths.getParentPath(relPath));
-        TransientNodeState parentState = getBranch().getNode(absPath);
-        if (parentState == null) {
+        ContentTree parent = getBranch().getContentTree(absPath);
+        if (parent == null) {
             return null;
         }
 
         String name = Paths.getName(relPath);
-        PropertyState propertyState = parentState.getProperty(name);
+        PropertyState propertyState = parent.getProperty(name);
         return propertyState == null
             ? null
-            : new PropertyImpl(sessionContext, parentState, propertyState);
+            : new PropertyImpl(sessionContext, parent, propertyState);
     }
 }

@@ -57,7 +57,7 @@ public class KernelContentRepository implements ContentRepository {
         NodeState wspNode = root.getChildNode(DEFAULT_WORKSPACE_NAME);
         if (wspNode == null) {
             Branch branch = nodeStore.branch(root);
-            branch.getNode("/").addNode(DEFAULT_WORKSPACE_NAME);
+            branch.getContentTree("/").addChild(DEFAULT_WORKSPACE_NAME);
             nodeStore.merge(branch);
         }
     }

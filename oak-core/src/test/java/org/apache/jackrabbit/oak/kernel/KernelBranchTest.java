@@ -20,9 +20,9 @@ package org.apache.jackrabbit.oak.kernel;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.simple.SimpleKernelImpl;
+import org.apache.jackrabbit.oak.api.ContentTree;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Scalar;
-import org.apache.jackrabbit.oak.api.TransientNodeState;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -55,24 +55,24 @@ public class KernelBranchTest {
     }
 
     @Test
-    public void getNode() {
+    public void getChild() {
         KernelBranch branch = new KernelBranch(state);
-        TransientNodeState transientState = branch.getNode("/");
-        TransientNodeState childState = transientState.getChildNode("any");
-        assertNull(childState);
+        ContentTree tree = branch.getContentTree("/");
+        ContentTree child = tree.getChild("any");
+        assertNull(child);
 
-        childState = transientState.getChildNode("x");
-        assertNotNull(childState);
+        child = tree.getChild("x");
+        assertNotNull(child);
     }
 
     @Test
     public void getProperty() {
         KernelBranch branch = new KernelBranch(state);
-        TransientNodeState transientState = branch.getNode("/");
-        PropertyState propertyState = transientState.getProperty("any");
+        ContentTree tree = branch.getContentTree("/");
+        PropertyState propertyState = tree.getProperty("any");
         assertNull(propertyState);
 
-        propertyState = transientState.getProperty("a");
+        propertyState = tree.getProperty("a");
         assertNotNull(propertyState);
         assertFalse(propertyState.isArray());
         assertEquals(Scalar.Type.LONG, propertyState.getScalar().getType());
@@ -80,33 +80,33 @@ public class KernelBranchTest {
     }
 
     @Test
-    public void getNodes() {
+    public void getChildren() {
         KernelBranch branch = new KernelBranch(state);
-        TransientNodeState transientState = branch.getNode("/");
-        Iterable<TransientNodeState> nodes = transientState.getChildNodes();
+        ContentTree tree = branch.getContentTree("/");
+        Iterable<ContentTree> children = tree.getChildren();
 
         Set<String> expectedPaths = new HashSet<String>();
         Collections.addAll(expectedPaths, "x", "y", "z");
 
-        for (TransientNodeState node : nodes) {
-            assertTrue(expectedPaths.remove(node.getPath()));
+        for (ContentTree child : children) {
+            assertTrue(expectedPaths.remove(child.getPath()));
         }
         assertTrue(expectedPaths.isEmpty());
 
-        assertEquals(3, transientState.getChildNodeCount());
+        assertEquals(3, tree.getChildrenCount());
     }
 
     @Test
     public void getProperties() {
         KernelBranch branch = new KernelBranch(state);
-        TransientNodeState transientState = branch.getNode("/");
+        ContentTree tree = branch.getContentTree("/");
 
         Map<String, Scalar> expectedProperties = new HashMap<String, Scalar>();
         expectedProperties.put("a", ScalarImpl.longScalar(1));
         expectedProperties.put("b", ScalarImpl.longScalar(2));
         expectedProperties.put("c", ScalarImpl.longScalar(3));
 
-        Iterable<PropertyState> properties = transientState.getProperties();
+        Iterable<PropertyState> properties = tree.getProperties();
         for (PropertyState property : properties) {
             Scalar value = expectedProperties.remove(property.getName());
             assertNotNull(value);
@@ -116,49 +116,49 @@ public class KernelBranchTest {
 
         assertTrue(expectedProperties.isEmpty());
 
-        assertEquals(3, transientState.getPropertyCount());
+        assertEquals(3, tree.getPropertyCount());
     }
 
     @Test
-    public void addNode() {
+    public void addChild() {
         KernelBranch branch = new KernelBranch(state);
-        TransientNodeState transientState = branch.getNode("/");
+        ContentTree tree = branch.getContentTree("/");
 
-        assertFalse(transientState.hasNode("new"));
-        TransientNodeState newNode = transientState.addNode("new");
-        assertNotNull(newNode);
-        assertEquals("new", newNode.getName());
-        assertTrue(transientState.hasNode("new"));
+        assertFalse(tree.hasChild("new"));
+        ContentTree added = tree.addChild("new");
+        assertNotNull(added);
+        assertEquals("new", added.getName());
+        assertTrue(tree.hasChild("new"));
 
         NodeState newState = branch.mergeInto(microkernel, state);
         assertNotNull(newState.getChildNode("new"));
     }
 
     @Test
-    public void addExistingNode() {
+    public void addExistingChild() {
         KernelBranch branch = new KernelBranch(state);
-        TransientNodeState transientState = branch.getNode("/");
+        ContentTree tree = branch.getContentTree("/");
 
-        assertFalse(transientState.hasNode("new"));
-        transientState.addNode("new");
+        assertFalse(tree.hasChild("new"));
+        tree.addChild("new");
         NodeState newState = branch.mergeInto(microkernel, state);
 
         branch = new KernelBranch(newState);
-        transientState = branch.getNode("/");
-        assertTrue(transientState.hasNode("new"));
-        TransientNodeState newNode = transientState.addNode("new");
-        assertNotNull(newNode);
-        assertEquals("new", newNode.getName());
+        tree = branch.getContentTree("/");
+        assertTrue(tree.hasChild("new"));
+        ContentTree added = tree.addChild("new");
+        assertNotNull(added);
+        assertEquals("new", added.getName());
     }
 
     @Test
-    public void removeNode() {
+    public void removeChild() {
         KernelBranch branch = new KernelBranch(state);
-        TransientNodeState transientState = branch.getNode("/");
+        ContentTree tree = branch.getContentTree("/");
 
-        assertTrue(transientState.hasNode("x"));
-        transientState.removeNode("x");
-        assertFalse(transientState.hasNode("x"));
+        assertTrue(tree.hasChild("x"));
+        tree.removeChild("x");
+        assertFalse(tree.hasChild("x"));
 
         NodeState newState = branch.mergeInto(microkernel, state);
         assertNull(newState.getChildNode("x"));
@@ -167,12 +167,12 @@ public class KernelBranchTest {
     @Test
     public void setProperty() {
         KernelBranch branch = new KernelBranch(state);
-        TransientNodeState transientState = branch.getNode("/");
+        ContentTree tree = branch.getContentTree("/");
 
-        assertFalse(transientState.hasProperty("new"));
+        assertFalse(tree.hasProperty("new"));
         Scalar value = ScalarImpl.stringScalar("value");
-        transientState.setProperty("new", value);
-        PropertyState property = transientState.getProperty("new");
+        tree.setProperty("new", value);
+        PropertyState property = tree.getProperty("new");
         assertNotNull(property);
         assertEquals("new", property.getName());
         assertEquals(value, property.getScalar());
@@ -187,11 +187,11 @@ public class KernelBranchTest {
     @Test
     public void removeProperty() {
         KernelBranch branch = new KernelBranch(state);
-        TransientNodeState transientState = branch.getNode("/");
+        ContentTree tree = branch.getContentTree("/");
 
-        assertTrue(transientState.hasProperty("a"));
-        transientState.removeProperty("a");
-        assertFalse(transientState.hasProperty("a"));
+        assertTrue(tree.hasProperty("a"));
+        tree.removeProperty("a");
+        assertFalse(tree.hasProperty("a"));
 
         NodeState newState = branch.mergeInto(microkernel, state);
         assertNull(newState.getProperty("a"));
@@ -200,13 +200,13 @@ public class KernelBranchTest {
     @Test
     public void move() {
         KernelBranch branch = new KernelBranch(state);
-        TransientNodeState transientState = branch.getNode("/");
-        TransientNodeState y = transientState.getChildNode("y");
+        ContentTree tree = branch.getContentTree("/");
+        ContentTree y = tree.getChild("y");
 
-        assertTrue(transientState.hasNode("x"));
+        assertTrue(tree.hasChild("x"));
         branch.move("x", "y/xx");
-        assertFalse(transientState.hasNode("x"));
-        assertTrue(y.hasNode("xx"));
+        assertFalse(tree.hasChild("x"));
+        assertTrue(y.hasChild("xx"));
 
         NodeState newState = branch.mergeInto(microkernel, state);
         assertNull(newState.getChildNode("x"));
@@ -217,12 +217,12 @@ public class KernelBranchTest {
     @Test
     public void rename() {
         KernelBranch branch = new KernelBranch(state);
-        TransientNodeState transientState = branch.getNode("/");
+        ContentTree tree = branch.getContentTree("/");
 
-        assertTrue(transientState.hasNode("x"));
+        assertTrue(tree.hasChild("x"));
         branch.move("x", "xx");
-        assertFalse(transientState.hasNode("x"));
-        assertTrue(transientState.hasNode("xx"));
+        assertFalse(tree.hasChild("x"));
+        assertTrue(tree.hasChild("xx"));
 
         NodeState newState = branch.mergeInto(microkernel, state);
         assertNull(newState.getChildNode("x"));
@@ -232,13 +232,13 @@ public class KernelBranchTest {
     @Test
     public void copy() {
         KernelBranch branch = new KernelBranch(state);
-        TransientNodeState transientState = branch.getNode("/");
-        TransientNodeState y = transientState.getChildNode("y");
+        ContentTree tree = branch.getContentTree("/");
+        ContentTree y = tree.getChild("y");
 
-        assertTrue(transientState.hasNode("x"));
+        assertTrue(tree.hasChild("x"));
         branch.copy("x", "y/xx");
-        assertTrue(transientState.hasNode("x"));
-        assertTrue(y.hasNode("xx"));
+        assertTrue(tree.hasChild("x"));
+        assertTrue(y.hasChild("xx"));
 
         NodeState newState = branch.mergeInto(microkernel, state);
         assertNotNull(newState.getChildNode("x"));
@@ -249,13 +249,13 @@ public class KernelBranchTest {
     @Test
     public void deepCopy() {
         KernelBranch branch = new KernelBranch(state);
-        TransientNodeState transientState = branch.getNode("/");
-        TransientNodeState y = transientState.getChildNode("y");
+        ContentTree tree = branch.getContentTree("/");
+        ContentTree y = tree.getChild("y");
 
-        branch.getNode("x").addNode("x1");
+        branch.getContentTree("x").addChild("x1");
         branch.copy("x", "y/xx");
-        assertTrue(y.hasNode("xx"));
-        assertTrue(y.getChildNode("xx").hasNode("x1"));
+        assertTrue(y.hasChild("xx"));
+        assertTrue(y.getChild("xx").hasChild("x1"));
 
         NodeState newState = branch.mergeInto(microkernel, state);
         assertNotNull(newState.getChildNode("x"));
@@ -269,59 +269,59 @@ public class KernelBranchTest {
     }
 
     @Test
-    public void getChildNodeCount() {
+    public void getChildrenCount() {
         KernelBranch branch = new KernelBranch(state);
-        TransientNodeState transientState = branch.getNode("/");
-        assertEquals(3, transientState.getChildNodeCount());
+        ContentTree tree = branch.getContentTree("/");
+        assertEquals(3, tree.getChildrenCount());
 
-        transientState.removeNode("x");
-        assertEquals(2, transientState.getChildNodeCount());
+        tree.removeChild("x");
+        assertEquals(2, tree.getChildrenCount());
 
-        transientState.addNode("a");
-        assertEquals(3, transientState.getChildNodeCount());
+        tree.addChild("a");
+        assertEquals(3, tree.getChildrenCount());
 
-        transientState.addNode("x");
-        assertEquals(4, transientState.getChildNodeCount());
+        tree.addChild("x");
+        assertEquals(4, tree.getChildrenCount());
     }
 
     @Test
     public void getPropertyCount() {
         KernelBranch branch = new KernelBranch(state);
-        TransientNodeState transientState = branch.getNode("/");
-        assertEquals(3, transientState.getPropertyCount());
+        ContentTree tree = branch.getContentTree("/");
+        assertEquals(3, tree.getPropertyCount());
 
         Scalar value = ScalarImpl.stringScalar("foo");
-        transientState.setProperty("a", value);
-        assertEquals(3, transientState.getPropertyCount());
+        tree.setProperty("a", value);
+        assertEquals(3, tree.getPropertyCount());
 
-        transientState.removeProperty("a");
-        assertEquals(2, transientState.getPropertyCount());
+        tree.removeProperty("a");
+        assertEquals(2, tree.getPropertyCount());
 
-        transientState.setProperty("x", value);
-        assertEquals(3, transientState.getPropertyCount());
+        tree.setProperty("x", value);
+        assertEquals(3, tree.getPropertyCount());
 
-        transientState.setProperty("a", value);
-        assertEquals(4, transientState.getPropertyCount());
+        tree.setProperty("a", value);
+        assertEquals(4, tree.getPropertyCount());
     }
 
     @Test
-    public void largeChildNodeList() {
+    public void largeChildList() {
         KernelBranch branch = new KernelBranch(state);
-        TransientNodeState transientState = branch.getNode("/");
+        ContentTree tree = branch.getContentTree("/");
 
-        transientState.addNode("large");
-        transientState = transientState.getChildNode("large");
+        tree.addChild("large");
+        tree = tree.getChild("large");
         for (int c = 0; c < 10000; c++) {
-            transientState.addNode("n" + c);
+            tree.addChild("n" + c);
         }
 
         KernelNodeState newState = branch.mergeInto(microkernel, state);
         branch = new KernelBranch(newState);
-        transientState = branch.getNode("/");
-        transientState = transientState.getChildNode("large");
+        tree = branch.getContentTree("/");
+        tree = tree.getChild("large");
 
         int c = 0;
-        for (TransientNodeState q : transientState.getChildNodes()) {
+        for (ContentTree q : tree.getChildren()) {
             assertEquals("n" + c++, q.getName());
         }
 
