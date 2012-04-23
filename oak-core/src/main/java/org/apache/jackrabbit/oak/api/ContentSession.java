@@ -75,7 +75,7 @@ public interface ContentSession extends Closeable {
      * Microkernel.
      *
      * @param branch  branch carrying the changes to be applies
-     * @throws CommitFailedException
+     * @throws CommitFailedException TODO: add description and clarify how JCR exception can be generated from this generic exception
      */
     void commit(Branch branch) throws CommitFailedException;
 
