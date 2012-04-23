@@ -73,12 +73,8 @@ public class KernelBranch implements Branch {
 
         KernelContentTree destParent = getTransientState(getParentPath(destPath));
         String destName = getName(destPath);
-        if (destParent == null || destParent.hasChild(destName)) {
-            return false;
-        }
+        return destParent != null && source.move(destParent, destName);
 
-        source.move(destParent, destName);
-        return true;
     }
 
     @Override
@@ -90,12 +86,8 @@ public class KernelBranch implements Branch {
 
         KernelContentTree destParent = getTransientState(getParentPath(destPath));
         String destName = getName(destPath);
-        if (destParent == null || destParent.hasChild(destName)) {
-            return false;
-        }
+        return destParent != null && sourceNode.copy(destParent, destName);
 
-        sourceNode.copy(destParent, destName);
-        return true;
     }
 
     @Override
