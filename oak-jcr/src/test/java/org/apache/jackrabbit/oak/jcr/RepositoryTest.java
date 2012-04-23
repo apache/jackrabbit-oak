@@ -306,12 +306,19 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertFalse(session.nodeExists(newNode));
 
         Node node = getNode(TEST_PATH);
-        node.addNode("new");
+        Node added = node.addNode("new");
+        assertFalse(node.isNew());
+        assertTrue(node.isModified());
+        assertTrue(added.isNew());
+        assertFalse(added.isModified());
         session.save();
 
         Session session2 = getRepository().login();
         try {
             assertTrue(session2.nodeExists(newNode));
+            added = session2.getNode(newNode);
+            assertFalse(added.isNew());
+            assertFalse(added.isModified());
         }
         finally {
             session2.logout();
@@ -882,6 +889,9 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
         Property property = parentNode.getProperty("string");
         property.setValue("new value");
+        assertTrue(parentNode.isModified());
+        assertTrue(property.isModified());
+        assertFalse(property.isNew());
         property.getSession().save();
 
         Session session2 = getRepository().login();
@@ -996,6 +1006,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         Session session2 = getRepository().login();
         try {
             session2.getNode(TEST_PATH + "/newNode").remove();
+            assertTrue(session2.getNode(TEST_PATH).isModified());
             session2.save();
         }
         finally {
@@ -1005,6 +1016,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         Session session3 = getRepository().login();
         try {
             assertFalse(session3.nodeExists(TEST_PATH + "/newNode"));
+            assertFalse(session3.getNode(TEST_PATH).isModified());
         }
         finally {
             session3.logout();
@@ -1630,7 +1642,10 @@ public class RepositoryTest extends AbstractRepositoryTest {
         String propertyPath = parentNode.getPath() + '/' + name;
         assertFalse(getSession().propertyExists(propertyPath));
 
-        parentNode.setProperty(name, value);
+        Property added = parentNode.setProperty(name, value);
+        assertTrue(parentNode.isModified());
+        assertFalse(added.isModified());
+        assertTrue(added.isNew());
         getSession().save();
 
         Session session2 = getRepository().login();
