@@ -18,6 +18,7 @@ package org.apache.jackrabbit.mk.wrapper;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import junit.framework.Assert;
@@ -102,10 +103,14 @@ public class SecurityWrapperTest {
         head = mk.getHeadRevision();
         assertTrue(mkAdmin.nodeExists("/:user", head));
         assertFalse(mkGuest.nodeExists("/:user", head));
+        assertNull(mkGuest.getNodes("/:user", head));
         head = mkAdmin.commit("/", "^ \":rights\": \"read\"", head, "");
         head = mkAdmin.commit("/", "+ \"test\": { \"data\": \"Hello\" }", head, "");
         assertTrue(mkAdmin.nodeExists("/", head));
+        assertNull(mkGuest.getNodes("/unknown", head));
+        assertNull(mkGuest.getNodes("/unknown/node", head));
         assertTrue(mkGuest.nodeExists("/", head));
+        assertNull(mkGuest.getNodes("/unknown", head));
         assertEquals("{\":rights\":\"read\",\":childNodeCount\":2,\":user\":{\":rights\":\"admin\",\":childNodeCount\":2,\"guest\":{},\"sa\":{}},\"test\":{\"data\":\"Hello\",\":childNodeCount\":0}}", mkAdmin.getNodes("/", head));
         assertEquals("{\":childNodeCount\":1,\"test\":{\"data\":\"Hello\",\":childNodeCount\":0}}", mkGuest.getNodes("/", head));
     }

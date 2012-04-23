@@ -39,8 +39,6 @@ import java.util.Iterator;
  */
 public class NodeImpl implements Cache.Value {
 
-    private static final boolean NODE_NAME_AS_PROPERTY = false;
-
     /**
      * The child node count.
      */
@@ -82,6 +80,8 @@ public class NodeImpl implements Cache.Value {
      * The number of child nodes for an internal node.
      */
     static final String COUNT = ":childCount";
+
+    private static final boolean NODE_NAME_AS_PROPERTY = false;
 
     /**
      * The node name.
@@ -179,7 +179,8 @@ public class NodeImpl implements Cache.Value {
     }
 
     private NodeImpl getChildNode(String name) {
-        return childNodes.get(name).getNode(map);
+        NodeId id = childNodes.get(name);
+        return id == null ? null : id.getNode(map);
     }
 
     public NodeImpl cloneAndAddChildNode(String path, boolean before, String position, NodeImpl newNode, long revId) {
@@ -526,6 +527,7 @@ public class NodeImpl implements Cache.Value {
         return propertyValuePairs[index + index + 1];
     }
 
+    @Override
     public String toString() {
         String s = asString();
         if (path != null) {
@@ -710,6 +712,7 @@ public class NodeImpl implements Cache.Value {
         return memory;
     }
 
+    @Override
     public int hashCode() {
         int hash = Arrays.hashCode(propertyValuePairs);
         if (childNodes != null) {
@@ -718,6 +721,7 @@ public class NodeImpl implements Cache.Value {
         return hash;
     }
 
+    @Override
     public boolean equals(Object other) {
         if (other == this) {
             return true;

@@ -52,6 +52,10 @@ public class SecurityWrapper extends MicroKernelWrapperBase implements MicroKern
      * Decorates the given {@link MicroKernel} with authentication and
      * authorization. The responsibility of properly disposing the given
      * MikroKernel instance remains with the caller.
+     *
+     * @param mk the wrapped kernel
+     * @param user the user name
+     * @param pass the password
      */
     public SecurityWrapper(MicroKernel mk, String user, String pass) {
         this.mk = MicroKernelWrapperBase.wrap(mk);
@@ -93,6 +97,7 @@ public class SecurityWrapper extends MicroKernelWrapperBase implements MicroKern
 
     @Override
     public void dispose() {
+        // do nothing
     }
 
     @Override
@@ -288,7 +293,7 @@ public class SecurityWrapper extends MicroKernelWrapperBase implements MicroKern
     public JsopReader getNodesStream(String path, String revisionId, int depth, long offset, int count, String filter) {
         rightsRevision = getHeadRevision();
         if (!checkRights(path, false)) {
-            throw ExceptionFactory.get("Node not found: " + path);
+            return null;
         }
         JsopReader t = mk.getNodesStream(path, revisionId, depth, offset, count, filter);
         if (admin || t == null) {
@@ -299,7 +304,7 @@ public class SecurityWrapper extends MicroKernelWrapperBase implements MicroKern
         n = filterAccess(path, n);
         JsopStream buff = new JsopStream();
         if (n == null) {
-            throw ExceptionFactory.get("Node not found: " + path);
+            return null;
         } else {
             // TODO childNodeCount properties might be wrong
             // when count and offset are used

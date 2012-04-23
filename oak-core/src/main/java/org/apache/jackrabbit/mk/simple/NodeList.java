@@ -129,6 +129,7 @@ interface NodeList {
      *
      * @param map the node map
      * @param out the output stream
+     * @throws IOException if writing to the stream failed
      */
     void updateHash(NodeMap map, OutputStream out) throws IOException;
 
