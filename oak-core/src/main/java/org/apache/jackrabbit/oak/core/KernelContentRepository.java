@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.core;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.kernel.NodeState;
 import org.apache.jackrabbit.oak.api.Branch;
 import org.apache.jackrabbit.oak.api.QueryEngine;
@@ -93,8 +94,10 @@ public class KernelContentRepository implements ContentRepository {
             throw new NoSuchWorkspaceException(workspaceName);
         }
 
+        CoreValueFactory valueFactory = new CoreValueFactoryImpl(microKernel);
+
         return new KernelContentSession(
-                sc, workspaceName, nodeStore, wspRoot, queryEngine);
+                sc, workspaceName, nodeStore, wspRoot, queryEngine, valueFactory);
     }
 
 }

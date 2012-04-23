@@ -16,34 +16,163 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import org.apache.jackrabbit.value.AbstractValueFactory;
+import org.apache.commons.io.IOUtils;
+import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.CoreValueFactory;
+import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.jcr.Binary;
+import javax.jcr.Node;
+import javax.jcr.PropertyType;
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+import javax.jcr.ValueFactory;
 import javax.jcr.ValueFormatException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.math.BigDecimal;
+import java.util.Calendar;
 
 /**
- * ValueFactoryImpl...
+ * CoreValueFactoryImpl...
  */
-class ValueFactoryImpl extends AbstractValueFactory {
+class ValueFactoryImpl implements ValueFactory {
 
     /**
      * logger instance
      */
     private static final Logger log = LoggerFactory.getLogger(ValueFactoryImpl.class);
 
-    ValueFactoryImpl() {
+    private final CoreValueFactory factory;
+    private final DummyNamePathResolver resolver; // TODO: add proper name/path conversion
 
+    /**
+     *
+     * @param factory
+     */
+    public ValueFactoryImpl(CoreValueFactory factory/*, NamePathResolver resolver*/) {
+        this.factory = factory;
+        this.resolver = new DummyNamePathResolver();
+    }
+
+    //-------------------------------------------------------< ValueFactory >---
+    @Override
+    public Value createValue(String value) {
+        CoreValue cv = factory.createValue(value, PropertyType.STRING);
+        return new ValueImpl(cv, resolver);
     }
 
     @Override
-    protected void checkPathFormat(String s) throws ValueFormatException {
-        // TODO : path validation
-
+    public Value createValue(long value) {
+        CoreValue cv = factory.createValue(value);
+        return new ValueImpl(cv, resolver);
     }
 
     @Override
-    protected void checkNameFormat(String s) throws ValueFormatException {
-        // TODO : name validation
+    public Value createValue(double value) {
+        CoreValue cv = factory.createValue(value);
+        return new ValueImpl(cv, resolver);
+    }
+
+    @Override
+    public Value createValue(boolean value) {
+        CoreValue cv = factory.createValue(value);
+        return new ValueImpl(cv, resolver);
+    }
+
+    @Override
+    public Value createValue(Calendar value) {
+        String dateStr = ISO8601.format(value);
+        CoreValue cv = factory.createValue(dateStr, PropertyType.DATE);
+        return new ValueImpl(cv, resolver);
+    }
+
+    @Override
+    public Value createValue(InputStream value) {
+        try {
+            CoreValue cv = factory.createValue(value);
+            return new ValueImpl(cv, resolver);
+        } catch (IOException ex) {
+            throw new RuntimeException(ex);
+        } finally {
+            // JCR-2903
+            IOUtils.closeQuietly(value);
+        }
+    }
+
+    @Override
+    public Value createValue(Node value) throws RepositoryException {
+        return createValue(value, false);
+    }
+
+    @Override
+    public Value createValue(String value, int type) throws ValueFormatException {
+        CoreValue cv;
+        if (type == PropertyType.NAME) {
+            cv = factory.createValue(resolver.getInternalName(value), type);
+        } else if (type == PropertyType.PATH) {
+            cv = factory.createValue(resolver.getInternalPath(value), type);
+        } else {
+            cv = factory.createValue(value, type);
+        }
+
+        return new ValueImpl(cv, resolver);
+    }
+
+    @Override
+    public Binary createBinary(InputStream stream) throws RepositoryException {
+        try {
+            CoreValue value = factory.createValue(stream);
+            // TODO: BINARY implementation missing
+            throw new UnsupportedOperationException("BINARY handling");
+        } catch (IOException ex) {
+            throw new RuntimeException(ex);
+        } finally {
+            IOUtils.closeQuietly(stream);
+        }
+    }
+
+    @Override
+    public Value createValue(Binary value) {
+        try {
+            return createValue(value.getStream());
+        } catch (RepositoryException ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
+    @Override
+    public Value createValue(BigDecimal value) {
+        CoreValue cv = factory.createValue(value);
+        return new ValueImpl(cv, resolver);
+    }
+
+    @Override
+    public Value createValue(Node value, boolean weak) throws RepositoryException {
+        CoreValue cv = factory.createValue(value.getUUID(), weak ? PropertyType.WEAKREFERENCE : PropertyType.REFERENCE);
+        return new ValueImpl(cv, resolver);
+    }
+
+
+    //--------------------------------------------------------------------------
+    // TODO: replace by reasonable implementation taking namespace mappings etc. into account.
+    public class DummyNamePathResolver {
+        String getJCRPath(String internalPath) {
+            return internalPath;
+        }
+
+        String getInternalPath(String jcrPath) {
+            return jcrPath;
+        }
+
+        String getJCRName(String internalName) {
+            return internalName;
+        }
+
+        String getInternalName(String jcrName) {
+            return jcrName;
+        }
     }
 }

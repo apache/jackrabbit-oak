@@ -94,6 +94,8 @@ public interface ContentSession extends Closeable {
      */
     QueryEngine getQueryEngine();
 
+    CoreValueFactory getCoreValueFactory();
+
     // TODO : add versioning operations
 
 }
