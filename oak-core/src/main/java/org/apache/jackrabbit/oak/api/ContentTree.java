@@ -42,7 +42,32 @@ import java.util.List;
  *
  */
 public interface ContentTree {
-    enum Status {EXISTING, NEW, MODIFIED, REMOVED}
+
+    /**
+     * Status of an item in a {@code ContentTree}
+     */
+    enum Status {
+        /**
+         * Item is persisted
+         */
+        EXISTING,
+
+        /**
+         * Item is new
+         */
+        NEW,
+
+        /**
+         * Item is modified: has added or removed children or added, removed or modified
+         * properties.
+         */
+        MODIFIED,
+
+        /**
+         * Item is removed
+         */
+        REMOVED
+    }
 
     /**
      * @return  the name of this {@code ContentTree} instance.
@@ -67,6 +92,12 @@ public interface ContentTree {
      */
     PropertyState getProperty(String name);
 
+    /**
+     * Get the {@code Status} of a property state
+     * @param name  name of the property state
+     * @return  the status of the property state with the given {@code name}
+     *          or {@code null} in no such property state exists.
+     */
     Status getPropertyStatus(String name);
 
     /**
@@ -100,6 +131,12 @@ public interface ContentTree {
      */
     ContentTree getChild(String name);
 
+    /**
+     * Get the {@code Status} of a child tree
+     * @param name  name of the child
+     * @return  the status of the child with the given {@code name} or {@code null} in
+     *          no such child exists.
+     */
     Status getChildStatus(String name);
 
     /**
