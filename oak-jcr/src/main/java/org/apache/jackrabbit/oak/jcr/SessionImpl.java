@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import org.apache.jackrabbit.api.JackrabbitSession;
+import org.apache.jackrabbit.api.security.principal.PrincipalManager;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.AbstractSession;
 import org.apache.jackrabbit.oak.api.Branch;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -26,6 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.ContentHandler;
 
+import javax.jcr.AccessDeniedException;
 import javax.jcr.Credentials;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.Node;
@@ -46,7 +50,7 @@ import java.security.AccessControlException;
 /**
  * {@code SessionImpl}...
  */
-public class SessionImpl extends AbstractSession {
+public class SessionImpl extends AbstractSession implements JackrabbitSession {
 
     /**
      * logger instance
@@ -296,6 +300,21 @@ public class SessionImpl extends AbstractSession {
     public RetentionManager getRetentionManager() throws RepositoryException {
         throw new UnsupportedRepositoryOperationException("Retention Management is not supported.");
     }
+
+    //--------------------------------------------------< JackrabbitSession >---
+
+    @Override
+    public PrincipalManager getPrincipalManager() throws AccessDeniedException, UnsupportedRepositoryOperationException, RepositoryException {
+        // TODO
+        throw new UnsupportedOperationException("Implementation missing");
+    }
+
+    @Override
+    public UserManager getUserManager() throws AccessDeniedException, UnsupportedRepositoryOperationException, RepositoryException {
+        // TODO
+        throw new UnsupportedOperationException("Implementation missing");
+    }
+
 
     //--------------------------------------------------------------------------
 
