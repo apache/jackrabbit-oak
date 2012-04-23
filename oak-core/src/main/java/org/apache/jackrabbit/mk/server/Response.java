@@ -30,30 +30,30 @@ import static org.apache.jackrabbit.mk.util.ChunkedInputStream.MAX_CHUNK_SIZE;
  * HTTP Response implementation.
  */
 class Response implements Closeable {
-    
+
     private OutputStream out;
-    
+
     private boolean keepAlive;
-    
+
     private boolean headersSent;
-    
+
     private boolean committed;
-    
+
     private boolean chunked;
-    
+
     private int statusCode;
-    
+
     private String contentType;
-    
+
     private final BodyOutputStream bodyOut = new BodyOutputStream();
-    
+
     private OutputStream respOut;
-    
-    private final Map<String,String> headers = new LinkedHashMap<String, String>();
-    
+
+    private final Map<String, String> headers = new LinkedHashMap<String, String>();
+
     /**
      * Recycle this instance, using another output stream and a keep-alive flag.
-     * 
+     *
      * @param out output stream
      * @param keepAlive whether to keep alive the connection
      */
@@ -68,10 +68,10 @@ class Response implements Closeable {
         respOut = null;
         headers.clear();
     }
-    
+
     /**
      * Return the status message associated with a status code.
-     * 
+     *
      * @param sc status code
      * @return associated status message
      */
@@ -89,14 +89,14 @@ class Response implements Closeable {
             return "Internal server error";
         }
     }
-    
+
     private void sendHeaders() throws IOException {
         if (headersSent) {
             return;
         }
-        
+
         headersSent = true;
-        
+
         int statusCode = this.statusCode;
         if (statusCode == 0) {
             statusCode = 200;
@@ -114,9 +114,9 @@ class Response implements Closeable {
             setContentType("text/html");
             write(body);
         }
-        
+
         writeLine(String.format("HTTP/1.1 %d %s", statusCode, msg));
-        
+
         if (committed) {
             writeLine(String.format("Content-Length: %d", bodyOut.getCount()));
         } else {
@@ -134,9 +134,9 @@ class Response implements Closeable {
                 writeLine(String.format("%s: %s", header.getKey(), header.getValue()));
             }
         }
-        
+
         writeLine("");
-        
+
         if (out != null) {
             out.flush();
         }
@@ -145,11 +145,11 @@ class Response implements Closeable {
     @Override
     public void close() throws IOException {
         committed = true;
-        
+
         try {
             sendHeaders();
             IOUtils.closeQuietly(respOut);
-            
+
             if (out != null) {
                 out.flush();
             }
@@ -157,7 +157,7 @@ class Response implements Closeable {
             out = null;
         }
     }
-    
+
     private void writeLine(String s) throws IOException {
         if (out == null) {
             return;
@@ -188,7 +188,7 @@ class Response implements Closeable {
             out.write(("\r\n").getBytes());
         }
     }
-    
+
     public void setContentType(String contentType) {
         this.contentType = contentType;
     }
@@ -203,32 +203,32 @@ class Response implements Closeable {
     public void setStatusCode(int statusCode) {
         this.statusCode = statusCode;
     }
-    
+
     public void addHeader(String name, String value) {
         headers.put(name, value);
     }
-    
+
     public void write(String s) throws IOException {
         getOutputStream().write(s.getBytes("8859_1"));
     }
-    
+
     /**
      * Internal {@code OutputStream} passed to servlet handlers.
      */
     class BodyOutputStream extends OutputStream {
-        
+
         /**
          * Buffer size chosen intentionally to not exceed maximum chunk
          * size we'd like to transmit.
          */
         private final byte[] buf = new byte[MAX_CHUNK_SIZE];
-        
+
         private int offset;
 
         /**
          * Return the number of valid bytes in the buffer.
-         * 
-         * @return number of bytes 
+         *
+         * @return number of bytes
          */
         public int getCount() {
             return offset;
@@ -257,7 +257,7 @@ class Response implements Closeable {
                 offset += n;
             }
         }
-        
+
         @Override
         public void flush() throws IOException {
             if (offset > 0) {
@@ -265,15 +265,15 @@ class Response implements Closeable {
                 offset = 0;
             }
         }
-        
+
         public void reset() {
             offset = 0;
         }
-        
+
         @Override
         public void close() throws IOException {
             flush();
-            
+
             writeBody(buf, 0, 0);
         }
     }

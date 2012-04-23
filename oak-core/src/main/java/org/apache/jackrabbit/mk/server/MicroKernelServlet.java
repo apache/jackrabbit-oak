@@ -33,13 +33,13 @@ import org.apache.jackrabbit.mk.util.IOUtils;
  * Servlet handling requests directed at a {@code MicroKernel} instance.
  */
 class MicroKernelServlet {
-    
+
     /** The one and only instance of this servlet. */
     public static MicroKernelServlet INSTANCE = new MicroKernelServlet();
-    
+
     /** Just one instance, no need to make constructor public */
     private MicroKernelServlet() {}
-    
+
     public void service(MicroKernel mk, Request request, Response response) throws IOException {
         String file = request.getFile();
         int dotIndex = file.indexOf('.');
@@ -63,13 +63,13 @@ class MicroKernelServlet {
         }
         response.setStatusCode(404);
     }
-    
+
     private static interface Command {
-        
+
         void execute(MicroKernel mk, Request request, Response response)
                 throws IOException, MicroKernelException;
     }
-    
+
     private static final Map<String, Command> COMMANDS = new HashMap<String, Command>();
 
     static {
@@ -88,24 +88,24 @@ class MicroKernelServlet {
         COMMANDS.put("read", new Read());
         COMMANDS.put("write", new Write());
     }
-    
+
     static class GetHeadRevision implements Command {
-        
+
         @Override
         public void execute(MicroKernel mk, Request request, Response response)
                 throws IOException, MicroKernelException {
 
             response.setContentType("text/plain");
             response.write(mk.getHeadRevision());
-        }        
+        }
     }
 
     static class GetRevisionHistory implements Command {
-        
+
         @Override
         public void execute(MicroKernel mk, Request request, Response response)
                 throws IOException, MicroKernelException {
-            
+
             long since = request.getParameter("since", 0L);
             int maxEntries = request.getParameter("max_entries", 10);
 
@@ -115,9 +115,9 @@ class MicroKernelServlet {
                 json = JsopBuilder.prettyPrint(json);
             }
             response.write(json);
-        }        
+        }
     }
-    
+
     static class WaitForCommit implements Command {
 
         @Override
@@ -147,9 +147,9 @@ class MicroKernelServlet {
         @Override
         public void execute(MicroKernel mk, Request request, Response response)
                 throws IOException, MicroKernelException {
-            
+
             String headRevision = mk.getHeadRevision();
-            
+
             String fromRevisionId = request.getParameter("from_revision_id", headRevision);
             String toRevisionId = request.getParameter("to_revision_id", headRevision);
             String filter = request.getParameter("filter", "");
@@ -160,7 +160,7 @@ class MicroKernelServlet {
                 json = JsopBuilder.prettyPrint(json);
             }
             response.write(json);
-        }        
+        }
     }
 
     static class Diff implements Command {
@@ -221,7 +221,7 @@ class MicroKernelServlet {
         @Override
         public void execute(MicroKernel mk, Request request, Response response)
                 throws IOException, MicroKernelException {
-            
+
             String headRevision = mk.getHeadRevision();
 
             String path = request.getParameter("path", "/");
@@ -241,7 +241,7 @@ class MicroKernelServlet {
                 json = JsopBuilder.prettyPrint(json);
             }
             response.write(json);
-        }        
+        }
     }
 
     static class Commit implements Command {
@@ -249,19 +249,19 @@ class MicroKernelServlet {
         @Override
         public void execute(MicroKernel mk, Request request, Response response)
                 throws IOException, MicroKernelException {
-            
+
             String headRevision = mk.getHeadRevision();
 
             String path = request.getParameter("path", "/");
             String jsonDiff = request.getParameter("json_diff");
             String revisionId = request.getParameter("revision_id", headRevision);
             String message = request.getParameter("message");
-            
+
             String newRevision = mk.commit(path, jsonDiff, revisionId, message);
 
             response.setContentType("text/plain");
             response.write(newRevision);
-        }        
+        }
     }
 
     static class Branch implements Command {
@@ -319,8 +319,8 @@ class MicroKernelServlet {
 
             String blobId = request.getParameter("blob_id", "");
             long pos = request.getParameter("pos", 0L);
-            int length = request.getParameter("length", -1); 
-            
+            int length = request.getParameter("length", -1);
+
             OutputStream out = response.getOutputStream();
             if (pos == 0L && length == -1) {
                 /* return the complete binary */
@@ -349,6 +349,6 @@ class MicroKernelServlet {
 
             response.setContentType("text/plain");
             response.write(blobId);
-        }        
+        }
     }
 }

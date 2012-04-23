@@ -26,22 +26,22 @@ import java.io.IOException;
 class BoundaryInputStream extends InputStream {
 
     private InputStream in;
-    
+
     private final byte[] boundary;
-    
+
     private final byte[] buf;
-    
+
     private int offset;
-    
+
     private int count;
-    
+
     private int boundaryIndex;
-    
+
     private boolean eos;
 
     /**
      * Create a new instance of this class.
-     * 
+     *
      * @param in base input
      * @param boundary boundary
      */
@@ -51,7 +51,7 @@ class BoundaryInputStream extends InputStream {
 
     /**
      * Create a new instance of this class.
-     * 
+     *
      * @param in base input
      * @param boundary boundary
      * @param size size of internal read-ahead buffer
@@ -123,7 +123,7 @@ class BoundaryInputStream extends InputStream {
                     i -= boundaryIndex;
                     if (i < 0) {
                         offset += i;
-                        count += (-i);
+                        count += -i;
                         i = 0;
                     }
                     boundaryIndex = 0;
