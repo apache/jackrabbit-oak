@@ -269,6 +269,7 @@ public class NodeListTrie implements NodeList {
         NodeId id;
         String prefix;
 
+        @Override
         public String toString() {
             return prefix;
         }

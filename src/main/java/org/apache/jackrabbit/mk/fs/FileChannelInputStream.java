@@ -24,6 +24,7 @@ public class FileChannelInputStream extends InputStream {
      * Create a new file object input stream from the file channel.
      *
      * @param channel the file channel
+     * @param closeChannel close the channel when done
      */
     public FileChannelInputStream(FileChannel channel, boolean closeChannel) {
         this.channel = channel;

@@ -160,7 +160,8 @@ public class IndexWrapper extends MicroKernelWrapperBase implements MicroKernel 
         String index = PathUtils.relativize(INDEX_PATH, path);
         int idx = index.indexOf('?');
         if (idx < 0) {
-            throw ExceptionFactory.get("Invalid query. Expected: /index/prefix:x?y, got: " + path);
+            // invalid query - expected: /index/prefix:x?y
+            return null;
         }
         String data = index.substring(idx + 1);
         index = index.substring(0, idx);

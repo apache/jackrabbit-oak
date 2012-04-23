@@ -108,7 +108,7 @@ public class NodeListSmall implements NodeList {
     public NodeId get(String name) {
         int index = find(name);
         if (index < 0) {
-            throw ExceptionFactory.get("Node not found: " + name);
+            return null;
         }
         return children[sort[index]];
     }
@@ -184,6 +184,7 @@ public class NodeListSmall implements NodeList {
         return result;
     }
 
+    @Override
     public String toString() {
         JsopWriter json = new JsopBuilder();
         json.object();
@@ -232,6 +233,7 @@ public class NodeListSmall implements NodeList {
         return memory;
     }
 
+    @Override
     public int hashCode() {
         if (size == 0) {
             return 0;
@@ -241,6 +243,7 @@ public class NodeListSmall implements NodeList {
                 Arrays.hashCode(sort);
     }
 
+    @Override
     public boolean equals(Object other) {
         if (other == this) {
             return true;

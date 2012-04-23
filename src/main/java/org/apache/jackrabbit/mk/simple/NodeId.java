@@ -42,6 +42,7 @@ public class NodeId {
         return map.getNode(x);
     }
 
+    @Override
     public String toString() {
         return Long.toString(x);
     }
@@ -79,6 +80,7 @@ public class NodeId {
             return node;
         }
 
+        @Override
         public String toString() {
             return node.toString();
         }

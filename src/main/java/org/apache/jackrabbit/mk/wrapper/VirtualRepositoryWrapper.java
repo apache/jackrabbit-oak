@@ -280,7 +280,8 @@ public class VirtualRepositoryWrapper extends MicroKernelWrapperBase implements 
     public JsopReader getNodesStream(String path, String revisionId, int depth, long offset, int count, String filter) {
         String mount = getMount(path);
         if (mount == null) {
-            throw ExceptionFactory.get("Not mapped: " + path);
+            // not mapped
+            return null;
         }
         String rev = getRevision(mount, revisionId);
         MicroKernelWrapper mk = mounts.get(mount);
