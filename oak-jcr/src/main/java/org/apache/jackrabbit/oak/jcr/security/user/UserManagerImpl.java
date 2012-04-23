@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.api.Scalar;
 import org.apache.jackrabbit.oak.jcr.NodeImpl;
 import org.apache.jackrabbit.oak.jcr.SessionContext;
 import org.apache.jackrabbit.oak.jcr.SessionImpl;
+import org.apache.jackrabbit.oak.jcr.security.user.action.AuthorizableAction;
 import org.apache.jackrabbit.oak.jcr.util.ValueConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -176,8 +177,7 @@ public class UserManagerImpl implements UserManager {
 
     @Override
     public Group createGroup(Principal principal, String intermediatePath) throws RepositoryException {
-        String groupID = buildGroupID(principal.getName());
-        return createGroup(groupID, principal, intermediatePath);
+        return createGroup(principal.getName(), principal, intermediatePath);
     }
 
     @Override
@@ -225,11 +225,13 @@ public class UserManagerImpl implements UserManager {
      * corresponding new node is persisted.
      *
      * @param user The new user.
-     * @param pw The password.
+     * @param password The password.
      * @throws RepositoryException If an exception occurs.
      */
-    void onCreate(User user, String pw) throws RepositoryException {
-        // TODO
+    void onCreate(User user, String password) throws RepositoryException {
+        for (AuthorizableAction action : config.getAuthorizableActions()) {
+            action.onCreate(user, password, sessionContext.getSession());
+        }
     }
 
     /**
@@ -241,7 +243,9 @@ public class UserManagerImpl implements UserManager {
      * @throws RepositoryException If an exception occurs.
      */
     void onCreate(Group group) throws RepositoryException {
-        // TODO
+        for (AuthorizableAction action : config.getAuthorizableActions()) {
+            action.onCreate(group, sessionContext.getSession());
+        }
     }
 
     /**
@@ -253,7 +257,9 @@ public class UserManagerImpl implements UserManager {
      * @throws RepositoryException If an exception occurs.
      */
     void onRemove(Authorizable authorizable) throws RepositoryException {
-        // TODO
+        for (AuthorizableAction action : config.getAuthorizableActions()) {
+            action.onRemove(authorizable, sessionContext.getSession());
+        }
     }
 
     /**
@@ -266,7 +272,9 @@ public class UserManagerImpl implements UserManager {
      * @throws RepositoryException If an exception occurs.
      */
     void onPasswordChange(User user, String password) throws RepositoryException {
-        // TODO
+        for (AuthorizableAction action : config.getAuthorizableActions()) {
+            action.onPasswordChange(user, password, sessionContext.getSession());
+        }
     }
 
     //--------------------------------------------------------------------------
@@ -352,11 +360,6 @@ public class UserManagerImpl implements UserManager {
     private String buildIdentifier(String authorizableID) {
         // TODO
         return null;
-    }
-
-    private String buildGroupID(String principalName) {
-        // TODO
-        return principalName;
     }
 
     private void checkValidID(String authorizableID) {

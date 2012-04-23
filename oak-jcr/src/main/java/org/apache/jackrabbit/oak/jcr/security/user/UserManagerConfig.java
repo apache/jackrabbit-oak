@@ -16,13 +16,11 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.user;
 
+import org.apache.jackrabbit.oak.jcr.security.user.action.AuthorizableAction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.jcr.Node;
-import javax.jcr.Property;
-import javax.jcr.RepositoryException;
-import javax.jcr.Value;
+import java.util.Map;
 
 /**
  * UserManagerConfig...
@@ -49,50 +47,38 @@ public class UserManagerConfig {
      */
     public static final String PARAM_PASSWORD_SALT_SIZE = "passwordSaltSize";
 
-    // TODO: check if that can really be node, who would retrieve it and what kind of access rights needed to be enforced on it
-    private final Node configNode;
+    private final Map<String, Object> config;
     private final String adminId;
-    //private final AuthorizableAction[] actions;
+    private final AuthorizableAction[] actions;
 
-    UserManagerConfig(Node configNode, String adminId) {
-        this.configNode = configNode;
+    UserManagerConfig(Map<String, Object> config, String adminId, AuthorizableAction[] actions) {
+        this.config = config;
         this.adminId = adminId;
-        // this.actions = (actions == null) ? new AuthorizableAction[0] : actions;
+        this.actions = (actions == null) ? new AuthorizableAction[0] : actions;
     }
 
     public <T> T getConfigValue(String key, T defaultValue) {
-        try {
-            if (configNode.hasProperty(key)) {
-                return convert(configNode.getProperty(key), defaultValue);
-            }
-        } catch (RepositoryException e) {
-            // unexpected error -> return default value
-            log.debug(e.getMessage());
+        if (config != null && config.containsKey(key)) {
+            return convert(config.get(key), defaultValue);
+        } else {
+            return defaultValue;
         }
-        return defaultValue;
     }
 
     public String getAdminId() {
         return adminId;
     }
 
-//    public AuthorizableAction[] getAuthorizableActions() {
-//        return actions;
-//    }
+    public AuthorizableAction[] getAuthorizableActions() {
+        return actions;
+    }
 
     //--------------------------------------------------------< private >---
     @SuppressWarnings("unchecked")
-    private static <T> T convert(Property configProperty, T defaultValue) throws RepositoryException {
+    private static <T> T convert(Object configProperty, T defaultValue) {
         T value;
-        String str;
-        // TODO properly deal with multi-value properties and array-default-values.
-        if (configProperty.isMultiple()) {
-            Value[] vls = configProperty.getValues();
-            str = (vls.length == 0) ? "" : vls[0].getString();
-        } else {
-            str = configProperty.getString();
-        }
-        Class<?> targetClass = (defaultValue == null) ? String.class : defaultValue.getClass();
+        String str = configProperty.toString();
+        Class targetClass = (defaultValue == null) ? String.class : defaultValue.getClass();
         try {
             if (targetClass == String.class) {
                 value = (T) str;
@@ -106,11 +92,11 @@ public class UserManagerConfig {
                 value = (T) Boolean.valueOf(str);
             } else {
                 // unsupported target type
-                log.warn("Unsupported target type {} for config entry {}", targetClass.getName(), configProperty.getName());
-                throw new IllegalArgumentException("Cannot convert config entry " + configProperty.getName() + " to " + targetClass.getName());
+                log.warn("Unsupported target type {} for value {}", targetClass.getName(), str);
+                throw new IllegalArgumentException("Cannot convert config entry " + str + " to " + targetClass.getName());
             }
         } catch (NumberFormatException e) {
-            log.warn("Invalid value of config entry {}; cannot be parsed into {}", configProperty.getName(), targetClass.getName());
+            log.warn("Invalid value {}; cannot be parsed into {}", str, targetClass.getName());
             value = defaultValue;
         }
         return value;
