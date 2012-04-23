@@ -429,8 +429,14 @@ public class KernelContentTree implements ContentTree {
      *
      * @param destParent  new parent for this tree
      * @param destName  new name for this tree
+     * @return  {@code true} if successful, {@code false otherwise}. I.e.
+     * when {@code destName} already exists at {@code destParent}
      */
-    public void move(KernelContentTree destParent, String destName) {
+    public boolean move(KernelContentTree destParent, String destName) {
+        if (destParent.hasChild(destName)) {
+            return false;
+        }
+
         parent.markTreeRemoved(name);
 
         KernelContentTree oldParent = parent;
@@ -442,6 +448,8 @@ public class KernelContentTree implements ContentTree {
         if (listener != null) {
             listener.move(oldParent, oldName, this);
         }
+
+        return true;
     }
 
     /**
@@ -449,13 +457,20 @@ public class KernelContentTree implements ContentTree {
      *
      * @param destParent  parent for the copied tree
      * @param destName  name for the copied tree
+     * @return  {@code true} if successful, {@code false otherwise}. I.e.
+     * when {@code destName} already exists at {@code destParent}
      */
-    public void copy(KernelContentTree destParent, String destName) {
+    public boolean copy(KernelContentTree destParent, String destName) {
+        if (destParent.hasChild(destName)) {
+            return false;
+        }
+
         KernelContentTree copy = new KernelContentTree(this, destParent, destName);
         destParent.addedTrees.put(destName, copy);
         if (listener != null) {
             listener.copy(parent, name, copy);
         }
+        return true;
     }
 
     //------------------------------------------------------------< internal >---
