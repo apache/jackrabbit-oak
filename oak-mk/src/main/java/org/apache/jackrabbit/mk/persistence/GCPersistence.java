@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.mk.persistence;
 
+import org.apache.jackrabbit.mk.model.Commit;
 import org.apache.jackrabbit.mk.model.Id;
 
 /**
@@ -43,6 +44,20 @@ public interface GCPersistence extends Persistence {
      * @throws Exception if an error occurs
      */
     boolean markCommit(Id id) throws Exception;
+    
+    /**
+     * Replace a commit. Introduced to replace dangling parent commits where
+     * a parent commit might be collected.
+     * 
+     * @param id
+     *            commit id
+     * @param 
+     * @return {@code true} if the commit was not marked before;
+     *         {@code false} otherwise
+     * 
+     * @throws Exception if an error occurs
+     */
+    void replaceCommit(Id id, Commit commit) throws Exception;
     
     /**
      * Mark a node.
