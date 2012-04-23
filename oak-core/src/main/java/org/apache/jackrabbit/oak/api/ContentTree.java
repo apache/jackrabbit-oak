@@ -42,6 +42,8 @@ import java.util.List;
  *
  */
 public interface ContentTree {
+    enum Status {EXISTING, NEW, MODIFIED, REMOVED}
+
     /**
      * @return  the name of this {@code ContentTree} instance.
      */
@@ -64,6 +66,8 @@ public interface ContentTree {
      *          if no such property state exists.
      */
     PropertyState getProperty(String name);
+
+    Status getPropertyStatus(String name);
 
     /**
      * Determine if a property state exists
@@ -95,6 +99,8 @@ public interface ContentTree {
      * exists.
      */
     ContentTree getChild(String name);
+
+    Status getChildStatus(String name);
 
     /**
      * Determine if a child of this {@code ContentTree} instance exists.

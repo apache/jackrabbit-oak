@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.jcr;
 
 import org.apache.jackrabbit.oak.api.Branch;
 import org.apache.jackrabbit.oak.api.ContentTree;
+import org.apache.jackrabbit.oak.api.ContentTree.Status;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.jcr.util.LogUtil;
 import org.apache.jackrabbit.oak.jcr.util.ValueConverter;
@@ -77,7 +78,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @Override
     public String getName() throws RepositoryException {
-        return getStateName();
+        return name();
     }
 
     /**
@@ -85,7 +86,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @Override
     public String getPath() throws RepositoryException {
-        return '/' + getParentContentTree().getPath() + '/' + getStateName();
+        return path();
     }
 
     /**
@@ -121,8 +122,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @Override
     public boolean isNew() {
-        // todo implement isNew
-        return false;
+        return getParentContentTree().getPropertyStatus(name()) == Status.NEW;
     }
 
     /**
@@ -130,8 +130,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @Override
     public boolean isModified() {
-        // todo implement isModified
-        return false;
+        return getParentContentTree().getPropertyStatus(name()) == Status.MODIFIED;
     }
 
     /**
@@ -139,7 +138,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @Override
     public void remove() throws RepositoryException {
-        getParentContentTree().removeProperty(getStateName());
+        getParentContentTree().removeProperty(name());
     }
 
     /**
@@ -567,7 +566,7 @@ public class PropertyImpl extends ItemImpl implements Property {
             remove();
         }
         else {
-            getParentContentTree().setProperty(getStateName(), ValueConverter.toScalar(value));
+            getParentContentTree().setProperty(name(), ValueConverter.toScalar(value));
         }
     }
 
@@ -587,7 +586,7 @@ public class PropertyImpl extends ItemImpl implements Property {
             remove();
         }
         else {
-            getParentContentTree().setProperty(getStateName(), ValueConverter.toScalar(values));
+            getParentContentTree().setProperty(name(), ValueConverter.toScalar(values));
         }
     }
 
@@ -621,8 +620,12 @@ public class PropertyImpl extends ItemImpl implements Property {
         return propertyState;
     }
 
-    private String getStateName() {
+    private String name() {
         return getPropertyState().getName();
+    }
+
+    private String path() {
+        return '/' + getParentContentTree().getPath() + '/' + name();
     }
 
     private synchronized void resolve() {

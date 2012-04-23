@@ -21,6 +21,7 @@ import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
 import org.apache.jackrabbit.commons.iterator.PropertyIteratorAdapter;
 import org.apache.jackrabbit.oak.api.Branch;
 import org.apache.jackrabbit.oak.api.ContentTree;
+import org.apache.jackrabbit.oak.api.ContentTree.Status;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.jcr.util.ItemNameMatcher;
 import org.apache.jackrabbit.oak.jcr.util.LogUtil;
@@ -91,7 +92,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public String getName() throws RepositoryException {
-        return getContentTree().getName();
+        return name();
     }
 
     /**
@@ -144,8 +145,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public boolean isNew() {
-        // todo implement isNew
-        return false;
+        return getContentTree().getParent().getChildStatus(name()) == Status.NEW;
     }
 
     /**
@@ -153,8 +153,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public boolean isModified() {
-        // todo implement isModified
-        return false;
+        return getContentTree().getParent().getChildStatus(name()) == Status.MODIFIED;
     }
 
     /**
@@ -854,6 +853,10 @@ public class NodeImpl extends ItemImpl implements Node  {
     }
 
     //------------------------------------------------------------< package >---
+
+    String name() {
+        return getContentTree().getName();
+    }
 
     String path() {
         return '/' + getContentTree().getPath();
