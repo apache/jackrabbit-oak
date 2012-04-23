@@ -21,6 +21,7 @@ import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.kernel.NodeState;
 import org.apache.jackrabbit.oak.api.Branch;
 import org.apache.jackrabbit.oak.kernel.NodeStore;
@@ -45,17 +46,20 @@ class KernelContentSession implements ContentSession {
     private final String workspaceName;
     private final NodeStore store;
     private final QueryEngine queryEngine;
+    private final CoreValueFactory valueFactory;
 
     private NodeState root;
 
     public KernelContentSession(
             SimpleCredentials credentials, String workspaceName,
-            NodeStore store, NodeState root, QueryEngine queryEngine) {
+            NodeStore store, NodeState root, QueryEngine queryEngine,
+            CoreValueFactory valueFactory) {
         this.credentials = credentials;
         this.workspaceName = workspaceName;
         this.store = store;
         this.queryEngine = queryEngine;
         this.root = root;
+        this.valueFactory = valueFactory;
     }
 
     @Override
@@ -111,6 +115,11 @@ class KernelContentSession implements ContentSession {
     @Override
     public QueryEngine getQueryEngine() {
         return queryEngine;
+    }
+
+    @Override
+    public CoreValueFactory getCoreValueFactory() {
+        return valueFactory;
     }
 
 }
