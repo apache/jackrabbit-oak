@@ -15,6 +15,7 @@ package org.apache.jackrabbit.mk.wrapper;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import java.io.ByteArrayInputStream;
 import java.util.Arrays;
@@ -91,6 +92,8 @@ public class VirtualRepositoryWrapperTest extends MultiMkTestBase {
         head = mkVirtual.commit("/", "+ \"data\": {} ", head, "");
         head = mkVirtual.commit("/", "+ \"data/a\": { \"data\": \"Hello\" }", head, "");
         head = mkVirtual.commit("/", "+ \"data/b\": { \"data\": \"World\" }", head, "");
+
+        // get nodes
         String m1 = mkRep1.getNodes("/data", mkRep1.getHeadRevision());
         assertEquals("{\":childNodeCount\":1,\"a\":{\"data\":\"Hello\",\":childNodeCount\":0}}", m1);
         String m2 = mkRep2.getNodes("/data", mkRep2.getHeadRevision());
@@ -99,6 +102,12 @@ public class VirtualRepositoryWrapperTest extends MultiMkTestBase {
         assertEquals("{\"data\":\"Hello\",\":childNodeCount\":0}", m);
         m = mkVirtual.getNodes("/data/b", mkVirtual.getHeadRevision());
         assertEquals("{\"data\":\"World\",\":childNodeCount\":0}", m);
+
+        // get nodes on unknown nodes
+        m = mkVirtual.getNodes("/notMapped", mkVirtual.getHeadRevision());
+        assertNull(m);
+        m = mkVirtual.getNodes("/data/a/notExist", mkVirtual.getHeadRevision());
+        assertNull(m);
 
         // set property
         head = mkVirtual.commit("/", "^ \"data/a/data\": \"Hallo\"", head, "");

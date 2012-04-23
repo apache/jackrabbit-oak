@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.mk.wrapper;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.index.IndexWrapper;
 import org.apache.jackrabbit.mk.simple.SimpleKernelImpl;
@@ -32,6 +33,12 @@ public class IndexWrapperTest {
             new IndexWrapper(new SimpleKernelImpl("mem:IndexWrapperTest"));
 
     private String head;
+
+    @Test
+    public void getNodes() {
+        assertNull(mk.getNodes("/index/unknown", head));
+        assertNull(mk.getNodes("/unknown", head));
+    }
 
     @Test
     public void prefix() {

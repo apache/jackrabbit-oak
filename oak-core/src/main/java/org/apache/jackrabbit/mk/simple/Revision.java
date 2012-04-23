@@ -102,6 +102,7 @@ public class Revision implements Comparable<Revision>, Cache.Value {
         return id < o.id ? -1 : id > o.id ? 1 : 0;
     }
 
+    @Override
     public String toString() {
         return new JsopBuilder().object().
             key("id").value(formatId(id)).
