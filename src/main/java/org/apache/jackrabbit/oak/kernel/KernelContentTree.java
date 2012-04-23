@@ -241,6 +241,27 @@ public class KernelContentTree implements ContentTree {
     }
 
     @Override
+    public Status getPropertyStatus(String name) {
+        if (addedProperties.containsKey(name)) {
+            if (persistentState.getProperty(name) == null) {
+                return Status.NEW;
+            }
+            else {
+                return Status.MODIFIED;
+            }
+        }
+        else if (removedProperties.contains(name)) {
+            return Status.REMOVED;
+        }
+        else if (persistentState.getProperty(name) == null) {
+            return null;
+        }
+        else {
+            return Status.EXISTING;
+        }
+    }
+
+    @Override
     public boolean hasProperty(String name) {
         return getProperty(name) != null;
     }
@@ -266,6 +287,32 @@ public class KernelContentTree implements ContentTree {
         return removedTrees.contains(name)
             ? null
             : getExistingChild(name);
+    }
+
+    @Override
+    public Status getChildStatus(String name) {
+        if (addedTrees.containsKey(name)) {
+            return Status.NEW;
+        }
+        else if (removedTrees.contains(name)) {
+            return Status.REMOVED;
+        }
+        else {
+            KernelContentTree child = getChild(name);
+            if (child == null) {
+                return null;
+            }
+            else if (child.addedTrees.isEmpty() &&
+                    child.removedTrees.isEmpty() &&
+                    child.addedProperties.isEmpty() &&
+                    child.removedProperties.isEmpty()) {
+                    
+                return Status.EXISTING;
+            }
+            else {
+                return Status.MODIFIED;
+            }
+        }
     }
 
     @Override
