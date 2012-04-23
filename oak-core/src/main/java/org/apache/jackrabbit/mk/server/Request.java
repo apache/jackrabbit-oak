@@ -33,46 +33,46 @@ import org.apache.jackrabbit.mk.util.IOUtils;
  * HTTP Request implementation.
  */
 class Request implements Closeable {
-    
+
     private static final String HTTP_11_PROTOCOL = "HTTP/1.1";
 
     private InputStream in;
-    
+
     private String method;
-    
+
     private String file;
-    
+
     private String queryString;
-    
+
     private String protocol;
-    
-    private final Map<String,String> headers = new LinkedHashMap<String,String>();
-    
+
+    private final Map<String, String> headers = new LinkedHashMap<String, String>();
+
     private boolean paramsChecked;
-    
-    private final Map<String, String> params = new LinkedHashMap<String,String>();
-    
+
+    private final Map<String, String> params = new LinkedHashMap<String, String>();
+
     private final ChunkedInputStream chunkedIn = new ChunkedInputStream(null);
 
     private InputStream reqIn;
-    
+
     /**
      * Parse a request. This automatically resets any internal state, so it can be
      * used multiple times
-     * 
+     *
      * @param in input stream
      * @throws IOException if an I/O error occurs
      */
     void parse(InputStream in) throws IOException {
         String requestLine = readLine(in);
-        
+
         String[] parts = requestLine.split(" ");
         if (parts.length != 3) {
             String msg = String.format("Bad HTTP request line: %s", requestLine);
             throw new IOException(msg);
         }
         method = parts[0];
-        
+
         String uri = parts[1];
         int index = uri.lastIndexOf('?');
         if (index == -1) {
@@ -82,11 +82,11 @@ class Request implements Closeable {
             file = uri.substring(0, index);
             queryString = uri.substring(index + 1);
         }
-        
+
         protocol = parts[2];
-        
+
         headers.clear();
-        
+
         for (;;) {
             String headerLine = readLine(in);
             if (headerLine.length() == 0) {
@@ -97,14 +97,14 @@ class Request implements Closeable {
                 headers.put(parts[0].trim(), parts[1].trim());
             }
         }
-        
+
         params.clear();
         paramsChecked = false;
         reqIn = null;
-        
+
         this.in = in;
     }
-    
+
     /**
      * Read a single line, terminated by a CR LF combination from an {@code InputStream}.
      *
@@ -113,7 +113,7 @@ class Request implements Closeable {
      */
     private static String readLine(InputStream in) throws IOException {
         StringBuilder line = new StringBuilder(128);
-        
+
         for (;;) {
             int c = in.read();
             switch (c) {
@@ -129,7 +129,7 @@ class Request implements Closeable {
             }
         }
     }
-    
+
     public String getMethod() {
         return method;
     }
@@ -137,7 +137,7 @@ class Request implements Closeable {
     public String getFile() {
         return file;
     }
-    
+
     private String getContentType() {
         String ct = headers.get("Content-Type");
         if (ct != null) {
@@ -148,7 +148,7 @@ class Request implements Closeable {
         }
         return ct;
     }
-    
+
     private int getContentLength() {
         String s = headers.get("Content-Length");
         if (s != null) {
@@ -160,11 +160,11 @@ class Request implements Closeable {
         }
         return -1;
     }
-    
+
     public Map<String, String> getHeaders() {
         return headers;
     }
-    
+
     public String getQueryString() {
         return queryString;
     }
@@ -184,7 +184,7 @@ class Request implements Closeable {
         }
         return params.get(name);
     }
-    
+
     public String getParameter(String name, String defaultValue) throws IOException {
         String s = getParameter(name);
         if (s != null) {
@@ -240,7 +240,7 @@ class Request implements Closeable {
         return new BoundaryInputStream(body, boundary);
     }
 
-    private static void collectParameters(String s, Map<String,String> map) throws IOException {
+    private static void collectParameters(String s, Map<String, String> map) throws IOException {
         for (String param : s.split("&")) {
             String[] nv = param.split("=", 2);
             if (nv.length == 2) {
@@ -248,7 +248,7 @@ class Request implements Closeable {
             }
         }
     }
-    
+
     public InputStream getInputStream() {
         if (reqIn == null) {
             String encoding = headers.get("Transfer-Encoding");
@@ -265,11 +265,11 @@ class Request implements Closeable {
         }
         return reqIn;
     }
-    
+
     boolean isKeepAlive() {
         return HTTP_11_PROTOCOL.equals(protocol);
     }
-    
+
     @Override
     public void close() {
         if (in != null) {

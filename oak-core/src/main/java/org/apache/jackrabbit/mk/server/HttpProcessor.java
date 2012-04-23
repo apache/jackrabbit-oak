@@ -29,28 +29,28 @@ import org.apache.jackrabbit.mk.util.IOUtils;
  * Process all HTTP requests on a single socket.
  */
 class HttpProcessor {
-    
+
     private static final int INITIAL_SO_TIMEOUT = 1000;
-    
+
     private static final int DEFAULT_SO_TIMEOUT = 30000;
-    
+
     private static final int MAX_KEEP_ALIVE_REQUESTS = 100;
 
     private final Socket socket;
-    
-    private final Servlet servlet;
-    
-    private InputStream socketIn;
-    
-    private OutputStream socketOut;
-    
-    private final Request request = new Request(); 
 
-    private final Response response = new Response(); 
+    private final Servlet servlet;
+
+    private InputStream socketIn;
+
+    private OutputStream socketOut;
+
+    private final Request request = new Request();
+
+    private final Response response = new Response();
 
     /**
      * Create a new instance of this class.
-     * 
+     *
      * @param socket socket
      * @param servlet servlet to invoke for incoming requests
      */
@@ -58,20 +58,20 @@ class HttpProcessor {
         this.socket = socket;
         this.servlet = servlet;
     }
-    
+
     /**
      * Process all requests on a single socket.
-     * 
+     *
      * @throws IOException if an I/O error occurs
      */
     public void process() throws IOException {
         try {
             socketIn = new BufferedInputStream(socket.getInputStream());
             socketOut = new BufferedOutputStream(socket.getOutputStream());
-            
+
             socket.setSoTimeout(INITIAL_SO_TIMEOUT);
-            
-            for (int requestNum = 0; ; requestNum++) {
+
+            for (int requestNum = 0;; requestNum++) {
                 if (!process(requestNum)) {
                     break;
                 }
@@ -85,7 +85,7 @@ class HttpProcessor {
             IOUtils.closeQuietly(socket);
         }
     }
-    
+
     /**
      * Process a single request.
      *
