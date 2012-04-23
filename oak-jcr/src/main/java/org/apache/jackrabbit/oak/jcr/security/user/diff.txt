@@ -13,6 +13,7 @@ Unsupported Operations:
 UserManager:
 - UserManager#isAutoSave() always returns false
 - password not mandatory upon creation (TODO: check again)
+- no groupID generation for UserManager#createGroup(Principal) as alternative createGroup methods with ID param exist
 
 Authorizable:
 - setProperty, removeProperty executes no extra shortcut check for protected properties
