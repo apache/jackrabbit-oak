@@ -16,21 +16,24 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import org.apache.jackrabbit.api.JackrabbitWorkspace;
+import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.Branch;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.jcr.query.QueryManagerImpl;
+import org.apache.jackrabbit.oak.jcr.security.privileges.PrivilegeManagerImpl;
 import org.apache.jackrabbit.oak.namepath.Paths;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.ContentHandler;
+import org.xml.sax.InputSource;
 
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
-import javax.jcr.Workspace;
 import javax.jcr.lock.LockManager;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.observation.ObservationManager;
@@ -43,7 +46,7 @@ import java.io.InputStream;
 /**
  * {@code WorkspaceImpl}...
  */
-public class WorkspaceImpl implements Workspace {
+public class WorkspaceImpl implements JackrabbitWorkspace {
 
     /**
      * logger instance
@@ -238,6 +241,25 @@ public class WorkspaceImpl implements Workspace {
 
         // TODO -> SPI
     }
+
+    //------------------------------------------------< JackrabbitWorkspace >---
+
+    @Override
+    public void createWorkspace(String workspaceName, InputSource workspaceTemplate) throws RepositoryException {
+        ensureIsAlive();
+        ensureSupportedOption(Repository.OPTION_WORKSPACE_MANAGEMENT_SUPPORTED);
+
+        // TODO -> SPI
+    }
+
+    /**
+     * @see org.apache.jackrabbit.api.JackrabbitWorkspace#getPrivilegeManager()
+     */
+    @Override
+    public PrivilegeManager getPrivilegeManager() throws RepositoryException {
+        return new PrivilegeManagerImpl(sessionContext);
+    }
+
 
     //------------------------------------------------------------< private >---
 
