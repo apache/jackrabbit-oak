@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.mk.persistence;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -25,6 +26,7 @@ import java.util.Arrays;
 import java.util.Collection;
 
 import org.apache.jackrabbit.mk.model.Id;
+import org.apache.jackrabbit.mk.model.MutableCommit;
 import org.apache.jackrabbit.mk.model.MutableNode;
 import org.apache.jackrabbit.mk.model.StoredNode;
 import org.apache.jackrabbit.mk.store.NotFoundException;
@@ -120,6 +122,26 @@ public class GCPersistenceTest {
 
         pm.sweep();
         pm.readNode(new StoredNode(id, null));
+    }
+    
+    @Test
+    public void testReplaceCommit() throws Exception {
+        MutableCommit c1 = new MutableCommit();
+        c1.setRootNodeId(Id.fromLong(0));
+        pm.writeCommit(Id.fromLong(1), c1);
+
+        MutableCommit c2 = new MutableCommit();
+        c2.setParentId(c1.getId());
+        c2.setRootNodeId(Id.fromLong(0));
+        pm.writeCommit(Id.fromLong(2), c2);
+
+        pm.start();
+        c2 = new MutableCommit();
+        c2.setRootNodeId(Id.fromLong(0));
+        pm.replaceCommit(Id.fromLong(2), c2);
+        pm.sweep();
+        
+        assertEquals(null, pm.readCommit(Id.fromLong(2)).getParentId());
     }
 }
 

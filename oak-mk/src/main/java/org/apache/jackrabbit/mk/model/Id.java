@@ -68,6 +68,22 @@ public class Id implements Comparable<Id> {
         return new Id(StringUtils.convertHexToBytes(s));
     }
 
+    /**
+     * Creates an {@code Id} instance from a long.
+     *
+     * @param l a long
+     * @return an {@code Id} instance
+     */
+    public static Id fromLong(long value) {
+        byte[] raw = new byte[8];
+        
+        for (int i = raw.length - 1; i >= 0 && value != 0; i--) {
+            raw[i] = (byte) (value & 0xff);
+            value >>>= 8;
+        }
+        return new Id(raw);
+    }
+    
     @Override
     public int hashCode() {
         // the hashCode is intentionally not stored

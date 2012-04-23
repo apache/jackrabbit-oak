@@ -155,6 +155,16 @@ public class InMemPersistence implements GCPersistence {
         return markObject(id);
     }
     
+    @Override
+    public void replaceCommit(Id id, Commit commit) throws Exception {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        commit.serialize(new BinaryBinding(out));
+        byte[] bytes = out.toByteArray();
+
+        objects.put(id, bytes);
+        marked.put(id, bytes);
+    }
+    
     private boolean markObject(Id id) throws NotFoundException {
         byte[] data = objects.get(id);
         if (data != null) {

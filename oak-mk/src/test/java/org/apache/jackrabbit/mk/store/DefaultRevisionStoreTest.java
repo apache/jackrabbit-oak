@@ -22,6 +22,9 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.blobs.MemoryBlobStore;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.mk.core.Repository;
+import org.apache.jackrabbit.mk.json.fast.Jsop;
+import org.apache.jackrabbit.mk.json.fast.JsopArray;
+import org.apache.jackrabbit.mk.model.MutableCommit;
 import org.apache.jackrabbit.mk.persistence.InMemPersistence;
 import org.junit.After;
 import org.junit.Before;
@@ -40,7 +43,12 @@ public class DefaultRevisionStoreTest {
         rs = new DefaultRevisionStore(new InMemPersistence()) {
             @Override
             protected void doMark() throws Exception {
+                // Keep head commit only
                 markCommit(getHeadCommit());
+                
+                MutableCommit headCommit = new MutableCommit(getHeadCommit());  
+                headCommit.setParentId(null);
+                gcpm.replaceCommit(headCommit.getId(), headCommit);
             }
         };
         rs.initialize();
@@ -63,10 +71,13 @@ public class DefaultRevisionStoreTest {
         
         String headRevision = mk.getHeadRevision();
         String contents = mk.getNodes("/", headRevision);
-        
+
         rs.gc();
         
         assertEquals(headRevision, mk.getHeadRevision());
         assertEquals(contents, mk.getNodes("/", headRevision));
+        
+        String history = mk.getRevisionHistory(Long.MIN_VALUE, Integer.MIN_VALUE);
+        assertEquals(1, ((JsopArray) Jsop.parse(history)).size());
     }
 }

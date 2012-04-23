@@ -261,6 +261,29 @@ public class H2Persistence implements GCPersistence {
     }
 
     @Override
+    public void replaceCommit(Id id, Commit commit) throws Exception {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        commit.serialize(new BinaryBinding(out));
+        byte[] bytes = out.toByteArray();
+
+        Connection con = cp.getConnection();
+        try {
+            PreparedStatement stmt = con
+                    .prepareStatement(
+                            "update REVS set DATA = ?, TIME = CURRENT_TIMESTAMP() where ID = ?");
+            try {
+                stmt.setBytes(1, bytes);
+                stmt.setBytes(2, id.getBytes());
+                stmt.executeUpdate();
+            } finally {
+                stmt.close();
+            }
+        } finally {
+            con.close();
+        }
+    }
+    
+    @Override
     public boolean markNode(Id id) throws Exception {
         return touch(id, gcStart);
     }

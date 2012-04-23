@@ -58,7 +58,7 @@ public class DefaultRevisionStore extends AbstractRevisionStore
     private AtomicLong commitCounter;
     private final ReentrantReadWriteLock headLock = new ReentrantReadWriteLock();
     private final Persistence pm;
-    private final GCPersistence gcpm;
+    protected final GCPersistence gcpm;
 
     /* avoid synthetic accessor */ int initialCacheSize;
     /* avoid synthetic accessor */ Map<Id, Object> cache;
@@ -100,7 +100,7 @@ public class DefaultRevisionStore extends AbstractRevisionStore
         head = pm.readHead();
         if (head == null || head.getBytes().length == 0) {
             // assume virgin repository
-            byte[] rawHead = longToBytes(commitCounter.incrementAndGet());
+            byte[] rawHead = Id.fromLong(commitCounter.incrementAndGet()).getBytes();
             head = new Id(rawHead);
             
             Id rootNodeId = pm.writeNode(new MutableNode(this, "/"));
@@ -151,22 +151,6 @@ public class DefaultRevisionStore extends AbstractRevisionStore
     protected static int determineInitialCacheSize() {
         String val = System.getProperty(CACHE_SIZE);
         return (val != null) ? Integer.parseInt(val) : DEFAULT_CACHE_SIZE;
-    }
-
-    /**
-     * Convert a long value into a fixed-size byte array of size 8.
-     * 
-     * @param value value
-     * @return byte array
-     */
-    private static byte[] longToBytes(long value) {
-        byte[] result = new byte[8];
-        
-        for (int i = result.length - 1; i >= 0 && value != 0; i--) {
-            result[i] = (byte) (value & 0xff);
-            value >>>= 8;
-        }
-        return result;
     }
 
     //--------------------------------------------------------< RevisionStore >
@@ -314,7 +298,7 @@ public class DefaultRevisionStore extends AbstractRevisionStore
 
         Id id = commit.getId();
         if (id == null) {
-            id = new Id(longToBytes(commitCounter.incrementAndGet()));
+            id = Id.fromLong(commitCounter.incrementAndGet());
         }
         pm.writeCommit(id, commit);
 
@@ -436,10 +420,16 @@ public class DefaultRevisionStore extends AbstractRevisionStore
             if (id == null) {
                 break;
             }
-            commit = getCommit(id);
-            if (commit.getCommitTS() < tsLimit) {
+            StoredCommit parentCommit = getCommit(id);
+            if (parentCommit.getCommitTS() < tsLimit) {
                 break;
             }
+            commit = parentCommit;
+        }
+        if (commit.getParentId() != null) {
+            MutableCommit firstCommit = new MutableCommit(commit);
+            firstCommit.setParentId(null);
+            gcpm.replaceCommit(firstCommit.getId(), firstCommit);
         }
     }
 
