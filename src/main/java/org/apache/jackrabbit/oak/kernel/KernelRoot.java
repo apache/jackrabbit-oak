@@ -54,10 +54,10 @@ public class KernelRoot implements Root {
     /** Base node state of this tree */
     private KernelNodeState base;
 
-    /** Root state of tree */
+    /** Root state of this tree */
     private KernelTree root;
 
-    /** Log of changes to tree */
+    /** Log of changes to this tree */
     private ChangeLog changeLog = new ChangeLog();
 
     public KernelRoot(NodeStore store, String workspaceName) {
