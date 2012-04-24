@@ -1074,7 +1074,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
     }
 
     @Test
-    @Ignore("WIP")  // FIXME session.refresh
     public void sessionRefresh() throws RepositoryException {
         Session session = getRepository().login();
         try {

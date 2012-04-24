@@ -161,7 +161,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
         ensureIsAlive();
         try {
             root.commit();
-            root = contentSession.getCurrentRoot();  // TODO branch should be refreshed. double check
+            root = contentSession.getCurrentRoot();
         } catch (CommitFailedException e) {
             throw new RepositoryException(e);
         }
