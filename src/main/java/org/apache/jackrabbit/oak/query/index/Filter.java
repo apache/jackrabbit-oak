@@ -305,6 +305,10 @@ public class Filter {
     }
 
     public void restrictPath(String addedPath, PathRestriction addedPathRestriction) {
+        if (addedPath == null) {
+            // currently unknown (prepare time)
+            addedPath = "/";
+        }
         // calculating the intersection of path restrictions
         // this is ugly code, but I don't currently see a radically simpler method
         switch (addedPathRestriction) {

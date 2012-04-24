@@ -288,4 +288,8 @@ public class BTree {
         return minSize + minSize + 1;
     }
 
+    boolean isUnique() {
+        return unique;
+    }
+
 }

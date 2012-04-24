@@ -50,6 +50,7 @@ public class IndexWrapper extends MicroKernelWrapperBase implements MicroKernel 
     public IndexWrapper(MicroKernel mk) {
         this.mk = MicroKernelWrapperBase.wrap(mk);
         this.indexer = new Indexer(mk);
+        indexer.init();
     }
 
     @Override

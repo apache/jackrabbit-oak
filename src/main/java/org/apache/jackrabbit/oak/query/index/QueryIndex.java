@@ -51,4 +51,11 @@ public interface QueryIndex {
      */
     String getPlan(Filter filter);
 
+    /**
+     * Get the unique index name.
+     *
+     * @return the index name
+     */
+    String getIndexName();
+
 }

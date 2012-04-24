@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.mk.index;
 
+import java.util.Iterator;
 import org.apache.jackrabbit.mk.simple.NodeImpl;
 
 /**
@@ -50,5 +51,22 @@ public interface Index {
      */
     void addOrRemoveProperty(String nodePath, String propertyName,
             String value, boolean add);
+
+    /**
+     * Get an iterator over the paths for the given value. For unique
+     * indexes, the iterator will contain at most one element.
+     *
+     * @param value the value, or null to return all indexed rows
+     * @param revision the revision
+     * @return an iterator of the paths (an empty iterator if not found)
+     */
+    Iterator<String> getPaths(String value, String revision);
+
+    /**
+     * Whether each value may only appear once in the index.
+     *
+     * @return true if unique
+     */
+    boolean isUnique();
 
 }

@@ -30,6 +30,7 @@ public class PropertyIndexTest {
     public void test() {
         MicroKernel mk = new MicroKernelImpl();
         Indexer indexer = new Indexer(mk, "index");
+        indexer.init();
         PropertyIndex index = indexer.createPropertyIndex("id", true);
 
         String head = mk.getHeadRevision();
@@ -61,6 +62,7 @@ public class PropertyIndexTest {
 
         // Recreate the indexer
         indexer = new Indexer(mk);
+        indexer.init();
         index = indexer.createPropertyIndex("id", true);
         head = mk.getHeadRevision();
         Assert.assertEquals("/test/test", index.getPath("3", head));
