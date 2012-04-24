@@ -33,7 +33,7 @@ import javax.jcr.query.Row;
 public class RowImpl implements Row {
 
     private final ResultRow row;
-    private ValueFactoryImpl valueFactory;
+    private final ValueFactoryImpl valueFactory;
 
     public RowImpl(ResultRow row, ValueFactoryImpl valueFactory) {
         this.row = row;

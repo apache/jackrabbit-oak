@@ -20,16 +20,15 @@ import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.AbstractSession;
-import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.Paths;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.ContentHandler;
 
-import javax.jcr.AccessDeniedException;
 import javax.jcr.Credentials;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.Node;
@@ -293,13 +292,13 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     //--------------------------------------------------< JackrabbitSession >---
 
     @Override
-    public PrincipalManager getPrincipalManager() throws AccessDeniedException, UnsupportedRepositoryOperationException, RepositoryException {
+    public PrincipalManager getPrincipalManager() throws RepositoryException {
         // TODO
         throw new UnsupportedOperationException("Implementation missing");
     }
 
     @Override
-    public UserManager getUserManager() throws AccessDeniedException, UnsupportedRepositoryOperationException, RepositoryException {
+    public UserManager getUserManager() throws RepositoryException {
         // TODO
         throw new UnsupportedOperationException("Implementation missing");
     }
