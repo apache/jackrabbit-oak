@@ -29,17 +29,17 @@ import static org.junit.Assert.assertEquals;
 
 public class BasicServerTest {
 
-    private Thread st;
+    private Main.HttpServer server;
 
     @Before
-    public void startServer() {
-        st = new Thread(new ServerThread());
-        st.start();
+    public void startServer() throws Exception {
+        server = new Main.HttpServer(Main.URI, new String[0]);
+        server.start();
     }
 
     @After
-    public void stopServer() {
-        st.stop();
+    public void stopServer() throws Exception {
+        server.stop();
     }
 
     @Test
@@ -50,17 +50,5 @@ public class BasicServerTest {
         conn.setRequestProperty("Authorization",
                 "Basic " + Base64.encode("a:a"));
         assertEquals(200, conn.getResponseCode());
-    }
-
-    public static class ServerThread implements Runnable {
-
-        @Override
-        public void run() {
-            try {
-                Main.main(new String[0]);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
     }
 }

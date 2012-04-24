@@ -33,44 +33,16 @@ public class Main {
     public static void main(String[] args) throws Exception {
         printProductInfo();
 
-        ServletContextHandler context =
-                new ServletContextHandler(ServletContextHandler.SECURITY);
-        context.setContextPath("/");
-
-        if (args.length == 0) {
-            System.out.println("Starting an in-memory repository");
-            System.out.println(URI + " -> [memory]");
-            Servlet servlet = new RepositoryServlet(null);
-            context.addServlet(new ServletHolder(servlet),"/*");
-        } else if (args.length == 1) {
-            System.out.println("Starting a standalone repository");
-            System.out.println(URI + " -> " + args[0]);
-            Servlet servlet = new RepositoryServlet(args[0]);
-            context.addServlet(new ServletHolder(servlet), "/*");
-        } else {
-            System.out.println("Starting a clustered repository");
-            for (int i = 0; i < args.length; i++) {
-                // FIXME: Use a clustered MicroKernel implementation
-                System.out.println(
-                        URI + "/node" + i + "/ -> " + args[i]);
-                Servlet servlet = new RepositoryServlet(args[i]);
-                context.addServlet(
-                        new ServletHolder(servlet), "/node" + i + "/*");
-            }
-        }
-
-        Server server = new Server(PORT);
-        server.setHandler(context);
-        server.start();
-        server.join();
+        HttpServer httpServer = new HttpServer(URI, args);
+        httpServer.start();
     }
 
     private static void printProductInfo() {
         String version = null;
 
         try {
-            InputStream stream = Main.class.getResourceAsStream(
-                    "/META-INF/maven/org.apache.jackrabbit/oak-run/pom.properties");
+            InputStream stream = Main.class
+                    .getResourceAsStream("/META-INF/maven/org.apache.jackrabbit/oak-run/pom.properties");
             if (stream != null) {
                 try {
                     Properties properties = new Properties();
@@ -91,6 +63,53 @@ public class Main {
         }
 
         System.out.println(product);
+    }
+
+    public static class HttpServer {
+
+        private Server server;
+
+        public HttpServer(String uri, String args[]) {
+            ServletContextHandler context = new ServletContextHandler(
+                    ServletContextHandler.SECURITY);
+            context.setContextPath("/");
+
+            if (args.length == 0) {
+                System.out.println("Starting an in-memory repository");
+                System.out.println(URI + " -> [memory]");
+                Servlet servlet = new RepositoryServlet(null);
+                context.addServlet(new ServletHolder(servlet), "/*");
+            } else if (args.length == 1) {
+                System.out.println("Starting a standalone repository");
+                System.out.println(URI + " -> " + args[0]);
+                Servlet servlet = new RepositoryServlet(args[0]);
+                context.addServlet(new ServletHolder(servlet), "/*");
+            } else {
+                System.out.println("Starting a clustered repository");
+                for (int i = 0; i < args.length; i++) {
+                    // FIXME: Use a clustered MicroKernel implementation
+                    System.out.println(URI + "/node" + i + "/ -> " + args[i]);
+                    Servlet servlet = new RepositoryServlet(args[i]);
+                    context.addServlet(new ServletHolder(servlet), "/node" + i
+                            + "/*");
+                }
+            }
+
+            server = new Server(PORT);
+            server.setHandler(context);
+        }
+
+        public void start() throws Exception {
+            server.start();
+        }
+
+        public void join() throws Exception {
+            server.join();
+        }
+
+        public void stop() throws Exception {
+            server.stop();
+        }
     }
 
 }
