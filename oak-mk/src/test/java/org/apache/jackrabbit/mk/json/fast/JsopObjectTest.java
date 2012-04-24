@@ -42,7 +42,7 @@ public class JsopObjectTest extends TestCase {
                 JsopObject o = (JsopObject) Jsop.parse(jsop);
                 assertEquals(data, o.get("child99"));
             }
-            System.out.println(timer.seconds() + " lengthIndex=" + lengthIndex);
+            // System.out.println(timer.seconds() + " lengthIndex=" + lengthIndex);
         }
     }
 
