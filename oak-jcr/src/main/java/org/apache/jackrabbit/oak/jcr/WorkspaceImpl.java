@@ -160,7 +160,8 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     public NamespaceRegistry getNamespaceRegistry() throws RepositoryException {
         ensureIsAlive();
         if (nsRegistry == null) {
-            nsRegistry = new NamespaceRegistryImpl();
+            nsRegistry = new NamespaceRegistryImpl(
+                    sessionContext.getContentSession());
         }
         return nsRegistry;
     }

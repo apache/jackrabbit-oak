@@ -1325,8 +1325,9 @@ public class RepositoryTest extends AbstractRepositoryTest {
     }
 
     @Test
-    public void nameSpaceRegistry() throws RepositoryException {
-        NamespaceRegistry nsReg = getSession().getWorkspace().getNamespaceRegistry();
+    public void testNamespaceRegistry() throws RepositoryException {
+        NamespaceRegistry nsReg =
+                getSession().getWorkspace().getNamespaceRegistry();
         assertFalse(contains(nsReg.getPrefixes(), "foo"));
         assertFalse(contains(nsReg.getURIs(), "file:///foo"));
 

@@ -16,11 +16,13 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import org.apache.jackrabbit.oak.namepath.NamespaceMappings;
-
 import javax.jcr.NamespaceException;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.RepositoryException;
+
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.plugins.name.NamespaceMappings;
 
 /**
  * A naive implementation of {@link NamespaceRegistry}, hard-wiring the
@@ -28,52 +30,85 @@ import javax.jcr.RepositoryException;
  * TODO use API only
  */
 public class NamespaceRegistryImpl implements NamespaceRegistry {
-    NamespaceMappings nsMappings = new NamespaceMappings();
-    
-    public NamespaceRegistryImpl() {
-        nsMappings.registerNamespace(PREFIX_EMPTY, NAMESPACE_EMPTY);
-        nsMappings.registerNamespace(PREFIX_JCR, NAMESPACE_JCR);
-        nsMappings.registerNamespace(PREFIX_MIX, NAMESPACE_MIX);
-        nsMappings.registerNamespace(PREFIX_NT, NAMESPACE_NT);
-        nsMappings.registerNamespace(PREFIX_XML, NAMESPACE_XML);
-        nsMappings.registerNamespace("sv", "http://www.jcp.org/jcr/sv/1.0");
+
+    private final NamespaceMappings nsMappings;
+
+    public NamespaceRegistryImpl(ContentSession session) {
+        this.nsMappings = new NamespaceMappings(session);
     }
 
     @Override
-    public void registerNamespace(String prefix, String uri) throws RepositoryException {
-        nsMappings.registerNamespace(prefix, uri);
+    public void registerNamespace(String prefix, String uri)
+            throws RepositoryException {
+        try {
+            nsMappings.registerNamespace(prefix, uri);
+        } catch (CommitFailedException e) {
+            throw new RepositoryException(
+                    "Failed to register namespace mapping from "
+                    + prefix + " to " + uri, e);
+        }
     }
 
     @Override
     public void unregisterNamespace(String prefix) throws RepositoryException {
-        nsMappings.unregisterJcrPrefix(prefix);
+        try {
+            nsMappings.unregisterNamespace(prefix);
+        } catch (CommitFailedException e) {
+            throw new RepositoryException(
+                    "Failed to unregister a namespace mapping with prefix "
+                    + prefix, e);
+        }
     }
 
     @Override
     public String[] getPrefixes() throws RepositoryException {
-        return nsMappings.getJcrPrefixes();
+        try {
+            return nsMappings.getPrefixes();
+        } catch (RuntimeException e) {
+            throw new RepositoryException(
+                    "Failed to retrieve registered namespace prefixes", e);
+        }
     }
 
     @Override
     public String[] getURIs() throws RepositoryException {
-        return nsMappings.getNamespaces();
+        try {
+            return nsMappings.getURIs();
+        } catch (RuntimeException e) {
+            throw new RepositoryException(
+                    "Failed to retrieve registered namespace URIs", e);
+        }
     }
 
     @Override
     public String getURI(String prefix) throws RepositoryException {
-        String result = nsMappings.getNamespace(prefix);
-        if (result == null) {
-            throw new NamespaceException();
+        try {
+            String uri = nsMappings.getURI(prefix);
+            if (uri == null) {
+                throw new NamespaceException(
+                        "No namespace registered for prefix " + prefix);
+            }
+            return uri;
+        } catch (RuntimeException e) {
+            throw new RepositoryException(
+                    "Failed to retrieve the namespace URI for prefix "
+                    + prefix, e);
         }
-        return result;
     }
 
     @Override
     public String getPrefix(String uri) throws RepositoryException {
-        String result = nsMappings.getJcrPrefix(uri);
-        if (result == null) {
-            throw new NamespaceException();
+        try {
+            String prefix = nsMappings.getPrefix(uri);
+            if (prefix == null) {
+                throw new NamespaceException(
+                        "No namespace registered for prefix " + prefix);
+            }
+            return prefix;
+        } catch (RuntimeException e) {
+            throw new RepositoryException(
+                    "Failed to retrieve the namespace prefix for URI "
+                    + uri, e);
         }
-        return result;
     }
 }
