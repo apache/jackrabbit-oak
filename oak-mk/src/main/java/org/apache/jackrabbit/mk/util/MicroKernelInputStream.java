@@ -17,19 +17,20 @@
 package org.apache.jackrabbit.mk.util;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.mk.util.IOUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
 
 /**
- * An input stream to simplify reading a blob from the micro kernel.
- * See also BlobStoreInputStream.
+ * An input stream to simplify reading a blob from a {@code MicroKernel}.
  */
 public class MicroKernelInputStream extends InputStream {
 
     private final MicroKernel mk;
     private final String id;
     private long pos;
+    private long length = -1;
     private byte[] oneByteBuff;
 
     public MicroKernelInputStream(MicroKernel mk, String id) {
@@ -37,6 +38,20 @@ public class MicroKernelInputStream extends InputStream {
         this.id = id;
     }
 
+    @Override
+    public long skip(long n) {
+        if (n < 0) {
+            return 0;
+        }
+        if (length == -1) {
+            length = mk.getLength(id);
+        }
+        n = Math.min(n, length - pos);
+        pos += n;
+        return n;
+    }
+
+    @Override
     public int read(byte[] b, int off, int len) {
         int l = mk.read(id, pos, b, off, len);
         if (l < 0) {
@@ -46,6 +61,7 @@ public class MicroKernelInputStream extends InputStream {
         return l;
     }
 
+    @Override
     public int read() throws IOException {
         if (oneByteBuff == null) {
             oneByteBuff = new byte[1];
