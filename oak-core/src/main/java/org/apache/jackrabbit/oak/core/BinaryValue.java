@@ -48,4 +48,31 @@ public class BinaryValue {
     long length() {
         return mk.getLength(binaryID);
     }
+
+    //-------------------------------------------------------------< Object >---
+
+    @Override
+    public int hashCode() {
+        // TODO
+        return binaryID.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == this) {
+            return true;
+        }
+
+        if (o instanceof BinaryValue) {
+            BinaryValue other = (BinaryValue) o;
+            return binaryID.equals(other.binaryID);
+        }
+
+        return false;
+    }
+
+    @Override
+    public String toString() {
+        return binaryID;
+    }
 }
