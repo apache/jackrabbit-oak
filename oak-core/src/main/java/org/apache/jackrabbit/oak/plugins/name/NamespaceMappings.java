@@ -145,9 +145,11 @@ public class NamespaceMappings {
         }
 
         Tree namespaces = getNamespaces(session.getCurrentRoot(), false);
-        for (PropertyState property : namespaces.getProperties()) {
-            if (uri.equals(property.getValue().getString())) {
-                return property.getName();
+        if (namespaces != null) {
+            for (PropertyState property : namespaces.getProperties()) {
+                if (uri.equals(property.getValue().getString())) {
+                    return property.getName();
+                }
             }
         }
 
