@@ -114,6 +114,9 @@ public class KernelRoot implements Root {
         }
     }
 
+    public boolean hasPendingChanges() {
+        return !changeLog.isEmpty();
+    }
 
     //------------------------------------------------------------< internal >---
 
@@ -226,6 +229,10 @@ public class KernelRoot implements Root {
         public void copy(KernelTree state, String name, KernelTree copied) {
             jsop.append("*\"").append(path(state, name)).append("\":\"")
                     .append(copied.getPath()).append('"');
+        }
+
+        public boolean isEmpty() {
+            return jsop.length() == 0;
         }
 
         public String toJsop() {
