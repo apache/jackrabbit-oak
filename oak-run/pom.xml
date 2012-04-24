@@ -108,6 +108,13 @@
       <artifactId>logback-classic</artifactId>
       <version>1.0.1</version>
     </dependency>
+
+    <!-- Test dependencies -->
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
 </project>

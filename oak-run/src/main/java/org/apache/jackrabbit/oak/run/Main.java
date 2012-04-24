@@ -27,6 +27,9 @@ import org.eclipse.jetty.servlet.ServletHolder;
 
 public class Main {
 
+    public static final int PORT = 8080;
+    public static final String URI = "http://localhost:" + PORT + "/";
+
     public static void main(String[] args) throws Exception {
         printProductInfo();
 
@@ -36,12 +39,12 @@ public class Main {
 
         if (args.length == 0) {
             System.out.println("Starting an in-memory repository");
-            System.out.println("http://localhost:8080/ -> [memory]");
+            System.out.println(URI + " -> [memory]");
             Servlet servlet = new RepositoryServlet(null);
             context.addServlet(new ServletHolder(servlet),"/*");
         } else if (args.length == 1) {
             System.out.println("Starting a standalone repository");
-            System.out.println("http://localhost:8080/ -> " + args[0]);
+            System.out.println(URI + " -> " + args[0]);
             Servlet servlet = new RepositoryServlet(args[0]);
             context.addServlet(new ServletHolder(servlet), "/*");
         } else {
@@ -49,14 +52,14 @@ public class Main {
             for (int i = 0; i < args.length; i++) {
                 // FIXME: Use a clustered MicroKernel implementation
                 System.out.println(
-                        "http://localhost:8080/node" + i + "/ -> " + args[i]);
+                        URI + "/node" + i + "/ -> " + args[i]);
                 Servlet servlet = new RepositoryServlet(args[i]);
                 context.addServlet(
                         new ServletHolder(servlet), "/node" + i + "/*");
             }
         }
 
-        Server server = new Server(8080);
+        Server server = new Server(PORT);
         server.setHandler(context);
         server.start();
         server.join();
