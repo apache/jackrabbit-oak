@@ -57,7 +57,7 @@ public class KernelBranchTest {
     @Test
     public void getChild() {
         KernelBranch branch = new KernelBranch(state);
-        Tree tree = branch.getContentTree("/");
+        Tree tree = branch.getTree("/");
         Tree child = tree.getChild("any");
         assertNull(child);
 
@@ -68,7 +68,7 @@ public class KernelBranchTest {
     @Test
     public void getProperty() {
         KernelBranch branch = new KernelBranch(state);
-        Tree tree = branch.getContentTree("/");
+        Tree tree = branch.getTree("/");
         PropertyState propertyState = tree.getProperty("any");
         assertNull(propertyState);
 
@@ -82,7 +82,7 @@ public class KernelBranchTest {
     @Test
     public void getChildren() {
         KernelBranch branch = new KernelBranch(state);
-        Tree tree = branch.getContentTree("/");
+        Tree tree = branch.getTree("/");
         Iterable<Tree> children = tree.getChildren();
 
         Set<String> expectedPaths = new HashSet<String>();
@@ -99,7 +99,7 @@ public class KernelBranchTest {
     @Test
     public void getProperties() {
         KernelBranch branch = new KernelBranch(state);
-        Tree tree = branch.getContentTree("/");
+        Tree tree = branch.getTree("/");
 
         Map<String, Scalar> expectedProperties = new HashMap<String, Scalar>();
         expectedProperties.put("a", ScalarImpl.longScalar(1));
@@ -122,7 +122,7 @@ public class KernelBranchTest {
     @Test
     public void addChild() {
         KernelBranch branch = new KernelBranch(state);
-        Tree tree = branch.getContentTree("/");
+        Tree tree = branch.getTree("/");
 
         assertFalse(tree.hasChild("new"));
         Tree added = tree.addChild("new");
@@ -137,14 +137,14 @@ public class KernelBranchTest {
     @Test
     public void addExistingChild() {
         KernelBranch branch = new KernelBranch(state);
-        Tree tree = branch.getContentTree("/");
+        Tree tree = branch.getTree("/");
 
         assertFalse(tree.hasChild("new"));
         tree.addChild("new");
         NodeState newState = branch.mergeInto(microkernel, state);
 
         branch = new KernelBranch(newState);
-        tree = branch.getContentTree("/");
+        tree = branch.getTree("/");
         assertTrue(tree.hasChild("new"));
         Tree added = tree.addChild("new");
         assertNotNull(added);
@@ -154,7 +154,7 @@ public class KernelBranchTest {
     @Test
     public void removeChild() {
         KernelBranch branch = new KernelBranch(state);
-        Tree tree = branch.getContentTree("/");
+        Tree tree = branch.getTree("/");
 
         assertTrue(tree.hasChild("x"));
         tree.removeChild("x");
@@ -167,7 +167,7 @@ public class KernelBranchTest {
     @Test
     public void setProperty() {
         KernelBranch branch = new KernelBranch(state);
-        Tree tree = branch.getContentTree("/");
+        Tree tree = branch.getTree("/");
 
         assertFalse(tree.hasProperty("new"));
         Scalar value = ScalarImpl.stringScalar("value");
@@ -187,7 +187,7 @@ public class KernelBranchTest {
     @Test
     public void removeProperty() {
         KernelBranch branch = new KernelBranch(state);
-        Tree tree = branch.getContentTree("/");
+        Tree tree = branch.getTree("/");
 
         assertTrue(tree.hasProperty("a"));
         tree.removeProperty("a");
@@ -200,7 +200,7 @@ public class KernelBranchTest {
     @Test
     public void move() {
         KernelBranch branch = new KernelBranch(state);
-        Tree tree = branch.getContentTree("/");
+        Tree tree = branch.getTree("/");
         Tree y = tree.getChild("y");
 
         assertTrue(tree.hasChild("x"));
@@ -217,7 +217,7 @@ public class KernelBranchTest {
     @Test
     public void rename() {
         KernelBranch branch = new KernelBranch(state);
-        Tree tree = branch.getContentTree("/");
+        Tree tree = branch.getTree("/");
 
         assertTrue(tree.hasChild("x"));
         branch.move("x", "xx");
@@ -232,7 +232,7 @@ public class KernelBranchTest {
     @Test
     public void copy() {
         KernelBranch branch = new KernelBranch(state);
-        Tree tree = branch.getContentTree("/");
+        Tree tree = branch.getTree("/");
         Tree y = tree.getChild("y");
 
         assertTrue(tree.hasChild("x"));
@@ -249,10 +249,10 @@ public class KernelBranchTest {
     @Test
     public void deepCopy() {
         KernelBranch branch = new KernelBranch(state);
-        Tree tree = branch.getContentTree("/");
+        Tree tree = branch.getTree("/");
         Tree y = tree.getChild("y");
 
-        branch.getContentTree("x").addChild("x1");
+        branch.getTree("x").addChild("x1");
         branch.copy("x", "y/xx");
         assertTrue(y.hasChild("xx"));
         assertTrue(y.getChild("xx").hasChild("x1"));
@@ -271,7 +271,7 @@ public class KernelBranchTest {
     @Test
     public void getChildrenCount() {
         KernelBranch branch = new KernelBranch(state);
-        Tree tree = branch.getContentTree("/");
+        Tree tree = branch.getTree("/");
         assertEquals(3, tree.getChildrenCount());
 
         tree.removeChild("x");
@@ -287,7 +287,7 @@ public class KernelBranchTest {
     @Test
     public void getPropertyCount() {
         KernelBranch branch = new KernelBranch(state);
-        Tree tree = branch.getContentTree("/");
+        Tree tree = branch.getTree("/");
         assertEquals(3, tree.getPropertyCount());
 
         Scalar value = ScalarImpl.stringScalar("foo");
@@ -307,7 +307,7 @@ public class KernelBranchTest {
     @Test
     public void largeChildList() {
         KernelBranch branch = new KernelBranch(state);
-        Tree tree = branch.getContentTree("/");
+        Tree tree = branch.getTree("/");
 
         tree.addChild("large");
         tree = tree.getChild("large");
@@ -317,7 +317,7 @@ public class KernelBranchTest {
 
         KernelNodeState newState = branch.mergeInto(microkernel, state);
         branch = new KernelBranch(newState);
-        tree = branch.getContentTree("/");
+        tree = branch.getTree("/");
         tree = tree.getChild("large");
 
         int c = 0;
