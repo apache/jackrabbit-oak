@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.kernel;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.simple.SimpleKernelImpl;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Scalar;
@@ -38,9 +39,10 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-public class KernelBranchTest {
+public class KernelRootTest {
 
     private final MicroKernel microkernel = new SimpleKernelImpl("mem:");
+    private final KernelNodeStore store = new KernelNodeStore(microkernel);
 
     private KernelNodeState state;
 
@@ -56,23 +58,23 @@ public class KernelBranchTest {
 
     @Test
     public void getChild() {
-        KernelBranch branch = new KernelBranch(state);
-        Tree tree = branch.getTree("/");
-        Tree child = tree.getChild("any");
+        KernelRoot branch = new KernelRoot(store, "test");
+        Tree root = branch.getTree("/");
+        Tree child = root.getChild("any");
         assertNull(child);
 
-        child = tree.getChild("x");
+        child = root.getChild("x");
         assertNotNull(child);
     }
 
     @Test
     public void getProperty() {
-        KernelBranch branch = new KernelBranch(state);
-        Tree tree = branch.getTree("/");
-        PropertyState propertyState = tree.getProperty("any");
+        KernelRoot branch = new KernelRoot(store, "test");
+        Tree root = branch.getTree("/");
+        PropertyState propertyState = root.getProperty("any");
         assertNull(propertyState);
 
-        propertyState = tree.getProperty("a");
+        propertyState = root.getProperty("a");
         assertNotNull(propertyState);
         assertFalse(propertyState.isArray());
         assertEquals(Scalar.Type.LONG, propertyState.getScalar().getType());
@@ -81,9 +83,9 @@ public class KernelBranchTest {
 
     @Test
     public void getChildren() {
-        KernelBranch branch = new KernelBranch(state);
-        Tree tree = branch.getTree("/");
-        Iterable<Tree> children = tree.getChildren();
+        KernelRoot branch = new KernelRoot(store, "test");
+        Tree root = branch.getTree("/");
+        Iterable<Tree> children = root.getChildren();
 
         Set<String> expectedPaths = new HashSet<String>();
         Collections.addAll(expectedPaths, "x", "y", "z");
@@ -93,20 +95,20 @@ public class KernelBranchTest {
         }
         assertTrue(expectedPaths.isEmpty());
 
-        assertEquals(3, tree.getChildrenCount());
+        assertEquals(3, root.getChildrenCount());
     }
 
     @Test
     public void getProperties() {
-        KernelBranch branch = new KernelBranch(state);
-        Tree tree = branch.getTree("/");
+        KernelRoot branch = new KernelRoot(store, "test");
+        Tree root = branch.getTree("/");
 
         Map<String, Scalar> expectedProperties = new HashMap<String, Scalar>();
         expectedProperties.put("a", ScalarImpl.longScalar(1));
         expectedProperties.put("b", ScalarImpl.longScalar(2));
         expectedProperties.put("c", ScalarImpl.longScalar(3));
 
-        Iterable<PropertyState> properties = tree.getProperties();
+        Iterable<PropertyState> properties = root.getProperties();
         for (PropertyState property : properties) {
             Scalar value = expectedProperties.remove(property.getName());
             assertNotNull(value);
@@ -116,49 +118,51 @@ public class KernelBranchTest {
 
         assertTrue(expectedProperties.isEmpty());
 
-        assertEquals(3, tree.getPropertyCount());
+        assertEquals(3, root.getPropertyCount());
     }
 
     @Test
-    public void addChild() {
-        KernelBranch branch = new KernelBranch(state);
-        Tree tree = branch.getTree("/");
+    public void addChild() throws CommitFailedException {
+        KernelRoot branch = new KernelRoot(store, "test");
+        Tree root = branch.getTree("/");
 
-        assertFalse(tree.hasChild("new"));
-        Tree added = tree.addChild("new");
+        assertFalse(root.hasChild("new"));
+        Tree added = root.addChild("new");
         assertNotNull(added);
         assertEquals("new", added.getName());
-        assertTrue(tree.hasChild("new"));
+        assertTrue(root.hasChild("new"));
 
-        NodeState newState = branch.mergeInto(microkernel, state);
-        assertNotNull(newState.getChildNode("new"));
+        branch.commit();
+
+        root = branch.getTree("/");
+        assertTrue(root.hasChild("new"));
     }
 
     @Test
     public void addExistingChild() {
-        KernelBranch branch = new KernelBranch(state);
-        Tree tree = branch.getTree("/");
+        KernelRoot branch = new KernelRoot(store, "test");
+        Tree root = branch.getTree("/");
 
-        assertFalse(tree.hasChild("new"));
-        tree.addChild("new");
-        NodeState newState = branch.mergeInto(microkernel, state);
+        assertFalse(root.hasChild("new"));
+        root.addChild("new");
+        branch.mergeInto(microkernel, state);
 
-        branch = new KernelBranch(newState);
-        tree = branch.getTree("/");
-        assertTrue(tree.hasChild("new"));
-        Tree added = tree.addChild("new");
+        branch = new KernelRoot(store, "test");
+        root = branch.getTree("/");
+        assertTrue(root.hasChild("new"));
+        Tree added = root.addChild("new");
         assertNotNull(added);
         assertEquals("new", added.getName());
     }
 
     @Test
     public void removeChild() {
-        KernelBranch branch = new KernelBranch(state);
-        Tree tree = branch.getTree("/");
+        KernelRoot branch = new KernelRoot(store, "test");
+        Tree root = branch.getTree("/");
 
-        assertTrue(tree.hasChild("x"));
-        tree.removeChild("x");
-        assertFalse(tree.hasChild("x"));
+        assertTrue(root.hasChild("x"));
+        root.removeChild("x");
+        assertFalse(root.hasChild("x"));
 
         NodeState newState = branch.mergeInto(microkernel, state);
         assertNull(newState.getChildNode("x"));
@@ -166,8 +170,8 @@ public class KernelBranchTest {
 
     @Test
     public void setProperty() {
-        KernelBranch branch = new KernelBranch(state);
-        Tree tree = branch.getTree("/");
+        KernelRoot root = new KernelRoot(store, "test");
+        Tree tree = root.getTree("/");
 
         assertFalse(tree.hasProperty("new"));
         Scalar value = ScalarImpl.stringScalar("value");
@@ -177,7 +181,7 @@ public class KernelBranchTest {
         assertEquals("new", property.getName());
         assertEquals(value, property.getScalar());
 
-        NodeState newState = branch.mergeInto(microkernel, state);
+        NodeState newState = root.mergeInto(microkernel, state);
         property = newState.getProperty("new");
         assertNotNull(property);
         assertEquals("new", property.getName());
@@ -186,29 +190,29 @@ public class KernelBranchTest {
 
     @Test
     public void removeProperty() {
-        KernelBranch branch = new KernelBranch(state);
-        Tree tree = branch.getTree("/");
+        KernelRoot root = new KernelRoot(store, "test");
+        Tree tree = root.getTree("/");
 
         assertTrue(tree.hasProperty("a"));
         tree.removeProperty("a");
         assertFalse(tree.hasProperty("a"));
 
-        NodeState newState = branch.mergeInto(microkernel, state);
+        NodeState newState = root.mergeInto(microkernel, state);
         assertNull(newState.getProperty("a"));
     }
 
     @Test
     public void move() {
-        KernelBranch branch = new KernelBranch(state);
-        Tree tree = branch.getTree("/");
+        KernelRoot root = new KernelRoot(store, "test");
+        Tree tree = root.getTree("/");
         Tree y = tree.getChild("y");
 
         assertTrue(tree.hasChild("x"));
-        branch.move("x", "y/xx");
+        root.move("x", "y/xx");
         assertFalse(tree.hasChild("x"));
         assertTrue(y.hasChild("xx"));
 
-        NodeState newState = branch.mergeInto(microkernel, state);
+        NodeState newState = root.mergeInto(microkernel, state);
         assertNull(newState.getChildNode("x"));
         assertNotNull(newState.getChildNode("y"));
         assertNotNull(newState.getChildNode("y").getChildNode("xx"));
@@ -216,31 +220,31 @@ public class KernelBranchTest {
 
     @Test
     public void rename() {
-        KernelBranch branch = new KernelBranch(state);
-        Tree tree = branch.getTree("/");
+        KernelRoot root = new KernelRoot(store, "test");
+        Tree tree = root.getTree("/");
 
         assertTrue(tree.hasChild("x"));
-        branch.move("x", "xx");
+        root.move("x", "xx");
         assertFalse(tree.hasChild("x"));
         assertTrue(tree.hasChild("xx"));
 
-        NodeState newState = branch.mergeInto(microkernel, state);
+        NodeState newState = root.mergeInto(microkernel, state);
         assertNull(newState.getChildNode("x"));
         assertNotNull(newState.getChildNode("xx"));
     }
 
     @Test
     public void copy() {
-        KernelBranch branch = new KernelBranch(state);
-        Tree tree = branch.getTree("/");
+        KernelRoot root = new KernelRoot(store, "test");
+        Tree tree = root.getTree("/");
         Tree y = tree.getChild("y");
 
         assertTrue(tree.hasChild("x"));
-        branch.copy("x", "y/xx");
+        root.copy("x", "y/xx");
         assertTrue(tree.hasChild("x"));
         assertTrue(y.hasChild("xx"));
 
-        NodeState newState = branch.mergeInto(microkernel, state);
+        NodeState newState = root.mergeInto(microkernel, state);
         assertNotNull(newState.getChildNode("x"));
         assertNotNull(newState.getChildNode("y"));
         assertNotNull(newState.getChildNode("y").getChildNode("xx"));
@@ -248,16 +252,16 @@ public class KernelBranchTest {
 
     @Test
     public void deepCopy() {
-        KernelBranch branch = new KernelBranch(state);
-        Tree tree = branch.getTree("/");
+        KernelRoot root = new KernelRoot(store, "test");
+        Tree tree = root.getTree("/");
         Tree y = tree.getChild("y");
 
-        branch.getTree("x").addChild("x1");
-        branch.copy("x", "y/xx");
+        root.getTree("x").addChild("x1");
+        root.copy("x", "y/xx");
         assertTrue(y.hasChild("xx"));
         assertTrue(y.getChild("xx").hasChild("x1"));
 
-        NodeState newState = branch.mergeInto(microkernel, state);
+        NodeState newState = root.mergeInto(microkernel, state);
         assertNotNull(newState.getChildNode("x"));
         assertNotNull(newState.getChildNode("y"));
         assertNotNull(newState.getChildNode("y").getChildNode("xx"));
@@ -270,8 +274,8 @@ public class KernelBranchTest {
 
     @Test
     public void getChildrenCount() {
-        KernelBranch branch = new KernelBranch(state);
-        Tree tree = branch.getTree("/");
+        KernelRoot root = new KernelRoot(store, "test");
+        Tree tree = root.getTree("/");
         assertEquals(3, tree.getChildrenCount());
 
         tree.removeChild("x");
@@ -286,8 +290,8 @@ public class KernelBranchTest {
 
     @Test
     public void getPropertyCount() {
-        KernelBranch branch = new KernelBranch(state);
-        Tree tree = branch.getTree("/");
+        KernelRoot root = new KernelRoot(store, "test");
+        Tree tree = root.getTree("/");
         assertEquals(3, tree.getPropertyCount());
 
         Scalar value = ScalarImpl.stringScalar("foo");
@@ -306,8 +310,8 @@ public class KernelBranchTest {
 
     @Test
     public void largeChildList() {
-        KernelBranch branch = new KernelBranch(state);
-        Tree tree = branch.getTree("/");
+        KernelRoot root = new KernelRoot(store, "test");
+        Tree tree = root.getTree("/");
 
         tree.addChild("large");
         tree = tree.getChild("large");
@@ -315,9 +319,9 @@ public class KernelBranchTest {
             tree.addChild("n" + c);
         }
 
-        KernelNodeState newState = branch.mergeInto(microkernel, state);
-        branch = new KernelBranch(newState);
-        tree = branch.getTree("/");
+        root.mergeInto(microkernel, state);
+        root = new KernelRoot(store, "test");
+        tree = root.getTree("/");
         tree = tree.getChild("large");
 
         int c = 0;

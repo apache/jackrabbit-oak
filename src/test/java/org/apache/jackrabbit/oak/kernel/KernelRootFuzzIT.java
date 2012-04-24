@@ -21,9 +21,9 @@ package org.apache.jackrabbit.oak.kernel;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.simple.SimpleKernelImpl;
 import org.apache.jackrabbit.mk.util.PathUtils;
-import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Scalar;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -37,28 +37,34 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 
-import static org.apache.jackrabbit.oak.kernel.KernelBranchFuzzIT.Operation.AddNode;
-import static org.apache.jackrabbit.oak.kernel.KernelBranchFuzzIT.Operation.MoveNode;
-import static org.apache.jackrabbit.oak.kernel.KernelBranchFuzzIT.Operation.CopyNode;
-import static org.apache.jackrabbit.oak.kernel.KernelBranchFuzzIT.Operation.RemoveNode;
-import static org.apache.jackrabbit.oak.kernel.KernelBranchFuzzIT.Operation.RemoveProperty;
-import static org.apache.jackrabbit.oak.kernel.KernelBranchFuzzIT.Operation.Save;
-import static org.apache.jackrabbit.oak.kernel.KernelBranchFuzzIT.Operation.SetProperty;
+import static org.apache.jackrabbit.oak.kernel.KernelRootFuzzIT.Operation.AddNode;
+import static org.apache.jackrabbit.oak.kernel.KernelRootFuzzIT.Operation.CopyNode;
+import static org.apache.jackrabbit.oak.kernel.KernelRootFuzzIT.Operation.MoveNode;
+import static org.apache.jackrabbit.oak.kernel.KernelRootFuzzIT.Operation.RemoveNode;
+import static org.apache.jackrabbit.oak.kernel.KernelRootFuzzIT.Operation.RemoveProperty;
+import static org.apache.jackrabbit.oak.kernel.KernelRootFuzzIT.Operation.Save;
+import static org.apache.jackrabbit.oak.kernel.KernelRootFuzzIT.Operation.SetProperty;
 import static org.junit.Assert.assertEquals;
 
 @RunWith(Parameterized.class)
-public class KernelBranchFuzzIT {
-    static final Logger log = LoggerFactory.getLogger(KernelBranchFuzzIT.class);
+public class KernelRootFuzzIT {
+    static final Logger log = LoggerFactory.getLogger(KernelRootFuzzIT.class);
 
     private static final int OP_COUNT = 5000;
 
     private final Random random;
 
-    private final MicroKernel mk1 = new SimpleKernelImpl("mem:");
-    private final MicroKernel mk2 = new SimpleKernelImpl("mem:");
+    private KernelNodeStore store1;
+    private KernelRoot root1;
+
+    private KernelNodeStore store2;
+    private KernelRoot root2;
+
+    private int counter;
 
     @Parameters
     public static List<Object[]> seeds() {
+        // todo use random sees, log seed, provide means to start with specific seed
         return Arrays.asList(new Object[][] {
                 {0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9},
                 {10}, {11}, {12}, {13}, {14}, {15}, {16}, {17}, {18}, {19},
@@ -67,37 +73,38 @@ public class KernelBranchFuzzIT {
         });
     }
 
-    public KernelBranchFuzzIT(int seed) {
+    public KernelRootFuzzIT(int seed) {
         log.info("Seed = {}", seed);
         random = new Random(seed);
     }
 
     @Before
     public void setup() {
-        mk1.commit("", "+\"/root\":{}", mk1.getHeadRevision(), "");
-        mk2.commit("", "+\"/root\":{}", mk2.getHeadRevision(), "");
+        counter = 0;
+
+        MicroKernel mk1 = new SimpleKernelImpl("mem:");
+        store1 = new KernelNodeStore(mk1);
+        mk1.commit("", "+\"/test\":{} +\"/test/root\":{}", mk1.getHeadRevision(), "");
+        root1 = new KernelRoot(store1, "test");
+
+        MicroKernel mk2 = new SimpleKernelImpl("mem:");
+        store2 = new KernelNodeStore(mk2);
+        mk2.commit("", "+\"/test\":{} +\"/test/root\":{}", mk2.getHeadRevision(), "");
+        root2 = new KernelRoot(store2, "test");
     }
 
     @Test
     public void fuzzTest() throws Exception {
-        KernelNodeState state1 = new KernelNodeState(mk1, "/", mk1.getHeadRevision());
-        KernelBranch branch1 = new KernelBranch(state1);
-
-        KernelNodeState state2 = new KernelNodeState(mk2, "/", mk2.getHeadRevision());
-        KernelBranch branch2 = new KernelBranch(state2);
-
         for (Operation op : operations(OP_COUNT)) {
             log.info("{}", op);
-            op.apply(branch1);
-            op.apply(branch2);
-            checkEqual(branch1.getTree("/"), branch2.getTree("/"));
+            op.apply(root1);
+            op.apply(root2);
+            checkEqual(root1.getTree("/"), root2.getTree("/"));
 
-            state1 = branch1.mergeInto(mk1, state1);
-            branch1 = new KernelBranch(state1);
+            root1.commit();
             if (op instanceof Save) {
-                state2 = branch2.mergeInto(mk2, state2);
-                branch2 = new KernelBranch(state2);
-                assertEquals(state1, state2);
+                root2.commit();
+                assertEquals(store1.getRoot(), store2.getRoot());
             }
         }
     }
@@ -129,7 +136,7 @@ public class KernelBranchFuzzIT {
     }
 
     abstract static class Operation {
-        abstract void apply(KernelBranch branch);
+        abstract void apply(KernelRoot root);
 
         static class AddNode extends Operation {
             private final String parentPath;
@@ -141,8 +148,8 @@ public class KernelBranchFuzzIT {
             }
 
             @Override
-            void apply(KernelBranch branch) {
-                branch.getTree(parentPath).addChild(name);
+            void apply(KernelRoot root) {
+                root.getTree(parentPath).addChild(name);
             }
 
             @Override
@@ -159,10 +166,10 @@ public class KernelBranchFuzzIT {
             }
 
             @Override
-            void apply(KernelBranch branch) {
+            void apply(KernelRoot root) {
                 String parentPath = PathUtils.getParentPath(path);
                 String name = PathUtils.getName(path);
-                branch.getTree(parentPath).removeChild(name);
+                root.getTree(parentPath).removeChild(name);
             }
 
             @Override
@@ -181,8 +188,8 @@ public class KernelBranchFuzzIT {
             }
 
             @Override
-            void apply(KernelBranch branch) {
-                branch.move(source.substring(1), destination.substring(1));
+            void apply(KernelRoot root) {
+                root.move(source.substring(1), destination.substring(1));
             }
 
             @Override
@@ -201,8 +208,8 @@ public class KernelBranchFuzzIT {
             }
 
             @Override
-            void apply(KernelBranch branch) {
-                branch.copy(source.substring(1), destination.substring(1));
+            void apply(KernelRoot root) {
+                root.copy(source.substring(1), destination.substring(1));
             }
 
             @Override
@@ -223,8 +230,8 @@ public class KernelBranchFuzzIT {
             }
 
             @Override
-            void apply(KernelBranch branch) {
-                branch.getTree(parentPath).setProperty(propertyName, propertyValue);
+            void apply(KernelRoot root) {
+                root.getTree(parentPath).setProperty(propertyName, propertyValue);
             }
 
             @Override
@@ -244,8 +251,8 @@ public class KernelBranchFuzzIT {
             }
 
             @Override
-            void apply(KernelBranch branch) {
-                branch.getTree(parentPath).removeProperty(name);
+            void apply(KernelRoot root) {
+                root.getTree(parentPath).removeProperty(name);
             }
 
             @Override
@@ -256,7 +263,7 @@ public class KernelBranchFuzzIT {
 
         static class Save extends Operation {
             @Override
-            void apply(KernelBranch branch) {
+            void apply(KernelRoot root) {
                 // empty
             }
 
@@ -358,8 +365,6 @@ public class KernelBranchFuzzIT {
         return new RemoveProperty(PathUtils.getParentPath(path), PathUtils.getName(path));
     }
 
-    private int counter;
-
     private String createNodeName() {
         return "N" + counter++;
     }
@@ -384,19 +389,21 @@ public class KernelBranchFuzzIT {
     }
 
     private String chooseNode(String parentPath) {
-        KernelNodeState state = new KernelNodeState(mk1, parentPath, mk1.getHeadRevision());
-        int k = random.nextInt((int) (state.getChildNodeCount() + 1));
+        Tree state = root1.getTree(parentPath);
+
+        int k = random.nextInt((int) (state.getChildrenCount() + 1));
         int c = 0;
-        for (ChildNodeEntry entry : state.getChildNodeEntries(0, -1)) {
+        for (Tree child : state.getChildren()) {
             if (c++ == k) {
-                return PathUtils.concat(parentPath, entry.getName());
+                return PathUtils.concat(parentPath, child.getName());
             }
         }
+
         return null;
     }
 
     private String chooseProperty(String parentPath) {
-        KernelNodeState state = new KernelNodeState(mk1, parentPath, mk1.getHeadRevision());
+        Tree state = root1.getTree(parentPath);
         int k = random.nextInt((int) (state.getPropertyCount() + 1));
         int c = 0;
         for (PropertyState entry : state.getProperties()) {
@@ -411,16 +418,16 @@ public class KernelBranchFuzzIT {
         return ScalarImpl.stringScalar("V" + counter++);
     }
 
-    private static void checkEqual(Tree child2, Tree tree2) {
-        assertEquals(child2.getPath(), tree2.getPath());
-        assertEquals(child2.getChildrenCount(), tree2.getChildrenCount());
-        assertEquals(child2.getPropertyCount(), tree2.getPropertyCount());
+    private static void checkEqual(Tree tree1, Tree tree2) {
+        assertEquals(tree1.getPath(), tree2.getPath());
+        assertEquals(tree1.getChildrenCount(), tree2.getChildrenCount());
+        assertEquals(tree1.getPropertyCount(), tree2.getPropertyCount());
 
-        for (PropertyState property1 : child2.getProperties()) {
+        for (PropertyState property1 : tree1.getProperties()) {
             assertEquals(property1, tree2.getProperty(property1.getName()));
         }
 
-        for (Tree child1 : child2.getChildren()) {
+        for (Tree child1 : tree1.getChildren()) {
             checkEqual(child1, tree2.getChild(child1.getName()));
         }
     }

@@ -17,13 +17,12 @@
 package org.apache.jackrabbit.oak.core;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
-import org.apache.jackrabbit.oak.kernel.NodeState;
-import org.apache.jackrabbit.oak.api.Branch;
 import org.apache.jackrabbit.oak.api.QueryEngine;
-import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
+import org.apache.jackrabbit.oak.kernel.NodeState;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,9 +61,7 @@ public class KernelContentRepository implements ContentRepository {
         NodeState root = nodeStore.getRoot();
         NodeState wspNode = root.getChildNode(DEFAULT_WORKSPACE_NAME);
         if (wspNode == null) {
-            Branch branch = nodeStore.branch(root);
-            branch.getTree("/").addChild(DEFAULT_WORKSPACE_NAME);
-            nodeStore.merge(branch);
+            microKernel.commit("/", "+\"" + DEFAULT_WORKSPACE_NAME + "\":{}", null, null);
         }
     }
 
@@ -99,7 +96,7 @@ public class KernelContentRepository implements ContentRepository {
         }
 
         return new KernelContentSession(
-                sc, workspaceName, nodeStore, wspRoot, queryEngine, valueFactory);
+                sc, workspaceName, nodeStore, queryEngine, valueFactory);
     }
 
 }

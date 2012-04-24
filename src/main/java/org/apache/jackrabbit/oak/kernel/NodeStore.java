@@ -16,14 +16,13 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
-import org.apache.jackrabbit.oak.api.Branch;
-
 /**
+ * TODO update javadoc
  * Storage abstraction for content trees. At any given point in time
  * the stored content tree is rooted at a single immutable node state.
  * Changes in the tree are constructed by branching off a private copy
  * using the {@link #branch(NodeState)} method which can be modified
- * and merged back using the {@link #merge(org.apache.jackrabbit.oak.api.Branch)}
+ * and merged back using the {@link #merge(org.apache.jackrabbit.oak.api.Root)}
  * method.
  * <p>
  * This is a low-level interface that doesn't cover functionality like
@@ -40,27 +39,6 @@ public interface NodeStore {
      * @return root node state
      */
     NodeState getRoot();
-
-    /**
-     * Creates a private branch from a {@code base} node state
-     * for editing. The branch can later be merged back into
-     * the node store using the {@link #merge(org.apache.jackrabbit.oak.api.Branch) merge}
-     * method.
-     *
-     * @param base base node state
-     * @return a private branch rooted at {@code base}
-     */
-    Branch branch(NodeState base);
-
-    /**
-     * Atomically merges the changes from {@code branch} back into the
-     * {@code target}.
-     *
-     *
-     * @param branch branch for merging.
-     * @return node state resulting from merging {@code branch}.
-     */
-    NodeState merge(Branch branch);
 
     /**
      * Compares the given two node states. Any found differences are

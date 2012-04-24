@@ -66,26 +66,13 @@ public interface ContentSession extends Closeable {
     String getWorkspaceName();
 
     /**
-     * Refresh this content session to the latest revision of the underlying Microkernel.
-     */
-    void refresh();
-
-    /**
-     * Atomically apply all changes in the passed {@code branch} to the underlying
-     * Microkernel.
-     *
-     * @param branch  branch carrying the changes to be applies
-     * @throws CommitFailedException TODO: add description and clarify how JCR exception can be generated from this generic exception
-     */
-    void commit(Branch branch) throws CommitFailedException;
-
-    /**
-     * Branch the current root. Use {@link #commit(Branch)} to atomically apply the
+     * TODO update javadoc
+     * Branch the current root. Use {@link #commit(Root)} to atomically apply the
      * changes made in this branch to the underlying Microkernel.
      *
      * @return branch of the current root.
      */
-    Branch branchRoot();
+    Root getCurrentRoot();
 
     /**
      * Get the query engine.
