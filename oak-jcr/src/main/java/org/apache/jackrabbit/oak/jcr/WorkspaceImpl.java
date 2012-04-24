@@ -196,7 +196,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
         ensureIsAlive();
 
         // TODO -> SPI
-        return null;
+        return new String[] {getName()};
     }
 
     @SuppressWarnings("deprecation")
