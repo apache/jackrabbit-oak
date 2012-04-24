@@ -21,25 +21,24 @@ package org.apache.jackrabbit.oak.api;
 import java.util.List;
 
 /**
- * A content tree represents a snapshot of the content in a
- * {@code ContentRepository} at the time the instance was acquired.
- * {@code ContentTree} instances may become invalid over time due to
- * garbage collection of old content, at which point an outdated
- * snapshot will start throwing {@code IllegalStateException}s to
- * indicate that the snapshot is no longer available.
+ * A tree instance represents a snapshot of the {@code ContentRepository}
+ * content tree at the time the instance was acquired. Tree instances may
+ * become invalid over time due to garbage collection of old content, at
+ * which point an outdated snapshot will start throwing
+ * {@code IllegalStateException}s to indicate that the snapshot is no
+ * longer available.
  * <p>
- * {@code ContentTree} instance belongs to the client and its state
- * is only modified in response to method calls made by the client.
- * The various accessors on this class mirror these of {@code NodeState}.
- * However, since instances of this class are mutable return values may
- * change between invocations.
+ * A tree  instance belongs to the client and its state is only modified
+ * in response to method calls made by the client. The various accessors
+ * on this interface mirror these of the underlying {@code NodeState}
+ * interface. However, since instances of this class are mutable return
+ * values may change between invocations.
  * <p>
- * {@code ContentTree} instances are not thread-safe for write access, so
- * writing clients need to ensure that they are not accessed concurrently
- * from multiple threads. {@code ContentTree} instances are however
- * thread-safe for read access, so implementations need to ensure that all
- * reading clients see a coherent state.
- *
+ * Tree instances are not thread-safe for write access, so writing clients
+ * need to ensure that they are not accessed concurrently from multiple
+ * threads. Instances are however thread-safe for read access, so
+ * implementations need to ensure that all reading clients see a
+ * coherent state.
  */
 public interface Tree {
 
