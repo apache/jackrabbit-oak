@@ -520,7 +520,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     @Override
     public PropertyIterator getReferences(String name) throws RepositoryException {
         checkStatus();
-        throw new UnsupportedRepositoryOperationException("TODO");
+        throw new UnsupportedRepositoryOperationException("TODO: Node.getReferences");
     }
 
     /**
@@ -534,7 +534,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     @Override
     public PropertyIterator getWeakReferences(String name) throws RepositoryException {
         checkStatus();
-        throw new UnsupportedRepositoryOperationException("TODO");
+        throw new UnsupportedRepositoryOperationException("TODO: Node.getWeakReferences");
     }
 
     @Override
@@ -650,14 +650,14 @@ public class NodeImpl extends ItemImpl implements Node  {
     @Override
     public NodeDefinition getDefinition() throws RepositoryException {
         checkStatus();
-        throw new UnsupportedRepositoryOperationException("TODO");
+        throw new UnsupportedRepositoryOperationException("TODO: Node.getDefinition");
     }
 
 
     @Override
     public String getCorrespondingNodePath(String workspaceName) throws RepositoryException {
         checkStatus();
-        throw new UnsupportedRepositoryOperationException("TODO");
+        throw new UnsupportedRepositoryOperationException("TODO: Node.getCorrespondingNodePath");
     }
 
 
@@ -814,7 +814,7 @@ public class NodeImpl extends ItemImpl implements Node  {
 
     @Override
     public NodeIterator getSharedSet() throws RepositoryException {
-        throw new UnsupportedRepositoryOperationException("TODO");
+        throw new UnsupportedRepositoryOperationException("TODO: Node.getSharedSet");
     }
 
     @Override

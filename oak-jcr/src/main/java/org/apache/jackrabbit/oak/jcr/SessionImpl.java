@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.kernel.KernelRoot;
 import org.apache.jackrabbit.oak.namepath.Paths;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -107,7 +108,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     @Override
     public Session impersonate(Credentials credentials) throws RepositoryException {
         ensureIsAlive();
-        throw new UnsupportedRepositoryOperationException("TODO");
+        throw new UnsupportedRepositoryOperationException("TODO: Session.impersonate");
     }
 
     @Override
@@ -127,13 +128,13 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     @Override
     public Node getNodeByUUID(String uuid) throws RepositoryException {
         ensureIsAlive();
-        throw new UnsupportedRepositoryOperationException("TODO");
+        throw new UnsupportedRepositoryOperationException("TODO: Session.getNodeByUUID");
     }
 
     @Override
     public Node getNodeByIdentifier(String id) throws RepositoryException {
         ensureIsAlive();
-        throw new UnsupportedRepositoryOperationException("TODO");
+        throw new UnsupportedRepositoryOperationException("TODO: Session.getNodeByIdentifier");
     }
 
     //------------------------------------------------------------< Writing >---
@@ -173,8 +174,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     public boolean hasPendingChanges() throws RepositoryException {
         ensureIsAlive();
 
-        // todo implement hasPendingChanges
-        return false;
+        return root.hasPendingChanges();
     }
 
     //----------------------------------------------------------< Lifecycle >---
@@ -207,7 +207,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     @Override
     public ContentHandler getImportContentHandler(String parentAbsPath, int uuidBehavior) throws RepositoryException {
         ensureIsAlive();
-        throw new UnsupportedRepositoryOperationException("TODO");
+        throw new UnsupportedRepositoryOperationException("TODO: Session.getImportContentHandler");
     }
 
     //------------------------------------------------------------< Locking >---
@@ -279,7 +279,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     @Override
     public AccessControlManager getAccessControlManager() throws RepositoryException {
         ensureIsAlive();
-        throw new UnsupportedRepositoryOperationException("TODO");
+        throw new UnsupportedRepositoryOperationException("TODO: Session.getAccessControlManager");
     }
 
     //----------------------------------------------------------< Retention >---
