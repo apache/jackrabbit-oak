@@ -18,12 +18,13 @@
  */
 package org.apache.jackrabbit.oak.query.index;
 
-import java.util.HashMap;
-import java.util.Map.Entry;
 import org.apache.jackrabbit.mk.util.PathUtils;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
+
+import java.util.HashMap;
+import java.util.Map.Entry;
 
 /**
  * A filter or lookup condition.
@@ -48,7 +49,7 @@ public class Filter {
     /**
      * The path restriction type.
      */
-    public static enum PathRestriction {
+    public enum PathRestriction {
 
         /**
          * A parent of this node
@@ -70,7 +71,7 @@ public class Filter {
          */
         ALL_CHILDREN("//*");
 
-        private String name;
+        private final String name;
 
         PathRestriction(String name) {
             this.name = name;
@@ -95,7 +96,8 @@ public class Filter {
      */
     private String valuePrefix;
 
-    private HashMap<String, PropertyRestriction> propertyRestrictions = new HashMap<String, PropertyRestriction>();
+    private final HashMap<String, PropertyRestriction> propertyRestrictions =
+            new HashMap<String, PropertyRestriction>();
 
     static class PropertyRestriction {
 

@@ -671,7 +671,7 @@ public class XPathToSQL2Converter {
         }
 
         public static Expression newBoolean(boolean value) {
-            return new Literal("" + value);
+            return new Literal(String.valueOf(value));
         }
 
         static Literal newNumber(String s) {

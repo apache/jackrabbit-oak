@@ -18,12 +18,12 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
-import java.util.HashSet;
-import java.util.Set;
-
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
+
+import java.util.HashSet;
+import java.util.Set;
 /**
  * {@link MicroKernel}-based {@link NodeStore} implementation.
  */
@@ -111,6 +111,8 @@ public class KernelNodeStore implements NodeStore {
             }
         }
     }
+
+    //------------------------------------------------------------< internal >---
 
     // TODO clarify write access to store. Expose through interface
     void save(KernelRoot root, NodeState base) {

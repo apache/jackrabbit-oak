@@ -57,7 +57,7 @@ public interface QueryIndexProvider {
     /**
      * A query index listener
      */
-    public interface QueryIndexListener {
+    interface QueryIndexListener {
 
         /**
          * The given index was added.
