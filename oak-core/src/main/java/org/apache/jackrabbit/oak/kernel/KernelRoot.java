@@ -18,12 +18,11 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.json.JsonBuilder;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.kernel.KernelTree.Listener;
 
@@ -48,11 +47,11 @@ import static org.apache.jackrabbit.mk.util.PathUtils.getParentPath;
  */
 public class KernelRoot implements Root {
 
-    private final NodeStore store;
+    private final KernelNodeStore store;
     private final String workspaceName;
 
     /** Base node state of this tree */
-    private KernelNodeState base;
+    private NodeState base;
 
     /** Root state of this tree */
     private KernelTree root;
@@ -60,10 +59,10 @@ public class KernelRoot implements Root {
     /** Log of changes to this tree */
     private ChangeLog changeLog = new ChangeLog();
 
-    public KernelRoot(NodeStore store, String workspaceName) {
+    public KernelRoot(KernelNodeStore store, String workspaceName) {
         this.store = store;
         this.workspaceName = workspaceName;
-        this.base = (KernelNodeState) store.getRoot().getChildNode(workspaceName);  // FIXME don't cast to implementation
+        this.base = store.getRoot().getChildNode(workspaceName);
         this.root = new KernelTree(base, changeLog);
     }
 
@@ -100,19 +99,15 @@ public class KernelRoot implements Root {
 
     @Override
     public void refresh() {
-        base = (KernelNodeState) store.getRoot().getChildNode(workspaceName);  // FIXME don't cast to implementation
+        base = store.getRoot().getChildNode(workspaceName);
     }
 
     @Override
     public void commit() throws CommitFailedException {
-        MicroKernel kernel = ((KernelNodeStore) store).kernel;  // FIXME don't cast to implementation
         try {
-            String targetPath = base.getPath();
-            String targetRevision = base.getRevision();
-            kernel.commit(targetPath, changeLog.toJsop(), targetRevision, null);
-
+            store.save(this, base);
             changeLog = new ChangeLog();
-            base = (KernelNodeState) store.getRoot().getChildNode(workspaceName);  // FIXME don't cast to implementation
+            base = store.getRoot().getChildNode(workspaceName);
             root = new KernelTree(base, changeLog);
         } catch (MicroKernelException e) {
             throw new CommitFailedException(e);
@@ -121,13 +116,16 @@ public class KernelRoot implements Root {
 
 
     //------------------------------------------------------------< internal >---
+
     /**
-     * Return the base node state of this tree
-     * @return base node state
+     * JSOP representation of the changes done to this tree
+     * @return  changes in JSOP representation
      */
-    NodeState getBaseNodeState() {
-        return base;
+    String getChanges() {
+        return changeLog.toJsop();
     }
+
+    //------------------------------------------------------------< private >---
 
     /**
      * Get a transient node state for the node identified by

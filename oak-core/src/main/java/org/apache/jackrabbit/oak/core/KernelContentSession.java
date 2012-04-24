@@ -18,12 +18,12 @@ package org.apache.jackrabbit.oak.core;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.AuthInfo;
-import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.QueryEngine;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.kernel.KernelRoot;
-import org.apache.jackrabbit.oak.kernel.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,12 +41,12 @@ class KernelContentSession implements ContentSession {
 
     private final SimpleCredentials credentials;
     private final String workspaceName;
-    private final NodeStore store;
+    private final KernelNodeStore store;
     private final QueryEngine queryEngine;
     private final CoreValueFactory valueFactory;
 
     public KernelContentSession(SimpleCredentials credentials, String workspaceName,
-            NodeStore store, QueryEngine queryEngine, CoreValueFactory valueFactory) {
+            KernelNodeStore store, QueryEngine queryEngine, CoreValueFactory valueFactory) {
 
         this.credentials = credentials;
         this.workspaceName = workspaceName;
