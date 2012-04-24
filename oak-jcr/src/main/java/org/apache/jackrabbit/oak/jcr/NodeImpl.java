@@ -20,8 +20,8 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
 import org.apache.jackrabbit.commons.iterator.PropertyIteratorAdapter;
 import org.apache.jackrabbit.oak.api.Branch;
-import org.apache.jackrabbit.oak.api.ContentTree;
-import org.apache.jackrabbit.oak.api.ContentTree.Status;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.jcr.util.ItemNameMatcher;
 import org.apache.jackrabbit.oak.jcr.util.LogUtil;
@@ -71,11 +71,11 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     private static final Logger log = LoggerFactory.getLogger(NodeImpl.class);
 
-    private ContentTree contentTree;
+    private Tree tree;
 
-    NodeImpl(SessionContext<SessionImpl> sessionContext, ContentTree contentTree) {
+    NodeImpl(SessionContext<SessionImpl> sessionContext, Tree tree) {
         super(sessionContext);
-        this.contentTree = contentTree;
+        this.tree = tree;
     }
 
     //---------------------------------------------------------------< Item >---
@@ -108,11 +108,11 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public Node getParent() throws RepositoryException {
-        if (getContentTree().getParent() == null) {
+        if (getTree().getParent() == null) {
             throw new ItemNotFoundException("Root has no parent");
         }
 
-        return new NodeImpl(sessionContext, getContentTree().getParent());
+        return new NodeImpl(sessionContext, getTree().getParent());
     }
 
     /**
@@ -124,7 +124,7 @@ public class NodeImpl extends ItemImpl implements Node  {
         if (depth < 0 || depth > current) {
             throw new ItemNotFoundException("ancestor at depth " + depth + " does not exist");
         }
-        ContentTree ancestor = getContentTree();
+        Tree ancestor = getTree();
         while (depth < current) {
             ancestor = ancestor.getParent();
             current -= 1;
@@ -145,7 +145,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public boolean isNew() {
-        return getContentTree().getParent().getChildStatus(name()) == Status.NEW;
+        return getTree().getParent().getChildStatus(name()) == Status.NEW;
     }
 
     /**
@@ -153,7 +153,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public boolean isModified() {
-        return getContentTree().getParent().getChildStatus(name()) == Status.MODIFIED;
+        return getTree().getParent().getChildStatus(name()) == Status.MODIFIED;
     }
 
     /**
@@ -161,7 +161,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public void remove() throws RepositoryException {
-        getContentTree().getParent().removeChild(getName());
+        getTree().getParent().removeChild(getName());
     }
 
     /**
@@ -182,7 +182,7 @@ public class NodeImpl extends ItemImpl implements Node  {
         checkStatus();
 
         String parentPath = Paths.concat(path(), Paths.getParentPath(relPath));
-        ContentTree parentState = getBranch().getContentTree(parentPath);
+        Tree parentState = getBranch().getContentTree(parentPath);
         if (parentState == null) {
             throw new PathNotFoundException(relPath);
         }
@@ -380,7 +380,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     public NodeIterator getNodes() throws RepositoryException {
         checkStatus();
 
-        Iterable<ContentTree> children = getContentTree().getChildren();
+        Iterable<Tree> children = getTree().getChildren();
         return new NodeIteratorAdapter(nodeIterator(children.iterator()));
     }
 
@@ -388,10 +388,10 @@ public class NodeImpl extends ItemImpl implements Node  {
     public NodeIterator getNodes(final String namePattern) throws RepositoryException {
         checkStatus();
 
-        Iterator<ContentTree> children = filter(getContentTree().getChildren().iterator(),
-                new Predicate<ContentTree>() {
+        Iterator<Tree> children = filter(getTree().getChildren().iterator(),
+                new Predicate<Tree>() {
                     @Override
-                    public boolean evaluate(ContentTree state) {
+                    public boolean evaluate(Tree state) {
                         return ItemNameMatcher.matches(state.getName(), namePattern);
                     }
                 });
@@ -403,10 +403,10 @@ public class NodeImpl extends ItemImpl implements Node  {
     public NodeIterator getNodes(final String[] nameGlobs) throws RepositoryException {
         checkStatus();
 
-        Iterator<ContentTree> children = filter(getContentTree().getChildren().iterator(),
-                new Predicate<ContentTree>() {
+        Iterator<Tree> children = filter(getTree().getChildren().iterator(),
+                new Predicate<Tree>() {
                     @Override
-                    public boolean evaluate(ContentTree state) {
+                    public boolean evaluate(Tree state) {
                         return ItemNameMatcher.matches(state.getName(), nameGlobs);
                     }
                 });
@@ -430,7 +430,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     public PropertyIterator getProperties() throws RepositoryException {
         checkStatus();
 
-        Iterable<PropertyState> properties = getContentTree().getProperties();
+        Iterable<PropertyState> properties = getTree().getProperties();
         return new PropertyIteratorAdapter(propertyIterator(properties.iterator()));
     }
 
@@ -438,7 +438,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     public PropertyIterator getProperties(final String namePattern) throws RepositoryException {
         checkStatus();
 
-        Iterator<PropertyState> properties = filter(getContentTree().getProperties().iterator(),
+        Iterator<PropertyState> properties = filter(getTree().getProperties().iterator(),
                 new Predicate<PropertyState>() {
                     @Override
                     public boolean evaluate(PropertyState entry) {
@@ -451,7 +451,7 @@ public class NodeImpl extends ItemImpl implements Node  {
 
     @Override
     public PropertyIterator getProperties(final String[] nameGlobs) throws RepositoryException {
-        Iterator<PropertyState> propertyNames = filter(getContentTree().getProperties().iterator(),
+        Iterator<PropertyState> propertyNames = filter(getTree().getProperties().iterator(),
                 new Predicate<PropertyState>() {
                     @Override
                     public boolean evaluate(PropertyState entry) {
@@ -559,14 +559,14 @@ public class NodeImpl extends ItemImpl implements Node  {
     public boolean hasNodes() throws RepositoryException {
         checkStatus();
 
-        return getContentTree().getChildrenCount() != 0;
+        return getTree().getChildrenCount() != 0;
     }
 
     @Override
     public boolean hasProperties() throws RepositoryException {
         checkStatus();
 
-        return getContentTree().getPropertyCount() != 0;
+        return getTree().getPropertyCount() != 0;
     }
 
     /**
@@ -855,11 +855,11 @@ public class NodeImpl extends ItemImpl implements Node  {
     //------------------------------------------------------------< package >---
 
     String name() {
-        return getContentTree().getName();
+        return getTree().getName();
     }
 
     String path() {
-        return '/' + getContentTree().getPath();
+        return '/' + getTree().getPath();
     }
 
     //------------------------------------------------------------< private >---
@@ -867,22 +867,22 @@ public class NodeImpl extends ItemImpl implements Node  {
     /**
      * @return The node state associated with this node
      */
-    private ContentTree getState() {
-        return getContentTree();
+    private Tree getState() {
+        return getTree();
     }
 
     private Branch getBranch() {
         return sessionContext.getBranch();
     }
 
-    private synchronized ContentTree getContentTree() {
-        return contentTree = getBranch().getContentTree(contentTree.getPath());
+    private synchronized Tree getTree() {
+        return tree = getBranch().getContentTree(tree.getPath());
     }
 
-    private Iterator<Node> nodeIterator(Iterator<ContentTree> childNodeStates) {
-        return Iterators.map(childNodeStates, new Function1<ContentTree, Node>() {
+    private Iterator<Node> nodeIterator(Iterator<Tree> childNodeStates) {
+        return Iterators.map(childNodeStates, new Function1<Tree, Node>() {
             @Override
-            public Node apply(ContentTree state) {
+            public Node apply(Tree state) {
                 return new NodeImpl(sessionContext, state);
             }
         });
@@ -892,14 +892,14 @@ public class NodeImpl extends ItemImpl implements Node  {
         return Iterators.map(properties, new Function1<PropertyState, Property>() {
             @Override
             public Property apply(PropertyState propertyState) {
-                return new PropertyImpl(sessionContext, getContentTree(), propertyState);
+                return new PropertyImpl(sessionContext, getTree(), propertyState);
             }
         });
     }
 
     private NodeImpl getNodeOrNull(String relPath) {
         String absPath = Paths.concat(path(), relPath);
-        ContentTree tree = getBranch().getContentTree(absPath);
+        Tree tree = getBranch().getContentTree(absPath);
         return tree == null
             ? null
             : new NodeImpl(sessionContext, tree);
@@ -907,7 +907,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     
     private PropertyImpl getPropertyOrNull(String relPath) {
         String absPath = Paths.concat(path(), Paths.getParentPath(relPath));
-        ContentTree parent = getBranch().getContentTree(absPath);
+        Tree parent = getBranch().getContentTree(absPath);
         if (parent == null) {
             return null;
         }

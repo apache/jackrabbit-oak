@@ -41,7 +41,7 @@ import java.util.List;
  * reading clients see a coherent state.
  *
  */
-public interface ContentTree {
+public interface Tree {
 
     /**
      * Status of an item in a {@code ContentTree}
@@ -82,7 +82,7 @@ public interface ContentTree {
     /**
      * @return  the parent of this {@code ContentTree} instance.
      */
-    ContentTree getParent();
+    Tree getParent();
 
     /**
      * Get a property state
@@ -129,7 +129,7 @@ public interface ContentTree {
      * @return  the child with the given {@code name} or {@code null} if no such child
      * exists.
      */
-    ContentTree getChild(String name);
+    Tree getChild(String name);
 
     /**
      * Get the {@code Status} of a child tree
@@ -160,7 +160,7 @@ public interface ContentTree {
      * visible to iterators obtained from the returned iterable.
      * @return  An {@code Iterable} for all children
      */
-    Iterable<ContentTree> getChildren();
+    Iterable<Tree> getChildren();
 
     /**
      * Add a child with the given {@code name}. Does nothing if such a child
@@ -169,7 +169,7 @@ public interface ContentTree {
      * @param name name of the child
      * @return the {@code ContentTree} instance of the child with the given {@code name}.
      */
-    ContentTree addChild(String name);
+    Tree addChild(String name);
 
     /**
      * Remove a child with the given {@code name}. Does nothing if no such child exists.
