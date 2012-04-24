@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.query;
 
+import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.query.ast.AstElementFactory;
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.ast.BindVariableValueImpl;
@@ -32,6 +34,7 @@ import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.ast.SourceImpl;
 import org.apache.jackrabbit.oak.query.ast.StaticOperandImpl;
 
+import javax.jcr.PropertyType;
 import java.math.BigDecimal;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -117,7 +120,7 @@ public class SQL2Parser {
         if (!currentToken.isEmpty()) {
             throw getSyntaxError("<end>");
         }
-        Query q = new Query(source, constraint, orderings, columnArray);
+        Query q = new Query(source, constraint, orderings, columnArray, valueFactory);
         q.setExplain(explain);
         q.init();
         return q;
@@ -442,16 +445,16 @@ public class SQL2Parser {
             }
             int valueType = currentValue.getType();
             switch (valueType) {
-            case CoreValue.LONG:
+            case PropertyType.LONG:
                 currentValue = valueFactory.createValue(-currentValue.getLong());
                 break;
-            case CoreValue.DOUBLE:
+            case PropertyType.DOUBLE:
                 currentValue = valueFactory.createValue(-currentValue.getDouble());
                 break;
-            case CoreValue.BOOLEAN:
+            case PropertyType.BOOLEAN:
                 currentValue = valueFactory.createValue(!currentValue.getBoolean());
                 break;
-            case CoreValue.DECIMAL:
+            case PropertyType.DECIMAL:
                 currentValue = valueFactory.createValue(currentValue.getDecimal().negate());
                 break;
             default:
@@ -505,35 +508,35 @@ public class SQL2Parser {
      * @param value the original value
      * @return the literal
      */
-    private LiteralImpl getUncastLiteral(CoreValue value) throws ParseException {
+    private LiteralImpl getUncastLiteral(CoreValue value) {
         return factory.literal(value);
     }
 
     private CoreValue parseCastAs(CoreValue value) throws ParseException {
-        if (readIf("STRING")) {
+        if (readIfPropertyType(PropertyType.STRING)) {
             return valueFactory.createValue(value.getString());
-        } else if (readIf("BINARY")) {
-            return valueFactory.createValue(value.getBinary());
-        } else if (readIf("DATE")) {
-            return valueFactory.createValue(value.getDate());
-        } else if (readIf("LONG")) {
+        } else if (readIfPropertyType(PropertyType.BINARY)) {
+            return valueFactory.createValue(value.getString(), PropertyType.BINARY);
+        } else if (readIfPropertyType(PropertyType.DATE)) {
+            return valueFactory.createValue(value.getString(), PropertyType.DATE);
+        } else if (readIfPropertyType(PropertyType.LONG)) {
             return valueFactory.createValue(value.getLong());
-        } else if (readIf("DOUBLE")) {
+        } else if (readIfPropertyType(PropertyType.DOUBLE)) {
             return valueFactory.createValue(value.getDouble());
-        } else if (readIf("DECIMAL")) {
+        } else if (readIfPropertyType(PropertyType.DECIMAL)) {
             return valueFactory.createValue(value.getDecimal());
-        } else if (readIf("BOOLEAN")) {
+        } else if (readIfPropertyType(PropertyType.BOOLEAN)) {
             return valueFactory.createValue(value.getBoolean());
-        } else if (readIf("NAME")) {
-            return valueFactory.createValue(value.getString(), CoreValue.NAME);
-        } else if (readIf("PATH")) {
-            return valueFactory.createValue(value.getString(), CoreValue.PATH);
-        } else if (readIf("REFERENCE")) {
-            return valueFactory.createValue(value.getString(), CoreValue.REFERENCE);
-        } else if (readIf("WEAKREFERENCE")) {
-            return valueFactory.createValue(value.getString(), CoreValue.WEAKREFERENCE);
-        } else if (readIf("URI")) {
-            return valueFactory.createValue(value.getString(), CoreValue.URI);
+        } else if (readIfPropertyType(PropertyType.NAME)) {
+            return valueFactory.createValue(value.getString(), PropertyType.NAME);
+        } else if (readIfPropertyType(PropertyType.PATH)) {
+            return valueFactory.createValue(value.getString(), PropertyType.PATH);
+        } else if (readIfPropertyType(PropertyType.REFERENCE)) {
+            return valueFactory.createValue(value.getString(), PropertyType.REFERENCE);
+        } else if (readIfPropertyType(PropertyType.WEAKREFERENCE)) {
+            return valueFactory.createValue(value.getString(), PropertyType.WEAKREFERENCE);
+        } else if (readIfPropertyType(PropertyType.URI)) {
+            return valueFactory.createValue(value.getString(), PropertyType.URI);
         } else {
             throw getSyntaxError("data type (STRING|BINARY|...)");
         }
@@ -614,6 +617,11 @@ public class SQL2Parser {
         ColumnImpl[] array = new ColumnImpl[columns.size()];
         columns.toArray(array);
         return array;
+    }
+
+    private boolean readIfPropertyType(int propertyType) throws ParseException {
+        String propertyName = PropertyType.nameFromValue(propertyType);
+        return readIf(propertyName);
     }
 
     private boolean readIf(String token) throws ParseException {

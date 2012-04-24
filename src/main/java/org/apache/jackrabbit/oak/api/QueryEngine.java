@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.api;
 import java.text.ParseException;
 import java.util.List;
 import java.util.Map;
-import org.apache.jackrabbit.oak.query.CoreValue;
 
 /**
  * The query engine allows to parse and execute queries.

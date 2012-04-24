@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.query.index;
 import java.util.HashMap;
 import java.util.Map.Entry;
 import org.apache.jackrabbit.mk.util.PathUtils;
-import org.apache.jackrabbit.oak.query.CoreValue;
+import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 

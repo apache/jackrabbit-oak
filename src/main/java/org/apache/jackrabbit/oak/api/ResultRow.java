@@ -1,7 +1,5 @@
 package org.apache.jackrabbit.oak.api;
 
-import org.apache.jackrabbit.oak.query.CoreValue;
-
 /**
  * A query result row.
  */

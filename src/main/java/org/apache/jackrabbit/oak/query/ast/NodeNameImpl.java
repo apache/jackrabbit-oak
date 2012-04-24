@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import org.apache.jackrabbit.mk.util.PathUtils;
-import org.apache.jackrabbit.oak.query.CoreValue;
+import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.query.index.Filter;
 
 public class NodeNameImpl extends DynamicOperandImpl {
@@ -53,7 +53,7 @@ public class NodeNameImpl extends DynamicOperandImpl {
     }
 
     @Override
-    public  CoreValue currentValue() {
+    public CoreValue currentValue() {
         String name = PathUtils.getName(selector.currentPath());
         return query.getValueFactory().createValue(name);
     }

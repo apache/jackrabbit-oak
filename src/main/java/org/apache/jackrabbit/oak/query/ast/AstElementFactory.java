@@ -13,7 +13,7 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import org.apache.jackrabbit.oak.query.CoreValue;
+import org.apache.jackrabbit.oak.api.CoreValue;
 
 /**
  * A factory for syntax tree elements.
@@ -59,7 +59,7 @@ public class AstElementFactory {
     }
 
     public OrderingImpl descending(DynamicOperandImpl operand) {
-        return new OrderingImpl((DynamicOperandImpl) operand, Order.DESCENDING);
+        return new OrderingImpl(operand, Order.DESCENDING);
     }
 
     public EquiJoinConditionImpl equiJoinCondition(String selector1Name, String property1Name, String selector2Name,
@@ -129,7 +129,7 @@ public class AstElementFactory {
     }
 
     public UpperCaseImpl upperCase(DynamicOperandImpl operand) {
-        return new UpperCaseImpl((DynamicOperandImpl) operand);
+        return new UpperCaseImpl(operand);
     }
 
 }
