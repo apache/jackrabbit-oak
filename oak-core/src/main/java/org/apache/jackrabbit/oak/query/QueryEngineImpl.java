@@ -16,13 +16,6 @@
  */
 package org.apache.jackrabbit.oak.query;
 
-import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.index.Indexer;
 import org.apache.jackrabbit.oak.api.CoreValue;
@@ -30,8 +23,16 @@ import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.query.index.Filter;
 import org.apache.jackrabbit.oak.query.index.QueryIndex;
-import org.apache.jackrabbit.oak.query.index.TraversingIndex;
 import org.apache.jackrabbit.oak.query.index.QueryIndexProvider.QueryIndexListener;
+import org.apache.jackrabbit.oak.query.index.TraversingIndex;
+
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 public class QueryEngineImpl implements QueryEngine, QueryIndexListener {
 
@@ -55,6 +56,7 @@ public class QueryEngineImpl implements QueryEngine, QueryIndexListener {
         indexer = new Indexer(mk, INDEX_CONFIG_ROOT);
     }
 
+    @Override
     public void init() {
         // TODO the list of index providers should be configurable as well
         indexer.init();

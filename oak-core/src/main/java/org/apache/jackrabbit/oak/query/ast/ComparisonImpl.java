@@ -231,7 +231,7 @@ public class ComparisonImpl extends ConstraintImpl {
                 buff.append(patternChars[maxMatch++]);
             }
             String lower = buff.toString();
-            if (lower.length() == 0) {
+            if (lower.isEmpty()) {
                 return;
             }
             if (maxMatch == patternLength) {

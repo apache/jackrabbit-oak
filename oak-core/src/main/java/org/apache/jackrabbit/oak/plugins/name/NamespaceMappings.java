@@ -16,19 +16,18 @@
 */
 package org.apache.jackrabbit.oak.plugins.name;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-
-import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+
+import javax.jcr.RepositoryException;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Prove of concept implementation for OAK-61.
@@ -110,7 +109,7 @@ public class NamespaceMappings {
      * Returns the namespace URI associated with the given prefix,
      * or {@code null} if such a mapping does not exist.
      *
-     * @param uri namespace URI
+     * @param prefix prefix for which to lookup the namespace URI
      * @return matching namespace prefix, or {@code null}
      */
     public String getURI(String prefix) {
@@ -134,7 +133,7 @@ public class NamespaceMappings {
      * Returns the namespace prefix associated with the given URI,
      * or {@code null} if such a mapping does not exist.
      *
-     * @param prefix namespace prefix
+     * @param uri  uri for which to lookup the prefix
      * @return matching namespace URI, or {@code null}
      */
     public String getPrefix(String uri) throws RepositoryException {
@@ -176,7 +175,7 @@ public class NamespaceMappings {
      * Removes the namespace mapping for the given prefix.
      *
      * @param prefix namespace prefix
-     * @throws CommitFailedException if the unregistration failed
+     * @throws CommitFailedException if the unregistering failed
      */
     public void unregisterNamespace(String prefix)
             throws CommitFailedException {
@@ -186,7 +185,7 @@ public class NamespaceMappings {
         root.commit();
     }
 
-    private Tree getNamespaces(Root root, boolean create) {
+    private static Tree getNamespaces(Root root, boolean create) {
         Tree tree = root.getTree("/");
         Tree system = tree.getChild("jcr:system");
         if (system == null) {

@@ -33,8 +33,8 @@ public class BinaryValue {
      */
     private static final Logger log = LoggerFactory.getLogger(BinaryValue.class);
 
-    private String binaryID;
-    private MicroKernel mk;
+    private final String binaryID;
+    private final MicroKernel mk;
 
     BinaryValue(String binaryID, MicroKernel mk) {
         this.binaryID = binaryID;
