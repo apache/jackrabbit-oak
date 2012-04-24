@@ -34,10 +34,8 @@ import static org.apache.jackrabbit.mk.util.PathUtils.getName;
 import static org.apache.jackrabbit.mk.util.PathUtils.getParentPath;
 
 /**
- * TODO update javadoc
- * This {@code Branch} implementation accumulates all changes into a json diff
- * and applies them to the microkernel on
- * {@link NodeStore#merge(org.apache.jackrabbit.oak.api.Root)}
+ * This {@code Root} implementation accumulates all changes into a json diff
+ * and applies them to the microkernel on {@link #commit()}
  *
  * TODO: review/rewrite when OAK-45 is resolved
  * When the MicroKernel has support for branching and merging private working copies,
@@ -52,13 +50,13 @@ public class KernelRoot implements Root {
     private final NodeStore store;
     private final String workspaceName;
 
-    /** Base node state of this private branch */
+    /** Base node state of this tree */
     private KernelNodeState base;
 
-    /** Root state of this branch */
+    /** Root state of tree */
     private KernelTree root;
 
-    /** Log of changes to this branch */
+    /** Log of changes to tree */
     private ChangeLog changeLog = new ChangeLog();
 
 
@@ -108,7 +106,6 @@ public class KernelRoot implements Root {
 
     @Override
     public void commit() throws CommitFailedException {
-        // TODO implicit refresh, doc in contract
         MicroKernel kernel = ((KernelNodeStore) store).kernel;  // FIXME don't cast to implementation
         try {
             mergeInto(kernel, base);
@@ -122,7 +119,7 @@ public class KernelRoot implements Root {
 
     //------------------------------------------------------------< internal >---
     /**
-     * Return the base node state of this private branch
+     * Return the base node state of this tree
      * @return base node state
      */
     NodeState getBaseNodeState() {
@@ -130,8 +127,7 @@ public class KernelRoot implements Root {
     }
 
     /**
-     * Atomically merges the changes from this branch back into the
-     * {@code target}.
+     * Atomically merges the changes from this tree back into the {@code target}.
      *
      * @param microkernel Microkernel instance for applying the changes
      * @param target target of the merge operation
@@ -202,7 +198,7 @@ public class KernelRoot implements Root {
 
     /**
      * This {@code Listener} implementation records all changes to
-     * a associated branch as JSOP.
+     * a associated tree as JSOP.
      */
     private static class ChangeLog implements Listener {
         private final StringBuilder jsop = new StringBuilder();
