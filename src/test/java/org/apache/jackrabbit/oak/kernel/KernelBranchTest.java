@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.kernel;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.simple.SimpleKernelImpl;
-import org.apache.jackrabbit.oak.api.ContentTree;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Scalar;
 import org.junit.Before;
@@ -57,8 +57,8 @@ public class KernelBranchTest {
     @Test
     public void getChild() {
         KernelBranch branch = new KernelBranch(state);
-        ContentTree tree = branch.getContentTree("/");
-        ContentTree child = tree.getChild("any");
+        Tree tree = branch.getContentTree("/");
+        Tree child = tree.getChild("any");
         assertNull(child);
 
         child = tree.getChild("x");
@@ -68,7 +68,7 @@ public class KernelBranchTest {
     @Test
     public void getProperty() {
         KernelBranch branch = new KernelBranch(state);
-        ContentTree tree = branch.getContentTree("/");
+        Tree tree = branch.getContentTree("/");
         PropertyState propertyState = tree.getProperty("any");
         assertNull(propertyState);
 
@@ -82,13 +82,13 @@ public class KernelBranchTest {
     @Test
     public void getChildren() {
         KernelBranch branch = new KernelBranch(state);
-        ContentTree tree = branch.getContentTree("/");
-        Iterable<ContentTree> children = tree.getChildren();
+        Tree tree = branch.getContentTree("/");
+        Iterable<Tree> children = tree.getChildren();
 
         Set<String> expectedPaths = new HashSet<String>();
         Collections.addAll(expectedPaths, "x", "y", "z");
 
-        for (ContentTree child : children) {
+        for (Tree child : children) {
             assertTrue(expectedPaths.remove(child.getPath()));
         }
         assertTrue(expectedPaths.isEmpty());
@@ -99,7 +99,7 @@ public class KernelBranchTest {
     @Test
     public void getProperties() {
         KernelBranch branch = new KernelBranch(state);
-        ContentTree tree = branch.getContentTree("/");
+        Tree tree = branch.getContentTree("/");
 
         Map<String, Scalar> expectedProperties = new HashMap<String, Scalar>();
         expectedProperties.put("a", ScalarImpl.longScalar(1));
@@ -122,10 +122,10 @@ public class KernelBranchTest {
     @Test
     public void addChild() {
         KernelBranch branch = new KernelBranch(state);
-        ContentTree tree = branch.getContentTree("/");
+        Tree tree = branch.getContentTree("/");
 
         assertFalse(tree.hasChild("new"));
-        ContentTree added = tree.addChild("new");
+        Tree added = tree.addChild("new");
         assertNotNull(added);
         assertEquals("new", added.getName());
         assertTrue(tree.hasChild("new"));
@@ -137,7 +137,7 @@ public class KernelBranchTest {
     @Test
     public void addExistingChild() {
         KernelBranch branch = new KernelBranch(state);
-        ContentTree tree = branch.getContentTree("/");
+        Tree tree = branch.getContentTree("/");
 
         assertFalse(tree.hasChild("new"));
         tree.addChild("new");
@@ -146,7 +146,7 @@ public class KernelBranchTest {
         branch = new KernelBranch(newState);
         tree = branch.getContentTree("/");
         assertTrue(tree.hasChild("new"));
-        ContentTree added = tree.addChild("new");
+        Tree added = tree.addChild("new");
         assertNotNull(added);
         assertEquals("new", added.getName());
     }
@@ -154,7 +154,7 @@ public class KernelBranchTest {
     @Test
     public void removeChild() {
         KernelBranch branch = new KernelBranch(state);
-        ContentTree tree = branch.getContentTree("/");
+        Tree tree = branch.getContentTree("/");
 
         assertTrue(tree.hasChild("x"));
         tree.removeChild("x");
@@ -167,7 +167,7 @@ public class KernelBranchTest {
     @Test
     public void setProperty() {
         KernelBranch branch = new KernelBranch(state);
-        ContentTree tree = branch.getContentTree("/");
+        Tree tree = branch.getContentTree("/");
 
         assertFalse(tree.hasProperty("new"));
         Scalar value = ScalarImpl.stringScalar("value");
@@ -187,7 +187,7 @@ public class KernelBranchTest {
     @Test
     public void removeProperty() {
         KernelBranch branch = new KernelBranch(state);
-        ContentTree tree = branch.getContentTree("/");
+        Tree tree = branch.getContentTree("/");
 
         assertTrue(tree.hasProperty("a"));
         tree.removeProperty("a");
@@ -200,8 +200,8 @@ public class KernelBranchTest {
     @Test
     public void move() {
         KernelBranch branch = new KernelBranch(state);
-        ContentTree tree = branch.getContentTree("/");
-        ContentTree y = tree.getChild("y");
+        Tree tree = branch.getContentTree("/");
+        Tree y = tree.getChild("y");
 
         assertTrue(tree.hasChild("x"));
         branch.move("x", "y/xx");
@@ -217,7 +217,7 @@ public class KernelBranchTest {
     @Test
     public void rename() {
         KernelBranch branch = new KernelBranch(state);
-        ContentTree tree = branch.getContentTree("/");
+        Tree tree = branch.getContentTree("/");
 
         assertTrue(tree.hasChild("x"));
         branch.move("x", "xx");
@@ -232,8 +232,8 @@ public class KernelBranchTest {
     @Test
     public void copy() {
         KernelBranch branch = new KernelBranch(state);
-        ContentTree tree = branch.getContentTree("/");
-        ContentTree y = tree.getChild("y");
+        Tree tree = branch.getContentTree("/");
+        Tree y = tree.getChild("y");
 
         assertTrue(tree.hasChild("x"));
         branch.copy("x", "y/xx");
@@ -249,8 +249,8 @@ public class KernelBranchTest {
     @Test
     public void deepCopy() {
         KernelBranch branch = new KernelBranch(state);
-        ContentTree tree = branch.getContentTree("/");
-        ContentTree y = tree.getChild("y");
+        Tree tree = branch.getContentTree("/");
+        Tree y = tree.getChild("y");
 
         branch.getContentTree("x").addChild("x1");
         branch.copy("x", "y/xx");
@@ -271,7 +271,7 @@ public class KernelBranchTest {
     @Test
     public void getChildrenCount() {
         KernelBranch branch = new KernelBranch(state);
-        ContentTree tree = branch.getContentTree("/");
+        Tree tree = branch.getContentTree("/");
         assertEquals(3, tree.getChildrenCount());
 
         tree.removeChild("x");
@@ -287,7 +287,7 @@ public class KernelBranchTest {
     @Test
     public void getPropertyCount() {
         KernelBranch branch = new KernelBranch(state);
-        ContentTree tree = branch.getContentTree("/");
+        Tree tree = branch.getContentTree("/");
         assertEquals(3, tree.getPropertyCount());
 
         Scalar value = ScalarImpl.stringScalar("foo");
@@ -307,7 +307,7 @@ public class KernelBranchTest {
     @Test
     public void largeChildList() {
         KernelBranch branch = new KernelBranch(state);
-        ContentTree tree = branch.getContentTree("/");
+        Tree tree = branch.getContentTree("/");
 
         tree.addChild("large");
         tree = tree.getChild("large");
@@ -321,7 +321,7 @@ public class KernelBranchTest {
         tree = tree.getChild("large");
 
         int c = 0;
-        for (ContentTree q : tree.getChildren()) {
+        for (Tree q : tree.getChildren()) {
             assertEquals("n" + c++, q.getName());
         }
 

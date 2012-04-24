@@ -57,6 +57,6 @@ public interface Branch {
      * @return content tree at the given path or {@code null} if no
      * such tree exists
      */
-    ContentTree getContentTree(String path);
+    Tree getContentTree(String path);
 
 }

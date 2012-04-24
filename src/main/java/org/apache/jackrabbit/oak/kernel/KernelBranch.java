@@ -21,9 +21,9 @@ package org.apache.jackrabbit.oak.kernel;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.json.JsonBuilder;
 import org.apache.jackrabbit.oak.api.Branch;
-import org.apache.jackrabbit.oak.api.ContentTree;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Scalar;
-import org.apache.jackrabbit.oak.kernel.KernelContentTree.Listener;
+import org.apache.jackrabbit.oak.kernel.KernelTree.Listener;
 
 import java.util.List;
 
@@ -53,7 +53,7 @@ public class KernelBranch implements Branch {
     private final NodeState base;
 
     /** Root state of this branch */
-    private final KernelContentTree root;
+    private final KernelTree root;
 
     /**
      * Create a new branch for the given base node state
@@ -61,17 +61,17 @@ public class KernelBranch implements Branch {
      */
     KernelBranch(NodeState base) {
         this.base = base;
-        root = new KernelContentTree(base, changeLog);
+        root = new KernelTree(base, changeLog);
     }
 
     @Override
     public boolean move(String sourcePath, String destPath) {
-        KernelContentTree source = getTransientState(sourcePath);
+        KernelTree source = getTransientState(sourcePath);
         if (source == null) {
             return false;
         }
 
-        KernelContentTree destParent = getTransientState(getParentPath(destPath));
+        KernelTree destParent = getTransientState(getParentPath(destPath));
         String destName = getName(destPath);
         return destParent != null && source.move(destParent, destName);
 
@@ -79,19 +79,19 @@ public class KernelBranch implements Branch {
 
     @Override
     public boolean copy(String sourcePath, String destPath) {
-        KernelContentTree sourceNode = getTransientState(sourcePath);
+        KernelTree sourceNode = getTransientState(sourcePath);
         if (sourceNode == null) {
             return false;
         }
 
-        KernelContentTree destParent = getTransientState(getParentPath(destPath));
+        KernelTree destParent = getTransientState(getParentPath(destPath));
         String destName = getName(destPath);
         return destParent != null && sourceNode.copy(destParent, destName);
 
     }
 
     @Override
-    public ContentTree getContentTree(String path) {
+    public Tree getContentTree(String path) {
         return getTransientState(path);
     }
 
@@ -124,11 +124,11 @@ public class KernelBranch implements Branch {
      * Get a transient node state for the node identified by
      * {@code path}
      * @param path  the path to the node state
-     * @return  a {@link KernelContentTree} instance for the item
+     * @return  a {@link KernelTree} instance for the item
      *          at {@code path} or {@code null} if no such item exits.
      */
-    private KernelContentTree getTransientState(String path) {
-        KernelContentTree state = root;
+    private KernelTree getTransientState(String path) {
+        KernelTree state = root;
         for (String name : elements(path)) {
             state = state.getChild(name);
             if (state == null) {
@@ -145,7 +145,7 @@ public class KernelBranch implements Branch {
      * @param name The item name.
      * @return relative path of the item {@code name}
      */
-    private static String path(ContentTree state, String name) {
+    private static String path(Tree state, String name) {
         String path = state.getPath();
         return path.isEmpty() ? name : path + '/' + name;
     }
@@ -184,38 +184,38 @@ public class KernelBranch implements Branch {
         private final StringBuilder jsop = new StringBuilder();
 
         @Override
-        public void addChild(KernelContentTree tree, String name) {
+        public void addChild(KernelTree tree, String name) {
             jsop.append("+\"").append(path(tree, name)).append("\":{}");
         }
 
         @Override
-        public void removeChild(KernelContentTree tree, String name) {
+        public void removeChild(KernelTree tree, String name) {
             jsop.append("-\"").append(path(tree, name)).append('"');
         }
 
         @Override
-        public void setProperty(KernelContentTree tree, String name, Scalar value) {
+        public void setProperty(KernelTree tree, String name, Scalar value) {
             jsop.append("^\"").append(path(tree, name)).append("\":").append(encode(value));
         }
 
         @Override
-        public void setProperty(KernelContentTree tree, String name, List<Scalar> values) {
+        public void setProperty(KernelTree tree, String name, List<Scalar> values) {
             jsop.append("^\"").append(path(tree, name)).append("\":").append(encode(values));
         }
 
         @Override
-        public void removeProperty(KernelContentTree tree, String name) {
+        public void removeProperty(KernelTree tree, String name) {
             jsop.append("^\"").append(path(tree, name)).append("\":null");
         }
 
         @Override
-        public void move(KernelContentTree tree, String name, KernelContentTree moved) {
+        public void move(KernelTree tree, String name, KernelTree moved) {
             jsop.append(">\"").append(path(tree, name)).append("\":\"")
                     .append(moved.getPath()).append('"');
         }
 
         @Override
-        public void copy(KernelContentTree state, String name, KernelContentTree copied) {
+        public void copy(KernelTree state, String name, KernelTree copied) {
             jsop.append("*\"").append(path(state, name)).append("\":\"")
                     .append(copied.getPath()).append('"');
         }
