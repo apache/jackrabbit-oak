@@ -23,7 +23,7 @@ import org.apache.jackrabbit.commons.AbstractSession;
 import org.apache.jackrabbit.oak.api.Branch;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.ContentTree;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.Paths;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -481,7 +481,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
         }
 
         @Override
-        public ContentTree getContentTree(NodeImpl node) {
+        public Tree getContentTree(NodeImpl node) {
             return branch.getContentTree(node.path());
         }
     }

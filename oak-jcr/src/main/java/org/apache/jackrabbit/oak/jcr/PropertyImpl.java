@@ -17,8 +17,8 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import org.apache.jackrabbit.oak.api.Branch;
-import org.apache.jackrabbit.oak.api.ContentTree;
-import org.apache.jackrabbit.oak.api.ContentTree.Status;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.jcr.util.LogUtil;
 import org.apache.jackrabbit.oak.jcr.util.ValueConverter;
@@ -53,10 +53,10 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     private static final Logger log = LoggerFactory.getLogger(PropertyImpl.class);
 
-    private ContentTree parent;
+    private Tree parent;
     private PropertyState propertyState;
 
-    PropertyImpl(SessionContext<SessionImpl> sessionContext, ContentTree parent,
+    PropertyImpl(SessionContext<SessionImpl> sessionContext, Tree parent,
             PropertyState propertyState) {
 
         super(sessionContext);
@@ -610,7 +610,7 @@ public class PropertyImpl extends ItemImpl implements Property {
         return sessionContext.getBranch();
     }
 
-    private ContentTree getParentContentTree() {
+    private Tree getParentContentTree() {
         resolve();
         return parent;
     }

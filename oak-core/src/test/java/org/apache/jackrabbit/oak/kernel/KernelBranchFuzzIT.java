@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.kernel;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.simple.SimpleKernelImpl;
 import org.apache.jackrabbit.mk.util.PathUtils;
-import org.apache.jackrabbit.oak.api.ContentTree;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Scalar;
 import org.junit.Before;
@@ -411,7 +411,7 @@ public class KernelBranchFuzzIT {
         return ScalarImpl.stringScalar("V" + counter++);
     }
 
-    private static void checkEqual(ContentTree child2, ContentTree tree2) {
+    private static void checkEqual(Tree child2, Tree tree2) {
         assertEquals(child2.getPath(), tree2.getPath());
         assertEquals(child2.getChildrenCount(), tree2.getChildrenCount());
         assertEquals(child2.getPropertyCount(), tree2.getPropertyCount());
@@ -420,7 +420,7 @@ public class KernelBranchFuzzIT {
             assertEquals(property1, tree2.getProperty(property1.getName()));
         }
 
-        for (ContentTree child1 : child2.getChildren()) {
+        for (Tree child1 : child2.getChildren()) {
             checkEqual(child1, tree2.getChild(child1.getName()));
         }
     }
