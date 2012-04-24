@@ -20,8 +20,8 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commit.Validator;
 import org.apache.jackrabbit.oak.kernel.NodeState;
-import org.apache.jackrabbit.oak.kernel.Validator;
 
 class NameValidator implements Validator {
 
