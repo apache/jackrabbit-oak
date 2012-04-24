@@ -91,7 +91,7 @@ public class KernelBranch implements Branch {
     }
 
     @Override
-    public Tree getContentTree(String path) {
+    public Tree getTree(String path) {
         return getTransientState(path);
     }
 

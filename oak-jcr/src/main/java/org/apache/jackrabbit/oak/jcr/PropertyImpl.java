@@ -629,7 +629,7 @@ public class PropertyImpl extends ItemImpl implements Property {
     }
 
     private synchronized void resolve() {
-        parent = getBranch().getContentTree(parent.getPath());
+        parent = getBranch().getTree(parent.getPath());
         String path = Paths.concat(parent.getPath(), propertyState.getName());
 
         if (parent == null) {

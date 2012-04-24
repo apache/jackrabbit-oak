@@ -182,7 +182,7 @@ public class NodeImpl extends ItemImpl implements Node  {
         checkStatus();
 
         String parentPath = Paths.concat(path(), Paths.getParentPath(relPath));
-        Tree parentState = getBranch().getContentTree(parentPath);
+        Tree parentState = getBranch().getTree(parentPath);
         if (parentState == null) {
             throw new PathNotFoundException(relPath);
         }
@@ -876,7 +876,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     }
 
     private synchronized Tree getTree() {
-        return tree = getBranch().getContentTree(tree.getPath());
+        return tree = getBranch().getTree(tree.getPath());
     }
 
     private Iterator<Node> nodeIterator(Iterator<Tree> childNodeStates) {
@@ -899,7 +899,7 @@ public class NodeImpl extends ItemImpl implements Node  {
 
     private NodeImpl getNodeOrNull(String relPath) {
         String absPath = Paths.concat(path(), relPath);
-        Tree tree = getBranch().getContentTree(absPath);
+        Tree tree = getBranch().getTree(absPath);
         return tree == null
             ? null
             : new NodeImpl(sessionContext, tree);
@@ -907,7 +907,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     
     private PropertyImpl getPropertyOrNull(String relPath) {
         String absPath = Paths.concat(path(), Paths.getParentPath(relPath));
-        Tree parent = getBranch().getContentTree(absPath);
+        Tree parent = getBranch().getTree(absPath);
         if (parent == null) {
             return null;
         }

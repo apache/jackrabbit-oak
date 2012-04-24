@@ -90,7 +90,7 @@ public class KernelBranchFuzzIT {
             log.info("{}", op);
             op.apply(branch1);
             op.apply(branch2);
-            checkEqual(branch1.getContentTree("/"), branch2.getContentTree("/"));
+            checkEqual(branch1.getTree("/"), branch2.getTree("/"));
 
             state1 = branch1.mergeInto(mk1, state1);
             branch1 = new KernelBranch(state1);
@@ -142,7 +142,7 @@ public class KernelBranchFuzzIT {
 
             @Override
             void apply(KernelBranch branch) {
-                branch.getContentTree(parentPath).addChild(name);
+                branch.getTree(parentPath).addChild(name);
             }
 
             @Override
@@ -162,7 +162,7 @@ public class KernelBranchFuzzIT {
             void apply(KernelBranch branch) {
                 String parentPath = PathUtils.getParentPath(path);
                 String name = PathUtils.getName(path);
-                branch.getContentTree(parentPath).removeChild(name);
+                branch.getTree(parentPath).removeChild(name);
             }
 
             @Override
@@ -224,7 +224,7 @@ public class KernelBranchFuzzIT {
 
             @Override
             void apply(KernelBranch branch) {
-                branch.getContentTree(parentPath).setProperty(propertyName, propertyValue);
+                branch.getTree(parentPath).setProperty(propertyName, propertyValue);
             }
 
             @Override
@@ -245,7 +245,7 @@ public class KernelBranchFuzzIT {
 
             @Override
             void apply(KernelBranch branch) {
-                branch.getContentTree(parentPath).removeProperty(name);
+                branch.getTree(parentPath).removeProperty(name);
             }
 
             @Override
