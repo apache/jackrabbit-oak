@@ -47,13 +47,18 @@ public class KernelContentRepository implements ContentRepository {
     private static final String DEFAULT_WORKSPACE_NAME = "default";
 
     private final MicroKernel microKernel;
+    private final CoreValueFactory valueFactory;
+    private final QueryEngine queryEngine;
     private final KernelNodeStore nodeStore;
 
     public KernelContentRepository(MicroKernel mk) {
         microKernel = mk;
         nodeStore = new KernelNodeStore(microKernel);
+        valueFactory = new CoreValueFactoryImpl(microKernel);
+        queryEngine = new QueryEngineImpl(microKernel, valueFactory);
 
         // FIXME: workspace setup must be done elsewhere...
+        queryEngine.init();
         NodeState root = nodeStore.getRoot();
         NodeState wspNode = root.getChildNode(DEFAULT_WORKSPACE_NAME);
         if (wspNode == null) {
@@ -87,9 +92,6 @@ public class KernelContentRepository implements ContentRepository {
             throw new LoginException("login failed");
         }
 
-        CoreValueFactory valueFactory = new CoreValueFactoryImpl(microKernel);
-
-        QueryEngine queryEngine = new QueryEngineImpl(microKernel, valueFactory);
         // TODO set revision!?
         NodeState wspRoot = nodeStore.getRoot().getChildNode(workspaceName);
         if (wspRoot == null) {

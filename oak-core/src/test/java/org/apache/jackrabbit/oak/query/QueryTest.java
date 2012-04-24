@@ -13,11 +13,8 @@
  */
 package org.apache.jackrabbit.oak.query;
 
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.Result;
-import org.apache.jackrabbit.oak.api.ResultRow;
-import org.junit.Test;
-
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -30,9 +27,11 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.Result;
+import org.apache.jackrabbit.oak.api.ResultRow;
+import org.junit.Before;
+import org.junit.Test;
 
 /**
  * Test the query feature.
@@ -40,6 +39,11 @@ import static org.junit.Assert.assertTrue;
 public class QueryTest extends AbstractQueryTest {
 
     private QueryEngineImpl qe = new QueryEngineImpl(mk, vf);
+
+    @Before
+    public void setup() {
+        qe.init();
+    }
 
     @Test
     public void script() throws Exception {

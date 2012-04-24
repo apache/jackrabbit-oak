@@ -32,6 +32,8 @@ select * from [nt:base] as b where localname(b) = 'resource'
 
 select * from [nt:base] as x where isdescendantnode(x, '/')
 /
+/jcr:system
+/jcr:system/indexes
 /test
 /test/jcr:resource
 /test/resource
@@ -51,6 +53,7 @@ select * from [nt:base] as p where p.[jcr:path] = '/parents'
 
 select * from [nt:base] as p inner join [nt:base] as p2 on ischildnode(p2, p) where p.[jcr:path] = '/'
 /, /children
+/, /jcr:system
 /, /parents
 
 select * from [nt:base] as p inner join [nt:base] as p2 on isdescendantnode(p2, p) where p.[jcr:path] = '/parents'
@@ -107,6 +110,8 @@ nt:base AS p /* traverse "//*" */ INNER JOIN nt:base AS c /* traverse "//*" */
 
 select * from [nt:base]
 /
+/jcr:system
+/jcr:system/indexes
 /test
 /test/hello
 /test/world
@@ -124,11 +129,15 @@ select * from [nt:base] where id = '1' or x = '2'
 
 select * from [nt:base] where not (id = '1' or x = '2')
 /
+/jcr:system
+/jcr:system/indexes
 /test
 /test/hello
 
 select * from [nt:base] where x is null
 /
+/jcr:system
+/jcr:system/indexes
 /test
 
 - "test"
@@ -146,6 +155,8 @@ select name from [nt:base] order by upper(name)
 Hallo
 hello
 World!
+null
+null
 null
 
 select * from [nt:base] where length(name) = 5

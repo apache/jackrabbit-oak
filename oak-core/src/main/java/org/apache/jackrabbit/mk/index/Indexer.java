@@ -26,17 +26,21 @@ import org.apache.jackrabbit.mk.simple.NodeMap;
 import org.apache.jackrabbit.mk.util.ExceptionFactory;
 import org.apache.jackrabbit.mk.util.PathUtils;
 import org.apache.jackrabbit.mk.util.SimpleLRUCache;
+import org.apache.jackrabbit.oak.query.index.PropertyContentIndex;
+import org.apache.jackrabbit.oak.query.index.QueryIndex;
+import org.apache.jackrabbit.oak.query.index.QueryIndexProvider;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map.Entry;
 
 /**
  * A index mechanism. An index is bound to a certain repository, and supports
  * one or more indexes.
  */
-public class Indexer {
+public class Indexer implements QueryIndexProvider {
 
     private static final boolean DISABLED = Boolean.getBoolean("mk.indexDisabled");
 
@@ -48,18 +52,33 @@ public class Indexer {
     private HashMap<String, BTreePage> modified = new HashMap<String, BTreePage>();
     private SimpleLRUCache<String, BTreePage> cache = SimpleLRUCache.newInstance(100);
     private String readRevision;
+    private ArrayList<QueryIndexListener> listeners = new ArrayList<QueryIndexListener>();
 
     public Indexer(MicroKernel mk, String indexRootNode) {
         this.mk = mk;
+        this.indexRootNode = indexRootNode;
+    }
+
+    public Indexer(MicroKernel mk) {
+        this(mk, "/index");
+    }
+
+    @Override
+    public void init() {
         if (!PathUtils.isAbsolute(indexRootNode)) {
             indexRootNode = "/" + indexRootNode;
         }
-        this.indexRootNode = indexRootNode;
         revision = mk.getHeadRevision();
         readRevision = revision;
         if (!mk.nodeExists(indexRootNode, revision)) {
             JsopBuilder jsop = new JsopBuilder();
-            jsop.tag('+').key(PathUtils.relativize("/", indexRootNode)).object().endObject();
+            String p = "/";
+            for (String e : PathUtils.elements(indexRootNode)) {
+                p = PathUtils.concat(p, e);
+                if (!mk.nodeExists(p, revision)) {
+                    jsop.tag('+').key(PathUtils.relativize("/", p)).object().endObject().newline();
+                }
+            }
             revision = mk.commit("/", jsop.toString(), revision, null);
         } else {
             String node = mk.getNodes(indexRootNode, revision, 0, 0, Integer.MAX_VALUE, null);
@@ -89,10 +108,6 @@ public class Indexer {
         }
     }
 
-    public Indexer(MicroKernel mk) {
-        this(mk, "/index");
-    }
-
     public PropertyIndex createPropertyIndex(String property, boolean unique) {
         PropertyIndex index = new PropertyIndex(this, property, unique);
         PropertyIndex existing = (PropertyIndex) indexes.get(index.getName());
@@ -100,6 +115,9 @@ public class Indexer {
             return existing;
         }
         buildAndAddIndex(index);
+        for (QueryIndexListener l : listeners) {
+            l.added(new PropertyContentIndex(mk, index));
+        }
         return index;
     }
 
@@ -488,6 +506,30 @@ public class Indexer {
         for (Iterator<String> it = n.getChildNodeNames(Integer.MAX_VALUE); it.hasNext();) {
             addRecursive(index, PathUtils.concat(path, it.next()));
         }
+    }
+
+    public List<QueryIndex> getQueryIndexes() {
+        ArrayList<QueryIndex> list = new ArrayList<QueryIndex>();
+        for (Index index : indexes.values()) {
+            QueryIndex qi = null;
+            if (index instanceof PropertyIndex) {
+                qi = new PropertyContentIndex(mk, (PropertyIndex) index);
+            } else if (index instanceof PrefixIndex) {
+                // TODO support prefix indexes?
+            }
+            list.add(qi);
+        }
+        return list;
+    }
+
+    @Override
+    public void addListener(QueryIndexListener listener) {
+        listeners.add(listener);
+    }
+
+    @Override
+    public void removeListener(QueryIndexListener listener) {
+        listeners.remove(listener);
     }
 
 }

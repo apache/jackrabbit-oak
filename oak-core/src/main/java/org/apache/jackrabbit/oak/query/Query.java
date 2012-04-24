@@ -46,6 +46,8 @@ import org.apache.jackrabbit.oak.query.ast.SameNodeJoinConditionImpl;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.ast.SourceImpl;
 import org.apache.jackrabbit.oak.query.ast.UpperCaseImpl;
+import org.apache.jackrabbit.oak.query.index.Filter;
+import org.apache.jackrabbit.oak.query.index.QueryIndex;
 
 /**
  * Represents a parsed query. Lifecycle: use the constructor to create a new
@@ -59,6 +61,7 @@ public class Query {
     final ArrayList<SelectorImpl> selectors = new ArrayList<SelectorImpl>();
 
     private MicroKernel mk;
+    private QueryEngineImpl queryEngine;
     private final OrderingImpl[] orderings;
     private ColumnImpl[] columns;
     private boolean explain;
@@ -273,7 +276,7 @@ public class Query {
         if (explain) {
             String plan = source.getPlan();
             columns = new ColumnImpl[] { new ColumnImpl("explain", "plan", "plan")};
-            ResultRowImpl r = new ResultRowImpl(this, new String[0], new CoreValue[] { valueFactory.createValue(plan) }, null);
+            ResultRowImpl r = new ResultRowImpl(this, new String[0], new CoreValue[] { getValueFactory().createValue(plan) }, null);
             it = Arrays.asList(r).iterator();
         } else {
             it = new RowIterator(revisionId);
@@ -319,7 +322,7 @@ public class Query {
         return comp;
     }
 
-    private void prepare() {
+    void prepare() {
         if (prepared) {
             return;
         }
@@ -456,6 +459,14 @@ public class Query {
 
     public List<String> getBindVariableNames() {
         return new ArrayList<String>(bindVariableMap.keySet());
+    }
+
+    public void setQueryEngine(QueryEngineImpl queryEngine) {
+        this.queryEngine = queryEngine;
+    }
+
+    public QueryIndex getBestIndex(Filter filter) {
+        return queryEngine.getBestIndex(filter);
     }
 
 }
