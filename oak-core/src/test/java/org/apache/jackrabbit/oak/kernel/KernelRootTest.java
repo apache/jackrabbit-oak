@@ -21,9 +21,9 @@ package org.apache.jackrabbit.oak.kernel;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.simple.SimpleKernelImpl;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Scalar;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -331,20 +331,25 @@ public class KernelRootTest {
         KernelRoot root = new KernelRoot(store, "test");
         Tree tree = root.getTree("/");
 
+        Set<String> added = new HashSet<String>();
+
         tree.addChild("large");
         tree = tree.getChild("large");
         for (int c = 0; c < 10000; c++) {
-            tree.addChild("n" + c);
+            String name = "n" + c;
+            added.add(name);
+            tree.addChild(name);
         }
 
         root.commit();
         tree = root.getTree("/");
         tree = tree.getChild("large");
 
-        int c = 0;
         for (Tree q : tree.getChildren()) {
-            assertEquals("n" + c++, q.getName());
+            assertTrue(added.remove(q.getName()));
         }
+
+        assertTrue(added.isEmpty());
     }
 
     private static void checkEqual(Tree tree1, Tree tree2) {
