@@ -28,9 +28,6 @@ import java.io.Closeable;
  * - validate information being written back to the persistent layer. this includes
  *   permission evaluation, node type and name constraints etc.
  *
- * - update the revision ID a given session is operating on when certain actions
- *   take place (save, refresh, TBD)
- *
  * - Provide access to authentication and authorization related information
  *
  * - The implementation of this and all related interfaces are intended to only
@@ -66,11 +63,10 @@ public interface ContentSession extends Closeable {
     String getWorkspaceName();
 
     /**
-     * TODO update javadoc
-     * Branch the current root. Use {@link #commit(Root)} to atomically apply the
-     * changes made in this branch to the underlying Microkernel.
+     * The current root as seen by this content session. Use {@link Root#commit()} to
+     * atomically apply the changes made in that subtree the underlying Microkernel.
      *
-     * @return branch of the current root.
+     * @return  the current root
      */
     Root getCurrentRoot();
 

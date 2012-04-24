@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.api;
 
 /**
- * An branch for modifying existing and creating new node states.
+ * The root of a {@link Tree}.
  */
 public interface Root {
 
@@ -28,10 +28,10 @@ public interface Root {
      * at {@code destPath}. Do nothing if either the source
      * does not exist, the parent of the destination does not exist
      * or the destination exists already. Both paths must resolve
-     * to a child located in this branch.
+     * to a child located beneath this root.
      *
-     * @param sourcePath source path relative to this branch
-     * @param destPath destination path relative to this branch
+     * @param sourcePath source path relative to this root
+     * @param destPath destination path relative to this root
      * @return  {@code true} on success, {@code false} otherwise.
      */
     boolean move(String sourcePath, String destPath);
@@ -41,17 +41,17 @@ public interface Root {
      * at {@code destPath}. Do nothing if either the source
      * does not exist, the parent of the destination does not exist
      * or the destination exists already. Both paths must resolve
-     * to a child located in this branch.
+     * to a child located in this root.
      *
-     * @param sourcePath source path relative to this branch
-     * @param destPath destination path relative to this branch
+     * @param sourcePath source path relative to this root
+     * @param destPath destination path relative to this root
      * @return  {@code true} on success, {@code false} otherwise.
      */
     boolean copy(String sourcePath, String destPath);
 
     /**
      * Retrieve the {@code ContentTree} at the given {@code path}.
-     * The path must resolve to a content tree in this branch.
+     * The path must resolve to a content tree in this root.
      *
      * @param path path to the content tree
      * @return content tree at the given path or {@code null} if no
@@ -60,13 +60,17 @@ public interface Root {
     Tree getTree(String path);
 
     /**
-     * Refresh this content session to the latest revision of the underlying Microkernel.
+     * Refresh this root to the latest revision. After a call to this method,
+     * all trees obtained through {@link #getTree(String)} are invalid and fresh
+     * instances must be obtained.
      */
     void refresh();
 
     /**
-     * Atomically apply all changes in the passed {@code branch} to the underlying
-     * Microkernel.
+     * Atomically apply all changes made to the tree beneath this root to the
+     * underlying store and refreshes this root. After a call to this method,
+     * all trees obtained through {@link #getTree(String)} are invalid and fresh
+     * instances must be obtained.
      *
      * @throws CommitFailedException TODO: add description and clarify how JCR exception can be generated from this generic exception
      */

@@ -31,8 +31,7 @@ import javax.jcr.SimpleCredentials;
 import java.io.IOException;
 
 /**
- * {@link MicroKernel}-based implementation of
- * the {@link ContentSession} interface.
+ * {@link MicroKernel}-based implementation of the {@link ContentSession} interface.
  */
 class KernelContentSession implements ContentSession {
 
@@ -46,9 +45,8 @@ class KernelContentSession implements ContentSession {
     private final QueryEngine queryEngine;
     private final CoreValueFactory valueFactory;
 
-    public KernelContentSession(
-            SimpleCredentials credentials, String workspaceName, NodeStore store,
-            QueryEngine queryEngine, CoreValueFactory valueFactory) {
+    public KernelContentSession(SimpleCredentials credentials, String workspaceName,
+            NodeStore store, QueryEngine queryEngine, CoreValueFactory valueFactory) {
 
         this.credentials = credentials;
         this.workspaceName = workspaceName;
