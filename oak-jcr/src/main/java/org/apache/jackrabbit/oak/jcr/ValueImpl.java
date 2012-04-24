@@ -51,10 +51,10 @@ class ValueImpl implements Value {
     private final ValueFactoryImpl.DummyNamePathResolver resolver;
 
     /**
-     * Constructs a <code>ValueImpl</code> object representing an SPI
+     * Constructs a {@code ValueImpl} object representing an SPI
      * <codeQValue</code>.
      *
-     * @param value the value object this <code>ValueImpl</code> should represent
+     * @param value the value object this {@code ValueImpl} should represent
      * @param resolver
      */
     public ValueImpl(CoreValue value, ValueFactoryImpl.DummyNamePathResolver resolver) {
@@ -70,6 +70,7 @@ class ValueImpl implements Value {
     /**
      * @see javax.jcr.Value#getType()
      */
+    @Override
     public int getType() {
         return value.getType();
     }
@@ -77,6 +78,7 @@ class ValueImpl implements Value {
     /**
      * @see javax.jcr.Value#getBoolean()
      */
+    @Override
     public boolean getBoolean() throws RepositoryException {
         if (getType() == PropertyType.STRING || getType() == PropertyType.BINARY || getType() == PropertyType.BOOLEAN) {
             return value.getBoolean();
@@ -88,6 +90,7 @@ class ValueImpl implements Value {
     /**
      * @see javax.jcr.Value#getDate()
      */
+    @Override
     public Calendar getDate() throws RepositoryException {
         Calendar cal;
         switch (getType()) {
@@ -109,6 +112,7 @@ class ValueImpl implements Value {
     /**
      * @see javax.jcr.Value#getDecimal()
      */
+    @Override
     public BigDecimal getDecimal() throws RepositoryException {
         try {
             return value.getDecimal();
@@ -120,6 +124,7 @@ class ValueImpl implements Value {
     /**
      * @see javax.jcr.Value#getDouble()
      */
+    @Override
     public double getDouble() throws RepositoryException {
         try {
             return value.getDouble();
@@ -131,6 +136,7 @@ class ValueImpl implements Value {
     /**
      * @see javax.jcr.Value#getLong()
      */
+    @Override
     public long getLong() throws RepositoryException {
         try {
             return value.getLong();
@@ -142,6 +148,7 @@ class ValueImpl implements Value {
     /**
      * @see javax.jcr.Value#getString()
      */
+    @Override
     public String getString() throws RepositoryException {
         switch (getType()) {
             case PropertyType.NAME :
@@ -166,6 +173,7 @@ class ValueImpl implements Value {
     /**
      * @see javax.jcr.Value#getStream()
      */
+    @Override
     public InputStream getStream() throws IllegalStateException, RepositoryException {
         InputStream stream;
         switch (getType()) {
@@ -186,6 +194,7 @@ class ValueImpl implements Value {
     /**
      * @see javax.jcr.Value#getBinary()
      */
+    @Override
     public Binary getBinary() throws RepositoryException {
         return new BinaryImpl();
     }
