@@ -108,9 +108,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     @Override
     public Session impersonate(Credentials credentials) throws RepositoryException {
         ensureIsAlive();
-
-        // TODO
-        return null;
+        throw new UnsupportedRepositoryOperationException("TODO");
     }
 
     @Override
@@ -130,17 +128,13 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     @Override
     public Node getNodeByUUID(String uuid) throws RepositoryException {
         ensureIsAlive();
-
-        // TODO
-        return null;
+        throw new UnsupportedRepositoryOperationException("TODO");
     }
 
     @Override
     public Node getNodeByIdentifier(String id) throws RepositoryException {
         ensureIsAlive();
-
-        // TODO
-        return null;
+        throw new UnsupportedRepositoryOperationException("TODO");
     }
 
     //------------------------------------------------------------< Writing >---
@@ -214,9 +208,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     @Override
     public ContentHandler getImportContentHandler(String parentAbsPath, int uuidBehavior) throws RepositoryException {
         ensureIsAlive();
-
-        // TODO
-        return null;
+        throw new UnsupportedRepositoryOperationException("TODO");
     }
 
     //------------------------------------------------------------< Locking >---
@@ -288,9 +280,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     @Override
     public AccessControlManager getAccessControlManager() throws RepositoryException {
         ensureIsAlive();
-
-        // TODO
-        return null;
+        throw new UnsupportedRepositoryOperationException("TODO");
     }
 
     //----------------------------------------------------------< Retention >---
