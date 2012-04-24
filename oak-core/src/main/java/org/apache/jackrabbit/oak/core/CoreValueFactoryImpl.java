@@ -38,7 +38,8 @@ public class CoreValueFactoryImpl implements CoreValueFactory {
 
     private final MicroKernel mk;
 
-    CoreValueFactoryImpl(MicroKernel mk) {
+    // TODO: currently public for query tests -> see todo there...
+    public CoreValueFactoryImpl(MicroKernel mk) {
         this.mk = mk;
     }
 
@@ -76,8 +77,12 @@ public class CoreValueFactoryImpl implements CoreValueFactory {
 
     @Override
     public CoreValue createValue(String value, int type) {
-        return new CoreValueImpl(value, type);
+        // TODO check again...
+        if (type == PropertyType.BINARY) {
+            BinaryValue bv = new BinaryValue(value, mk);
+            return new CoreValueImpl(bv);
+        } else {
+            return new CoreValueImpl(value, type);
+        }
     }
-
-
 }

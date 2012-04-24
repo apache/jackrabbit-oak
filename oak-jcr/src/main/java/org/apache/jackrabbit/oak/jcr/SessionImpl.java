@@ -59,7 +59,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
 
     private final GlobalContext globalContext;
     private final ContentSession contentSession;
-    private final ValueFactory valueFactory;
+    private final ValueFactoryImpl valueFactory;
     private final Workspace workspace;
     private final SessionContext<SessionImpl> sessionContext = new Context();
 
@@ -456,7 +456,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
         }
 
         @Override
-        public ValueFactory getValueFactory() {
+        public ValueFactoryImpl getValueFactory() {
             return valueFactory;
         }
 

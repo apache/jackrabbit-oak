@@ -16,32 +16,24 @@
  */
 package org.apache.jackrabbit.oak.query;
 
-import java.math.BigDecimal;
+import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.mk.core.MicroKernelImpl;
+import org.apache.jackrabbit.oak.api.CoreValueFactory;
+import org.apache.jackrabbit.oak.core.CoreValueFactoryImpl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class CoreValueFactory {
+/**
+ * AbstractQueryTest...
+ */
+public abstract class AbstractQueryTest {
 
-    public CoreValue createValue(String value) {
-        return new CoreValue(value, CoreValue.STRING);
-    }
+    /**
+     * logger instance
+     */
+    private static final Logger log = LoggerFactory.getLogger(AbstractQueryTest.class);
 
-    public CoreValue createValue(BigDecimal value) {
-        return new CoreValue(value, CoreValue.DECIMAL);
-    }
-
-    public CoreValue createValue(double value) {
-        return new CoreValue(value, CoreValue.DOUBLE);
-    }
-
-    public CoreValue createValue(long value) {
-        return new CoreValue(value, CoreValue.LONG);
-    }
-
-    public CoreValue createValue(boolean value) {
-        return new CoreValue(value, CoreValue.BOOLEAN);
-    }
-
-    public CoreValue createValue(String value, int type) {
-        return new CoreValue(value, type);
-    }
-
+    // TODO improve: use ContentRepository here instead of creating mk instance.
+    protected final MicroKernel mk = new MicroKernelImpl();
+    protected final CoreValueFactory vf = new CoreValueFactoryImpl(mk);
 }

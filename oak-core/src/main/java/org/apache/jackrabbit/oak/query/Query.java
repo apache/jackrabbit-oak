@@ -20,6 +20,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.query.ast.AstVisitorBase;
 import org.apache.jackrabbit.oak.query.ast.BindVariableValueImpl;
 import org.apache.jackrabbit.oak.query.ast.ChildNodeImpl;
@@ -63,14 +65,15 @@ public class Query {
     private long limit;
     private long offset;
     private boolean prepared;
-    private final CoreValueFactory valueFactory = new CoreValueFactory();
+    private final CoreValueFactory valueFactory;
 
     Query(SourceImpl source, ConstraintImpl constraint, OrderingImpl[] orderings,
-            ColumnImpl[] columns) {
+          ColumnImpl[] columns, CoreValueFactory valueFactory) {
         this.source = source;
         this.constraint = constraint;
         this.orderings = orderings;
         this.columns = columns;
+        this.valueFactory = valueFactory;
     }
 
     public void init() {

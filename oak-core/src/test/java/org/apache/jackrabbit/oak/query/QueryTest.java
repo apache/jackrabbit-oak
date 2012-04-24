@@ -13,8 +13,11 @@
  */
 package org.apache.jackrabbit.oak.query;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.Result;
+import org.apache.jackrabbit.oak.api.ResultRow;
+import org.junit.Test;
+
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -27,19 +30,16 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.core.MicroKernelImpl;
-import org.apache.jackrabbit.oak.api.Result;
-import org.apache.jackrabbit.oak.api.ResultRow;
-import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Test the query feature.
  */
-public class QueryTest {
+public class QueryTest extends AbstractQueryTest {
 
-    private final MicroKernel mk = new MicroKernelImpl();
-    private QueryEngineImpl qe = new QueryEngineImpl(mk);
+    private QueryEngineImpl qe = new QueryEngineImpl(mk, vf);
 
     @Test
     public void script() throws Exception {
@@ -56,7 +56,6 @@ public class QueryTest {
         mk.commit("/", "+ \"test\": { \"hello\": {\"id\": \"1\"}, \"world\": {\"id\": \"2\"}}",
                 null, null);
         HashMap<String, CoreValue> sv = new HashMap<String, CoreValue>();
-        CoreValueFactory vf = new CoreValueFactory();
         sv.put("id", vf.createValue("1"));
         Iterator<? extends ResultRow> result;
         result = qe.executeQuery("select * from [nt:base] where id = $id",

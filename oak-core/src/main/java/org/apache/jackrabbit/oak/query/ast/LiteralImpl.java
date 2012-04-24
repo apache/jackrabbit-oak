@@ -18,8 +18,10 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.query.SQL2Parser;
-import org.apache.jackrabbit.oak.query.CoreValue;
+
+import javax.jcr.PropertyType;
 
 public class LiteralImpl extends StaticOperandImpl {
 
@@ -40,33 +42,7 @@ public class LiteralImpl extends StaticOperandImpl {
 
     @Override
     public String toString() {
-        switch (value.getType()) {
-        case CoreValue.BINARY:
-            return cast("BINARY");
-        case CoreValue.BOOLEAN:
-            return cast("BOOLEAN");
-        case CoreValue.DATE:
-            return cast("DATE");
-        case CoreValue.DECIMAL:
-            return cast("DECIMAL");
-        case CoreValue.DOUBLE:
-        case CoreValue.LONG:
-            return value.getString();
-        case CoreValue.NAME:
-            return cast("NAME");
-        case CoreValue.PATH:
-            return cast("PATH");
-        case CoreValue.REFERENCE:
-            return cast("REFERENCE");
-        case CoreValue.STRING:
-            return escape();
-        case CoreValue.URI:
-            return cast("URI");
-        case CoreValue.WEAKREFERENCE:
-            return cast("WEAKREFERENCE");
-        default:
-            return escape();
-        }
+        return PropertyType.nameFromValue(value.getType()).toUpperCase();
     }
 
     private String cast(String type) {

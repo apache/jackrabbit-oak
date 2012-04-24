@@ -87,14 +87,14 @@ public class KernelContentRepository implements ContentRepository {
             throw new LoginException("login failed");
         }
 
-        QueryEngine queryEngine = new QueryEngineImpl(microKernel);
+        CoreValueFactory valueFactory = new CoreValueFactoryImpl(microKernel);
+
+        QueryEngine queryEngine = new QueryEngineImpl(microKernel, valueFactory);
         // TODO set revision!?
         NodeState wspRoot = nodeStore.getRoot().getChildNode(workspaceName);
         if (wspRoot == null) {
             throw new NoSuchWorkspaceException(workspaceName);
         }
-
-        CoreValueFactory valueFactory = new CoreValueFactoryImpl(microKernel);
 
         return new KernelContentSession(
                 sc, workspaceName, nodeStore, wspRoot, queryEngine, valueFactory);

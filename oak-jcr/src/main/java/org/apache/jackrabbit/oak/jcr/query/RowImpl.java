@@ -18,8 +18,9 @@
  */
 package org.apache.jackrabbit.oak.jcr.query;
 
+import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.ResultRow;
-import org.apache.jackrabbit.oak.query.CoreValue;
+import org.apache.jackrabbit.oak.jcr.ValueFactoryImpl;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -32,9 +33,11 @@ import javax.jcr.query.Row;
 public class RowImpl implements Row {
 
     private final ResultRow row;
+    private ValueFactoryImpl valueFactory;
 
-    public RowImpl(ResultRow row) {
+    public RowImpl(ResultRow row, ValueFactoryImpl valueFactory) {
         this.row = row;
+        this.valueFactory = valueFactory;
     }
 
     @Override
@@ -73,7 +76,7 @@ public class RowImpl implements Row {
 
     @Override
     public Value getValue(String columnName) throws RepositoryException {
-        return ValueConverter.convert(row.getValue(columnName));
+        return valueFactory.createValue(row.getValue(columnName));
     }
 
     @Override
@@ -82,7 +85,7 @@ public class RowImpl implements Row {
         int len = values.length;
         Value[] v2 = new Value[values.length];
         for (int i = 0; i < len; i++) {
-            v2[i] = ValueConverter.convert(values[i]);
+            v2[i] = valueFactory.createValue(values[i]);
         }
         return v2;
     }

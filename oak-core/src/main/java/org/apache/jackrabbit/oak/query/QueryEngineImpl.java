@@ -21,6 +21,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 
 public class QueryEngineImpl implements QueryEngine {
@@ -29,11 +31,12 @@ public class QueryEngineImpl implements QueryEngine {
     private static final String XPATH = "xpath";
 
     private final MicroKernel mk;
-    private final CoreValueFactory vf = new CoreValueFactory();
+    private final CoreValueFactory vf;
     private final SQL2Parser parserSQL2;
 
-    public QueryEngineImpl(MicroKernel mk) {
+    public QueryEngineImpl(MicroKernel mk, CoreValueFactory valueFactory) {
         this.mk = mk;
+        this.vf = valueFactory;
         parserSQL2 = new SQL2Parser(vf);
     }
 

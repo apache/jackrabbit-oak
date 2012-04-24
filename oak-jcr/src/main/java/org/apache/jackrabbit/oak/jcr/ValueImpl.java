@@ -38,7 +38,7 @@ import java.util.TimeZone;
 /**
  * ValueImpl...
  */
-public class ValueImpl implements Value {
+class ValueImpl implements Value {
 
     /**
      * logger instance
@@ -60,6 +60,10 @@ public class ValueImpl implements Value {
     public ValueImpl(CoreValue value, ValueFactoryImpl.DummyNamePathResolver resolver) {
         this.value = value;
         this.resolver = resolver;
+    }
+
+    CoreValue unwrap() {
+        return value;
     }
 
     //--------------------------------------------------------------< Value >---

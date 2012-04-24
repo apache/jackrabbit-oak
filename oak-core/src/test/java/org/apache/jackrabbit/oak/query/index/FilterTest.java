@@ -18,26 +18,28 @@
  */
 package org.apache.jackrabbit.oak.query.index;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import java.util.ArrayList;
-import java.util.Random;
-import org.apache.jackrabbit.oak.query.CoreValue;
-import org.apache.jackrabbit.oak.query.CoreValueFactory;
+import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.index.Filter.PathRestriction;
 import org.junit.Test;
 
+import java.util.ArrayList;
+import java.util.Random;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 /**
  * Tests the Filter class.
  */
-public class FilterTest {
+public class FilterTest extends AbstractQueryTest {
 
     @Test
     public void propertyRestriction() {
-        CoreValue one = new CoreValueFactory().createValue("1");
-        CoreValue two = new CoreValueFactory().createValue("2");
+        CoreValue one = vf.createValue("1");
+        CoreValue two = vf.createValue("2");
 
         Filter f = new Filter(null);
         assertTrue(null == f.getPropertyRestriction("x"));

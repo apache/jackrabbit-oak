@@ -25,7 +25,6 @@ import org.apache.jackrabbit.oak.api.Tree;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.jcr.ValueFactory;
 import javax.jcr.lock.LockManager;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.version.VersionManager;
@@ -35,7 +34,7 @@ public interface SessionContext<T extends Session> {
     GlobalContext getGlobalContext();
     String getWorkspaceName();
     ContentSession getContentSession();
-    ValueFactory getValueFactory();
+    ValueFactoryImpl getValueFactory();
     LockManager getLockManager() throws RepositoryException;
     NodeTypeManager getNodeTypeManager() throws RepositoryException;
     VersionManager getVersionManager() throws RepositoryException;

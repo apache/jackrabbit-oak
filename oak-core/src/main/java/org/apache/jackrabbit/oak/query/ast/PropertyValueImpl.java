@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.query.ast;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.mk.simple.NodeImpl;
 import org.apache.jackrabbit.mk.util.PathUtils;
-import org.apache.jackrabbit.oak.query.CoreValue;
+import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.query.index.Filter;
 
 public class PropertyValueImpl extends DynamicOperandImpl {
