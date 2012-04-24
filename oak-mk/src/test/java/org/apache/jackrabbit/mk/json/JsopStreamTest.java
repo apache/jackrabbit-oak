@@ -34,7 +34,7 @@ public class JsopStreamTest extends TestCase {
                     w.resetWriter();
                 }
             }
-            System.out.println(w.getClass() + ": " + timer.seconds());
+            // System.out.println(w.getClass() + ": " + timer.seconds());
         }
         // JsopStream: 20
         // JsopBuilder: 1150

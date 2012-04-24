@@ -35,7 +35,7 @@ public class JsopTest extends TestCase {
             for (int i = 0; i < 10000000; i++) {
                 t2 += JsopBuilder.encode(s).length();
             }
-            System.out.println(timer.seconds());
+            // System.out.println(timer.seconds());
         }
         // old: not escaped: 5691 ms; escaped: 10609 ms
         // new: not escaped: 3931 ms; escaped: 11001 ms

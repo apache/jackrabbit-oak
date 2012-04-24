@@ -28,17 +28,13 @@ public class ConcurrentWriteIT extends TestCase {
     private static final int NUM_THREADS = 20;
     private static final int NUM_CHILDNODES = 1000;
 
-    MicroKernel mk;
+    final MicroKernel mk = new MicroKernelImpl();
 
     public void setUp() throws Exception {
-        String homeDir = System.getProperty("homeDir", "target");
-        mk = new MicroKernelImpl(homeDir);
-        mk.commit("/", "+ \"" + TEST_PATH.substring(1) + "\": {\"jcr:primaryType\":\"nt:unstructured\"}", mk.getHeadRevision(), null);
+        mk.commit("/", "+ \"" + TEST_PATH.substring(1) + "\": {\"jcr:primaryType\":\"nt:unstructured\"}", null, null);
     }
 
     public void tearDown() throws InterruptedException {
-        String head = mk.commit("/", "- \"" + TEST_PATH.substring(1) + "\"", mk.getHeadRevision(), null);
-        mk.dispose();
     }
 
     /**
@@ -48,29 +44,29 @@ public class ConcurrentWriteIT extends TestCase {
 
         String oldHead = mk.getHeadRevision();
 
-        long t0 = System.currentTimeMillis();
-
         TestThread[] threads = new TestThread[NUM_THREADS];
         for (int i = 0; i < threads.length; i++) {
             TestThread thread = new TestThread(oldHead, "t" + i);
-            thread.start();
             threads[i] = thread;
+
+            assertFalse(mk.nodeExists(TEST_PATH + "/" + thread.getName(), null));
         }
+
+        long t0 = System.currentTimeMillis();
 
         for (TestThread t : threads) {
             if (t != null) {
+                t.start();
                 t.join();
             }
         }
 
         long t1 = System.currentTimeMillis();
+        // System.out.println("duration: " + (t1 - t0) + "ms");
 
-        String head = mk.getHeadRevision();
-        mk.getNodes("/", head, Integer.MAX_VALUE, 0, -1, null);
-
-        String history = mk.getRevisionHistory(t0, -1);
-
-        mk.getJournal(oldHead, head, null);
+        for (Thread t : threads) {
+            assertTrue(mk.nodeExists(TEST_PATH + "/" + t.getName(), null));
+        }
     }
 
     class TestThread extends Thread {
