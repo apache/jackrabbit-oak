@@ -26,7 +26,6 @@ import org.apache.jackrabbit.oak.query.Query;
 import org.apache.jackrabbit.oak.query.index.Cursor;
 import org.apache.jackrabbit.oak.query.index.Filter;
 import org.apache.jackrabbit.oak.query.index.QueryIndex;
-import org.apache.jackrabbit.oak.query.index.TraversingIndex;
 
 public class SelectorImpl extends SourceImpl {
 
@@ -65,7 +64,7 @@ public class SelectorImpl extends SourceImpl {
 
     @Override
     public void prepare(MicroKernel mk) {
-        index = new TraversingIndex(mk);
+        index = query.getBestIndex(createFilter());
     }
 
     @Override

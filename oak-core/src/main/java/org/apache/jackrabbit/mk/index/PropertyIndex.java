@@ -119,10 +119,16 @@ public class PropertyIndex implements Index {
      * @param revision the revision
      * @return an iterator of the paths (an empty iterator if not found)
      */
+    @Override
     public Iterator<String> getPaths(String propertyValue, String revision) {
         indexer.updateUntil(revision);
         Cursor c = tree.findFirst(propertyValue);
         return new Cursor.RangeIterator(c, propertyValue);
+    }
+
+    @Override
+    public boolean isUnique() {
+        return tree.isUnique();
     }
 
 }

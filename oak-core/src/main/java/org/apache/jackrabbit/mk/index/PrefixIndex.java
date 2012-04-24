@@ -108,6 +108,7 @@ public class PrefixIndex implements Index {
      * @return an iterator of the paths (an empty iterator if not found)
      * @throws IllegalArgumentException if the value doesn't start with the prefix
      */
+    @Override
     public Iterator<String> getPaths(String value, String revision) {
         if (!value.startsWith(prefix)) {
             throw new IllegalArgumentException(
@@ -117,6 +118,11 @@ public class PrefixIndex implements Index {
         indexer.updateUntil(revision);
         Cursor c = tree.findFirst(v);
         return new Cursor.RangeIterator(c, v);
+    }
+
+    @Override
+    public boolean isUnique() {
+        return tree.isUnique();
     }
 
 }

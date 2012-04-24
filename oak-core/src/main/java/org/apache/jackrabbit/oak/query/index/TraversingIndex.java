@@ -63,4 +63,9 @@ public class TraversingIndex implements QueryIndex {
         return "traverse \"" + p + r + '"';
     }
 
+    @Override
+    public String getIndexName() {
+        return "traverse";
+    }
+
 }

@@ -31,6 +31,7 @@ public class PrefixIndexTest {
     public void test() {
         MicroKernel mk = new MicroKernelImpl();
         Indexer indexer = new Indexer(mk, "index");
+        indexer.init();
         PrefixIndex index = indexer.createPrefixIndex("d:");
 
         String head = mk.getHeadRevision();
