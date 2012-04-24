@@ -38,7 +38,7 @@ import java.util.Calendar;
 /**
  * CoreValueFactoryImpl...
  */
-class ValueFactoryImpl implements ValueFactory {
+public class ValueFactoryImpl implements ValueFactory {
 
     /**
      * logger instance
@@ -55,6 +55,23 @@ class ValueFactoryImpl implements ValueFactory {
     public ValueFactoryImpl(CoreValueFactory factory/*, NamePathResolver resolver*/) {
         this.factory = factory;
         this.resolver = new DummyNamePathResolver();
+    }
+
+    public CoreValueFactory getCoreValueFactory() {
+        return factory;
+    }
+
+    public Value createValue(CoreValue coreValue) {
+        return new ValueImpl(coreValue, resolver);
+    }
+
+    public CoreValue getCoreValue(Value jcrValue) {
+        if (jcrValue instanceof ValueImpl) {
+            return ((ValueImpl) jcrValue).unwrap();
+        } else {
+            // TODO
+            throw new UnsupportedOperationException("Unsupported Value implementation.");
+        }
     }
 
     //-------------------------------------------------------< ValueFactory >---

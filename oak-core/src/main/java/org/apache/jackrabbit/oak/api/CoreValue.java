@@ -22,7 +22,7 @@ import java.math.BigDecimal;
 /**
  * CoreValue... TODO: add description and javadoc for methods
  */
-public interface CoreValue {
+public interface CoreValue extends Comparable<CoreValue> {
 
     int getType();
 

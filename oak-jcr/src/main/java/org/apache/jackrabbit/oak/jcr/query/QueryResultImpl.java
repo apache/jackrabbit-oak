@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.jcr.query;
 import org.apache.jackrabbit.commons.iterator.RowIteratorAdapter;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
+import org.apache.jackrabbit.oak.jcr.ValueFactoryImpl;
 
 import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
@@ -33,10 +34,12 @@ import java.util.Iterator;
  */
 public class QueryResultImpl implements QueryResult {
 
-    final Result result;
+    private final Result result;
+    private final ValueFactoryImpl valueFactory;
 
-    public QueryResultImpl(Result result) {
+    public QueryResultImpl(Result result, ValueFactoryImpl valueFactory) {
         this.result = result;
+        this.valueFactory = valueFactory;
     }
 
     @Override
@@ -62,7 +65,7 @@ public class QueryResultImpl implements QueryResult {
 
             @Override
             public RowImpl next() {
-                return new RowImpl(it.next());
+                return new RowImpl(it.next(), valueFactory);
             }
 
             @Override

@@ -18,13 +18,13 @@
  */
 package org.apache.jackrabbit.oak.jcr.query;
 
+import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.jcr.SessionContext;
 import org.apache.jackrabbit.oak.jcr.SessionImpl;
 import org.apache.jackrabbit.oak.jcr.WorkspaceImpl;
 import org.apache.jackrabbit.oak.jcr.query.qom.QueryObjectModelFactoryImpl;
-import org.apache.jackrabbit.oak.query.CoreValue;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -46,9 +46,11 @@ public class QueryManagerImpl implements QueryManager {
 
     private final QueryObjectModelFactoryImpl qomFactory = new QueryObjectModelFactoryImpl();
     private final QueryEngine queryEngine;
+    private final SessionContext<SessionImpl> sessionContext;
 
     public QueryManagerImpl(WorkspaceImpl workspace, SessionContext<SessionImpl> sessionContext) {
         queryEngine = sessionContext.getContentSession().getQueryEngine();
+        this.sessionContext = sessionContext;
     }
 
     @Override
@@ -93,18 +95,17 @@ public class QueryManagerImpl implements QueryManager {
         try {
             HashMap<String, CoreValue> bindMap = convertMap(bindVariableMap);
             Result r = queryEngine.executeQuery(statement, language, bindMap);
-            return new QueryResultImpl(r);
+            return new QueryResultImpl(r, sessionContext.getValueFactory());
         } catch (ParseException e) {
             throw new InvalidQueryException(e);
         }
     }
 
-    private static HashMap<String, CoreValue> convertMap(HashMap<String, Value> bindVariableMap)
-            throws RepositoryException {
+    private HashMap<String, CoreValue> convertMap(HashMap<String, Value> bindVariableMap) {
 
         HashMap<String, CoreValue> map = new HashMap<String, CoreValue>();
         for (Entry<String, Value> e : bindVariableMap.entrySet()) {
-            map.put(e.getKey(), ValueConverter.convert(e.getValue()));
+            map.put(e.getKey(), sessionContext.getValueFactory().getCoreValue(e.getValue()));
         }
         return map;
     }

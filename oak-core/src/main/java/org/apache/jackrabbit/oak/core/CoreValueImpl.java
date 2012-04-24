@@ -29,7 +29,7 @@ import java.math.BigDecimal;
 /**
  * CoreValueImpl... TODO: javadoc
  */
-class CoreValueImpl implements CoreValue, Comparable<CoreValue>{
+class CoreValueImpl implements CoreValue {
 
     /**
      * logger instance
