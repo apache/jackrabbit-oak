@@ -66,12 +66,25 @@ public class ValueFactoryImpl implements ValueFactory {
     }
 
     public CoreValue getCoreValue(Value jcrValue) {
+        ValueImpl v;
         if (jcrValue instanceof ValueImpl) {
-            return ((ValueImpl) jcrValue).unwrap();
+            v = (ValueImpl) jcrValue;
         } else {
-            // TODO
-            throw new UnsupportedOperationException("Unsupported Value implementation.");
+            // TODO add proper implementation
+            try {
+            switch (jcrValue.getType()) {
+                case PropertyType.BINARY:
+                    v = (ValueImpl) createValue(jcrValue.getStream());
+                    break;
+                default:
+                    v = (ValueImpl) createValue(jcrValue.getString(), jcrValue.getType());
+            }
+            } catch (RepositoryException e) {
+                throw new UnsupportedOperationException("Not implemented yet...");
+            }
         }
+
+        return v.unwrap();
     }
 
     //-------------------------------------------------------< ValueFactory >---

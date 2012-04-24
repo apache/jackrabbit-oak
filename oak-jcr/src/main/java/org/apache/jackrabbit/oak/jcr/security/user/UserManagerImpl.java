@@ -22,7 +22,7 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.Query;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.oak.api.Scalar;
+import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.jcr.NodeImpl;
 import org.apache.jackrabbit.oak.jcr.SessionContext;
 import org.apache.jackrabbit.oak.jcr.SessionImpl;
@@ -39,7 +39,6 @@ import javax.jcr.UnsupportedRepositoryOperationException;
 import java.io.UnsupportedEncodingException;
 import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -328,22 +327,16 @@ public class UserManagerImpl implements UserManager {
     }
 
     void setInternalProperty(NodeImpl userNode, String name, String value, int type) throws RepositoryException {
-        // TODO: check again if this really makes a transient modification with marking the property modified/new
-        Scalar scalar = ValueConverter.toScalar(value, type);
-        sessionContext.getContentTree(userNode).setProperty(name, scalar);
+        CoreValue cv = ValueConverter.toCoreValue(value, type, sessionContext);
+        sessionContext.getContentTree(userNode).setProperty(name, cv);
     }
 
     void setInternalProperty(NodeImpl userNode, String name, String[] values, int type) throws RepositoryException {
-        // TODO: check again if this really makes a transient modification with marking the property modified/new
-        List<Scalar> scalarList = new ArrayList<Scalar>(values.length);
-        for (String value : values) {
-            scalarList.add(ValueConverter.toScalar(value, PropertyType.STRING));
-        }
-        sessionContext.getContentTree(userNode).setProperty(name, scalarList);
+        List<CoreValue> cvs = ValueConverter.toCoreValues(values, type, sessionContext);
+        sessionContext.getContentTree(userNode).setProperty(name, cvs);
     }
 
     void removeInternalProperty(NodeImpl userNode, String name) {
-        // TODO: check again if this really makes a transient modification with marking the property modified
         sessionContext.getContentTree(userNode).removeProperty(name);
     }
 

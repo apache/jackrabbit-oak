@@ -20,6 +20,8 @@ import java.io.InputStream;
 
 /**
  * An immutable, typed scalar value.
+ *
+ * TODO: remove if really not needed any more
  */
 public interface Scalar {
     enum Type {BOOLEAN, LONG, DOUBLE, BINARY, STRING, NULL}

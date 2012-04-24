@@ -21,20 +21,20 @@ package org.apache.jackrabbit.oak.kernel;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.jackrabbit.oak.api.Scalar;
+import org.apache.jackrabbit.oak.api.CoreValue;
 
 class KernelPropertyState extends AbstractPropertyState {
     private final String name;
-    private final Scalar value;
-    private final List<Scalar> values;
+    private final CoreValue value;
+    private final List<CoreValue> values;
 
-    public KernelPropertyState(String name, Scalar value) {
+    public KernelPropertyState(String name, CoreValue value) {
         this.name = name;
         this.value = value;
         this.values = null;
     }
 
-    public KernelPropertyState(String name, List<Scalar> values) {
+    public KernelPropertyState(String name, List<CoreValue> values) {
         this.name = name;
         this.value = null;
         this.values = Collections.unmodifiableList(values);
@@ -51,12 +51,12 @@ class KernelPropertyState extends AbstractPropertyState {
     }
     
     @Override
-    public Scalar getScalar() {
+    public CoreValue getValue() {
         return value;
     }
 
     @Override
-    public Iterable<Scalar> getArray() {
+    public Iterable<CoreValue> getValues() {
         return values;
     }
 

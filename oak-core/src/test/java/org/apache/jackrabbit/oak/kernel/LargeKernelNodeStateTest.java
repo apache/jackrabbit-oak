@@ -18,34 +18,27 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
+import org.junit.Test;
+
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.assertNull;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.simple.SimpleKernelImpl;
-import org.junit.Before;
-import org.junit.Test;
-
-public class LargeKernelNodeStateTest {
+public class LargeKernelNodeStateTest extends AbstractOakTest {
 
     private final int N = KernelNodeState.MAX_CHILD_NODE_NAMES;
 
-    private NodeState state;
-
-    @Before
-    public void setUp() {
-        MicroKernel kernel =
-                new SimpleKernelImpl("mem:LargeKernelNodeStateTest");
+    @Override
+    KernelNodeState createInitialState() {
         StringBuilder jsop = new StringBuilder("+\"test\":{\"a\":1");
         for (int i = 0; i <= N; i++) {
             jsop.append(",\"x" + i + "\":{}");
         }
-        jsop.append("}");
-        String revision = kernel.commit(
-                "/", jsop.toString(), kernel.getHeadRevision(), "test data");
-        state = new KernelNodeState(kernel, "/test", revision);
+        jsop.append('}');
+        String revision = microKernel.commit(
+                "/", jsop.toString(), microKernel.getHeadRevision(), "test data");
+        return new KernelNodeState(microKernel, valueFactory, "/test", revision);
     }
 
     @Test

@@ -19,14 +19,13 @@
 
 package org.apache.jackrabbit.oak.jcr.util;
 
-import org.apache.jackrabbit.oak.api.Scalar;
-import org.apache.jackrabbit.oak.kernel.ScalarImpl; // FIXME: Use only the API
+import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.jcr.SessionContext;
+import org.apache.jackrabbit.oak.jcr.SessionImpl;
+import org.apache.jackrabbit.oak.jcr.ValueFactoryImpl;
 
-import javax.jcr.PropertyType;
-import javax.jcr.RepositoryException;
-import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Value;
-import javax.jcr.ValueFactory;
+import javax.jcr.ValueFormatException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -38,99 +37,42 @@ import java.util.List;
 public final class ValueConverter {
     private ValueConverter() {}
 
-    public static Scalar toScalar(String value, int propertyType) throws RepositoryException {
-        switch (propertyType) {
-            case PropertyType.STRING: {
-                return ScalarImpl.stringScalar(value);
-            }
-            case PropertyType.DOUBLE: {
-                return ScalarImpl.doubleScalar(Double.parseDouble(value));
-            }
-            case PropertyType.LONG: {
-                return ScalarImpl.longScalar(Long.parseLong(value));
-            }
-            case PropertyType.BOOLEAN: {
-                return ScalarImpl.booleanScalar(Boolean.parseBoolean(value));
-            }
-            case PropertyType.BINARY: {
-                return ScalarImpl.binaryScalar(value);
-            }
-            case PropertyType.DECIMAL:
-            case PropertyType.DATE:
-            case PropertyType.NAME:
-            case PropertyType.PATH:
-            case PropertyType.REFERENCE:
-            case PropertyType.WEAKREFERENCE:
-            case PropertyType.URI:
-            default: {
-                // todo implement toScalar
-                throw new UnsupportedRepositoryOperationException("toScalar");
-            }
-        }
+    public static CoreValue toCoreValue(String value, int propertyType, SessionContext<SessionImpl> sessionContext) throws ValueFormatException {
+        return toCoreValue(sessionContext.getValueFactory().createValue(value, propertyType), sessionContext);
     }
 
-    public static Scalar toScalar(Value value) throws RepositoryException {
-        switch (value.getType()) {
-            case PropertyType.STRING: {
-                return ScalarImpl.stringScalar(value.getString());
-            }
-            case PropertyType.DOUBLE: {
-                return ScalarImpl.doubleScalar(value.getDouble());
-            }
-            case PropertyType.LONG: {
-                return ScalarImpl.longScalar(value.getLong());
-            }
-            case PropertyType.BOOLEAN: {
-                return ScalarImpl.booleanScalar(value.getBoolean());
-            }
-            case PropertyType.DECIMAL:
-            case PropertyType.BINARY:
-            case PropertyType.DATE:
-            case PropertyType.NAME:
-            case PropertyType.PATH:
-            case PropertyType.REFERENCE:
-            case PropertyType.WEAKREFERENCE:
-            case PropertyType.URI:
-            default: {
-                throw new UnsupportedRepositoryOperationException("toScalar"); // todo implement toScalar
-            }
-        }
-    }
-    
-    public static List<Scalar> toScalar(Value[] values) throws RepositoryException {
-        List<Scalar> scalars = new ArrayList<Scalar>();
-        for (Value value : values) {
-            if (value != null) {
-                scalars.add(toScalar(value));
-            }
-        }
-        return scalars;
+    public static CoreValue toCoreValue(Value value, SessionContext<SessionImpl> sessionContext) {
+        ValueFactoryImpl vf = sessionContext.getValueFactory();
+        return vf.getCoreValue(value);
     }
 
-    public static Value toValue(ValueFactory valueFactory, Scalar scalar)
-            throws UnsupportedRepositoryOperationException {
-
-        switch (scalar.getType()) {
-            case BOOLEAN:
-                return valueFactory.createValue(scalar.getBoolean());
-            case LONG:
-                return valueFactory.createValue(scalar.getLong());
-            case DOUBLE:
-                return valueFactory.createValue(scalar.getDouble());
-            case STRING:
-                return valueFactory.createValue(scalar.getString());
-            default:
-                throw new UnsupportedRepositoryOperationException("toValue"); // todo implement toValue
+    public static List<CoreValue> toCoreValues(String[] values, int propertyType, SessionContext<SessionImpl> sessionContext) throws ValueFormatException {
+        Value[] vs = new Value[values.length];
+        for (int i = 0; i < values.length; i++) {
+            vs[i] = sessionContext.getValueFactory().createValue(values[i], propertyType);
         }
+        return toCoreValues(vs, sessionContext);
     }
 
-    public static Value[] toValues(ValueFactory valueFactory, Iterable<Scalar> scalars)
-            throws UnsupportedRepositoryOperationException {
+    public static List<CoreValue> toCoreValues(Value[] values, SessionContext<SessionImpl> sessionContext) {
+        List<CoreValue> cvs = new ArrayList<CoreValue>(values.length);
+        for (Value jcrValue : values) {
+            if (jcrValue != null) {
+                cvs.add(toCoreValue(jcrValue, sessionContext));
+            }
+        }
+        return cvs;
+    }
+
+    public static Value toValue(CoreValue coreValue, SessionContext<SessionImpl> sessionContext) {
+        return sessionContext.getValueFactory().createValue(coreValue);
+    }
+
+    public static Value[] toValues(Iterable<CoreValue> coreValues, SessionContext<SessionImpl> sessionContext) {
         List<Value> values = new ArrayList<Value>();
-        for (Scalar scalar : scalars) {
-            values.add(toValue(valueFactory, scalar));
+        for (CoreValue cv : coreValues) {
+            values.add(toValue(cv, sessionContext));
         }
         return values.toArray(new Value[values.size()]);
     }
-
 }

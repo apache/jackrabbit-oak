@@ -20,8 +20,8 @@ import java.util.Collections;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Scalar;
 import org.apache.jackrabbit.oak.kernel.NodeState;
 import org.apache.jackrabbit.oak.kernel.Validator;
 
@@ -35,14 +35,14 @@ class TypeValidator implements Validator {
 
     private void checkTypeExists(PropertyState after)
             throws CommitFailedException {
-        Iterable<Scalar> scalars = Collections.emptyList();
+        Iterable<CoreValue> coreValues = Collections.emptyList();
         if ("jcr:primaryType".equals(after.getName())) {
-            scalars = Collections.singletonList(after.getScalar());
+            coreValues = Collections.singletonList(after.getValue());
         } else if ("jcr:mixinTypes".equals(after.getName())) {
-            scalars = after.getArray();
+            coreValues = after.getValues();
         }
-        for (Scalar scalar : scalars) {
-            String value = scalar.getString();
+        for (CoreValue cv : coreValues) {
+            String value = cv.getString();
             if (!types.contains(value)) {
                 throw new CommitFailedException("Unknown node type: " + value);
             }
