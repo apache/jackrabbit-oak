@@ -24,7 +24,7 @@ import org.apache.jackrabbit.oak.kernel.NodeState;
  * Content change validator. An instance of this interface is used to
  * validate changes against a specific {@link NodeState}.
  */
-public interface NodeValidator {
+public interface Validator {
 
     void propertyAdded(PropertyState after)
             throws CommitFailedException;
@@ -35,14 +35,14 @@ public interface NodeValidator {
     void propertyDeleted(PropertyState before)
             throws CommitFailedException;
 
-    NodeValidator childNodeAdded(String name, NodeState after)
+    Validator childNodeAdded(String name, NodeState after)
             throws CommitFailedException;
 
-    NodeValidator childNodeChanged(
+    Validator childNodeChanged(
             String name, NodeState before, NodeState after)
             throws CommitFailedException;
 
-    NodeValidator childNodeDeleted(String name, NodeState before)
+    Validator childNodeDeleted(String name, NodeState before)
             throws CommitFailedException;
 
 }
