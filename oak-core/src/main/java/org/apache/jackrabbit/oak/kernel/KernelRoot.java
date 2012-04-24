@@ -108,7 +108,9 @@ public class KernelRoot implements Root {
     public void commit() throws CommitFailedException {
         MicroKernel kernel = ((KernelNodeStore) store).kernel;  // FIXME don't cast to implementation
         try {
-            mergeInto(kernel, base);
+            String targetPath = base.getPath();
+            String targetRevision = base.getRevision();
+            kernel.commit(targetPath, changeLog.toJsop(), targetRevision, null);
             changeLog = new ChangeLog();
             refresh();
         } catch (MicroKernelException e) {
@@ -124,20 +126,6 @@ public class KernelRoot implements Root {
      */
     NodeState getBaseNodeState() {
         return base;
-    }
-
-    /**
-     * Atomically merges the changes from this tree back into the {@code target}.
-     *
-     * @param microkernel Microkernel instance for applying the changes
-     * @param target target of the merge operation
-     * @return node state resulting from merging
-     */
-    KernelNodeState mergeInto(MicroKernel microkernel, KernelNodeState target) {  // TODO refactor into commit
-        String targetPath = target.getPath();
-        String targetRevision = target.getRevision();
-        String rev = microkernel.commit(targetPath, changeLog.toJsop(), targetRevision, null);
-        return new KernelNodeState(microkernel, targetPath, rev);
     }
 
     /**
