@@ -74,4 +74,9 @@ public interface Root {
      */
     void commit() throws CommitFailedException;
 
+    /**
+     * Determine whether there are changes on this tree
+     * @return  {@code true} iff this tree was modified
+     */
+    boolean hasPendingChanges();
 }
