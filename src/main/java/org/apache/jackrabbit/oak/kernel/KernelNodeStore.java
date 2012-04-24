@@ -44,4 +44,16 @@ public class KernelNodeStore implements NodeStore {
         throw new UnsupportedOperationException(); // TODO
     }
 
+    // TODO clarify write access to store. Expose through interface
+    void save(KernelRoot root, NodeState base) {
+        if (!(base instanceof KernelNodeState)) {
+            throw new IllegalArgumentException("Base state is not from this store");
+        }
+
+        KernelNodeState baseState = (KernelNodeState) base;
+        String targetPath = baseState.getPath();
+        String targetRevision = baseState.getRevision();
+        String jsop = root.getChanges();
+        kernel.commit(targetPath, jsop, targetRevision, null);
+    }
 }
