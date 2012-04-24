@@ -21,9 +21,9 @@ import java.util.Set;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.kernel.NodeState;
-import org.apache.jackrabbit.oak.kernel.NodeValidator;
+import org.apache.jackrabbit.oak.kernel.Validator;
 
-class NameValidator implements NodeValidator {
+class NameValidator implements Validator {
 
     private final Set<String> prefixes;
 
@@ -82,21 +82,21 @@ class NameValidator implements NodeValidator {
     }
 
     @Override
-    public NodeValidator childNodeAdded(String name, NodeState after)
+    public Validator childNodeAdded(String name, NodeState after)
             throws CommitFailedException {
         checkValidName(name);
         return this;
     }
 
     @Override
-    public NodeValidator childNodeChanged(
+    public Validator childNodeChanged(
             String name, NodeState before, NodeState after)
             throws CommitFailedException {
         return this;
     }
 
     @Override
-    public NodeValidator childNodeDeleted(String name, NodeState before) {
+    public Validator childNodeDeleted(String name, NodeState before) {
         // do nothing
         return null;
     }

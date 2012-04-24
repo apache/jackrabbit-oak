@@ -21,13 +21,13 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.kernel.ChildNodeEntry;
 import org.apache.jackrabbit.oak.kernel.NodeState;
-import org.apache.jackrabbit.oak.kernel.NodeValidator;
-import org.apache.jackrabbit.oak.kernel.NodeValidatorProvider;
+import org.apache.jackrabbit.oak.kernel.Validator;
+import org.apache.jackrabbit.oak.kernel.ValidatorProvider;
 
-public class TypeValidatorProvider implements NodeValidatorProvider {
+public class TypeValidatorProvider implements ValidatorProvider {
 
     @Override
-    public NodeValidator getRootValidator(NodeState before, NodeState after) {
+    public Validator getRootValidator(NodeState before, NodeState after) {
         Set<String> types = new HashSet<String>();
 
         // Default JCR types are always available
