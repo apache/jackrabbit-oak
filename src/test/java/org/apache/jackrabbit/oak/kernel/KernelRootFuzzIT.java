@@ -28,15 +28,10 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.CoreValueFactoryImpl;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Random;
 
 import static org.apache.jackrabbit.oak.kernel.KernelRootFuzzIT.Operation.AddNode;
@@ -48,7 +43,10 @@ import static org.apache.jackrabbit.oak.kernel.KernelRootFuzzIT.Operation.Save;
 import static org.apache.jackrabbit.oak.kernel.KernelRootFuzzIT.Operation.SetProperty;
 import static org.junit.Assert.assertEquals;
 
-@RunWith(Parameterized.class)
+/**
+ * Fuzz test running random sequences of operations on {@link Tree}.
+ * Run with -DKernelRootFuzzIT-seed=42 to set a specific seed (i.e. 42);
+ */
 public class KernelRootFuzzIT {
     static final Logger log = LoggerFactory.getLogger(KernelRootFuzzIT.class);
 
@@ -66,18 +64,9 @@ public class KernelRootFuzzIT {
 
     private CoreValueFactory vf;
 
-    @Parameters
-    public static List<Object[]> seeds() {
-        // todo use random sees, log seed, provide means to start with specific seed
-        return Arrays.asList(new Object[][] {
-                {0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9},
-                {10}, {11}, {12}, {13}, {14}, {15}, {16}, {17}, {18}, {19},
-                {20}, {21}, {22}, {23}, {24}, {25}, {26}, {27}, {28}, {29},
-                {30}, {31}, {32}, {33}, {34}, {35}, {36}, {37}, {38}, {39},
-        });
-    }
-
-    public KernelRootFuzzIT(int seed) {
+    public KernelRootFuzzIT() {
+        int seed = Integer.getInteger(KernelRootFuzzIT.class.getSimpleName() + "-seed",
+                new Random().nextInt());
         log.info("Seed = {}", seed);
         random = new Random(seed);
     }
