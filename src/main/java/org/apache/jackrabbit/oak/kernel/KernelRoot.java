@@ -100,7 +100,7 @@ public class KernelRoot implements Root {
 
     @Override
     public void refresh() {
-        this.base = (KernelNodeState) store.getRoot().getChildNode(workspaceName);  // FIXME don't cast to implementation
+        base = (KernelNodeState) store.getRoot().getChildNode(workspaceName);  // FIXME don't cast to implementation
     }
 
     @Override
@@ -110,8 +110,10 @@ public class KernelRoot implements Root {
             String targetPath = base.getPath();
             String targetRevision = base.getRevision();
             kernel.commit(targetPath, changeLog.toJsop(), targetRevision, null);
+
             changeLog = new ChangeLog();
-            refresh();
+            base = (KernelNodeState) store.getRoot().getChildNode(workspaceName);  // FIXME don't cast to implementation
+            root = new KernelTree(base, changeLog);
         } catch (MicroKernelException e) {
             throw new CommitFailedException(e);
         }
