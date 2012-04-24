@@ -18,7 +18,6 @@ package org.apache.jackrabbit.mk.persistence;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.Closeable;
 import java.io.File;
 
 import org.apache.jackrabbit.mk.model.ChildNodeEntriesMap;
@@ -44,7 +43,7 @@ import com.sleepycat.je.OperationStatus;
 /**
  *
  */
-public class BDbPersistence implements Persistence, Closeable {
+public class BDbPersistence implements Persistence {
 
     private final static byte[] HEAD_ID = new byte[]{0};
     private Environment dbEnv;
