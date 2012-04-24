@@ -85,7 +85,7 @@ public class Descriptors {
     public Descriptors(ValueFactory valueFactory) {
         descriptors = new HashMap<String, Descriptor>();
         Value trueValue = valueFactory.createValue(true);
-        Value falseValue = valueFactory.createValue(true);
+        Value falseValue = valueFactory.createValue(false);
 
         put(new Descriptor(
                 IDENTIFIER_STABILITY,
@@ -164,7 +164,7 @@ public class Descriptors {
                 falseValue, true, true));
         put(new Descriptor(
                 OPTION_OBSERVATION_SUPPORTED,
-                trueValue, true, true));
+                falseValue, true, true));
         put(new Descriptor(
                 OPTION_NODE_AND_PROPERTY_WITH_SAME_NAME_SUPPORTED,
                 trueValue, true, true));
