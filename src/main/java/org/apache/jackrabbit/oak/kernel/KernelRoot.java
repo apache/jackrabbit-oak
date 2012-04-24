@@ -59,7 +59,6 @@ public class KernelRoot implements Root {
     /** Log of changes to tree */
     private ChangeLog changeLog = new ChangeLog();
 
-
     public KernelRoot(NodeStore store, String workspaceName) {
         this.store = store;
         this.workspaceName = workspaceName;
@@ -101,7 +100,6 @@ public class KernelRoot implements Root {
     @Override
     public void refresh() {
         this.base = (KernelNodeState) store.getRoot().getChildNode(workspaceName);  // FIXME don't cast to implementation
-        this.root = new KernelTree(base, changeLog);
     }
 
     @Override

@@ -60,9 +60,7 @@ public interface Root {
     Tree getTree(String path);
 
     /**
-     * Refresh this root to the latest revision. After a call to this method,
-     * all trees obtained through {@link #getTree(String)} are invalid and fresh
-     * instances must be obtained.
+     * Refresh this root to the latest revision.
      */
     void refresh();
 
