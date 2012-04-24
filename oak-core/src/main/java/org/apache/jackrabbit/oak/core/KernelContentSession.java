@@ -17,15 +17,13 @@
 package org.apache.jackrabbit.oak.core;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.api.AuthInfo;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
-import org.apache.jackrabbit.oak.kernel.NodeState;
-import org.apache.jackrabbit.oak.api.Branch;
-import org.apache.jackrabbit.oak.kernel.NodeStore;
 import org.apache.jackrabbit.oak.api.QueryEngine;
+import org.apache.jackrabbit.oak.kernel.KernelRoot;
+import org.apache.jackrabbit.oak.kernel.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,17 +46,14 @@ class KernelContentSession implements ContentSession {
     private final QueryEngine queryEngine;
     private final CoreValueFactory valueFactory;
 
-    private NodeState root;
-
     public KernelContentSession(
-            SimpleCredentials credentials, String workspaceName,
-            NodeStore store, NodeState root, QueryEngine queryEngine,
-            CoreValueFactory valueFactory) {
+            SimpleCredentials credentials, String workspaceName, NodeStore store,
+            QueryEngine queryEngine, CoreValueFactory valueFactory) {
+
         this.credentials = credentials;
         this.workspaceName = workspaceName;
         this.store = store;
         this.queryEngine = queryEngine;
-        this.root = root;
         this.valueFactory = valueFactory;
     }
 
@@ -84,22 +79,8 @@ class KernelContentSession implements ContentSession {
     }
     
     @Override
-    public void refresh() {
-        root = store.getRoot().getChildNode(workspaceName);
-    }
-
-    @Override
-    public void commit(Branch branch) throws CommitFailedException {
-        try {
-            store.merge(branch);
-        } catch (MicroKernelException e) {
-            throw new CommitFailedException(e);
-        }
-    }
-
-    @Override
-    public Branch branchRoot() {
-        return store.branch(root);
+    public Root getCurrentRoot() {
+        return new KernelRoot(store, workspaceName);
     }
 
     @Override

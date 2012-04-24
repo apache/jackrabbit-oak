@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.jcr;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
 import org.apache.jackrabbit.commons.iterator.PropertyIteratorAdapter;
-import org.apache.jackrabbit.oak.api.Branch;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -871,7 +871,7 @@ public class NodeImpl extends ItemImpl implements Node  {
         return getTree();
     }
 
-    private Branch getBranch() {
+    private Root getBranch() {
         return sessionContext.getBranch();
     }
 

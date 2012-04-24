@@ -20,7 +20,7 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.Branch;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 
 import javax.jcr.RepositoryException;
@@ -38,6 +38,6 @@ public interface SessionContext<T extends Session> {
     LockManager getLockManager() throws RepositoryException;
     NodeTypeManager getNodeTypeManager() throws RepositoryException;
     VersionManager getVersionManager() throws RepositoryException;
-    Branch getBranch();
+    Root getBranch();
     Tree getContentTree(NodeImpl node);
 }
