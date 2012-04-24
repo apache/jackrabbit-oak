@@ -18,35 +18,29 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.assertNull;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.simple.SimpleKernelImpl;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.junit.Before;
-import org.junit.Test;
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertFalse;
+import static junit.framework.Assert.assertNotNull;
+import static junit.framework.Assert.assertNull;
 
-public class KernelNodeStateTest {
+public class KernelNodeStateTest extends AbstractOakTest {
 
-    private NodeState state;
-
-    @Before
-    public void setUp() {
-        MicroKernel kernel = new SimpleKernelImpl("mem:KernelNodeStateTest");
+    @Override
+    KernelNodeState createInitialState() {
         String jsop =
                 "+\"test\":{\"a\":1,\"b\":2,\"c\":3,"
                 + "\"x\":{},\"y\":{},\"z\":{}}";
-        String revision = kernel.commit(
-                "/", jsop, kernel.getHeadRevision(), "test data");
-        state = new KernelNodeState(kernel, "/test", revision);
+        String revision = microKernel.commit(
+                "/", jsop, microKernel.getHeadRevision(), "test data");
+        return new KernelNodeState(microKernel, valueFactory, "/test", revision);
     }
 
     @Test
@@ -57,11 +51,11 @@ public class KernelNodeStateTest {
     @Test
     public void testGetProperty() {
         assertEquals("a", state.getProperty("a").getName());
-        assertEquals(1, state.getProperty("a").getScalar().getLong());
+        assertEquals(1, state.getProperty("a").getValue().getLong());
         assertEquals("b", state.getProperty("b").getName());
-        assertEquals(2, state.getProperty("b").getScalar().getLong());
+        assertEquals(2, state.getProperty("b").getValue().getLong());
         assertEquals("c", state.getProperty("c").getName());
-        assertEquals(3, state.getProperty("c").getScalar().getLong());
+        assertEquals(3, state.getProperty("c").getValue().getLong());
         assertNull(state.getProperty("x"));
     }
 
@@ -71,7 +65,7 @@ public class KernelNodeStateTest {
         List<Long> values = new ArrayList<Long>();
         for (PropertyState property : state.getProperties()) {
             names.add(property.getName());
-            values.add(property.getScalar().getLong());
+            values.add(property.getValue().getLong());
         }
         Collections.sort(names);
         Collections.sort(values);
@@ -128,5 +122,4 @@ public class KernelNodeStateTest {
         // Zero count
         assertFalse(state.getChildNodeEntries(0, 0).iterator().hasNext());
     }
-
 }

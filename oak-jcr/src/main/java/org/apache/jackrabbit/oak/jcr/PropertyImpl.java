@@ -340,7 +340,7 @@ public class PropertyImpl extends ItemImpl implements Property {
             throw new ValueFormatException(LogUtil.safeGetJCRPath(this) + " is multi-valued.");
         }
 
-        return ValueConverter.toValue(getValueFactory(), getPropertyState().getScalar());
+        return ValueConverter.toValue(getPropertyState().getValue(), sessionContext);
     }
 
     @Override
@@ -350,7 +350,7 @@ public class PropertyImpl extends ItemImpl implements Property {
             throw new ValueFormatException(LogUtil.safeGetJCRPath(this) + " is not multi-valued.");
         }
 
-        return ValueConverter.toValues(getValueFactory(), getPropertyState().getArray());
+        return ValueConverter.toValues(getPropertyState().getValues(), sessionContext);
     }
 
     /**
@@ -566,7 +566,7 @@ public class PropertyImpl extends ItemImpl implements Property {
             remove();
         }
         else {
-            getParentContentTree().setProperty(name(), ValueConverter.toScalar(value));
+            getParentContentTree().setProperty(name(), ValueConverter.toCoreValue(value, sessionContext));
         }
     }
 
@@ -586,7 +586,7 @@ public class PropertyImpl extends ItemImpl implements Property {
             remove();
         }
         else {
-            getParentContentTree().setProperty(name(), ValueConverter.toScalar(values));
+            getParentContentTree().setProperty(name(), ValueConverter.toCoreValues(values, sessionContext));
         }
     }
 

@@ -18,15 +18,14 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.simple.SimpleKernelImpl;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Scalar;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.junit.Before;
 import org.junit.Test;
 
+import javax.jcr.PropertyType;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -39,17 +38,23 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-public class KernelRootTest {
+public class KernelRootTest extends AbstractOakTest {
 
-    private final MicroKernel microkernel = new SimpleKernelImpl("mem:");
-    private final KernelNodeStore store = new KernelNodeStore(microkernel);
+    private KernelNodeStore store;
 
     @Before
     public void setUp() {
+        super.setUp();
+        store = new KernelNodeStore(microKernel, valueFactory);
+    }
+
+    @Override
+    KernelNodeState createInitialState() {
         String jsop =
                 "+\"test\":{\"a\":1,\"b\":2,\"c\":3,"
                         + "\"x\":{},\"y\":{},\"z\":{}}";
-        microkernel.commit("/", jsop, microkernel.getHeadRevision(), "test data");
+        String revision = microKernel.commit("/", jsop, microKernel.getHeadRevision(), "test data");
+        return new KernelNodeState(microKernel, valueFactory, "/test", revision);
     }
 
     @Test
@@ -75,8 +80,8 @@ public class KernelRootTest {
         propertyState = tree.getProperty("a");
         assertNotNull(propertyState);
         assertFalse(propertyState.isArray());
-        assertEquals(Scalar.Type.LONG, propertyState.getScalar().getType());
-        assertEquals(1, propertyState.getScalar().getLong());
+        assertEquals(PropertyType.LONG, propertyState.getValue().getType());
+        assertEquals(1, propertyState.getValue().getLong());
     }
 
     @Test
@@ -102,17 +107,17 @@ public class KernelRootTest {
         KernelRoot root = new KernelRoot(store, "test");
         Tree tree = root.getTree("/");
 
-        Map<String, Scalar> expectedProperties = new HashMap<String, Scalar>();
-        expectedProperties.put("a", ScalarImpl.longScalar(1));
-        expectedProperties.put("b", ScalarImpl.longScalar(2));
-        expectedProperties.put("c", ScalarImpl.longScalar(3));
+        Map<String, CoreValue> expectedProperties = new HashMap<String, CoreValue>();
+        expectedProperties.put("a", valueFactory.createValue(1));
+        expectedProperties.put("b", valueFactory.createValue(2));
+        expectedProperties.put("c", valueFactory.createValue(3));
 
         Iterable<PropertyState> properties = tree.getProperties();
         for (PropertyState property : properties) {
-            Scalar value = expectedProperties.remove(property.getName());
+            CoreValue value = expectedProperties.remove(property.getName());
             assertNotNull(value);
             assertFalse(property.isArray());
-            assertEquals(value, property.getScalar());
+            assertEquals(value, property.getValue());
         }
 
         assertTrue(expectedProperties.isEmpty());
@@ -175,12 +180,12 @@ public class KernelRootTest {
         Tree tree = root.getTree("/");
 
         assertFalse(tree.hasProperty("new"));
-        Scalar value = ScalarImpl.stringScalar("value");
+        CoreValue value = valueFactory.createValue("value");
         tree.setProperty("new", value);
         PropertyState property = tree.getProperty("new");
         assertNotNull(property);
         assertEquals("new", property.getName());
-        assertEquals(value, property.getScalar());
+        assertEquals(value, property.getValue());
 
         root.commit();
         tree = root.getTree("/");
@@ -188,7 +193,7 @@ public class KernelRootTest {
         property = tree.getProperty("new");
         assertNotNull(property);
         assertEquals("new", property.getName());
-        assertEquals(value, property.getScalar());
+        assertEquals(value, property.getValue());
     }
 
     @Test
@@ -312,7 +317,7 @@ public class KernelRootTest {
 
         assertEquals(3, tree.getPropertyCount());
 
-        Scalar value = ScalarImpl.stringScalar("foo");
+        CoreValue value = valueFactory.createValue("foo");
         tree.setProperty("a", value);
         assertEquals(3, tree.getPropertyCount());
 

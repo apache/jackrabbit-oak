@@ -19,21 +19,24 @@
 package org.apache.jackrabbit.oak.kernel;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.oak.api.CoreValueFactory;
 
 /**
  * {@link MicroKernel}-based {@link NodeStore} implementation.
  */
 public class KernelNodeStore implements NodeStore {
 
-    final MicroKernel kernel;  // FIXME make private
+    final MicroKernel kernel;
+    final CoreValueFactory valueFactory;
 
-    public KernelNodeStore(MicroKernel kernel) {
+    public KernelNodeStore(MicroKernel kernel, CoreValueFactory valueFactory) {
         this.kernel = kernel;
+        this.valueFactory = valueFactory;
     }
 
     @Override
     public NodeState getRoot() {
-        return new KernelNodeState(kernel, "/", kernel.getHeadRevision());
+        return new KernelNodeState(kernel, valueFactory, "/", kernel.getHeadRevision());
     }
 
     @Override

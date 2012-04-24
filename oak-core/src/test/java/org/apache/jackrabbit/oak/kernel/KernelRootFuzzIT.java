@@ -21,9 +21,11 @@ package org.apache.jackrabbit.oak.kernel;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.simple.SimpleKernelImpl;
 import org.apache.jackrabbit.mk.util.PathUtils;
+import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Scalar;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.core.CoreValueFactoryImpl;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -62,6 +64,8 @@ public class KernelRootFuzzIT {
 
     private int counter;
 
+    private CoreValueFactory vf;
+
     @Parameters
     public static List<Object[]> seeds() {
         // todo use random sees, log seed, provide means to start with specific seed
@@ -83,12 +87,13 @@ public class KernelRootFuzzIT {
         counter = 0;
 
         MicroKernel mk1 = new SimpleKernelImpl("mem:");
-        store1 = new KernelNodeStore(mk1);
+        vf = new CoreValueFactoryImpl(mk1);
+        store1 = new KernelNodeStore(mk1, vf);
         mk1.commit("", "+\"/test\":{} +\"/test/root\":{}", mk1.getHeadRevision(), "");
         root1 = new KernelRoot(store1, "test");
 
         MicroKernel mk2 = new SimpleKernelImpl("mem:");
-        store2 = new KernelNodeStore(mk2);
+        store2 = new KernelNodeStore(mk2, vf);
         mk2.commit("", "+\"/test\":{} +\"/test/root\":{}", mk2.getHeadRevision(), "");
         root2 = new KernelRoot(store2, "test");
     }
@@ -221,9 +226,9 @@ public class KernelRootFuzzIT {
         static class SetProperty extends Operation {
             private final String parentPath;
             private String propertyName;
-            private Scalar propertyValue;
+            private CoreValue propertyValue;
 
-            SetProperty(String parentPath, String name, Scalar value) {
+            SetProperty(String parentPath, String name, CoreValue value) {
                 this.parentPath = parentPath;
                 this.propertyName = name;
                 this.propertyValue = value;
@@ -344,7 +349,7 @@ public class KernelRootFuzzIT {
     private Operation createAddProperty() {
         String parent = chooseNodePath();
         String name = createPropertyName();
-        Scalar value = createValue();
+        CoreValue value = createValue();
         return new SetProperty(parent, name, value);
     }
 
@@ -353,7 +358,7 @@ public class KernelRootFuzzIT {
         if (path == null) {
             return null;
         }
-        Scalar value = createValue();
+        CoreValue value = createValue();
         return new SetProperty(PathUtils.getParentPath(path), PathUtils.getName(path), value);
     }
 
@@ -414,8 +419,8 @@ public class KernelRootFuzzIT {
         return null;
     }
 
-    private Scalar createValue() {
-        return ScalarImpl.stringScalar("V" + counter++);
+    private CoreValue createValue() {
+        return vf.createValue("V" + counter++);
     }
 
     private static void checkEqual(Tree tree1, Tree tree2) {

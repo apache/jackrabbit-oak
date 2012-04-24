@@ -184,7 +184,7 @@ public interface Tree {
      * @param name The name of this property
      * @param value The value of this property
      */
-    void setProperty(String name, Scalar value);
+    void setProperty(String name, CoreValue value);
 
     /**
      * Set a multivalued valued property state
@@ -192,7 +192,7 @@ public interface Tree {
      * @param name The name of this property
      * @param values The value of this property
      */
-    void setProperty(String name, List<Scalar> values);
+    void setProperty(String name, List<CoreValue> values);
 
     /**
      * Remove a property
