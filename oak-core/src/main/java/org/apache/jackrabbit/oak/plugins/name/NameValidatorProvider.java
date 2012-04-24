@@ -34,6 +34,7 @@ public class NameValidatorProvider implements ValidatorProvider {
         prefixes.add("jcr");
         prefixes.add("nt");
         prefixes.add("mix");
+        prefixes.add("sv");
 
         // Jackrabbit 2.x prefixes are always available
         prefixes.add("rep");
