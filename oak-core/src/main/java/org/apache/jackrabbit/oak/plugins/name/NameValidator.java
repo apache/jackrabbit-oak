@@ -36,15 +36,17 @@ class NameValidator implements Validator {
         String local = name;
 
         int colon = name.indexOf(':');
+        if (colon == name.length() - 1) {
+            throw new CommitFailedException("Local name most not be empty");
+        }
         if (colon != -1) {
             prefix = name.substring(0, colon);
             local = name.substring(colon + 1);
         }
 
-        if (!(prefix == null || prefixes.contains(prefix))
+        if (!(prefix == null || !prefixes.contains(prefix))
                 || !isValidLocalName(local)) {
-            throw new CommitFailedException(
-                    "Self or parent paths (. or ..) are not valid as names");
+            throw new CommitFailedException("Invalid name: " + name);
         }
     }
 
