@@ -21,13 +21,13 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.kernel.NodeState;
-import org.apache.jackrabbit.oak.kernel.NodeValidator;
-import org.apache.jackrabbit.oak.kernel.NodeValidatorProvider;
+import org.apache.jackrabbit.oak.kernel.Validator;
+import org.apache.jackrabbit.oak.kernel.ValidatorProvider;
 
-public class NameValidatorProvider implements NodeValidatorProvider {
+public class NameValidatorProvider implements ValidatorProvider {
 
     @Override
-    public NodeValidator getRootValidator(NodeState before, NodeState after) {
+    public Validator getRootValidator(NodeState before, NodeState after) {
         Set<String> prefixes = new HashSet<String>();
 
         // Default JCR prefixes are always available

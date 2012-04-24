@@ -23,9 +23,9 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Scalar;
 import org.apache.jackrabbit.oak.kernel.NodeState;
-import org.apache.jackrabbit.oak.kernel.NodeValidator;
+import org.apache.jackrabbit.oak.kernel.Validator;
 
-class TypeValidator implements NodeValidator {
+class TypeValidator implements Validator {
 
     private final Set<String> types;
 
@@ -72,7 +72,7 @@ class TypeValidator implements NodeValidator {
     }
 
     @Override
-    public NodeValidator childNodeAdded(String name, NodeState after)
+    public Validator childNodeAdded(String name, NodeState after)
             throws CommitFailedException {
         // TODO: validate added child node
         // TODO: get the type for validating the child contents
@@ -80,7 +80,7 @@ class TypeValidator implements NodeValidator {
     }
 
     @Override
-    public NodeValidator childNodeChanged(
+    public Validator childNodeChanged(
             String name, NodeState before, NodeState after)
             throws CommitFailedException {
         // TODO: validate changed child node
@@ -89,7 +89,7 @@ class TypeValidator implements NodeValidator {
     }
 
     @Override
-    public NodeValidator childNodeDeleted(String name, NodeState before) {
+    public Validator childNodeDeleted(String name, NodeState before) {
         // TODO: validate removed child node
         return null;
     }
