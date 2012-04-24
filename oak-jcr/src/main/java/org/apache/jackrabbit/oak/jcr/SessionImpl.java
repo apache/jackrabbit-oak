@@ -20,7 +20,7 @@ import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.AbstractSession;
-import org.apache.jackrabbit.oak.api.Branch;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -64,14 +64,14 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     private final SessionContext<SessionImpl> sessionContext = new Context();
 
     private boolean isAlive = true;
-    private Branch branch;
+    private Root root;
 
     SessionImpl(GlobalContext globalContext, ContentSession contentSession) {
         this.globalContext = globalContext;
         this.contentSession = contentSession;
         this.valueFactory = new ValueFactoryImpl(contentSession.getCoreValueFactory());
         workspace = new WorkspaceImpl(sessionContext);
-        this.branch = contentSession.branchRoot();
+        this.root = contentSession.getCurrentRoot();
     }
 
 
@@ -124,7 +124,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     @Override
     public Node getRootNode() throws RepositoryException {
         ensureIsAlive();
-        return new NodeImpl(sessionContext, branch.getTree("/"));
+        return new NodeImpl(sessionContext, root.getTree("/"));
     }
 
     @Override
@@ -151,7 +151,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
 
         String srcPath = Paths.relativize("/", srcAbsPath);
         String destPath = Paths.relativize("/", destAbsPath);
-        branch.move(srcPath, destPath);
+        root.move(srcPath, destPath);
     }
 
     //------------------------------------------------------------< state >---
@@ -160,9 +160,8 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     public void save() throws RepositoryException {
         ensureIsAlive();
         try {
-            contentSession.commit(branch);
-            contentSession.refresh();
-            branch = contentSession.branchRoot();
+            root.commit();
+            root = contentSession.getCurrentRoot();  // TODO branch should be refreshed. double check
         } catch (CommitFailedException e) {
             throw new RepositoryException(e);
         }
@@ -171,9 +170,9 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     @Override
     public void refresh(boolean keepChanges) throws RepositoryException {
         ensureIsAlive();
-        contentSession.refresh();
+        root.refresh();
         if (!keepChanges) {
-            branch = contentSession.branchRoot();
+            root = contentSession.getCurrentRoot();
         }
     }
 
@@ -476,13 +475,13 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
         }
 
         @Override
-        public Branch getBranch() {
-            return branch;
+        public Root getBranch() {
+            return root;
         }
 
         @Override
         public Tree getContentTree(NodeImpl node) {
-            return branch.getTree(node.path());
+            return root.getTree(node.path());
         }
     }
 }

@@ -19,10 +19,12 @@
 package org.apache.jackrabbit.oak.kernel;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.json.JsonBuilder;
-import org.apache.jackrabbit.oak.api.Branch;
-import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Scalar;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.kernel.KernelTree.Listener;
 
 import java.util.List;
@@ -32,9 +34,10 @@ import static org.apache.jackrabbit.mk.util.PathUtils.getName;
 import static org.apache.jackrabbit.mk.util.PathUtils.getParentPath;
 
 /**
+ * TODO update javadoc
  * This {@code Branch} implementation accumulates all changes into a json diff
  * and applies them to the microkernel on
- * {@link NodeStore#merge(org.apache.jackrabbit.oak.api.Branch)}
+ * {@link NodeStore#merge(org.apache.jackrabbit.oak.api.Root)}
  *
  * TODO: review/rewrite when OAK-45 is resolved
  * When the MicroKernel has support for branching and merging private working copies,
@@ -44,24 +47,26 @@ import static org.apache.jackrabbit.mk.util.PathUtils.getParentPath;
  *   transient space gets too big.
  * - spool write operations through to the private working copy on a background thread
  */
-public class KernelBranch implements Branch {
+public class KernelRoot implements Root {
 
-    /** Log of changes to this branch */
-    private final ChangeLog changeLog = new ChangeLog();
+    private final NodeStore store;
+    private final String workspaceName;
 
     /** Base node state of this private branch */
-    private final NodeState base;
+    private KernelNodeState base;
 
     /** Root state of this branch */
-    private final KernelTree root;
+    private KernelTree root;
 
-    /**
-     * Create a new branch for the given base node state
-     * @param base  base node state of the private branch
-     */
-    KernelBranch(NodeState base) {
-        this.base = base;
-        root = new KernelTree(base, changeLog);
+    /** Log of changes to this branch */
+    private ChangeLog changeLog = new ChangeLog();
+
+
+    public KernelRoot(NodeStore store, String workspaceName) {
+        this.store = store;
+        this.workspaceName = workspaceName;
+        this.base = (KernelNodeState) store.getRoot().getChildNode(workspaceName);  // FIXME don't cast to implementation
+        this.root = new KernelTree(base, changeLog);
     }
 
     @Override
@@ -95,6 +100,25 @@ public class KernelBranch implements Branch {
         return getTransientState(path);
     }
 
+    @Override
+    public void refresh() {
+        this.base = (KernelNodeState) store.getRoot().getChildNode(workspaceName);  // FIXME don't cast to implementation
+        this.root = new KernelTree(base, changeLog);
+    }
+
+    @Override
+    public void commit() throws CommitFailedException {
+        // TODO implicit refresh, doc in contract
+        MicroKernel kernel = ((KernelNodeStore) store).kernel;  // FIXME don't cast to implementation
+        try {
+            mergeInto(kernel, base);
+            changeLog = new ChangeLog();
+            refresh();
+        } catch (MicroKernelException e) {
+            throw new CommitFailedException(e);
+        }
+    }
+
 
     //------------------------------------------------------------< internal >---
     /**
@@ -113,7 +137,7 @@ public class KernelBranch implements Branch {
      * @param target target of the merge operation
      * @return node state resulting from merging
      */
-    KernelNodeState mergeInto(MicroKernel microkernel, KernelNodeState target) {
+    KernelNodeState mergeInto(MicroKernel microkernel, KernelNodeState target) {  // TODO refactor into commit
         String targetPath = target.getPath();
         String targetRevision = target.getRevision();
         String rev = microkernel.commit(targetPath, changeLog.toJsop(), targetRevision, null);

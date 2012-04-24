@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import org.apache.jackrabbit.oak.api.Branch;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -606,7 +606,7 @@ public class PropertyImpl extends ItemImpl implements Property {
         }
     }
 
-    private Branch getBranch() {
+    private Root getBranch() {
         return sessionContext.getBranch();
     }
 

@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.jcr;
 
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
-import org.apache.jackrabbit.oak.api.Branch;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.jcr.query.QueryManagerImpl;
@@ -89,13 +89,13 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
 
         try {
             ContentSession contentSession = sessionContext.getContentSession();
-            Branch branch = contentSession.branchRoot();
+            Root root = contentSession.getCurrentRoot();
 
             String srcPath = Paths.relativize("/", srcAbsPath);
             String destPath = Paths.relativize("/", destAbsPath);
-            branch.copy(srcPath, destPath);
+            root.copy(srcPath, destPath);
 
-            contentSession.commit(branch);
+            root.commit();
         }
         catch (CommitFailedException e) {
             throw new RepositoryException(e);
@@ -120,13 +120,13 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
 
         try {
             ContentSession contentSession = sessionContext.getContentSession();
-            Branch branch = contentSession.branchRoot();
+            Root root = contentSession.getCurrentRoot();
 
             String srcPath = Paths.relativize("/", srcAbsPath);
             String destPath = Paths.relativize("/", destAbsPath);
-            branch.move(srcPath, destPath);
+            root.move(srcPath, destPath);
 
-            contentSession.commit(branch);
+            root.commit();
         }
         catch (CommitFailedException e) {
             throw new RepositoryException(e);

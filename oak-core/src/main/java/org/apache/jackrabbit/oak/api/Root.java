@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.api;
 /**
  * An branch for modifying existing and creating new node states.
  */
-public interface Branch {
+public interface Root {
 
     /**
      * Move the child located at {@code sourcePath} to a child
@@ -58,5 +58,18 @@ public interface Branch {
      * such tree exists
      */
     Tree getTree(String path);
+
+    /**
+     * Refresh this content session to the latest revision of the underlying Microkernel.
+     */
+    void refresh();
+
+    /**
+     * Atomically apply all changes in the passed {@code branch} to the underlying
+     * Microkernel.
+     *
+     * @throws CommitFailedException TODO: add description and clarify how JCR exception can be generated from this generic exception
+     */
+    void commit() throws CommitFailedException;
 
 }
