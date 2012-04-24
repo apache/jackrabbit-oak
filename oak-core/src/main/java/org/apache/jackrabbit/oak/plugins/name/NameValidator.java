@@ -16,12 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.name;
 
-import java.util.Set;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commit.Validator;
 import org.apache.jackrabbit.oak.kernel.NodeState;
+
+import java.util.Set;
 
 class NameValidator implements Validator {
 
@@ -48,7 +48,7 @@ class NameValidator implements Validator {
         }
     }
 
-    private boolean isValidLocalName(String local) {
+    private static boolean isValidLocalName(String local) {
         if (".".equals(local) || "..".equals(local)) {
             return false;
         }
