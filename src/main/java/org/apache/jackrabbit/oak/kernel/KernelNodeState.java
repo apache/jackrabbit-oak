@@ -21,8 +21,9 @@ package org.apache.jackrabbit.oak.kernel;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
+import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Scalar;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -42,6 +43,7 @@ class KernelNodeState extends AbstractNodeState {
     static final int MAX_CHILD_NODE_NAMES = 1000;
 
     private final MicroKernel kernel;
+    private final CoreValueFactory valueFactory;
 
     private final String path;
 
@@ -59,11 +61,13 @@ class KernelNodeState extends AbstractNodeState {
      * underlying Microkernel does not contain such a node.
      *
      * @param kernel
+     * @param valueFactory
      * @param path
      * @param revision
      */
-    public KernelNodeState(MicroKernel kernel, String path, String revision) {
+    public KernelNodeState(MicroKernel kernel, CoreValueFactory valueFactory, String path, String revision) {
         this.kernel = kernel;
+        this.valueFactory = valueFactory;
         this.path = path;
         this.revision = revision;
     }
@@ -89,25 +93,12 @@ class KernelNodeState extends AbstractNodeState {
                     if ("/".equals(path)) {
                         childPath = '/' + name;
                     }
-                    childNodes.put(name, new KernelNodeState(
-                            kernel, childPath, revision));
-                } else if (reader.matches(JsopTokenizer.NUMBER)) {
-                    properties.put(name, new KernelPropertyState(
-                            name, ScalarImpl.numberScalar(reader.getToken())));
-                } else if (reader.matches(JsopTokenizer.STRING)) {
-                    properties.put(name, new KernelPropertyState(
-                            name, ScalarImpl.stringScalar(reader.getToken())));
-                } else if (reader.matches(JsopTokenizer.TRUE)) {
-                    properties.put(name, new KernelPropertyState(
-                            name, ScalarImpl.booleanScalar(true)));
-                } else if (reader.matches(JsopTokenizer.FALSE)) {
-                    properties.put(name, new KernelPropertyState(
-                            name, ScalarImpl.booleanScalar(false)));
+                    childNodes.put(name, new KernelNodeState(kernel, valueFactory, childPath, revision));
                 } else if (reader.matches('[')) {
-                    properties.put(name, new KernelPropertyState(
-                            name, readArray(reader)));
+                    properties.put(name, new KernelPropertyState(name, readArray(reader)));
                 } else {
-                    throw new IllegalArgumentException("Unexpected token: " + reader.getToken());
+                    CoreValue cv = readValue(reader);
+                    properties.put(name, new KernelPropertyState(name, cv));
                 }
             } while (reader.matches(','));
             reader.read('}');
@@ -146,7 +137,7 @@ class KernelNodeState extends AbstractNodeState {
         if (child == null && childNodeCount > MAX_CHILD_NODE_NAMES) {
             String childPath = getChildPath(name);
             if (kernel.nodeExists(childPath, revision)) {
-                child = new KernelNodeState(kernel, childPath, revision);
+                child = new KernelNodeState(kernel, valueFactory, childPath, revision);
             }
         }
         return child;
@@ -194,7 +185,7 @@ class KernelNodeState extends AbstractNodeState {
                     reader.read('}');
                     String childPath = getChildPath(name);
                     NodeState child =
-                            new KernelNodeState(kernel, childPath, revision);
+                            new KernelNodeState(kernel, valueFactory, childPath, revision);
                     entries.add(new KernelChildNodeEntry(name, child));
                 } else {
                     reader.read();
@@ -225,23 +216,37 @@ class KernelNodeState extends AbstractNodeState {
         }
     }
 
-    private static List<Scalar> readArray(JsopReader reader) {
-        List<Scalar> values = new ArrayList<Scalar>();
+    private List<CoreValue> readArray(JsopReader reader) {
+        List<CoreValue> values = new ArrayList<CoreValue>();
         while (!reader.matches(']')) {
-            if (reader.matches(JsopTokenizer.NUMBER)) {
-                values.add(ScalarImpl.numberScalar(reader.getToken()));
-            } else if (reader.matches(JsopTokenizer.STRING)) {
-                values.add(ScalarImpl.stringScalar(reader.getToken()));
-            } else if (reader.matches(JsopTokenizer.TRUE)) {
-                values.add(ScalarImpl.booleanScalar(true));
-            } else if (reader.matches(JsopTokenizer.FALSE)) {
-                values.add(ScalarImpl.booleanScalar(false));
-            } else {
-                throw new IllegalArgumentException("Unexpected token: " + reader.getToken());
-            }
+            values.add(readValue(reader));
             reader.matches(',');
         }
         return values;
+    }
+
+    private CoreValue readValue(JsopReader reader) {
+        CoreValue value;
+        // TODO properly handle property types not covered by JSON: Binary, double, decimal, date, name, path, (weak)ref, uri
+        if (reader.matches(JsopTokenizer.NUMBER)) {
+            String number = reader.getToken();
+            // TODO: property deal with different number types (double, BigDecimal)
+            if (number.indexOf('.') > -1) {
+                value = valueFactory.createValue(Double.valueOf(number));
+            } else {
+                value = valueFactory.createValue(Long.valueOf(number));
+            }
+        } else if (reader.matches(JsopTokenizer.TRUE)) {
+            value = valueFactory.createValue(true);
+        } else if (reader.matches(JsopTokenizer.FALSE)) {
+            value = valueFactory.createValue(false);
+        } else if (reader.matches(JsopTokenizer.STRING)) {
+            // TODO: deal with other property types
+            value = valueFactory.createValue(reader.getToken());
+        }  else {
+            throw new IllegalArgumentException("Unexpected token: " + reader.getToken());
+        }
+        return value;
     }
 
 }

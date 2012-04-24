@@ -52,8 +52,8 @@ public class KernelContentRepository implements ContentRepository {
 
     public KernelContentRepository(MicroKernel mk) {
         microKernel = mk;
-        nodeStore = new KernelNodeStore(microKernel);
         valueFactory = new CoreValueFactoryImpl(microKernel);
+        nodeStore = new KernelNodeStore(microKernel, valueFactory);
         queryEngine = new QueryEngineImpl(microKernel, valueFactory);
 
         // FIXME: workspace setup must be done elsewhere...
@@ -95,8 +95,7 @@ public class KernelContentRepository implements ContentRepository {
             throw new NoSuchWorkspaceException(workspaceName);
         }
 
-        return new KernelContentSession(
-                sc, workspaceName, nodeStore, queryEngine, valueFactory);
+        return new KernelContentSession(sc, workspaceName, nodeStore, queryEngine, valueFactory);
     }
 
 }

@@ -46,12 +46,12 @@ public interface PropertyState {
      * @return  the single value of this property or {@code null} if this is a multi
      * valued property.
      */
-    Scalar getScalar();
+    CoreValue getValue();
 
     /**
      * @return  an iterable of the values of this multi valued property or
      * {@code null} if this is not a multi valued property.
      */
-    Iterable<Scalar> getArray();
+    Iterable<CoreValue> getValues();
 
 }

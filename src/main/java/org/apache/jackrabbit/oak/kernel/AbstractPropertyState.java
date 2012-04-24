@@ -18,8 +18,8 @@ package org.apache.jackrabbit.oak.kernel;
 
 import java.util.Iterator;
 
+import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Scalar;
 
 /**
  * Abstract base class for {@link PropertyState} implementations.
@@ -54,15 +54,15 @@ public abstract class AbstractPropertyState implements PropertyState {
         if (isArray() != other.isArray()) {
             return false;
         } else if (isArray()) {
-            Iterator<Scalar> iterator = other.getArray().iterator();
-            for (Scalar scalar : getArray()) {
-                if (!iterator.hasNext() || !scalar.equals(iterator.next())) {
+            Iterator<CoreValue> iterator = other.getValues().iterator();
+            for (CoreValue value : getValues()) {
+                if (!iterator.hasNext() || !value.equals(iterator.next())) {
                     return false;
                 }
             }
             return !iterator.hasNext();
         } else {
-            return getScalar().equals(other.getScalar());
+            return getValue().equals(other.getValue());
         }
     }
 

@@ -23,6 +23,9 @@ import java.util.concurrent.Callable;
 
 import org.apache.jackrabbit.oak.api.Scalar;
 
+/**
+ * TODO: remove if really not needed any more
+ */
 public abstract class ScalarImpl implements Scalar {
 
     private static final NullScalar NULL_SCALAR = new NullScalar();

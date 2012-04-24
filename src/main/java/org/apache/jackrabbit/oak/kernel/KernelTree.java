@@ -18,9 +18,9 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
+import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Scalar;
 import org.apache.jackrabbit.oak.util.Function1;
 import org.apache.jackrabbit.oak.util.Iterators;
 import org.apache.jackrabbit.oak.util.PagedIterator;
@@ -100,7 +100,7 @@ public class KernelTree implements Tree {
          * @param name  name of the property
          * @param value  value of the property
          */
-        void setProperty(KernelTree tree, String name, Scalar value);
+        void setProperty(KernelTree tree, String name, CoreValue value);
 
         /**
          * The property of the given {@code name} and {@code values} has been set.
@@ -108,7 +108,7 @@ public class KernelTree implements Tree {
          * @param name  name of the property
          * @param values  values of the property
          */
-        void setProperty(KernelTree tree, String name, List<Scalar> values);
+        void setProperty(KernelTree tree, String name, List<CoreValue> values);
 
         /**
          * The property of the given {@code name} has been removed.
@@ -441,7 +441,7 @@ public class KernelTree implements Tree {
     }
 
     @Override
-    public void setProperty(String name, Scalar value) {
+    public void setProperty(String name, CoreValue value) {
         PropertyState propertyState = new KernelPropertyState(name, value);
         setProperty(propertyState);
         if (listener != null) {
@@ -450,7 +450,7 @@ public class KernelTree implements Tree {
     }
 
     @Override
-    public void setProperty(String name, List<Scalar> values) {
+    public void setProperty(String name, List<CoreValue> values) {
         PropertyState propertyState = new KernelPropertyState(name, values);
         setProperty(propertyState);
         if (listener != null) {
