@@ -89,7 +89,6 @@ public class KernelContentRepository implements ContentRepository {
             throw new LoginException("login failed");
         }
 
-        // TODO set revision!?
         NodeState wspRoot = nodeStore.getRoot().getChildNode(workspaceName);
         if (wspRoot == null) {
             throw new NoSuchWorkspaceException(workspaceName);

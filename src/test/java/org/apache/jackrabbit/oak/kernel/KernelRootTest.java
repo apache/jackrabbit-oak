@@ -60,6 +60,7 @@ public class KernelRootTest {
     public void getChild() {
         KernelRoot branch = new KernelRoot(store, "test");
         Tree root = branch.getTree("/");
+
         Tree child = root.getChild("any");
         assertNull(child);
 

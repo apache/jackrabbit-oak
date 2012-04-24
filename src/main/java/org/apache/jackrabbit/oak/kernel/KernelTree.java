@@ -135,7 +135,7 @@ public class KernelTree implements Tree {
     }
 
     /**
-     * Create a new instance representing the root of a branch.
+     * Create a new instance representing the root of a tree
      * @param persistentState  underlying persistent state
      * @param listener  change listener
      */
