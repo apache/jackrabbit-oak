@@ -10,7 +10,7 @@ key interfaces:
 
   * ContentRepository
   * ContentSession
-  * ContentTree
+  * Root / Tree
 
 The `ContentRepository` interface represents an entire Oak content repository.
 The repository may local or remote, or a cluster of any size. These deployment
@@ -41,19 +41,19 @@ All `ContentRepository` and `ContentSession` instances are thread-safe.
 
 The authenticated `ContentSession` gives you properly authorized access to
 the hierarchical content tree inside the repository through instances of the
-`ContentTree` interface. The `getCurrentContentTree()` method returns a
+`Root` and `Tree` interfaces. The `getCurrentRoot()` method returns a
 snapshot of the current state of the content tree:
 
     ContentSession session = ...;
-    ContentTree tree = session.getCurrentContentTree();
+    Root root = session.getCurrentRoot();
+    Tree tree = root.getTree();
 
-The returned `ContentTree` instance belongs to the client and its state is
-only modified in response to method calls made by the client. `ContentTree`
-instances are *not* thread-safe for write access, so writing clients need 
-to ensure that they are not accessed concurrently from multiple threads. 
-`ContentTree` instances *are* however thread-safe for read access, so 
-implementations need to ensure that all reading clients see a coherent 
-state.
+The returned `Tree` instance belongs to the client and its state is only
+modified in response to method calls made by the client. `Tree` instances
+are *not* thread-safe for write access, so writing clients need to ensure
+that they are not accessed concurrently from multiple threads. `Tree`
+instances *are* however thread-safe for read access, so implementations
+need to ensure that all reading clients see a coherent state.
 
 Content trees are recursive data structures that consist of named properties 
 and subtrees that share the same namespace, but are accessed through separate 
@@ -63,36 +63,36 @@ methods like outlined below:
     for (PropertyState property : tree.getProperties()) {
         ...;
     }
-    for (ContentTree subtree : tree.getSubtrees()) {
+    for (Tree subtree : tree.getSubtrees()) {
         ...;
     }
 
-The repository content snapshot exposed by a `ContentTree` instance may
-become invalid over time due to garbage collection of old content, at which
-point an outdated snapshot will start throwing `IllegalStateExceptions` to
+The repository content snapshot exposed by a `Tree` instance may become
+invalid over time due to garbage collection of old content, at which point
+an outdated snapshot will start throwing `IllegalStateExceptions` to
 indicate that the snapshot is no longer available. To access more recent
-content, a client should either call `getCurrentContentTree()` to acquire
-a fresh now content snapshot or use the `refresh()` method to update a
-given `ContentTree` to the latest state of the content repository:
+content, a client should either call `getCurrentRoot()` to acquire a fresh
+new content snapshot or use the `refresh()` method to update a given `Root`
+to the latest state of the content repository:
 
-    ContentSession session = ...;
-    ContentTree tree = ...;
-    session.refresh(tree);
+    Root root = ...;
+    root.refresh();
 
 In addition to reading repository content, the client can also make
-modifications to the content tree. Such content changes remain local
-to the particular `ContentTree` instance (and related subtrees) until
-explicitly committed. For example, the following code creates and commits
-a new subtree containing nothing but a simple property:
+modifications to the content tree. Such content changes remain local to the
+particular `Root` instance (and related subtrees) until explicitly committed.
+For example, the following code creates and commits a new subtree containing
+nothing but a simple property:
 
     ContentSession session = ...;
-    ContentTree tree = ...;
-    ContentTree subtree = tree.addSubtree("hello");
+    Root root = session.getCurrentRoot();
+    Tree tree = root.getTree("/");
+    Tree subtree = tree.addSubtree("hello");
     subtree.setProperty("message", "Hello, World!");
-    session.commit(tree);
+    root.commit();
 
-Even other `ContentTree` instances acquired from the same `ContentSession`
-won't see such changes until they've been committed and the other trees
-refreshed. This allows a client to track multiple parallel sets of changes
-with just a single authenticated session.
+Even other `Root` instances acquired from the same `ContentSession` won't
+see such changes until they've been committed and the other trees refreshed.
+This allows a client to track multiple parallel sets of changes with just a
+single authenticated session.
 
