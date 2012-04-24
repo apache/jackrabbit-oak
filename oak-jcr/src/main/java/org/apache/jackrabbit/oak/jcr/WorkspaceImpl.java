@@ -142,9 +142,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     public LockManager getLockManager() throws RepositoryException {
         ensureIsAlive();
         ensureSupportedOption(Repository.OPTION_LOCKING_SUPPORTED);
-
-        // TODO
-        return null;
+        throw new UnsupportedRepositoryOperationException("TODO");
     }
 
     @Override
@@ -169,27 +167,21 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     @Override
     public NodeTypeManager getNodeTypeManager() throws RepositoryException {
         ensureIsAlive();
-
-        // TODO
-        return null;
+        throw new UnsupportedRepositoryOperationException("TODO");
     }
 
     @Override
     public ObservationManager getObservationManager() throws RepositoryException {
         ensureSupportedOption(Repository.OPTION_OBSERVATION_SUPPORTED);
         ensureIsAlive();
-
-        // TODO
-        return null;
+        throw new UnsupportedRepositoryOperationException("TODO");
     }
 
     @Override
     public VersionManager getVersionManager() throws RepositoryException {
         ensureIsAlive();
         ensureSupportedOption(Repository.OPTION_VERSIONING_SUPPORTED);
-
-        // TODO
-        return null;
+        throw new UnsupportedRepositoryOperationException("TODO");
     }
 
     @Override
@@ -205,9 +197,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     public ContentHandler getImportContentHandler(String parentAbsPath, int uuidBehavior) throws RepositoryException {
         ensureSupportedOption(Repository.LEVEL_2_SUPPORTED);
         ensureIsAlive();
-
-        // TODO
-        return null;
+        throw new UnsupportedRepositoryOperationException("TODO");
     }
 
     @SuppressWarnings("deprecation")
