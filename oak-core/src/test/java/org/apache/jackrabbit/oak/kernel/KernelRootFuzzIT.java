@@ -225,8 +225,8 @@ public class KernelRootFuzzIT {
 
         static class SetProperty extends Operation {
             private final String parentPath;
-            private String propertyName;
-            private CoreValue propertyValue;
+            private final String propertyName;
+            private final CoreValue propertyValue;
 
             SetProperty(String parentPath, String name, CoreValue value) {
                 this.parentPath = parentPath;

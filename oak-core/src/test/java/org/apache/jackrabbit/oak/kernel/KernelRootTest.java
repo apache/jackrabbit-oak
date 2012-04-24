@@ -42,6 +42,7 @@ public class KernelRootTest extends AbstractOakTest {
 
     private KernelNodeStore store;
 
+    @Override
     @Before
     public void setUp() {
         super.setUp();
