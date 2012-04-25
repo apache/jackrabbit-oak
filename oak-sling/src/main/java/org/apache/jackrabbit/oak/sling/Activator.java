@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.jcr.osgi;
+package org.apache.jackrabbit.oak.sling;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -23,7 +23,7 @@ import java.util.Properties;
 import javax.jcr.Repository;
 
 import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.jcr.RepositoryImpl;
+import org.apache.sling.jcr.api.SlingRepository;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
@@ -37,7 +37,10 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
 
     private ServiceTracker tracker;
 
-    private final Map<ServiceReference, ServiceRegistration> services =
+    private final Map<ServiceReference, ServiceRegistration> jcrRepositories =
+            new HashMap<ServiceReference, ServiceRegistration>();
+
+    private final Map<ServiceReference, ServiceRegistration> slingRepositories =
             new HashMap<ServiceReference, ServiceRegistration>();
 
     //-----------------------------------------------------< BundleActivator >--
@@ -61,11 +64,12 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
     public Object addingService(ServiceReference reference) {
         Object service = context.getService(reference);
         if (service instanceof ContentRepository) {
-            ContentRepository repository = (ContentRepository) service;
-            services.put(reference, context.registerService(
-                    Repository.class.getName(),
-                    new RepositoryImpl(repository),
-                    new Properties()));
+            SlingRepository repository =
+                    new SlingRepositoryImpl((ContentRepository) service);
+            jcrRepositories.put(reference, context.registerService(
+                    Repository.class.getName(), repository, new Properties()));
+            slingRepositories.put(reference, context.registerService(
+                    Repository.class.getName(), repository, new Properties()));
             return service;
         } else {
             context.ungetService(reference);
@@ -79,7 +83,8 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
 
     @Override
     public void removedService(ServiceReference reference, Object service) {
-        services.get(reference).unregister();
+        slingRepositories.get(reference).unregister();
+        jcrRepositories.get(reference).unregister();
         context.ungetService(reference);
     }
 
