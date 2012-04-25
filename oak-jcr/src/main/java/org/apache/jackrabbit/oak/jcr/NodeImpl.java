@@ -226,7 +226,9 @@ public class NodeImpl extends ItemImpl implements Node  {
     public Property setProperty(String name, Value value, int type) throws RepositoryException {
         checkStatus();
 
-        getState().setProperty(name, sessionContext.getValueFactory().getCoreValue(value));
+        int targetType = getTargetType(value,  type);
+        Value targetValue = ValueHelper.convert(value, targetType, getValueFactory());
+        getState().setProperty(name, ValueConverter.toCoreValue(targetValue, sessionContext));
         return getProperty(name);
     }
 
@@ -248,7 +250,9 @@ public class NodeImpl extends ItemImpl implements Node  {
     public Property setProperty(String name, Value[] values, int type) throws RepositoryException {
         checkStatus();
 
-        getState().setProperty(name, ValueConverter.toCoreValues(values, sessionContext));
+        int targetType = getTargetType(values, type);
+        Value[] targetValues = ValueHelper.convert(values, targetType, getValueFactory());
+        getState().setProperty(name, ValueConverter.toCoreValues(targetValues, sessionContext));
         return getProperty(name);
     }
 
@@ -916,5 +920,22 @@ public class NodeImpl extends ItemImpl implements Node  {
         return propertyState == null
             ? null
             : new PropertyImpl(sessionContext, parent, propertyState);
+    }
+
+    private int getTargetType(Value value, int type) {
+        if (value == null) {
+            return PropertyType.STRING; // TODO: review again. rather use property definition
+        } else {
+            return value.getType();
+        }
+    }
+
+    private int getTargetType(Value[] values, int type) {
+        if (values == null || values.length == 0) {
+            return PropertyType.STRING; // TODO: review again. rather use property definition
+        } else {
+            // TODO deal with values array containing a null value in the first position
+            return getTargetType(values[0], type);
+        }
     }
 }
