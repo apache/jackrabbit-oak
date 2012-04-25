@@ -100,11 +100,15 @@ public class KernelNodeStateTest extends AbstractOakTest {
     @Test
     public void testGetChildNodeEntriesWithOffset() {
         List<String> names = new ArrayList<String>();
+        for (ChildNodeEntry entry : state.getChildNodeEntries(0, 1)) {
+            names.add(entry.getName());
+        }
+
         for (ChildNodeEntry entry : state.getChildNodeEntries(1, -1)) {
             names.add(entry.getName());
         }
         Collections.sort(names);
-        assertEquals(Arrays.asList("y", "z"), names);
+        assertEquals(Arrays.asList("x", "y", "z"), names);
 
         // Offset beyond the range
         assertFalse(state.getChildNodeEntries(3, -1).iterator().hasNext());
@@ -116,8 +120,11 @@ public class KernelNodeStateTest extends AbstractOakTest {
         for (ChildNodeEntry entry : state.getChildNodeEntries(0, 2)) {
             names.add(entry.getName());
         }
+        for (ChildNodeEntry entry : state.getChildNodeEntries(2, -1)) {
+            names.add(entry.getName());
+        }
         Collections.sort(names);
-        assertEquals(Arrays.asList("x", "y"), names);
+        assertEquals(Arrays.asList("x", "y", "z"), names);
 
         // Zero count
         assertFalse(state.getChildNodeEntries(0, 0).iterator().hasNext());
