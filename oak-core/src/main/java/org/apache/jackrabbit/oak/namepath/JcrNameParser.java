@@ -1,0 +1,175 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.jackrabbit.oak.namepath;
+
+
+import org.apache.jackrabbit.util.XMLChar;
+
+public class JcrNameParser {
+
+    // constants for parser
+    private static final int STATE_PREFIX_START = 0;
+    private static final int STATE_PREFIX = 1;
+    private static final int STATE_NAME_START = 2;
+    private static final int STATE_NAME = 3;
+    private static final int STATE_URI_START = 4;
+    private static final int STATE_URI = 5;
+
+    interface Listener {
+        void error(String message);
+        void name(String name);
+    }
+
+    private JcrNameParser() {
+    }
+
+    public static void parse(String jcrName, Listener listener) {
+        // trivial check
+        int len = jcrName == null ? 0 : jcrName.length();
+        if (len == 0) {
+            listener.error("Empty name");
+            return;
+        }
+        if (".".equals(jcrName) || "..".equals(jcrName)) {
+            listener.error("Illegal name:" + jcrName);
+            return;
+        }
+
+        // parse the name
+        String prefix = "";
+        int nameStart = 0;
+        int state = STATE_PREFIX_START;
+        boolean trailingSpaces = false;
+
+        for (int i = 0; i < len; i++) {
+            char c = jcrName.charAt(i);
+            if (c == ':') {
+                if (state == STATE_PREFIX_START) {
+                    listener.error("Prefix must not be empty");
+                    return;
+                } else if (state == STATE_PREFIX) {
+                    if (trailingSpaces) {
+                        listener.error("Trailing spaces not allowed");
+                        return;
+                    }
+                    prefix = jcrName.substring(0, i);
+                    if (!XMLChar.isValidNCName(prefix)) {
+                        listener.error("Invalid name prefix: "+ prefix);
+                        return;
+                    }
+                    state = STATE_NAME_START;
+                } else if (state == STATE_URI) {
+                    // ignore -> validation of uri later on.
+                } else {
+                    listener.error("'" + c + "' not allowed in name");
+                    return;
+                }
+                trailingSpaces = false;
+            } else if (c == ' ') {
+                if (state == STATE_PREFIX_START || state == STATE_NAME_START) {
+                    listener.error("'" + c + "' not valid name start");
+                    return;
+                }
+                trailingSpaces = true;
+            } else if (Character.isWhitespace(c) || c == '[' || c == ']' || c == '*' || c == '|') {
+                listener.error("'" + c + "' not allowed in name");
+                return;
+            } else if (c == '/') {
+                if (state == STATE_URI_START) {
+                    state = STATE_URI;
+                } else if (state != STATE_URI) {
+                    listener.error("'" + c + "' not allowed in name");
+                    return;
+                }
+                trailingSpaces = false;
+            } else if (c == '{') {
+                if (state == STATE_PREFIX_START) {
+                    state = STATE_URI_START;
+                } else if (state == STATE_URI_START || state == STATE_URI) {
+                    // second '{' in the uri-part -> no valid expanded jcr-name.
+                    // therefore reset the nameStart and change state.
+                    state = STATE_NAME;
+                    nameStart = 0;
+                } else if (state == STATE_NAME_START) {
+                    state = STATE_NAME;
+                    nameStart = i;
+                }
+                trailingSpaces = false;
+            } else if (c == '}') {
+                if (state == STATE_URI_START || state == STATE_URI) {
+                    String tmp = jcrName.substring(1, i);
+                    if (tmp.isEmpty() || tmp.indexOf(':') != -1) {
+                        // The leading "{...}" part is empty or contains
+                        // a colon, so we treat it as a valid namespace URI.
+                        // More detailed validity checks (is it well formed,
+                        // registered, etc.) are not needed here.
+                        state = STATE_NAME_START;
+                    } else if (tmp.equals("internal")) {
+                        // As a special Jackrabbit backwards compatibility
+                        // feature, support {internal} as a valid URI prefix
+                        state = STATE_NAME_START;
+                    } else if (tmp.indexOf('/') == -1) {
+                        // The leading "{...}" contains neither a colon nor
+                        // a slash, so we can interpret it as a a part of a
+                        // normal local name.
+                        state = STATE_NAME;
+                        nameStart = 0;
+                    } else {
+                        listener.error("The URI prefix of the name " + jcrName + " is " +
+                                "neither a valid URI nor a valid part of a local name.");
+                        return;
+                    }
+                } else if (state == STATE_PREFIX_START) {
+                    state = STATE_PREFIX; // prefix start -> validation later on will fail.
+                } else if (state == STATE_NAME_START) {
+                    state = STATE_NAME;
+                    nameStart = i;
+                }
+                trailingSpaces = false;
+            } else {
+                if (state == STATE_PREFIX_START) {
+                    state = STATE_PREFIX; // prefix start
+                } else if (state == STATE_NAME_START) {
+                    state = STATE_NAME;
+                    nameStart = i;
+                } else if (state == STATE_URI_START) {
+                    state = STATE_URI;
+                }
+                trailingSpaces = false;
+            }
+        }
+
+        // take care of qualified jcrNames starting with '{' that are not having
+        // a terminating '}' -> make sure there are no illegal characters present.
+        if (state == STATE_URI && (jcrName.indexOf(':') > -1 || jcrName.indexOf('/') > -1)) {
+            listener.error("Local name may not contain ':' nor '/'");
+            return;
+        }
+
+        if (nameStart == len || state == STATE_NAME_START) {
+            listener.error("Local name must not be empty");
+            return;
+        }
+        if (trailingSpaces) {
+            listener.error("Trailing spaces not allowed");
+            return;
+        }
+
+        listener.name(jcrName);
+    }
+
+}

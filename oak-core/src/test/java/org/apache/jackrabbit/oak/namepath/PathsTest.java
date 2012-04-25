@@ -16,32 +16,19 @@
 */
 package org.apache.jackrabbit.oak.namepath;
 
-import org.apache.jackrabbit.oak.util.Function1;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import org.junit.Test;
 
 public class PathsTest {
-    private static final Function1<String, String> RESOLVER = new Function1<String, String>() {
-        private final Map<String, String> map = new HashMap<String, String>();
-        {
-            map.put("a", "x");
-            map.put("b", "y");
-            map.put("c", "z");
-        }
 
-        @Override
-        public String apply(String argument) {
-            return map.get(argument);
-        }
-    };
-
+    private TestNameMapper mapper = new TestNameMapper();
+    
     @Test
     public void getPrefix() {
         assertEquals(null, Paths.getPrefixFromElement("foo"));
@@ -92,50 +79,50 @@ public class PathsTest {
         assertFalse(Paths.isValidPath("p:a/:/r:c"));
         assertFalse(Paths.isValidPath("p:a//r:c"));
     }
-
+    
     @Test
-    public void resolveElement() {
-        assertEquals("foo", Paths.resolveElement("foo", RESOLVER));
-        assertEquals("x:foo", Paths.resolveElement("a:foo", RESOLVER));
-
-        try {
-            Paths.resolveElement("q:foo", RESOLVER);
-            fail();
-        }
-        catch (IllegalArgumentException expected) {
-        }
+    public void testJcrToOak() {
+        assertEquals("/oak-foo:bar", Paths.toOakPath("/foo:bar", mapper));
+        assertEquals("/oak-foo:bar/oak-quu:qux", Paths.toOakPath("/foo:bar/quu:qux", mapper));
+        assertEquals("oak-foo:bar", Paths.toOakPath("foo:bar", mapper));
+        assertEquals("oak-nt:unstructured", Paths.toOakPath("{http://www.jcp.org/jcr/nt/1.0}unstructured", mapper));
+        assertEquals("foobar/oak-jcr:content", Paths.toOakPath("foobar/{http://www.jcp.org/jcr/1.0}content", mapper));
     }
+    
+    private class TestNameMapper extends AbstractNameMapper {
 
-    @Test
-    public void resolveAbsolutePath() {
-        assertEquals("/foo", Paths.resolvePath("/foo", RESOLVER));
-        assertEquals("/foo/bar", Paths.resolvePath("/foo/bar", RESOLVER));
-        assertEquals("/x:foo", Paths.resolvePath("/a:foo", RESOLVER));
-        assertEquals("/x:foo/y:bar", Paths.resolvePath("/a:foo/b:bar", RESOLVER));
-
-        try {
-            Paths.resolvePath("/a:foo/q:bar", RESOLVER);
-            fail();
+        private Map<String, String> uri2oakprefix = new HashMap<String, String>();
+        
+        public TestNameMapper() {
+            uri2oakprefix.put("", "");
+            uri2oakprefix.put("http://www.jcp.org/jcr/1.0", "jcr");
+            uri2oakprefix.put("http://www.jcp.org/jcr/nt/1.0", "nt");
+            uri2oakprefix.put("http://www.jcp.org/jcr/mix/1.0", "mix");
+            uri2oakprefix.put("http://www.w3.org/XML/1998/namespace", "xml");
         }
-        catch (IllegalArgumentException expected) {
+        
+        @Override
+        protected String getJcrPrefix(String oakPrefix) {
+            if (oakPrefix.length() == 0) {
+                return oakPrefix;
+            } else {
+                return "jcr-" + oakPrefix;
+            }
         }
 
+        @Override
+        protected String getOakPrefix(String jcrPrefix) {
+            if (jcrPrefix.length() == 0) {
+                return jcrPrefix;
+            } else {
+                return "oak-" + jcrPrefix;
+            }
+        }
+
+        @Override
+        protected String getOakPrefixFromURI(String uri) {
+            return "oak-" + uri2oakprefix.get(uri);
+        }
+        
     }
-
-    @Test
-    public void resolveRelativePath() {
-        assertEquals("foo", Paths.resolvePath("foo", RESOLVER));
-        assertEquals("foo/bar", Paths.resolvePath("foo/bar", RESOLVER));
-        assertEquals("x:foo", Paths.resolvePath("a:foo", RESOLVER));
-        assertEquals("x:foo/y:bar", Paths.resolvePath("a:foo/b:bar", RESOLVER));
-
-        try {
-            Paths.resolvePath("a:foo/q:bar", RESOLVER);
-            fail();
-        }
-        catch (IllegalArgumentException expected) {
-        }
-
-    }
-
 }
