@@ -134,7 +134,13 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     @Override
     public Node getNodeByIdentifier(String id) throws RepositoryException {
         ensureIsAlive();
-        throw new UnsupportedRepositoryOperationException("TODO: Session.getNodeByIdentifier");
+
+        if (id.charAt(0) == '/') {
+            return getNode(id);
+        } else {
+            // TODO
+            throw new UnsupportedRepositoryOperationException("TODO: Session.getNodeByIdentifier");
+        }
     }
 
     //------------------------------------------------------------< Writing >---

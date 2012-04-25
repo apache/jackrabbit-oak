@@ -499,8 +499,12 @@ public class NodeImpl extends ItemImpl implements Node  {
     public String getIdentifier() throws RepositoryException {
         checkStatus();
 
-        // TODO
-        return path();
+        if (isNodeType(JcrConstants.MIX_REFERENCEABLE)) {
+            return getProperty(JcrConstants.JCR_UUID).getString();
+        } else {
+            // TODO
+            return path();
+        }
     }
 
     @Override
@@ -603,7 +607,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     public boolean isNodeType(String nodeTypeName) throws RepositoryException {
         checkStatus();
 
-        if (getProperty(JcrConstants.JCR_PRIMARYTYPE).getString().equals(nodeTypeName)) {
+        if (hasProperty(JcrConstants.JCR_PRIMARYTYPE) && getProperty(JcrConstants.JCR_PRIMARYTYPE).getString().equals(nodeTypeName)) {
             return true;
         }
         if (hasProperty(JcrConstants.JCR_MIXINTYPES)) {
