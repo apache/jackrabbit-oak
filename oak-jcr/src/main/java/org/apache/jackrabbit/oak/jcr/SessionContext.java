@@ -43,4 +43,6 @@ public interface SessionContext<T extends Session> {
     VersionManager getVersionManager() throws RepositoryException;
     Root getBranch();
     Tree getContentTree(NodeImpl node);
+    String toOakPath(String jcrPath) throws RepositoryException;
+    String toJcrPath(String oakPath);
 }
