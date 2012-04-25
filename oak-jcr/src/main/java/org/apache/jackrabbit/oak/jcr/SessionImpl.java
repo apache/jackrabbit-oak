@@ -76,7 +76,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     SessionImpl(GlobalContext globalContext, ContentSession contentSession) {
         this.globalContext = globalContext;
         this.contentSession = contentSession;
-        this.valueFactory = new ValueFactoryImpl(contentSession.getCoreValueFactory());
+        this.valueFactory = new ValueFactoryImpl(contentSession.getCoreValueFactory(), nameMapper);
         this.nsreg = new NamespaceRegistryImpl(contentSession);
         this.workspace = new WorkspaceImpl(sessionContext, this.nsreg);
         this.root = contentSession.getCurrentRoot();

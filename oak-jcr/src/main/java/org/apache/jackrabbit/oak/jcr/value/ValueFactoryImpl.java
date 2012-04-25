@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.jcr.value;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
+import org.apache.jackrabbit.oak.namepath.NameMapper;
+import org.apache.jackrabbit.oak.namepath.Paths;
 import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,15 +48,15 @@ public class ValueFactoryImpl implements ValueFactory {
     private static final Logger log = LoggerFactory.getLogger(ValueFactoryImpl.class);
 
     private final CoreValueFactory factory;
-    private final DummyNamePathResolver resolver; // TODO: add proper name/path conversion
+    private final NameMapper nameMapper;
 
     /**
      *
      * @param factory
      */
-    public ValueFactoryImpl(CoreValueFactory factory/*, NamePathResolver resolver*/) {
+    public ValueFactoryImpl(CoreValueFactory factory, NameMapper nameMapper) {
         this.factory = factory;
-        this.resolver = new DummyNamePathResolver();
+        this.nameMapper = nameMapper;
     }
 
     public CoreValueFactory getCoreValueFactory() {
@@ -62,7 +64,7 @@ public class ValueFactoryImpl implements ValueFactory {
     }
 
     public Value createValue(CoreValue coreValue) {
-        return new ValueImpl(coreValue, resolver);
+        return new ValueImpl(coreValue, nameMapper);
     }
 
     public CoreValue getCoreValue(Value jcrValue) {
@@ -91,39 +93,39 @@ public class ValueFactoryImpl implements ValueFactory {
     @Override
     public Value createValue(String value) {
         CoreValue cv = factory.createValue(value, PropertyType.STRING);
-        return new ValueImpl(cv, resolver);
+        return new ValueImpl(cv, nameMapper);
     }
 
     @Override
     public Value createValue(long value) {
         CoreValue cv = factory.createValue(value);
-        return new ValueImpl(cv, resolver);
+        return new ValueImpl(cv, nameMapper);
     }
 
     @Override
     public Value createValue(double value) {
         CoreValue cv = factory.createValue(value);
-        return new ValueImpl(cv, resolver);
+        return new ValueImpl(cv, nameMapper);
     }
 
     @Override
     public Value createValue(boolean value) {
         CoreValue cv = factory.createValue(value);
-        return new ValueImpl(cv, resolver);
+        return new ValueImpl(cv, nameMapper);
     }
 
     @Override
     public Value createValue(Calendar value) {
         String dateStr = ISO8601.format(value);
         CoreValue cv = factory.createValue(dateStr, PropertyType.DATE);
-        return new ValueImpl(cv, resolver);
+        return new ValueImpl(cv, nameMapper);
     }
 
     @Override
     public Value createValue(InputStream value) {
         try {
             CoreValue cv = factory.createValue(value);
-            return new ValueImpl(cv, resolver);
+            return new ValueImpl(cv, nameMapper);
         } catch (IOException ex) {
             throw new RuntimeException(ex);
         } finally {
@@ -141,14 +143,14 @@ public class ValueFactoryImpl implements ValueFactory {
     public Value createValue(String value, int type) throws ValueFormatException {
         CoreValue cv;
         if (type == PropertyType.NAME) {
-            cv = factory.createValue(resolver.getInternalName(value), type);
+            cv = factory.createValue(nameMapper.getOakName(value), type);
         } else if (type == PropertyType.PATH) {
-            cv = factory.createValue(resolver.getInternalPath(value), type);
+            cv = factory.createValue(Paths.toOakPath(value, nameMapper), type);
         } else {
             cv = factory.createValue(value, type);
         }
 
-        return new ValueImpl(cv, resolver);
+        return new ValueImpl(cv, nameMapper);
     }
 
     @Override
@@ -169,12 +171,12 @@ public class ValueFactoryImpl implements ValueFactory {
     @Override
     public Value createValue(BigDecimal value) {
         CoreValue cv = factory.createValue(value);
-        return new ValueImpl(cv, resolver);
+        return new ValueImpl(cv, nameMapper);
     }
 
     @Override
     public Value createValue(Node value, boolean weak) throws RepositoryException {
         CoreValue cv = factory.createValue(value.getUUID(), weak ? PropertyType.WEAKREFERENCE : PropertyType.REFERENCE);
-        return new ValueImpl(cv, resolver);
+        return new ValueImpl(cv, nameMapper);
     }
 }

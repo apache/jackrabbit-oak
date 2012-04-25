@@ -209,7 +209,12 @@ public final class Paths {
     
     public static String toOakPath(String jcrPath, final NameMapper mapper) {
         final List<String> elements = new ArrayList<String>();
-        
+
+        if ("/".equals(jcrPath)) {
+            // avoid the need to special case the root path later on
+            return "/";
+        }
+
         JcrPathParser.Listener listener = new JcrPathParser.Listener() {
             @Override
             public void root() {
@@ -274,6 +279,8 @@ public final class Paths {
             }
         }
         
+        // root path is special-cased early on so it does not need to
+        // be considered here
         oakPath.deleteCharAt(oakPath.length() - 1);
         return oakPath.toString();
     }
@@ -281,6 +288,11 @@ public final class Paths {
     public static String toJcrPath(String oakPath, final NameMapper mapper) {
         final List<String> elements = new ArrayList<String>();
         
+        if ("/".equals(oakPath)) {
+            // avoid the need to special case the root path later on
+            return "/";
+        }
+
         JcrPathParser.Listener listener = new JcrPathParser.Listener() {
             @Override
             public void root() {
