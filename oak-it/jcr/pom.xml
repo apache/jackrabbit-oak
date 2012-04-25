@@ -48,8 +48,6 @@ org.apache.jackrabbit.test.api.NodeReadMethodsTest
 org.apache.jackrabbit.test.api.PropertyReadMethodsTest
 org.apache.jackrabbit.test.api.NodeDiscoveringNodeTypesTest#testIsNodeType
 org.apache.jackrabbit.test.api.NamespaceRemappingTest#testNamespaceRemapping
-org.apache.jackrabbit.test.api.NamespaceRemappingTest#testAutomaticNewLocalPrefix
-org.apache.jackrabbit.test.api.NamespaceRemappingTest#testExceptionOnUnknownPrefix
 org.apache.jackrabbit.test.api.SessionReadMethodsTest
 org.apache.jackrabbit.test.api.WorkspaceReadMethodsTest#testGetAccessibleWorkspaceNames
 org.apache.jackrabbit.test.api.ReferenceableRootNodesTest
