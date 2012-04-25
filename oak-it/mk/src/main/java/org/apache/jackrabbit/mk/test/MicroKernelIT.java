@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.mk.test;
 
-import junit.framework.Assert;
-
 import org.apache.jackrabbit.mk.api.MicroKernelException;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -68,8 +68,8 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
     public void getNodes() {
         String head = mk.getHeadRevision();
 
-        String json = mk.getNodes("/test", head, 0, 0, -1, null);
-        assertTrue(json.contains("stringProp"));
+        JSONObject jsonObj = parseJSONObject(mk.getNodes("/test", head, 0, 0, -1, null));
+        assertTrue(jsonObj.containsKey("stringProp"));
     }
 
     @Test
@@ -88,14 +88,14 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
 
         try {
             mk.nodeExists("/test", nonExistingRev);
-            Assert.fail("Success with non-existing revision: " + nonExistingRev);
+            fail("Success with non-existing revision: " + nonExistingRev);
         } catch (MicroKernelException e) {
             // expected
         }
 
         try {
             mk.getNodes("/test", nonExistingRev, 0, 0, -1, null);
-            Assert.fail("Success with non-existing revision: " + nonExistingRev);
+            fail("Success with non-existing revision: " + nonExistingRev);
         } catch (MicroKernelException e) {
             // expected
         }
@@ -109,7 +109,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         try {
             String path = "/test/";
             mk.getNodes(path, head);
-            Assert.fail("Success with invalid path: " + path);
+            fail("Success with invalid path: " + path);
         } catch (IllegalArgumentException e) {
             // expected
         } catch (MicroKernelException e) {
@@ -303,9 +303,14 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         // add a node /branch/foo in branchRev
         branchRev = mk.commit("", "+\"/branch/foo\":{}", branchRev, "");
 
-        String hist = mk.getRevisionHistory(0, -1);
         // make sure branchRev doesn't show up in revision history
-        assertFalse(hist.contains(branchRev));
+        String hist = mk.getRevisionHistory(0, -1);
+        JSONArray ar = parseJSONArray(hist);
+        for (Object entry : ar) {
+            assertTrue(entry instanceof JSONObject);
+            JSONObject rev = (JSONObject) entry;
+            assertFalse(branchRev.equals(rev.get("id")));
+        }
 
         // add a node /test123 in head
         mk.commit("", "+\"/test123\":{}", null, "");
