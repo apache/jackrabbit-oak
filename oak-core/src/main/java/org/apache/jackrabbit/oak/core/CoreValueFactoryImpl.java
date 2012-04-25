@@ -77,7 +77,6 @@ public class CoreValueFactoryImpl implements CoreValueFactory {
 
     @Override
     public CoreValue createValue(String value, int type) {
-        // TODO check again...
         if (type == PropertyType.BINARY) {
             BinaryValue bv = new BinaryValue(value, mk);
             return new CoreValueImpl(bv);

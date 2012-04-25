@@ -22,7 +22,7 @@ package org.apache.jackrabbit.oak.jcr.util;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.jcr.SessionContext;
 import org.apache.jackrabbit.oak.jcr.SessionImpl;
-import org.apache.jackrabbit.oak.jcr.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.jcr.value.ValueFactoryImpl;
 
 import javax.jcr.Value;
 import javax.jcr.ValueFormatException;

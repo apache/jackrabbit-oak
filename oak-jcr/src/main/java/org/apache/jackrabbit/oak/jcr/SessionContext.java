@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.jcr;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.jcr.value.ValueFactoryImpl;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;

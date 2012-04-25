@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.jcr;
+package org.apache.jackrabbit.oak.jcr.value;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.CoreValue;
@@ -48,16 +48,15 @@ class ValueImpl implements Value {
     private final CoreValue value;
 
     // TODO need utility to convert the internal NAME/PATH format to JCR format
-    private final ValueFactoryImpl.DummyNamePathResolver resolver;
+    private final DummyNamePathResolver resolver;
 
     /**
-     * Constructs a {@code ValueImpl} object representing an SPI
-     * <codeQValue</code>.
+     * Constructs a {@code ValueImpl} object based on a {@code CoreValue}
      *
      * @param value the value object this {@code ValueImpl} should represent
      * @param resolver
      */
-    public ValueImpl(CoreValue value, ValueFactoryImpl.DummyNamePathResolver resolver) {
+    public ValueImpl(CoreValue value, DummyNamePathResolver resolver) {
         this.value = value;
         this.resolver = resolver;
     }
@@ -196,7 +195,7 @@ class ValueImpl implements Value {
      */
     @Override
     public Binary getBinary() throws RepositoryException {
-        return new BinaryImpl();
+        return new BinaryImpl(this);
     }
 
     //-------------------------------------------------------------< Object >---
@@ -218,49 +217,5 @@ class ValueImpl implements Value {
     @Override
     public int hashCode() {
         return value.hashCode();
-    }
-
-    //------------------------------------------------------------< Binary >----
-    private class BinaryImpl implements Binary {
-
-        @Override
-        public InputStream getStream() throws RepositoryException {
-            switch (value.getType()) {
-                case PropertyType.NAME:
-                case PropertyType.PATH:
-                    // need to respect namespace remapping
-                    try {
-                        final String strValue = getString();
-                        return new ByteArrayInputStream(strValue.getBytes("utf-8"));
-                    } catch (UnsupportedEncodingException e) {
-                        throw new RepositoryException(e.getMessage());
-                    }
-                default:
-                    return value.getNewStream();
-            }
-        }
-
-        @Override
-        public int read(byte[] b, long position) throws IOException, RepositoryException {
-            // TODO
-            throw new UnsupportedOperationException("implementation missing");
-        }
-
-        @Override
-        public long getSize() throws RepositoryException {
-            switch (value.getType()) {
-                case PropertyType.NAME:
-                case PropertyType.PATH:
-                    // need to respect namespace remapping
-                    return getString().length();
-                default:
-                    return value.length();
-            }
-        }
-
-        @Override
-        public void dispose() {
-            // nothing to do
-        }
     }
 }

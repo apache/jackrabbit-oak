@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.jcr.query;
 import org.apache.jackrabbit.commons.iterator.RowIteratorAdapter;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
-import org.apache.jackrabbit.oak.jcr.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.jcr.value.ValueFactoryImpl;
 
 import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
