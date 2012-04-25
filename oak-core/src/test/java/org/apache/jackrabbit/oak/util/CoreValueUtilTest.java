@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.util;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.mk.simple.SimpleKernelImpl;
 import org.apache.jackrabbit.oak.api.CoreValue;
@@ -101,17 +102,8 @@ public class CoreValueUtilTest {
     public void testFromJsonValue() throws IOException {
         for (CoreValue v : map.keySet()) {
             String json = map.get(v);
-            int jsopType;
-            if (v.getType() == PropertyType.BOOLEAN) {
-                jsopType = (v.getBoolean()) ? JsopTokenizer.TRUE : JsopTokenizer.FALSE;
-            } else if (v.getType() == PropertyType.LONG) {
-                jsopType = JsopTokenizer.NUMBER;
-            } else {
-                jsopType = JsopTokenizer.STRING;
-                // remove quotes
-                json = json.substring(1, json.length()-1);
-            }
-            assertEquals(v, CoreValueUtil.fromJsonString(json, jsopType, valueFactory));
+            JsopReader reader = new JsopTokenizer(json);
+            assertEquals(v, CoreValueUtil.fromJsopReader(reader, valueFactory));
         }
     }
 }

@@ -94,15 +94,20 @@ public class CoreValueUtil {
         CoreValue value;
         if (reader.matches(JsopTokenizer.NUMBER)) {
             String number = reader.getToken();
-            value = fromJsonString(number, JsopTokenizer.NUMBER, valueFactory);
+            value = valueFactory.createValue(Long.valueOf(number));
         } else if (reader.matches(JsopTokenizer.TRUE)) {
             value = valueFactory.createValue(true);
         } else if (reader.matches(JsopTokenizer.FALSE)) {
             value = valueFactory.createValue(false);
         } else if (reader.matches(JsopTokenizer.STRING)) {
-            String strValue = reader.getToken();
-            value = fromJsonString(strValue, JsopTokenizer.STRING, valueFactory);
-        }  else {
+            String jsonString = reader.getToken();
+            if (startsWithHint(jsonString)) {
+                int type = HINT2TYPE.get(jsonString.substring(0,3));
+                value = valueFactory.createValue(jsonString.substring(4), type);
+            } else {
+                value = valueFactory.createValue(jsonString);
+            }
+        } else {
             throw new IllegalArgumentException("Unexpected token: " + reader.getToken());
         }
         return value;
@@ -120,34 +125,6 @@ public class CoreValueUtil {
             throw new IllegalArgumentException("Unexpected token: " + reader.getToken());
         }
     }
-
-    // TODO remove again
-    public static CoreValue fromJsonString(String jsonString, int jsopType, CoreValueFactory valueFactory) {
-        CoreValue value;
-        switch (jsopType) {
-            case JsopTokenizer.NUMBER:
-                value = valueFactory.createValue(Long.valueOf(jsonString));
-                break;
-            case JsopTokenizer.FALSE:
-                value = valueFactory.createValue(false);
-                break;
-            case JsopTokenizer.TRUE:
-                value = valueFactory.createValue(true);
-                break;
-            case JsopTokenizer.STRING:
-                if (startsWithHint(jsonString)) {
-                    int type = HINT2TYPE.get(jsonString.substring(0,3));
-                    value = valueFactory.createValue(jsonString.substring(4), type);
-                } else {
-                    value = valueFactory.createValue(jsonString);
-                }
-                break;
-            default:
-                throw new IllegalArgumentException("Invalid jsop type: " + jsopType);
-        }
-        return value;
-    }
-
 
     private static String buildJsonStringWithType(CoreValue value) {
         StringBuilder sb = new StringBuilder();
