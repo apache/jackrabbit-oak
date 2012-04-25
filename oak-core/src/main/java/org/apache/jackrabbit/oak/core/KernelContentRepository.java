@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.core;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
@@ -49,6 +50,14 @@ public class KernelContentRepository implements ContentRepository {
     private final CoreValueFactory valueFactory;
     private final QueryEngine queryEngine;
     private final KernelNodeStore nodeStore;
+
+    /**
+     * Utility constructor that creates a new in-memory repository for use
+     * mostly in test cases.
+     */
+    public KernelContentRepository() {
+        this(new MicroKernelImpl());
+    }
 
     public KernelContentRepository(MicroKernel mk) {
         microKernel = mk;

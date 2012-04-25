@@ -41,6 +41,9 @@
             <Export-Package>
               !
             </Export-Package>
+            <Bundle-Activator>
+              org.apache.jackrabbit.oak.jcr.osgi.Activator
+            </Bundle-Activator>
           </instructions>
         </configuration>
       </plugin>
@@ -48,6 +51,20 @@
   </build>
 
   <dependencies>
+    <!-- Optional OSGi dependencies, used only when running within OSGi -->
+    <dependency>
+      <groupId>org.osgi</groupId>
+      <artifactId>org.osgi.core</artifactId>
+      <scope>provided</scope>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.osgi</groupId>
+      <artifactId>org.osgi.compendium</artifactId>
+      <scope>provided</scope>
+      <optional>true</optional>
+    </dependency>
+
     <dependency>
       <groupId>javax.jcr</groupId>
       <artifactId>jcr</artifactId>

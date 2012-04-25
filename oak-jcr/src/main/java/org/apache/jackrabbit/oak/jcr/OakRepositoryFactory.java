@@ -20,8 +20,6 @@ import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.RepositoryFactory;
 
-import org.apache.jackrabbit.mk.core.MicroKernelImpl;
-
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Map;
@@ -52,8 +50,7 @@ public class OakRepositoryFactory implements RepositoryFactory {
             URI uri, Map<String, String> parameters)
             throws RepositoryException {
         // TODO correctly interpret uri
-        GlobalContext context = new GlobalContext(new MicroKernelImpl());
-        return context.getInstance(Repository.class);
+        return new RepositoryImpl();
     }
 
 }

@@ -17,9 +17,9 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import org.apache.jackrabbit.commons.SimpleValueFactory;
-import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.core.KernelContentRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,8 +43,8 @@ public class RepositoryImpl implements Repository {
     private final GlobalContext context;
     private final Descriptors descriptors = new Descriptors(new SimpleValueFactory());
 
-    public RepositoryImpl(GlobalContext context) {
-        this.context = context;
+    public RepositoryImpl(ContentRepository repository) {
+        this.context = new GlobalContext(this, repository);
     }
 
     /**
@@ -52,7 +52,7 @@ public class RepositoryImpl implements Repository {
      * mostly in test cases.
      */
     public RepositoryImpl() throws RepositoryException {
-        this(new GlobalContext(new MicroKernelImpl()));
+        this(new KernelContentRepository());
     }
 
     //---------------------------------------------------------< Repository >---
@@ -119,7 +119,6 @@ public class RepositoryImpl implements Repository {
     @Override
     public Session login(Credentials credentials, String workspaceName) throws RepositoryException {
         // TODO: needs complete refactoring
-
         ContentRepository contentRepository = context.getInstance(ContentRepository.class);
         try {
             ContentSession contentSession = contentRepository.login(credentials, workspaceName);

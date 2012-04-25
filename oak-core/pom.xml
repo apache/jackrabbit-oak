@@ -45,6 +45,9 @@
               org.apache.jackrabbit.oak.namepath,
               org.apache.jackrabbit.oak.plugins.name
             </Export-Package>
+            <Bundle-Activator>
+              org.apache.jackrabbit.oak.osgi.Activator
+            </Bundle-Activator>
           </instructions>
         </configuration>
       </plugin>
@@ -52,6 +55,19 @@
   </build>
 
   <dependencies>
+    <!-- Optional OSGi dependencies, used only when running within OSGi -->
+    <dependency>
+      <groupId>org.osgi</groupId>
+      <artifactId>org.osgi.core</artifactId>
+      <scope>provided</scope>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.osgi</groupId>
+      <artifactId>org.osgi.compendium</artifactId>
+      <scope>provided</scope>
+      <optional>true</optional>
+    </dependency>
     <dependency>
       <groupId>biz.aQute</groupId>
       <artifactId>bndlib</artifactId>

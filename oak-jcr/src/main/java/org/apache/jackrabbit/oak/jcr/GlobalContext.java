@@ -19,16 +19,15 @@
 
 package org.apache.jackrabbit.oak.jcr;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.core.KernelContentRepository;
-import org.apache.jackrabbit.oak.jcr.util.Unchecked;
+import static java.text.MessageFormat.format;
 
-import javax.jcr.Repository;
 import java.util.HashMap;
 import java.util.Map;
 
-import static java.text.MessageFormat.format;
+import javax.jcr.Repository;
+
+import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.jcr.util.Unchecked;
 
 /**
  * Poor man's dependency injection
@@ -41,9 +40,10 @@ public class GlobalContext {
 
     private final Map<Class<?>, Object> instances = new HashMap<Class<?>, Object>();
 
-    public GlobalContext(MicroKernel mk) {
-        put(ContentRepository.class, new KernelContentRepository(mk));
-        put(Repository.class, new RepositoryImpl(this));
+    public GlobalContext(
+            Repository repository, ContentRepository contentRepository) {
+        put(Repository.class, repository);
+        put(ContentRepository.class, contentRepository);
     }
 
     public <T> T getInstance(Class<T> forClass) {

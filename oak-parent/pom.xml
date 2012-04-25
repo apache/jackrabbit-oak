@@ -90,6 +90,16 @@
   <dependencyManagement>
     <dependencies>
       <dependency>
+        <groupId>org.osgi</groupId>
+        <artifactId>org.osgi.core</artifactId>
+        <version>4.0.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.osgi</groupId>
+        <artifactId>org.osgi.compendium</artifactId>
+        <version>4.0.0</version>
+      </dependency>
+      <dependency>
         <groupId>biz.aQute</groupId>
         <artifactId>bndlib</artifactId>
         <version>1.50.0</version>
