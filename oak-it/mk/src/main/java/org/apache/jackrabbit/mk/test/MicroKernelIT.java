@@ -147,8 +147,8 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         head = mk.commit("/",
                 "+\"fuu\" : {} \n" +
                         "^\"fuu/bar\" : 42", head, "");
-        JSONObject jsonObj = parseJSONObject(mk.getNodes("/fuu", head));
-        assertEquals(42l, jsonObj.get("bar"));
+        JSONObject obj = parseJSONObject(mk.getNodes("/fuu", head));
+        assertPropertyValue(obj, "bar", 42L);
     }
 
     @Test
@@ -197,10 +197,14 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
                 head, "");
 
         String json = mk.getNodes('/' + node, head, 3, 0, -1, null);
-        assertEquals("{\"prop1\":41,\":childNodeCount\":2," +
-                "\"child1\":{\"prop2\":42,\":childNodeCount\":1," +
-                "\"grandchild11\":{\"prop3\":43,\":childNodeCount\":0}}," +
-                "\"child2\":{\":childNodeCount\":0}}", json);
+        JSONObject obj = parseJSONObject(mk.getNodes('/' + node, head, 3, 0, -1, null));
+        assertPropertyValue(obj, "prop1", 41L);
+        assertPropertyValue(obj, ":childNodeCount", 2L);
+        assertPropertyValue(obj, "child1/prop2", 42L);
+        assertPropertyValue(obj, "child1/:childNodeCount", 1L);
+        assertPropertyValue(obj, "child1/grandchild11/prop3", 43L);
+        assertPropertyValue(obj, "child1/grandchild11/:childNodeCount", 0L);
+        assertPropertyValue(obj, "child2/:childNodeCount", 0L);
     }
 
     @Test
@@ -211,8 +215,8 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         head = mk.commit("/", "+\"" + node + "\" : {\"child\":{}}", head, "");
 
         head = mk.commit('/' + node, "-\"child\"", head, "");
-        String json = mk.getNodes('/' + node, head);
-        assertEquals("{\":childNodeCount\":0}", json);
+        JSONObject obj = parseJSONObject(mk.getNodes('/' + node, head));
+        assertPropertyValue(obj, ":childNodeCount", 0L);
     }
 
     @Test
@@ -287,8 +291,8 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         head = mk.commit("/", "+\"" + node + "\" : {\"prop\":\"value\"}", head, "");
 
         head = mk.commit("/", "^\"" + node + "/prop\" : null", head, "");
-        String json = mk.getNodes('/' + node, head);
-        assertEquals("{\":childNodeCount\":0}", json);
+        JSONObject obj = parseJSONObject(mk.getNodes('/' + node, head));
+        assertPropertyValue(obj, ":childNodeCount", 0L);
     }
 
     @Test
