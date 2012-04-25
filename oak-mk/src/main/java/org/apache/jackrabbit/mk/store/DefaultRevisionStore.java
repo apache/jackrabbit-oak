@@ -20,6 +20,7 @@ import java.io.Closeable;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.WeakHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -47,8 +48,8 @@ import org.apache.jackrabbit.mk.util.SimpleLRUCache;
  * Default revision store implementation, passing calls to a {@code Persistence}
  * and a {@code BlobStore}, respectively and providing caching.
  */
-public class DefaultRevisionStore extends AbstractRevisionStore
-        implements Closeable {
+public class DefaultRevisionStore extends AbstractRevisionStore implements
+        Closeable {
 
     public static final String CACHE_SIZE = "mk.cacheSize";
     public static final int DEFAULT_CACHE_SIZE = 10000;
@@ -60,8 +61,8 @@ public class DefaultRevisionStore extends AbstractRevisionStore
     private final Persistence pm;
     protected final GCPersistence gcpm;
 
-    /* avoid synthetic accessor */ int initialCacheSize;
-    /* avoid synthetic accessor */ Map<Id, Object> cache;
+    /* avoid synthetic accessor */int initialCacheSize;
+    /* avoid synthetic accessor */Map<Id, Object> cache;
 
     /**
      * GC run state constants.
@@ -75,34 +76,46 @@ public class DefaultRevisionStore extends AbstractRevisionStore
      * GC run state.
      */
     private final AtomicInteger gcState = new AtomicInteger();
-    
+
     /**
      * GC executor.
      */
     private ScheduledExecutorService gcExecutor;
-    
+
+    /**
+     * Put tokens (Key: token, Value: null).
+     */
+    private final Map<PutTokenImpl, Object> putTokens = Collections.synchronizedMap(new WeakHashMap<PutTokenImpl, Object>());
+
+    /**
+     * Mark lock for put tokens.
+     */
+    private final ReentrantReadWriteLock markLock = new ReentrantReadWriteLock();
+
     public DefaultRevisionStore(Persistence pm) {
         this.pm = pm;
         this.gcpm = (pm instanceof GCPersistence) ? (GCPersistence) pm : null;
-        
+
         commitCounter = new AtomicLong();
     }
-    
+
     public void initialize() throws Exception {
         if (initialized) {
             throw new IllegalStateException("already initialized");
         }
 
         initialCacheSize = determineInitialCacheSize();
-        cache = Collections.synchronizedMap(SimpleLRUCache.<Id, Object>newInstance(initialCacheSize));
+        cache = Collections.synchronizedMap(SimpleLRUCache
+                .<Id, Object> newInstance(initialCacheSize));
 
         // make sure we've got a HEAD commit
         head = pm.readHead();
         if (head == null || head.getBytes().length == 0) {
             // assume virgin repository
-            byte[] rawHead = Id.fromLong(commitCounter.incrementAndGet()).getBytes();
+            byte[] rawHead = Id.fromLong(commitCounter.incrementAndGet())
+                    .getBytes();
             head = new Id(rawHead);
-            
+
             Id rootNodeId = pm.writeNode(new MutableNode(this, "/"));
             MutableCommit initialCommit = new MutableCommit();
             initialCommit.setCommitTS(System.currentTimeMillis());
@@ -124,13 +137,13 @@ public class DefaultRevisionStore extends AbstractRevisionStore
                 }
             }, 60, 60, TimeUnit.SECONDS);
         }
-        
+
         initialized = true;
     }
-    
+
     public void close() {
         verifyInitialized();
-        
+
         if (gcExecutor != null) {
             gcExecutor.shutdown();
         }
@@ -153,41 +166,96 @@ public class DefaultRevisionStore extends AbstractRevisionStore
         return (val != null) ? Integer.parseInt(val) : DEFAULT_CACHE_SIZE;
     }
 
-    //--------------------------------------------------------< RevisionStore >
+    // --------------------------------------------------------< RevisionStore >
 
-    public Id putNode(MutableNode node) throws Exception {
+    /**
+     * Put token implementation.
+     */
+    static class PutTokenImpl extends PutToken {
+
+        private static int idCounter;
+        private int id;
+        private StoredNode lastModifiedNode;
+
+        public PutTokenImpl() {
+            this.id = ++idCounter;
+        }
+
+        @Override
+        public int hashCode() {
+            return id;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj instanceof PutTokenImpl) {
+                return ((PutTokenImpl) obj).id == id;
+            }
+            return super.equals(obj);
+        }
+
+        public void updateLastModifed(StoredNode lastModifiedNode) {
+            this.lastModifiedNode = lastModifiedNode;
+        }
+
+        public StoredNode getLastModified() {
+            return lastModifiedNode;
+        }
+    }
+
+    public RevisionStore.PutToken createPutToken() {
+        return new PutTokenImpl();
+    }
+
+    public Id putNode(PutToken token, MutableNode node) throws Exception {
         verifyInitialized();
 
         PersistHook callback = null;
         if (node instanceof PersistHook) {
             callback = (PersistHook) node;
-            callback.prePersist(this);
+            callback.prePersist(this, token);
         }
 
-        Id id = pm.writeNode(node);
-        
-        if (callback != null)  {
-            callback.postPersist(this);
-        }
-        
-        cache.put(id, new StoredNode(id, node, this));
+        /*
+         * Make sure that a GC cycle can not sweep this newly persisted node
+         * before we have updated our token
+         */
+        markLock.readLock().lock();
 
-        return id;
+        try {
+            Id id = pm.writeNode(node);
+
+            if (callback != null) {
+                callback.postPersist(this, token);
+            }
+
+            StoredNode snode = new StoredNode(id, node, this);
+            cache.put(id, snode);
+
+            PutTokenImpl pti = (PutTokenImpl) token;
+            pti.updateLastModifed(snode);
+            putTokens.put(pti, null);
+            return id;
+
+        } finally {
+            markLock.readLock().unlock();
+        }
     }
 
-    public Id putCNEMap(ChildNodeEntriesMap map) throws Exception {
+    public Id putCNEMap(PutToken token, ChildNodeEntriesMap map)
+            throws Exception {
         verifyInitialized();
 
         PersistHook callback = null;
         if (map instanceof PersistHook) {
             callback = (PersistHook) map;
-            callback.prePersist(this);
+            callback.prePersist(this, token);
         }
 
-       Id id = pm.writeCNEMap(map);
+        Id id = pm.writeCNEMap(map);
 
-        if (callback != null)  {
-            callback.postPersist(this);
+        if (callback != null) {
+            callback.postPersist(this, token);
         }
 
         cache.put(id, map);
@@ -199,29 +267,35 @@ public class DefaultRevisionStore extends AbstractRevisionStore
         headLock.writeLock().lock();
     }
 
-    public Id putHeadCommit(MutableCommit commit) throws Exception {
+    public Id putHeadCommit(PutToken token, MutableCommit commit)
+            throws Exception {
         verifyInitialized();
         if (!headLock.writeLock().isHeldByCurrentThread()) {
-            throw new IllegalStateException("putHeadCommit called without holding write lock.");
+            throw new IllegalStateException(
+                    "putHeadCommit called without holding write lock.");
         }
 
-        Id id = writeCommit(commit);
+        Id id = writeCommit(token, commit);
         setHeadCommitId(id);
+        putTokens.remove(token);
 
         return id;
     }
 
-    public Id putCommit(MutableCommit commit) throws Exception {
+    public Id putCommit(PutToken token, MutableCommit commit) throws Exception {
         verifyInitialized();
 
-        return writeCommit(commit);
+        Id commitId = writeCommit(token, commit);
+        putTokens.remove(token);
+
+        return commitId;
     }
 
     public void unlockHead() {
         headLock.writeLock().unlock();
     }
 
-    //-----------------------------------------------------< RevisionProvider >
+    // -----------------------------------------------------< RevisionProvider >
 
     public StoredNode getNode(Id id) throws NotFoundException, Exception {
         verifyInitialized();
@@ -239,7 +313,8 @@ public class DefaultRevisionStore extends AbstractRevisionStore
         return node;
     }
 
-    public ChildNodeEntriesMap getCNEMap(Id id) throws NotFoundException, Exception {
+    public ChildNodeEntriesMap getCNEMap(Id id) throws NotFoundException,
+            Exception {
         verifyInitialized();
 
         ChildNodeEntriesMap map = (ChildNodeEntriesMap) cache.get(id);
@@ -268,7 +343,8 @@ public class DefaultRevisionStore extends AbstractRevisionStore
         return commit;
     }
 
-    public StoredNode getRootNode(Id commitId) throws NotFoundException, Exception {
+    public StoredNode getRootNode(Id commitId) throws NotFoundException,
+            Exception {
         return getNode(getCommit(commitId).getRootNodeId());
     }
 
@@ -287,13 +363,14 @@ public class DefaultRevisionStore extends AbstractRevisionStore
         }
     }
 
-    //-------------------------------------------------------< implementation >
+    // -------------------------------------------------------< implementation >
 
-    private Id writeCommit(MutableCommit commit) throws Exception {
+    private Id writeCommit(RevisionStore.PutToken token, MutableCommit commit)
+            throws Exception {
         PersistHook callback = null;
         if (commit instanceof PersistHook) {
             callback = (PersistHook) commit;
-            callback.prePersist(this);
+            callback.prePersist(this, token);
         }
 
         Id id = commit.getId();
@@ -302,8 +379,8 @@ public class DefaultRevisionStore extends AbstractRevisionStore
         }
         pm.writeCommit(id, commit);
 
-        if (callback != null)  {
-            callback.postPersist(this);
+        if (callback != null) {
+            callback.postPersist(this, token);
         }
         cache.put(id, new StoredCommit(id, commit));
         return id;
@@ -321,10 +398,11 @@ public class DefaultRevisionStore extends AbstractRevisionStore
         }
     }
 
-    //------------------------------------------------------------< overrides >
+    // ------------------------------------------------------------< overrides >
 
     @Override
-    public void compare(final NodeState before, final NodeState after, final NodeStateDiff diff) {
+    public void compare(final NodeState before, final NodeState after,
+            final NodeStateDiff diff) {
         // OAK-46: Efficient diffing of large child node lists
 
         Node beforeNode = ((StoredNodeAsState) before).unwrap();
@@ -337,8 +415,10 @@ public class DefaultRevisionStore extends AbstractRevisionStore
             }
 
             @Override
-            public void propChanged(String propName, String oldValue, String newValue) {
-                diff.propertyChanged(before.getProperty(propName), after.getProperty(propName));
+            public void propChanged(String propName, String oldValue,
+                    String newValue) {
+                diff.propertyChanged(before.getProperty(propName),
+                        after.getProperty(propName));
             }
 
             @Override
@@ -361,27 +441,45 @@ public class DefaultRevisionStore extends AbstractRevisionStore
             @Override
             public void childNodeChanged(ChildNode changed, Id newId) {
                 String name = changed.getName();
-                diff.childNodeChanged(name, before.getChildNode(name), after.getChildNode(name));
+                diff.childNodeChanged(name, before.getChildNode(name),
+                        after.getChildNode(name));
             }
         });
     }
 
-    //----------------------------------------------------------------------- GC
+    // -----------------------------------------------------------------------
+    // GC
 
     /**
      * Perform a garbage collection. If a garbage collection cycle is already
-     * running, this method returns immediately. 
+     * running, this method returns immediately.
      */
     public void gc() {
         if (gcpm == null || !gcState.compareAndSet(NOT_ACTIVE, STARTING)) {
             // already running
             return;
         }
-        
-        gcpm.start();
-        
-        gcState.set(MARKING);
-        
+
+        // Mark all nodes that belong to currently active puts
+        markLock.writeLock().lock();
+
+        try {
+            gcpm.start();
+            gcState.set(MARKING);
+
+            for (PutTokenImpl token : putTokens.keySet()) {
+                markNode(token.getLastModified());
+            }
+
+        } catch (Exception e) {
+            /* unable to perform GC */
+            gcState.set(NOT_ACTIVE);
+            e.printStackTrace();
+            return;
+        } finally {
+            markLock.writeLock().unlock();
+        }
+
         try {
             doMark();
         } catch (Exception e) {
@@ -390,9 +488,8 @@ public class DefaultRevisionStore extends AbstractRevisionStore
             e.printStackTrace();
             return;
         }
-
         gcState.set(SWEEPING);
-        
+
         try {
             gcpm.sweep();
             cache.clear();
@@ -402,18 +499,19 @@ public class DefaultRevisionStore extends AbstractRevisionStore
             gcState.set(NOT_ACTIVE);
         }
     }
-    
+
     /**
      * Mark all commits and nodes in a garbage collection cycle. Can be
-     * customized by subclasses. If this method throws an exception, the
-     * cycle will be stopped without sweeping.
+     * customized by subclasses. If this method throws an exception, the cycle
+     * will be stopped without sweeping.
      * 
-     * @throws Exception if an error occurs
+     * @throws Exception
+     *             if an error occurs
      */
     protected void doMark() throws Exception {
         StoredCommit commit = getHeadCommit();
         long tsLimit = commit.getCommitTS() - (60 * 60 * 1000);
-        
+
         for (;;) {
             markCommit(commit);
             Id id = commit.getParentId();
@@ -433,19 +531,26 @@ public class DefaultRevisionStore extends AbstractRevisionStore
         }
     }
 
-    protected void markCommit(StoredCommit commit) 
-            throws Exception {
-        
+    /**
+     * Mark a commit. This marks all nodes belonging to this commit as well.
+     * 
+     * @param commit commit
+     * @throws Exception if an error occurs
+     */
+    protected void markCommit(StoredCommit commit) throws Exception {
         if (!gcpm.markCommit(commit.getId())) {
             return;
         }
-        
         markNode(getNode(commit.getRootNodeId()));
     }
-    
-    private void markNode(StoredNode node) 
-            throws Exception {
-        
+
+    /**
+     * Mark a node. This marks all children as well.
+     * 
+     * @param node node
+     * @throws Exception if an error occurs
+     */
+    private void markNode(StoredNode node) throws Exception {
         if (!gcpm.markNode(node.getId())) {
             return;
         }

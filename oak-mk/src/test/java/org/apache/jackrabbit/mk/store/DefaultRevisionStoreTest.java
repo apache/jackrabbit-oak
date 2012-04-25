@@ -18,6 +18,10 @@ package org.apache.jackrabbit.mk.store;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.blobs.MemoryBlobStore;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
@@ -25,6 +29,8 @@ import org.apache.jackrabbit.mk.core.Repository;
 import org.apache.jackrabbit.mk.json.fast.Jsop;
 import org.apache.jackrabbit.mk.json.fast.JsopArray;
 import org.apache.jackrabbit.mk.model.MutableCommit;
+import org.apache.jackrabbit.mk.model.StoredCommit;
+import org.apache.jackrabbit.mk.persistence.GCPersistence;
 import org.apache.jackrabbit.mk.persistence.InMemPersistence;
 import org.junit.After;
 import org.junit.Before;
@@ -35,24 +41,31 @@ import org.junit.Test;
  */
 public class DefaultRevisionStoreTest {
 
-    private DefaultRevisionStore rs;
+    /* avoid synthetic accessor */  DefaultRevisionStore rs;
     private MicroKernel mk;
     
     @Before
     public void setup() throws Exception {
-        rs = new DefaultRevisionStore(new InMemPersistence()) {
+        rs = new DefaultRevisionStore(createPersistence()) {
             @Override
             protected void doMark() throws Exception {
-                // Keep head commit only
-                markCommit(getHeadCommit());
+                StoredCommit commit = getHeadCommit();
                 
-                MutableCommit headCommit = new MutableCommit(getHeadCommit());  
+                // Keep head commit only
+                markCommit(commit);
+                
+                MutableCommit headCommit = new MutableCommit(commit);  
                 headCommit.setParentId(null);
                 gcpm.replaceCommit(headCommit.getId(), headCommit);
             }
         };
         rs.initialize();
+
         mk = new MicroKernelImpl(new Repository(rs, new MemoryBlobStore()));
+    }
+    
+    protected GCPersistence createPersistence() throws Exception {
+        return new InMemPersistence();
     }
 
     @After
@@ -62,8 +75,13 @@ public class DefaultRevisionStoreTest {
         }
     }
     
+    /**
+     * Verify revision history works with garbage collection.
+     * 
+     * @throws Exception if an error occurs
+     */
     @Test
-    public void testGC() {
+    public void testRevisionHistory() {
         mk.commit("/", "+\"a\" : { \"c\":{}, \"d\":{} }", mk.getHeadRevision(), null);
         mk.commit("/", "+\"b\" : {}", mk.getHeadRevision(), null);
         mk.commit("/b", "+\"e\" : {}", mk.getHeadRevision(), null);
@@ -79,5 +97,36 @@ public class DefaultRevisionStoreTest {
         
         String history = mk.getRevisionHistory(Long.MIN_VALUE, Integer.MIN_VALUE);
         assertEquals(1, ((JsopArray) Jsop.parse(history)).size());
+    }
+
+    /**
+     * Verify garbage collection can run concurrently with commits.
+     * 
+     * @throws Exception if an error occurs
+     */
+    @Test
+    public void testConcurrentGC() throws Exception {
+        ScheduledExecutorService gcExecutor = Executors.newScheduledThreadPool(1);
+        gcExecutor.scheduleWithFixedDelay(new Runnable() {
+            @Override
+            public void run() {
+                rs.gc();
+            }
+        }, 100, 20, TimeUnit.MILLISECONDS);
+
+        mk.commit("/", "+\"a\" : { \"b\" : { \"c\" : { \"d\" : {} } } }",
+                mk.getHeadRevision(), null);
+
+        try {
+            for (int i = 0; i < 20; i++) {
+                mk.commit("/a/b/c/d", "+\"e\" : {}", mk.getHeadRevision(), null);
+                Thread.sleep(10);
+                mk.commit("/a/b/c/d/e", "+\"f\" : {}", mk.getHeadRevision(), null);
+                Thread.sleep(30);
+                mk.commit("/a/b/c/d", "-\"e\"", mk.getHeadRevision(), null);
+            }
+        } finally {
+            gcExecutor.shutdown();
+        }
     }
 }

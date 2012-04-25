@@ -119,8 +119,9 @@ public class CommitBuilder {
             }
         }
 
+        RevisionStore.PutToken token = store.createPutToken();
         Id rootNodeId =
-                changeLog.isEmpty() ? baseCommit.getRootNodeId() : persistStagedNodes();
+                changeLog.isEmpty() ? baseCommit.getRootNodeId() : persistStagedNodes(token);
 
         Id newRevId;
 
@@ -133,7 +134,7 @@ public class CommitBuilder {
                     StoredNode theirRoot = store.getRootNode(currentHead);
                     StoredNode ourRoot = store.getNode(rootNodeId);
 
-                    rootNodeId = mergeTree(baseRoot, ourRoot, theirRoot);
+                    rootNodeId = mergeTree(baseRoot, ourRoot, theirRoot, token);
 
                     baseRevId = currentHead;
                 }
@@ -157,7 +158,7 @@ public class CommitBuilder {
                 newCommit.setChanges(diff.toString());
                 newCommit.setRootNodeId(rootNodeId);
                 newCommit.setBranchRootId(null);
-                newRevId = store.putHeadCommit(newCommit);
+                newRevId = store.putHeadCommit(token, newCommit);
             } finally {
                 store.unlockHead();
             }
@@ -181,7 +182,7 @@ public class CommitBuilder {
             } else {
                 newCommit.setBranchRootId(baseCommit.getBranchRootId());
             }
-            newRevId = store.putCommit(newCommit);
+            newRevId = store.putCommit(token, newCommit);
         }
 
         // reset instance
@@ -198,8 +199,9 @@ public class CommitBuilder {
             throw new Exception("can only merge a private branch commit");
         }
 
+        RevisionStore.PutToken token = store.createPutToken();
         Id rootNodeId =
-                changeLog.isEmpty() ? branchCommit.getRootNodeId() : persistStagedNodes();
+                changeLog.isEmpty() ? branchCommit.getRootNodeId() : persistStagedNodes(token);
 
         Id newRevId;
 
@@ -211,7 +213,7 @@ public class CommitBuilder {
             StoredNode theirRoot = store.getRootNode(currentHead);
             StoredNode ourRoot = store.getNode(rootNodeId);
 
-            rootNodeId = mergeTree(baseRoot, ourRoot, theirRoot);
+            rootNodeId = mergeTree(baseRoot, ourRoot, theirRoot, token);
 
             if (store.getCommit(currentHead).getRootNodeId().equals(rootNodeId)) {
                 // the merge didn't cause any changes,
@@ -227,7 +229,7 @@ public class CommitBuilder {
             newCommit.setChanges(diff);
             newCommit.setRootNodeId(rootNodeId);
             newCommit.setBranchRootId(null);
-            newRevId = store.putHeadCommit(newCommit);
+            newRevId = store.putHeadCommit(token, newCommit);
         } finally {
             store.unlockHead();
         }
@@ -304,7 +306,7 @@ public class CommitBuilder {
         }
     }
 
-    Id /* new id of root node */ persistStagedNodes() throws Exception {
+    Id /* new id of root node */ persistStagedNodes(RevisionStore.PutToken token) throws Exception {
         // sort paths in in depth-descending order
         ArrayList<String> orderedPaths = new ArrayList<String>(staged.keySet());
         Collections.sort(orderedPaths, new Comparator<String>() {
@@ -322,7 +324,7 @@ public class CommitBuilder {
         Id rootNodeId = null;
         for (String path : orderedPaths) {
             // persist node
-            Id id = store.putNode(staged.get(path));
+            Id id = store.putNode(token, staged.get(path));
             if (PathUtils.denotesRoot(path)) {
                 rootNodeId = id;
             } else {
@@ -345,7 +347,9 @@ public class CommitBuilder {
      * @return id of merged root node
      * @throws Exception
      */
-    Id /* id of merged root node */ mergeTree(StoredNode baseRoot, StoredNode ourRoot, StoredNode theirRoot) throws Exception {
+    Id /* id of merged root node */ mergeTree(StoredNode baseRoot, StoredNode ourRoot, StoredNode theirRoot,
+            RevisionStore.PutToken token) throws Exception {
+        
         // as we're going to use the staging area for the merge process,
         // we need to clear it first
         staged.clear();
@@ -353,7 +357,7 @@ public class CommitBuilder {
         // recursively merge 'our' changes with 'their' changes...
         mergeNode(baseRoot, ourRoot, theirRoot, "/");
 
-        return persistStagedNodes();
+        return persistStagedNodes(token);
     }
 
     void mergeNode(StoredNode baseNode, StoredNode ourNode, StoredNode theirNode, String path) throws Exception {

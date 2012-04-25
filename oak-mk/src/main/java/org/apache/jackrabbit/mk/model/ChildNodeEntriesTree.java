@@ -499,12 +499,12 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
 
     //-------------------------------------------------------< implementation >
     
-    protected void persistDirtyBuckets(RevisionStore store) throws Exception {
+    protected void persistDirtyBuckets(RevisionStore store, RevisionStore.PutToken token) throws Exception {
         for (int i = 0; i < index.length; i++) {
             if (index[i] instanceof Bucket) {
                 // dirty bucket
                 Bucket bucket = (Bucket) index[i];
-                Id id = store.putCNEMap(bucket);
+                Id id = store.putCNEMap(token, bucket);
                 index[i] = new BucketInfo(id, bucket.getSize());
             }
         }

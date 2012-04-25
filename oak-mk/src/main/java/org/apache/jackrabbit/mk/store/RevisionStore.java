@@ -26,8 +26,24 @@ import org.apache.jackrabbit.mk.model.MutableNode;
  */
 public interface RevisionStore extends RevisionProvider {
 
-    Id /*id*/ putNode(MutableNode node) throws Exception;
-    Id /*id*/ putCNEMap(ChildNodeEntriesMap map) throws Exception;
+    /**
+     * Token that must be created first before invoking any put operation.
+     */
+    public abstract class PutToken {
+        
+        /* Prevent other implementations. */
+        PutToken() {}
+    }
+    
+    /**
+     * Create a put token.
+     * 
+     * @return put token
+     */
+    PutToken createPutToken();
+    
+    Id /*id*/ putNode(PutToken token, MutableNode node) throws Exception;
+    Id /*id*/ putCNEMap(PutToken token, ChildNodeEntriesMap map) throws Exception;
     
     /**
      * Lock the head. Must be called prior to putting a new head commit.
@@ -41,12 +57,13 @@ public interface RevisionStore extends RevisionProvider {
      * Put a new head commit. Must be called while holding a
      * lock on the head.
      * 
+     * @param token put token
      * @param commit commit
      * @return head commit id
      * @throws Exception if an error occurs
      * @see #lockHead()
      */
-    Id /*id*/ putHeadCommit(MutableCommit commit) throws Exception;
+    Id /*id*/ putHeadCommit(PutToken token, MutableCommit commit) throws Exception;
     
     /**
      * Unlock the head.
@@ -62,9 +79,10 @@ public interface RevisionStore extends RevisionProvider {
      * does not affect the current head commit and therefore doesn't
      * require a lock on the head.
      *
+     * @param token put token
      * @param commit commit
      * @return new commit id
      * @throws Exception if an error occurs
      */
-    Id /*id*/ putCommit(MutableCommit commit) throws Exception;
+    Id /*id*/ putCommit(PutToken token, MutableCommit commit) throws Exception;
 }
