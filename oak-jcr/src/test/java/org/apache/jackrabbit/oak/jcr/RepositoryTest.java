@@ -782,7 +782,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
         }
     }
 
-    @Ignore // TODO implement value coding in ValueConverter
     @Test
     public void addEmptyMultiValuedProperty() throws RepositoryException {
         Node parentNode = getNode(TEST_PATH);
@@ -795,7 +794,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
         try {
             Property property = session2.getProperty(TEST_PATH + "/multi empty");
             assertTrue(property.isMultiple());
-            assertEquals(PropertyType.BOOLEAN, property.getType());
             Value[] values2 = property.getValues();
             assertEquals(0, values2.length);
         }
@@ -804,7 +802,26 @@ public class RepositoryTest extends AbstractRepositoryTest {
         }
     }
 
-    @Ignore // TODO implement value coding in ValueConverter
+    @Ignore // TODO retrieve type for empty-mv properties
+    @Test
+    public void testEmptyMultiValuedPropertyType() throws RepositoryException {
+        Node parentNode = getNode(TEST_PATH);
+        Value[] values = new Value[0];
+
+        parentNode.setProperty("multi empty", values, PropertyType.BOOLEAN);
+        parentNode.getSession().save();
+
+        Session session2 = getRepository().login();
+        try {
+            Property property = session2.getProperty(TEST_PATH + "/multi empty");
+            assertEquals(PropertyType.BOOLEAN, property.getType());
+        }
+        finally {
+            session2.logout();
+        }
+    }
+
+    @Ignore // TODO retrieve type for empty-mv properties
     @Test
     public void addEmptyMultiValuedProperty_JCR_2992_WorkaroundTest() throws RepositoryException {
         Node parentNode = getNode(TEST_PATH);
