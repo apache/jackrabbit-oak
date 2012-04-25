@@ -53,6 +53,16 @@
           </execution>
         </executions>
       </plugin>
+      <plugin>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <configuration>
+          <systemPropertyVariables>
+            <org.ops4j.pax.logging.DefaultServiceLog.level>
+              WARN
+            </org.ops4j.pax.logging.DefaultServiceLog.level>
+          </systemPropertyVariables>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
 

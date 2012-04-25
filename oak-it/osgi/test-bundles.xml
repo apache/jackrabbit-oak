@@ -28,6 +28,11 @@
       <outputFileNameMapping>${artifact.artifactId}.jar</outputFileNameMapping>
       <scope>test</scope>
       <includes>
+        <include>javax.jcr:jcr</include>
+        <include>commons-io:commons-io</include>
+        <include>commons-collections:commons-collections</include>
+        <include>org.apache.jackrabbit:jackrabbit-api</include>
+        <include>org.apache.jackrabbit:jackrabbit-jcr-commons</include>
         <include>org.apache.jackrabbit:oak-mk</include>
         <include>org.apache.jackrabbit:oak-core</include>
         <include>org.apache.jackrabbit:oak-jcr</include>
