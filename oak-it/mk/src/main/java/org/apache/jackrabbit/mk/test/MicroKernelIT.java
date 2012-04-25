@@ -42,6 +42,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
                 "\"stringProp\":\"stringVal\"," +
                 "\"intProp\":42," +
                 "\"floatProp\":42.2," +
+                "\"booleanProp\": true," +
                 "\"multiIntProp\":[1,2,3]}", null, "");
     }
 
@@ -68,8 +69,13 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
     public void getNodes() {
         String head = mk.getHeadRevision();
 
-        JSONObject jsonObj = parseJSONObject(mk.getNodes("/test", head, 0, 0, -1, null));
-        assertTrue(jsonObj.containsKey("stringProp"));
+        // verify initial content
+        JSONObject obj = parseJSONObject(mk.getNodes("/", head, 1, 0, -1, null));
+        assertPropertyValue(obj, "test/stringProp", "stringVal");
+        assertPropertyValue(obj, "test/intProp", 42L);
+        assertPropertyValue(obj, "test/floatProp", 42.2);
+        assertPropertyValue(obj, "test/booleanProp", true);
+        assertPropertyValue(obj, "test/multiIntProp", new Object[]{1,2,3});
     }
 
     @Test
@@ -141,8 +147,8 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         head = mk.commit("/",
                 "+\"fuu\" : {} \n" +
                         "^\"fuu/bar\" : 42", head, "");
-        String n = mk.getNodes("/fuu", head);
-        assertEquals("{\"bar\":42,\":childNodeCount\":0}", n);
+        JSONObject jsonObj = parseJSONObject(mk.getNodes("/fuu", head));
+        assertEquals(42l, jsonObj.get("bar"));
     }
 
     @Test
