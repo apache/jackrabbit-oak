@@ -49,6 +49,12 @@
 
   <dependencies>
     <dependency>
+      <groupId>biz.aQute</groupId>
+      <artifactId>bndlib</artifactId>
+      <scope>provided</scope>
+    </dependency>
+
+    <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-mk</artifactId>
       <version>${project.version}</version>
