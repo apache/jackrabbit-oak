@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.kernel;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.simple.SimpleKernelImpl;
+import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.core.CoreValueFactoryImpl;
 import org.junit.Before;
@@ -42,7 +42,7 @@ public abstract class AbstractOakTest {
 
     @Before
     public void setUp() {
-        microKernel = new SimpleKernelImpl("mem:" + getClass().getName());
+        microKernel = new MicroKernelImpl();
         valueFactory = new CoreValueFactoryImpl(microKernel);
 
         state = createInitialState();

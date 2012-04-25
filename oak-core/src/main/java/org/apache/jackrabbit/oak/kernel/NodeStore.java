@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+
 /**
  * TODO update javadoc
  * Storage abstraction for content trees. At any given point in time
@@ -48,7 +50,7 @@ public interface NodeStore {
      * @param builder
      * @return
      */
-    boolean apply(NodeStateBuilder builder);
+    void apply(NodeStateBuilder builder) throws CommitFailedException;
 
     /**
      * Compares the given two node states. Any found differences are

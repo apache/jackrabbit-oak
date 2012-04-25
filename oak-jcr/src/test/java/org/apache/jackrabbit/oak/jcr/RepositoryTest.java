@@ -1135,6 +1135,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
     }
 
     @Test(expected = RepositoryException.class)
+    @Ignore("WIP")  // TODO needs implementation of Tree.refresh
     public void refreshConflict() throws RepositoryException {
         Session session1 = getRepository().login();
         Session session2 = getRepository().login();
@@ -1153,6 +1154,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
     }
 
     @Test(expected = RepositoryException.class)
+    @Ignore("WIP")  // TODO needs implementation of Tree.refresh
     public void refreshConflict2() throws RepositoryException {
         getSession().getRootNode().addNode("node");
         getSession().save();
