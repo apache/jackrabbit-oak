@@ -29,6 +29,23 @@
 
   <artifactId>oak-core</artifactId>
   <name>Oak Core</name>
+  <packaging>bundle</packaging>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.felix</groupId>
+        <artifactId>maven-bundle-plugin</artifactId>
+        <configuration>
+          <instructions>
+            <Export-Package>
+              org.apache.jackrabbit.oak.api
+            </Export-Package>
+          </instructions>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 
   <dependencies>
     <dependency>
@@ -97,5 +114,4 @@
         <scope>test</scope>
     </dependency>
   </dependencies>
-
 </project>

@@ -29,6 +29,25 @@
 
   <artifactId>oak-mk</artifactId>
   <name>Oak Microkernel</name>
+  <packaging>bundle</packaging>
+  
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.felix</groupId>
+        <artifactId>maven-bundle-plugin</artifactId>
+        <configuration>
+          <instructions>
+            <Export-Package>
+              org.apache.jackrabbit.mk.api,
+              org.apache.jackrabbit.mk.json,
+              org.apache.jackrabbit.mk.util
+            </Export-Package>
+          </instructions>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 
   <dependencies>
     <!-- Optional dependencies for different persistence backends -->
@@ -64,6 +83,5 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
-
 </project>
 
