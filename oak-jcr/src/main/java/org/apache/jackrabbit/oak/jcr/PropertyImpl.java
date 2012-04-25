@@ -535,6 +535,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      *
      * @param defaultType
      * @return the required type for this property.
+     * @throws javax.jcr.RepositoryException
      */
     private int getRequiredType(int defaultType) throws RepositoryException {
         // check type according to definition of this property
@@ -564,9 +565,9 @@ public class PropertyImpl extends ItemImpl implements Property {
 
         if (value == null) {
             remove();
-        }
-        else {
-            getParentContentTree().setProperty(name(), ValueConverter.toCoreValue(value, sessionContext));
+        } else {
+            Value targetValue = ValueHelper.convert(value, requiredType, getValueFactory());
+            getParentContentTree().setProperty(name(), ValueConverter.toCoreValue(targetValue, sessionContext));
         }
     }
 
@@ -584,9 +585,9 @@ public class PropertyImpl extends ItemImpl implements Property {
 
         if (values == null) {
             remove();
-        }
-        else {
-            getParentContentTree().setProperty(name(), ValueConverter.toCoreValues(values, sessionContext));
+        } else {
+            Value[] targetValues = ValueHelper.convert(values, requiredType, getValueFactory());
+            getParentContentTree().setProperty(name(), ValueConverter.toCoreValues(targetValues, sessionContext));
         }
     }
 
