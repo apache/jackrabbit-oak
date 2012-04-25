@@ -26,10 +26,12 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.ComparisonFailure;
 import org.junit.runners.Parameterized.Parameters;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 /**
  * Abstract base class for {@link MicroKernel} integration tests.
@@ -123,6 +125,7 @@ public abstract class AbstractMicroKernelIT {
         fixture.tearDownCluster(mks);
     }
 
+    //--------------------------------< utility methods for parsing json data >
     /**
      * Returns a {@code JSONParser} instance for parsing JSON format data.
      * This method returns a cached instance.
@@ -140,7 +143,6 @@ public abstract class AbstractMicroKernelIT {
         return parser;
     }
 
-    //--------------------------------< utility methods for parsing json data >
     /**
      * Parses the provided string into a {@code JSONObject}.
      *
@@ -175,5 +177,90 @@ public abstract class AbstractMicroKernelIT {
         } catch (Exception e) {
             throw new AssertionError("not a valid JSON array: " + e.getMessage());
         }
+    }
+
+    protected void assertPropertyValue(JSONObject obj, String relPath, Double expected)
+            throws AssertionError {
+        Object val = resolveValue(obj, relPath);
+        assertNotNull("not found: " + relPath, val);
+
+        assertEquals(expected, val);
+    }
+
+    protected void assertPropertyValue(JSONObject obj, String relPath, Long expected)
+            throws AssertionError {
+        Object val = resolveValue(obj, relPath);
+        assertNotNull("not found: " + relPath, val);
+
+        assertEquals(expected, val);
+    }
+
+    protected void assertPropertyValue(JSONObject obj, String relPath, Boolean expected)
+            throws AssertionError {
+        Object val = resolveValue(obj, relPath);
+        assertNotNull("not found: " + relPath, val);
+
+        assertEquals(expected, val);
+    }
+
+    protected void assertPropertyValue(JSONObject obj, String relPath, String expected)
+            throws AssertionError {
+        Object val = resolveValue(obj, relPath);
+        assertNotNull("not found: " + relPath, val);
+
+        assertEquals(expected, val);
+    }
+
+    protected void assertPropertyValue(JSONObject obj, String relPath, Object[] expected)
+            throws AssertionError {
+        JSONArray array = resolveArrayValue(obj, relPath);
+        assertNotNull("not found: " + relPath, array);
+
+        assertEquals(expected.length, array.size());
+
+        // JSON numeric types: Double, Long
+        // convert types as necessary for comparison using equals method
+        for (int i = 0; i < array.size(); i++) {
+            Object o1 = expected[i];
+            Object o2 = array.get(i);
+            if (o1 instanceof Number && o2 instanceof Number) {
+                if (o1 instanceof Integer) {
+                    o1 = new Long((Integer) o1);
+                } else if (o1 instanceof Short) {
+                    o1 = new Long((Short) o1);
+                } else if (o1 instanceof Float) {
+                    o1 = new Double((Float) o1);
+                }
+            }
+            assertEquals(o1, o2);
+        }
+    }
+
+    protected JSONObject resolveObjectValue(JSONObject obj, String relPath) {
+        Object val = resolveValue(obj, relPath);
+        if (val instanceof JSONObject) {
+            return (JSONObject) val;
+        }
+        throw new AssertionError("failed to resolve JSONObject value at " + relPath + ": " + val);
+    }
+
+    protected JSONArray resolveArrayValue(JSONObject obj, String relPath) {
+        Object val = resolveValue(obj, relPath);
+        if (val instanceof JSONArray) {
+            return (JSONArray) val;
+        }
+        throw new AssertionError("failed to resolve JSONArray value at " + relPath + ": " + val);
+    }
+
+    protected Object resolveValue(JSONObject obj, String relPath) {
+        String names[] = relPath.split("/");
+        Object val = obj;
+        for (String name : names) {
+            if (! (val instanceof JSONObject)) {
+                throw new AssertionError("not found: " + relPath);
+            }
+            val = ((JSONObject) val).get(name);
+        }
+        return val;
     }
 }
