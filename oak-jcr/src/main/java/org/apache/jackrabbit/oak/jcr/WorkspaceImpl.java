@@ -56,10 +56,11 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
 
     private final SessionContext<SessionImpl> sessionContext;
     private QueryManagerImpl queryManager;
-    private NamespaceRegistry nsRegistry;
+    private final NamespaceRegistry nsRegistry;
 
-    public WorkspaceImpl(SessionContext<SessionImpl> sessionContext) {
+    public WorkspaceImpl(SessionContext<SessionImpl> sessionContext, NamespaceRegistry nsRegistry) {        
         this.sessionContext = sessionContext;
+        this.nsRegistry = nsRegistry;
     }
 
     //----------------------------------------------------------< Workspace >---
@@ -158,10 +159,6 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     @Override
     public NamespaceRegistry getNamespaceRegistry() throws RepositoryException {
         ensureIsAlive();
-        if (nsRegistry == null) {
-            nsRegistry = new NamespaceRegistryImpl(
-                    sessionContext.getContentSession());
-        }
         return nsRegistry;
     }
 
