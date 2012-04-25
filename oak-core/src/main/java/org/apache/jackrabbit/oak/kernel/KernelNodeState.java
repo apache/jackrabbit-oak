@@ -24,6 +24,7 @@ import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.util.CoreValueUtil;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -95,9 +96,9 @@ class KernelNodeState extends AbstractNodeState {
                     }
                     childNodes.put(name, new KernelNodeState(kernel, valueFactory, childPath, revision));
                 } else if (reader.matches('[')) {
-                    properties.put(name, new KernelPropertyState(name, readArray(reader)));
+                    properties.put(name, new KernelPropertyState(name, CoreValueUtil.listFromJsopReader(reader, valueFactory)));
                 } else {
-                    CoreValue cv = readValue(reader);
+                    CoreValue cv = CoreValueUtil.fromJsopReader(reader, valueFactory);
                     properties.put(name, new KernelPropertyState(name, cv));
                 }
             } while (reader.matches(','));
@@ -219,34 +220,9 @@ class KernelNodeState extends AbstractNodeState {
     private List<CoreValue> readArray(JsopReader reader) {
         List<CoreValue> values = new ArrayList<CoreValue>();
         while (!reader.matches(']')) {
-            values.add(readValue(reader));
+            values.add(CoreValueUtil.fromJsopReader(reader, valueFactory));
             reader.matches(',');
         }
         return values;
     }
-
-    private CoreValue readValue(JsopReader reader) {
-        CoreValue value;
-        // TODO properly handle property types not covered by JSON: Binary, double, decimal, date, name, path, (weak)ref, uri
-        if (reader.matches(JsopTokenizer.NUMBER)) {
-            String number = reader.getToken();
-            // TODO: property deal with different number types (double, BigDecimal)
-            if (number.indexOf('.') > -1) {
-                value = valueFactory.createValue(Double.valueOf(number));
-            } else {
-                value = valueFactory.createValue(Long.valueOf(number));
-            }
-        } else if (reader.matches(JsopTokenizer.TRUE)) {
-            value = valueFactory.createValue(true);
-        } else if (reader.matches(JsopTokenizer.FALSE)) {
-            value = valueFactory.createValue(false);
-        } else if (reader.matches(JsopTokenizer.STRING)) {
-            // TODO: deal with other property types
-            value = valueFactory.createValue(reader.getToken());
-        }  else {
-            throw new IllegalArgumentException("Unexpected token: " + reader.getToken());
-        }
-        return value;
-    }
-
 }

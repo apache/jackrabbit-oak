@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.jcr;
+package org.apache.jackrabbit.oak.jcr.value;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.CoreValue;
@@ -36,7 +36,7 @@ import java.math.BigDecimal;
 import java.util.Calendar;
 
 /**
- * CoreValueFactoryImpl...
+ * ValueFactoryImpl...
  */
 public class ValueFactoryImpl implements ValueFactory {
 
@@ -153,15 +153,8 @@ public class ValueFactoryImpl implements ValueFactory {
 
     @Override
     public Binary createBinary(InputStream stream) throws RepositoryException {
-        try {
-            CoreValue value = factory.createValue(stream);
-            // TODO: BINARY implementation missing
-            throw new UnsupportedOperationException("BINARY handling");
-        } catch (IOException ex) {
-            throw new RuntimeException(ex);
-        } finally {
-            IOUtils.closeQuietly(stream);
-        }
+        ValueImpl value = (ValueImpl) createValue(stream);
+        return new BinaryImpl(value);
     }
 
     @Override
@@ -183,26 +176,5 @@ public class ValueFactoryImpl implements ValueFactory {
     public Value createValue(Node value, boolean weak) throws RepositoryException {
         CoreValue cv = factory.createValue(value.getUUID(), weak ? PropertyType.WEAKREFERENCE : PropertyType.REFERENCE);
         return new ValueImpl(cv, resolver);
-    }
-
-
-    //--------------------------------------------------------------------------
-    // TODO: replace by reasonable implementation taking namespace mappings etc. into account.
-    public class DummyNamePathResolver {
-        String getJCRPath(String internalPath) {
-            return internalPath;
-        }
-
-        String getInternalPath(String jcrPath) {
-            return jcrPath;
-        }
-
-        String getJCRName(String internalName) {
-            return internalName;
-        }
-
-        String getInternalName(String jcrName) {
-            return jcrName;
-        }
     }
 }

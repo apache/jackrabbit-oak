@@ -489,14 +489,12 @@ public class RepositoryTest extends AbstractRepositoryTest {
         }
     }
 
-    @Ignore // TODO implement value coding in ValueConverter
     @Test
     public void addDecimalProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
         addProperty(parentNode, "decimal", getSession().getValueFactory().createValue(BigDecimal.valueOf(21)));
     }
 
-    @Ignore // TODO implement value coding in ValueConverter
     @Test
     public void addMultiValuedDecimal() throws RepositoryException {
         Node parentNode = getNode(TEST_PATH);
@@ -522,14 +520,12 @@ public class RepositoryTest extends AbstractRepositoryTest {
         }
     }
 
-    @Ignore // TODO implement value coding in ValueConverter
     @Test
     public void addDateProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
         addProperty(parentNode, "date", getSession().getValueFactory().createValue(Calendar.getInstance()));
     }
 
-    @Ignore // TODO implement value coding in ValueConverter
     @Test
     public void addMultiValuedDate() throws RepositoryException {
         Node parentNode = getNode(TEST_PATH);
@@ -557,14 +553,12 @@ public class RepositoryTest extends AbstractRepositoryTest {
         }
     }
 
-    @Ignore // TODO implement value coding in ValueConverter
     @Test
     public void addURIProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
         addProperty(parentNode, "uri", getSession().getValueFactory().createValue("http://www.day.com/", PropertyType.URI));
     }
 
-    @Ignore // TODO implement value coding in ValueConverter
     @Test
     public void addMultiValuedURI() throws RepositoryException {
         Node parentNode = getNode(TEST_PATH);
@@ -590,14 +584,12 @@ public class RepositoryTest extends AbstractRepositoryTest {
         }
     }
 
-    @Ignore // TODO implement value coding in ValueConverter
     @Test
     public void addNameProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
         addProperty(parentNode, "name", getSession().getValueFactory().createValue("jcr:something\"", PropertyType.NAME));
     }
 
-    @Ignore // TODO implement value coding in ValueConverter
     @Test
     public void addMultiValuedName() throws RepositoryException {
         Node parentNode = getNode(TEST_PATH);
@@ -623,14 +615,12 @@ public class RepositoryTest extends AbstractRepositoryTest {
         }
     }
 
-    @Ignore // TODO implement value coding in ValueConverter
     @Test
     public void addPathProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
         addProperty(parentNode, "path", getSession().getValueFactory().createValue("/jcr:foo/bar\"", PropertyType.PATH));
     }
 
-    @Ignore // TODO implement value coding in ValueConverter
     @Test
     public void addMultiValuedPath() throws RepositoryException {
         Node parentNode = getNode(TEST_PATH);
@@ -656,7 +646,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
         }
     }
 
-    @Ignore // TODO implement value coding in ValueConverter
     @Test
     public void addBinaryProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
@@ -665,7 +654,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
         addProperty(parentNode, "binary", getSession().getValueFactory().createValue(bin));
     }
 
-    @Ignore // TODO implement value coding in ValueConverter
     @Test
     public void addSmallBinaryProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
@@ -674,7 +662,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
         addProperty(parentNode, "bigBinary", getSession().getValueFactory().createValue(bin));
     }
 
-    @Ignore // TODO implement value coding in ValueConverter
     @Test
     public void addBigBinaryProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
@@ -683,7 +670,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
         addProperty(parentNode, "bigBinary", getSession().getValueFactory().createValue(bin));
     }
 
-    @Ignore // TODO implement value coding in ValueConverter
     @Test
     public void addMultiValuedBinary() throws RepositoryException {
         Node parentNode = getNode(TEST_PATH);
@@ -904,7 +890,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
         }
     }
 
-    @Ignore // TODO implement value coding in ValueConverter
     @Test
     public void setDoubleNaNProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
