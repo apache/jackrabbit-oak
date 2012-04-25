@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.jcr.value;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.namepath.NameMapper;
+import org.apache.jackrabbit.oak.namepath.Paths;
 import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,19 +48,17 @@ class ValueImpl implements Value {
     private static final Logger log = LoggerFactory.getLogger(ValueImpl.class);
 
     private final CoreValue value;
-
-    // TODO need utility to convert the internal NAME/PATH format to JCR format
-    private final DummyNamePathResolver resolver;
+    private final NameMapper nameMapper;
 
     /**
      * Constructs a {@code ValueImpl} object based on a {@code CoreValue}
      *
      * @param value the value object this {@code ValueImpl} should represent
-     * @param resolver
+     * @param nameMapper
      */
-    public ValueImpl(CoreValue value, DummyNamePathResolver resolver) {
+    public ValueImpl(CoreValue value, NameMapper nameMapper) {
         this.value = value;
-        this.resolver = resolver;
+        this.nameMapper = nameMapper;
     }
 
     CoreValue unwrap() {
@@ -151,9 +151,9 @@ class ValueImpl implements Value {
     public String getString() throws RepositoryException {
         switch (getType()) {
             case PropertyType.NAME :
-                return resolver.getJCRName(value.toString());
+                return nameMapper.getJcrName(value.toString());
             case PropertyType.PATH:
-                return resolver.getJCRPath(value.toString());
+                return Paths.toJcrPath(value.toString(), nameMapper);
             case PropertyType.BINARY:
                 InputStream stream = getStream();
                 try {
