@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import org.apache.jackrabbit.oak.namepath.Paths;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -131,4 +132,17 @@ abstract class ItemImpl implements Item {
         return sessionContext.getValueFactory();
     }
 
+    
+    String toOakPath(String jcrPath) throws RepositoryException {
+        try {
+            return Paths.toOakPath(jcrPath, sessionContext.getNameMapper());
+        }
+        catch (IllegalArgumentException ex) {
+            throw new RepositoryException(ex);
+        }
+    }
+
+    String toJcrPath(String oakPath) {
+        return Paths.toJcrPath(oakPath, sessionContext.getNameMapper());
+    }
 }

@@ -78,7 +78,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @Override
     public String getName() throws RepositoryException {
-        return name();
+        return toJcrPath(name());
     }
 
     /**

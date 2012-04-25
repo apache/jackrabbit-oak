@@ -23,6 +23,7 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.jcr.value.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.namepath.NameMapper;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -36,6 +37,7 @@ public interface SessionContext<T extends Session> {
     String getWorkspaceName();
     ContentSession getContentSession();
     ValueFactoryImpl getValueFactory();
+    NameMapper getNameMapper();
     LockManager getLockManager() throws RepositoryException;
     NodeTypeManager getNodeTypeManager() throws RepositoryException;
     VersionManager getVersionManager() throws RepositoryException;

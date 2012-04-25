@@ -57,8 +57,7 @@ public abstract class AbstractNameMapper implements NameMapper {
             String name = jcrName.substring(pos + 1);
             String oakPrefix = getOakPrefix(pref);
             if (oakPrefix == null) {
-                // TODO
-                return null;
+                throw new IllegalArgumentException("prefix '" + pref + "' is not mapped" );
             } else {
                 return oakPrefix + ":" + name;
             }
@@ -74,10 +73,16 @@ public abstract class AbstractNameMapper implements NameMapper {
         } else {
             String pref = oakName.substring(0, pos);
             String name = oakName.substring(pos + 1);
+
+            if (pref.startsWith("{")) {
+                throw new IllegalStateException(
+                        "invalid oak name (maybe expanded name leaked out?): "
+                                + oakName);
+            }
+
             String jcrPrefix = getJcrPrefix(pref);
             if (jcrPrefix == null) {
-                // TODO
-                return null;
+                throw new IllegalStateException("invalid oak name: " + oakName);
             } else {
                 return jcrPrefix + ":" + name;
             }

@@ -21,7 +21,6 @@ import java.security.AccessControlException;
 
 import javax.jcr.Credentials;
 import javax.jcr.InvalidItemStateException;
-import javax.jcr.NamespaceException;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.Node;
 import javax.jcr.Repository;
@@ -497,6 +496,11 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
         @Override
         public ValueFactoryImpl getValueFactory() {
             return valueFactory;
+        }
+
+        @Override
+        public NameMapper getNameMapper() {
+            return nameMapper;
         }
 
         @Override
