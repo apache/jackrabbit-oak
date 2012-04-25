@@ -127,11 +127,11 @@ public class KernelTree implements Tree {
 
         /**
          * The child with the given {@code name} been copied.
-         * @param state  parent from which the child way copied
+         * @param tree  parent from which the child way copied
          * @param name  name of the copied child
          * @param copied  copied child
          */
-        void copy(KernelTree state, String name, KernelTree copied);
+        void copy(KernelTree tree, String name, KernelTree copied);
     }
 
     /**

@@ -18,13 +18,13 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
-import org.apache.jackrabbit.mk.api.MicroKernelException;
+import org.apache.jackrabbit.mk.util.PathUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.kernel.KernelTree.Listener;
-import org.apache.jackrabbit.oak.util.CoreValueUtil;
 
 import java.util.List;
 
@@ -33,6 +33,7 @@ import static org.apache.jackrabbit.mk.util.PathUtils.getName;
 import static org.apache.jackrabbit.mk.util.PathUtils.getParentPath;
 
 /**
+ * FIXME: update javadoc
  * This {@code Root} implementation accumulates all changes into a json diff
  * and applies them to the microkernel on {@link #commit()}
  *
@@ -55,14 +56,17 @@ public class KernelRoot implements Root {
     /** Root state of this tree */
     private KernelTree root;
 
-    /** Log of changes to this tree */
-    private ChangeLog changeLog = new ChangeLog();
+    /** Listener for changes on the content tree */
+    private TreeListener treeListener = new TreeListener();
+
+    private NodeStateBuilder nodeStateBuilder;
 
     public KernelRoot(KernelNodeStore store, String workspaceName) {
         this.store = store;
         this.workspaceName = workspaceName;
         this.base = store.getRoot().getChildNode(workspaceName);
-        this.root = new KernelTree(base, changeLog);
+        this.root = new KernelTree(base, treeListener);
+        nodeStateBuilder = store.getBuilder(base);
     }
 
     @Override
@@ -98,33 +102,21 @@ public class KernelRoot implements Root {
 
     @Override
     public void refresh() {
-        base = store.getRoot().getChildNode(workspaceName);
+        // TODO implement base = store.getRoot().getChildNode(workspaceName);
     }
 
     @Override
     public void commit() throws CommitFailedException {
-        try {
-            store.save(this, base);
-            changeLog = new ChangeLog();
-            base = store.getRoot().getChildNode(workspaceName);
-            root = new KernelTree(base, changeLog);
-        } catch (MicroKernelException e) {
-            throw new CommitFailedException(e);
-        }
+        store.apply(nodeStateBuilder);
+        base = store.getRoot().getChildNode(workspaceName);
+        nodeStateBuilder = store.getBuilder(base);
+        treeListener = new TreeListener();
+        root = new KernelTree(base, treeListener);
     }
 
+    @Override
     public boolean hasPendingChanges() {
-        return !changeLog.isEmpty();
-    }
-
-    //------------------------------------------------------------< internal >---
-
-    /**
-     * JSOP representation of the changes done to this tree
-     * @return  changes in JSOP representation
-     */
-    String getChanges() {
-        return changeLog.toJsop();
+        return treeListener.hasChanges();
     }
 
     //------------------------------------------------------------< private >---
@@ -159,56 +151,74 @@ public class KernelRoot implements Root {
         return path.isEmpty() ? name : path + '/' + name;
     }
 
-    /**
-     * This {@code Listener} implementation records all changes to
-     * a associated tree as JSOP.
-     */
-    private static class ChangeLog implements Listener {
-        private final StringBuilder jsop = new StringBuilder();
-
+    private class TreeListener implements Listener {
+        private boolean isDirty;
+        
         @Override
         public void addChild(KernelTree tree, String name) {
-            jsop.append("+\"").append(path(tree, name)).append("\":{}");
+            NodeStateBuilder target = getBuilder(tree);
+            target.addNode(name);
+            isDirty = true;
         }
 
         @Override
         public void removeChild(KernelTree tree, String name) {
-            jsop.append("-\"").append(path(tree, name)).append('"');
+            NodeStateBuilder target = getBuilder(tree);
+            target.removeNode(name);
+            isDirty = true;
         }
 
         @Override
         public void setProperty(KernelTree tree, String name, CoreValue value) {
-            jsop.append("^\"").append(path(tree, name)).append("\":").append(CoreValueUtil.toJsonValue(value));
+            NodeStateBuilder target = getBuilder(tree);
+            PropertyState propertyState = new KernelPropertyState(name, value);
+            target.setProperty(propertyState);
+            isDirty = true;
         }
 
         @Override
         public void setProperty(KernelTree tree, String name, List<CoreValue> values) {
-            jsop.append("^\"").append(path(tree, name)).append("\":").append(CoreValueUtil.toJsonArray(values));
+            NodeStateBuilder target = getBuilder(tree);
+            PropertyState propertyState = new KernelPropertyState(name, values);
+            target.setProperty(propertyState);
+            isDirty = true;
         }
 
         @Override
         public void removeProperty(KernelTree tree, String name) {
-            jsop.append("^\"").append(path(tree, name)).append("\":null");
+            NodeStateBuilder target = getBuilder(tree);
+            target.removeProperty(name);
+            isDirty = true;
         }
 
         @Override
         public void move(KernelTree tree, String name, KernelTree moved) {
-            jsop.append(">\"").append(path(tree, name)).append("\":\"")
-                    .append(moved.getPath()).append('"');
+            NodeStateBuilder source = getBuilder(tree).getChildBuilder(name);
+            NodeStateBuilder destParent = getBuilder(moved.getParent());
+            source.moveTo(destParent, moved.getName());
+            isDirty = true;
         }
 
         @Override
-        public void copy(KernelTree state, String name, KernelTree copied) {
-            jsop.append("*\"").append(path(state, name)).append("\":\"")
-                    .append(copied.getPath()).append('"');
+        public void copy(KernelTree tree, String name, KernelTree copied) {
+            NodeStateBuilder source = getBuilder(tree).getChildBuilder(name);
+            NodeStateBuilder destParent = getBuilder(copied.getParent());
+            source.copyTo(destParent, copied.getName());
+            isDirty = true;
         }
 
-        public boolean isEmpty() {
-            return jsop.length() == 0;
+        public boolean hasChanges() {
+            return isDirty;
         }
+    }
 
-        public String toJsop() {
-            return jsop.toString();
+    private NodeStateBuilder getBuilder(Tree tree) {
+        String path = tree.getPath();
+        NodeStateBuilder builder = nodeStateBuilder;
+        for (String name : PathUtils.elements(path)) {
+            builder = builder.getChildBuilder(name);
         }
+        
+        return builder;
     }
 }

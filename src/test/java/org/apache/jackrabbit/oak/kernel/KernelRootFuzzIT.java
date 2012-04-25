@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.kernel;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.simple.SimpleKernelImpl;
+import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.mk.util.PathUtils;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
@@ -75,13 +75,13 @@ public class KernelRootFuzzIT {
     public void setup() {
         counter = 0;
 
-        MicroKernel mk1 = new SimpleKernelImpl("mem:");
+        MicroKernel mk1 = new MicroKernelImpl("./target/mk1");
         vf = new CoreValueFactoryImpl(mk1);
         store1 = new KernelNodeStore(mk1, vf);
         mk1.commit("", "+\"/test\":{} +\"/test/root\":{}", mk1.getHeadRevision(), "");
         root1 = new KernelRoot(store1, "test");
 
-        MicroKernel mk2 = new SimpleKernelImpl("mem:");
+        MicroKernel mk2 = new MicroKernelImpl("./target/mk2");
         store2 = new KernelNodeStore(mk2, vf);
         mk2.commit("", "+\"/test\":{} +\"/test/root\":{}", mk2.getHeadRevision(), "");
         root2 = new KernelRoot(store2, "test");

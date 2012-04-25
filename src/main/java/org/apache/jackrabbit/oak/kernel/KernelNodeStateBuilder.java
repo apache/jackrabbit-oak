@@ -19,22 +19,20 @@ package org.apache.jackrabbit.oak.kernel;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.util.PathUtils;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.util.CoreValueUtil;
 
-/**
- * FIXME document
- */
 public class KernelNodeStateBuilder implements NodeStateBuilder {
     private final MicroKernel kernel;
     private final CoreValueFactory valueFactory;
     private final String path;
 
-    private String revision;
+    private String[] revision;  // FIXME: refactor
 
     public KernelNodeStateBuilder(MicroKernel kernel, CoreValueFactory valueFactory, String path,
-            String revision) {
+            String[] revision) {
 
         this.kernel = kernel;
         this.valueFactory = valueFactory;
@@ -47,13 +45,13 @@ public class KernelNodeStateBuilder implements NodeStateBuilder {
     public NodeState getNodeState() {
         assertNotStale();
 
-        return new KernelNodeState(kernel, valueFactory, path, revision);
+        return new KernelNodeState(kernel, valueFactory, path, revision[0]);
     }
 
     @Override
     public NodeStateBuilder getChildBuilder(String name) {
         String targetPath = PathUtils.concat(path, name);
-        return kernel.nodeExists(targetPath, revision)
+        return kernel.nodeExists(targetPath, revision[0])
             ? new KernelNodeStateBuilder(kernel, valueFactory, targetPath, revision)
             : null;
     }
@@ -63,18 +61,18 @@ public class KernelNodeStateBuilder implements NodeStateBuilder {
         String targetPath = PathUtils.concat(path, name);
         StringBuilder jsop = new StringBuilder();
         buildJsop(targetPath, nodeState, jsop);
-        revision = kernel.commit("", jsop.toString(), revision, null);
+        revision[0] = kernel.commit("", jsop.toString(), revision[0], null);
         return new KernelNodeStateBuilder(kernel, valueFactory, targetPath, revision);
     }
 
     @Override
     public NodeStateBuilder addNode(String name) {
         String targetPath = PathUtils.concat(path, name);
-        if (kernel.nodeExists(targetPath, revision)) {
+        if (kernel.nodeExists(targetPath, revision[0])) {
             return null;
         }
         else {
-            revision = kernel.commit("", "+\""  + targetPath + "\":{}", revision, null);
+            revision[0] = kernel.commit("", "+\""  + targetPath + "\":{}", revision[0], null);
             return new KernelNodeStateBuilder(kernel, valueFactory, targetPath, revision);
         }
     }
@@ -82,8 +80,8 @@ public class KernelNodeStateBuilder implements NodeStateBuilder {
     @Override
     public boolean removeNode(String name) {
         String targetPath = PathUtils.concat(path, name);
-        if (kernel.nodeExists(targetPath, revision)) {
-            revision = kernel.commit("", "-\""  + targetPath + '"', revision, null);
+        if (kernel.nodeExists(targetPath, revision[0])) {
+            revision[0] = kernel.commit("", "-\""  + targetPath + '"', revision[0], null);
             return true;
         }
         else {
@@ -98,13 +96,13 @@ public class KernelNodeStateBuilder implements NodeStateBuilder {
             ? CoreValueUtil.toJsonArray(property.getValues())
             : CoreValueUtil.toJsonValue(property.getValue());
 
-        revision = kernel.commit("", "^\"" + targetPath + "\":" + value, revision, null);
+        revision[0] = kernel.commit("", "^\"" + targetPath + "\":" + value, revision[0], null);
     }
 
     @Override
     public void removeProperty(String name) {
         String targetPath = PathUtils.concat(path, name);
-        revision = kernel.commit("", "^\"" + targetPath + "\":null", revision, null);
+        revision[0] = kernel.commit("", "^\"" + targetPath + "\":null", revision[0], null);
     }
 
     @Override
@@ -122,8 +120,8 @@ public class KernelNodeStateBuilder implements NodeStateBuilder {
         String destParentPath = destParentBuilder.getPath();
         String targetPath = PathUtils.concat(destParentPath, destName);
 
-        revision = kernel.commit("", ">\"" + path + "\":\"" + targetPath + '"',
-                revision, null);
+        revision[0] = kernel.commit("", ">\"" + path + "\":\"" + targetPath + '"',
+                revision[0], null);
         return true;
     }
 
@@ -142,8 +140,8 @@ public class KernelNodeStateBuilder implements NodeStateBuilder {
         String destParentPath = destParentBuilder.getPath();
         String targetPath = PathUtils.concat(destParentPath, destName);
 
-        revision = kernel.commit("", "*\"" + path + "\":\"" + targetPath + '"',
-                revision, null);
+        revision[0] = kernel.commit("", "*\"" + path + "\":\"" + targetPath + '"',
+                revision[0], null);
         return true;
     }
 
@@ -153,17 +151,15 @@ public class KernelNodeStateBuilder implements NodeStateBuilder {
         return path;
     }
 
-    boolean apply() {
+    void apply() throws CommitFailedException {
         assertNotStale();
 
         try {
-            kernel.merge(revision, null);
+            kernel.merge(revision[0], null);
             revision = null;
-            return true;
         }
         catch (MicroKernelException e) {
-            // TODO log
-            return false;
+            throw new CommitFailedException(e);
         }
     }
 
