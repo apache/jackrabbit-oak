@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -127,7 +128,13 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
         }
 
         if (gcpm != null) {
-            gcExecutor = Executors.newScheduledThreadPool(1);
+            gcExecutor = Executors.newScheduledThreadPool(1,
+                    new ThreadFactory() {
+                        @Override
+                        public Thread newThread(Runnable r) {
+                            return new Thread(r, "RevisionStore-GC");
+                        }
+                    });
             gcExecutor.scheduleWithFixedDelay(new Runnable() {
                 @Override
                 public void run() {
@@ -140,7 +147,7 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
 
         initialized = true;
     }
-
+    
     public void close() {
         verifyInitialized();
 
