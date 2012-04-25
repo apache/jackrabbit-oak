@@ -24,21 +24,14 @@
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
     <version>0.2-SNAPSHOT</version>
-    <relativePath>../oak-parent/pom.xml</relativePath>
+    <relativePath>../../oak-parent/pom.xml</relativePath>
   </parent>
 
-  <artifactId>oak-it</artifactId>
-  <name>Oak Integration Tests</name>
-  <packaging>pom</packaging>
+  <artifactId>oak-it-osgi</artifactId>
+  <name>Oak Integration Tests for OSGi deployments</name>
 
   <properties>
     <skip.deployment>true</skip.deployment>
   </properties>
-
-  <modules>
-    <module>jcr</module>
-    <module>mk</module>
-    <module>osgi</module>
-  </modules>
 
 </project>

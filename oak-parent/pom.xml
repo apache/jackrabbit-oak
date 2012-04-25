@@ -90,21 +90,17 @@
   <dependencyManagement>
     <dependencies>
       <dependency>
+        <groupId>biz.aQute</groupId>
+        <artifactId>bndlib</artifactId>
+        <version>1.50.0</version>
+      </dependency>
+      <dependency>
         <groupId>junit</groupId>
         <artifactId>junit</artifactId>
         <version>4.10</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
-  
-  <dependencies>
-    <dependency>
-      <groupId>biz.aQute</groupId>
-      <artifactId>bndlib</artifactId>
-      <version>1.50.0</version>
-      <scope>provided</scope>
-    </dependency>
-  </dependencies>
 
   <profiles>
     <profile>

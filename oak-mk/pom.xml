@@ -30,7 +30,7 @@
   <artifactId>oak-mk</artifactId>
   <name>Oak Microkernel</name>
   <packaging>bundle</packaging>
-  
+
   <build>
     <plugins>
       <plugin>
@@ -50,6 +50,12 @@
   </build>
 
   <dependencies>
+    <dependency>
+      <groupId>biz.aQute</groupId>
+      <artifactId>bndlib</artifactId>
+      <scope>provided</scope>
+    </dependency>
+
     <!-- Optional dependencies for different persistence backends -->
     <dependency>
       <groupId>com.h2database</groupId>
