@@ -41,6 +41,11 @@ public class OSGiIT {
         File base = new File(TARGET, "test-bundles");
         return CoreOptions.options(
                 junitBundles(),
+                bundle(new File(base, "jcr.jar").toURI().toURL().toString()),
+                bundle(new File(base, "commons-io.jar").toURI().toURL().toString()),
+                bundle(new File(base, "commons-collections.jar").toURI().toURL().toString()),
+                bundle(new File(base, "jackrabbit-api.jar").toURI().toURL().toString()),
+                bundle(new File(base, "jackrabbit-jcr-commons.jar").toURI().toURL().toString()),
                 bundle(new File(base, "oak-mk.jar").toURI().toURL().toString()),
                 bundle(new File(base, "oak-core.jar").toURI().toURL().toString()),
                 bundle(new File(base, "oak-jcr.jar").toURI().toURL().toString()));
