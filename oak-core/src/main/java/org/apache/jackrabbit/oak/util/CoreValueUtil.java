@@ -31,7 +31,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * CoreValueUtil...
+ * CoreValueUtil provides methods to convert {@code CoreValue}s to the JSON
+ * representation passed to MicroKernel and vice versa.
  *
  * TODO: review if this should be added to CoreValue/*Factory interfaces/implementation
  */
