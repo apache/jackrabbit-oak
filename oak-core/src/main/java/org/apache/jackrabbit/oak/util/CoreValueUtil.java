@@ -45,6 +45,10 @@ public class CoreValueUtil {
 
     private static final Map<Integer, String> TYPE2HINT = new HashMap<Integer, String>();
     private static final Map<String, Integer> HINT2TYPE = new HashMap<String, Integer>();
+
+    private CoreValueUtil() {
+    }
+
     static {
         for (int type = PropertyType.UNDEFINED; type <= PropertyType.DECIMAL; type++) {
             String hint = PropertyType.nameFromValue(type).substring(0,3).toLowerCase();
