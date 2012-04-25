@@ -17,9 +17,12 @@
 package org.apache.jackrabbit.oak.namepath;
 
 import org.apache.jackrabbit.mk.util.PathUtils;
+import org.apache.jackrabbit.oak.namepath.JcrNameParser.Listener;
 import org.apache.jackrabbit.oak.util.Function1;
 
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.NoSuchElementException;
 
 /**
@@ -185,49 +188,95 @@ public final class Paths {
         return true;
     }
 
-    /**
-     * Resolve {@code element} against {@code prefixResolver}: replace the
-     * prefix of this element with the prefix returned by the prefix resolver.
-     * Undefined if {@code element} is not a valid {@code ELEMENT}.
-     * @param element  {@code ELEMENT}
-     * @param prefixResolver  prefix resolver
-     * @return  resolved element
-     * @throws IllegalArgumentException  if {@code prefixResolver} returns {@code null}
-     * for the prefix of {@code element}.
-     */
-    public static String resolveElement(String element, Function1<String, String> prefixResolver) {
-        String prefix = getPrefixFromElement(element);
-        if (prefix == null) {
-            return element;
-        }
+    public static String toOakName(String name, final NameMapper nm) {
+        final StringBuilder element = new StringBuilder();
+        
+        Listener listener = new JcrNameParser.Listener() {
+            @Override
+            public void error(String message) {
+                // todo implement error
+            }
 
-        String newPrefix = prefixResolver.apply(prefix);
-        if (newPrefix == null) {
-            throw new IllegalArgumentException("Can't resolve prefix " + prefix);
-        }
-        return newPrefix + ':' + getNameFromElement(element);
+            @Override
+            public void name(String name) {
+                String p = nm.getOakName(name);
+                element.append(p);
+            }
+        };
+
+        JcrNameParser.parse(name, listener);
+        return element.toString();
     }
+    
+    public static String toOakPath(String path, final NameMapper nm) {
+        final List<String> elements = new ArrayList<String>();
+        
+        JcrPathParser.Listener listener = new JcrPathParser.Listener() {
+            @Override
+            public void root() {
+                if (!elements.isEmpty()) {
+                    // todo error
+                }
+                elements.add("");
+            }
 
-    /**
-     * Resolve {@code path} against {@code prefixResolver} by resolving each
-     * element of the path against that prefix resolver.
-     * @param path  {@code PATH}
-     * @param prefixResolver  prefix resolver
-     * @return  resolved path
-     * @throws IllegalArgumentException if {@code prefixResolver} returns {@code null}
-     * for a prefix in any of the elements of {@code path}.
-     */
-    public static String resolvePath(String path, Function1<String, String> prefixResolver) {
-        StringBuilder resolved = new StringBuilder();
+            @Override
+            public void identifier(String identifier) {
+                if (!elements.isEmpty()) {
+                    // todo error
+                }
+                elements.add(identifier);  // todo resolve identifier
+                // todo seal
+            }
 
-        String sep = path.charAt(0) == '/' ? "/" : "";
+            @Override
+            public void current() {
+                // nothing to do here
+            }
 
-        for (String element : split(path, '/')) {
-            resolved.append(sep).append(resolveElement(element, prefixResolver));
-            sep = "/";
+            @Override
+            public void parent() {
+                if (elements.isEmpty()) {
+                    // todo error
+                }
+                elements.remove(elements.size() - 1);
+            }
+
+            @Override
+            public void index(int index) {
+                if (index > 1) {
+                    // todo error
+                }
+            }
+
+            @Override
+            public void error(String message) {
+                throw new RuntimeException(message);
+            }
+
+            @Override
+            public void name(String name) {
+                String p = nm.getOakName(name);
+                elements.add(p);
+            }
+        };
+
+        JcrPathParser.parse(path, listener);
+        
+        StringBuilder oakPath = new StringBuilder();
+        for (String element : elements) {
+            if (element.isEmpty()) {
+                // root
+                oakPath.append('/');
+            }
+            else {
+                oakPath.append(element);
+                oakPath.append('/');
+            }
         }
         
-        return resolved.toString();
+        oakPath.deleteCharAt(oakPath.length() - 1);
+        return oakPath.toString();
     }
     
     //------------------------------------------------------------< private >--- 
