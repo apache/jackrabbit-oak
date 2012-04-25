@@ -183,7 +183,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertEquals("/foo", node.getPath());
     }
 
-    @Ignore  // TODO implement getNodeByIdentifier
     @Test
     public void getNodeByIdentifier() throws RepositoryException {
         Node node = getNode("/foo");
