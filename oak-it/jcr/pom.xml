@@ -48,9 +48,7 @@ org.apache.jackrabbit.test.api.NodeReadMethodsTest
 org.apache.jackrabbit.test.api.PropertyReadMethodsTest
 org.apache.jackrabbit.test.api.NodeDiscoveringNodeTypesTest#testIsNodeType
 org.apache.jackrabbit.test.api.NamespaceRemappingTest#testNamespaceRemapping
-org.apache.jackrabbit.test.api.SessionReadMethodsTest
-org.apache.jackrabbit.test.api.WorkspaceReadMethodsTest#testGetAccessibleWorkspaceNames
-org.apache.jackrabbit.test.api.ReferenceableRootNodesTest
+org.apache.jackrabbit.test.api.SessionReadMethodsTest#testGetNodeByUUIDFailure
 org.apache.jackrabbit.test.api.ExportSysViewTest
 org.apache.jackrabbit.test.api.ExportDocViewTest
 org.apache.jackrabbit.test.api.NameTest
