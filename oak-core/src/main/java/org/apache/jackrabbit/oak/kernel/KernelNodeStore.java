@@ -52,9 +52,7 @@ public class KernelNodeStore implements NodeStore {
         KernelNodeState kernelNodeState = (KernelNodeState) nodeState;
         String branchRevision = kernel.branch(kernelNodeState.getRevision());
         String path = kernelNodeState.getPath();
-        String[] br = new String[1];  // FIXME refactor
-        br[0] = branchRevision;
-        return new KernelNodeStateBuilder(kernel, valueFactory, path, br);
+        return KernelNodeStateBuilder.create(kernel, valueFactory, path, branchRevision);
     }
 
     @Override
