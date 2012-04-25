@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.type;
 import java.util.Collections;
 import java.util.Set;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -36,14 +37,15 @@ class TypeValidator implements Validator {
     private void checkTypeExists(PropertyState after)
             throws CommitFailedException {
         Iterable<CoreValue> coreValues = Collections.emptyList();
-        if ("jcr:primaryType".equals(after.getName())) {
+        if (JcrConstants.JCR_PRIMARYTYPE.equals(after.getName())) {
             coreValues = Collections.singletonList(after.getValue());
-        } else if ("jcr:mixinTypes".equals(after.getName())) {
+        } else if (JcrConstants.JCR_MIXINTYPES.equals(after.getName())) {
             coreValues = after.getValues();
         }
         for (CoreValue cv : coreValues) {
             String value = cv.getString();
             if (!types.contains(value)) {
+                // TODO: make sure NodeSuchNodeTypeException can be extracted in oak-jcr
                 throw new CommitFailedException("Unknown node type: " + value);
             }
         }
