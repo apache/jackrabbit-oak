@@ -37,6 +37,20 @@ public interface NodeStore {
     NodeState getRoot();
 
     /**
+     * FIXME document
+     * @param nodeState
+     * @return
+     */
+    NodeStateBuilder getBuilder(NodeState nodeState);
+
+    /**
+     * FIXME document
+     * @param builder
+     * @return
+     */
+    boolean apply(NodeStateBuilder builder);
+
+    /**
      * Compares the given two node states. Any found differences are
      * reported by calling the relevant added, changed or deleted methods
      * of the given handler.

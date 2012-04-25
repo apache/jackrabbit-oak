@@ -43,6 +43,28 @@ public class KernelNodeStore implements NodeStore {
     }
 
     @Override
+    public NodeStateBuilder getBuilder(NodeState nodeState) {
+        if (!(nodeState instanceof KernelNodeState)) {
+            throw new IllegalArgumentException("Alien node state");
+        }
+
+        KernelNodeState kernelNodeState = (KernelNodeState) nodeState;
+        String branchRevision = kernel.branch(kernelNodeState.getRevision());
+        String path = kernelNodeState.getPath();
+        return new KernelNodeStateBuilder(kernel, valueFactory, path, branchRevision);
+    }
+
+    @Override
+    public boolean apply(NodeStateBuilder builder) {
+        if (!(builder instanceof  KernelNodeStateBuilder)) {
+            throw new IllegalArgumentException("Alien builder");
+        }
+        
+        KernelNodeStateBuilder kernelNodeStateBuilder = (KernelNodeStateBuilder) builder;
+        return kernelNodeStateBuilder.apply();
+    }
+
+    @Override
     public void compare(NodeState before, NodeState after, NodeStateDiff diff) {
         compareProperties(before, after, diff);
         compareChildNodes(before, after, diff);
