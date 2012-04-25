@@ -527,5 +527,19 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
         public Tree getContentTree(NodeImpl node) {
             return root.getTree(node.path());
         }
+
+        @Override
+        public String toOakPath(String jcrPath) throws RepositoryException {
+            try {
+                return Paths.toOakPath(jcrPath, sessionContext.getNameMapper());
+            } catch (IllegalArgumentException ex) {
+                throw new RepositoryException(ex);
+            }
+        }
+
+        @Override
+        public String toJcrPath(String oakPath) {
+            return Paths.toJcrPath(oakPath, sessionContext.getNameMapper());
+        }
     }
 }
