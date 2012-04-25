@@ -69,15 +69,15 @@ public class MutableNode extends AbstractNode implements PersistHook {
     //----------------------------------------------------------< PersistHook >
 
     @Override
-    public void prePersist(RevisionStore store) throws Exception {
+    public void prePersist(RevisionStore store, RevisionStore.PutToken token) throws Exception {
         if (!childEntries.inlined()) {
             // persist dirty buckets
-            ((ChildNodeEntriesTree) childEntries).persistDirtyBuckets(store);
+            ((ChildNodeEntriesTree) childEntries).persistDirtyBuckets(store, token);
         }
     }
 
     @Override
-    public void postPersist(RevisionStore store) throws Exception {
+    public void postPersist(RevisionStore store, RevisionStore.PutToken token) throws Exception {
         // there's nothing to do
     }
 

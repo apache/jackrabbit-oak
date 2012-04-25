@@ -21,6 +21,6 @@ package org.apache.jackrabbit.mk.store;
  */
 public interface PersistHook {
     
-    void prePersist(RevisionStore store) throws Exception;
-    void postPersist(RevisionStore store) throws Exception;
+    void prePersist(RevisionStore store, RevisionStore.PutToken token) throws Exception;
+    void postPersist(RevisionStore store, RevisionStore.PutToken token) throws Exception;
 }
