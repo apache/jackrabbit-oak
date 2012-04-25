@@ -102,7 +102,7 @@ public class KernelRoot implements Root {
 
     @Override
     public void refresh() {
-        // TODO implement base = store.getRoot().getChildNode(workspaceName);
+        // TODO implement refresh base = store.getRoot().getChildNode(workspaceName);
     }
 
     @Override
@@ -137,18 +137,6 @@ public class KernelRoot implements Root {
             }
         }
         return state;
-    }
-
-    /**
-     * Path of the item {@code name} of the given {@code state}
-     *
-     * @param state
-     * @param name The item name.
-     * @return relative path of the item {@code name}
-     */
-    private static String path(Tree state, String name) {
-        String path = state.getPath();
-        return path.isEmpty() ? name : path + '/' + name;
     }
 
     private class TreeListener implements Listener {

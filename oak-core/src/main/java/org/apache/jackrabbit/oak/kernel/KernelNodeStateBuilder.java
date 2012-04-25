@@ -28,17 +28,23 @@ public class KernelNodeStateBuilder implements NodeStateBuilder {
     private final MicroKernel kernel;
     private final CoreValueFactory valueFactory;
     private final String path;
+    private final String[] revision;
 
-    private String[] revision;  // FIXME: refactor
-
-    public KernelNodeStateBuilder(MicroKernel kernel, CoreValueFactory valueFactory, String path,
+    private KernelNodeStateBuilder(MicroKernel kernel, CoreValueFactory valueFactory, String path,
             String[] revision) {
 
         this.kernel = kernel;
         this.valueFactory = valueFactory;
         this.path = path;
-
         this.revision = revision;
+    }
+    
+    public static NodeStateBuilder create(MicroKernel kernel, CoreValueFactory valueFactory,
+            String path, String revision) {
+
+        String[] r = new String[1];
+        r[0] = revision;
+        return new KernelNodeStateBuilder(kernel, valueFactory, path, r);
     }
 
     @Override
@@ -156,7 +162,7 @@ public class KernelNodeStateBuilder implements NodeStateBuilder {
 
         try {
             kernel.merge(revision[0], null);
-            revision = null;
+            revision[0] = null;
         }
         catch (MicroKernelException e) {
             throw new CommitFailedException(e);
@@ -166,7 +172,7 @@ public class KernelNodeStateBuilder implements NodeStateBuilder {
     //------------------------------------------------------------< private >---
 
     private void assertNotStale() {
-        if (revision == null) {
+        if (revision[0] == null) {
             throw new IllegalStateException("This branch has been merged already");
         }
     }
