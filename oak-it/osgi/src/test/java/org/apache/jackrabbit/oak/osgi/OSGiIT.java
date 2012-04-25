@@ -23,6 +23,10 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 
+import javax.jcr.Repository;
+
+import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.ops4j.pax.exam.CoreOptions;
@@ -30,8 +34,10 @@ import org.ops4j.pax.exam.Option;
 import org.ops4j.pax.exam.junit.Configuration;
 import org.ops4j.pax.exam.junit.JUnit4TestRunner;
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.ServiceReference;
 
 @RunWith(JUnit4TestRunner.class)
+@SuppressWarnings({ "rawtypes", "unchecked" })
 public class OSGiIT {
 
     private final File TARGET = new File("target");
@@ -53,14 +59,45 @@ public class OSGiIT {
  
     @Test
     public void testMicroKernel(BundleContext bc) throws Exception {
+        ServiceReference reference =
+                bc.getServiceReference(MicroKernel.class.getName());
+
+        Object service = bc.getService(reference);
+        assert service instanceof MicroKernel;
+
+        MicroKernel kernel = (MicroKernel) service;
+        System.out.println(kernel);
+        System.out.println(kernel.getHeadRevision());
+
+        bc.ungetService(reference);
     }
 
     @Test
-    public void testOakRepository(BundleContext bc) throws Exception {
+    public void testContentRepository(BundleContext bc) throws Exception {
+        ServiceReference reference =
+                bc.getServiceReference(ContentRepository.class.getName());
+
+        Object service = bc.getService(reference);
+        assert service instanceof ContentRepository;
+
+        ContentRepository repository = (ContentRepository) service;
+        System.out.println(repository);
+
+        bc.ungetService(reference);
     }
 
     @Test
-    public void testJcrRepository(BundleContext bc) throws Exception {
+    public void testRepository(BundleContext bc) throws Exception {
+        ServiceReference reference =
+                bc.getServiceReference(Repository.class.getName());
+
+        Object service = bc.getService(reference);
+        assert service instanceof ContentRepository;
+
+        Repository repository = (Repository) service;
+        System.out.println(repository);
+
+        bc.ungetService(reference);
     }
 
 }
