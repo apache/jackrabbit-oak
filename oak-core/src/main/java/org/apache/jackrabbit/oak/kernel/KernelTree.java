@@ -40,6 +40,9 @@ import static org.apache.jackrabbit.oak.util.Iterators.filter;
 import static org.apache.jackrabbit.oak.util.Iterators.flatten;
 import static org.apache.jackrabbit.oak.util.Iterators.map;
 
+/**
+ * TODO: Refactor to be based on the individual NodeStateBuilders instead of NodeStates
+ */
 public class KernelTree implements Tree {
 
     /**
