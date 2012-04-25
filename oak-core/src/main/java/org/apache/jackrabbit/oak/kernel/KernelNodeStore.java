@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.kernel;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 
@@ -51,17 +52,19 @@ public class KernelNodeStore implements NodeStore {
         KernelNodeState kernelNodeState = (KernelNodeState) nodeState;
         String branchRevision = kernel.branch(kernelNodeState.getRevision());
         String path = kernelNodeState.getPath();
-        return new KernelNodeStateBuilder(kernel, valueFactory, path, branchRevision);
+        String[] br = new String[1];  // FIXME refactor
+        br[0] = branchRevision;
+        return new KernelNodeStateBuilder(kernel, valueFactory, path, br);
     }
 
     @Override
-    public boolean apply(NodeStateBuilder builder) {
+    public void apply(NodeStateBuilder builder) throws CommitFailedException {
         if (!(builder instanceof  KernelNodeStateBuilder)) {
             throw new IllegalArgumentException("Alien builder");
         }
         
         KernelNodeStateBuilder kernelNodeStateBuilder = (KernelNodeStateBuilder) builder;
-        return kernelNodeStateBuilder.apply();
+        kernelNodeStateBuilder.apply();
     }
 
     @Override
@@ -134,18 +137,4 @@ public class KernelNodeStore implements NodeStore {
         }
     }
 
-    //------------------------------------------------------------< internal >---
-
-    // TODO clarify write access to store. Expose through interface
-    void save(KernelRoot root, NodeState base) {
-        if (!(base instanceof KernelNodeState)) {
-            throw new IllegalArgumentException("Base state is not from this store");
-        }
-
-        KernelNodeState baseState = (KernelNodeState) base;
-        String targetPath = baseState.getPath();
-        String targetRevision = baseState.getRevision();
-        String jsop = root.getChanges();
-        kernel.commit(targetPath, jsop, targetRevision, null);
-    }
 }
