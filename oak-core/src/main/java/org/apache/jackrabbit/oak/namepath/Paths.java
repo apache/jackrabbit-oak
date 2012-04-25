@@ -16,14 +16,13 @@
 */
 package org.apache.jackrabbit.oak.namepath;
 
-import org.apache.jackrabbit.mk.util.PathUtils;
-import org.apache.jackrabbit.oak.namepath.JcrNameParser.Listener;
-import org.apache.jackrabbit.oak.util.Function1;
-
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
+
+import org.apache.jackrabbit.mk.util.PathUtils;
+import org.apache.jackrabbit.oak.namepath.JcrNameParser.Listener;
 
 /**
  * All path in the Oak API have the following form
@@ -188,18 +187,18 @@ public final class Paths {
         return true;
     }
 
-    public static String toOakName(String name, final NameMapper nm) {
+    public static String toOakName(String name, final NameMapper mapper) {
         final StringBuilder element = new StringBuilder();
         
         Listener listener = new JcrNameParser.Listener() {
             @Override
             public void error(String message) {
-                // todo implement error
+                throw new RuntimeException(message);
             }
 
             @Override
             public void name(String name) {
-                String p = nm.getOakName(name);
+                String p = mapper.getOakName(name);
                 element.append(p);
             }
         };
@@ -208,14 +207,14 @@ public final class Paths {
         return element.toString();
     }
     
-    public static String toOakPath(String path, final NameMapper nm) {
+    public static String toOakPath(String jcrPath, final NameMapper mapper) {
         final List<String> elements = new ArrayList<String>();
         
         JcrPathParser.Listener listener = new JcrPathParser.Listener() {
             @Override
             public void root() {
                 if (!elements.isEmpty()) {
-                    // todo error
+                    throw new RuntimeException("/ on non-empty path");
                 }
                 elements.add("");
             }
@@ -223,7 +222,7 @@ public final class Paths {
             @Override
             public void identifier(String identifier) {
                 if (!elements.isEmpty()) {
-                    // todo error
+                    throw new RuntimeException("[identifier] on non-empty path");
                 }
                 elements.add(identifier);  // todo resolve identifier
                 // todo seal
@@ -237,7 +236,7 @@ public final class Paths {
             @Override
             public void parent() {
                 if (elements.isEmpty()) {
-                    // todo error
+                    throw new RuntimeException(".. of empty path");
                 }
                 elements.remove(elements.size() - 1);
             }
@@ -245,7 +244,7 @@ public final class Paths {
             @Override
             public void index(int index) {
                 if (index > 1) {
-                    // todo error
+                    throw new RuntimeException("index > 1");
                 }
             }
 
@@ -256,12 +255,12 @@ public final class Paths {
 
             @Override
             public void name(String name) {
-                String p = nm.getOakName(name);
+                String p = mapper.getOakName(name);
                 elements.add(p);
             }
         };
 
-        JcrPathParser.parse(path, listener);
+        JcrPathParser.parse(jcrPath, listener);
         
         StringBuilder oakPath = new StringBuilder();
         for (String element : elements) {
@@ -279,6 +278,77 @@ public final class Paths {
         return oakPath.toString();
     }
     
+    public static String toJcrPath(String oakPath, final NameMapper mapper) {
+        final List<String> elements = new ArrayList<String>();
+        
+        JcrPathParser.Listener listener = new JcrPathParser.Listener() {
+            @Override
+            public void root() {
+                if (!elements.isEmpty()) {
+                    throw new RuntimeException("/ on non-empty path");
+                }
+                elements.add("");
+            }
+
+            @Override
+            public void identifier(String identifier) {
+                if (!elements.isEmpty()) {
+                    throw new RuntimeException("[identifier] on non-empty path");
+                }
+                elements.add(identifier);  // todo resolve identifier
+                // todo seal
+            }
+
+            @Override
+            public void current() {
+                // nothing to do here
+            }
+
+            @Override
+            public void parent() {
+                if (elements.isEmpty()) {
+                    throw new RuntimeException(".. of empty path");
+                }
+                elements.remove(elements.size() - 1);
+            }
+
+            @Override
+            public void index(int index) {
+                if (index > 1) {
+                    throw new RuntimeException("index > 1");
+                }
+            }
+
+            @Override
+            public void error(String message) {
+                throw new RuntimeException(message);
+            }
+
+            @Override
+            public void name(String name) {
+                String p = mapper.getJcrName(name);
+                elements.add(p);
+            }
+        };
+
+        JcrPathParser.parse(oakPath, listener);
+        
+        StringBuilder jcrPath = new StringBuilder();
+        for (String element : elements) {
+            if (element.isEmpty()) {
+                // root
+                jcrPath.append('/');
+            }
+            else {
+                jcrPath.append(element);
+                jcrPath.append('/');
+            }
+        }
+        
+        jcrPath.deleteCharAt(jcrPath.length() - 1);
+        return jcrPath.toString();
+    }
+
     //------------------------------------------------------------< private >--- 
 
     private static Iterable<String> split(final String string, final char separator) {

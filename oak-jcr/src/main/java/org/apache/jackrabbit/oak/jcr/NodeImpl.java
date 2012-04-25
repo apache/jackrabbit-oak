@@ -901,14 +901,17 @@ public class NodeImpl extends ItemImpl implements Node  {
             : new NodeImpl(sessionContext, tree);
     }
     
-    private PropertyImpl getPropertyOrNull(String relPath) {
-        String absPath = Paths.concat(path(), Paths.getParentPath(relPath));
+    private PropertyImpl getPropertyOrNull(String relJcrPath) throws RepositoryException {
+        
+        String relOakPath = toOakPath(relJcrPath);
+        
+        String absPath = Paths.concat(path(), Paths.getParentPath(relOakPath));
         Tree parent = getBranch().getTree(absPath);
         if (parent == null) {
             return null;
         }
 
-        String name = Paths.getName(relPath);
+        String name = Paths.getName(relOakPath);
         PropertyState propertyState = parent.getProperty(name);
         return propertyState == null
             ? null
