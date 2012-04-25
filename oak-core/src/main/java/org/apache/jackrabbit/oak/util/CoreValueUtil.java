@@ -33,7 +33,7 @@ import java.util.Map;
 /**
  * CoreValueUtil...
  *
- * TODO: review if this should be added to CoreValue/*Factory interfaces
+ * TODO: review if this should be added to CoreValue/*Factory interfaces/implementation
  */
 public class CoreValueUtil {
 
@@ -52,6 +52,17 @@ public class CoreValueUtil {
         }
     }
 
+    /**
+     * Returns the internal JSON representation of the specified {@code value}
+     * that is stored in the MicroKernel. All property types that are not
+     * reflected as JSON types are converted to strings and get a type prefix.
+     *
+     * @param value The core value to be converted.
+     * @return The encoded JSON string.
+     * @see JsonBuilder#encode(String)
+     * @see JsonBuilder#encode(long)
+     * @see JsonBuilder#encode(long)
+     */
     public static String toJsonValue(CoreValue value) {
         String jsonString;
         switch (value.getType()) {
@@ -64,18 +75,27 @@ public class CoreValueUtil {
             case PropertyType.STRING:
                 String str = value.getString();
                 if (startsWithHint(str)) {
-                    jsonString = buildJsonStringWithType(value);
+                    jsonString = buildJsonStringWithHint(value);
                 } else {
                     jsonString = JsonBuilder.encode(value.getString());
                 }
                 break;
             default:
                 // any other type
-                jsonString = buildJsonStringWithType(value);
+                jsonString = buildJsonStringWithHint(value);
         }
         return jsonString;
     }
 
+    /**
+     * Returns an JSON array containing the JSON representation of the
+     * specified values.
+     *
+     * @param values
+     * @return JSON array containing the JSON representation of the specified
+     * values.
+     * @see #toJsonValue(org.apache.jackrabbit.oak.api.CoreValue)
+     */
     public static String toJsonArray(Iterable<CoreValue> values) {
         StringBuilder sb = new StringBuilder();
         sb.append('[');
@@ -90,6 +110,14 @@ public class CoreValueUtil {
         return sb.toString();
     }
 
+    /**
+     * Read a single value from the specified reader and convert it into a
+     * {@code CoreValue}. This method takes type-hint prefixes into account.
+     *
+     * @param reader The JSON reader.
+     * @param valueFactory The factory used to create the value.
+     * @return The value such as defined by the token obtained from the reader.
+     */
     public static CoreValue fromJsopReader(JsopReader reader, CoreValueFactory valueFactory) {
         CoreValue value;
         if (reader.matches(JsopTokenizer.NUMBER)) {
@@ -113,20 +141,24 @@ public class CoreValueUtil {
         return value;
     }
 
+    /**
+     * Read the list of values from the specified reader and convert them into
+     * {@link CoreValue}s. This method takes type-hint prefixes into account.
+     *
+     * @param reader The JSON reader.
+     * @param valueFactory The factory used to create the values.
+     * @return A list of values such as defined by the reader.
+     */
     public static List<CoreValue> listFromJsopReader(JsopReader reader, CoreValueFactory valueFactory) {
-        if (!reader.matches('[')) {
-            List<CoreValue> values = new ArrayList<CoreValue>();
-            while (!reader.matches(']')) {
-                values.add(fromJsopReader(reader, valueFactory));
-                reader.matches(',');
-            }
-            return values;
-        } else {
-            throw new IllegalArgumentException("Unexpected token: " + reader.getToken());
+        List<CoreValue> values = new ArrayList<CoreValue>();
+        while (!reader.matches(']')) {
+            values.add(fromJsopReader(reader, valueFactory));
+            reader.matches(',');
         }
+        return values;
     }
 
-    private static String buildJsonStringWithType(CoreValue value) {
+    private static String buildJsonStringWithHint(CoreValue value) {
         StringBuilder sb = new StringBuilder();
         sb.append(TYPE2HINT.get(value.getType()));
         sb.append(':');
