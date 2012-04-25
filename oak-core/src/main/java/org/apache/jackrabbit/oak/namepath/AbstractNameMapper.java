@@ -18,16 +18,16 @@ package org.apache.jackrabbit.oak.namepath;
 
 public abstract class AbstractNameMapper implements NameMapper {
 
-    abstract protected String getJcrPrefix(String oakPrefix);
+    protected abstract String getJcrPrefix(String oakPrefix);
 
-    abstract protected String getOakPrefix(String jcrPrefix);
+    protected abstract String getOakPrefix(String jcrPrefix);
 
-    abstract protected String getOakPrefixFromURI(String uri);
+    protected abstract String getOakPrefixFromURI(String uri);
 
     @Override
     public String getOakName(String jcrName) {
 
-        int pos = jcrName.indexOf(":");
+        int pos = jcrName.indexOf(':');
 
         if (pos < 0) {
             // no colon
@@ -46,7 +46,7 @@ public abstract class AbstractNameMapper implements NameMapper {
                         // TODO
                         return null;
                     } else {
-                        return oakPref + ":" + name;
+                        return oakPref + ':' + name;
                     }
                 }
             }
@@ -59,14 +59,14 @@ public abstract class AbstractNameMapper implements NameMapper {
             if (oakPrefix == null) {
                 throw new IllegalArgumentException("prefix '" + pref + "' is not mapped" );
             } else {
-                return oakPrefix + ":" + name;
+                return oakPrefix + ':' + name;
             }
         }
     }
 
     @Override
     public String getJcrName(String oakName) {
-        int pos = oakName.indexOf(":");
+        int pos = oakName.indexOf(':');
         if (pos < 0) {
             // non-prefixed
             return oakName;
@@ -84,7 +84,7 @@ public abstract class AbstractNameMapper implements NameMapper {
             if (jcrPrefix == null) {
                 throw new IllegalStateException("invalid oak name: " + oakName);
             } else {
-                return jcrPrefix + ":" + name;
+                return jcrPrefix + ':' + name;
             }
         }
     }
