@@ -51,6 +51,7 @@ public class JcrPathParser {
         // shortcut
         if (len == 1 && jcrPath.charAt(0) == '/') {
             listener.root();
+            return;
         }
 
         if (len == 0) {
