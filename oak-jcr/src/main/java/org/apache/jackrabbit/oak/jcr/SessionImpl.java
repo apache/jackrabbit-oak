@@ -16,22 +16,12 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import org.apache.jackrabbit.api.JackrabbitSession;
-import org.apache.jackrabbit.api.security.principal.PrincipalManager;
-import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.commons.AbstractSession;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.jcr.value.ValueFactoryImpl;
-import org.apache.jackrabbit.oak.namepath.Paths;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.xml.sax.ContentHandler;
+import java.io.IOException;
+import java.security.AccessControlException;
 
 import javax.jcr.Credentials;
 import javax.jcr.InvalidItemStateException;
+import javax.jcr.NamespaceRegistry;
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -44,8 +34,23 @@ import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.retention.RetentionManager;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.version.VersionManager;
-import java.io.IOException;
-import java.security.AccessControlException;
+
+import org.apache.jackrabbit.api.JackrabbitSession;
+import org.apache.jackrabbit.api.security.principal.PrincipalManager;
+import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.commons.AbstractSession;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.jcr.namespace.NamespaceRegistryImpl;
+import org.apache.jackrabbit.oak.jcr.value.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.namepath.AbstractNameMapper;
+import org.apache.jackrabbit.oak.namepath.NameMapper;
+import org.apache.jackrabbit.oak.namepath.Paths;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.xml.sax.ContentHandler;
 
 /**
  * {@code SessionImpl}...
@@ -61,7 +66,9 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     private final ContentSession contentSession;
     private final ValueFactoryImpl valueFactory;
     private final Workspace workspace;
+    private final NamespaceRegistry nsreg;
     private final SessionContext<SessionImpl> sessionContext = new Context();
+    private final NameMapper nameMapper = new SessionNameMapper();
 
     private boolean isAlive = true;
     private Root root;
@@ -70,7 +77,8 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
         this.globalContext = globalContext;
         this.contentSession = contentSession;
         this.valueFactory = new ValueFactoryImpl(contentSession.getCoreValueFactory());
-        workspace = new WorkspaceImpl(sessionContext);
+        this.nsreg = new NamespaceRegistryImpl(contentSession);
+        this.workspace = new WorkspaceImpl(sessionContext, this.nsreg);
         this.root = contentSession.getCurrentRoot();
     }
 
@@ -309,6 +317,42 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
         throw new UnsupportedOperationException("Implementation missing");
     }
 
+    //--------------------------------------------------< SessionNamespaceResolver >---
+    
+    private class SessionNameMapper extends AbstractNameMapper {
+
+        @Override
+        protected String getJcrPrefix(String oakPrefix) {
+            try {
+                String ns = nsreg.getURI(oakPrefix);
+                return getNamespacePrefix(ns);
+            } catch (RepositoryException e) {
+                // TODO
+                return null;
+            }
+        }
+
+        @Override
+        protected String getOakPrefix(String jcrPrefix) {
+            try {
+                String ns = getNamespaceURI(jcrPrefix);
+                return nsreg.getPrefix(ns);
+            } catch (RepositoryException e) {
+                // TODO
+                return null;
+            }
+        }
+
+        @Override
+        protected String getOakPrefixFromURI(String uri) {
+            try {
+                return nsreg.getPrefix(uri);
+            } catch (RepositoryException e) {
+                // TODO
+                return null;
+            }
+        }
+    }
 
     //--------------------------------------------------------------------------
 
