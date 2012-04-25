@@ -75,13 +75,25 @@ class CoreValueImpl implements CoreValue {
             case PropertyType.WEAKREFERENCE:
             case PropertyType.URI:
                 this.value = value;
-                this.type = type;
                 break;
-
+            case PropertyType.BOOLEAN:
+                this.value = Boolean.parseBoolean(value);
+                break;
+            case PropertyType.DOUBLE:
+                this.value = Double.parseDouble(value);
+                break;
+            case PropertyType.DECIMAL:
+                this.value = new BigDecimal(value);
+                break;
+            case PropertyType.LONG:
+                this.value = Long.parseLong(value);
+                break;
             default:
+                // undefined property type or binary.
+                // NOTE: binary must be constructed using BinaryValue -> see CoreValueFactory
                 throw new IllegalArgumentException("Illegal type " + PropertyType.nameFromValue(type));
         }
-
+        this.type = type;
     }
 
     /**

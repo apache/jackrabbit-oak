@@ -19,14 +19,13 @@
 package org.apache.jackrabbit.oak.kernel;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
-import org.apache.jackrabbit.mk.json.JsonBuilder;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.kernel.KernelTree.Listener;
+import org.apache.jackrabbit.oak.util.CoreValueUtil;
 
-import javax.jcr.PropertyType;
 import java.util.List;
 
 import static org.apache.jackrabbit.mk.util.PathUtils.elements;
@@ -160,33 +159,6 @@ public class KernelRoot implements Root {
         return path.isEmpty() ? name : path + '/' + name;
     }
 
-    private static String encode(CoreValue value) {
-        switch (value.getType()) {
-            // TODO: deal with all property types.
-            case PropertyType.BOOLEAN: return JsonBuilder.encode(value.getBoolean());
-            case PropertyType.LONG:    return JsonBuilder.encode(value.getLong());
-            case PropertyType.DOUBLE:  return JsonBuilder.encode(value.getDouble());
-            case PropertyType.BINARY:  return null; // TODO implement encoding of binaries
-            case PropertyType.STRING:  return JsonBuilder.encode(value.getString());
-            default: return JsonBuilder.encode(value.getString());
-            //case NULL:    return "null"; // TODO
-        }
-    }
-
-    private static String encode(Iterable<CoreValue> values) {
-        StringBuilder sb = new StringBuilder();
-        sb.append('[');
-        for (CoreValue cv : values) {
-            sb.append(encode(cv));
-            sb.append(',');
-        }
-        if (sb.length() > 1) {
-            sb.deleteCharAt(sb.length() - 1);
-        }
-        sb.append(']');
-        return sb.toString();
-    }
-
     /**
      * This {@code Listener} implementation records all changes to
      * a associated tree as JSOP.
@@ -206,12 +178,12 @@ public class KernelRoot implements Root {
 
         @Override
         public void setProperty(KernelTree tree, String name, CoreValue value) {
-            jsop.append("^\"").append(path(tree, name)).append("\":").append(encode(value));
+            jsop.append("^\"").append(path(tree, name)).append("\":").append(CoreValueUtil.toJsonValue(value));
         }
 
         @Override
         public void setProperty(KernelTree tree, String name, List<CoreValue> values) {
-            jsop.append("^\"").append(path(tree, name)).append("\":").append(encode(values));
+            jsop.append("^\"").append(path(tree, name)).append("\":").append(CoreValueUtil.toJsonArray(values));
         }
 
         @Override
