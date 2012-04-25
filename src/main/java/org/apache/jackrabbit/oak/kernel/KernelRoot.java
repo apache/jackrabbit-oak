@@ -33,17 +33,11 @@ import static org.apache.jackrabbit.mk.util.PathUtils.getName;
 import static org.apache.jackrabbit.mk.util.PathUtils.getParentPath;
 
 /**
- * FIXME: update javadoc
- * This {@code Root} implementation accumulates all changes into a json diff
- * and applies them to the microkernel on {@link #commit()}
+ * This {@code Root} implementation listens on the root of the underlying
+ * {@link Tree} using a {@link Listener}. All changes are directly applied
+ * to the {@link NodeStateBuilder} for the relevant sub-tree.
  *
- * TODO: review/rewrite when OAK-45 is resolved
- * When the MicroKernel has support for branching and merging private working copies,
- * this implementation could:
- * - directly write every operation through to the private working copy
- * - batch write operations through to the private working copy when the
- *   transient space gets too big.
- * - spool write operations through to the private working copy on a background thread
+ * TODO: Refactor tree to be based on the individual NodeStateBuilders instead of NodeStates
  */
 public class KernelRoot implements Root {
 
