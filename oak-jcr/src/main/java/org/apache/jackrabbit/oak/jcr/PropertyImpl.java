@@ -82,7 +82,7 @@ public class PropertyImpl extends ItemImpl implements Property {
     }
 
     /**
-     * @see javax.jcr.Property#getPath() ()
+     * @see javax.jcr.Property#getPath()
      */
     @Override
     public String getPath() throws RepositoryException {
