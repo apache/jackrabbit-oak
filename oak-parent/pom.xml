@@ -72,6 +72,12 @@
           </configuration>
         </plugin>
         <plugin>
+          <groupId>org.apache.felix</groupId>
+          <artifactId>maven-bundle-plugin</artifactId>
+          <version>2.3.7</version>
+          <extensions>true</extensions>
+        </plugin>
+        <plugin>
           <artifactId>maven-deploy-plugin</artifactId>
           <configuration>
             <skip>${skip.deployment}</skip>
@@ -90,6 +96,15 @@
       </dependency>
     </dependencies>
   </dependencyManagement>
+  
+  <dependencies>
+    <dependency>
+      <groupId>biz.aQute</groupId>
+      <artifactId>bndlib</artifactId>
+      <version>1.50.0</version>
+      <scope>provided</scope>
+    </dependency>
+  </dependencies>
 
   <profiles>
     <profile>

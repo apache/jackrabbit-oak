@@ -21,6 +21,7 @@ import java.security.AccessControlException;
 
 import javax.jcr.Credentials;
 import javax.jcr.InvalidItemStateException;
+import javax.jcr.NamespaceException;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.Node;
 import javax.jcr.Repository;
