@@ -1103,25 +1103,49 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
     @Test
     public void sessionRefreshFalse() throws RepositoryException {
-        Session session = getRepository().login();
+        Session session1 = getRepository().login();
+        Session session2 = getRepository().login();
         try {
-            Node foo = session.getNode("/foo");
+            Node foo = session1.getNode("/foo");
             foo.addNode("added");
-            NodeIterator it = foo.getNodes();
-            assertTrue(it.hasNext());
 
-            session.refresh(false);
-            it = foo.getNodes();
-            assertFalse(it.hasNext());
+            session2.getNode("/foo").addNode("bar");
+            session2.save();
+
+            session1.refresh(false);
+            assertFalse(foo.hasNode("added"));
+            assertTrue(foo.hasNode("bar"));
         }
         finally {
-            session.logout();
+            session1.logout();
+            session2.logout();
+        }
+    }
+
+    @Test
+    public void sessionRefreshTrue() throws RepositoryException {
+        Session session1 = getRepository().login();
+        Session session2 = getRepository().login();
+        try {
+            Node foo = session1.getNode("/foo");
+            foo.addNode("added");
+
+            session2.getNode("/foo").addNode("bar");
+            session2.save();
+
+            session1.refresh(true);
+            assertTrue(foo.hasNode("added"));
+            assertTrue(foo.hasNode("bar"));
+        }
+        finally {
+            session1.logout();
+            session2.logout();
         }
     }
 
     @Test(expected = RepositoryException.class)
-    @Ignore("WIP")  // TODO needs implementation of Tree.refresh
-    public void refreshConflict() throws RepositoryException {
+    @Ignore("WIP")  // TODO clarify
+    public void saveRefreshConflict() throws RepositoryException {
         Session session1 = getRepository().login();
         Session session2 = getRepository().login();
         try {
@@ -1139,7 +1163,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
     }
 
     @Test(expected = RepositoryException.class)
-    @Ignore("WIP")  // TODO needs implementation of Tree.refresh
+    @Ignore("WIP")  // TODO clarify
     public void refreshConflict2() throws RepositoryException {
         getSession().getRootNode().addNode("node");
         getSession().save();
