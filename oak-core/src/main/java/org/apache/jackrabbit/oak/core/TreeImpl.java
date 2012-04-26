@@ -19,66 +19,57 @@
 package org.apache.jackrabbit.oak.core;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.kernel.ChildNodeEntry;
 import org.apache.jackrabbit.oak.kernel.NodeState;
+import org.apache.jackrabbit.oak.kernel.NodeStateBuilder;
+import org.apache.jackrabbit.oak.kernel.NodeStateDiff;
+import org.apache.jackrabbit.oak.kernel.NodeStore;
 import org.apache.jackrabbit.oak.util.Function1;
 import org.apache.jackrabbit.oak.util.Iterators;
 import org.apache.jackrabbit.oak.util.PagedIterator;
-import org.apache.jackrabbit.oak.util.Predicate;
 
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 
-import static org.apache.jackrabbit.oak.util.Iterators.chain;
-import static org.apache.jackrabbit.oak.util.Iterators.empty;
-import static org.apache.jackrabbit.oak.util.Iterators.filter;
 import static org.apache.jackrabbit.oak.util.Iterators.flatten;
-import static org.apache.jackrabbit.oak.util.Iterators.map;
 
-/**
- * TODO: Refactor to be based on the individual NodeStateBuilders instead of NodeStates
- */
 public class TreeImpl implements Tree {
+
+    private final NodeStore store;
 
     /**
      * Underlying persistent state or {@code null} if this instance represents an
      * added content tree
      */
-    private final NodeState persistentState;
+    private final NodeState baseState;
 
-    /** Parent of this content tree */
-    private TreeImpl parent;
-
-    /** Name of this content tree */
-    private String name;
+    private final NodeStateBuilder builder;
 
     /** Listener for changes on this content tree */
     private final Listener listener;
 
-    /** Children with underlying persistent child states */
-    private final Map<String, TreeImpl> existingChildren =
-            new HashMap<String, TreeImpl>();
+    /** Name of this content tree */
+    private String name;
 
-    /** Transiently added children */
-    private final Map<String, TreeImpl> addedTrees =
-            new HashMap<String, TreeImpl>();
+    /** Parent of this content tree */
+    private TreeImpl parent;
 
-    /** Transiently removed children */
-    private final Set<String> removedTrees = new HashSet<String>();
+    private TreeImpl(NodeStore store, NodeState baseState, NodeStateBuilder builder,
+            TreeImpl parent, String name, Listener listener) {
 
-    /** Transiently added property states */
-    private final Map<String, PropertyState> addedProperties =
-            new HashMap<String, PropertyState>();
-
-    /** Transiently removed property states */
-    private final Set<String> removedProperties = new HashSet<String>();
+        this.store = store;
+        this.builder = builder;
+        this.baseState = baseState;
+        this.listener = listener;
+        this.name = name;
+        this.parent = parent;
+    }
+    
+    TreeImpl(NodeStore store, NodeStateBuilder nodeStateBuilder, Listener listener) {
+        this(store, nodeStateBuilder.getNodeState(), nodeStateBuilder, null, "", listener);
+    }
 
     /**
      * Listener for changes on {@code ContentTree}s
@@ -139,75 +130,6 @@ public class TreeImpl implements Tree {
         void copy(TreeImpl tree, String name, TreeImpl copied);
     }
 
-    /**
-     * Create a new instance representing the root of a tree
-     * @param persistentState  underlying persistent state
-     * @param listener  change listener
-     */
-    TreeImpl(NodeState persistentState, Listener listener) {
-        this(persistentState, null, "", listener);
-    }
-
-    /**
-     * Create a new instance representing an added child
-     * @param parent  the parent of the child
-     * @param name  name of the child
-     * @param listener  change listener
-     */
-    private TreeImpl(TreeImpl parent, String name, Listener listener) {
-        this(null, parent, name, listener);
-    }
-
-    /**
-     * Create a new instance with an underlying persistent state
-     * @param persistedState  underlying persistent state
-     * @param parent  the parent of this content tree
-     * @param name  name of this content tree
-     * @param listener  change listener
-     */
-    private TreeImpl(NodeState persistedState, TreeImpl parent,
-                     String name, Listener listener) {
-
-        this.persistentState = persistedState;
-        this.parent = parent;
-        this.name = name;
-        this.listener = listener;
-    }
-
-    /**
-     * Copy constructor: create a deep copy of the passed {@code ContentTree} with
-     * the given {@code name} and {@code parent}.
-     * @param tree  content tree to copy
-     * @param parent  parent of the copied tree
-     * @param name  name of the copied tree
-     */
-    private TreeImpl(TreeImpl tree, TreeImpl parent,
-                     String name) {
-
-        listener = tree.listener;
-        persistentState = tree.persistentState;
-        this.parent = parent;
-        this.name = name;
-
-        // recursively copy all existing children
-        for (Entry<String, TreeImpl> existing : tree.existingChildren.entrySet()) {
-            String existingName = existing.getKey();
-            this.existingChildren.put(existingName,
-                    new TreeImpl(existing.getValue(), this, existingName));
-        }
-        
-        // recursively copy all added children
-        for (Entry<String, TreeImpl> added : tree.addedTrees.entrySet()) {
-            String addedName = added.getKey();
-            this.addedTrees.put(addedName,
-                    new TreeImpl(added.getValue(), this, addedName));
-        }
-
-        this.removedTrees.addAll(tree.removedTrees);
-        this.addedProperties.putAll(tree.addedProperties);
-        this.removedProperties.addAll(tree.removedProperties);
-    }
-
     @Override
     public String getName() {
         return name;
@@ -233,222 +155,165 @@ public class TreeImpl implements Tree {
 
     @Override
     public PropertyState getProperty(String name) {
-        PropertyState state = addedProperties.get(name);
-        if (state != null) {
-            // Added or removed and re-added property
-            return state;
-        }
-
-        // Existing property unless removed
-        return removedProperties.contains(name) || persistentState == null
-            ? null
-            : persistentState.getProperty(name);
+        return getNodeState().getProperty(name);
     }
 
     @Override
     public Status getPropertyStatus(String name) {
-        if (addedProperties.containsKey(name)) {
-            if (persistentState.getProperty(name) == null) {
+        if (baseState == null) {
+            if (hasProperty(name)) {
                 return Status.NEW;
             }
             else {
-                return Status.MODIFIED;
+                return null;
             }
         }
-        else if (removedProperties.contains(name)) {
-            return Status.REMOVED;
-        }
-        else if (persistentState.getProperty(name) == null) {
-            return null;
-        }
         else {
-            return Status.EXISTING;
+            if (hasProperty(name)) {
+                if (baseState.getProperty(name) == null) {
+                    return Status.NEW;
+                }
+                else {
+                    PropertyState base = baseState.getProperty(name);
+                    PropertyState head = getProperty(name);
+                    if (base.equals(head)) {
+                        return Status.EXISTING;
+                    }
+                    else {
+                        return Status.MODIFIED;
+                    }
+                }
+            }
+            else {
+                if (baseState.getProperty(name) == null) {
+                    return null;
+                }
+                else {
+                    return Status.REMOVED;
+                }
+            }
         }
     }
 
     @Override
     public boolean hasProperty(String name) {
-        return getProperty(name) != null;
+        return getNodeState().getProperty(name) != null;
     }
 
     @Override
     public long getPropertyCount() {
-        long persistentCount = persistentState == null
-            ? 0
-            : persistentState.getPropertyCount();
-        
-        return persistentCount + addedProperties.size() - removedProperties.size();
+        return getNodeState().getPropertyCount();
+    }
+
+    @Override
+    public Iterable<? extends PropertyState> getProperties() {
+        return getNodeState().getProperties();
     }
 
     @Override
     public TreeImpl getChild(String name) {
-        TreeImpl state = addedTrees.get(name);
-        if (state != null) {
-            // Added or removed and re-added child
-            return state;
-        }
-
-        // Existing child unless removed
-        return removedTrees.contains(name)
+        NodeStateBuilder childBuilder = builder.getChildBuilder(name);
+        NodeState childBaseState = baseState == null
             ? null
-            : getExistingChild(name);
+            : baseState.getChildNode(name);
+
+        return childBuilder == null
+            ? null
+            : new TreeImpl(store, childBaseState, childBuilder, this, name, listener);
     }
 
     @Override
     public Status getChildStatus(String name) {
-        if (addedTrees.containsKey(name)) {
-            return Status.NEW;
-        }
-        else if (removedTrees.contains(name)) {
-            return Status.REMOVED;
-        }
-        else {
-            TreeImpl child = getChild(name);
-            if (child == null) {
-                return null;
-            }
-            else if (child.addedTrees.isEmpty() &&
-                    child.removedTrees.isEmpty() &&
-                    child.addedProperties.isEmpty() &&
-                    child.removedProperties.isEmpty()) {
-                    
-                return Status.EXISTING;
+        if (baseState == null) {
+            if (hasChild(name)) {
+                return Status.NEW;
             }
             else {
-                return Status.MODIFIED;
+                return null;
+            }
+        }
+        else {
+            if (hasChild(name)) {
+                if (baseState.getChildNode(name) == null) {
+                    return Status.NEW;
+                }
+                else {
+                    if (isSame(baseState.getChildNode(name), getNodeState().getChildNode(name))) {
+                        return Status.EXISTING;
+                    }
+                    else {
+                        return Status.MODIFIED;
+                    }
+                }
+            }
+            else {
+                if (baseState.getChildNode(name) == null) {
+                    return null;
+                }
+                else {
+                    return Status.REMOVED;
+                }
             }
         }
     }
 
     @Override
     public boolean hasChild(String name) {
-        return getChild(name) != null;
+        return getNodeState().getChildNode(name) != null;
     }
 
     @Override
     public long getChildrenCount() {
-        long persistentCount = persistentState == null
-                ? 0
-                : persistentState.getChildNodeCount();
-
-        return persistentCount + addedTrees.size() - removedTrees.size();
-    }
-
-    @Override
-    public Iterable<PropertyState> getProperties() {
-        // Persisted property states
-        final Iterable<? extends PropertyState> persisted = persistentState == null
-                ? null
-                : persistentState.getProperties();
-
-        // Copy of removed property states
-        final Set<String> removed = new HashSet<String>();
-        removed.addAll(removedProperties);
-
-        // Copy of added and re-added property stated
-        final Set<PropertyState> added = new HashSet<PropertyState>();
-        added.addAll(addedProperties.values());
-
-        // Filter removed property states from persisted property states
-        // and add added property states
-        return new Iterable<PropertyState>() {
-            @Override
-            public Iterator<PropertyState> iterator() {
-                // persisted states
-                Iterator<? extends PropertyState> properties =
-                    persisted == null
-                        ? Iterators.<PropertyState>empty()
-                        : persisted.iterator();
-
-                // persisted states - removed states
-                Iterator<PropertyState> persistedMinusRemoved =
-                        filter(properties, new Predicate<PropertyState>() {
-                            @Override
-                            public boolean evaluate(PropertyState state) {
-                                return !removed.contains(state.getName());
-                            }
-                        });
-
-                // persisted states - removed states + added states
-                return chain(persistedMinusRemoved, added.iterator());
-            }
-        };
+        return getNodeState().getChildNodeCount();
     }
 
     @Override
     public Iterable<Tree> getChildren() {
-        // Copy of removed children
-        final Set<String> removed = new HashSet<String>();
-        removed.addAll(removedTrees);
-
-        // Copy od added and re-added children
-        final Set<Tree> added = new HashSet<Tree>();
-        added.addAll(addedTrees.values());
-
-        // Filter removed child node entries from persisted child node entries,
-        // map remaining child node entries to content trees and add added children.
         return new Iterable<Tree>() {
             @Override
             public Iterator<Tree> iterator() {
-                // persisted entries
-                final Iterator<? extends ChildNodeEntry> persisted =
-                    getPersistedChildren(persistentState);
 
-                // persisted entries - removed entries
-                Iterator<ChildNodeEntry> persistedMinusRemovedEntries =
-                    filter(persisted, new Predicate<ChildNodeEntry>() {
+                Iterator<? extends ChildNodeEntry> childEntries = flatten(
+                    new PagedIterator<ChildNodeEntry>(1024) {
                         @Override
-                        public boolean evaluate(ChildNodeEntry entry) {
-                            return !removed.contains(entry.getName());
+                        protected Iterator<? extends ChildNodeEntry> getPage(long pos, int size) {
+                            return getNodeState().getChildNodeEntries(pos, size).iterator();
                         }
                     });
 
-                // persisted trees - removed trees
-                Iterator<Tree> persistedMinusRemoved =
-                    map(persistedMinusRemovedEntries,
-                        new Function1<ChildNodeEntry, Tree>() {
-                            @Override
-                            public Tree apply(ChildNodeEntry entry) {
-                                return getExistingChild(entry.getName());
-                            }
-                        });
-
-                // persisted trees - removed trees + added trees
-                return chain(persistedMinusRemoved, added.iterator());
+                return Iterators.map(childEntries, new Function1<ChildNodeEntry, Tree>() {
+                    @Override
+                    public Tree apply(ChildNodeEntry entry) {
+                        NodeStateBuilder childBuilder = builder.getChildBuilder(entry.getName());
+                        return new TreeImpl(store, childBuilder.getNodeState(), childBuilder, TreeImpl.this, entry.getName(), listener);
+                    }
+                });
             }
         };
     }
 
     @Override
     public Tree addChild(String name) {
-        if (!hasChild(name)) {
-            addedTrees.put(name, new TreeImpl(this, name, listener));
-            if (listener != null) {
-                listener.addChild(this, name);
-            }
+        builder.addNode(name);
+        TreeImpl added = getChild(name);
+        if (added != null) {
+            listener.addChild(added, name);
         }
-
-        return getChild(name);
+        return added;
     }
 
     @Override
     public boolean removeChild(String name) {
-        if (hasChild(name)) {
-            markTreeRemoved(name);
-            if (listener != null) {
-                listener.removeChild(this, name);
-            }
-            return true;
+        boolean result = builder.removeNode(name);
+        if (result) {
+            listener.removeChild(this, name);
         }
-        else {
-            return false;
-        }
+        return result;
     }
 
     @Override
     public void setProperty(String name, CoreValue value) {
-        PropertyState propertyState = new PropertyStateImpl(name, value);
-        setProperty(propertyState);
+        builder.setProperty(new PropertyStateImpl(name, value));
         if (listener != null) {
             listener.setProperty(this, name, value);
         }
@@ -456,8 +321,7 @@ public class TreeImpl implements Tree {
 
     @Override
     public void setProperty(String name, List<CoreValue> values) {
-        PropertyState propertyState = new PropertyStateImpl(name, values);
-        setProperty(propertyState);
+        builder.setProperty(new PropertyStateImpl(name, values));
         if (listener != null) {
             listener.setProperty(this, name, values);
         }
@@ -465,11 +329,7 @@ public class TreeImpl implements Tree {
 
     @Override
     public void removeProperty(String name) {
-        addedProperties.remove(name);
-        if (hasExistingProperty(name)) {
-            // Mark as removed if removing existing
-            removedProperties.add(name);
-        }
+        builder.removeProperty(name);
         if (listener != null) {
             listener.removeProperty(this, name);
         }
@@ -485,23 +345,19 @@ public class TreeImpl implements Tree {
      * when {@code destName} already exists at {@code destParent}
      */
     public boolean move(TreeImpl destParent, String destName) {
-        if (destParent.hasChild(destName)) {
-            return false;
+        boolean result = builder.moveTo(destParent.builder, destName);
+        if (result) {
+            TreeImpl oldParent = parent;
+            String oldName = name;
+
+            name = destName;
+            parent = destParent;
+
+            if (listener != null) {
+                listener.move(oldParent, oldName, this);
+            }
         }
-
-        parent.markTreeRemoved(name);
-
-        TreeImpl oldParent = parent;
-        String oldName = name;
-
-        name = destName;
-        parent = destParent;
-        destParent.addedTrees.put(destName, this);
-        if (listener != null) {
-            listener.move(oldParent, oldName, this);
-        }
-
-        return true;
+        return result;
     }
 
     /**
@@ -513,105 +369,57 @@ public class TreeImpl implements Tree {
      * when {@code destName} already exists at {@code destParent}
      */
     public boolean copy(TreeImpl destParent, String destName) {
-        if (destParent.hasChild(destName)) {
-            return false;
-        }
-
-        TreeImpl copy = new TreeImpl(this, destParent, destName);
-        destParent.addedTrees.put(destName, copy);
-        if (listener != null) {
-            listener.copy(parent, name, copy);
-        }
-        return true;
-    }
-
-    //------------------------------------------------------------< internal >---
-
-    private void markTreeRemoved(String name) {
-        addedTrees.remove(name);
-        if (hasExistingChild(name)) {
-            // Mark as removed if removing existing
-            removedTrees.add(name);
-        }
-    }
-
-    private void setProperty(PropertyState state) {
-        if (hasExistingProperty(state.getName())) {
-            removedProperties.add(state.getName());
-        }
-        addedProperties.put(state.getName(), state);
-    }
-
-    /**
-     * Get a content tree for a child which has an existing underlying persistent
-     * node date.
-     *
-     * @param name  name of the child
-     * @return  content tree or {@code null} if this instance node state
-     *          does not have an underlying persistent state or the underlying
-     *          persistent state does not have a child with the given {@code name}.
-     */
-    private TreeImpl getExistingChild(String name) {
-        if (persistentState == null) {
-            return null;
-        }
-
-        TreeImpl transientState = existingChildren.get(name);
-        if (transientState == null) {
-            NodeState state = persistentState.getChildNode(name);
-            if (state == null) {
-                return null;
+        boolean result = builder.copyTo(destParent.builder, destName);
+        if (result) {
+            if (listener != null) {
+                listener.copy(parent, name, destParent.getChild(destName));
             }
-            transientState = new TreeImpl(state, this, name, listener);
-            existingChildren.put(name, transientState);
+            return true;
         }
-        return transientState;
+        return result;
     }
 
-    /**
-     * Determine whether there is an underling persistent state which has
-     * a child with the given {@code name}.
-     * @param name  name of the child.
-     * @return  {@code true} if and only if this instance has an underlying persistent
-     *          state which has a child with the given {@code name}.
-     */
-    private boolean hasExistingChild(String name) {
-        return persistentState != null && persistentState.getChildNode(name) != null;
+    //------------------------------------------------------------< private >---
+
+    private NodeState getNodeState() {
+        return builder.getNodeState();
     }
 
-    /**
-     * Determine whether there is an underling persistent state which has
-     * a property state with the given {@code name}.
-     * @param name  name of the property state.
-     * @return  {@code true} if and only if this instance has an underlying persistent
-     *          state which has a property state with the given {@code name}.
-     */
-    private boolean hasExistingProperty(String name) {
-        return persistentState != null && persistentState.getProperty(name) != null;
-    }
+    private boolean isSame(NodeState state1, NodeState state2) {
+        final boolean[] isDirty = {false};
+        store.compare(state1, state2, new NodeStateDiff() {
+            @Override
+            public void propertyAdded(PropertyState after) {
+                isDirty[0] = true;
+            }
 
-    /**
-     * Iterator over all persisted child node entries of the given
-     * {@code persistentState}. This iterator reads the child node entries page wise
-     * with a page size of 1024 items.
-     * @param persistentState  persistent state for retrieving the child node entries from
-     * @return  iterator of child node entries
-     */
-    private static Iterator<? extends ChildNodeEntry> getPersistedChildren(
-            final NodeState persistentState) {
+            @Override
+            public void propertyChanged(PropertyState before, PropertyState after) {
+                isDirty[0] = true;
+            }
 
-        if (persistentState == null) {
-            return empty();
-        }
-        else {
-            return flatten(
-                new PagedIterator<ChildNodeEntry>(1024) {
-                    @Override
-                    protected Iterator<? extends ChildNodeEntry> getPage(long pos, int size) {
-                        return persistentState.getChildNodeEntries(pos, size).iterator();
-                    }
-                });
-        }
+            @Override
+            public void propertyDeleted(PropertyState before) {
+                isDirty[0] = true;
+            }
+
+            @Override
+            public void childNodeAdded(String name, NodeState after) {
+                isDirty[0] = true;
+            }
+
+            @Override
+            public void childNodeChanged(String name, NodeState before, NodeState after) {
+                // cut transitivity here
+            }
+
+            @Override
+            public void childNodeDeleted(String name, NodeState before) {
+                isDirty[0] = true;
+            }
+        });
+
+        return !isDirty[0];
     }
 
 }
