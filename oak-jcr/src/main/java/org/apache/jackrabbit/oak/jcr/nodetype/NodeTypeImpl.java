@@ -16,16 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr.nodetype;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
+import org.apache.jackrabbit.oak.namepath.NameMapper;
 
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
@@ -36,9 +28,16 @@ import javax.jcr.nodetype.NodeTypeIterator;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.version.OnParentVersionAction;
-
-import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
-import org.apache.jackrabbit.oak.namepath.NameMapper;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Queue;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 class NodeTypeImpl implements NodeType {
 
@@ -60,7 +59,7 @@ class NodeTypeImpl implements NodeType {
 
     private final String[] declaredSuperTypeNames;
 
-    private boolean isAbstract;
+    private final boolean isAbstract;
 
     private final boolean mixin;
 
@@ -99,7 +98,7 @@ class NodeTypeImpl implements NodeType {
         }
 
         String defs = matcher.group(9);
-        if (defs != null && defs.length() > 0) {
+        if (defs != null && !defs.isEmpty()) {
             for (String line : defs.split("\n")) {
                 matcher = DEF_PATTERN.matcher(line);
                 if (!matcher.matches()) {
@@ -282,9 +281,9 @@ class NodeTypeImpl implements NodeType {
         try {
             Collection<NodeType> types =
                     new ArrayList<NodeType>(declaredSuperTypeNames.length);
-            for (int i = 0; i < declaredSuperTypeNames.length; i++) {
+            for (String declaredSuperTypeName : declaredSuperTypeNames) {
                 types.add(manager.getNodeType(
-                        mapper.getJcrName(declaredSuperTypeNames[i])));
+                        mapper.getJcrName(declaredSuperTypeName)));
             }
             return new NodeTypeIteratorAdapter(types);
         } catch (RepositoryException e) {

@@ -79,6 +79,7 @@ public class NodeDelegate extends ItemDelegate {
         return Paths.getDepth(getPath());
     }
 
+    @Override
     String getName() {
         return getTree().getName();
     }

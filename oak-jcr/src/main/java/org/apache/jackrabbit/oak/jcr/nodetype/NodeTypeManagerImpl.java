@@ -16,6 +16,20 @@
  */
 package org.apache.jackrabbit.oak.jcr.nodetype;
 
+import org.apache.commons.io.IOUtils;
+import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
+import org.apache.jackrabbit.oak.namepath.NameMapper;
+
+import javax.jcr.RepositoryException;
+import javax.jcr.UnsupportedRepositoryOperationException;
+import javax.jcr.nodetype.NoSuchNodeTypeException;
+import javax.jcr.nodetype.NodeDefinitionTemplate;
+import javax.jcr.nodetype.NodeType;
+import javax.jcr.nodetype.NodeTypeDefinition;
+import javax.jcr.nodetype.NodeTypeIterator;
+import javax.jcr.nodetype.NodeTypeManager;
+import javax.jcr.nodetype.NodeTypeTemplate;
+import javax.jcr.nodetype.PropertyDefinitionTemplate;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -24,23 +38,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import javax.jcr.RepositoryException;
-import javax.jcr.UnsupportedRepositoryOperationException;
-import javax.jcr.nodetype.InvalidNodeTypeDefinitionException;
-import javax.jcr.nodetype.NoSuchNodeTypeException;
-import javax.jcr.nodetype.NodeDefinitionTemplate;
-import javax.jcr.nodetype.NodeType;
-import javax.jcr.nodetype.NodeTypeDefinition;
-import javax.jcr.nodetype.NodeTypeExistsException;
-import javax.jcr.nodetype.NodeTypeIterator;
-import javax.jcr.nodetype.NodeTypeManager;
-import javax.jcr.nodetype.NodeTypeTemplate;
-import javax.jcr.nodetype.PropertyDefinitionTemplate;
-
-import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
-import org.apache.jackrabbit.oak.namepath.NameMapper;
 
 public class NodeTypeManagerImpl implements NodeTypeManager {
 
@@ -80,8 +77,7 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
     }
 
     @Override
-    public NodeType getNodeType(String name)
-            throws NoSuchNodeTypeException, RepositoryException {
+    public NodeType getNodeType(String name) throws RepositoryException {
         NodeType type = types.get(mapper.getOakName(name));
         if (type == null) {
             throw new NoSuchNodeTypeException("Unknown node type: " + name);
@@ -117,55 +113,52 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
     }
 
     @Override
-    public NodeTypeTemplate createNodeTypeTemplate()
-            throws UnsupportedRepositoryOperationException, RepositoryException {
+    public NodeTypeTemplate createNodeTypeTemplate() throws RepositoryException {
         throw new UnsupportedRepositoryOperationException();
     }
 
     @Override
     public NodeTypeTemplate createNodeTypeTemplate(NodeTypeDefinition ntd)
-            throws UnsupportedRepositoryOperationException, RepositoryException {
+            throws RepositoryException {
+
         throw new UnsupportedRepositoryOperationException();
     }
 
     @Override
     public NodeDefinitionTemplate createNodeDefinitionTemplate()
-            throws UnsupportedRepositoryOperationException, RepositoryException {
+            throws RepositoryException {
+
         throw new UnsupportedRepositoryOperationException();
     }
 
     @Override
     public PropertyDefinitionTemplate createPropertyDefinitionTemplate()
-            throws UnsupportedRepositoryOperationException, RepositoryException {
+            throws RepositoryException {
+
         throw new UnsupportedRepositoryOperationException();
     }
 
     @Override
     public NodeType registerNodeType(NodeTypeDefinition ntd, boolean allowUpdate)
-            throws InvalidNodeTypeDefinitionException, NodeTypeExistsException,
-            UnsupportedRepositoryOperationException, RepositoryException {
+            throws RepositoryException {
+
         throw new UnsupportedRepositoryOperationException();
     }
 
     @Override
     public NodeTypeIterator registerNodeTypes(NodeTypeDefinition[] ntds,
-            boolean allowUpdate) throws InvalidNodeTypeDefinitionException,
-            NodeTypeExistsException, UnsupportedRepositoryOperationException,
-            RepositoryException {
+            boolean allowUpdate) throws RepositoryException {
+
         throw new UnsupportedRepositoryOperationException();
     }
 
     @Override
-    public void unregisterNodeType(String name)
-            throws UnsupportedRepositoryOperationException,
-            NoSuchNodeTypeException, RepositoryException {
+    public void unregisterNodeType(String name) throws RepositoryException {
         throw new UnsupportedRepositoryOperationException();
     }
 
     @Override
-    public void unregisterNodeTypes(String[] names)
-            throws UnsupportedRepositoryOperationException,
-            NoSuchNodeTypeException, RepositoryException {
+    public void unregisterNodeTypes(String[] names) throws RepositoryException {
         throw new UnsupportedRepositoryOperationException();
     }
 
