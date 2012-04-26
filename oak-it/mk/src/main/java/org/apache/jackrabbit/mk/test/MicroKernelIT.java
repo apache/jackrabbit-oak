@@ -25,6 +25,7 @@ import org.junit.runners.Parameterized;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -47,6 +48,56 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
     }
 
     @Test
+    public void revisionOps() {
+        String head = mk.getHeadRevision();
+        assertNotNull(head);
+
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException ignore) {
+        }
+
+        long now = System.currentTimeMillis();
+
+        // get history since 'now'
+        JSONArray array = parseJSONArray(mk.getRevisionHistory(now, -1));
+        // history should be empty since there was no commit since 'now'
+        assertEquals(0, array.size());
+
+        // get oldest available revision
+        array = parseJSONArray(mk.getRevisionHistory(0, 1));
+        // there should be exactly 1 revision
+        assertEquals(array.size(), 1);
+
+        long ts0 = System.currentTimeMillis();
+
+        // perform 10 commits
+        for (int i = 0; i < 10; i++) {
+            mk.commit("/test", "+\"child" + i + "\":{}", null, "commit#" + i);
+        }
+
+        // get oldest available revision
+        array = parseJSONArray(mk.getRevisionHistory(ts0, -1));
+        // there should be exactly 10 revisions
+        assertEquals(array.size(), 10);
+        long previousTS = ts0;
+        for (int i = 0; i < 10; i++) {
+            JSONObject rev = getObjectArrayEntry(array, i);
+            assertPropertyExists(rev, "id", String.class);
+            assertPropertyExists(rev, "ts", Long.class);
+            // verify commit msg
+            assertPropertyValue(rev, "msg", "commit#" + i);
+            // verify chronological order
+            long ts = (Long) resolveValue(rev, "ts");
+            assertTrue(previousTS <= ts);
+            previousTS = ts;
+        }
+
+        // last revision should be the current head revision
+        assertPropertyValue(getObjectArrayEntry(array, array.size() - 1), "id", mk.getHeadRevision());
+    }
+
+    @Test
     public void addAndMove() {
         String head = mk.getHeadRevision();
         head = mk.commit("",
@@ -64,7 +115,6 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         assertFalse(mk.nodeExists("/root/a", head));
     }
 
-
     @Test
     public void getNodes() {
         String head = mk.getHeadRevision();
@@ -75,7 +125,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         assertPropertyValue(obj, "test/intProp", 42L);
         assertPropertyValue(obj, "test/floatProp", 42.2);
         assertPropertyValue(obj, "test/booleanProp", true);
-        assertPropertyValue(obj, "test/multiIntProp", new Object[]{1,2,3});
+        assertPropertyValue(obj, "test/multiIntProp", new Object[]{1, 2, 3});
     }
 
     @Test
@@ -196,7 +246,6 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
                         "^\"" + node + "/child1/grandchild11/prop3\" : 43",
                 head, "");
 
-        String json = mk.getNodes('/' + node, head, 3, 0, -1, null);
         JSONObject obj = parseJSONObject(mk.getNodes('/' + node, head, 3, 0, -1, null));
         assertPropertyValue(obj, "prop1", 41L);
         assertPropertyValue(obj, ":childNodeCount", 2L);
