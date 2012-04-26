@@ -47,19 +47,19 @@ public class TreeImpl implements Tree {
 
     /**
      * Underlying persistent state or {@code null} if this instance represents an
-     * added content tree
+     * added tree
      */
     private final NodeState baseState;
 
     private final NodeStateBuilder builder;
 
-    /** Listener for changes on this content tree */
+    /** Listener for changes on this tree */
     private final Listener listener;
 
-    /** Name of this content tree */
+    /** Name of this tree */
     private String name;
 
-    /** Parent of this content tree */
+    /** Parent of this tree */
     private TreeImpl parent;
 
     private TreeImpl(NodeStore store, NodeState baseState, NodeStateBuilder builder,
@@ -85,7 +85,7 @@ public class TreeImpl implements Tree {
     }
 
     /**
-     * Listener for changes on {@code ContentTree}s
+     * Listener for changes on {@code Tree}s
      */
     interface Listener {
 

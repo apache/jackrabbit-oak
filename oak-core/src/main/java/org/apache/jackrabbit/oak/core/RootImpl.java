@@ -46,7 +46,7 @@ public class RootImpl implements Root {
     /** The name of the workspace we are operating on */
     private final String workspaceName;
 
-    /** Listener for changes on the content tree */
+    /** Listener for changes on the tree */
     private TreeListener treeListener = new TreeListener();
 
     /** Base node state of this tree */
@@ -73,12 +73,12 @@ public class RootImpl implements Root {
 
     @Override
     public boolean move(String sourcePath, String destPath) {
-        TreeImpl source = getTransientState(sourcePath);
+        TreeImpl source = getChild(sourcePath);
         if (source == null) {
             return false;
         }
 
-        TreeImpl destParent = getTransientState(getParentPath(destPath));
+        TreeImpl destParent = getChild(getParentPath(destPath));
         String destName = getName(destPath);
         return destParent != null && source.move(destParent, destName);
 
@@ -86,12 +86,12 @@ public class RootImpl implements Root {
 
     @Override
     public boolean copy(String sourcePath, String destPath) {
-        TreeImpl sourceNode = getTransientState(sourcePath);
+        TreeImpl sourceNode = getChild(sourcePath);
         if (sourceNode == null) {
             return false;
         }
 
-        TreeImpl destParent = getTransientState(getParentPath(destPath));
+        TreeImpl destParent = getChild(getParentPath(destPath));
         String destName = getName(destPath);
         return destParent != null && sourceNode.copy(destParent, destName);
 
@@ -99,7 +99,7 @@ public class RootImpl implements Root {
 
     @Override
     public Tree getTree(String path) {
-        return getTransientState(path);
+        return getChild(path);
     }
 
     @Override
@@ -124,13 +124,12 @@ public class RootImpl implements Root {
     //------------------------------------------------------------< private >---
 
     /**
-     * Get a transient node state for the node identified by
-     * {@code path}
-     * @param path  the path to the node state
-     * @return  a {@link Tree} instance for the item
+     * Get a tree for the child identified by {@code path}
+     * @param path  the path to the child
+     * @return  a {@link Tree} instance for the child
      *          at {@code path} or {@code null} if no such item exits.
      */
-    private TreeImpl getTransientState(String path) {
+    private TreeImpl getChild(String path) {
         TreeImpl state = root;
         for (String name : elements(path)) {
             state = state.getChild(name);

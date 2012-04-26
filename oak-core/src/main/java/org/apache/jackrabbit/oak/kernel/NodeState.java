@@ -19,10 +19,10 @@ package org.apache.jackrabbit.oak.kernel;
 import org.apache.jackrabbit.oak.api.PropertyState;
 
 /**
- * A content tree consists of nodes and properties, each of which
- * evolves through different states during its lifecycle. This interface
- * represents a specific, immutable state of a node in a content tree.
- * A node consists of an unordered set of name -&gt; item mappings, where
+ * A tree consists of nodes and properties, each of which evolves
+ * through different states during its lifecycle. This interface
+ * represents a specific, immutable state of a node in a tree. A node
+ * consists of an unordered set of name -&gt; item mappings, where
  * each item is either a property or a child node.
  * <p>
  * Depending on context, a NodeState instance can be interpreted as
@@ -73,7 +73,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
  * persisted data. An implementation may want to provide derived data,
  * like for example the aggregate size of the entire subtree as an
  * extra virtual property. A virtualization, sharding or caching layer
- * could provide a composite view over multiple underlying content trees.
+ * could provide a composite view over multiple underlying trees.
  * Or a basic access control layer could decide to hide certain content
  * based on specific rules. All such features need to be implemented
  * according to the API contract of this interface. A separate higher level
