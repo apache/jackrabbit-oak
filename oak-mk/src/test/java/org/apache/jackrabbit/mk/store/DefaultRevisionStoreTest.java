@@ -28,13 +28,12 @@ import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.mk.core.Repository;
 import org.apache.jackrabbit.mk.json.fast.Jsop;
 import org.apache.jackrabbit.mk.json.fast.JsopArray;
-import org.apache.jackrabbit.mk.model.MutableCommit;
+import org.apache.jackrabbit.mk.model.Id;
 import org.apache.jackrabbit.mk.model.StoredCommit;
 import org.apache.jackrabbit.mk.persistence.GCPersistence;
 import org.apache.jackrabbit.mk.persistence.InMemPersistence;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -49,15 +48,11 @@ public class DefaultRevisionStoreTest {
     public void setup() throws Exception {
         rs = new DefaultRevisionStore(createPersistence()) {
             @Override
-            protected void markCommits() throws Exception {
-                StoredCommit commit = getHeadCommit();
-                
+            protected Id markCommits() throws Exception {
                 // Keep head commit only
+                StoredCommit commit = getHeadCommit();
                 markCommit(commit);
-                
-                MutableCommit headCommit = new MutableCommit(commit);  
-                headCommit.setParentId(null);
-                gcpm.replaceCommit(headCommit.getId(), headCommit);
+                return commit.getId();
             }
         };
         rs.initialize();
@@ -105,7 +100,6 @@ public class DefaultRevisionStoreTest {
      * 
      * @throws Exception if an error occurs
      */
-    @Ignore
     @Test
     public void testBranchMerge() throws Exception {
         mk.commit("/", "+\"a\" : { \"b\":{}, \"c\":{} }", mk.getHeadRevision(), null);
@@ -118,6 +112,11 @@ public class DefaultRevisionStoreTest {
 
         branchRevisionId = mk.commit("/a", "+\"f\" : {}", branchRevisionId, null);
         mk.merge(branchRevisionId, null);
+
+        rs.gc();
+
+        String history = mk.getRevisionHistory(Long.MIN_VALUE, Integer.MIN_VALUE);
+        assertEquals(1, ((JsopArray) Jsop.parse(history)).size());
     }
     
     /**
@@ -145,6 +144,38 @@ public class DefaultRevisionStoreTest {
                 mk.commit("/a/b/c/d/e", "+\"f\" : {}", mk.getHeadRevision(), null);
                 Thread.sleep(30);
                 mk.commit("/a/b/c/d", "-\"e\"", mk.getHeadRevision(), null);
+            }
+        } finally {
+            gcExecutor.shutdown();
+        }
+    }
+
+    /**
+     * Verify garbage collection can run concurrently with commits.
+     * 
+     * @throws Exception if an error occurs
+     */
+    @Test
+    public void testConcurrentMergeGC() throws Exception {
+        ScheduledExecutorService gcExecutor = Executors.newScheduledThreadPool(1);
+        gcExecutor.scheduleWithFixedDelay(new Runnable() {
+            @Override
+            public void run() {
+                rs.gc();
+            }
+        }, 100, 20, TimeUnit.MILLISECONDS);
+
+        mk.commit("/", "+\"a\" : { \"b\" : { \"c\" : { \"d\" : {} } } }",
+                mk.getHeadRevision(), null);
+
+        try {
+            for (int i = 0; i < 20; i++) {
+                String branchId = mk.branch(mk.getHeadRevision());
+                branchId = mk.commit("/a/b/c/d", "+\"e\" : {}", branchId, null);
+                Thread.sleep(10);
+                branchId = mk.commit("/a/b/c/d", "-\"e\"", branchId, null);
+                Thread.sleep(30);
+                mk.merge(branchId, null);
             }
         } finally {
             gcExecutor.shutdown();

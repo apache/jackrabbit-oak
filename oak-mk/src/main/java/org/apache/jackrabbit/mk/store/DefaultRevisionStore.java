@@ -20,6 +20,8 @@ import java.io.Closeable;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.TreeMap;
 import java.util.WeakHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -82,17 +84,22 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
      * GC executor.
      */
     private ScheduledExecutorService gcExecutor;
-
+    
     /**
-     * Put tokens (Key: token, Value: null).
+     * Active put tokens (Key: token, Value: null).
      */
     private final Map<PutTokenImpl, Object> putTokens = Collections.synchronizedMap(new WeakHashMap<PutTokenImpl, Object>());
 
     /**
-     * Mark lock for put tokens.
+     * Read-write lock for put tokens.
      */
-    private final ReentrantReadWriteLock markLock = new ReentrantReadWriteLock();
+    private final ReentrantReadWriteLock tokensLock = new ReentrantReadWriteLock();
 
+    /**
+     * Active branches (Key: branch root id, Value: branch head).
+     */
+    private final Map<Id,Id> branches = Collections.synchronizedMap(new TreeMap<Id, Id>());
+    
     public DefaultRevisionStore(Persistence pm) {
         this.pm = pm;
         this.gcpm = (pm instanceof GCPersistence) ? (GCPersistence) pm : null;
@@ -227,7 +234,7 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
          * Make sure that a GC cycle can not sweep this newly persisted node
          * before we have updated our token
          */
-        markLock.readLock().lock();
+        tokensLock.readLock().lock();
 
         try {
             Id id = pm.writeNode(node);
@@ -245,7 +252,7 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
             return id;
 
         } finally {
-            markLock.readLock().unlock();
+            tokensLock.readLock().unlock();
         }
     }
 
@@ -284,7 +291,11 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
 
         Id id = writeCommit(token, commit);
         setHeadCommitId(id);
+        
         putTokens.remove(token);
+        if (branchRootId != null) {
+            branches.remove(branchRootId);
+        }
 
         return id;
     }
@@ -294,7 +305,12 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
 
         Id commitId = writeCommit(token, commit);
         putTokens.remove(token);
-
+        
+        Id branchRootId = commit.getBranchRootId();
+        if (branchRootId != null) {
+            branches.put(branchRootId, commitId);
+        }
+        
         return commitId;
     }
 
@@ -468,15 +484,27 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
         }
 
         try {
-            markUncommittedPuts();
-            markBranches();
-            markCommits();
+            markUncommittedNodes();
+            Id firstBranchRootId = markBranches();
+            Id firstCommitId = markCommits();
+
+            if (firstBranchRootId != null && firstBranchRootId.compareTo(firstCommitId) < 0) {
+                firstCommitId = firstBranchRootId;
+            }
+            StoredCommit commit = getCommit(firstCommitId);
+            if (commit.getParentId() != null) {
+                MutableCommit firstCommit = new MutableCommit(commit);
+                firstCommit.setParentId(null);
+                gcpm.replaceCommit(firstCommit.getId(), firstCommit);
+            }
+            
         } catch (Exception e) {
             /* unable to perform GC */
             gcState.set(NOT_ACTIVE);
             e.printStackTrace();
             return;
         }
+        
         gcState.set(SWEEPING);
 
         try {
@@ -490,13 +518,13 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
     }
     
     /**
-     * Mark uncommitted puts.
+     * Mark nodes that have already been put but not committed yet.
      * 
      * @throws Exception
      *             if an error occurs
      */
-    private void markUncommittedPuts() throws Exception {
-        markLock.writeLock().lock();
+    private void markUncommittedNodes() throws Exception {
+        tokensLock.writeLock().lock();
 
         try {
             gcpm.start();
@@ -506,18 +534,43 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
                 markNode(token.getLastModified());
             }
         } finally {
-            markLock.writeLock().unlock();
+            tokensLock.writeLock().unlock();
         }
     }
 
     /**
      * Mark branches.
      * 
+     * @return first branch root id that needs to be preserved, or {@code null}
      * @throws Exception
      *             if an error occurs
      */
-    private void markBranches() throws Exception {
-        // TODO
+    private Id markBranches() throws Exception {
+        /* Mark all branch commits */
+        for (Entry<Id, Id> entry : branches.entrySet()) {
+            Id branchRootId = entry.getKey();
+            Id branchHeadId = entry.getValue();
+            while (!branchHeadId.equals(branchRootId)) {
+                StoredCommit commit = getCommit(branchHeadId);
+                markCommit(commit);
+                branchHeadId = commit.getParentId();
+            }
+        }
+        /* Mark all master commits till the first branch root id */
+        if (!branches.isEmpty()) {
+            Id firstBranchRootId = branches.keySet().iterator().next();
+            StoredCommit commit = getHeadCommit();
+
+            for (;;) {
+                markCommit(commit);
+                if (commit.getId().equals(firstBranchRootId)) {
+                    break;
+                }
+                commit = getCommit(commit.getParentId());
+            }
+            return firstBranchRootId;
+        }
+        return null;
     }
     
     /**
@@ -525,10 +578,11 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
      * customized by subclasses. If this method throws an exception, the cycle
      * will be stopped without sweeping.
      * 
+     * @return first commit id that will be preserved
      * @throws Exception
      *             if an error occurs
      */
-    protected void markCommits() throws Exception {
+    protected Id markCommits() throws Exception {
         StoredCommit commit = getHeadCommit();
         long tsLimit = commit.getCommitTS() - (60 * 60 * 1000);
 
@@ -544,11 +598,7 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
             }
             commit = parentCommit;
         }
-        if (commit.getParentId() != null) {
-            MutableCommit firstCommit = new MutableCommit(commit);
-            firstCommit.setParentId(null);
-            gcpm.replaceCommit(firstCommit.getId(), firstCommit);
-        }
+        return commit.getId();
     }
 
     /**
