@@ -144,7 +144,7 @@ public class RootImpl implements Root {
         return state;
     }
 
-    private void rebase(boolean applyChanges) {
+    private void rebase(boolean mergeChanges) {
         TreeListener changes = treeListener;
 
         treeListener = new TreeListener();
@@ -152,12 +152,12 @@ public class RootImpl implements Root {
         nodeStateBuilder = store.getBuilder(base);
         root = new TreeImpl(store, nodeStateBuilder, treeListener);
 
-        if (applyChanges) {
-            apply(changes);
+        if (mergeChanges) {
+            merge(changes);
         }
     }
 
-    private void apply(TreeListener changes) {
+    private void merge(TreeListener changes) {
         for (Operation operation : changes.getChanges()) {
             try {
                 switch (operation.type) {
