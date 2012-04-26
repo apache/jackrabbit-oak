@@ -30,7 +30,6 @@ import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.ValueFactory;
 import javax.jcr.Workspace;
 import javax.jcr.lock.LockManager;
-import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.retention.RetentionManager;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.version.VersionManager;
@@ -506,11 +505,6 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
         @Override
         public LockManager getLockManager() throws RepositoryException {
             return getWorkspace().getLockManager();
-        }
-
-        @Override
-        public NodeTypeManager getNodeTypeManager() throws RepositoryException {
-            return getWorkspace().getNodeTypeManager();
         }
 
         @Override

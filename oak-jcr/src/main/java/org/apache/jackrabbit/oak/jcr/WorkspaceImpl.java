@@ -21,7 +21,7 @@ import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.jcr.namespace.NamespaceRegistryImpl;
+import org.apache.jackrabbit.oak.jcr.nodetype.NodeTypeManagerImpl;
 import org.apache.jackrabbit.oak.jcr.query.QueryManagerImpl;
 import org.apache.jackrabbit.oak.jcr.security.privileges.PrivilegeManagerImpl;
 import org.apache.jackrabbit.oak.namepath.Paths;
@@ -55,12 +55,20 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     private static final Logger log = LoggerFactory.getLogger(WorkspaceImpl.class);
 
     private final SessionContext<SessionImpl> sessionContext;
+
     private QueryManagerImpl queryManager;
+
     private final NamespaceRegistry nsRegistry;
 
-    public WorkspaceImpl(SessionContext<SessionImpl> sessionContext, NamespaceRegistry nsRegistry) {        
+    private final NodeTypeManager nodeTypeManager;
+
+    public WorkspaceImpl(
+            SessionContext<SessionImpl> sessionContext,
+            NamespaceRegistry nsRegistry) {
         this.sessionContext = sessionContext;
         this.nsRegistry = nsRegistry;
+        this.nodeTypeManager =
+                new NodeTypeManagerImpl(sessionContext.getNameMapper());
     }
 
     //----------------------------------------------------------< Workspace >---
@@ -157,15 +165,13 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     }
 
     @Override
-    public NamespaceRegistry getNamespaceRegistry() throws RepositoryException {
-        ensureIsAlive();
+    public NamespaceRegistry getNamespaceRegistry() {
         return nsRegistry;
     }
 
     @Override
-    public NodeTypeManager getNodeTypeManager() throws RepositoryException {
-        ensureIsAlive();
-        throw new UnsupportedRepositoryOperationException("TODO: Workspace.getNodeTypeManager");
+    public NodeTypeManager getNodeTypeManager() {
+        return nodeTypeManager;
     }
 
     @Override

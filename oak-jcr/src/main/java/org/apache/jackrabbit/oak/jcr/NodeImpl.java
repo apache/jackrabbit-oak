@@ -583,7 +583,8 @@ public class NodeImpl extends ItemImpl implements Node  {
         checkStatus();
 
         // TODO: check if transient changes to mixin-types are reflected here
-        NodeTypeManager ntMgr = sessionContext.getNodeTypeManager();
+        NodeTypeManager ntMgr =
+                getSession().getWorkspace().getNodeTypeManager();
         String primaryNtName = getProperty(JcrConstants.JCR_PRIMARYTYPE).getString();
         return ntMgr.getNodeType(primaryNtName);
     }
@@ -597,7 +598,8 @@ public class NodeImpl extends ItemImpl implements Node  {
 
         // TODO: check if transient changes to mixin-types are reflected here
         if (hasProperty(JcrConstants.JCR_MIXINTYPES)) {
-            NodeTypeManager ntMgr = sessionContext.getNodeTypeManager();
+            NodeTypeManager ntMgr =
+                    getSession().getWorkspace().getNodeTypeManager();
             Value[] mixinNames = getProperty(JcrConstants.JCR_MIXINTYPES).getValues();
             NodeType[] mixinTypes = new NodeType[mixinNames.length];
             for (int i = 0; i < mixinNames.length; i++) {
