@@ -152,8 +152,17 @@ public class ValueFactoryImpl implements ValueFactory {
             cv = factory.createValue(nameMapper.getOakName(value), type);
         } else if (type == PropertyType.PATH) {
             cv = factory.createValue(Paths.toOakPath(value, nameMapper), type);
-        } else {
+        } else if (type == PropertyType.DATE) {
+            if (ISO8601.parse(value) == null) {
+                throw new ValueFormatException("Invalid date " + value);
+            }
             cv = factory.createValue(value, type);
+        } else {
+            try {
+                cv = factory.createValue(value, type);
+            } catch (NumberFormatException e) {
+                throw new ValueFormatException("Invalid value " + value + " for type " + PropertyType.nameFromValue(type));
+            }
         }
 
         return new ValueImpl(cv, nameMapper);
