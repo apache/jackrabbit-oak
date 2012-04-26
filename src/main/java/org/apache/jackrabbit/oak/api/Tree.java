@@ -22,7 +22,7 @@ import java.util.List;
 
 /**
  * A tree instance represents a snapshot of the {@code ContentRepository}
- * content tree at the time the instance was acquired. Tree instances may
+ * tree at the time the instance was acquired. Tree instances may
  * become invalid over time due to garbage collection of old content, at
  * which point an outdated snapshot will start throwing
  * {@code IllegalStateException}s to indicate that the snapshot is no
@@ -43,7 +43,7 @@ import java.util.List;
 public interface Tree {
 
     /**
-     * Status of an item in a {@code ContentTree}
+     * Status of an item in a {@code Tree}
      */
     enum Status {
         /**
@@ -69,17 +69,17 @@ public interface Tree {
     }
 
     /**
-     * @return  the name of this {@code ContentTree} instance.
+     * @return  the name of this {@code Tree} instance.
      */
     String getName();
 
     /**
-     * @return  path of this {@code ContentTree} instance.
+     * @return  path of this {@code Tree} instance.
      */
     String getPath();
 
     /**
-     * @return  the parent of this {@code ContentTree} instance.
+     * @return  the parent of this {@code Tree} instance.
      */
     Tree getParent();
 
@@ -115,7 +115,7 @@ public interface Tree {
 
     /**
      * All property states. The returned {@code Iterable} has snapshot semantics. That
-     * is, it reflect the state of this {@code ContentTree} instance at the time of the
+     * is, it reflect the state of this {@code Tree} instance at the time of the
      * call. Later changes to this instance are no visible to iterators obtained from
      * the returned iterable.
      * @return  An {@code Iterable} for all property states
@@ -123,7 +123,7 @@ public interface Tree {
     Iterable<? extends PropertyState> getProperties();
 
     /**
-     * Get a child of this {@code ContentTree} instance
+     * Get a child of this {@code Tree} instance
      * @param name  name of the child
      * @return  the child with the given {@code name} or {@code null} if no such child
      * exists.
@@ -139,7 +139,7 @@ public interface Tree {
     Status getChildStatus(String name);
 
     /**
-     * Determine if a child of this {@code ContentTree} instance exists.
+     * Determine if a child of this {@code Tree} instance exists.
      * @param name  name of the child
      * @return  {@code true} if and only if a child with the given {@code name}
      *          exists.
@@ -147,14 +147,14 @@ public interface Tree {
     boolean hasChild(String name);
 
     /**
-     * Determine the number of children of this {@code ContentTree} instance.
+     * Determine the number of children of this {@code Tree} instance.
      * @return  number of children
      */
     long getChildrenCount();
 
     /**
-     * All children of this {@code ContentTree} instance. The returned {@code Iterable}
-     * has snapshot semantics. That is, it reflect the state of this {@code ContentTree}
+     * All children of this {@code Tree} instance. The returned {@code Iterable}
+     * has snapshot semantics. That is, it reflect the state of this {@code Tree}
      * instance. instance at the time of the call. Later changes to this instance are no
      * visible to iterators obtained from the returned iterable.
      * @return  An {@code Iterable} for all children
@@ -166,7 +166,7 @@ public interface Tree {
      * already exists.
      *
      * @param name name of the child
-     * @return the {@code ContentTree} instance of the child with the given {@code name}.
+     * @return the {@code Tree} instance of the child with the given {@code name}.
      */
     Tree addChild(String name);
 

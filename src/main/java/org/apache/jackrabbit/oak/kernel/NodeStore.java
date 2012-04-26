@@ -19,8 +19,8 @@ package org.apache.jackrabbit.oak.kernel;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 
 /**
- * Storage abstraction for content trees. At any given point in time
- * the stored content tree is rooted at a single immutable node state.
+ * Storage abstraction for trees. At any given point in time the stored
+ * tree is rooted at a single immutable node state.
  * <p>
  * This is a low-level interface that doesn't cover functionality like
  * merging concurrent changes or rejecting new tree states based on some
@@ -29,7 +29,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 public interface NodeStore {
 
     /**
-     * Returns the latest state of the content tree.
+     * Returns the latest state of the tree.
      *
      * @return root node state
      */
@@ -46,7 +46,7 @@ public interface NodeStore {
     NodeStateBuilder getBuilder(NodeState base);
 
     /**
-     * Updates the state of the content tree.
+     * Updates the state of the tree.
      * @param builder  builder containing the new node state
      */
     void apply(NodeStateBuilder builder) throws CommitFailedException;
