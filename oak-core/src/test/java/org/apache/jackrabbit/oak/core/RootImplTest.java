@@ -16,13 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.kernel;
+package org.apache.jackrabbit.oak.core;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Tree.Status;
+import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
+import org.apache.jackrabbit.oak.kernel.NodeState;
+import org.apache.jackrabbit.oak.kernel.NodeStore;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -40,29 +42,29 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-public class KernelRootTest extends AbstractOakTest {
+public class RootImplTest extends AbstractOakTest {
 
-    private KernelNodeStore store;
+    private NodeStore store;
 
     @Override
     @Before
     public void setUp() {
         super.setUp();
-        store = new KernelNodeStore(microKernel, valueFactory);
     }
 
     @Override
-    KernelNodeState createInitialState() {
+    protected NodeState createInitialState() {
         String jsop =
                 "+\"test\":{\"a\":1,\"b\":2,\"c\":3,"
                         + "\"x\":{},\"y\":{},\"z\":{}}";
         String revision = microKernel.commit("/", jsop, microKernel.getHeadRevision(), "test data");
-        return new KernelNodeState(microKernel, valueFactory, "/test", revision);
+        store = new KernelNodeStore(microKernel, valueFactory);
+        return store.getRoot().getChildNode("test");
     }
 
     @Test
     public void getChild() {
-        KernelRoot root = new KernelRoot(store, "test");
+        RootImpl root = new RootImpl(store, "test");
         Tree tree = root.getTree("/");
 
         Tree child = tree.getChild("any");
@@ -74,7 +76,7 @@ public class KernelRootTest extends AbstractOakTest {
 
     @Test
     public void getProperty() {
-        KernelRoot root = new KernelRoot(store, "test");
+        RootImpl root = new RootImpl(store, "test");
         Tree tree = root.getTree("/");
 
         PropertyState propertyState = tree.getProperty("any");
@@ -89,7 +91,7 @@ public class KernelRootTest extends AbstractOakTest {
 
     @Test
     public void getChildren() {
-        KernelRoot root = new KernelRoot(store, "test");
+        RootImpl root = new RootImpl(store, "test");
         Tree tree = root.getTree("/");
 
         Iterable<Tree> children = tree.getChildren();
@@ -107,7 +109,7 @@ public class KernelRootTest extends AbstractOakTest {
 
     @Test
     public void getProperties() {
-        KernelRoot root = new KernelRoot(store, "test");
+        RootImpl root = new RootImpl(store, "test");
         Tree tree = root.getTree("/");
 
         Map<String, CoreValue> expectedProperties = new HashMap<String, CoreValue>();
@@ -130,7 +132,7 @@ public class KernelRootTest extends AbstractOakTest {
 
     @Test
     public void addChild() throws CommitFailedException {
-        KernelRoot root = new KernelRoot(store, "test");
+        RootImpl root = new RootImpl(store, "test");
         Tree tree = root.getTree("/");
 
         assertFalse(tree.hasChild("new"));
@@ -147,7 +149,7 @@ public class KernelRootTest extends AbstractOakTest {
 
     @Test
     public void addExistingChild() throws CommitFailedException {
-        KernelRoot root = new KernelRoot(store, "test");
+        RootImpl root = new RootImpl(store, "test");
         Tree tree = root.getTree("/");
 
         assertFalse(tree.hasChild("new"));
@@ -164,7 +166,7 @@ public class KernelRootTest extends AbstractOakTest {
 
     @Test
     public void removeChild() throws CommitFailedException {
-        KernelRoot root = new KernelRoot(store, "test");
+        RootImpl root = new RootImpl(store, "test");
         Tree tree = root.getTree("/");
 
         assertTrue(tree.hasChild("x"));
@@ -179,7 +181,7 @@ public class KernelRootTest extends AbstractOakTest {
 
     @Test
     public void setProperty() throws CommitFailedException {
-        KernelRoot root = new KernelRoot(store, "test");
+        RootImpl root = new RootImpl(store, "test");
         Tree tree = root.getTree("/");
 
         assertFalse(tree.hasProperty("new"));
@@ -201,7 +203,7 @@ public class KernelRootTest extends AbstractOakTest {
 
     @Test
     public void removeProperty() throws CommitFailedException {
-        KernelRoot root = new KernelRoot(store, "test");
+        RootImpl root = new RootImpl(store, "test");
         Tree tree = root.getTree("/");
 
         assertTrue(tree.hasProperty("a"));
@@ -216,7 +218,7 @@ public class KernelRootTest extends AbstractOakTest {
 
     @Test
     public void move() throws CommitFailedException {
-        KernelRoot root = new KernelRoot(store, "test");
+        RootImpl root = new RootImpl(store, "test");
         Tree tree = root.getTree("/");
 
         Tree y = tree.getChild("y");
@@ -236,7 +238,7 @@ public class KernelRootTest extends AbstractOakTest {
 
     @Test
     public void rename() throws CommitFailedException {
-        KernelRoot root = new KernelRoot(store, "test");
+        RootImpl root = new RootImpl(store, "test");
         Tree tree = root.getTree("/");
 
         assertTrue(tree.hasChild("x"));
@@ -253,7 +255,7 @@ public class KernelRootTest extends AbstractOakTest {
 
     @Test
     public void copy() throws CommitFailedException {
-        KernelRoot root = new KernelRoot(store, "test");
+        RootImpl root = new RootImpl(store, "test");
         Tree tree = root.getTree("/");
 
         Tree y = tree.getChild("y");
@@ -273,7 +275,7 @@ public class KernelRootTest extends AbstractOakTest {
 
     @Test
     public void deepCopy() throws CommitFailedException {
-        KernelRoot root = new KernelRoot(store, "test");
+        RootImpl root = new RootImpl(store, "test");
         Tree tree = root.getTree("/");
 
         Tree y = tree.getChild("y");
@@ -298,7 +300,7 @@ public class KernelRootTest extends AbstractOakTest {
 
     @Test
     public void getChildrenCount() {
-        KernelRoot root = new KernelRoot(store, "test");
+        RootImpl root = new RootImpl(store, "test");
         Tree tree = root.getTree("/");
 
         assertEquals(3, tree.getChildrenCount());
@@ -315,7 +317,7 @@ public class KernelRootTest extends AbstractOakTest {
 
     @Test
     public void getPropertyCount() {
-        KernelRoot root = new KernelRoot(store, "test");
+        RootImpl root = new RootImpl(store, "test");
         Tree tree = root.getTree("/");
 
         assertEquals(3, tree.getPropertyCount());
@@ -335,81 +337,9 @@ public class KernelRootTest extends AbstractOakTest {
     }
 
     @Test
-    public void addAndRemoveProperty() throws CommitFailedException {
-        KernelRoot root = new KernelRoot(store, "test");
-        Tree tree = root.getTree("/");
-
-        tree.setProperty("P0", valueFactory.createValue("V1"));
-        root.commit();
-        tree = root.getTree("/");
-        assertTrue(tree.hasProperty("P0"));
-
-        tree.removeProperty("P0");
-        root.commit();
-        tree = root.getTree("/");
-        assertFalse(tree.hasProperty("P0"));
-    }
-    
-    @Test
-    public void nodeStatus() throws CommitFailedException {
-        KernelRoot root = new KernelRoot(store, "test");
-        Tree tree = root.getTree("/");
-
-        tree.addChild("new");
-        assertEquals(Status.NEW, tree.getChildStatus("new"));
-        root.commit();
-
-        tree = root.getTree("/");
-        assertEquals(Status.EXISTING, tree.getChildStatus("new"));
-        Tree added = tree.getChild("new");
-        added.addChild("another");
-        assertEquals(Status.MODIFIED, tree.getChildStatus("new"));
-        root.commit();
-
-        tree = root.getTree("/");
-        assertEquals(Status.EXISTING, tree.getChildStatus("new"));
-        tree.getChild("new").removeChild("another");
-        assertEquals(Status.MODIFIED, tree.getChildStatus("new"));
-        assertEquals(Status.REMOVED, tree.getChild("new").getChildStatus("another"));
-        root.commit();
-
-        tree = root.getTree("/");
-        assertEquals(Status.EXISTING, tree.getChildStatus("new"));
-        assertNull(tree.getChild("new").getChild("another"));
-        assertNull(tree.getChild("new").getChildStatus("another"));
-    }
-
-    @Test
-    public void propertyStatus() throws CommitFailedException {
-        KernelRoot root = new KernelRoot(store, "test");
-        Tree tree = root.getTree("/");
-        CoreValue value1 = valueFactory.createValue("V1");
-        CoreValue value2 = valueFactory.createValue("V2");
-
-        tree.setProperty("new", value1);
-        assertEquals(Status.NEW, tree.getPropertyStatus("new"));
-        root.commit();
-
-        tree = root.getTree("/");
-        assertEquals(Status.EXISTING, tree.getPropertyStatus("new"));
-        tree.setProperty("new", value2);
-        assertEquals(Status.MODIFIED, tree.getPropertyStatus("new"));
-        root.commit();
-
-        tree = root.getTree("/");
-        assertEquals(Status.EXISTING, tree.getPropertyStatus("new"));
-        tree.removeProperty("new");
-        assertEquals(Status.REMOVED, tree.getPropertyStatus("new"));
-        root.commit();
-
-        tree = root.getTree("/");
-        assertNull(tree.getPropertyStatus("new"));
-    }
-
-    @Test
     @Ignore("WIP") // FIXME: causes OOME since the branch/merge feature from OAK-45 is used
     public void largeChildList() throws CommitFailedException {
-        KernelRoot root = new KernelRoot(store, "test");
+        RootImpl root = new RootImpl(store, "test");
         Tree tree = root.getTree("/");
 
         Set<String> added = new HashSet<String>();

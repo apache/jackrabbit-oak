@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.kernel;
+package org.apache.jackrabbit.oak.core;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
@@ -25,7 +25,7 @@ import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.core.CoreValueFactoryImpl;
+import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -34,38 +34,38 @@ import org.slf4j.LoggerFactory;
 import java.util.Iterator;
 import java.util.Random;
 
-import static org.apache.jackrabbit.oak.kernel.KernelRootFuzzIT.Operation.AddNode;
-import static org.apache.jackrabbit.oak.kernel.KernelRootFuzzIT.Operation.CopyNode;
-import static org.apache.jackrabbit.oak.kernel.KernelRootFuzzIT.Operation.MoveNode;
-import static org.apache.jackrabbit.oak.kernel.KernelRootFuzzIT.Operation.RemoveNode;
-import static org.apache.jackrabbit.oak.kernel.KernelRootFuzzIT.Operation.RemoveProperty;
-import static org.apache.jackrabbit.oak.kernel.KernelRootFuzzIT.Operation.Save;
-import static org.apache.jackrabbit.oak.kernel.KernelRootFuzzIT.Operation.SetProperty;
+import static org.apache.jackrabbit.oak.core.RootImplFuzzIT.Operation.AddNode;
+import static org.apache.jackrabbit.oak.core.RootImplFuzzIT.Operation.CopyNode;
+import static org.apache.jackrabbit.oak.core.RootImplFuzzIT.Operation.MoveNode;
+import static org.apache.jackrabbit.oak.core.RootImplFuzzIT.Operation.RemoveNode;
+import static org.apache.jackrabbit.oak.core.RootImplFuzzIT.Operation.RemoveProperty;
+import static org.apache.jackrabbit.oak.core.RootImplFuzzIT.Operation.Save;
+import static org.apache.jackrabbit.oak.core.RootImplFuzzIT.Operation.SetProperty;
 import static org.junit.Assert.assertEquals;
 
 /**
  * Fuzz test running random sequences of operations on {@link Tree}.
  * Run with -DKernelRootFuzzIT-seed=42 to set a specific seed (i.e. 42);
  */
-public class KernelRootFuzzIT {
-    static final Logger log = LoggerFactory.getLogger(KernelRootFuzzIT.class);
+public class RootImplFuzzIT {
+    static final Logger log = LoggerFactory.getLogger(RootImplFuzzIT.class);
 
     private static final int OP_COUNT = 5000;
 
     private final Random random;
 
     private KernelNodeStore store1;
-    private KernelRoot root1;
+    private RootImpl root1;
 
     private KernelNodeStore store2;
-    private KernelRoot root2;
+    private RootImpl root2;
 
     private int counter;
 
     private CoreValueFactory vf;
 
-    public KernelRootFuzzIT() {
-        int seed = Integer.getInteger(KernelRootFuzzIT.class.getSimpleName() + "-seed",
+    public RootImplFuzzIT() {
+        int seed = Integer.getInteger(RootImplFuzzIT.class.getSimpleName() + "-seed",
                 new Random().nextInt());
         log.info("Seed = {}", seed);
         random = new Random(seed);
@@ -75,16 +75,16 @@ public class KernelRootFuzzIT {
     public void setup() {
         counter = 0;
 
-        MicroKernel mk1 = new MicroKernelImpl("./target/mk1/" + random.nextInt());
+        MicroKernel mk1 = new MicroKernelImpl("./target/mk1");
         vf = new CoreValueFactoryImpl(mk1);
         store1 = new KernelNodeStore(mk1, vf);
         mk1.commit("", "+\"/test\":{} +\"/test/root\":{}", mk1.getHeadRevision(), "");
-        root1 = new KernelRoot(store1, "test");
+        root1 = new RootImpl(store1, "test");
 
-        MicroKernel mk2 = new MicroKernelImpl("./target/mk2/" + random.nextInt());
+        MicroKernel mk2 = new MicroKernelImpl("./target/mk2");
         store2 = new KernelNodeStore(mk2, vf);
         mk2.commit("", "+\"/test\":{} +\"/test/root\":{}", mk2.getHeadRevision(), "");
-        root2 = new KernelRoot(store2, "test");
+        root2 = new RootImpl(store2, "test");
     }
 
     @Test
@@ -130,7 +130,7 @@ public class KernelRootFuzzIT {
     }
 
     abstract static class Operation {
-        abstract void apply(KernelRoot root);
+        abstract void apply(RootImpl root);
 
         static class AddNode extends Operation {
             private final String parentPath;
@@ -142,7 +142,7 @@ public class KernelRootFuzzIT {
             }
 
             @Override
-            void apply(KernelRoot root) {
+            void apply(RootImpl root) {
                 root.getTree(parentPath).addChild(name);
             }
 
@@ -160,7 +160,7 @@ public class KernelRootFuzzIT {
             }
 
             @Override
-            void apply(KernelRoot root) {
+            void apply(RootImpl root) {
                 String parentPath = PathUtils.getParentPath(path);
                 String name = PathUtils.getName(path);
                 root.getTree(parentPath).removeChild(name);
@@ -182,7 +182,7 @@ public class KernelRootFuzzIT {
             }
 
             @Override
-            void apply(KernelRoot root) {
+            void apply(RootImpl root) {
                 root.move(source.substring(1), destination.substring(1));
             }
 
@@ -202,7 +202,7 @@ public class KernelRootFuzzIT {
             }
 
             @Override
-            void apply(KernelRoot root) {
+            void apply(RootImpl root) {
                 root.copy(source.substring(1), destination.substring(1));
             }
 
@@ -224,7 +224,7 @@ public class KernelRootFuzzIT {
             }
 
             @Override
-            void apply(KernelRoot root) {
+            void apply(RootImpl root) {
                 root.getTree(parentPath).setProperty(propertyName, propertyValue);
             }
 
@@ -245,7 +245,7 @@ public class KernelRootFuzzIT {
             }
 
             @Override
-            void apply(KernelRoot root) {
+            void apply(RootImpl root) {
                 root.getTree(parentPath).removeProperty(name);
             }
 
@@ -257,7 +257,7 @@ public class KernelRootFuzzIT {
 
         static class Save extends Operation {
             @Override
-            void apply(KernelRoot root) {
+            void apply(RootImpl root) {
                 // empty
             }
 

@@ -16,11 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.kernel;
+package org.apache.jackrabbit.oak.core;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.kernel.ChildNodeEntry;
+import org.apache.jackrabbit.oak.kernel.NodeState;
 import org.apache.jackrabbit.oak.util.Function1;
 import org.apache.jackrabbit.oak.util.Iterators;
 import org.apache.jackrabbit.oak.util.PagedIterator;
@@ -43,7 +45,7 @@ import static org.apache.jackrabbit.oak.util.Iterators.map;
 /**
  * TODO: Refactor to be based on the individual NodeStateBuilders instead of NodeStates
  */
-public class KernelTree implements Tree {
+public class TreeImpl implements Tree {
 
     /**
      * Underlying persistent state or {@code null} if this instance represents an
@@ -52,7 +54,7 @@ public class KernelTree implements Tree {
     private final NodeState persistentState;
 
     /** Parent of this content tree */
-    private KernelTree parent;
+    private TreeImpl parent;
 
     /** Name of this content tree */
     private String name;
@@ -61,12 +63,12 @@ public class KernelTree implements Tree {
     private final Listener listener;
 
     /** Children with underlying persistent child states */
-    private final Map<String, KernelTree> existingChildren =
-            new HashMap<String, KernelTree>();
+    private final Map<String, TreeImpl> existingChildren =
+            new HashMap<String, TreeImpl>();
 
     /** Transiently added children */
-    private final Map<String, KernelTree> addedTrees =
-            new HashMap<String, KernelTree>();
+    private final Map<String, TreeImpl> addedTrees =
+            new HashMap<String, TreeImpl>();
 
     /** Transiently removed children */
     private final Set<String> removedTrees = new HashSet<String>();
@@ -88,14 +90,14 @@ public class KernelTree implements Tree {
          * @param tree  parent to which a child was added
          * @param name  name of the added child
          */
-        void addChild(KernelTree tree, String name);
+        void addChild(TreeImpl tree, String name);
 
         /**
          * The child of the given {@code name} has been removed from {@code tree}
          * @param tree  parent from which a child was removed
          * @param name  name of the removed child
          */
-        void removeChild(KernelTree tree, String name);
+        void removeChild(TreeImpl tree, String name);
 
         /**
          * The property of the given {@code name} and {@code value} has been set.
@@ -103,7 +105,7 @@ public class KernelTree implements Tree {
          * @param name  name of the property
          * @param value  value of the property
          */
-        void setProperty(KernelTree tree, String name, CoreValue value);
+        void setProperty(TreeImpl tree, String name, CoreValue value);
 
         /**
          * The property of the given {@code name} and {@code values} has been set.
@@ -111,14 +113,14 @@ public class KernelTree implements Tree {
          * @param name  name of the property
          * @param values  values of the property
          */
-        void setProperty(KernelTree tree, String name, List<CoreValue> values);
+        void setProperty(TreeImpl tree, String name, List<CoreValue> values);
 
         /**
          * The property of the given {@code name} has been removed.
          * @param tree  parent on which the property was removed.
          * @param name  name of the property
          */
-        void removeProperty(KernelTree tree, String name);
+        void removeProperty(TreeImpl tree, String name);
 
         /**
          * The child with the given {@code name} has been moved.
@@ -126,7 +128,7 @@ public class KernelTree implements Tree {
          * @param name  name of the moved child
          * @param moved  moved child
          */
-        void move(KernelTree tree, String name, KernelTree moved);
+        void move(TreeImpl tree, String name, TreeImpl moved);
 
         /**
          * The child with the given {@code name} been copied.
@@ -134,7 +136,7 @@ public class KernelTree implements Tree {
          * @param name  name of the copied child
          * @param copied  copied child
          */
-        void copy(KernelTree tree, String name, KernelTree copied);
+        void copy(TreeImpl tree, String name, TreeImpl copied);
     }
 
     /**
@@ -142,7 +144,7 @@ public class KernelTree implements Tree {
      * @param persistentState  underlying persistent state
      * @param listener  change listener
      */
-    KernelTree(NodeState persistentState, Listener listener) {
+    TreeImpl(NodeState persistentState, Listener listener) {
         this(persistentState, null, "", listener);
     }
 
@@ -152,7 +154,7 @@ public class KernelTree implements Tree {
      * @param name  name of the child
      * @param listener  change listener
      */
-    private KernelTree(KernelTree parent, String name, Listener listener) {
+    private TreeImpl(TreeImpl parent, String name, Listener listener) {
         this(null, parent, name, listener);
     }
 
@@ -163,8 +165,8 @@ public class KernelTree implements Tree {
      * @param name  name of this content tree
      * @param listener  change listener
      */
-    private KernelTree(NodeState persistedState, KernelTree parent,
-                       String name, Listener listener) {
+    private TreeImpl(NodeState persistedState, TreeImpl parent,
+                     String name, Listener listener) {
 
         this.persistentState = persistedState;
         this.parent = parent;
@@ -179,8 +181,8 @@ public class KernelTree implements Tree {
      * @param parent  parent of the copied tree
      * @param name  name of the copied tree
      */
-    private KernelTree(KernelTree tree, KernelTree parent,
-                       String name) {
+    private TreeImpl(TreeImpl tree, TreeImpl parent,
+                     String name) {
 
         listener = tree.listener;
         persistentState = tree.persistentState;
@@ -188,17 +190,17 @@ public class KernelTree implements Tree {
         this.name = name;
 
         // recursively copy all existing children
-        for (Entry<String, KernelTree> existing : tree.existingChildren.entrySet()) {
+        for (Entry<String, TreeImpl> existing : tree.existingChildren.entrySet()) {
             String existingName = existing.getKey();
             this.existingChildren.put(existingName,
-                    new KernelTree(existing.getValue(), this, existingName));
+                    new TreeImpl(existing.getValue(), this, existingName));
         }
         
         // recursively copy all added children
-        for (Entry<String, KernelTree> added : tree.addedTrees.entrySet()) {
+        for (Entry<String, TreeImpl> added : tree.addedTrees.entrySet()) {
             String addedName = added.getKey();
             this.addedTrees.put(addedName,
-                    new KernelTree(added.getValue(), this, addedName));
+                    new TreeImpl(added.getValue(), this, addedName));
         }
 
         this.removedTrees.addAll(tree.removedTrees);
@@ -279,8 +281,8 @@ public class KernelTree implements Tree {
     }
 
     @Override
-    public KernelTree getChild(String name) {
-        KernelTree state = addedTrees.get(name);
+    public TreeImpl getChild(String name) {
+        TreeImpl state = addedTrees.get(name);
         if (state != null) {
             // Added or removed and re-added child
             return state;
@@ -301,7 +303,7 @@ public class KernelTree implements Tree {
             return Status.REMOVED;
         }
         else {
-            KernelTree child = getChild(name);
+            TreeImpl child = getChild(name);
             if (child == null) {
                 return null;
             }
@@ -420,7 +422,7 @@ public class KernelTree implements Tree {
     @Override
     public Tree addChild(String name) {
         if (!hasChild(name)) {
-            addedTrees.put(name, new KernelTree(this, name, listener));
+            addedTrees.put(name, new TreeImpl(this, name, listener));
             if (listener != null) {
                 listener.addChild(this, name);
             }
@@ -445,7 +447,7 @@ public class KernelTree implements Tree {
 
     @Override
     public void setProperty(String name, CoreValue value) {
-        PropertyState propertyState = new KernelPropertyState(name, value);
+        PropertyState propertyState = new PropertyStateImpl(name, value);
         setProperty(propertyState);
         if (listener != null) {
             listener.setProperty(this, name, value);
@@ -454,7 +456,7 @@ public class KernelTree implements Tree {
 
     @Override
     public void setProperty(String name, List<CoreValue> values) {
-        PropertyState propertyState = new KernelPropertyState(name, values);
+        PropertyState propertyState = new PropertyStateImpl(name, values);
         setProperty(propertyState);
         if (listener != null) {
             listener.setProperty(this, name, values);
@@ -482,14 +484,14 @@ public class KernelTree implements Tree {
      * @return  {@code true} if successful, {@code false otherwise}. I.e.
      * when {@code destName} already exists at {@code destParent}
      */
-    public boolean move(KernelTree destParent, String destName) {
+    public boolean move(TreeImpl destParent, String destName) {
         if (destParent.hasChild(destName)) {
             return false;
         }
 
         parent.markTreeRemoved(name);
 
-        KernelTree oldParent = parent;
+        TreeImpl oldParent = parent;
         String oldName = name;
 
         name = destName;
@@ -510,12 +512,12 @@ public class KernelTree implements Tree {
      * @return  {@code true} if successful, {@code false otherwise}. I.e.
      * when {@code destName} already exists at {@code destParent}
      */
-    public boolean copy(KernelTree destParent, String destName) {
+    public boolean copy(TreeImpl destParent, String destName) {
         if (destParent.hasChild(destName)) {
             return false;
         }
 
-        KernelTree copy = new KernelTree(this, destParent, destName);
+        TreeImpl copy = new TreeImpl(this, destParent, destName);
         destParent.addedTrees.put(destName, copy);
         if (listener != null) {
             listener.copy(parent, name, copy);
@@ -549,18 +551,18 @@ public class KernelTree implements Tree {
      *          does not have an underlying persistent state or the underlying
      *          persistent state does not have a child with the given {@code name}.
      */
-    private KernelTree getExistingChild(String name) {
+    private TreeImpl getExistingChild(String name) {
         if (persistentState == null) {
             return null;
         }
 
-        KernelTree transientState = existingChildren.get(name);
+        TreeImpl transientState = existingChildren.get(name);
         if (transientState == null) {
             NodeState state = persistentState.getChildNode(name);
             if (state == null) {
                 return null;
             }
-            transientState = new KernelTree(state, this, name, listener);
+            transientState = new TreeImpl(state, this, name, listener);
             existingChildren.put(name, transientState);
         }
         return transientState;

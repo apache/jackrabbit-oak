@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.plugins.name;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.core.KernelContentRepository;
+import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -28,8 +28,7 @@ public class NamespaceMappingsTest {
 
     @Test
     public void testMappings() throws Exception {
-        ContentRepository repository =
-                new KernelContentRepository(new MicroKernelImpl());
+        ContentRepository repository = new ContentRepositoryImpl(new MicroKernelImpl());
         ContentSession session = repository.login(null, "default");
         NamespaceMappings r = new NamespaceMappings(session);
 

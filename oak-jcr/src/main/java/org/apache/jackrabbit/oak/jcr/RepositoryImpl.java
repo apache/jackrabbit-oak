@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.jcr;
 import org.apache.jackrabbit.commons.SimpleValueFactory;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.core.KernelContentRepository;
+import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,7 +52,7 @@ public class RepositoryImpl implements Repository {
      * mostly in test cases.
      */
     public RepositoryImpl() throws RepositoryException {
-        this(new KernelContentRepository());
+        this(new ContentRepositoryImpl());
     }
 
     //---------------------------------------------------------< Repository >---
