@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -248,6 +249,9 @@ public class RepositoryTest extends AbstractRepositoryTest {
         PropertyIterator properties = node.getProperties();
         while (properties.hasNext()) {
             Property p = properties.nextProperty();
+            if (JcrConstants.JCR_PRIMARYTYPE.equals(p.getName())) {
+                continue;
+            }
             assertTrue(propertyNames.remove(p.getName()));
             if (p.isMultiple()) {
                 for (Value v : p.getValues()) {
