@@ -91,56 +91,56 @@ public class TreeImpl implements Tree {
 
         /**
          * The child of the given {@code name} has been added to {@code tree}.
-         * @param tree  parent to which a child was added
+         * @param parent  parent to which a child was added
          * @param name  name of the added child
          */
-        void addChild(TreeImpl tree, String name);
+        void addChild(TreeImpl parent, String name);
 
         /**
          * The child of the given {@code name} has been removed from {@code tree}
-         * @param tree  parent from which a child was removed
+         * @param parent  parent from which a child was removed
          * @param name  name of the removed child
          */
-        void removeChild(TreeImpl tree, String name);
+        void removeChild(TreeImpl parent, String name);
 
         /**
          * The property of the given {@code name} and {@code value} has been set.
-         * @param tree  parent on which the property was set.
+         * @param parent  parent on which the property was set.
          * @param name  name of the property
          * @param value  value of the property
          */
-        void setProperty(TreeImpl tree, String name, CoreValue value);
+        void setProperty(TreeImpl parent, String name, CoreValue value);
 
         /**
          * The property of the given {@code name} and {@code values} has been set.
-         * @param tree  parent on which the property was set.
+         * @param parent  parent on which the property was set.
          * @param name  name of the property
          * @param values  values of the property
          */
-        void setProperty(TreeImpl tree, String name, List<CoreValue> values);
+        void setProperty(TreeImpl parent, String name, List<CoreValue> values);
 
         /**
          * The property of the given {@code name} has been removed.
-         * @param tree  parent on which the property was removed.
+         * @param parent  parent on which the property was removed.
          * @param name  name of the property
          */
-        void removeProperty(TreeImpl tree, String name);
+        void removeProperty(TreeImpl parent, String name);
 
         /**
          * The child with the given {@code name} has been moved.
-         * @param tree  parent from which the child was moved
-         * @param name  name of the moved child
+         * @param sourceParent  parent from which the child was moved
+         * @param sourceName  name of the moved child
          * @param moved  moved child
          */
-        void move(TreeImpl tree, String name, TreeImpl moved);
+        void move(TreeImpl sourceParent, String sourceName, TreeImpl moved);
 
         /**
          * The child with the given {@code name} been copied.
-         * @param tree  parent from which the child way copied
-         * @param name  name of the copied child
+         * @param sourceParent  parent from which the child way copied
+         * @param sourceName  name of the copied child
          * @param copied  copied child
          */
-        void copy(TreeImpl tree, String name, TreeImpl copied);
+        void copy(TreeImpl sourceParent, String sourceName, TreeImpl copied);
     }
 
     @Override
@@ -332,7 +332,7 @@ public class TreeImpl implements Tree {
         builder.addNode(name);
         TreeImpl added = getChild(name);
         if (added != null) {
-            listener.addChild(added, name);
+            listener.addChild(this, name);
         }
         return added;
     }

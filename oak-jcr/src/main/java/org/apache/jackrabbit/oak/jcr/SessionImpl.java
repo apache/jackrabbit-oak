@@ -181,8 +181,10 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     @Override
     public void refresh(boolean keepChanges) throws RepositoryException {
         ensureIsAlive();
-        root.rebase();
-        if (!keepChanges) {
+        if (keepChanges) {
+            root.rebase();
+        }
+        else {
             root = contentSession.getCurrentRoot();
         }
     }
