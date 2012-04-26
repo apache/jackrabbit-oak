@@ -1143,18 +1143,24 @@ public class RepositoryTest extends AbstractRepositoryTest {
         }
     }
 
-    @Test(expected = RepositoryException.class)
-    @Ignore("WIP")  // TODO clarify
-    public void saveRefreshConflict() throws RepositoryException {
+    @Test
+    public void sessionIsolation() throws RepositoryException {
         Session session1 = getRepository().login();
         Session session2 = getRepository().login();
         try {
-            session1.getRootNode().addNode("node");
-            session2.getRootNode().addNode("node");
+            session1.getRootNode().addNode("node1");
+            session2.getRootNode().addNode("node2");
+            assertTrue(session1.getRootNode().hasNode("node1"));
+            assertTrue(session2.getRootNode().hasNode("node2"));
+            assertFalse(session1.getRootNode().hasNode("node2"));
+            assertFalse(session2.getRootNode().hasNode("node1"));
 
             session1.save();
-            session2.refresh(true);
             session2.save();
+            assertTrue(session1.getRootNode().hasNode("node1"));
+            assertFalse(session1.getRootNode().hasNode("node2"));
+            assertTrue(session2.getRootNode().hasNode("node1"));
+            assertTrue(session2.getRootNode().hasNode("node2"));
         }
         finally {
             session1.logout();
@@ -1162,9 +1168,36 @@ public class RepositoryTest extends AbstractRepositoryTest {
         }
     }
 
-    @Test(expected = RepositoryException.class)
-    @Ignore("WIP")  // TODO clarify
-    public void refreshConflict2() throws RepositoryException {
+    @Test
+    public void saveRefreshConflict() throws RepositoryException {
+        Session session1 = getRepository().login();
+        Session session2 = getRepository().login();
+        try {
+            session1.getRootNode().addNode("node");
+            session2.getRootNode().addNode("node");
+            assertTrue(session1.getRootNode().hasNode("node"));
+            assertTrue(session2.getRootNode().hasNode("node"));
+
+            session1.save();
+            assertTrue(session1.getRootNode().hasNode("node"));
+            assertTrue(session2.getRootNode().hasNode("node"));
+
+            session2.refresh(true);
+            assertTrue(session1.getRootNode().hasNode("node"));
+            assertTrue(session2.getRootNode().hasNode("node"));
+
+            session2.save();
+            assertTrue(session1.getRootNode().hasNode("node"));
+            assertTrue(session2.getRootNode().hasNode("node"));
+        }
+        finally {
+            session1.logout();
+            session2.logout();
+        }
+    }
+
+    @Test
+    public void saveConflict() throws RepositoryException {
         getSession().getRootNode().addNode("node");
         getSession().save();
 
@@ -1173,9 +1206,18 @@ public class RepositoryTest extends AbstractRepositoryTest {
         try {
             session1.getNode("/node").remove();
             session2.getNode("/node").addNode("2");
+            assertFalse(session1.getRootNode().hasNode("node"));
+            assertTrue(session2.getRootNode().hasNode("node"));
+            assertTrue(session2.getRootNode().getNode("node").hasNode("2"));
 
             session1.save();
+            assertFalse(session1.getRootNode().hasNode("node"));
+            assertTrue(session2.getRootNode().hasNode("node"));
+            assertTrue(session2.getRootNode().getNode("node").hasNode("2"));
+
             session2.save();
+            assertFalse(session1.getRootNode().hasNode("node"));
+            assertFalse(session2.getRootNode().hasNode("node"));  // TODO: is this correct?
         }
         finally {
             session1.logout();
