@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.mk.index;
 
 import java.util.Iterator;
+import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.mk.simple.NodeImpl;
 
@@ -75,7 +76,7 @@ public class PropertyIndex implements Index {
 
     private void addOrRemoveRaw(String nodePath, String value, boolean add) {
         JsopTokenizer t = new JsopTokenizer(value);
-        if (t.matches(JsopTokenizer.STRING) || t.matches(JsopTokenizer.NUMBER)) {
+        if (t.matches(JsopReader.STRING) || t.matches(JsopReader.NUMBER)) {
             String v = t.getToken();
             addOrRemove(nodePath, v, add);
         }

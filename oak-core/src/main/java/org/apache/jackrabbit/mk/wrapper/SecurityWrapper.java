@@ -168,7 +168,7 @@ public class SecurityWrapper extends MicroKernelWrapperBase implements MicroKern
     private void verifyDiff(JsopReader t, String revisionId, String rootPath, JsopWriter diff) {
         while (true) {
             int r = t.read();
-            if (r == JsopTokenizer.END) {
+            if (r == JsopReader.END) {
                 break;
             }
             String path;
@@ -209,7 +209,7 @@ public class SecurityWrapper extends MicroKernelWrapperBase implements MicroKern
             case '^':
                 t.read(':');
                 String value;
-                if (t.matches(JsopTokenizer.NULL)) {
+                if (t.matches(JsopReader.NULL)) {
                     if (checkDiff(path, diff)) {
                         if (checkPropertyRights(path)) {
                             diff.tag('^').key(path).value(null);
