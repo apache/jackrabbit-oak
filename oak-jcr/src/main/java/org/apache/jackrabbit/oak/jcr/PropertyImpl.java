@@ -53,13 +53,19 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     private static final Logger log = LoggerFactory.getLogger(PropertyImpl.class);
 
-    private final PropertyDelegate pd;
+    private final PropertyDelegate dlg;
     
     PropertyImpl(SessionContext<SessionImpl> sessionContext, Tree parent,
             PropertyState propertyState) {
 
         super(sessionContext);
-        this.pd = new PropertyDelegate(sessionContext, parent, propertyState);
+        this.dlg = new PropertyDelegate(sessionContext, parent, propertyState);
+    }
+
+    PropertyImpl(PropertyDelegate dlg) {
+
+        super(dlg.getSessionContext());
+        this.dlg = dlg;
     }
 
     //---------------------------------------------------------------< Item >---
@@ -76,7 +82,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @Override
     public String getName() throws RepositoryException {
-        return toJcrPath(pd.getName());
+        return toJcrPath(dlg.getName());
     }
 
     /**
@@ -84,7 +90,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @Override
     public String getPath() throws RepositoryException {
-        return toJcrPath(pd.getPath());
+        return toJcrPath(dlg.getPath());
     }
 
     /**
@@ -92,7 +98,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @Override
     public Node getParent() throws RepositoryException {
-        return new NodeImpl(sessionContext, pd.getParentContentTree());
+        return new NodeImpl(sessionContext, dlg.getParentContentTree());
     }
 
     /**
@@ -120,7 +126,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @Override
     public boolean isNew() {
-        return pd.getPropertyStatus() == Status.NEW;
+        return dlg.getPropertyStatus() == Status.NEW;
     }
 
     /**
@@ -128,7 +134,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @Override
     public boolean isModified() {
-        return pd.getPropertyStatus() == Status.MODIFIED;
+        return dlg.getPropertyStatus() == Status.MODIFIED;
     }
 
     /**
@@ -136,7 +142,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @Override
     public void remove() throws RepositoryException {
-        pd.remove();
+        dlg.remove();
     }
 
     /**
@@ -497,7 +503,7 @@ public class PropertyImpl extends ItemImpl implements Property {
 
     @Override
     public PropertyDefinition getDefinition() throws RepositoryException {
-        return pd.getDefinition();
+        return dlg.getDefinition();
     }
 
     /**
@@ -520,7 +526,7 @@ public class PropertyImpl extends ItemImpl implements Property {
 
     @Override
     public boolean isMultiple() throws RepositoryException {
-        return pd.getPropertyState().isArray();
+        return dlg.getPropertyState().isArray();
     }
 
     /**
@@ -560,7 +566,7 @@ public class PropertyImpl extends ItemImpl implements Property {
    }
 
     private PropertyState getPropertyState() {
-        return pd.getPropertyState();
+        return dlg.getPropertyState();
     }
 
     /**
@@ -574,10 +580,10 @@ public class PropertyImpl extends ItemImpl implements Property {
        assert(requiredType != PropertyType.UNDEFINED);
        
        if (value == null) {
-           pd.remove();
+           dlg.remove();
        } else {
            Value targetValue = ValueHelper.convert(value, requiredType, sessionContext.getValueFactory());
-           pd.setValue(ValueConverter.toCoreValue(targetValue, sessionContext));
+           dlg.setValue(ValueConverter.toCoreValue(targetValue, sessionContext));
        }
    }
 
@@ -595,7 +601,7 @@ public class PropertyImpl extends ItemImpl implements Property {
           remove();
       } else {
           Value[] targetValues = ValueHelper.convert(values, requiredType, sessionContext.getValueFactory());
-          pd.setValues(ValueConverter.toCoreValues(targetValues, sessionContext));
+          dlg.setValues(ValueConverter.toCoreValues(targetValues, sessionContext));
       }
   }
 

@@ -58,6 +58,7 @@ import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.Calendar;
 import java.util.Iterator;
+import java.util.List;
 
 import static org.apache.jackrabbit.oak.util.Iterators.filter;
 
@@ -71,13 +72,24 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     private static final Logger log = LoggerFactory.getLogger(NodeImpl.class);
 
-    private Tree tree;
-
+    // private Tree tree;
+    private final NodeDelegate dlg;
+    
     NodeImpl(SessionContext<SessionImpl> sessionContext, Tree tree) {
         super(sessionContext);
-        this.tree = tree;
+        this.dlg = new NodeDelegate(sessionContext, tree);
     }
 
+    NodeImpl(NodeDelegate dlg) {
+        super(dlg.getSessionContext());
+        this.dlg = dlg;
+    }
+
+    // TODO
+    public String getOakPath() {
+        return dlg.getPath();
+    }
+    
     //---------------------------------------------------------------< Item >---
     /**
      * @see javax.jcr.Item#isNode()
@@ -92,15 +104,17 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public String getName() throws RepositoryException {
-        return name();
+        String oakName = dlg.getName();
+        // special case name of root node
+        return oakName.isEmpty() ? "" : toJcrPath(dlg.getName());
     }
 
     /**
-     * @see javax.jcr.Item#getPath()
+     * @see javax.jcr.Property#getPath()
      */
     @Override
     public String getPath() throws RepositoryException {
-        return path();
+        return toJcrPath(dlg.getPath());
     }
 
     /**
@@ -108,11 +122,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public Node getParent() throws RepositoryException {
-        if (getTree().getParent() == null) {
-            throw new ItemNotFoundException("Root has no parent");
-        }
-
-        return new NodeImpl(sessionContext, getTree().getParent());
+        return new NodeImpl(dlg.getParent());
     }
 
     /**
@@ -120,16 +130,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public Item getAncestor(int depth) throws RepositoryException {
-        int current = getDepth();
-        if (depth < 0 || depth > current) {
-            throw new ItemNotFoundException("ancestor at depth " + depth + " does not exist");
-        }
-        Tree ancestor = getTree();
-        while (depth < current) {
-            ancestor = ancestor.getParent();
-            current -= 1;
-        }
-        return new NodeImpl(sessionContext, ancestor);
+        return new NodeImpl(dlg.getAncestor(depth));
     }
 
     /**
@@ -137,7 +138,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public int getDepth() throws RepositoryException {
-        return Paths.getDepth(getPath());
+        return dlg.getDepth();
     }
 
     /**
@@ -145,7 +146,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public boolean isNew() {
-        return getTree().getParent().getChildStatus(name()) == Status.NEW;
+        return dlg.getNodeStatus() == Status.NEW;
     }
 
     /**
@@ -153,7 +154,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public boolean isModified() {
-        return getTree().getParent().getChildStatus(name()) == Status.MODIFIED;
+        return dlg.getNodeStatus() == Status.MODIFIED;
     }
 
     /**
@@ -161,7 +162,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public void remove() throws RepositoryException {
-        getTree().getParent().removeChild(getName());
+        dlg.remove();
     }
 
     /**
@@ -178,18 +179,10 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see Node#addNode(String)
      */
     @Override
-    public Node addNode(String relPath) throws RepositoryException {
+    public Node addNode(String relJcrPath) throws RepositoryException {
         checkStatus();
-
-        String parentPath = Paths.concat(path(), Paths.getParentPath(relPath));
-        Tree parentState = getBranch().getTree(parentPath);
-        if (parentState == null) {
-            throw new PathNotFoundException(relPath);
-        }
-
-        String name = Paths.getName(relPath);
-        parentState.addChild(name);
-        return new NodeImpl(sessionContext, parentState.getChild(name));
+        NodeDelegate added = dlg.addNode(toOakPath(relJcrPath));
+        return new NodeImpl(added);
     }
 
     @Override
@@ -203,8 +196,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     @Override
     public void orderBefore(String srcChildRelPath, String destChildRelPath) throws RepositoryException {
         checkStatus();
-
-        // TODO
+        throw new UnsupportedRepositoryOperationException("TODO: ordering not supported");
     }
 
     /**
@@ -223,13 +215,16 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see Node#setProperty(String, javax.jcr.Value, int)
      */
     @Override
-    public Property setProperty(String name, Value value, int type) throws RepositoryException {
+    public Property setProperty(String jcrName, Value value, int type)
+            throws RepositoryException {
         checkStatus();
 
-        int targetType = getTargetType(value,  type);
-        Value targetValue = ValueHelper.convert(value, targetType, getValueFactory());
-        getState().setProperty(name, ValueConverter.toCoreValue(targetValue, sessionContext));
-        return getProperty(name);
+        int targetType = getTargetType(value, type);
+        Value targetValue = ValueHelper.convert(value, targetType,
+                getValueFactory());
+        CoreValue oakValue = ValueConverter.toCoreValue(targetValue,
+                sessionContext);
+        return new PropertyImpl(dlg.setProperty(toOakPath(jcrName), oakValue));
     }
 
     /**
@@ -247,13 +242,16 @@ public class NodeImpl extends ItemImpl implements Node  {
     }
 
     @Override
-    public Property setProperty(String name, Value[] values, int type) throws RepositoryException {
+    public Property setProperty(String jcrName, Value[] values, int type)
+            throws RepositoryException {
         checkStatus();
 
         int targetType = getTargetType(values, type);
-        Value[] targetValues = ValueHelper.convert(values, targetType, getValueFactory());
-        getState().setProperty(name, ValueConverter.toCoreValues(targetValues, sessionContext));
-        return getProperty(name);
+        Value[] targetValue = ValueHelper.convert(values, targetType,
+                getValueFactory());
+        List<CoreValue> oakValue = ValueConverter.toCoreValues(targetValue,
+                sessionContext);
+        return new PropertyImpl(dlg.setProperty(toOakPath(jcrName), oakValue));
     }
 
     /**
@@ -384,19 +382,21 @@ public class NodeImpl extends ItemImpl implements Node  {
     public NodeIterator getNodes() throws RepositoryException {
         checkStatus();
 
-        Iterable<Tree> children = getTree().getChildren();
-        return new NodeIteratorAdapter(nodeIterator(children.iterator()));
+        Iterator<NodeDelegate> children = dlg.getChildren();
+        return new NodeIteratorAdapter(nodeIterator(children));
     }
 
     @Override
-    public NodeIterator getNodes(final String namePattern) throws RepositoryException {
+    public NodeIterator getNodes(final String namePattern)
+            throws RepositoryException {
         checkStatus();
 
-        Iterator<Tree> children = filter(getTree().getChildren().iterator(),
-                new Predicate<Tree>() {
+        Iterator<NodeDelegate> children = filter(dlg.getChildren(),
+                new Predicate<NodeDelegate>() {
                     @Override
-                    public boolean evaluate(Tree state) {
-                        return ItemNameMatcher.matches(state.getName(), namePattern);
+                    public boolean evaluate(NodeDelegate state) {
+                        return ItemNameMatcher.matches(
+                                toJcrPath(state.getName()), namePattern);
                     }
                 });
 
@@ -407,11 +407,11 @@ public class NodeImpl extends ItemImpl implements Node  {
     public NodeIterator getNodes(final String[] nameGlobs) throws RepositoryException {
         checkStatus();
 
-        Iterator<Tree> children = filter(getTree().getChildren().iterator(),
-                new Predicate<Tree>() {
+        Iterator<NodeDelegate> children = filter(dlg.getChildren(),
+                new Predicate<NodeDelegate>() {
                     @Override
-                    public boolean evaluate(Tree state) {
-                        return ItemNameMatcher.matches(state.getName(), nameGlobs);
+                    public boolean evaluate(NodeDelegate state) {
+                        return ItemNameMatcher.matches(toJcrPath(state.getName()), nameGlobs);
                     }
                 });
 
@@ -434,19 +434,20 @@ public class NodeImpl extends ItemImpl implements Node  {
     public PropertyIterator getProperties() throws RepositoryException {
         checkStatus();
 
-        Iterable<PropertyState> properties = getTree().getProperties();
-        return new PropertyIteratorAdapter(propertyIterator(properties.iterator()));
+        Iterator<PropertyDelegate> properties = dlg.getProperties();
+        return new PropertyIteratorAdapter(propertyIterator(properties));
     }
 
     @Override
     public PropertyIterator getProperties(final String namePattern) throws RepositoryException {
         checkStatus();
 
-        Iterator<PropertyState> properties = filter(getTree().getProperties().iterator(),
-                new Predicate<PropertyState>() {
+        Iterator<PropertyDelegate> properties = filter(dlg.getProperties(),
+                new Predicate<PropertyDelegate>() {
                     @Override
-                    public boolean evaluate(PropertyState entry) {
-                        return ItemNameMatcher.matches(entry.getName(), namePattern);
+                    public boolean evaluate(PropertyDelegate entry) {
+                        return ItemNameMatcher.matches(
+                                toJcrPath(entry.getName()), namePattern);
                     }
                 });
 
@@ -455,11 +456,12 @@ public class NodeImpl extends ItemImpl implements Node  {
 
     @Override
     public PropertyIterator getProperties(final String[] nameGlobs) throws RepositoryException {
-        Iterator<PropertyState> propertyNames = filter(getTree().getProperties().iterator(),
-                new Predicate<PropertyState>() {
+        Iterator<PropertyDelegate> propertyNames = filter(dlg.getProperties(),
+                new Predicate<PropertyDelegate>() {
                     @Override
-                    public boolean evaluate(PropertyState entry) {
-                        return ItemNameMatcher.matches(entry.getName(), nameGlobs);
+                    public boolean evaluate(PropertyDelegate entry) {
+                        return ItemNameMatcher.matches(
+                                toJcrPath(entry.getName()), nameGlobs);
                     }
                 });
 
@@ -507,13 +509,13 @@ public class NodeImpl extends ItemImpl implements Node  {
             return getProperty(JcrConstants.JCR_UUID).getString();
         } else {
             // TODO
-            return path();
+            return getPath();
         }
     }
 
     @Override
     public int getIndex() throws RepositoryException {
-        // as long as we don not support same name siblings, index always is 1
+        // as long as we do not support same name siblings, index always is 1
         return 1;
     }
 
@@ -563,14 +565,14 @@ public class NodeImpl extends ItemImpl implements Node  {
     public boolean hasNodes() throws RepositoryException {
         checkStatus();
 
-        return getTree().getChildrenCount() != 0;
+        return dlg.getChildrenCount() != 0;
     }
 
     @Override
     public boolean hasProperties() throws RepositoryException {
         checkStatus();
 
-        return getTree().getPropertyCount() != 0;
+        return dlg.getPropertyCount() != 0;
     }
 
     /**
@@ -632,7 +634,7 @@ public class NodeImpl extends ItemImpl implements Node  {
         checkStatus();
 
         CoreValue cv = ValueConverter.toCoreValue(nodeTypeName, PropertyType.NAME, sessionContext);
-        getState().setProperty(JcrConstants.JCR_PRIMARYTYPE, cv);
+        dlg.setProperty(toOakPath(JcrConstants.JCR_PRIMARYTYPE), cv);
     }
 
     @Override
@@ -852,79 +854,51 @@ public class NodeImpl extends ItemImpl implements Node  {
 
     }
 
-    //------------------------------------------------------------< package >---
-
-    String name() {
-        return getTree().getName();
-    }
-
-    String path() {
-        return '/' + getTree().getPath();
-    }
-
     //------------------------------------------------------------< private >---
 
-    /**
-     * @return The node state associated with this node
-     */
-    private Tree getState() {
-        return getTree();
-    }
 
-    private Root getBranch() {
-        return sessionContext.getBranch();
-    }
-
-    private synchronized Tree getTree() {
-        return tree = getBranch().getTree(tree.getPath());
-    }
-
-    private Iterator<Node> nodeIterator(Iterator<Tree> childNodeStates) {
-        return Iterators.map(childNodeStates, new Function1<Tree, Node>() {
+    private Iterator<Node> nodeIterator(Iterator<NodeDelegate> childNodes) {
+        return Iterators.map(childNodes, new Function1<NodeDelegate, Node>() {
             @Override
-            public Node apply(Tree state) {
-                return new NodeImpl(sessionContext, state);
+            public Node apply(NodeDelegate state) {
+                return new NodeImpl(state);
             }
         });
     }
 
-    private Iterator<Property> propertyIterator(Iterator<PropertyState> properties) {
-        return Iterators.map(properties, new Function1<PropertyState, Property>() {
-            @Override
-            public Property apply(PropertyState propertyState) {
-                return new PropertyImpl(sessionContext, getTree(), propertyState);
-            }
-        });
+    private Iterator<Property> propertyIterator(
+            Iterator<PropertyDelegate> properties) {
+        return Iterators.map(properties,
+                new Function1<PropertyDelegate, Property>() {
+                    @Override
+                    public Property apply(PropertyDelegate propertyDelegate) {
+                        return new PropertyImpl(propertyDelegate);
+                    }
+                });
     }
 
-    private NodeImpl getNodeOrNull(String relPath) {
-        String absPath = Paths.concat(path(), relPath);
-        Tree tree = getBranch().getTree(absPath);
-        return tree == null
-            ? null
-            : new NodeImpl(sessionContext, tree);
-    }
-    
-    private PropertyImpl getPropertyOrNull(String relJcrPath) throws RepositoryException {
-        
+    private NodeImpl getNodeOrNull(String relJcrPath)
+            throws RepositoryException {
+
         String relOakPath = toOakPath(relJcrPath);
-        
-        String absPath = Paths.concat(path(), Paths.getParentPath(relOakPath));
-        Tree parent = getBranch().getTree(absPath);
-        if (parent == null) {
-            return null;
-        }
 
-        String name = Paths.getName(relOakPath);
-        PropertyState propertyState = parent.getProperty(name);
-        return propertyState == null
-            ? null
-            : new PropertyImpl(sessionContext, parent, propertyState);
+        NodeDelegate nd = dlg.getNodeOrNull(relOakPath);
+        return nd == null ? null : new NodeImpl(nd);
+    }
+
+    private PropertyImpl getPropertyOrNull(String relJcrPath)
+            throws RepositoryException {
+
+        String relOakPath = toOakPath(relJcrPath);
+
+        PropertyDelegate pd = dlg.getPropertyOrNull(relOakPath);
+        return pd == null ? null : new PropertyImpl(pd);
     }
 
     private int getTargetType(Value value, int type) {
         if (value == null) {
-            return PropertyType.STRING; // TODO: review again. rather use property definition
+            return PropertyType.STRING; // TODO: review again. rather use
+                                        // property definition
         } else {
             return value.getType();
         }
@@ -932,9 +906,11 @@ public class NodeImpl extends ItemImpl implements Node  {
 
     private int getTargetType(Value[] values, int type) {
         if (values == null || values.length == 0) {
-            return PropertyType.STRING; // TODO: review again. rather use property definition
+            return PropertyType.STRING; // TODO: review again. rather use
+                                        // property definition
         } else {
-            // TODO deal with values array containing a null value in the first position
+            // TODO deal with values array containing a null value in the first
+            // position
             return getTargetType(values[0], type);
         }
     }

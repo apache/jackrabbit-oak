@@ -524,8 +524,8 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
         }
 
         @Override
-        public Tree getContentTree(NodeImpl node) {
-            return root.getTree(node.path());
+        public Tree getContentTree(String oakPath) {
+            return root.getTree(oakPath);
         }
 
         @Override

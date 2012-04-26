@@ -79,6 +79,10 @@ public class PropertyDelegate {
         return '/' + getParentContentTree().getPath() + '/' + getName();
     }
 
+    SessionContext<SessionImpl> getSessionContext() {
+        return sessionContext;
+    }
+
     //------------------------------------------------------------< private >---
 
     private Root getBranch() {
