@@ -50,7 +50,7 @@ public interface Filter {
     /**
      * A restriction for a property.
      */
-    static class PropertyRestriction {
+    class PropertyRestriction {
 
         /**
          * The name of the property.
@@ -88,7 +88,7 @@ public interface Filter {
     /**
      * The path restriction type.
      */
-    public enum PathRestriction {
+    enum PathRestriction {
 
         /**
          * A parent of this node
