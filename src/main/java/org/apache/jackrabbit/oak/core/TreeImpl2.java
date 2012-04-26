@@ -238,7 +238,7 @@ public class TreeImpl2 implements Tree {
                     return Status.NEW;
                 }
                 else {
-                    if (equals(baseState, getNodeState())) {
+                    if (isSame(baseState.getChildNode(name), getNodeState().getChildNode(name))) {
                         return Status.EXISTING;
                     }
                     else {
@@ -385,7 +385,7 @@ public class TreeImpl2 implements Tree {
         return builder.getNodeState();
     }
 
-    private boolean equals(NodeState state1, NodeState state2) {
+    private boolean isSame(NodeState state1, NodeState state2) {
         final boolean[] isDirty = {false};
         store.compare(state1, state2, new NodeStateDiff() {
             @Override
