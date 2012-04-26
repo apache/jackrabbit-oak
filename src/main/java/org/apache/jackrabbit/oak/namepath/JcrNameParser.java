@@ -16,9 +16,15 @@
  */
 package org.apache.jackrabbit.oak.namepath;
 
-
 import org.apache.jackrabbit.util.XMLChar;
 
+/**
+ * Parses and validates JCR names. Upon successful completion of
+ * {@link #parse(String, org.apache.jackrabbit.oak.namepath.JcrNameParser.Listener)}
+ * the specified listener is informed about the (resulting) JCR name.
+ * In case of failure {@link Listener#error(String)} is called indicating
+ * the reason.
+ */
 public class JcrNameParser {
 
     // constants for parser
@@ -29,14 +35,41 @@ public class JcrNameParser {
     private static final int STATE_URI_START = 4;
     private static final int STATE_URI = 5;
 
+    /**
+     * Listener interface for this name parser.
+     */
     interface Listener {
+
+        /**
+         * Informs this listener that parsing the jcr name failed.
+         *
+         * @param message Details about the error.
+         * @see JcrNameParser#parse(String, org.apache.jackrabbit.oak.namepath.JcrNameParser.Listener)
+         */
         void error(String message);
+
+        /**
+         * Informs this listener about the result of {@link JcrNameParser#parse(String, org.apache.jackrabbit.oak.namepath.JcrNameParser.Listener)}
+         *
+         * @param name The resulting name upon successful completion of
+         * {@link JcrNameParser#parse(String, org.apache.jackrabbit.oak.namepath.JcrNameParser.Listener)}
+         */
         void name(String name);
     }
 
+    /**
+     * Avoid instantiation
+     */
     private JcrNameParser() {
     }
 
+    /**
+     * Parse the specified jcr name and inform the specified {@code listener}
+     * about the result or any error that may occur during parsing.
+     *
+     * @param jcrName The jcr name to be parsed.
+     * @param listener The listener to be informed about success or failure.
+     */
     public static void parse(String jcrName, Listener listener) {
         // trivial check
         int len = jcrName == null ? 0 : jcrName.length();
