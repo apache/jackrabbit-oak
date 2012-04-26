@@ -149,11 +149,16 @@ class KernelNodeState extends AbstractNodeState {
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries(
             long offset, int count) {
         init();
+        boolean all;
         if (count == -1) {
             count = Integer.MAX_VALUE;
+            all = true;
             if (childNodeCount > count) {
                 throw new RuntimeException("Too many child nodes");
             }
+        }
+        else {
+            all = false;
         }
 
         List<ChildNodeEntry> entries = new ArrayList<ChildNodeEntry>();
@@ -176,7 +181,7 @@ class KernelNodeState extends AbstractNodeState {
 
         if (count > 0 && childNodeCount > MAX_CHILD_NODE_NAMES) {
             String json = kernel.getNodes(
-                    path, revision, 0, offset, count, null);
+                    path, revision, 0, offset, all ? -1 : count, null);
 
             JsopReader reader = new JsopTokenizer(json);
             reader.read('{');
