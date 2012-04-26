@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.jcr;
 import java.util.List;
 
 import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.PropertyDefinition;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
@@ -42,7 +44,85 @@ public class PropertyDelegate extends ItemDelegate {
 
     PropertyDefinition getDefinition() throws RepositoryException {
         // TODO
-        return null;
+        return new PropertyDefinition() {
+
+            @Override
+            public int getRequiredType() {
+                return 0;
+            }
+
+            @Override
+            public String[] getValueConstraints() {
+                // TODO
+                return new String[0];
+            }
+
+            @Override
+            public Value[] getDefaultValues() {
+                // TODO
+                return new Value[0];
+            }
+
+            @Override
+            public boolean isMultiple() {
+                // TODO
+                return propertyState.isArray();
+            }
+
+            @Override
+            public String[] getAvailableQueryOperators() {
+                // TODO
+                return new String[0];
+            }
+
+            @Override
+            public boolean isFullTextSearchable() {
+                // TODO
+                return false;
+            }
+
+            @Override
+            public boolean isQueryOrderable() {
+                // TODO
+                return false;
+            }
+
+            @Override
+            public NodeType getDeclaringNodeType() {
+                // TODO
+                return null;
+            }
+
+            @Override
+            public String getName() {
+                // TODO
+                return propertyState.getName();
+            }
+
+            @Override
+            public boolean isAutoCreated() {
+                // TODO
+                return false;
+            }
+
+            @Override
+            public boolean isMandatory() {
+                // TODO
+                return false;
+            }
+
+            @Override
+            public int getOnParentVersion() {
+                // TODO
+                return 0;
+            }
+
+            @Override
+            public boolean isProtected() {
+                // TODO
+                return false;
+            }
+        };
     }
     
     void remove() throws RepositoryException {
@@ -95,8 +175,7 @@ public class PropertyDelegate extends ItemDelegate {
 
         if (parent == null) {
             propertyState = null;
-        }
-        else {
+        } else {
             propertyState = parent.getProperty(Paths.getName(path));
         }
     }

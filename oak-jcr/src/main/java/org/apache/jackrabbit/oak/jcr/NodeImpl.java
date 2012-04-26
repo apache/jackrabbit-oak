@@ -145,16 +145,21 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see Node#addNode(String)
      */
     @Override
-    public Node addNode(String relJcrPath) throws RepositoryException {
-        checkStatus();
-        NodeDelegate added = dlg.addNode(toOakPath(relJcrPath));
-        return new NodeImpl(added);
+    public Node addNode(String relPath) throws RepositoryException {
+        return addNode(relPath, null);
     }
 
     @Override
     public Node addNode(String relPath, String primaryNodeTypeName) throws RepositoryException {
         checkStatus();
-        Node childNode = addNode(relPath);
+
+        if (primaryNodeTypeName == null) {
+            // TODO retrieve matching nt from effective definition based on name-matching.
+            primaryNodeTypeName = JcrConstants.NT_UNSTRUCTURED;
+        }
+
+        NodeDelegate added = dlg.addNode(toOakPath(relPath));
+        Node childNode = new NodeImpl(added);
         childNode.setPrimaryType(primaryNodeTypeName);
         return childNode;
     }
@@ -549,8 +554,7 @@ public class NodeImpl extends ItemImpl implements Node  {
         checkStatus();
 
         // TODO: check if transient changes to mixin-types are reflected here
-        NodeTypeManager ntMgr =
-                getSession().getWorkspace().getNodeTypeManager();
+        NodeTypeManager ntMgr = getSession().getWorkspace().getNodeTypeManager();
         String primaryNtName = getProperty(JcrConstants.JCR_PRIMARYTYPE).getString();
         return ntMgr.getNodeType(primaryNtName);
     }
@@ -564,8 +568,7 @@ public class NodeImpl extends ItemImpl implements Node  {
 
         // TODO: check if transient changes to mixin-types are reflected here
         if (hasProperty(JcrConstants.JCR_MIXINTYPES)) {
-            NodeTypeManager ntMgr =
-                    getSession().getWorkspace().getNodeTypeManager();
+            NodeTypeManager ntMgr = getSession().getWorkspace().getNodeTypeManager();
             Value[] mixinNames = getProperty(JcrConstants.JCR_MIXINTYPES).getValues();
             NodeType[] mixinTypes = new NodeType[mixinNames.length];
             for (int i = 0; i < mixinNames.length; i++) {
@@ -628,7 +631,8 @@ public class NodeImpl extends ItemImpl implements Node  {
     @Override
     public NodeDefinition getDefinition() throws RepositoryException {
         checkStatus();
-        
+
+
         // TODO
         return new NodeDefinition() {
  
