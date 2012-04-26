@@ -95,7 +95,7 @@
 [nt:resource] > mix:mimeType, mix:lastModified, mix:referenceable
   primaryitem jcr:data
   - jcr:data (BINARY) mandatory
-  
+
 /**
  * This mixin node type can be used to add standardized title and description
  * properties to a node.
@@ -618,7 +618,7 @@
   orderable
   + * (rep:Members) = rep:Members protected multiple
   - * (WEAKREFERENCE) protected < 'rep:Authorizable'
-    
+
 // -----------------------------------------------------------------------------
 // J A C K R A B B I T  R E T E N T I O N  M A N A G E M E N T
 // -----------------------------------------------------------------------------
@@ -627,3 +627,4 @@
   mixin
   - rep:hold (UNDEFINED) protected  multiple IGNORE
   - rep:retentionPolicy (UNDEFINED) protected IGNORE
+

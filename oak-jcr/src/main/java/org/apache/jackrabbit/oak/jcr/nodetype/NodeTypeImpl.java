@@ -43,13 +43,14 @@ import org.apache.jackrabbit.oak.namepath.NameMapper;
 class NodeTypeImpl implements NodeType {
 
     private static final Pattern CND_PATTERN = Pattern.compile(
-            "( > (\\S+(, \\S+)*))?(\n  mixin)?(\n  abstract)?"
-            + "(\n  orderable)?(\n  primaryitem (\\S+))?(\n.*)*");
+            "( > (([\\S, ]+)))?(\n  mixin)?(\n  abstract)?"
+            + "(\n  orderable)?(\n  primaryitem (\\S+))?\n?(.*)",
+            Pattern.DOTALL);
 
     private static final Pattern DEF_PATTERN = Pattern.compile(
-            "  ([\\+\\-]) (\\S+) \\((.+?)\\)( = (\\S+))"
+            "  ([\\+\\-]) (\\S+) \\((\\S+?)\\)( = (\\S+))?"
             + "(( (mandatory|autocreated|protected|multiple))*)"
-            + "( ([A-Z])+)?.*");
+            + "( ([A-Z]+))?(.*)");
 
     private final NodeTypeManager manager;
 
@@ -98,11 +99,12 @@ class NodeTypeImpl implements NodeType {
         }
 
         String defs = matcher.group(9);
-        if (defs != null) {
-            defs = defs.trim();
+        if (defs != null && defs.length() > 0) {
             for (String line : defs.split("\n")) {
                 matcher = DEF_PATTERN.matcher(line);
-                matcher.matches();
+                if (!matcher.matches()) {
+                    continue;
+                }
 
                 String defName = matcher.group(2);
                 String defType = matcher.group(3);
@@ -113,9 +115,9 @@ class NodeTypeImpl implements NodeType {
                 boolean multiple = matcher.group(6).contains(" multiple");
 
                 int onParentVersionAction = OnParentVersionAction.COPY;
-                if (matcher.group(9) != null) {
+                if (matcher.group(10) != null) {
                     onParentVersionAction =
-                            OnParentVersionAction.valueFromName(matcher.group(9));
+                            OnParentVersionAction.valueFromName(matcher.group(10));
                 }
 
                 if ("+".equals(matcher.group(1))) {
@@ -123,13 +125,45 @@ class NodeTypeImpl implements NodeType {
                             this, mapper, defName, autoCreated, mandatory,
                             onParentVersionAction, isProtected, manager,
                             defType.split(", "), matcher.group(5), false));
-                } else {
+                } else if ("+".equals(matcher.group(1))) {
                     declaredPropertyDefinitions.add(new PropertyDefinitionImpl(
                             this, mapper, defName, autoCreated, mandatory,
                             onParentVersionAction, isProtected,
-                            PropertyType.valueFromName(defType), multiple));
+                            valueFromName(defType), multiple));
                 }
             }
+        }
+    }
+
+    private static int valueFromName(String name) {
+        if (name.equalsIgnoreCase(PropertyType.TYPENAME_STRING)) {
+            return PropertyType.STRING;
+        } else if (name.equalsIgnoreCase(PropertyType.TYPENAME_BINARY)) {
+            return PropertyType.BINARY;
+        } else if (name.equalsIgnoreCase(PropertyType.TYPENAME_BOOLEAN)) {
+            return PropertyType.BOOLEAN;
+        } else if (name.equalsIgnoreCase(PropertyType.TYPENAME_LONG)) {
+            return PropertyType.LONG;
+        } else if (name.equalsIgnoreCase(PropertyType.TYPENAME_DOUBLE)) {
+            return PropertyType.DOUBLE;
+        } else if (name.equalsIgnoreCase(PropertyType.TYPENAME_DECIMAL)) {
+            return PropertyType.DECIMAL;
+        } else if (name.equalsIgnoreCase(PropertyType.TYPENAME_DATE)) {
+            return PropertyType.DATE;
+        } else if (name.equalsIgnoreCase(PropertyType.TYPENAME_NAME)) {
+            return PropertyType.NAME;
+        } else if (name.equalsIgnoreCase(PropertyType.TYPENAME_PATH)) {
+            return PropertyType.PATH;
+        } else if (name.equalsIgnoreCase(PropertyType.TYPENAME_REFERENCE)) {
+            return PropertyType.REFERENCE;
+        } else if (name.equalsIgnoreCase(PropertyType.TYPENAME_WEAKREFERENCE)) {
+            return PropertyType.WEAKREFERENCE;
+        } else if (name.equalsIgnoreCase(PropertyType.TYPENAME_URI)) {
+            return PropertyType.URI;
+        } else if (name.equalsIgnoreCase(PropertyType.TYPENAME_UNDEFINED)) {
+            return PropertyType.UNDEFINED;
+        } else {
+            throw new IllegalArgumentException("unknown type: " + name);
         }
     }
 
