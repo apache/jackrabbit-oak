@@ -274,7 +274,7 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
         headLock.writeLock().lock();
     }
 
-    public Id putHeadCommit(PutToken token, MutableCommit commit)
+    public Id putHeadCommit(PutToken token, MutableCommit commit, Id branchRootId)
             throws Exception {
         verifyInitialized();
         if (!headLock.writeLock().isHeldByCurrentThread()) {
