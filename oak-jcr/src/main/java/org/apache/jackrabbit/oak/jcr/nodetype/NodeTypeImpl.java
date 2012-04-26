@@ -19,7 +19,11 @@ package org.apache.jackrabbit.oak.jcr.nodetype;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -174,12 +178,39 @@ class NodeTypeImpl implements NodeType {
 
     @Override
     public NodeType[] getSupertypes() {
-        return null;
+        try {
+            Collection<NodeType> types = new ArrayList<NodeType>();
+            Set<String> added = new HashSet<String>();
+            Queue<String> queue = new LinkedList<String>(
+                    Arrays.asList(getDeclaredSupertypeNames()));
+            while (!queue.isEmpty()) {
+                String name = mapper.getJcrName(queue.remove());
+                if (added.add(name)) {
+                    NodeType type = manager.getNodeType(name);
+                    types.add(type);
+                    queue.addAll(Arrays.asList(type.getDeclaredSupertypeNames()));
+                }
+            }
+            return types.toArray(new NodeType[types.size()]);
+        } catch (RepositoryException e) {
+            throw new IllegalStateException(
+                    "Inconsistent node type: " + this, e);
+        }
     }
 
     @Override
     public NodeType[] getDeclaredSupertypes() {
-        return null;
+        try {
+            String[] names = getDeclaredSupertypeNames();
+            NodeType[] types = new NodeType[names.length];
+            for (int i = 0; i < types.length; i++) {
+                types[i] = manager.getNodeType(names[i]);
+            }
+            return types;
+        } catch (RepositoryException e) {
+            throw new IllegalStateException(
+                    "Inconsistent node type: " + this, e);
+        }
     }
 
     @Override
