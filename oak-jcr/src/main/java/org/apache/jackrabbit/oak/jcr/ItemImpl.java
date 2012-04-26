@@ -25,7 +25,6 @@ import javax.jcr.Item;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.ValueFactory;
 
 /**
@@ -117,16 +116,18 @@ abstract class ItemImpl implements Item {
      * @see javax.jcr.Item#save()
      */
     @Override
-    public void save() throws UnsupportedRepositoryOperationException {
-        throw new UnsupportedRepositoryOperationException("Use Session#save");
+    public void save() throws RepositoryException {
+        log.warn("Item#save is no longer supported. Please use Session#save instead.");
+        getSession().save();
     }
 
     /**
      * @see Item#refresh(boolean)
      */
     @Override
-    public void refresh(boolean keepChanges) throws UnsupportedRepositoryOperationException {
-        throw new UnsupportedRepositoryOperationException("Use Session#refresh");
+    public void refresh(boolean keepChanges) throws RepositoryException {
+        log.warn("Item#refresh is no longer supported. Please use Session#refresh");
+        getSession().refresh(keepChanges);
     }
 
     //--------------------------------------------------------------------------
