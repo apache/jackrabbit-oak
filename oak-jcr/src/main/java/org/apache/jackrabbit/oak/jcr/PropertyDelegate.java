@@ -16,18 +16,17 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import java.util.List;
-
-import javax.jcr.RepositoryException;
-import javax.jcr.Value;
-import javax.jcr.nodetype.NodeType;
-import javax.jcr.nodetype.PropertyDefinition;
-
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.Paths;
+
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+import javax.jcr.nodetype.NodeType;
+import javax.jcr.nodetype.PropertyDefinition;
+import java.util.List;
 
 public class PropertyDelegate extends ItemDelegate {
 
@@ -151,10 +150,12 @@ public class PropertyDelegate extends ItemDelegate {
         return getParentContentTree().getPropertyStatus(getName());
     }
     
+    @Override
     String getName() {
         return getPropertyState().getName();
     }
 
+    @Override
     String getPath() {
         return '/' + getParentContentTree().getPath() + '/' + getName();
     }

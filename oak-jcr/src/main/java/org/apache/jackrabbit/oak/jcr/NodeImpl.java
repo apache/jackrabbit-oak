@@ -16,13 +16,20 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import static org.apache.jackrabbit.oak.util.Iterators.filter;
-
-import java.io.InputStream;
-import java.math.BigDecimal;
-import java.util.Calendar;
-import java.util.Iterator;
-import java.util.List;
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
+import org.apache.jackrabbit.commons.iterator.PropertyIteratorAdapter;
+import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.Tree.Status;
+import org.apache.jackrabbit.oak.jcr.util.ItemNameMatcher;
+import org.apache.jackrabbit.oak.jcr.util.LogUtil;
+import org.apache.jackrabbit.oak.jcr.util.ValueConverter;
+import org.apache.jackrabbit.oak.util.Function1;
+import org.apache.jackrabbit.oak.util.Iterators;
+import org.apache.jackrabbit.oak.util.Predicate;
+import org.apache.jackrabbit.value.ValueHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.jcr.Binary;
 import javax.jcr.Item;
@@ -44,21 +51,13 @@ import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.version.OnParentVersionAction;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionHistory;
+import java.io.InputStream;
+import java.math.BigDecimal;
+import java.util.Calendar;
+import java.util.Iterator;
+import java.util.List;
 
-import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
-import org.apache.jackrabbit.commons.iterator.PropertyIteratorAdapter;
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.Tree.Status;
-import org.apache.jackrabbit.oak.jcr.util.ItemNameMatcher;
-import org.apache.jackrabbit.oak.jcr.util.LogUtil;
-import org.apache.jackrabbit.oak.jcr.util.ValueConverter;
-import org.apache.jackrabbit.oak.util.Function1;
-import org.apache.jackrabbit.oak.util.Iterators;
-import org.apache.jackrabbit.oak.util.Predicate;
-import org.apache.jackrabbit.value.ValueHelper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static org.apache.jackrabbit.oak.util.Iterators.filter;
 
 /**
  * {@code NodeImpl}...
@@ -895,8 +894,7 @@ public class NodeImpl extends ItemImpl implements Node  {
 
     //------------------------------------------------------------< private >---
 
-
-    private Iterator<Node> nodeIterator(Iterator<NodeDelegate> childNodes) {
+    private static Iterator<Node> nodeIterator(Iterator<NodeDelegate> childNodes) {
         return Iterators.map(childNodes, new Function1<NodeDelegate, Node>() {
             @Override
             public Node apply(NodeDelegate state) {
@@ -905,7 +903,7 @@ public class NodeImpl extends ItemImpl implements Node  {
         });
     }
 
-    private Iterator<Property> propertyIterator(
+    private static Iterator<Property> propertyIterator(
             Iterator<PropertyDelegate> properties) {
         return Iterators.map(properties,
                 new Function1<PropertyDelegate, Property>() {
@@ -934,7 +932,7 @@ public class NodeImpl extends ItemImpl implements Node  {
         return pd == null ? null : new PropertyImpl(pd);
     }
 
-    private int getTargetType(Value value, int type) {
+    private static int getTargetType(Value value, int type) {
         if (value == null) {
             return PropertyType.STRING; // TODO: review again. rather use
                                         // property definition
@@ -943,7 +941,7 @@ public class NodeImpl extends ItemImpl implements Node  {
         }
     }
 
-    private int getTargetType(Value[] values, int type) {
+    private static int getTargetType(Value[] values, int type) {
         if (values == null || values.length == 0) {
             return PropertyType.STRING; // TODO: review again. rather use
                                         // property definition
