@@ -154,6 +154,10 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
 
     @Override
     public void move(String srcAbsPath, String destAbsPath) throws RepositoryException {
+        internalMove(sessionContext.toOakPath(srcAbsPath), sessionContext.toOakPath(destAbsPath));
+    }
+
+    private void internalMove(String srcAbsPath, String destAbsPath) throws RepositoryException {
         ensureIsAlive();
 
         String srcPath = Paths.relativize("/", srcAbsPath);
@@ -219,6 +223,10 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
 
     @Override
     public ContentHandler getImportContentHandler(String parentAbsPath, int uuidBehavior) throws RepositoryException {
+        return internalGetImportContentHandler(sessionContext.toOakPath(parentAbsPath), uuidBehavior);
+    }
+
+    private ContentHandler internalGetImportContentHandler(String parentAbsPath, int uuidBehavior) throws RepositoryException {
         ensureIsAlive();
         throw new UnsupportedRepositoryOperationException("TODO: Session.getImportContentHandler");
     }
@@ -265,6 +273,10 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
 
     @Override
     public boolean hasPermission(String absPath, String actions) throws RepositoryException {
+        return internalHasPermission(sessionContext.toOakPath(absPath), actions);
+    }
+
+    private boolean internalHasPermission(String absPath, String actions) throws RepositoryException {
         ensureIsAlive();
 
         // TODO
