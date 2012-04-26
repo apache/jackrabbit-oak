@@ -22,7 +22,7 @@ import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.mk.simple.NodeImpl;
 import org.apache.jackrabbit.mk.util.PathUtils;
 import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.query.index.Filter;
+import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
 public class PropertyValueImpl extends DynamicOperandImpl {
 
@@ -88,7 +88,7 @@ public class PropertyValueImpl extends DynamicOperandImpl {
     }
 
     @Override
-    public void apply(Filter f, Operator operator, CoreValue v) {
+    public void apply(FilterImpl f, Operator operator, CoreValue v) {
         if (f.getSelector() == selector) {
             f.restrictProperty(propertyName, operator, v);
         }

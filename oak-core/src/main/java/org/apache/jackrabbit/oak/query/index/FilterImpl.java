@@ -22,6 +22,7 @@ import org.apache.jackrabbit.mk.util.PathUtils;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
+import org.apache.jackrabbit.oak.spi.Filter;
 
 import java.util.HashMap;
 import java.util.Map.Entry;
@@ -29,7 +30,7 @@ import java.util.Map.Entry;
 /**
  * A filter or lookup condition.
  */
-public class Filter {
+public class FilterImpl implements Filter {
 
     /**
      * The selector this filter applies to.
@@ -46,44 +47,6 @@ public class Filter {
      */
     private String path = "/";
 
-    /**
-     * The path restriction type.
-     */
-    public enum PathRestriction {
-
-        /**
-         * A parent of this node
-         */
-        PARENT("/.."),
-
-        /**
-         * This exact node only.
-         */
-        EXACT(""),
-
-        /**
-         * All direct child nodes.
-         */
-        DIRECT_CHILDREN("/*"),
-
-        /**
-         * All direct and indirect child nodes.
-         */
-        ALL_CHILDREN("//*");
-
-        private final String name;
-
-        PathRestriction(String name) {
-            this.name = name;
-        }
-
-        @Override
-        public String toString() {
-            return name;
-        }
-
-    }
-
     private PathRestriction pathRestriction = PathRestriction.ALL_CHILDREN;
 
     /**
@@ -99,41 +62,6 @@ public class Filter {
     private final HashMap<String, PropertyRestriction> propertyRestrictions =
             new HashMap<String, PropertyRestriction>();
 
-    static class PropertyRestriction {
-
-        /**
-         * The name of the property.
-         */
-        public String propertyName;
-
-        /**
-         * The first value to read, or null to read from the beginning.
-         */
-        public CoreValue first;
-
-        /**
-         * Whether values that match the first should be returned.
-         */
-        public boolean firstIncluding;
-
-        /**
-         * The last value to read, or null to read until the end.
-         */
-        public CoreValue last;
-
-        /**
-         * Whether values that match the last should be returned.
-         */
-        public boolean lastIncluding;
-
-        @Override
-        public String toString() {
-            return (first == null ? "" : ((firstIncluding ? "[" : "(") + first)) + ".." +
-                    (last == null ? "" : last + (lastIncluding ? "]" : ")"));
-        }
-
-    }
-
     /**
      * Only return distinct values.
      */
@@ -141,7 +69,7 @@ public class Filter {
 
     // TODO support "order by"
 
-    public Filter(SelectorImpl selector) {
+    public FilterImpl(SelectorImpl selector) {
         this.selector = selector;
     }
 

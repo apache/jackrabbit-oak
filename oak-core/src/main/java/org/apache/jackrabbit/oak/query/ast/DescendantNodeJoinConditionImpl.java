@@ -19,8 +19,8 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import org.apache.jackrabbit.mk.util.PathUtils;
-import org.apache.jackrabbit.oak.query.index.Filter;
-import org.apache.jackrabbit.oak.query.index.Filter.PathRestriction;
+import org.apache.jackrabbit.oak.query.index.FilterImpl;
+import org.apache.jackrabbit.oak.spi.Filter;
 
 public class DescendantNodeJoinConditionImpl extends JoinConditionImpl {
 
@@ -74,14 +74,14 @@ public class DescendantNodeJoinConditionImpl extends JoinConditionImpl {
     }
 
     @Override
-    public void apply(Filter f) {
+    public void apply(FilterImpl f) {
         String d = descendantSelector.currentPath();
         String a = ancestorSelector.currentPath();
         if (d != null && f.getSelector() == ancestorSelector) {
-            f.restrictPath(PathUtils.getParentPath(d), PathRestriction.PARENT);
+            f.restrictPath(PathUtils.getParentPath(d), Filter.PathRestriction.PARENT);
         }
         if (a != null && f.getSelector() == descendantSelector) {
-            f.restrictPath(a, PathRestriction.DIRECT_CHILDREN);
+            f.restrictPath(a, Filter.PathRestriction.DIRECT_CHILDREN);
         }
     }
 

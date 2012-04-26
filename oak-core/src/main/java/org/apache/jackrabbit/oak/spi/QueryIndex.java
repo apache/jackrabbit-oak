@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.query.index;
+package org.apache.jackrabbit.oak.spi;
 
 /**
  * Represents an index. The index should use the data in the filter if possible
