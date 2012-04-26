@@ -22,16 +22,22 @@ import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.util.PathUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.TreeImpl.Listener;
+import org.apache.jackrabbit.oak.kernel.ChildNodeEntry;
 import org.apache.jackrabbit.oak.kernel.NodeState;
 import org.apache.jackrabbit.oak.kernel.NodeStateBuilder;
+import org.apache.jackrabbit.oak.kernel.NodeStateDiff;
 import org.apache.jackrabbit.oak.kernel.NodeStore;
+import org.apache.jackrabbit.oak.util.Iterators;
+import org.apache.jackrabbit.oak.util.PagedIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import static java.util.Collections.singletonList;
@@ -111,13 +117,13 @@ public class RootImpl implements Root {
 
     @Override
     public void rebase() {
-        rebase(true);
+        rebase_DiffBased(true);
     }
 
     @Override
     public void commit() throws CommitFailedException {
         store.apply(nodeStateBuilder);
-        rebase(false);
+        rebase_DiffBased(false);
     }
 
     @Override
@@ -144,7 +150,8 @@ public class RootImpl implements Root {
         return state;
     }
 
-    private void rebase(boolean mergeChanges) {
+    // TODO remove either of the two rebase methods and related stuff
+    private void rebase_changeLogBased(boolean mergeChanges) {
         TreeListener changes = treeListener;
 
         treeListener = new TreeListener();
@@ -155,6 +162,110 @@ public class RootImpl implements Root {
         if (mergeChanges) {
             merge(changes);
         }
+    }
+
+    private void rebase_DiffBased(boolean mergeChanges) {
+        NodeState oldBase;
+        NodeState oldHead;
+        if (mergeChanges) {
+            oldBase = base;
+            oldHead = nodeStateBuilder.getNodeState();
+        }
+        else {
+            oldBase = null;
+            oldHead = null;
+        }
+
+        treeListener = new TreeListener();
+        base = store.getRoot().getChildNode(workspaceName);
+        nodeStateBuilder = store.getBuilder(base);
+        root = new TreeImpl(store, nodeStateBuilder, treeListener);
+
+        if (mergeChanges) {
+            merge(oldBase, oldHead, root);
+        }
+
+    }
+
+    private void merge(NodeState fromState, NodeState toState, final Tree target) {
+        store.compare(fromState, toState, new NodeStateDiff() {
+            @Override
+            public void propertyAdded(PropertyState after) {
+                setProperty(after, target);
+            }
+
+            @Override
+            public void propertyChanged(PropertyState before, PropertyState after) {
+                setProperty(after, target);
+            }
+
+            @Override
+            public void propertyDeleted(PropertyState before) {
+                target.removeProperty(before.getName());
+            }
+
+            @Override
+            public void childNodeAdded(String name, NodeState after) {
+                addChild(name, after, target);
+            }
+
+            @Override
+            public void childNodeChanged(String name, NodeState before, NodeState after) {
+                Tree child = target.getChild(name);
+                if (child != null) {
+                    merge(before, after, child);
+                }
+            }
+
+            @Override
+            public void childNodeDeleted(String name, NodeState before) {
+                target.removeChild(name);
+            }
+
+            private void addChild(String name, NodeState state, Tree target) {
+                Tree child = target.addChild(name);
+                for (PropertyState property : state.getProperties()) {
+                    setProperty(property, child);
+                }
+                for (ChildNodeEntry entry : childNodeEntries(state)) {
+                    addChild(entry.getName(), entry.getNodeState(), child);
+                }
+            }
+
+            private void setProperty(PropertyState property, Tree target) {
+                if (property.isArray()) {
+                    target.setProperty(property.getName(), toList(property.getValues()));
+                }
+                else {
+                    target.setProperty(property.getName(), property.getValue());
+                }
+            }
+
+            @SuppressWarnings("unchecked")
+            private Iterable<? extends ChildNodeEntry> childNodeEntries(final NodeState nodeState) {
+                return new Iterable() {  // Java's type system is too weak to express the exact type here
+                    @Override
+                    public Iterator<? extends ChildNodeEntry> iterator() {
+                        return Iterators.flatten(
+                            new PagedIterator<ChildNodeEntry>(1024) {
+                                @Override
+                                protected Iterator<? extends ChildNodeEntry> getPage(long pos, int size) {
+                                    return nodeState.getChildNodeEntries(pos, size).iterator();
+                                }
+                            });
+                    }
+                };
+            }
+
+        });
+    }
+
+    private static <T> List<T> toList(Iterable<T> values) {
+        List<T> l = new ArrayList<T>();
+        for (T value : values) {
+            l.add(value);
+        }
+        return l;
     }
 
     private void merge(TreeListener changes) {
