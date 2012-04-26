@@ -423,7 +423,7 @@ public class RootImplTest extends AbstractOakTest {
     }
     
     @Test
-    @Ignore("WIP") // FIXME: causes OOME since the branch/merge feature from OAK-45 is used
+    @Ignore("WIP") // TODO: move to oak-bench
     public void largeChildList() throws CommitFailedException {
         RootImpl root = new RootImpl(store, "test");
         Tree tree = root.getTree("/");
