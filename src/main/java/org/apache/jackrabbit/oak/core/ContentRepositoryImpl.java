@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.kernel.NodeState;
 import org.apache.jackrabbit.oak.kernel.NodeStore;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
-import org.apache.jackrabbit.oak.query.index.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.QueryIndexProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

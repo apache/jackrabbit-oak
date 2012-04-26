@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import org.apache.jackrabbit.oak.query.index.Filter;
+import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
 public class NotImpl extends ConstraintImpl {
 
@@ -48,7 +48,7 @@ public class NotImpl extends ConstraintImpl {
     }
 
     @Override
-    public void apply(Filter f) {
+    public void apply(FilterImpl f) {
         // ignore
         // TODO convert NOT conditions
     }

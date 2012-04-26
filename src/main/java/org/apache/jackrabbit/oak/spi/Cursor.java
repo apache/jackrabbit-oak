@@ -16,30 +16,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.query.index;
+package org.apache.jackrabbit.oak.spi;
 
-import java.util.List;
-import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.mk.simple.NodeImpl;
 
 /**
- * A mechanism to index data. Indexes might be added or removed at runtime,
- * possibly by changing content in the repository. The provider knows about
- * indexes, and informs the query engine about indexes that where added or
- * removed at runtime.
+ * A cursor to read a number of nodes sequentially.
  */
-public interface QueryIndexProvider {
+public interface Cursor {
 
     /**
-     * Initialize the instance.
-     */
-    void init();
-
-    /**
-     * Get the currently configured indexes for the given MicroKernel instance.
+     * Skip to the next node if one is available.
      *
-     * @param mk the MicroKernel instance
-     * @return the list of indexes
+     * @return true if another row is available
      */
-    List<QueryIndex> getQueryIndexes(MicroKernel mk);
+    boolean next();
+
+    /**
+     * The path of the current node.
+     *
+     * @return the path
+     */
+    String currentPath();
+
+    /**
+     * The current node.
+     *
+     * @return the node
+     */
+    NodeImpl currentNode();
 
 }

@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.List;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
+import org.apache.jackrabbit.oak.spi.Cursor;
 import org.junit.Test;
 
 /**
@@ -52,7 +53,7 @@ public class TraversingCursorTest {
         String head = mk.getHeadRevision();
         head = mk.commit("/", "+ \"parents\": { \"p0\": {\"id\": \"0\"}, \"p1\": {\"id\": \"1\"}, \"p2\": {\"id\": \"2\"}}", head, "");
         head = mk.commit("/", "+ \"children\": { \"c1\": {\"p\": \"1\"}, \"c2\": {\"p\": \"1\"}, \"c3\": {\"p\": \"2\"}, \"c4\": {\"p\": \"3\"}}", head, "");
-        Filter f = new Filter(null);
+        FilterImpl f = new FilterImpl(null);
 
         f.setPath("/");
         List<String> paths = new ArrayList<String>();

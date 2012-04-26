@@ -27,8 +27,8 @@ import org.apache.jackrabbit.mk.util.ExceptionFactory;
 import org.apache.jackrabbit.mk.util.PathUtils;
 import org.apache.jackrabbit.mk.util.SimpleLRUCache;
 import org.apache.jackrabbit.oak.query.index.PropertyContentIndex;
-import org.apache.jackrabbit.oak.query.index.QueryIndex;
-import org.apache.jackrabbit.oak.query.index.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.QueryIndex;
+import org.apache.jackrabbit.oak.spi.QueryIndexProvider;
 
 import java.util.ArrayList;
 import java.util.Collections;

@@ -18,8 +18,8 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import org.apache.jackrabbit.oak.query.index.Filter;
-import org.apache.jackrabbit.oak.query.index.Filter.PathRestriction;
+import org.apache.jackrabbit.oak.query.index.FilterImpl;
+import org.apache.jackrabbit.oak.spi.Filter;
 
 public class SameNodeImpl extends ConstraintImpl {
 
@@ -63,9 +63,9 @@ public class SameNodeImpl extends ConstraintImpl {
     }
 
     @Override
-    public void apply(Filter f) {
+    public void apply(FilterImpl f) {
         if (f.getSelector() == selector) {
-            f.restrictPath(path, PathRestriction.EXACT);
+            f.restrictPath(path, Filter.PathRestriction.EXACT);
         }
     }
 

@@ -19,8 +19,8 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import org.apache.jackrabbit.mk.util.PathUtils;
-import org.apache.jackrabbit.oak.query.index.Filter;
-import org.apache.jackrabbit.oak.query.index.Filter.PathRestriction;
+import org.apache.jackrabbit.oak.query.index.FilterImpl;
+import org.apache.jackrabbit.oak.spi.Filter;
 
 public class DescendantNodeImpl extends ConstraintImpl {
 
@@ -65,9 +65,9 @@ public class DescendantNodeImpl extends ConstraintImpl {
     }
 
     @Override
-    public void apply(Filter f) {
+    public void apply(FilterImpl f) {
         if (f.getSelector() == selector) {
-            f.restrictPath(ancestorPath, PathRestriction.ALL_CHILDREN);
+            f.restrictPath(ancestorPath, Filter.PathRestriction.ALL_CHILDREN);
         }
     }
 

@@ -46,8 +46,8 @@ import org.apache.jackrabbit.oak.query.ast.SameNodeJoinConditionImpl;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.ast.SourceImpl;
 import org.apache.jackrabbit.oak.query.ast.UpperCaseImpl;
-import org.apache.jackrabbit.oak.query.index.Filter;
-import org.apache.jackrabbit.oak.query.index.QueryIndex;
+import org.apache.jackrabbit.oak.query.index.FilterImpl;
+import org.apache.jackrabbit.oak.spi.QueryIndex;
 
 /**
  * Represents a parsed query. Lifecycle: use the constructor to create a new
@@ -465,7 +465,7 @@ public class Query {
         this.queryEngine = queryEngine;
     }
 
-    public QueryIndex getBestIndex(Filter filter) {
+    public QueryIndex getBestIndex(FilterImpl filter) {
         return queryEngine.getBestIndex(filter);
     }
 

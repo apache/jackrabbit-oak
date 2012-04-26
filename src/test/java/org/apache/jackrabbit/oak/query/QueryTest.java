@@ -31,7 +31,7 @@ import org.apache.jackrabbit.mk.index.Indexer;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
-import org.apache.jackrabbit.oak.query.index.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.QueryIndexProvider;
 import org.junit.Before;
 import org.junit.Test;
 

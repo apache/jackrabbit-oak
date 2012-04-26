@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.query.index.Filter;
+import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
 public class LengthImpl extends DynamicOperandImpl {
 
@@ -55,7 +55,7 @@ public class LengthImpl extends DynamicOperandImpl {
     }
 
     @Override
-    public void apply(Filter f, Operator operator, CoreValue v) {
+    public void apply(FilterImpl f, Operator operator, CoreValue v) {
         // ignore
         // TODO LENGTH(x) conditions: can use IS NOT NULL?
     }
