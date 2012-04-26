@@ -34,17 +34,47 @@ import javax.jcr.ValueFactory;
 abstract class ItemImpl implements Item {
 
     protected final SessionContext<SessionImpl> sessionContext;
+    protected final ItemDelegate dlg;
 
     /**
      * logger instance
      */
     private static final Logger log = LoggerFactory.getLogger(ItemImpl.class);
 
-    protected ItemImpl(SessionContext<SessionImpl> sessionContext) {
+    protected ItemImpl(SessionContext<SessionImpl> sessionContext, ItemDelegate itemDelegate) {
         this.sessionContext = sessionContext;
+        this.dlg = itemDelegate;
     }
 
     //---------------------------------------------------------------< Item >---
+
+    /**
+     * @see javax.jcr.Item#getDepth()
+     */
+    @Override
+    public int getDepth() throws RepositoryException {
+        return Paths.getDepth(dlg.getPath());
+    }
+
+    /**
+     * @see javax.jcr.Item#getName()
+     */
+    @Override
+    public String getName() throws RepositoryException {
+        String oakName = dlg.getName();
+        // special case name of root node
+        return oakName.isEmpty() ? "" : toJcrPath(dlg.getName());
+    }
+
+    /**
+     * @see javax.jcr.Property#getPath()
+     */
+    @Override
+    public String getPath() throws RepositoryException {
+        return toJcrPath(dlg.getPath());
+    }
+
+
     @Override
     public Session getSession() throws RepositoryException {
         return sessionContext.getSession();

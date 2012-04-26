@@ -16,6 +16,13 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import java.util.Iterator;
+import java.util.List;
+
+import javax.jcr.ItemNotFoundException;
+import javax.jcr.PathNotFoundException;
+import javax.jcr.RepositoryException;
+
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -25,13 +32,7 @@ import org.apache.jackrabbit.oak.namepath.Paths;
 import org.apache.jackrabbit.oak.util.Function1;
 import org.apache.jackrabbit.oak.util.Iterators;
 
-import javax.jcr.ItemNotFoundException;
-import javax.jcr.PathNotFoundException;
-import javax.jcr.RepositoryException;
-import java.util.Iterator;
-import java.util.List;
-
-public class NodeDelegate {
+public class NodeDelegate extends ItemDelegate {
 
     private final SessionContext<SessionImpl> sessionContext;
     private Tree tree;
@@ -109,7 +110,7 @@ public class NodeDelegate {
     Iterator<PropertyDelegate> getProperties() throws RepositoryException {
         return propertyDelegateIterator(getTree().getProperties().iterator());
     }
-    
+
     long getPropertyCount() throws RepositoryException {
         return getTree().getPropertyCount();
     }
@@ -133,24 +134,27 @@ public class NodeDelegate {
     SessionContext<SessionImpl> getSessionContext() {
         return sessionContext;
     }
-    
+
     void remove() throws RepositoryException {
         getTree().getParent().removeChild(getName());
     }
 
-    PropertyDelegate setProperty(String oakName, CoreValue value) throws RepositoryException {
+    PropertyDelegate setProperty(String oakName, CoreValue value)
+            throws RepositoryException {
 
         getState().setProperty(oakName, value);
         return getPropertyOrNull(oakName);
     }
 
-    PropertyDelegate setProperty(String oakName, List<CoreValue> value) throws RepositoryException {
+    PropertyDelegate setProperty(String oakName, List<CoreValue> value)
+            throws RepositoryException {
 
         getState().setProperty(oakName, value);
         return getPropertyOrNull(oakName);
     }
 
-    // ------------------------------------------------------------< private >---
+    // ------------------------------------------------------------< private
+    // >---
 
     private Root getBranch() {
         return sessionContext.getBranch();
