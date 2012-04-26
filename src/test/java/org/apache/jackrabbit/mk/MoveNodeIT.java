@@ -18,6 +18,7 @@ package org.apache.jackrabbit.mk;
 
 import static org.junit.Assert.fail;
 import junit.framework.Assert;
+import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.junit.Before;
 import org.junit.Test;
@@ -91,7 +92,7 @@ public class MoveNodeIT extends MultiMkTestBase {
                 t.read(',');
                 Assert.assertEquals("ts", t.readString());
                 t.read(':');
-                t.read(JsopTokenizer.NUMBER);
+                t.read(JsopReader.NUMBER);
                 t.read(',');
                 Assert.assertEquals("msg", t.readString());
                 t.read(':');
@@ -113,7 +114,7 @@ public class MoveNodeIT extends MultiMkTestBase {
             t.read(',');
             Assert.assertEquals("ts", t.readString());
             t.read(':');
-            t.read(JsopTokenizer.NUMBER);
+            t.read(JsopReader.NUMBER);
             t.read(',');
             Assert.assertEquals("msg", t.readString());
             t.read(':');
