@@ -16,14 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import java.util.Iterator;
-import java.util.List;
-
-import javax.jcr.ItemNotFoundException;
-import javax.jcr.Node;
-import javax.jcr.PathNotFoundException;
-import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -32,6 +24,12 @@ import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.namepath.Paths;
 import org.apache.jackrabbit.oak.util.Function1;
 import org.apache.jackrabbit.oak.util.Iterators;
+
+import javax.jcr.ItemNotFoundException;
+import javax.jcr.PathNotFoundException;
+import javax.jcr.RepositoryException;
+import java.util.Iterator;
+import java.util.List;
 
 public class NodeDelegate {
 
@@ -178,7 +176,7 @@ public class NodeDelegate {
     }
 
     private Iterator<PropertyDelegate> propertyDelegateIterator(
-            Iterator<PropertyState> properties) {
+            Iterator<? extends PropertyState> properties) {
         return Iterators.map(properties,
                 new Function1<PropertyState, PropertyDelegate>() {
                     @Override
