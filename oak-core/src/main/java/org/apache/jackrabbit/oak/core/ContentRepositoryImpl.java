@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.core;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
+import org.apache.jackrabbit.mk.index.Indexer;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
@@ -26,6 +27,7 @@ import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.kernel.NodeState;
 import org.apache.jackrabbit.oak.kernel.NodeStore;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
+import org.apache.jackrabbit.oak.query.index.QueryIndexProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,9 +66,11 @@ public class ContentRepositoryImpl implements ContentRepository {
         microKernel = mk;
         valueFactory = new CoreValueFactoryImpl(microKernel);
         nodeStore = new KernelNodeStore(microKernel, valueFactory);
-        queryEngine = new QueryEngineImpl(microKernel, valueFactory);
+        QueryIndexProvider indexProvider = new Indexer(mk);
+        queryEngine = new QueryEngineImpl(microKernel, valueFactory, indexProvider);
 
         // FIXME: workspace setup must be done elsewhere...
+        indexProvider.init();
         queryEngine.init();
         NodeState root = nodeStore.getRoot();
 

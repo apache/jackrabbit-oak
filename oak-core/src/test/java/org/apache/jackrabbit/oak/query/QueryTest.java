@@ -27,9 +27,11 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import org.apache.jackrabbit.mk.index.Indexer;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
+import org.apache.jackrabbit.oak.query.index.QueryIndexProvider;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -38,7 +40,8 @@ import org.junit.Test;
  */
 public class QueryTest extends AbstractQueryTest {
 
-    private QueryEngineImpl qe = new QueryEngineImpl(mk, vf);
+    private QueryIndexProvider ip = new Indexer(mk);
+    private QueryEngineImpl qe = new QueryEngineImpl(mk, vf, ip);
 
     @Before
     public void setup() {
