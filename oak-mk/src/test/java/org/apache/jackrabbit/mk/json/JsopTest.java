@@ -35,7 +35,7 @@ public class JsopTest extends TestCase {
             for (int i = 0; i < 10000000; i++) {
                 t2 += JsopBuilder.encode(s).length();
             }
-            // System.out.println(timer.seconds());
+            System.out.println(timer.seconds());
         }
         // old: not escaped: 5691 ms; escaped: 10609 ms
         // new: not escaped: 3931 ms; escaped: 11001 ms
@@ -64,7 +64,7 @@ public class JsopTest extends TestCase {
 
     public void testNull() {
         JsopTokenizer t = new JsopTokenizer("null");
-        assertEquals(null, t.read(JsopTokenizer.NULL));
+        assertEquals(null, t.read(JsopReader.NULL));
     }
 
     public void testLineLength() {
@@ -82,17 +82,17 @@ public class JsopTest extends TestCase {
 
     public void testNumber() {
         JsopTokenizer t = new JsopTokenizer("9/3:-3-:-/- 3");
-        assertEquals("9", t.read(JsopTokenizer.NUMBER));
+        assertEquals("9", t.read(JsopReader.NUMBER));
         t.read('/');
-        assertEquals("3", t.read(JsopTokenizer.NUMBER));
+        assertEquals("3", t.read(JsopReader.NUMBER));
         t.read(':');
-        assertEquals("-3", t.read(JsopTokenizer.NUMBER));
+        assertEquals("-3", t.read(JsopReader.NUMBER));
         t.read('-');
         t.read(':');
         t.read('-');
         t.read('/');
         t.read('-');
-        t.read(JsopTokenizer.NUMBER);
+        t.read(JsopReader.NUMBER);
     }
 
     public void testRawValue() {
@@ -183,7 +183,7 @@ public class JsopTest extends TestCase {
             assertEquals("{}123[*] expected: '+'", e.getMessage());
         }
         try {
-            t.read(JsopTokenizer.STRING);
+            t.read(JsopReader.STRING);
             fail();
         } catch (IllegalArgumentException e) {
             assertEquals("{}123[*] expected: string", e.getMessage());
@@ -201,7 +201,7 @@ public class JsopTest extends TestCase {
         JsopTokenizer t = new JsopTokenizer(jsop);
         while (true) {
             prettyPrint(buff, t, "");
-            if (t.getTokenType() == JsopTokenizer.END) {
+            if (t.getTokenType() == JsopReader.END) {
                 return buff.toString();
             }
         }
@@ -212,30 +212,30 @@ public class JsopTest extends TestCase {
         boolean inArray = false;
         while (true) {
             switch (t.read()) {
-                case JsopTokenizer.END:
+                case JsopReader.END:
                     return buff.toString();
-                case JsopTokenizer.STRING:
+                case JsopReader.STRING:
                     buff.append(JsopBuilder.encode(t.getToken()));
                     break;
-                case JsopTokenizer.NUMBER:
+                case JsopReader.NUMBER:
                     buff.append(t.getToken());
                     break;
-                case JsopTokenizer.TRUE:
+                case JsopReader.TRUE:
                     buff.append("true");
                     break;
-                case JsopTokenizer.FALSE:
+                case JsopReader.FALSE:
                     buff.append("false");
                     break;
-                case JsopTokenizer.NULL:
+                case JsopReader.NULL:
                     buff.append("null");
                     break;
-                case JsopTokenizer.ERROR:
+                case JsopReader.ERROR:
                     buff.append("/error/");
                     break;
-                case JsopTokenizer.IDENTIFIER:
+                case JsopReader.IDENTIFIER:
                     buff.append("/id:").append(t.getToken()).append('/');
                     break;
-                case JsopTokenizer.COMMENT:
+                case JsopReader.COMMENT:
                     buff.append("/*").append(t.getToken()).append("*/ ");
                     break;
                 case '{':

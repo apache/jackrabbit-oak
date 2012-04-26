@@ -23,6 +23,7 @@ import java.util.List;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
+import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.mk.model.ChildNodeEntry;
 import org.apache.jackrabbit.mk.model.Commit;
@@ -60,7 +61,7 @@ public class MicroKernelImpl implements MicroKernel {
 
     /**
      * Alternate constructor, used for testing.
-     * 
+     *
      * @param rep repository, already initialized
      */
     public MicroKernelImpl(Repository rep) {
@@ -94,10 +95,10 @@ public class MicroKernelImpl implements MicroKernel {
         }
         return getHeadRevisionId().toString();
     }
-    
+
     /**
      * Same as {@code getHeadRevisionId}, with typed {@code Id} return value instead of string.
-     * 
+     *
      * @see #getHeadRevision()
      */
     private Id getHeadRevisionId() throws MicroKernelException {
@@ -244,7 +245,7 @@ public class MicroKernelImpl implements MicroKernel {
             throw new MicroKernelException(e);
         }
     }
-    
+
     public boolean nodeExists(String path, String revisionId) throws MicroKernelException {
         if (rep == null) {
             throw new IllegalStateException("this instance has already been disposed");
@@ -319,7 +320,7 @@ public class MicroKernelImpl implements MicroKernel {
             CommitBuilder cb = rep.getCommitBuilder(revId, message);
             while (true) {
                 int r = t.read();
-                if (r == JsopTokenizer.END) {
+                if (r == JsopReader.END) {
                     break;
                 }
                 int pos; // used for error reporting
@@ -338,7 +339,7 @@ public class MicroKernelImpl implements MicroKernel {
                             cb.addNode(parentPath, nodeName, parseNode(t));
                         } else {
                             String value;
-                            if (t.matches(JsopTokenizer.NULL)) {
+                            if (t.matches(JsopReader.NULL)) {
                                 value = null;
                             } else {
                                 value = t.readRawValue().trim();
@@ -368,7 +369,7 @@ public class MicroKernelImpl implements MicroKernel {
                         String subPath = t.readString();
                         t.read(':');
                         String value;
-                        if (t.matches(JsopTokenizer.NULL)) {
+                        if (t.matches(JsopReader.NULL)) {
                             value = null;
                         } else {
                             value = t.readRawValue().trim();
@@ -521,7 +522,7 @@ public class MicroKernelImpl implements MicroKernel {
             }
         }
     }
-    
+
     NodeTree parseNode(JsopTokenizer t) throws Exception {
         NodeTree node = new NodeTree();
         if (!t.matches('}')) {

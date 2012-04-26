@@ -21,9 +21,6 @@ package org.apache.jackrabbit.mk.json;
  */
 public class JsopTokenizer implements JsopReader {
 
-    public static final int END = 0, STRING = 1, NUMBER = 2, TRUE = 3, FALSE = 4, NULL = 5;
-    public static final int ERROR = 6, IDENTIFIER = 7, COMMENT = 8;
-
     private static final String[] TYPE = {
             "end", "string", "number", "true", "false", "null", "error"
     };

@@ -16,22 +16,111 @@
  */
 package org.apache.jackrabbit.mk.json;
 
+/**
+ * A reader for Json and Jsop strings.
+ */
 public interface JsopReader {
 
+    /**
+     * The token type that signals the end of the stream.
+     */
+    public static final int END = 0;
+
+    /**
+     * The token type of a string value.
+     */
+    public static final int STRING = 1;
+
+    /**
+     * The token type of a number value.
+     */
+    public static final int NUMBER = 2;
+
+    /**
+     * The token type of the value "true".
+     */
+    public static final int TRUE = 3;
+
+    /**
+     * The token type of the value "false".
+     */
+    public static final int FALSE = 4;
+
+    /**
+     * The token type of "null".
+     */
+    public static final int NULL = 5;
+
+    /**
+     * The token type of a parse error.
+     */
+    public static final int ERROR = 6;
+
+    /**
+     * The token type of an identifier (an unquoted string), if supported by the reader.
+     */
+    public static final int IDENTIFIER = 7;
+
+    /**
+     * The token type of a comment, if supported by the reader.
+     */
+    public static final int COMMENT = 8;
+
+    /**
+     * Read a token which must match a given token type.
+     *
+     * @param type the token type
+     * @return the token (a null object when reading a null value)
+     * @throws IllegalStateException if the token type doesn't match
+     */
     String read(int type);
 
+    /**
+     * Read a string.
+     *
+     * @return the de-escaped string
+     * @throws IllegalStateException if the token type doesn't match
+     */
     String readString();
 
+    /**
+     * Read a token and return the token type.
+     *
+     * @return the token type
+     */
     int read();
 
+    /**
+     * Read a token which must match a given token type.
+     *
+     * @param type the token type
+     * @return true if there was a match
+     */
     boolean matches(int type);
 
     String readRawValue();
 
+    /**
+     * Get the last token value if the the token type was STRING or NUMBER. For
+     * STRING, the text is decoded; for NUMBER, it is returned as parsed. In all
+     * other cases the result is undefined.
+     *
+     * @return the token
+     */
     String getToken();
 
+    /**
+     * Get the token type of the last token. The token type is one of the known
+     * types (END, STRING, NUMBER,...), or, for Jsop tags such as "+", "-",
+     * it is the Unicode character code of the tag.
+     *
+     * @return the token type
+     */
     int getTokenType();
 
+    /**
+     * Reset the position to 0, so that to restart reading.
+     */
     void resetReader();
 
 }

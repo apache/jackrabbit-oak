@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.mk.json;
 
-
 /**
  * A builder for Json and Jsop strings. It encodes string values, and knows when
  * a comma is needed. A comma is appended before '{', '[', a value, or a key;
@@ -337,7 +336,7 @@ public class JsopBuilder implements JsopWriter {
         JsopTokenizer t = new JsopTokenizer(jsop);
         while (true) {
             prettyPrint(buff, t, "  ");
-            if (t.getTokenType() == JsopTokenizer.END) {
+            if (t.getTokenType() == JsopReader.END) {
                 return buff.toString();
             }
         }
@@ -349,17 +348,17 @@ public class JsopBuilder implements JsopWriter {
         while (true) {
             int token = t.read();
             switch (token) {
-                case JsopTokenizer.END:
+                case JsopReader.END:
                     return buff.toString();
-                case JsopTokenizer.STRING:
+                case JsopReader.STRING:
                     buff.append('\"').append(t.getEscapedToken()).append('\"');
                     break;
-                case JsopTokenizer.NUMBER:
-                case JsopTokenizer.TRUE:
-                case JsopTokenizer.FALSE:
-                case JsopTokenizer.NULL:
-                case JsopTokenizer.IDENTIFIER:
-                case JsopTokenizer.ERROR:
+                case JsopReader.NUMBER:
+                case JsopReader.TRUE:
+                case JsopReader.FALSE:
+                case JsopReader.NULL:
+                case JsopReader.IDENTIFIER:
+                case JsopReader.ERROR:
                     buff.append(t.getEscapedToken());
                     break;
                 case '{':

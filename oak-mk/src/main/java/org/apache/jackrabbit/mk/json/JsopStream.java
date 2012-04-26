@@ -33,10 +33,10 @@ public class JsopStream implements JsopReader, JsopWriter {
         for (int i = s.pos; i < s.len; i++) {
             int token = s.tokens[i];
             switch (token & 255) {
-            case JsopTokenizer.STRING:
-            case JsopTokenizer.NUMBER:
-            case JsopTokenizer.IDENTIFIER:
-            case JsopTokenizer.COMMENT:
+            case JsopReader.STRING:
+            case JsopReader.NUMBER:
+            case JsopReader.IDENTIFIER:
+            case JsopReader.COMMENT:
                 Object o = s.values[token >> 8];
                 addToken((token & 255) + addValue(o));
                 break;
@@ -89,7 +89,7 @@ public class JsopStream implements JsopReader, JsopWriter {
 
     public JsopStream encodedValue(String raw) {
         optionalComma();
-        addToken(JsopTokenizer.COMMENT + addValue(raw));
+        addToken(JsopReader.COMMENT + addValue(raw));
         needComma = true;
         return this;
     }
@@ -108,7 +108,7 @@ public class JsopStream implements JsopReader, JsopWriter {
 
     public JsopStream key(String key) {
         optionalComma();
-        addToken(JsopTokenizer.STRING + addValue(key));
+        addToken(JsopReader.STRING + addValue(key));
         addToken(':');
         needComma = false;
         return this;
@@ -129,9 +129,9 @@ public class JsopStream implements JsopReader, JsopWriter {
     public JsopStream value(String value) {
         optionalComma();
         if (value == null) {
-            addToken(JsopTokenizer.NULL);
+            addToken(JsopReader.NULL);
         } else {
-            addToken(JsopTokenizer.STRING + addValue(value));
+            addToken(JsopReader.STRING + addValue(value));
         }
         needComma = true;
         return this;
@@ -139,14 +139,14 @@ public class JsopStream implements JsopReader, JsopWriter {
 
     public JsopStream value(long x) {
         optionalComma();
-        addToken(JsopTokenizer.NUMBER + addValue(Long.valueOf(x)));
+        addToken(JsopReader.NUMBER + addValue(Long.valueOf(x)));
         needComma = true;
         return this;
     }
 
     public JsopStream value(boolean b) {
         optionalComma();
-        addToken(b ? JsopTokenizer.TRUE : JsopTokenizer.FALSE);
+        addToken(b ? JsopReader.TRUE : JsopReader.FALSE);
         needComma = true;
         return this;
     }
@@ -175,16 +175,16 @@ public class JsopStream implements JsopReader, JsopWriter {
     public String getToken() {
         int x = tokens[lastPos];
         switch (x & 255) {
-        case JsopTokenizer.STRING:
-        case JsopTokenizer.NUMBER:
-        case JsopTokenizer.IDENTIFIER:
-        case JsopTokenizer.COMMENT:
+        case JsopReader.STRING:
+        case JsopReader.NUMBER:
+        case JsopReader.IDENTIFIER:
+        case JsopReader.COMMENT:
             return values[x >> 8].toString();
-        case JsopTokenizer.TRUE:
+        case JsopReader.TRUE:
             return "true";
-        case JsopTokenizer.FALSE:
+        case JsopReader.FALSE:
             return "false";
-        case JsopTokenizer.NULL:
+        case JsopReader.NULL:
             return "null";
         }
         return Character.toString((char) (x & 255));
@@ -236,17 +236,17 @@ public class JsopStream implements JsopReader, JsopWriter {
         int x = tokens[pos];
         lastPos = pos++;
         switch (x & 255) {
-        case JsopTokenizer.COMMENT:
-        case JsopTokenizer.NUMBER:
-        case JsopTokenizer.IDENTIFIER:
+        case JsopReader.COMMENT:
+        case JsopReader.NUMBER:
+        case JsopReader.IDENTIFIER:
             return values[x >> 8].toString();
-        case JsopTokenizer.STRING:
+        case JsopReader.STRING:
             return JsopBuilder.encode(values[x >> 8].toString());
-        case JsopTokenizer.TRUE:
+        case JsopReader.TRUE:
             return "true";
-        case JsopTokenizer.FALSE:
+        case JsopReader.FALSE:
             return "false";
-        case JsopTokenizer.NULL:
+        case JsopReader.NULL:
             return "null";
         case '[':
             StringBuilder buff = new StringBuilder();
@@ -264,7 +264,7 @@ public class JsopStream implements JsopReader, JsopWriter {
     }
 
     public String readString() {
-        return read(JsopTokenizer.STRING);
+        return read(JsopReader.STRING);
     }
 
     public String toString() {
@@ -284,21 +284,21 @@ public class JsopStream implements JsopReader, JsopWriter {
             case ']':
                 buff.endArray();
                 break;
-            case JsopTokenizer.STRING:
+            case JsopReader.STRING:
                 buff.value(values[x >> 8].toString());
                 break;
-            case JsopTokenizer.TRUE:
+            case JsopReader.TRUE:
                 buff.value(true);
                 break;
-            case JsopTokenizer.FALSE:
+            case JsopReader.FALSE:
                 buff.value(false);
                 break;
-            case JsopTokenizer.NULL:
+            case JsopReader.NULL:
                 buff.value(null);
                 break;
-            case JsopTokenizer.IDENTIFIER:
-            case JsopTokenizer.NUMBER:
-            case JsopTokenizer.COMMENT:
+            case JsopReader.IDENTIFIER:
+            case JsopReader.NUMBER:
+            case JsopReader.COMMENT:
                 buff.encodedValue(values[x >> 8].toString());
                 break;
             default:
