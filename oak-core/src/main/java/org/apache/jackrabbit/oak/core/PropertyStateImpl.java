@@ -18,12 +18,12 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.PropertyState;
+
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.PropertyState;
 
 public class PropertyStateImpl implements PropertyState {
 
@@ -97,6 +97,11 @@ public class PropertyStateImpl implements PropertyState {
     @Override
     public int hashCode() {
         return getName().hashCode();
+    }
+
+    @Override
+    public String toString() {
+        return getName() + '=' + (isArray() ? getValues() : getValue());
     }
 
     //------------------------------------------------------------< private >---
