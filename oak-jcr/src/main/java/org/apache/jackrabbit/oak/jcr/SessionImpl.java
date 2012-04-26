@@ -16,24 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import java.io.IOException;
-import java.security.AccessControlException;
-
-import javax.jcr.Credentials;
-import javax.jcr.InvalidItemStateException;
-import javax.jcr.NamespaceRegistry;
-import javax.jcr.Node;
-import javax.jcr.Repository;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.UnsupportedRepositoryOperationException;
-import javax.jcr.ValueFactory;
-import javax.jcr.Workspace;
-import javax.jcr.lock.LockManager;
-import javax.jcr.retention.RetentionManager;
-import javax.jcr.security.AccessControlManager;
-import javax.jcr.version.VersionManager;
-
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -50,6 +32,23 @@ import org.apache.jackrabbit.oak.namepath.Paths;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.ContentHandler;
+
+import javax.jcr.Credentials;
+import javax.jcr.InvalidItemStateException;
+import javax.jcr.NamespaceRegistry;
+import javax.jcr.Node;
+import javax.jcr.Repository;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.UnsupportedRepositoryOperationException;
+import javax.jcr.ValueFactory;
+import javax.jcr.Workspace;
+import javax.jcr.lock.LockManager;
+import javax.jcr.retention.RetentionManager;
+import javax.jcr.security.AccessControlManager;
+import javax.jcr.version.VersionManager;
+import java.io.IOException;
+import java.security.AccessControlException;
 
 /**
  * {@code SessionImpl}...
@@ -182,7 +181,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     @Override
     public void refresh(boolean keepChanges) throws RepositoryException {
         ensureIsAlive();
-        root.refresh();
+        root.rebase();
         if (!keepChanges) {
             root = contentSession.getCurrentRoot();
         }
