@@ -22,6 +22,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.kernel.NodeState;
 import org.apache.jackrabbit.oak.kernel.NodeStore;
@@ -336,6 +337,78 @@ public class RootImplTest extends AbstractOakTest {
         assertEquals(4, tree.getPropertyCount());
     }
 
+    @Test
+    public void addAndRemoveProperty() throws CommitFailedException {
+        RootImpl root = new RootImpl(store, "test");
+        Tree tree = root.getTree("/");
+
+        tree.setProperty("P0", valueFactory.createValue("V1"));
+        root.commit();
+        tree = root.getTree("/");
+        assertTrue(tree.hasProperty("P0"));
+
+        tree.removeProperty("P0");
+        root.commit();
+        tree = root.getTree("/");
+        assertFalse(tree.hasProperty("P0"));
+    }
+
+    @Test
+    public void nodeStatus() throws CommitFailedException {
+        RootImpl root = new RootImpl(store, "test");
+        Tree tree = root.getTree("/");
+
+        tree.addChild("new");
+        assertEquals(Status.NEW, tree.getChildStatus("new"));
+        root.commit();
+
+        tree = root.getTree("/");
+        assertEquals(Status.EXISTING, tree.getChildStatus("new"));
+        Tree added = tree.getChild("new");
+        added.addChild("another");
+        assertEquals(Status.MODIFIED, tree.getChildStatus("new"));
+        root.commit();
+
+        tree = root.getTree("/");
+        assertEquals(Status.EXISTING, tree.getChildStatus("new"));
+        tree.getChild("new").removeChild("another");
+        assertEquals(Status.MODIFIED, tree.getChildStatus("new"));
+        assertEquals(Status.REMOVED, tree.getChild("new").getChildStatus("another"));
+        root.commit();
+
+        tree = root.getTree("/");
+        assertEquals(Status.EXISTING, tree.getChildStatus("new"));
+        assertNull(tree.getChild("new").getChild("another"));
+        assertNull(tree.getChild("new").getChildStatus("another"));
+    }
+
+    @Test
+    public void propertyStatus() throws CommitFailedException {
+        RootImpl root = new RootImpl(store, "test");
+        Tree tree = root.getTree("/");
+        CoreValue value1 = valueFactory.createValue("V1");
+        CoreValue value2 = valueFactory.createValue("V2");
+
+        tree.setProperty("new", value1);
+        assertEquals(Status.NEW, tree.getPropertyStatus("new"));
+        root.commit();
+
+        tree = root.getTree("/");
+        assertEquals(Status.EXISTING, tree.getPropertyStatus("new"));
+        tree.setProperty("new", value2);
+        assertEquals(Status.MODIFIED, tree.getPropertyStatus("new"));
+        root.commit();
+
+        tree = root.getTree("/");
+        assertEquals(Status.EXISTING, tree.getPropertyStatus("new"));
+        tree.removeProperty("new");
+        assertEquals(Status.REMOVED, tree.getPropertyStatus("new"));
+        root.commit();
+
+        tree = root.getTree("/");
+        assertNull(tree.getPropertyStatus("new"));
+    }
+    
     @Test
     @Ignore("WIP") // FIXME: causes OOME since the branch/merge feature from OAK-45 is used
     public void largeChildList() throws CommitFailedException {
