@@ -120,7 +120,7 @@ public interface Tree {
      * the returned iterable.
      * @return  An {@code Iterable} for all property states
      */
-    Iterable<PropertyState> getProperties();
+    Iterable<? extends PropertyState> getProperties();
 
     /**
      * Get a child of this {@code ContentTree} instance
