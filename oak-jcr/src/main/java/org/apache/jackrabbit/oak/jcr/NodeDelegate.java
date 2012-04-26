@@ -16,13 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import java.util.Iterator;
-import java.util.List;
-
-import javax.jcr.ItemNotFoundException;
-import javax.jcr.PathNotFoundException;
-import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -31,6 +24,12 @@ import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.namepath.Paths;
 import org.apache.jackrabbit.oak.util.Function1;
 import org.apache.jackrabbit.oak.util.Iterators;
+
+import javax.jcr.ItemNotFoundException;
+import javax.jcr.PathNotFoundException;
+import javax.jcr.RepositoryException;
+import java.util.Iterator;
+import java.util.List;
 
 public class NodeDelegate extends ItemDelegate {
 
@@ -103,6 +102,7 @@ public class NodeDelegate extends ItemDelegate {
         return new NodeDelegate(sessionContext, getTree().getParent());
     }
 
+    @Override
     String getPath() {
         return '/' + getTree().getPath();
     }
@@ -153,8 +153,7 @@ public class NodeDelegate extends ItemDelegate {
         return getPropertyOrNull(oakName);
     }
 
-    // ------------------------------------------------------------< private
-    // >---
+    // ------------------------------------------------------------< private >---
 
     private Root getBranch() {
         return sessionContext.getBranch();
