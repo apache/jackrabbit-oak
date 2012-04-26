@@ -38,7 +38,10 @@ import java.math.BigDecimal;
 import java.util.Calendar;
 
 /**
- * ValueFactoryImpl...
+ * Implementation of {@link ValueFactory} interface based on the
+ * {@link CoreValueFactory} exposed by the
+ * {@link org.apache.jackrabbit.oak.api.ContentSession#getCoreValueFactory()}
+ * being aware of namespaces remapped on the editing session.
  */
 public class ValueFactoryImpl implements ValueFactory {
 
@@ -51,8 +54,11 @@ public class ValueFactoryImpl implements ValueFactory {
     private final NameMapper nameMapper;
 
     /**
+     * Creates a new instance of {@code ValueFactory}.
      *
-     * @param factory
+     * @param factory The core value factory.
+     * @param nameMapper The name mapping used for converting JCR names/paths to
+     * the internal representation.
      */
     public ValueFactoryImpl(CoreValueFactory factory, NameMapper nameMapper) {
         this.factory = factory;
