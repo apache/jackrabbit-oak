@@ -16,69 +16,41 @@
  */
 package org.apache.jackrabbit.oak.namepath;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
-import java.util.HashMap;
-import java.util.Map;
-
 import org.junit.Test;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 public class PathsTest {
 
     private TestNameMapper mapper = new TestNameMapper();
 
     @Test
-    public void getPrefix() {
-        assertEquals(null, Paths.getPrefixFromElement("foo"));
-        assertEquals("foo", Paths.getPrefixFromElement("foo:bar"));
+    public void testValidIdentifierPath() {
+        String idPath = '[' + UUID.randomUUID().toString()+ ']';
+        Paths.toOakPath(idPath, mapper);
     }
 
     @Test
-    public void getName() {
-        assertEquals("foo", Paths.getNameFromElement("foo"));
-        assertEquals("bar", Paths.getNameFromElement("foo:bar"));
-    }
+    public void testInvalidIdentifierPath() {
+        List<String> invalid = new ArrayList();
+        invalid.add('[' + UUID.randomUUID().toString()+ "]abc");
+        invalid.add('[' + UUID.randomUUID().toString()+ "]/a/b/c");
 
-    @Test
-    public void isValidElement() {
-        assertTrue(Paths.isValidElement("foo"));
-        assertTrue(Paths.isValidElement("foo:bar"));
-
-        assertFalse(Paths.isValidElement(""));
-        assertFalse(Paths.isValidElement(":"));
-        assertFalse(Paths.isValidElement("foo:"));
-        assertFalse(Paths.isValidElement("fo/o:"));
-        assertFalse(Paths.isValidElement(":bar"));
-    }
-
-    @Test
-    public void isValidAbsolutePath() {
-        assertTrue(Paths.isValidPath("/"));
-        assertTrue(Paths.isValidPath("/a/b/c"));
-        assertTrue(Paths.isValidPath("/p:a/q:b/r:c"));
-
-        assertFalse(Paths.isValidPath(""));
-        assertFalse(Paths.isValidPath("/a/b/c/"));
-        assertFalse(Paths.isValidPath("/p:a/:b/r:c"));
-        assertFalse(Paths.isValidPath("/p:a/q:/r:c"));
-        assertFalse(Paths.isValidPath("/p:a/:/r:c"));
-        assertFalse(Paths.isValidPath("/p:a//r:c"));
-        assertFalse(Paths.isValidPath("//"));
-    }
-
-    @Test
-    public void isValidRelativePath() {
-        assertTrue(Paths.isValidPath("a/b/c"));
-        assertTrue(Paths.isValidPath("p:a/q:b/r:c"));
-
-        assertFalse(Paths.isValidPath("a/b/c/"));
-        assertFalse(Paths.isValidPath("p:a/:b/r:c"));
-        assertFalse(Paths.isValidPath("p:a/q:/r:c"));
-        assertFalse(Paths.isValidPath("p:a/:/r:c"));
-        assertFalse(Paths.isValidPath("p:a//r:c"));
+        for (String jcrPath : invalid) {
+            try {
+                Paths.toOakPath(jcrPath, mapper);
+                fail("Invalid identifier path");
+            } catch (Exception e) {
+                // success
+            }
+        }
     }
 
     @Test
@@ -102,15 +74,13 @@ public class PathsTest {
         assertEquals("jcr-foo:bar", Paths.toJcrPath("foo:bar", mapper));
 
         try {
-            Paths.toJcrPath("{http://www.jcp.org/jcr/nt/1.0}unstructured",
-                    mapper);
+            Paths.toJcrPath("{http://www.jcp.org/jcr/nt/1.0}unstructured", mapper);
             fail("expanded name should not be accepted");
         } catch (IllegalStateException expected) {
         }
 
         try {
-            Paths.toJcrPath("foobar/{http://www.jcp.org/jcr/1.0}content",
-                    mapper);
+            Paths.toJcrPath("foobar/{http://www.jcp.org/jcr/1.0}content", mapper);
             fail("expanded name should not be accepted");
         } catch (IllegalStateException expected) {
         }
