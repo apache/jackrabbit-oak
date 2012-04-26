@@ -148,21 +148,28 @@ public class ValueFactoryImpl implements ValueFactory {
     @Override
     public Value createValue(String value, int type) throws ValueFormatException {
         CoreValue cv;
-        if (type == PropertyType.NAME) {
-            cv = factory.createValue(nameMapper.getOakName(value), type);
-        } else if (type == PropertyType.PATH) {
-            cv = factory.createValue(Paths.toOakPath(value, nameMapper), type);
-        } else if (type == PropertyType.DATE) {
-            if (ISO8601.parse(value) == null) {
-                throw new ValueFormatException("Invalid date " + value);
-            }
-            cv = factory.createValue(value, type);
-        } else {
-            try {
+        try {
+            if (type == PropertyType.NAME) {
+                cv = factory.createValue(nameMapper.getOakName(value), type);
+            } else if (type == PropertyType.PATH) {
+                cv = factory.createValue(Paths.toOakPath(value, nameMapper), type);
+            } else if (type == PropertyType.DATE) {
+                if (ISO8601.parse(value) == null) {
+                    throw new ValueFormatException("Invalid date " + value);
+                }
                 cv = factory.createValue(value, type);
-            } catch (NumberFormatException e) {
-                throw new ValueFormatException("Invalid value " + value + " for type " + PropertyType.nameFromValue(type));
+            } else {
+                cv = factory.createValue(value, type);
             }
+        } catch (NumberFormatException e) {
+            throw new ValueFormatException("Invalid value " + value + " for type " + PropertyType.nameFromValue(type));
+        } catch (IllegalArgumentException e) {
+            // TODO: review exception handling in path/name resolution again
+            throw new ValueFormatException("Invalid value " + value + " for type " + PropertyType.nameFromValue(type));
+        } catch (Exception e) {
+            // TODO: review exception handling in path/name resolution again
+            // TODO: throws RuntimeException which is pretty ugly
+            throw new ValueFormatException("Invalid value " + value + " for type " + PropertyType.nameFromValue(type));
         }
 
         return new ValueImpl(cv, nameMapper);
