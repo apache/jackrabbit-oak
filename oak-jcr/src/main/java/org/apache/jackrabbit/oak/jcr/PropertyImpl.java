@@ -18,7 +18,9 @@ package org.apache.jackrabbit.oak.jcr;
 
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
 
 import javax.jcr.Binary;
 import javax.jcr.Item;
@@ -188,16 +190,17 @@ public class PropertyImpl extends ItemImpl implements Property {
         checkStatus();
 
         int reqType = getRequiredType(PropertyType.STRING);
-        Value[] vs;
         if (values == null) {
-            vs = null;
+            setValues(null, reqType);
         } else {
-            vs = new Value[values.length];
-            for (int i = 0; i < values.length; i++) {
-                vs[i] = getValueFactory().createValue(values[i]);
+            List<Value> vs = new ArrayList<Value>(values.length);
+            for (String value : values) {
+                if (value != null) {
+                    vs.add(getValueFactory().createValue(value));
+                }
             }
+            setValues(vs.toArray(new Value[vs.size()]), reqType);
         }
-        setValues(vs, reqType);
     }
 
     /**
@@ -261,7 +264,11 @@ public class PropertyImpl extends ItemImpl implements Property {
         checkStatus();
 
         int reqType = getRequiredType(PropertyType.DECIMAL);
-        setValue(getValueFactory().createValue(value), reqType);
+        if (value == null) {
+            setValue(null, reqType);
+        } else {
+            setValue(getValueFactory().createValue(value), reqType);
+        }
     }
 
     /**
@@ -544,9 +551,12 @@ public class PropertyImpl extends ItemImpl implements Property {
     * @throws RepositoryException
     */
    private void setValue(Value value, int requiredType) throws RepositoryException {
-       
        assert(requiredType != PropertyType.UNDEFINED);
-       
+
+      // TODO check again if definition validation should be respected here.
+       if (isMultiple()) {
+           throw new ValueFormatException("Attempt to set a single value to multi-valued property.");
+       }
        if (value == null) {
            dlg.remove();
        } else {
@@ -562,9 +572,12 @@ public class PropertyImpl extends ItemImpl implements Property {
    * @throws RepositoryException
    */
   private void setValues(Value[] values, int requiredType) throws RepositoryException {
-      
       assert(requiredType != PropertyType.UNDEFINED);
 
+      // TODO check again if definition validation should be respected here.
+      if (!isMultiple()) {
+          throw new ValueFormatException("Attempt to set multiple values to single valued property.");
+      }
       if (values == null) {
           remove();
       } else {
