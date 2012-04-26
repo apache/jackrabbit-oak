@@ -35,8 +35,14 @@ import java.util.List;
 
 import static org.apache.jackrabbit.oak.util.Iterators.flatten;
 
+/**
+ * Implementation of tree based on {@link NodeStateBuilder}s. Each subtree
+ * has an associated node state builder which is used for building the new
+ * trees resulting from calling mutating methods.
+ */
 public class TreeImpl implements Tree {
 
+    /** Underlying store */
     private final NodeStore store;
 
     /**
@@ -66,7 +72,14 @@ public class TreeImpl implements Tree {
         this.name = name;
         this.parent = parent;
     }
-    
+
+    /**
+     * Create a new instance which represents the root of a tree.
+     * @param store  underlying store to the tree
+     * @param nodeStateBuilder  builder for the root
+     * @param listener  change listener for the tree. May be {@code null} if
+     *                  listening to changes is not needed.
+     */
     TreeImpl(NodeStore store, NodeStateBuilder nodeStateBuilder, Listener listener) {
         this(store, nodeStateBuilder.getNodeState(), nodeStateBuilder, null, "", listener);
     }
@@ -161,34 +174,45 @@ public class TreeImpl implements Tree {
     @Override
     public Status getPropertyStatus(String name) {
         if (baseState == null) {
+            // This instance is NEW...
             if (hasProperty(name)) {
+                // ...so all children are new
                 return Status.NEW;
             }
             else {
+                // ...unless they don't exist.
                 return null;
             }
         }
         else {
             if (hasProperty(name)) {
+                // We have the property...
                 if (baseState.getProperty(name) == null) {
+                    // ...but didn't have it before. So its NEW.
                     return Status.NEW;
                 }
                 else {
+                    // ... and did have it before. So...
                     PropertyState base = baseState.getProperty(name);
                     PropertyState head = getProperty(name);
                     if (base.equals(head)) {
+                        // ...it's EXISTING if it hasn't changed
                         return Status.EXISTING;
                     }
                     else {
+                        // ...and MODIFIED otherwise.
                         return Status.MODIFIED;
                     }
                 }
             }
             else {
+                // We don't have the property
                 if (baseState.getProperty(name) == null) {
+                    // ...and didn't have it before. So it doesn't exist.
                     return null;
                 }
                 else {
+                    // ...and didn't have it before. So it's REMOVED
                     return Status.REMOVED;
                 }
             }
@@ -225,32 +249,43 @@ public class TreeImpl implements Tree {
     @Override
     public Status getChildStatus(String name) {
         if (baseState == null) {
+            // This instance is NEW...
             if (hasChild(name)) {
+                // ...so all children are new
                 return Status.NEW;
             }
             else {
+                // ...unless they don't exist.
                 return null;
             }
         }
         else {
             if (hasChild(name)) {
+                // We have the child...
                 if (baseState.getChildNode(name) == null) {
+                    // ...but didn't have it before. So its NEW.
                     return Status.NEW;
                 }
                 else {
+                    // ... and did have it before. So...
                     if (isSame(baseState.getChildNode(name), getNodeState().getChildNode(name))) {
+                        // ...it's EXISTING if it hasn't changed
                         return Status.EXISTING;
                     }
                     else {
+                        // ...and MODIFIED otherwise.
                         return Status.MODIFIED;
                     }
                 }
             }
             else {
+                // We don't have the child
                 if (baseState.getChildNode(name) == null) {
+                    // ...and didn't have it before. So it doesn't exist.
                     return null;
                 }
                 else {
+                    // ...and didn't have it before. So it's REMOVED
                     return Status.REMOVED;
                 }
             }
