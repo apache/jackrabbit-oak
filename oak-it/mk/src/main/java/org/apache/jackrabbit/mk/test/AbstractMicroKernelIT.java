@@ -179,6 +179,20 @@ public abstract class AbstractMicroKernelIT {
         }
     }
 
+    protected void assertPropertyExists(JSONObject obj, String relPath)
+            throws AssertionError {
+        Object val = resolveValue(obj, relPath);
+        assertNotNull("not found: " + relPath, val);
+    }
+
+    protected void assertPropertyExists(JSONObject obj, String relPath, Class type)
+            throws AssertionError {
+        Object val = resolveValue(obj, relPath);
+        assertNotNull("not found: " + relPath, val);
+
+        assertTrue(type.isInstance(val));
+    }
+
     protected void assertPropertyValue(JSONObject obj, String relPath, Double expected)
             throws AssertionError {
         Object val = resolveValue(obj, relPath);
@@ -242,6 +256,15 @@ public abstract class AbstractMicroKernelIT {
             return (JSONObject) val;
         }
         throw new AssertionError("failed to resolve JSONObject value at " + relPath + ": " + val);
+    }
+
+    protected JSONObject getObjectArrayEntry(JSONArray array, int pos) {
+        assertTrue(pos >= 0 && pos < array.size());
+        Object entry = array.get(pos);
+        if (entry instanceof JSONObject) {
+            return (JSONObject) entry;
+        }
+        throw new AssertionError("failed to resolve JSONObject array entry at pos " + pos + ": " + entry);
     }
 
     protected JSONArray resolveArrayValue(JSONObject obj, String relPath) {
