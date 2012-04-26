@@ -20,7 +20,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.nodetype.NodeDefinition;
@@ -28,11 +31,21 @@ import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeIterator;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.PropertyDefinition;
+import javax.jcr.version.OnParentVersionAction;
 
 import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 
 class NodeTypeImpl implements NodeType {
+
+    private static final Pattern CND_PATTERN = Pattern.compile(
+            "( > (\\S+(, \\S+)*))?(\n  mixin)?(\n  abstract)?"
+            + "(\n  orderable)?(\n  primaryitem (\\S+))?(\n.*)*");
+
+    private static final Pattern DEF_PATTERN = Pattern.compile(
+            "  ([\\+\\-]) (\\S+) \\((.+?)\\)( = (\\S+))"
+            + "(( (mandatory|autocreated|protected|multiple))*)"
+            + "( ([A-Z])+)?.*");
 
     private final NodeTypeManager manager;
 
@@ -50,27 +63,58 @@ class NodeTypeImpl implements NodeType {
 
     private final String primaryItemName;
 
-    private final List<PropertyDefinition> declaredPropertyDefinitions;
+    private final List<PropertyDefinition> declaredPropertyDefinitions =
+            new ArrayList<PropertyDefinition>();
 
-    private final List<NodeDefinition> declaredChildNodeDefinitions;
+    private final List<NodeDefinition> declaredChildNodeDefinitions =
+            new ArrayList<NodeDefinition>();
 
     public NodeTypeImpl(
             NodeTypeManager manager, NameMapper mapper, String name,
-            String[] declaredSuperTypeNames, boolean isAbstract,
-            boolean isMixin, boolean hasOrderableChildNodes,
-            String primaryItemName,
-            List<PropertyDefinition> declaredPropertyDefinitions,
-            List<NodeDefinition> declaredChildNodeDefinitions) {
+            String cnd) {
         this.manager = manager;
         this.mapper = mapper;
         this.name = name;
-        this.declaredSuperTypeNames = declaredSuperTypeNames;
-        this.isAbstract = isAbstract;
-        this.isMixin = isMixin;
-        this.hasOrderableChildNodes = hasOrderableChildNodes;
-        this.primaryItemName = primaryItemName;
-        this.declaredPropertyDefinitions = declaredPropertyDefinitions;
-        this.declaredChildNodeDefinitions = declaredChildNodeDefinitions;
+
+        Matcher matcher = CND_PATTERN.matcher(cnd.replace("\r\n", "\n"));
+        matcher.matches();
+
+        this.declaredSuperTypeNames = matcher.group(2).split(", ");
+        this.isAbstract = matcher.group(5) != null;
+        this.isMixin = matcher.group(4) != null;
+        this.hasOrderableChildNodes = matcher.group(7) != null;
+        this.primaryItemName = matcher.group(8);
+
+        for (String line : matcher.group(9).split("\n")) {
+            matcher = DEF_PATTERN.matcher(line);
+            matcher.matches();
+
+            String defName = matcher.group(2);
+            String defType = matcher.group(3);
+
+            boolean mandatory = matcher.group(6).contains(" mandatory");
+            boolean autoCreated = matcher.group(6).contains(" autocreated");
+            boolean isProtected = matcher.group(6).contains(" protected");
+            boolean multiple = matcher.group(6).contains(" multiple");
+
+            int onParentVersionAction = OnParentVersionAction.COPY;
+            if (matcher.group(9) != null) {
+                onParentVersionAction =
+                        OnParentVersionAction.valueFromName(matcher.group(9));
+            }
+
+            if ("+".equals(matcher.group(1))) {
+                declaredChildNodeDefinitions.add(new NodeDefinitionImpl(
+                        this, mapper, defName, autoCreated, mandatory,
+                        onParentVersionAction, isProtected, manager,
+                        defType.split(", "), matcher.group(5), false));
+            } else {
+                declaredPropertyDefinitions.add(new PropertyDefinitionImpl(
+                        this, mapper, defName, autoCreated, mandatory,
+                        onParentVersionAction, isProtected,
+                        PropertyType.valueFromName(defType), multiple));
+            }
+        }
     }
 
     @Override
@@ -109,7 +153,11 @@ class NodeTypeImpl implements NodeType {
 
     @Override
     public String getPrimaryItemName() {
-        return mapper.getJcrName(primaryItemName);
+        if (primaryItemName != null) {
+            return mapper.getJcrName(primaryItemName);
+        } else {
+            return null;
+        }
     }
 
     @Override

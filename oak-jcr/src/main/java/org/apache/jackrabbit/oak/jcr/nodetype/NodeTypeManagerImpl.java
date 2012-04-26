@@ -16,10 +16,14 @@
  */
 package org.apache.jackrabbit.oak.jcr.nodetype;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
@@ -34,17 +38,39 @@ import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 
 public class NodeTypeManagerImpl implements NodeTypeManager {
 
+    private static final Pattern CND_PATTERN =
+            Pattern.compile("\\[(.*)?\\](.*?\n)\n");
+
     private final NameMapper mapper;
 
     private final Map<String, NodeType> types = new HashMap<String, NodeType>();
 
-    public NodeTypeManagerImpl(NameMapper mapper) {
+    public NodeTypeManagerImpl(NameMapper mapper) throws RepositoryException {
         this.mapper = mapper;
+
+        try {
+            InputStream stream = NodeTypeManagerImpl.class.getResourceAsStream(
+                    "builtin_nodetypes.cnd");
+            try {
+                String cnd = IOUtils.toString(stream, "UTF-8");
+                Matcher matcher = CND_PATTERN.matcher(cnd);
+                while (matcher.find()) {
+                    String name = matcher.group(1);
+                    types.put(name, new NodeTypeImpl(this, mapper, name, matcher.group(2)));
+                }
+            } finally {
+                stream.close();
+            }
+        } catch (IOException e) {
+            throw new RepositoryException(
+                    "Failed to load built-in node types", e);
+        }
     }
 
     @Override

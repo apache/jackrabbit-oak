@@ -72,7 +72,8 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     private boolean isAlive = true;
     private Root root;
 
-    SessionImpl(GlobalContext globalContext, ContentSession contentSession) {
+    SessionImpl(GlobalContext globalContext, ContentSession contentSession)
+            throws RepositoryException {
         this.globalContext = globalContext;
         this.contentSession = contentSession;
         this.valueFactory = new ValueFactoryImpl(contentSession.getCoreValueFactory(), nameMapper);

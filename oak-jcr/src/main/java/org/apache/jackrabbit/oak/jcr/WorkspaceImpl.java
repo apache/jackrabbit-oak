@@ -64,7 +64,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
 
     public WorkspaceImpl(
             SessionContext<SessionImpl> sessionContext,
-            NamespaceRegistry nsRegistry) {
+            NamespaceRegistry nsRegistry) throws RepositoryException {
         this.sessionContext = sessionContext;
         this.nsRegistry = nsRegistry;
         this.nodeTypeManager =
