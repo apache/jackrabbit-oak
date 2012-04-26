@@ -28,10 +28,10 @@ public abstract class AbstractNameMapper implements NameMapper {
     public String getOakName(String jcrName) {
 
         int pos = jcrName.indexOf(':');
-
+        
         if (pos < 0) {
             // no colon
-            return jcrName;
+            return jcrName.startsWith("{}") ? jcrName.substring(2) : jcrName;
         } else {
             if (jcrName.charAt(0) == '{') {
                 int endpos = jcrName.indexOf('}');
