@@ -329,7 +329,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
         throw new UnsupportedOperationException("Implementation missing");
     }
 
-    //--------------------------------------------------< SessionNamespaceResolver >---
+    //-------------------------------------------< SessionNamespaceResolver >---
     
     private class SessionNameMapper extends AbstractNameMapper {
 
