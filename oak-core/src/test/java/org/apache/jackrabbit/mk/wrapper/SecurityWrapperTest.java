@@ -24,6 +24,7 @@ import static org.junit.Assert.fail;
 import junit.framework.Assert;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
+import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.mk.simple.SimpleKernelImpl;
 import org.junit.Before;
@@ -128,7 +129,7 @@ public class SecurityWrapperTest {
             t.read(',');
             Assert.assertEquals("ts", t.readString());
             t.read(':');
-            t.read(JsopTokenizer.NUMBER);
+            t.read(JsopReader.NUMBER);
             t.read(',');
             Assert.assertEquals("msg", t.readString());
             t.read(':');
