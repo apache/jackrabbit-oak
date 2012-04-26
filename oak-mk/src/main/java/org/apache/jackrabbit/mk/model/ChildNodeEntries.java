@@ -25,7 +25,7 @@ import java.util.Iterator;
  */
 public interface ChildNodeEntries extends Cloneable {
     
-    static final int CAPACITY_THRESHOLD = 10000;
+    static final int CAPACITY_THRESHOLD = 1000;
 
     Object clone();
 
