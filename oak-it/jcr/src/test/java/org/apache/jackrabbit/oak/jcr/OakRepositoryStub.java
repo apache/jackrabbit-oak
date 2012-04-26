@@ -33,8 +33,8 @@ public class OakRepositoryStub extends RepositoryStub {
     /**
      * Constructor as required by the JCR TCK.
      * 
-     * @param settings
-     *            repository settings
+     * @param settings repository settings
+     * @throws javax.jcr.RepositoryException If an error occurs.
      */
     public OakRepositoryStub(Properties settings) throws RepositoryException {
         super(settings);
