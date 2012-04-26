@@ -67,6 +67,7 @@ public final class Paths {
      * If nth <= 0, the path argument is returned as is.
      *
      * @param path the path
+     * @param nth Integer indicating which ancestor path to retrieve.
      * @return the ancestor path
      */
     public static String getAncestorPath(String path, int nth) {
