@@ -96,8 +96,8 @@ public class RootImpl implements Root {
     }
 
     @Override
-    public void refresh() {
-        // TODO implement refresh base = store.getRoot().getChildNode(workspaceName);
+    public void rebase() {
+        // TODO implement rebase base = store.getRoot().getChildNode(workspaceName);
     }
 
     @Override

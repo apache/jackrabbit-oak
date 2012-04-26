@@ -60,9 +60,9 @@ public interface Root {
     Tree getTree(String path);
 
     /**
-     * Refresh this root to the latest revision.
+     * Rebase this root to the latest revision.
      */
-    void refresh();
+    void rebase();
 
     /**
      * Atomically apply all changes made to the tree beneath this root to the
