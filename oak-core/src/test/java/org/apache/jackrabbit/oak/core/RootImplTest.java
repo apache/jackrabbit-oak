@@ -408,6 +408,19 @@ public class RootImplTest extends AbstractOakTest {
         tree = root.getTree("/");
         assertNull(tree.getPropertyStatus("new"));
     }
+
+    @Test
+    public void noTransitiveModifiedStatus() throws CommitFailedException {
+        RootImpl root = new RootImpl(store, "test");
+        Tree tree = root.getTree("/");
+        tree.addChild("one").addChild("two");
+        root.commit();
+
+        tree = root.getTree("/");
+        tree.getChild("one").getChild("two").addChild("three");
+        assertEquals(Status.EXISTING, tree.getChildStatus("one"));
+        assertEquals(Status.MODIFIED, tree.getChild("one").getChildStatus("two"));
+    }
     
     @Test
     @Ignore("WIP") // FIXME: causes OOME since the branch/merge feature from OAK-45 is used
