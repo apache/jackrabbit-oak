@@ -45,7 +45,7 @@ import org.apache.jackrabbit.oak.namepath.NameMapper;
 public class NodeTypeManagerImpl implements NodeTypeManager {
 
     private static final Pattern CND_PATTERN =
-            Pattern.compile("\\[(.*)?\\](.*?\n)\n");
+            Pattern.compile("\\[(\\S*)?\\]([.\n]*?)\n\n");
 
     private final NameMapper mapper;
 
@@ -62,7 +62,8 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
                 Matcher matcher = CND_PATTERN.matcher(cnd);
                 while (matcher.find()) {
                     String name = matcher.group(1);
-                    types.put(name, new NodeTypeImpl(this, mapper, name, matcher.group(2)));
+                    types.put(name, new NodeTypeImpl(
+                            this, mapper, name, matcher.group(2)));
                 }
             } finally {
                 stream.close();
