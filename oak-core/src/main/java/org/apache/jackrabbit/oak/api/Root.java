@@ -50,12 +50,11 @@ public interface Root {
     boolean copy(String sourcePath, String destPath);
 
     /**
-     * Retrieve the {@code ContentTree} at the given {@code path}.
-     * The path must resolve to a content tree in this root.
+     * Retrieve the {@code Tree} at the given {@code path}. The path must resolve to
+     * a tree in this root.
      *
-     * @param path path to the content tree
-     * @return content tree at the given path or {@code null} if no
-     * such tree exists
+     * @param path  path to the tree
+     * @return  tree at the given path or {@code null} if no such tree exists
      */
     Tree getTree(String path);
 
