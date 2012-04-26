@@ -129,7 +129,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     @Override
     public Node getRootNode() throws RepositoryException {
         ensureIsAlive();
-        return new NodeImpl(sessionContext, root.getTree("/"));
+        return new NodeImpl(new NodeDelegate(sessionContext, root.getTree("/")));
     }
 
     @Override

@@ -16,24 +16,13 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
-import org.apache.jackrabbit.commons.iterator.PropertyIteratorAdapter;
-import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Tree.Status;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.jcr.util.ItemNameMatcher;
-import org.apache.jackrabbit.oak.jcr.util.LogUtil;
-import org.apache.jackrabbit.oak.jcr.util.ValueConverter;
-import org.apache.jackrabbit.oak.namepath.Paths;
-import org.apache.jackrabbit.oak.util.Function1;
-import org.apache.jackrabbit.oak.util.Iterators;
-import org.apache.jackrabbit.oak.util.Predicate;
-import org.apache.jackrabbit.value.ValueHelper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static org.apache.jackrabbit.oak.util.Iterators.filter;
+
+import java.io.InputStream;
+import java.math.BigDecimal;
+import java.util.Calendar;
+import java.util.Iterator;
+import java.util.List;
 
 import javax.jcr.Binary;
 import javax.jcr.Item;
@@ -54,13 +43,21 @@ import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionHistory;
-import java.io.InputStream;
-import java.math.BigDecimal;
-import java.util.Calendar;
-import java.util.Iterator;
-import java.util.List;
 
-import static org.apache.jackrabbit.oak.util.Iterators.filter;
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
+import org.apache.jackrabbit.commons.iterator.PropertyIteratorAdapter;
+import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.Tree.Status;
+import org.apache.jackrabbit.oak.jcr.util.ItemNameMatcher;
+import org.apache.jackrabbit.oak.jcr.util.LogUtil;
+import org.apache.jackrabbit.oak.jcr.util.ValueConverter;
+import org.apache.jackrabbit.oak.util.Function1;
+import org.apache.jackrabbit.oak.util.Iterators;
+import org.apache.jackrabbit.oak.util.Predicate;
+import org.apache.jackrabbit.value.ValueHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * {@code NodeImpl}...
@@ -72,16 +69,10 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     private static final Logger log = LoggerFactory.getLogger(NodeImpl.class);
 
-    // private Tree tree;
     private final NodeDelegate dlg;
     
-    NodeImpl(SessionContext<SessionImpl> sessionContext, Tree tree) {
-        super(sessionContext);
-        this.dlg = new NodeDelegate(sessionContext, tree);
-    }
-
     NodeImpl(NodeDelegate dlg) {
-        super(dlg.getSessionContext());
+        super(dlg.getSessionContext(), dlg);
         this.dlg = dlg;
     }
 
@@ -100,24 +91,6 @@ public class NodeImpl extends ItemImpl implements Node  {
     }
 
     /**
-     * @see javax.jcr.Item#getName()
-     */
-    @Override
-    public String getName() throws RepositoryException {
-        String oakName = dlg.getName();
-        // special case name of root node
-        return oakName.isEmpty() ? "" : toJcrPath(dlg.getName());
-    }
-
-    /**
-     * @see javax.jcr.Property#getPath()
-     */
-    @Override
-    public String getPath() throws RepositoryException {
-        return toJcrPath(dlg.getPath());
-    }
-
-    /**
      * @see javax.jcr.Item#getParent()
      */
     @Override
@@ -131,14 +104,6 @@ public class NodeImpl extends ItemImpl implements Node  {
     @Override
     public Item getAncestor(int depth) throws RepositoryException {
         return new NodeImpl(dlg.getAncestor(depth));
-    }
-
-    /**
-     * @see javax.jcr.Item#getDepth()
-     */
-    @Override
-    public int getDepth() throws RepositoryException {
-        return dlg.getDepth();
     }
 
     /**

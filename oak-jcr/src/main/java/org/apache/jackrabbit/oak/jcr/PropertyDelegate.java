@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.Paths;
 
-public class PropertyDelegate {
+public class PropertyDelegate extends ItemDelegate {
 
     private final SessionContext<SessionImpl> sessionContext;
     private Tree parent;

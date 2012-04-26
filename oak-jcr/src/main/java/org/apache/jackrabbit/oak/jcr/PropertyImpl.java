@@ -34,11 +34,9 @@ import javax.jcr.ValueFormatException;
 import javax.jcr.nodetype.PropertyDefinition;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.jcr.util.LogUtil;
 import org.apache.jackrabbit.oak.jcr.util.ValueConverter;
-import org.apache.jackrabbit.oak.namepath.Paths;
 import org.apache.jackrabbit.value.ValueHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,16 +53,9 @@ public class PropertyImpl extends ItemImpl implements Property {
 
     private final PropertyDelegate dlg;
     
-    PropertyImpl(SessionContext<SessionImpl> sessionContext, Tree parent,
-            PropertyState propertyState) {
-
-        super(sessionContext);
-        this.dlg = new PropertyDelegate(sessionContext, parent, propertyState);
-    }
-
     PropertyImpl(PropertyDelegate dlg) {
 
-        super(dlg.getSessionContext());
+        super(dlg.getSessionContext(), dlg);
         this.dlg = dlg;
     }
 
@@ -78,27 +69,12 @@ public class PropertyImpl extends ItemImpl implements Property {
     }
 
     /**
-     * @see javax.jcr.Item#getName()
-     */
-    @Override
-    public String getName() throws RepositoryException {
-        return toJcrPath(dlg.getName());
-    }
-
-    /**
-     * @see javax.jcr.Property#getPath()
-     */
-    @Override
-    public String getPath() throws RepositoryException {
-        return toJcrPath(dlg.getPath());
-    }
-
-    /**
      * @see javax.jcr.Item#getParent()
      */
     @Override
     public Node getParent() throws RepositoryException {
-        return new NodeImpl(sessionContext, dlg.getParentContentTree());
+        return new NodeImpl(new NodeDelegate(sessionContext,
+                dlg.getParentContentTree()));
     }
 
     /**
@@ -111,14 +87,6 @@ public class PropertyImpl extends ItemImpl implements Property {
         } else {
             return getParent().getAncestor(depth);
         }
-    }
-
-    /**
-     * @see javax.jcr.Item#getDepth()
-     */
-    @Override
-    public int getDepth() throws RepositoryException {
-        return Paths.getDepth(getPath());
     }
 
     /**
