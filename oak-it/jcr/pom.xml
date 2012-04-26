@@ -98,7 +98,6 @@ org.apache.jackrabbit.test.api.ImpersonateTest
 org.apache.jackrabbit.test.api.CheckPermissionTest
 org.apache.jackrabbit.test.api.DocumentViewImportTest
 org.apache.jackrabbit.test.api.SerializationTest
-org.apache.jackrabbit.test.api.ValueFactoryTest
 org.apache.jackrabbit.test.api.GetWeakReferencesTest
 org.apache.jackrabbit.test.api.SessionRemoveItemTest
 org.apache.jackrabbit.test.api.HasPermissionTest
