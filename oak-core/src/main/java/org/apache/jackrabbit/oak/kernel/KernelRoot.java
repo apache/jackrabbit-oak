@@ -18,13 +18,11 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
-import org.apache.jackrabbit.mk.util.PathUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.kernel.KernelTree.Listener;
+import org.apache.jackrabbit.oak.kernel.KernelTree2.Listener;
 
 import java.util.List;
 
@@ -48,7 +46,7 @@ public class KernelRoot implements Root {
     private NodeState base;
 
     /** Root state of this tree */
-    private KernelTree root;
+    private KernelTree2 root;
 
     /** Listener for changes on the content tree */
     private TreeListener treeListener = new TreeListener();
@@ -59,18 +57,18 @@ public class KernelRoot implements Root {
         this.store = store;
         this.workspaceName = workspaceName;
         this.base = store.getRoot().getChildNode(workspaceName);
-        this.root = new KernelTree(base, treeListener);
         nodeStateBuilder = store.getBuilder(base);
+        this.root = new KernelTree2(store, nodeStateBuilder, treeListener);
     }
 
     @Override
     public boolean move(String sourcePath, String destPath) {
-        KernelTree source = getTransientState(sourcePath);
+        KernelTree2 source = getTransientState(sourcePath);
         if (source == null) {
             return false;
         }
 
-        KernelTree destParent = getTransientState(getParentPath(destPath));
+        KernelTree2 destParent = getTransientState(getParentPath(destPath));
         String destName = getName(destPath);
         return destParent != null && source.move(destParent, destName);
 
@@ -78,12 +76,12 @@ public class KernelRoot implements Root {
 
     @Override
     public boolean copy(String sourcePath, String destPath) {
-        KernelTree sourceNode = getTransientState(sourcePath);
+        KernelTree2 sourceNode = getTransientState(sourcePath);
         if (sourceNode == null) {
             return false;
         }
 
-        KernelTree destParent = getTransientState(getParentPath(destPath));
+        KernelTree2 destParent = getTransientState(getParentPath(destPath));
         String destName = getName(destPath);
         return destParent != null && sourceNode.copy(destParent, destName);
 
@@ -105,7 +103,7 @@ public class KernelRoot implements Root {
         base = store.getRoot().getChildNode(workspaceName);
         nodeStateBuilder = store.getBuilder(base);
         treeListener = new TreeListener();
-        root = new KernelTree(base, treeListener);
+        root = new KernelTree2(store, nodeStateBuilder, treeListener);
     }
 
     @Override
@@ -122,8 +120,8 @@ public class KernelRoot implements Root {
      * @return  a {@link KernelTree} instance for the item
      *          at {@code path} or {@code null} if no such item exits.
      */
-    private KernelTree getTransientState(String path) {
-        KernelTree state = root;
+    private KernelTree2 getTransientState(String path) {
+        KernelTree2 state = root;
         for (String name : elements(path)) {
             state = state.getChild(name);
             if (state == null) {
@@ -133,59 +131,42 @@ public class KernelRoot implements Root {
         return state;
     }
 
+    // TODO accumulate change log for refresh/rebase
     private class TreeListener implements Listener {
         private boolean isDirty;
-        
+
         @Override
-        public void addChild(KernelTree tree, String name) {
-            NodeStateBuilder target = getBuilder(tree);
-            target.addNode(name);
+        public void addChild(KernelTree2 tree, String name) {
             isDirty = true;
         }
 
         @Override
-        public void removeChild(KernelTree tree, String name) {
-            NodeStateBuilder target = getBuilder(tree);
-            target.removeNode(name);
+        public void removeChild(KernelTree2 tree, String name) {
             isDirty = true;
         }
 
         @Override
-        public void setProperty(KernelTree tree, String name, CoreValue value) {
-            NodeStateBuilder target = getBuilder(tree);
-            PropertyState propertyState = new KernelPropertyState(name, value);
-            target.setProperty(propertyState);
+        public void setProperty(KernelTree2 tree, String name, CoreValue value) {
             isDirty = true;
         }
 
         @Override
-        public void setProperty(KernelTree tree, String name, List<CoreValue> values) {
-            NodeStateBuilder target = getBuilder(tree);
-            PropertyState propertyState = new KernelPropertyState(name, values);
-            target.setProperty(propertyState);
+        public void setProperty(KernelTree2 tree, String name, List<CoreValue> values) {
             isDirty = true;
         }
 
         @Override
-        public void removeProperty(KernelTree tree, String name) {
-            NodeStateBuilder target = getBuilder(tree);
-            target.removeProperty(name);
+        public void removeProperty(KernelTree2 tree, String name) {
             isDirty = true;
         }
 
         @Override
-        public void move(KernelTree tree, String name, KernelTree moved) {
-            NodeStateBuilder source = getBuilder(tree).getChildBuilder(name);
-            NodeStateBuilder destParent = getBuilder(moved.getParent());
-            source.moveTo(destParent, moved.getName());
+        public void move(KernelTree2 tree, String name, KernelTree2 moved) {
             isDirty = true;
         }
 
         @Override
-        public void copy(KernelTree tree, String name, KernelTree copied) {
-            NodeStateBuilder source = getBuilder(tree).getChildBuilder(name);
-            NodeStateBuilder destParent = getBuilder(copied.getParent());
-            source.copyTo(destParent, copied.getName());
+        public void copy(KernelTree2 tree, String name, KernelTree2 copied) {
             isDirty = true;
         }
 
@@ -194,13 +175,4 @@ public class KernelRoot implements Root {
         }
     }
 
-    private NodeStateBuilder getBuilder(Tree tree) {
-        String path = tree.getPath();
-        NodeStateBuilder builder = nodeStateBuilder;
-        for (String name : PathUtils.elements(path)) {
-            builder = builder.getChildBuilder(name);
-        }
-        
-        return builder;
-    }
 }
