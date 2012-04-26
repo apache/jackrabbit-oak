@@ -191,11 +191,15 @@ public class NodeImpl extends ItemImpl implements Node  {
         checkStatus();
 
         int targetType = getTargetType(value, type);
-        Value targetValue = ValueHelper.convert(value, targetType,
-                getValueFactory());
-        CoreValue oakValue = ValueConverter.toCoreValue(targetValue,
-                sessionContext);
-        return new PropertyImpl(dlg.setProperty(toOakPath(jcrName), oakValue));
+        Value targetValue = ValueHelper.convert(value, targetType, getValueFactory());
+        if (value == null) {
+            Property p = getProperty(jcrName);
+            p.remove();
+            return p;
+        } else {
+            CoreValue oakValue = ValueConverter.toCoreValue(targetValue, sessionContext);
+            return new PropertyImpl(dlg.setProperty(toOakPath(jcrName), oakValue));
+        }
     }
 
     /**
@@ -213,16 +217,19 @@ public class NodeImpl extends ItemImpl implements Node  {
     }
 
     @Override
-    public Property setProperty(String jcrName, Value[] values, int type)
-            throws RepositoryException {
+    public Property setProperty(String jcrName, Value[] values, int type) throws RepositoryException {
         checkStatus();
 
         int targetType = getTargetType(values, type);
-        Value[] targetValue = ValueHelper.convert(values, targetType,
-                getValueFactory());
-        List<CoreValue> oakValue = ValueConverter.toCoreValues(targetValue,
-                sessionContext);
-        return new PropertyImpl(dlg.setProperty(toOakPath(jcrName), oakValue));
+        Value[] targetValues = ValueHelper.convert(values, targetType, getValueFactory());
+        if (targetValues == null) {
+            Property p = getProperty(jcrName);
+            p.remove();
+            return p;
+        } else {
+            List<CoreValue> oakValue = ValueConverter.toCoreValues(targetValues, sessionContext);
+            return new PropertyImpl(dlg.setProperty(toOakPath(jcrName), oakValue));
+        }
     }
 
     /**
