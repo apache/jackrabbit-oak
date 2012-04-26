@@ -54,8 +54,6 @@ class NodeTypeImpl implements NodeType {
 
     private final List<NodeDefinition> declaredChildNodeDefinitions;
 
-    
-
     public NodeTypeImpl(
             NodeTypeManager manager, NameMapper mapper, String name,
             String[] declaredSuperTypeNames, boolean isAbstract,

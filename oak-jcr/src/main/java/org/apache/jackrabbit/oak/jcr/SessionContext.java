@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.jcr;
 
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -28,7 +27,6 @@ import org.apache.jackrabbit.oak.namepath.NameMapper;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.lock.LockManager;
-import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.version.VersionManager;
 
 public interface SessionContext<T extends Session> {
@@ -39,7 +37,6 @@ public interface SessionContext<T extends Session> {
     ValueFactoryImpl getValueFactory();
     NameMapper getNameMapper();
     LockManager getLockManager() throws RepositoryException;
-    NodeTypeManager getNodeTypeManager() throws RepositoryException;
     VersionManager getVersionManager() throws RepositoryException;
     Root getBranch();
     Tree getContentTree(String path);
