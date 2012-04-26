@@ -56,6 +56,7 @@ public class PathsTest {
     @Test
     public void testJcrToOak() {
         assertEquals("/", Paths.toOakPath("/", mapper));
+        assertEquals("foo", Paths.toOakPath("{}foo", mapper));
         assertEquals("/oak-foo:bar", Paths.toOakPath("/foo:bar", mapper));
         assertEquals("/oak-foo:bar/oak-quu:qux",
                 Paths.toOakPath("/foo:bar/quu:qux", mapper));
