@@ -26,7 +26,7 @@ import java.io.InputStream;
 /**
  * BinaryValue... TODO: review name (BlobValue? BlobCoreValue? BinaryCoreValue?)
  */
-public class BinaryValue {
+class BinaryValue {
 
     /**
      * logger instance

@@ -24,6 +24,7 @@ import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.core.PropertyStateImpl;
 import org.apache.jackrabbit.oak.util.CoreValueUtil;
 
 import java.util.ArrayList;
@@ -96,10 +97,10 @@ class KernelNodeState extends AbstractNodeState {
                     }
                     childNodes.put(name, new KernelNodeState(kernel, valueFactory, childPath, revision));
                 } else if (reader.matches('[')) {
-                    properties.put(name, new KernelPropertyState(name, CoreValueUtil.listFromJsopReader(reader, valueFactory)));
+                    properties.put(name, new PropertyStateImpl(name, CoreValueUtil.listFromJsopReader(reader, valueFactory)));
                 } else {
                     CoreValue cv = CoreValueUtil.fromJsopReader(reader, valueFactory);
-                    properties.put(name, new KernelPropertyState(name, cv));
+                    properties.put(name, new PropertyStateImpl(name, cv));
                 }
             } while (reader.matches(','));
             reader.read('}');

@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.kernel;
+package org.apache.jackrabbit.oak.core;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
-import org.apache.jackrabbit.oak.core.CoreValueFactoryImpl;
+import org.apache.jackrabbit.oak.kernel.NodeState;
 import org.junit.Before;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,7 +38,7 @@ public abstract class AbstractOakTest {
     protected MicroKernel microKernel;
     protected CoreValueFactory valueFactory;
 
-    protected KernelNodeState state;
+    protected NodeState state;
 
     @Before
     public void setUp() {
@@ -48,5 +48,5 @@ public abstract class AbstractOakTest {
         state = createInitialState();
     }
 
-    abstract KernelNodeState createInitialState();
+    protected abstract NodeState createInitialState();
 }

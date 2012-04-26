@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
+import org.apache.jackrabbit.oak.core.AbstractOakTest;
 import org.junit.Test;
 
 import static junit.framework.Assert.assertEquals;
@@ -30,7 +31,7 @@ public class LargeKernelNodeStateTest extends AbstractOakTest {
     private final int N = KernelNodeState.MAX_CHILD_NODE_NAMES;
 
     @Override
-    KernelNodeState createInitialState() {
+    protected NodeState createInitialState() {
         StringBuilder jsop = new StringBuilder("+\"test\":{\"a\":1");
         for (int i = 0; i <= N; i++) {
             jsop.append(",\"x" + i + "\":{}");

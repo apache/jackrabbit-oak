@@ -22,7 +22,7 @@ import java.util.Properties;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.core.KernelContentRepository;
+import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
@@ -39,7 +39,7 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
     private final Map<ServiceReference, ServiceRegistration> services =
             new HashMap<ServiceReference, ServiceRegistration>();
 
-    //-----------------------------------------------------< BundleActivator >--
+    //----------------------------------------------------< BundleActivator >---
 
     @Override
     public void start(BundleContext bundleContext) throws Exception {
@@ -54,7 +54,7 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
         tracker.open();
     }
 
-    //--------------------------------------------< ServiceTrackerCustomizer >--
+    //-------------------------------------------< ServiceTrackerCustomizer >---
 
     @Override
     public Object addingService(ServiceReference reference) {
@@ -63,7 +63,7 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
             MicroKernel kernel = (MicroKernel) service;
             services.put(reference, context.registerService(
                     ContentRepository.class.getName(),
-                    new KernelContentRepository(kernel),
+                    new ContentRepositoryImpl(kernel),
                     new Properties()));
             return service;
         } else {
