@@ -36,6 +36,8 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
 
     private ServiceTracker tracker;
 
+    private OsgiIndexProvider indexProvider;
+
     private final Map<ServiceReference, ServiceRegistration> services =
             new HashMap<ServiceReference, ServiceRegistration>();
 
@@ -47,11 +49,14 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
         tracker = new ServiceTracker(
                 context, MicroKernel.class.getName(), this);
         tracker.open();
+        indexProvider = new OsgiIndexProvider();
+        indexProvider.start(bundleContext);
     }
 
     @Override
     public void stop(BundleContext bundleContext) throws Exception {
-        tracker.open();
+        tracker.close();
+        indexProvider.stop();
     }
 
     //-------------------------------------------< ServiceTrackerCustomizer >---
@@ -63,7 +68,7 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
             MicroKernel kernel = (MicroKernel) service;
             services.put(reference, context.registerService(
                     ContentRepository.class.getName(),
-                    new ContentRepositoryImpl(kernel),
+                    new ContentRepositoryImpl(kernel, indexProvider),
                     new Properties()));
             return service;
         } else {
@@ -74,11 +79,12 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
 
     @Override
     public void modifiedService(ServiceReference reference, Object service) {
+        // nothing to do
     }
 
     @Override
     public void removedService(ServiceReference reference, Object service) {
-        ServiceRegistration registration = services.get(reference);
+        ServiceRegistration registration = services.remove(reference);
         registration.unregister();
         context.ungetService(reference);
     }
