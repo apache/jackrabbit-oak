@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.query.index.QueryIndex;
 import org.apache.jackrabbit.oak.query.index.QueryIndexProvider;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -52,7 +53,6 @@ public class Indexer implements QueryIndexProvider {
     private HashMap<String, BTreePage> modified = new HashMap<String, BTreePage>();
     private SimpleLRUCache<String, BTreePage> cache = SimpleLRUCache.newInstance(100);
     private String readRevision;
-    private ArrayList<QueryIndexListener> listeners = new ArrayList<QueryIndexListener>();
 
     public Indexer(MicroKernel mk, String indexRootNode) {
         this.mk = mk;
@@ -115,9 +115,6 @@ public class Indexer implements QueryIndexProvider {
             return existing;
         }
         buildAndAddIndex(index);
-        for (QueryIndexListener l : listeners) {
-            l.added(new PropertyContentIndex(mk, index));
-        }
         return index;
     }
 
@@ -324,7 +321,7 @@ public class Indexer implements QueryIndexProvider {
     public void updateIndex(String rootPath, JsopReader t, String lastRevision) {
         while (true) {
             int r = t.read();
-            if (r == JsopTokenizer.END) {
+            if (r == JsopReader.END) {
                 break;
             }
             String path = PathUtils.concat(rootPath, t.readString());
@@ -361,7 +358,7 @@ public class Indexer implements QueryIndexProvider {
             case '^': {
                 removeProperty(path, lastRevision);
                 t.read(':');
-                if (t.matches(JsopTokenizer.NULL)) {
+                if (t.matches(JsopReader.NULL)) {
                     // ignore
                 } else {
                     String value = t.readRawValue().trim();
@@ -508,7 +505,11 @@ public class Indexer implements QueryIndexProvider {
         }
     }
 
-    public List<QueryIndex> getQueryIndexes() {
+    @Override
+    public List<QueryIndex> getQueryIndexes(MicroKernel mk) {
+        if (mk != this.mk) {
+            return Collections.emptyList();
+        }
         ArrayList<QueryIndex> list = new ArrayList<QueryIndex>();
         for (Index index : indexes.values()) {
             QueryIndex qi = null;
@@ -520,16 +521,6 @@ public class Indexer implements QueryIndexProvider {
             list.add(qi);
         }
         return list;
-    }
-
-    @Override
-    public void addListener(QueryIndexListener listener) {
-        listeners.add(listener);
-    }
-
-    @Override
-    public void removeListener(QueryIndexListener listener) {
-        listeners.remove(listener);
     }
 
 }

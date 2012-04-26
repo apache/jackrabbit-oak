@@ -53,9 +53,4 @@ public interface QueryEngine {
      */
     Result executeQuery(String statement, String language, Map<String, CoreValue> bindings) throws ParseException;
 
-    /**
-     * Close the query engine.
-     */
-    void close();
-
 }
