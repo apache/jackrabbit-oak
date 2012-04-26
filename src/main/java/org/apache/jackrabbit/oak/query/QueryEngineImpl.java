@@ -21,12 +21,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.index.Indexer;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.query.index.Filter;
 import org.apache.jackrabbit.oak.query.index.QueryIndex;
+import org.apache.jackrabbit.oak.query.index.QueryIndexProvider;
 import org.apache.jackrabbit.oak.query.index.TraversingIndex;
 
 public class QueryEngineImpl implements QueryEngine {
@@ -34,25 +34,22 @@ public class QueryEngineImpl implements QueryEngine {
     static final String SQL2 = "JCR-SQL2";
     private static final String XPATH = "xpath";
 
-    // TODO discuss where to store index config data
-    private static final String INDEX_CONFIG_ROOT = "/jcr:system/indexes";
-
     private final MicroKernel mk;
     private final CoreValueFactory vf;
     private final SQL2Parser parserSQL2;
-    private final Indexer indexer;
+    private final QueryIndexProvider indexProvider;
 
-    public QueryEngineImpl(MicroKernel mk, CoreValueFactory valueFactory) {
+    public QueryEngineImpl(MicroKernel mk, CoreValueFactory valueFactory, QueryIndexProvider indexProvider) {
         this.mk = mk;
         this.vf = valueFactory;
+        this.indexProvider = indexProvider;
         parserSQL2 = new SQL2Parser(vf);
-        indexer = new Indexer(mk, INDEX_CONFIG_ROOT);
     }
 
     @Override
     public void init() {
         // TODO the list of index providers should be configurable as well
-        indexer.init();
+        indexProvider.init();
     }
 
     /**
@@ -113,7 +110,7 @@ public class QueryEngineImpl implements QueryEngine {
     }
 
     private List<QueryIndex> getIndexes() {
-        return indexer.getQueryIndexes(mk);
+        return indexProvider.getQueryIndexes(mk);
     }
 
 }
