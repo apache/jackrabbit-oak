@@ -78,10 +78,12 @@ public class FilterImpl implements Filter {
      *
      * @return the path
      */
+    @Override
     public String getPath() {
         return path;
     }
 
+    @Override
     public PathRestriction getPathRestriction() {
         return pathRestriction;
     }
@@ -137,6 +139,7 @@ public class FilterImpl implements Filter {
      * @param propertyName the property name
      * @return the restriction or null
      */
+    @Override
     public PropertyRestriction getPropertyRestriction(String propertyName) {
         return propertyRestrictions.get(propertyName);
     }
