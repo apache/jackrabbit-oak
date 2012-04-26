@@ -48,6 +48,7 @@ class TypeValidator implements Validator {
                 // TODO: make sure NodeSuchNodeTypeException can be extracted in oak-jcr
                 throw new CommitFailedException("Unknown node type: " + value);
             }
+            // TODO: make sure the specified node type isn't abstract
         }
     }
 
@@ -64,7 +65,6 @@ class TypeValidator implements Validator {
     public void propertyChanged(PropertyState before, PropertyState after)
             throws CommitFailedException {
         checkTypeExists(after);
-        // TODO: validate changed property
     }
 
     @Override
