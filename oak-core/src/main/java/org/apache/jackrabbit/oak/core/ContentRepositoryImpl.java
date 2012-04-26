@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.kernel.NodeState;
+import org.apache.jackrabbit.oak.kernel.NodeStore;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,11 +38,11 @@ import javax.security.auth.login.LoginException;
  * {@link MicroKernel}-based implementation of
  * the {@link ContentRepository} interface.
  */
-public class KernelContentRepository implements ContentRepository {
+public class ContentRepositoryImpl implements ContentRepository {
 
     /** Logger instance */
     private static final Logger log =
-            LoggerFactory.getLogger(KernelContentRepository.class);
+            LoggerFactory.getLogger(ContentRepositoryImpl.class);
 
     // TODO: retrieve default wsp-name from configuration
     private static final String DEFAULT_WORKSPACE_NAME = "default";
@@ -49,17 +50,17 @@ public class KernelContentRepository implements ContentRepository {
     private final MicroKernel microKernel;
     private final CoreValueFactory valueFactory;
     private final QueryEngine queryEngine;
-    private final KernelNodeStore nodeStore;
+    private final NodeStore nodeStore;
 
     /**
      * Utility constructor that creates a new in-memory repository for use
      * mostly in test cases.
      */
-    public KernelContentRepository() {
+    public ContentRepositoryImpl() {
         this(new MicroKernelImpl());
     }
 
-    public KernelContentRepository(MicroKernel mk) {
+    public ContentRepositoryImpl(MicroKernel mk) {
         microKernel = mk;
         valueFactory = new CoreValueFactoryImpl(microKernel);
         nodeStore = new KernelNodeStore(microKernel, valueFactory);
@@ -104,7 +105,7 @@ public class KernelContentRepository implements ContentRepository {
             throw new NoSuchWorkspaceException(workspaceName);
         }
 
-        return new KernelContentSession(sc, workspaceName, nodeStore, queryEngine, valueFactory);
+        return new ContentSessionImpl(sc, workspaceName, nodeStore, queryEngine, valueFactory);
     }
 
 }

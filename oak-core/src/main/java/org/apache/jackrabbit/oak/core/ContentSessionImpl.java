@@ -22,8 +22,7 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
-import org.apache.jackrabbit.oak.kernel.KernelRoot;
+import org.apache.jackrabbit.oak.kernel.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,20 +32,20 @@ import java.io.IOException;
 /**
  * {@link MicroKernel}-based implementation of the {@link ContentSession} interface.
  */
-class KernelContentSession implements ContentSession {
+class ContentSessionImpl implements ContentSession {
 
     /** Logger instance */
     private static final Logger log =
-            LoggerFactory.getLogger(KernelContentSession.class);
+            LoggerFactory.getLogger(ContentSessionImpl.class);
 
     private final SimpleCredentials credentials;
     private final String workspaceName;
-    private final KernelNodeStore store;
+    private final NodeStore store;
     private final QueryEngine queryEngine;
     private final CoreValueFactory valueFactory;
 
-    public KernelContentSession(SimpleCredentials credentials, String workspaceName,
-            KernelNodeStore store, QueryEngine queryEngine, CoreValueFactory valueFactory) {
+    public ContentSessionImpl(SimpleCredentials credentials, String workspaceName,
+                              NodeStore store, QueryEngine queryEngine, CoreValueFactory valueFactory) {
 
         this.credentials = credentials;
         this.workspaceName = workspaceName;
@@ -78,7 +77,7 @@ class KernelContentSession implements ContentSession {
     
     @Override
     public Root getCurrentRoot() {
-        return new KernelRoot(store, workspaceName);
+        return new RootImpl(store, workspaceName);
     }
 
     @Override

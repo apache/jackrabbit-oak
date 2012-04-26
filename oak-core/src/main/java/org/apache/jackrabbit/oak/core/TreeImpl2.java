@@ -16,11 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.kernel;
+package org.apache.jackrabbit.oak.core;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.kernel.ChildNodeEntry;
+import org.apache.jackrabbit.oak.kernel.NodeState;
+import org.apache.jackrabbit.oak.kernel.NodeStateBuilder;
+import org.apache.jackrabbit.oak.kernel.NodeStateDiff;
+import org.apache.jackrabbit.oak.kernel.NodeStore;
 import org.apache.jackrabbit.oak.util.Function1;
 import org.apache.jackrabbit.oak.util.Iterators;
 import org.apache.jackrabbit.oak.util.PagedIterator;
@@ -30,7 +35,7 @@ import java.util.List;
 
 import static org.apache.jackrabbit.oak.util.Iterators.flatten;
 
-public class KernelTree2 implements Tree {
+public class TreeImpl2 implements Tree {
 
     private final NodeStore store;
 
@@ -49,10 +54,10 @@ public class KernelTree2 implements Tree {
     private String name;
 
     /** Parent of this content tree */
-    private KernelTree2 parent;
+    private TreeImpl2 parent;
 
-    private KernelTree2(NodeStore store, NodeState baseState, NodeStateBuilder builder,
-            KernelTree2 parent, String name, Listener listener) {
+    private TreeImpl2(NodeStore store, NodeState baseState, NodeStateBuilder builder,
+                      TreeImpl2 parent, String name, Listener listener) {
 
         this.store = store;
         this.builder = builder;
@@ -62,7 +67,7 @@ public class KernelTree2 implements Tree {
         this.parent = parent;
     }
     
-    KernelTree2(NodeStore store, NodeStateBuilder nodeStateBuilder, Listener listener) {
+    TreeImpl2(NodeStore store, NodeStateBuilder nodeStateBuilder, Listener listener) {
         this(store, nodeStateBuilder.getNodeState(), nodeStateBuilder, null, "", listener);
     }
 
@@ -76,14 +81,14 @@ public class KernelTree2 implements Tree {
          * @param tree  parent to which a child was added
          * @param name  name of the added child
          */
-        void addChild(KernelTree2 tree, String name);
+        void addChild(TreeImpl2 tree, String name);
 
         /**
          * The child of the given {@code name} has been removed from {@code tree}
          * @param tree  parent from which a child was removed
          * @param name  name of the removed child
          */
-        void removeChild(KernelTree2 tree, String name);
+        void removeChild(TreeImpl2 tree, String name);
 
         /**
          * The property of the given {@code name} and {@code value} has been set.
@@ -91,7 +96,7 @@ public class KernelTree2 implements Tree {
          * @param name  name of the property
          * @param value  value of the property
          */
-        void setProperty(KernelTree2 tree, String name, CoreValue value);
+        void setProperty(TreeImpl2 tree, String name, CoreValue value);
 
         /**
          * The property of the given {@code name} and {@code values} has been set.
@@ -99,14 +104,14 @@ public class KernelTree2 implements Tree {
          * @param name  name of the property
          * @param values  values of the property
          */
-        void setProperty(KernelTree2 tree, String name, List<CoreValue> values);
+        void setProperty(TreeImpl2 tree, String name, List<CoreValue> values);
 
         /**
          * The property of the given {@code name} has been removed.
          * @param tree  parent on which the property was removed.
          * @param name  name of the property
          */
-        void removeProperty(KernelTree2 tree, String name);
+        void removeProperty(TreeImpl2 tree, String name);
 
         /**
          * The child with the given {@code name} has been moved.
@@ -114,7 +119,7 @@ public class KernelTree2 implements Tree {
          * @param name  name of the moved child
          * @param moved  moved child
          */
-        void move(KernelTree2 tree, String name, KernelTree2 moved);
+        void move(TreeImpl2 tree, String name, TreeImpl2 moved);
 
         /**
          * The child with the given {@code name} been copied.
@@ -122,7 +127,7 @@ public class KernelTree2 implements Tree {
          * @param name  name of the copied child
          * @param copied  copied child
          */
-        void copy(KernelTree2 tree, String name, KernelTree2 copied);
+        void copy(TreeImpl2 tree, String name, TreeImpl2 copied);
     }
 
     @Override
@@ -206,7 +211,7 @@ public class KernelTree2 implements Tree {
     }
 
     @Override
-    public KernelTree2 getChild(String name) {
+    public TreeImpl2 getChild(String name) {
         NodeStateBuilder childBuilder = builder.getChildBuilder(name);
         NodeState childBaseState = baseState == null
             ? null
@@ -214,7 +219,7 @@ public class KernelTree2 implements Tree {
 
         return childBuilder == null
             ? null
-            : new KernelTree2(store, childBaseState, childBuilder, this, name, listener);
+            : new TreeImpl2(store, childBaseState, childBuilder, this, name, listener);
     }
 
     @Override
@@ -280,7 +285,7 @@ public class KernelTree2 implements Tree {
                     @Override
                     public Tree apply(ChildNodeEntry entry) {
                         NodeStateBuilder childBuilder = builder.getChildBuilder(entry.getName());
-                        return new KernelTree2(store, childBuilder.getNodeState(), childBuilder, KernelTree2.this, entry.getName(), listener);
+                        return new TreeImpl2(store, childBuilder.getNodeState(), childBuilder, TreeImpl2.this, entry.getName(), listener);
                     }
                 });
             }
@@ -290,7 +295,7 @@ public class KernelTree2 implements Tree {
     @Override
     public Tree addChild(String name) {
         NodeStateBuilder childBuilder = builder.addNode(name);
-        KernelTree2 added = new KernelTree2(store, null, childBuilder, this, name, listener);
+        TreeImpl2 added = new TreeImpl2(store, null, childBuilder, this, name, listener);
         if (added != null) {
             listener.addChild(this, name);
         }
@@ -308,7 +313,7 @@ public class KernelTree2 implements Tree {
 
     @Override
     public void setProperty(String name, CoreValue value) {
-        PropertyState propertyState = new KernelPropertyState(name, value);
+        PropertyState propertyState = new PropertyStateImpl(name, value);
         builder.setProperty(propertyState);
         if (listener != null) {
             listener.setProperty(this, name, value);
@@ -317,7 +322,7 @@ public class KernelTree2 implements Tree {
 
     @Override
     public void setProperty(String name, List<CoreValue> values) {
-        PropertyState propertyState = new KernelPropertyState(name, values);
+        PropertyState propertyState = new PropertyStateImpl(name, values);
         builder.setProperty(propertyState);
         if (listener != null) {
             listener.setProperty(this, name, values);
@@ -341,10 +346,10 @@ public class KernelTree2 implements Tree {
      * @return  {@code true} if successful, {@code false otherwise}. I.e.
      * when {@code destName} already exists at {@code destParent}
      */
-    public boolean move(KernelTree2 destParent, String destName) {
+    public boolean move(TreeImpl2 destParent, String destName) {
         boolean result = builder.moveTo(destParent.builder, destName);
         if (result) {
-            KernelTree2 oldParent = parent;
+            TreeImpl2 oldParent = parent;
             String oldName = name;
 
             name = destName;
@@ -365,7 +370,7 @@ public class KernelTree2 implements Tree {
      * @return  {@code true} if successful, {@code false otherwise}. I.e.
      * when {@code destName} already exists at {@code destParent}
      */
-    public boolean copy(KernelTree2 destParent, String destName) {
+    public boolean copy(TreeImpl2 destParent, String destName) {
         boolean result = builder.copyTo(destParent.builder, destName);
         if (result) {
             if (listener != null) {
