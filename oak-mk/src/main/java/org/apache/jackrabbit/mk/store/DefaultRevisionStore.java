@@ -113,8 +113,7 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
         }
 
         initialCacheSize = determineInitialCacheSize();
-        cache = Collections.synchronizedMap(SimpleLRUCache
-                .<Id, Object> newInstance(initialCacheSize));
+        cache = Collections.synchronizedMap(SimpleLRUCache.<Id, Object> newInstance(initialCacheSize));
 
         // make sure we've got a HEAD commit
         head = pm.readHead();
@@ -491,6 +490,7 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
             if (firstBranchRootId != null && firstBranchRootId.compareTo(firstCommitId) < 0) {
                 firstCommitId = firstBranchRootId;
             }
+            /* repair dangling parent commit of first, preserved commit */
             StoredCommit commit = getCommit(firstCommitId);
             if (commit.getParentId() != null) {
                 MutableCommit firstCommit = new MutableCommit(commit);
@@ -575,8 +575,11 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
     
     /**
      * Mark all commits and nodes in a garbage collection cycle. Can be
-     * customized by subclasses. If this method throws an exception, the cycle
-     * will be stopped without sweeping.
+     * customized by subclasses. The default implementation preserves all
+     * commits that were created within 60 minutes of the current head commit.
+     * <p/>
+     * If this method throws an exception, the cycle will be stopped without
+     * sweeping.
      * 
      * @return first commit id that will be preserved
      * @throws Exception
