@@ -37,25 +37,32 @@ import static org.apache.jackrabbit.mk.util.PathUtils.getParentPath;
  * This {@code Root} implementation listens on the root of the underlying
  * {@link Tree} using a {@link Listener}. All changes are directly applied
  * to the {@link NodeStateBuilder} for the relevant sub-tree.
- *
- * TODO: Refactor tree to be based on the individual NodeStateBuilders instead of NodeStates
  */
 public class RootImpl implements Root {
 
+    /** The underlying store to which this root belongs */
     private final NodeStore store;
+
+    /** The name of the workspace we are operating on */
     private final String workspaceName;
-
-    /** Base node state of this tree */
-    private NodeState base;
-
-    /** Root state of this tree */
-    private TreeImpl root;
 
     /** Listener for changes on the content tree */
     private TreeListener treeListener = new TreeListener();
 
+    /** Base node state of this tree */
+    private NodeState base;
+
+    /** The builder for this root */
     private NodeStateBuilder nodeStateBuilder;
 
+    /** Root state of this tree */
+    private TreeImpl root;
+
+    /**
+     * New instance bases on a given {@link NodeStore} and a workspace
+     * @param store  node store
+     * @param workspaceName  name of the workspace
+     */
     public RootImpl(NodeStore store, String workspaceName) {
         this.store = store;
         this.workspaceName = workspaceName;
@@ -103,9 +110,9 @@ public class RootImpl implements Root {
     @Override
     public void commit() throws CommitFailedException {
         store.apply(nodeStateBuilder);
+        treeListener = new TreeListener();
         base = store.getRoot().getChildNode(workspaceName);
         nodeStateBuilder = store.getBuilder(base);
-        treeListener = new TreeListener();
         root = new TreeImpl(store, nodeStateBuilder, treeListener);
     }
 
