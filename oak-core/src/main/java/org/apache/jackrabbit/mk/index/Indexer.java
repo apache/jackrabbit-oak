@@ -43,6 +43,9 @@ import java.util.Map.Entry;
  */
 public class Indexer implements QueryIndexProvider {
 
+    // TODO discuss where to store index config data
+    private static final String INDEX_CONFIG_ROOT = "/jcr:system/indexes";
+
     private static final boolean DISABLED = Boolean.getBoolean("mk.indexDisabled");
 
     private MicroKernel mk;
@@ -60,7 +63,7 @@ public class Indexer implements QueryIndexProvider {
     }
 
     public Indexer(MicroKernel mk) {
-        this(mk, "/index");
+        this(mk, INDEX_CONFIG_ROOT);
     }
 
     @Override
