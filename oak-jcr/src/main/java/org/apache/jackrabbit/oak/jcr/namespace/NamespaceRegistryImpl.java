@@ -25,9 +25,7 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceMappings;
 
 /**
- * A naive implementation of {@link NamespaceRegistry}, hard-wiring the
- * predefined namespaces for now.
- * TODO use API only
+ * Implementation of {@link NamespaceRegistry} based on {@link NamespaceMappings}.
  */
 public class NamespaceRegistryImpl implements NamespaceRegistry {
 
@@ -37,6 +35,7 @@ public class NamespaceRegistryImpl implements NamespaceRegistry {
         this.nsMappings = new NamespaceMappings(session);
     }
 
+    //--------------------------------------------------< NamespaceRegistry >---
     @Override
     public void registerNamespace(String prefix, String uri)
             throws RepositoryException {
