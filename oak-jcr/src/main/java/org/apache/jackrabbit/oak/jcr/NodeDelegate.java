@@ -42,8 +42,7 @@ public class NodeDelegate extends ItemDelegate {
     }
 
     NodeDelegate addNode(String relPath) throws RepositoryException {
-        String parentPath = Paths.concat(getPath(),
-                Paths.getParentPath(relPath));
+        String parentPath = Paths.concat(getPath(), Paths.getParentPath(relPath));
         Tree parentState = getBranch().getTree(parentPath);
         if (parentState == null) {
             throw new PathNotFoundException(relPath);
