@@ -61,7 +61,7 @@ class NodeTypeImpl implements NodeType {
 
     private boolean isAbstract;
 
-    private final boolean isMixin;
+    private final boolean mixin;
 
     private final boolean hasOrderableChildNodes;
 
@@ -83,40 +83,52 @@ class NodeTypeImpl implements NodeType {
         Matcher matcher = CND_PATTERN.matcher(cnd.replace("\r\n", "\n"));
         matcher.matches();
 
-        this.declaredSuperTypeNames = matcher.group(2).split(", ");
         this.isAbstract = matcher.group(5) != null;
-        this.isMixin = matcher.group(4) != null;
+        this.mixin = matcher.group(4) != null;
         this.hasOrderableChildNodes = matcher.group(7) != null;
         this.primaryItemName = matcher.group(8);
 
-        for (String line : matcher.group(9).split("\n")) {
-            matcher = DEF_PATTERN.matcher(line);
-            matcher.matches();
+        String supertypes = matcher.group(2);
+        if (supertypes != null)  {
+            this.declaredSuperTypeNames = supertypes.split(", ");
+        } else if (mixin) {
+            this.declaredSuperTypeNames = new String[0];
+        } else {
+            this.declaredSuperTypeNames = new String[] { "nt:base" };
+        }
 
-            String defName = matcher.group(2);
-            String defType = matcher.group(3);
+        String defs = matcher.group(9);
+        if (defs != null) {
+            defs = defs.trim();
+            for (String line : defs.split("\n")) {
+                matcher = DEF_PATTERN.matcher(line);
+                matcher.matches();
 
-            boolean mandatory = matcher.group(6).contains(" mandatory");
-            boolean autoCreated = matcher.group(6).contains(" autocreated");
-            boolean isProtected = matcher.group(6).contains(" protected");
-            boolean multiple = matcher.group(6).contains(" multiple");
+                String defName = matcher.group(2);
+                String defType = matcher.group(3);
 
-            int onParentVersionAction = OnParentVersionAction.COPY;
-            if (matcher.group(9) != null) {
-                onParentVersionAction =
-                        OnParentVersionAction.valueFromName(matcher.group(9));
-            }
+                boolean mandatory = matcher.group(6).contains(" mandatory");
+                boolean autoCreated = matcher.group(6).contains(" autocreated");
+                boolean isProtected = matcher.group(6).contains(" protected");
+                boolean multiple = matcher.group(6).contains(" multiple");
 
-            if ("+".equals(matcher.group(1))) {
-                declaredChildNodeDefinitions.add(new NodeDefinitionImpl(
-                        this, mapper, defName, autoCreated, mandatory,
-                        onParentVersionAction, isProtected, manager,
-                        defType.split(", "), matcher.group(5), false));
-            } else {
-                declaredPropertyDefinitions.add(new PropertyDefinitionImpl(
-                        this, mapper, defName, autoCreated, mandatory,
-                        onParentVersionAction, isProtected,
-                        PropertyType.valueFromName(defType), multiple));
+                int onParentVersionAction = OnParentVersionAction.COPY;
+                if (matcher.group(9) != null) {
+                    onParentVersionAction =
+                            OnParentVersionAction.valueFromName(matcher.group(9));
+                }
+
+                if ("+".equals(matcher.group(1))) {
+                    declaredChildNodeDefinitions.add(new NodeDefinitionImpl(
+                            this, mapper, defName, autoCreated, mandatory,
+                            onParentVersionAction, isProtected, manager,
+                            defType.split(", "), matcher.group(5), false));
+                } else {
+                    declaredPropertyDefinitions.add(new PropertyDefinitionImpl(
+                            this, mapper, defName, autoCreated, mandatory,
+                            onParentVersionAction, isProtected,
+                            PropertyType.valueFromName(defType), multiple));
+                }
             }
         }
     }
@@ -142,7 +154,7 @@ class NodeTypeImpl implements NodeType {
 
     @Override
     public boolean isMixin() {
-        return isMixin;
+        return mixin;
     }
 
     @Override
