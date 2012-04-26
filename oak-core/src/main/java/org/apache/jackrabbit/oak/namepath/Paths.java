@@ -109,85 +109,6 @@ public final class Paths {
         return PathUtils.getDepth(path);
     }
 
-    /**
-     * Get the prefix of an element. Undefined if {@code element} is
-     * not an {@code ELEMENT}.
-     * @param element
-     * @return  the {@code PREFIX} of {@code element} or {@code null} if none
-     */
-    public static String getPrefixFromElement(String element) {
-        int pos = element.indexOf(':');
-        if (pos == -1) {
-            return null;
-        }
-        else {
-            return element.substring(0, pos);
-        }
-    }
-
-    /**
-     * Get the name of an element. Undefined if {@code element} is
-     * not an {@code ELEMENT}.
-     * @param element
-     * @return  the {@code NAME} of {@code element}
-     */
-    public static String getNameFromElement(String element) {
-        int pos = element.indexOf(':');
-        if (pos == -1) {
-            return element;
-        }
-        else {
-            return element.substring(pos + 1);
-        }
-    }
-
-    /**
-     * Determine whether {@code string} is a valid {@code ELEMENT}.
-     * @param string
-     * @return  {@code true} iff {@code string} is a valid {@code ELEMENT}.
-     */
-    public static boolean isValidElement(String string) {
-        if (string.isEmpty()) {
-            return false;
-        }
-
-        int colons = 0;
-        int pos = -1;
-        for (int k = 0; k < string.length(); k++) {
-            if (string.charAt(k) == ':') {
-                colons += 1;
-                pos = k;
-            }
-            else if (string.charAt(k) == '/') {
-                return false;
-            }
-        }
-
-        return colons <= 1 && (pos != 0 && pos != string.length() - 1);
-    }
-
-    /**
-     * Determine whether {@code string} is a valid {@code PATH}.
-     * @param string
-     * @return  {@code true} iff {@code string} is a valid {@code PATH}.
-     */
-    public static boolean isValidPath(String string) {
-        if (string.isEmpty()) {
-            return false;
-        }
-        if (string.length() > 1 && string.endsWith("/")) {
-            return false;
-        }
-
-        for (String part : split(string, '/')) {
-            if (!isValidElement(part)) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
     public static String toOakName(String name, final NameMapper mapper) {
         final StringBuilder element = new StringBuilder();
         
@@ -217,6 +138,9 @@ public final class Paths {
         }
 
         JcrPathParser.Listener listener = new JcrPathParser.Listener() {
+
+            // TODO: replace RuntimeException by something that oak-jcr can deal with (e.g. ValueFactory)
+
             @Override
             public void root() {
                 if (!elements.isEmpty()) {
