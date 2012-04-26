@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.mk.index;
 
 import java.util.Iterator;
+import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.mk.simple.NodeImpl;
 
@@ -63,7 +64,7 @@ public class PrefixIndex implements Index {
     public void addOrRemoveProperty(String nodePath, String propertyName,
             String value, boolean add) {
         JsopTokenizer t = new JsopTokenizer(value);
-        if (t.matches(JsopTokenizer.STRING)) {
+        if (t.matches(JsopReader.STRING)) {
             String v = t.getToken();
             if (v.startsWith(prefix)) {
                 addOrRemove(nodePath, propertyName, v, add);
@@ -71,18 +72,18 @@ public class PrefixIndex implements Index {
         } else if (t.matches('[')) {
             if (!t.matches(']')) {
                 do {
-                    if (t.matches(JsopTokenizer.STRING)) {
+                    if (t.matches(JsopReader.STRING)) {
                         String v = t.getToken();
                         if (v.startsWith(prefix)) {
                             addOrRemove(nodePath, propertyName, v, add);
                         }
-                    } else if (t.matches(JsopTokenizer.FALSE)) {
+                    } else if (t.matches(JsopReader.FALSE)) {
                         // ignore
-                    } else if (t.matches(JsopTokenizer.TRUE)) {
+                    } else if (t.matches(JsopReader.TRUE)) {
                         // ignore
-                    } else if (t.matches(JsopTokenizer.NULL)) {
+                    } else if (t.matches(JsopReader.NULL)) {
                         // ignore
-                    } else if (t.matches(JsopTokenizer.NUMBER)) {
+                    } else if (t.matches(JsopReader.NUMBER)) {
                         // ignore
                     }
                 } while (t.matches(','));
