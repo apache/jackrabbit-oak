@@ -23,7 +23,9 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.index.PropertyIndex;
 import org.apache.jackrabbit.mk.simple.NodeImpl;
 import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.query.index.Filter.PropertyRestriction;
+import org.apache.jackrabbit.oak.spi.Cursor;
+import org.apache.jackrabbit.oak.spi.Filter;
+import org.apache.jackrabbit.oak.spi.QueryIndex;
 
 /**
  * An index that stores the index data in a {@code MicroKernel}.
@@ -41,7 +43,7 @@ public class PropertyContentIndex implements QueryIndex {
     @Override
     public double getCost(Filter filter) {
         String propertyName = index.getName();
-        PropertyRestriction restriction = filter.getPropertyRestriction(propertyName);
+        Filter.PropertyRestriction restriction = filter.getPropertyRestriction(propertyName);
         if (restriction == null) {
             return Double.MAX_VALUE;
         }
@@ -65,7 +67,7 @@ public class PropertyContentIndex implements QueryIndex {
     @Override
     public String getPlan(Filter filter) {
         String propertyName = index.getName();
-        PropertyRestriction restriction = filter.getPropertyRestriction(propertyName);
+        Filter.PropertyRestriction restriction = filter.getPropertyRestriction(propertyName);
 
         return "propertyIndex \"" + restriction.propertyName + " " + restriction.toString() + '"';
     }
@@ -73,7 +75,7 @@ public class PropertyContentIndex implements QueryIndex {
     @Override
     public Cursor query(Filter filter, String revisionId) {
         String propertyName = index.getName();
-        PropertyRestriction restriction = filter.getPropertyRestriction(propertyName);
+        Filter.PropertyRestriction restriction = filter.getPropertyRestriction(propertyName);
         if (restriction == null) {
             throw new IllegalArgumentException("No restriction for " + propertyName);
         }

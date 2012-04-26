@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.query.index.Filter;
+import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
 public class EquiJoinConditionImpl extends JoinConditionImpl {
 
@@ -89,7 +89,7 @@ public class EquiJoinConditionImpl extends JoinConditionImpl {
     }
 
     @Override
-    public void apply(Filter f) {
+    public void apply(FilterImpl f) {
         CoreValue v1 = selector1.currentProperty(property1Name);
         CoreValue v2 = selector2.currentProperty(property2Name);
         if (f.getSelector() == selector1 && v2 != null) {

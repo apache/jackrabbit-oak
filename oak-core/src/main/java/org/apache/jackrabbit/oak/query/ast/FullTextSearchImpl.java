@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import org.apache.jackrabbit.oak.query.index.Filter;
+import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
 public class FullTextSearchImpl extends ConstraintImpl {
 
@@ -75,7 +75,7 @@ public class FullTextSearchImpl extends ConstraintImpl {
     }
 
     @Override
-    public void apply(Filter f) {
+    public void apply(FilterImpl f) {
         // TODO support fulltext index conditions
     }
 

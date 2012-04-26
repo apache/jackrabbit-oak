@@ -13,13 +13,13 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import org.apache.jackrabbit.oak.query.index.Filter;
+import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
 
 public abstract class JoinConditionImpl extends AstElement {
 
     public abstract boolean evaluate();
 
-    public abstract void apply(Filter f);
+    public abstract void apply(FilterImpl f);
 
 }

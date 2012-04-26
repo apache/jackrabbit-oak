@@ -16,6 +16,7 @@ package org.apache.jackrabbit.oak.query.index;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.simple.NodeImpl;
 import org.apache.jackrabbit.mk.util.PathUtils;
+import org.apache.jackrabbit.oak.spi.Cursor;
 import java.util.ArrayList;
 
 /**

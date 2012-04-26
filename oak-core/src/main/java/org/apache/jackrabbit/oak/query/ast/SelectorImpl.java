@@ -23,9 +23,9 @@ import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.mk.simple.NodeImpl;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.query.Query;
-import org.apache.jackrabbit.oak.query.index.Cursor;
-import org.apache.jackrabbit.oak.query.index.Filter;
-import org.apache.jackrabbit.oak.query.index.QueryIndex;
+import org.apache.jackrabbit.oak.query.index.FilterImpl;
+import org.apache.jackrabbit.oak.spi.Cursor;
+import org.apache.jackrabbit.oak.spi.QueryIndex;
 
 public class SelectorImpl extends SourceImpl {
 
@@ -77,8 +77,8 @@ public class SelectorImpl extends SourceImpl {
         return  nodeTypeName + " AS " + getSelectorName() + " /* " + index.getPlan(createFilter()) + " */";
     }
 
-    private Filter createFilter() {
-        Filter f = new Filter(this);
+    private FilterImpl createFilter() {
+        FilterImpl f = new FilterImpl(this);
         if (joinCondition != null) {
             joinCondition.apply(f);
         }

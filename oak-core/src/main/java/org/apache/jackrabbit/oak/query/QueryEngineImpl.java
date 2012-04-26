@@ -24,10 +24,10 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.QueryEngine;
-import org.apache.jackrabbit.oak.query.index.Filter;
-import org.apache.jackrabbit.oak.query.index.QueryIndex;
-import org.apache.jackrabbit.oak.query.index.QueryIndexProvider;
+import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.query.index.TraversingIndex;
+import org.apache.jackrabbit.oak.spi.QueryIndex;
+import org.apache.jackrabbit.oak.spi.QueryIndexProvider;
 
 public class QueryEngineImpl implements QueryEngine {
 
@@ -94,7 +94,7 @@ public class QueryEngineImpl implements QueryEngine {
         return q.executeQuery(mk.getHeadRevision());
     }
 
-    public QueryIndex getBestIndex(Filter filter) {
+    public QueryIndex getBestIndex(FilterImpl filter) {
         QueryIndex best = null;
         double bestCost = Double.MAX_VALUE;
         for (QueryIndex index : getIndexes()) {

@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import org.apache.jackrabbit.oak.query.index.Filter;
+import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
 public abstract class ConstraintImpl extends AstElement {
 
@@ -32,6 +32,6 @@ public abstract class ConstraintImpl extends AstElement {
      *
      * @param f the filter
      */
-    public abstract void apply(Filter f);
+    public abstract void apply(FilterImpl f);
 
 }
