@@ -71,17 +71,19 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
 
         long ts0 = System.currentTimeMillis();
 
-        // perform 10 commits
-        for (int i = 0; i < 10; i++) {
+        final int NUM_COMMITS = 100;
+
+        // perform NUM_COMMITS commits
+        for (int i = 0; i < NUM_COMMITS; i++) {
             mk.commit("/test", "+\"child" + i + "\":{}", null, "commit#" + i);
         }
 
         // get oldest available revision
         array = parseJSONArray(mk.getRevisionHistory(ts0, -1));
-        // there should be exactly 10 revisions
-        assertEquals(array.size(), 10);
+        // there should be exactly NUM_COMMITS revisions
+        assertEquals(array.size(), NUM_COMMITS);
         long previousTS = ts0;
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < NUM_COMMITS; i++) {
             JSONObject rev = getObjectArrayEntry(array, i);
             assertPropertyExists(rev, "id", String.class);
             assertPropertyExists(rev, "ts", Long.class);
@@ -95,6 +97,37 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
 
         // last revision should be the current head revision
         assertPropertyValue(getObjectArrayEntry(array, array.size() - 1), "id", mk.getHeadRevision());
+
+        String fromRev = (String) resolveValue(getObjectArrayEntry(array, 0), "id");
+        String toRev = (String) resolveValue(getObjectArrayEntry(array, array.size() - 1), "id");
+
+        // verify journal
+        array = parseJSONArray(mk.getJournal(fromRev, toRev, ""));
+        // there should be exactly NUM_COMMITS entries
+        assertEquals(array.size(), NUM_COMMITS);
+        // verify that 1st and last rev match fromRev and toRev
+        assertPropertyValue(getObjectArrayEntry(array, 0), "id", fromRev);
+        assertPropertyValue(getObjectArrayEntry(array, array.size() - 1), "id", toRev);
+
+        previousTS = ts0;
+        for (int i = 0; i < NUM_COMMITS; i++) {
+            JSONObject rev = getObjectArrayEntry(array, i);
+            assertPropertyExists(rev, "id", String.class);
+            assertPropertyExists(rev, "ts", Long.class);
+            assertPropertyExists(rev, "changes", String.class);
+            // TODO verify json diff
+            // verify commit msg
+            assertPropertyValue(rev, "msg", "commit#" + i);
+            // verify chronological order
+            long ts = (Long) resolveValue(rev, "ts");
+            assertTrue(previousTS <= ts);
+            previousTS = ts;
+        }
+
+        // test with 'negative' range (switch from and to)
+        array = parseJSONArray(mk.getJournal(toRev, fromRev, ""));
+        // there should be exactly 0 entries
+        assertEquals(array.size(), 0);
     }
 
     @Test
