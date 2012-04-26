@@ -16,34 +16,118 @@
  */
 package org.apache.jackrabbit.mk.json;
 
+/**
+ * A builder for Json and Json diff strings. It knows when a comma is needed. A
+ * comma is appended before '{', '[', a value, or a key; but only if the last
+ * appended token was '}', ']', or a value. There is no limit to the number of
+ * nesting levels.
+ */
 public interface JsopWriter {
 
+    /**
+     * Append '['. A comma is appended first if needed.
+     *
+     * @return this
+     */
     JsopWriter array();
 
+    /**
+     * Append '{'. A comma is appended first if needed.
+     *
+     * @return this
+     */
     JsopWriter object();
 
+    /**
+     * Append the key (in quotes) plus a colon. A comma is appended first if
+     * needed.
+     *
+     * @param name the key
+     * @return this
+     */
     JsopWriter key(String key);
 
+    /**
+     * Append a string or null. A comma is appended first if needed.
+     *
+     * @param value the value
+     * @return this
+     */
     JsopWriter value(String value);
 
+    /**
+     * Append an already encoded value. A comma is appended first if needed.
+     *
+     * @param value the value
+     * @return this
+     */
     JsopWriter encodedValue(String raw);
 
+    /**
+     * Append '}'.
+     *
+     * @return this
+     */
     JsopWriter endObject();
 
+    /**
+     * Append ']'.
+     *
+     * @return this
+     */
     JsopWriter endArray();
 
+    /**
+     * Append a Jsop tag character.
+     *
+     * @param tag the string to append
+     * @return this
+     */
     JsopWriter tag(char tag);
 
+    /**
+     * Append all entries of the given buffer.
+     *
+     * @param buffer the buffer
+     * @return this
+     */
     JsopWriter append(JsopWriter diff);
 
+    /**
+     * Append a number. A comma is appended first if needed.
+     *
+     * @param value the value
+     * @return this
+     */
     JsopWriter value(long x);
 
+    /**
+     * Append the boolean value 'true' or 'false'. A comma is appended first if
+     * needed.
+     *
+     * @param value the value
+     * @return this
+     */
     JsopWriter value(boolean b);
 
+    /**
+     * Append a newline character.
+     *
+     * @return this
+     */
     JsopWriter newline();
 
+    /**
+     * Resets this instance, so that all data is discarded.
+     */
     void resetWriter();
 
-    void setLineLength(int i);
+    /**
+     * Set the line length, after which a newline is added (to improve
+     * readability).
+     *
+     * @param length the length
+     */
+    void setLineLength(int length);
 
 }

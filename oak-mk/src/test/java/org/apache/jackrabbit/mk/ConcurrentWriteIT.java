@@ -52,7 +52,7 @@ public class ConcurrentWriteIT extends TestCase {
             assertFalse(mk.nodeExists(TEST_PATH + "/" + thread.getName(), null));
         }
 
-        long t0 = System.currentTimeMillis();
+        // long t0 = System.currentTimeMillis();
 
         for (TestThread t : threads) {
             if (t != null) {
@@ -61,7 +61,7 @@ public class ConcurrentWriteIT extends TestCase {
             }
         }
 
-        long t1 = System.currentTimeMillis();
+        // long t1 = System.currentTimeMillis();
         // System.out.println("duration: " + (t1 - t0) + "ms");
 
         for (Thread t : threads) {

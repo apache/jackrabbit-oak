@@ -34,7 +34,7 @@ public class JsopStreamTest extends TestCase {
                     w.resetWriter();
                 }
             }
-            // System.out.println(w.getClass() + ": " + timer.seconds());
+            System.out.println(w.getClass() + ": " + timer.seconds());
         }
         // JsopStream: 20
         // JsopBuilder: 1150
@@ -60,14 +60,14 @@ public class JsopStreamTest extends TestCase {
         for (int i = 0; i < 3; i++) {
             assertFalse(s.matches('-'));
             assertTrue(s.matches('+'));
-            assertEquals("x", s.read(JsopTokenizer.STRING));
+            assertEquals("x", s.read(JsopReader.STRING));
             s.read(':');
             assertEquals("{", s.read('{'));
             assertEquals("y", s.readString());
             s.read(':');
             assertEquals("[1,[],2]", s.readRawValue());
             s.read('}');
-            s.read(JsopTokenizer.END);
+            s.read(JsopReader.END);
             s.resetReader();
         }
     }
@@ -83,7 +83,7 @@ public class JsopStreamTest extends TestCase {
         assertEquals("+\"x\":{\"y\":1,\"n\":\"\",\"z\":n10}", s.toString());
         assertFalse(s.matches('-'));
         assertTrue(s.matches('+'));
-        assertEquals("x", s.read(JsopTokenizer.STRING));
+        assertEquals("x", s.read(JsopReader.STRING));
         try {
             s.read('}');
             fail();
@@ -134,7 +134,7 @@ public class JsopStreamTest extends TestCase {
         StringBuilder buff = new StringBuilder();
         while (true) {
             prettyPrint(buff, t, "  ");
-            if (t.getTokenType() == JsopTokenizer.END) {
+            if (t.getTokenType() == JsopReader.END) {
                 return buff.toString();
             }
         }
@@ -146,17 +146,17 @@ public class JsopStreamTest extends TestCase {
         while (true) {
             int token = t.read();
             switch (token) {
-                case JsopTokenizer.END:
+                case JsopReader.END:
                     return buff.toString();
-                case JsopTokenizer.STRING:
+                case JsopReader.STRING:
                     buff.append(JsopBuilder.encode(t.getToken()));
                     break;
-                case JsopTokenizer.NUMBER:
-                case JsopTokenizer.TRUE:
-                case JsopTokenizer.FALSE:
-                case JsopTokenizer.NULL:
-                case JsopTokenizer.IDENTIFIER:
-                case JsopTokenizer.ERROR:
+                case JsopReader.NUMBER:
+                case JsopReader.TRUE:
+                case JsopReader.FALSE:
+                case JsopReader.NULL:
+                case JsopReader.IDENTIFIER:
+                case JsopReader.ERROR:
                     buff.append(t.getToken());
                     break;
                 case '{':
