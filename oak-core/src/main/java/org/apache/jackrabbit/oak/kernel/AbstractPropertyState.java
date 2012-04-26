@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
-import java.util.Iterator;
-
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
+
+import java.util.Iterator;
 
 /**
  * Abstract base class for {@link PropertyState} implementations.
@@ -80,4 +80,8 @@ public abstract class AbstractPropertyState implements PropertyState {
         return getName().hashCode();
     }
 
+    @Override
+    public String toString() {
+        return getName() + '=' + getValue();
+    }
 }
