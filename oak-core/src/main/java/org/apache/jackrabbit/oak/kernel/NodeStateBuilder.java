@@ -49,9 +49,11 @@ public interface NodeStateBuilder {
     NodeStateBuilder addNode(String name, NodeState nodeState);
 
     /**
-     * Set or removes the named child node.
+     * Add the named child node if it doesn't already exist.
      *
      * @param name  name of the child node
+     * @return  a builder for the added child or {@code null} if such a child
+     * already exists
      */
     NodeStateBuilder addNode(String name);
 
