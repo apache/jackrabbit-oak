@@ -69,7 +69,7 @@ public class ContentRepositoryImpl implements ContentRepository {
         // FIXME: workspace setup must be done elsewhere...
         queryEngine.init();
         NodeState root = nodeStore.getRoot();
-        
+
         NodeState wspNode = root.getChildNode(DEFAULT_WORKSPACE_NAME);
         if (wspNode == null) {
             microKernel.commit("/", "+\"" + DEFAULT_WORKSPACE_NAME + "\":{}" + "^\"" + DEFAULT_WORKSPACE_NAME + "/jcr:primaryType\":\"nt:unstructured\" ", null, null);

@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.query;
 
+import java.text.ParseException;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.index.Indexer;
 import org.apache.jackrabbit.oak.api.CoreValue;
@@ -23,18 +27,9 @@ import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.query.index.Filter;
 import org.apache.jackrabbit.oak.query.index.QueryIndex;
-import org.apache.jackrabbit.oak.query.index.QueryIndexProvider.QueryIndexListener;
 import org.apache.jackrabbit.oak.query.index.TraversingIndex;
 
-import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-
-public class QueryEngineImpl implements QueryEngine, QueryIndexListener {
+public class QueryEngineImpl implements QueryEngine {
 
     static final String SQL2 = "JCR-SQL2";
     private static final String XPATH = "xpath";
@@ -46,8 +41,6 @@ public class QueryEngineImpl implements QueryEngine, QueryIndexListener {
     private final CoreValueFactory vf;
     private final SQL2Parser parserSQL2;
     private final Indexer indexer;
-    private final Map<String, QueryIndex> indexes =
-        Collections.synchronizedMap(new HashMap<String, QueryIndex>());
 
     public QueryEngineImpl(MicroKernel mk, CoreValueFactory valueFactory) {
         this.mk = mk;
@@ -60,11 +53,6 @@ public class QueryEngineImpl implements QueryEngine, QueryIndexListener {
     public void init() {
         // TODO the list of index providers should be configurable as well
         indexer.init();
-        indexer.addListener(this);
-        List<QueryIndex> list = indexer.getQueryIndexes();
-        for (QueryIndex qi : list) {
-            indexes.put(qi.getIndexName(), qi);
-        }
     }
 
     /**
@@ -125,23 +113,7 @@ public class QueryEngineImpl implements QueryEngine, QueryIndexListener {
     }
 
     private List<QueryIndex> getIndexes() {
-        // create a copy, so the underlying map can be modified
-        return new ArrayList<QueryIndex>(indexes.values());
-    }
-
-    @Override
-    public void added(QueryIndex index) {
-        indexes.put(index.getIndexName(), index);
-    }
-
-    @Override
-    public void removed(QueryIndex index) {
-        indexes.remove(index.getIndexName());
-    }
-
-    @Override
-    public void close() {
-        indexer.removeListener(this);
+        return indexer.getQueryIndexes(mk);
     }
 
 }

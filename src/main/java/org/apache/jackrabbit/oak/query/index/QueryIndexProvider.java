@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.query.index;
 
 import java.util.List;
+import org.apache.jackrabbit.mk.api.MicroKernel;
 
 /**
  * A mechanism to index data. Indexes might be added or removed at runtime,
@@ -34,45 +35,11 @@ public interface QueryIndexProvider {
     void init();
 
     /**
-     * Get the currently configured indexes.
+     * Get the currently configured indexes for the given MicroKernel instance.
      *
+     * @param mk the MicroKernel instance
      * @return the list of indexes
      */
-    List<QueryIndex> getQueryIndexes();
-
-    /**
-     * Add a listener that is notified about added and removed indexes.
-     *
-     * @param listener the listener
-     */
-    void addListener(QueryIndexListener listener);
-
-    /**
-     * Remove a listener.
-     *
-     * @param listener the listener
-     */
-    void removeListener(QueryIndexListener listener);
-
-    /**
-     * A query index listener
-     */
-    interface QueryIndexListener {
-
-        /**
-         * The given index was added.
-         *
-         * @param index the index
-         */
-        void added(QueryIndex index);
-
-        /**
-         * The given index was removed.
-         *
-         * @param index the index
-         */
-        void removed(QueryIndex index);
-
-    }
+    List<QueryIndex> getQueryIndexes(MicroKernel mk);
 
 }
