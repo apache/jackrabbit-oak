@@ -62,11 +62,14 @@ public class ContentRepositoryImpl implements ContentRepository {
         this(new MicroKernelImpl());
     }
 
-    public ContentRepositoryImpl(MicroKernel mk) {
+    private ContentRepositoryImpl(MicroKernel mk) {
+        this(mk, new Indexer(mk));
+    }
+
+    public ContentRepositoryImpl(MicroKernel mk, QueryIndexProvider indexProvider) {
         microKernel = mk;
         valueFactory = new CoreValueFactoryImpl(microKernel);
         nodeStore = new KernelNodeStore(microKernel, valueFactory);
-        QueryIndexProvider indexProvider = new Indexer(mk);
         queryEngine = new QueryEngineImpl(microKernel, valueFactory, indexProvider);
 
         // FIXME: workspace setup must be done elsewhere...
