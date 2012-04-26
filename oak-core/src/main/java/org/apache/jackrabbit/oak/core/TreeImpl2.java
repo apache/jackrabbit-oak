@@ -294,10 +294,10 @@ public class TreeImpl2 implements Tree {
 
     @Override
     public Tree addChild(String name) {
-        NodeStateBuilder childBuilder = builder.addNode(name);
-        TreeImpl2 added = new TreeImpl2(store, null, childBuilder, this, name, listener);
+        builder.addNode(name);
+        TreeImpl2 added = getChild(name);
         if (added != null) {
-            listener.addChild(this, name);
+            listener.addChild(added, name);
         }
         return added;
     }
@@ -313,8 +313,7 @@ public class TreeImpl2 implements Tree {
 
     @Override
     public void setProperty(String name, CoreValue value) {
-        PropertyState propertyState = new PropertyStateImpl(name, value);
-        builder.setProperty(propertyState);
+        builder.setProperty(new PropertyStateImpl(name, value));
         if (listener != null) {
             listener.setProperty(this, name, value);
         }
@@ -322,8 +321,7 @@ public class TreeImpl2 implements Tree {
 
     @Override
     public void setProperty(String name, List<CoreValue> values) {
-        PropertyState propertyState = new PropertyStateImpl(name, values);
-        builder.setProperty(propertyState);
+        builder.setProperty(new PropertyStateImpl(name, values));
         if (listener != null) {
             listener.setProperty(this, name, values);
         }
@@ -374,7 +372,7 @@ public class TreeImpl2 implements Tree {
         boolean result = builder.copyTo(destParent.builder, destName);
         if (result) {
             if (listener != null) {
-                // FIXME call listener listener.copy(parent, name, copy);
+                listener.copy(parent, name, destParent.getChild(destName));
             }
             return true;
         }
