@@ -109,7 +109,7 @@ public class VirtualRepositoryWrapper extends MicroKernelWrapperBase implements 
     public String commitStream(String rootPath, JsopReader t, String revisionId, String message) {
         while (true) {
             int r = t.read();
-            if (r == JsopTokenizer.END) {
+            if (r == JsopReader.END) {
                 break;
             }
             String path = PathUtils.relativize("/", PathUtils.concat(rootPath, t.readString()));
@@ -139,7 +139,7 @@ public class VirtualRepositoryWrapper extends MicroKernelWrapperBase implements 
             case '^':
                 t.read(':');
                 String value;
-                if (t.matches(JsopTokenizer.NULL)) {
+                if (t.matches(JsopReader.NULL)) {
                     JsopWriter diff = new JsopBuilder();
                     diff.tag('^').key(path).value(null);
                     buffer(path, diff);

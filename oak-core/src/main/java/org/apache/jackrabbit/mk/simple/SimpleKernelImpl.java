@@ -152,7 +152,7 @@ public class SimpleKernelImpl extends MicroKernelWrapperBase implements MicroKer
         JsopWriter diff = new JsopStream();
         while (true) {
             int r = t.read();
-            if (r == JsopTokenizer.END) {
+            if (r == JsopReader.END) {
                 break;
             }
             String path = PathUtils.concat(rootPath, t.readString());
@@ -188,7 +188,7 @@ public class SimpleKernelImpl extends MicroKernelWrapperBase implements MicroKer
                 t.read(':');
                 boolean isConfigChange = from.startsWith(":root/head/config/");
                 String value;
-                if (t.matches(JsopTokenizer.NULL)) {
+                if (t.matches(JsopReader.NULL)) {
                     value = null;
                     diff.tag('^').key(path).value(null);
                 } else {

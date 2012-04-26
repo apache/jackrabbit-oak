@@ -111,7 +111,7 @@ public class IndexWrapper extends MicroKernelWrapperBase implements MicroKernel 
         JsopReader t = jsonDiff;
         while (true) {
             int r = t.read();
-            if (r == JsopTokenizer.END) {
+            if (r == JsopReader.END) {
                 break;
             }
             String path;
