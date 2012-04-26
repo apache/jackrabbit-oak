@@ -22,7 +22,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.core.TreeImpl2.Listener;
+import org.apache.jackrabbit.oak.core.TreeImpl.Listener;
 import org.apache.jackrabbit.oak.kernel.NodeState;
 import org.apache.jackrabbit.oak.kernel.NodeStateBuilder;
 import org.apache.jackrabbit.oak.kernel.NodeStore;
@@ -49,7 +49,7 @@ public class RootImpl implements Root {
     private NodeState base;
 
     /** Root state of this tree */
-    private TreeImpl2 root;
+    private TreeImpl root;
 
     /** Listener for changes on the content tree */
     private TreeListener treeListener = new TreeListener();
@@ -61,17 +61,17 @@ public class RootImpl implements Root {
         this.workspaceName = workspaceName;
         this.base = store.getRoot().getChildNode(workspaceName);
         nodeStateBuilder = store.getBuilder(base);
-        this.root = new TreeImpl2(store, nodeStateBuilder, treeListener);
+        this.root = new TreeImpl(store, nodeStateBuilder, treeListener);
     }
 
     @Override
     public boolean move(String sourcePath, String destPath) {
-        TreeImpl2 source = getTransientState(sourcePath);
+        TreeImpl source = getTransientState(sourcePath);
         if (source == null) {
             return false;
         }
 
-        TreeImpl2 destParent = getTransientState(getParentPath(destPath));
+        TreeImpl destParent = getTransientState(getParentPath(destPath));
         String destName = getName(destPath);
         return destParent != null && source.move(destParent, destName);
 
@@ -79,12 +79,12 @@ public class RootImpl implements Root {
 
     @Override
     public boolean copy(String sourcePath, String destPath) {
-        TreeImpl2 sourceNode = getTransientState(sourcePath);
+        TreeImpl sourceNode = getTransientState(sourcePath);
         if (sourceNode == null) {
             return false;
         }
 
-        TreeImpl2 destParent = getTransientState(getParentPath(destPath));
+        TreeImpl destParent = getTransientState(getParentPath(destPath));
         String destName = getName(destPath);
         return destParent != null && sourceNode.copy(destParent, destName);
 
@@ -106,7 +106,7 @@ public class RootImpl implements Root {
         base = store.getRoot().getChildNode(workspaceName);
         nodeStateBuilder = store.getBuilder(base);
         treeListener = new TreeListener();
-        root = new TreeImpl2(store, nodeStateBuilder, treeListener);
+        root = new TreeImpl(store, nodeStateBuilder, treeListener);
     }
 
     @Override
@@ -123,8 +123,8 @@ public class RootImpl implements Root {
      * @return  a {@link Tree} instance for the item
      *          at {@code path} or {@code null} if no such item exits.
      */
-    private TreeImpl2 getTransientState(String path) {
-        TreeImpl2 state = root;
+    private TreeImpl getTransientState(String path) {
+        TreeImpl state = root;
         for (String name : elements(path)) {
             state = state.getChild(name);
             if (state == null) {
@@ -139,37 +139,37 @@ public class RootImpl implements Root {
         private boolean isDirty;
 
         @Override
-        public void addChild(TreeImpl2 tree, String name) {
+        public void addChild(TreeImpl tree, String name) {
             isDirty = true;
         }
 
         @Override
-        public void removeChild(TreeImpl2 tree, String name) {
+        public void removeChild(TreeImpl tree, String name) {
             isDirty = true;
         }
 
         @Override
-        public void setProperty(TreeImpl2 tree, String name, CoreValue value) {
+        public void setProperty(TreeImpl tree, String name, CoreValue value) {
             isDirty = true;
         }
 
         @Override
-        public void setProperty(TreeImpl2 tree, String name, List<CoreValue> values) {
+        public void setProperty(TreeImpl tree, String name, List<CoreValue> values) {
             isDirty = true;
         }
 
         @Override
-        public void removeProperty(TreeImpl2 tree, String name) {
+        public void removeProperty(TreeImpl tree, String name) {
             isDirty = true;
         }
 
         @Override
-        public void move(TreeImpl2 tree, String name, TreeImpl2 moved) {
+        public void move(TreeImpl tree, String name, TreeImpl moved) {
             isDirty = true;
         }
 
         @Override
-        public void copy(TreeImpl2 tree, String name, TreeImpl2 copied) {
+        public void copy(TreeImpl tree, String name, TreeImpl copied) {
             isDirty = true;
         }
 
