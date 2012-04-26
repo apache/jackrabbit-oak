@@ -62,8 +62,8 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
     private final Persistence pm;
     protected final GCPersistence gcpm;
 
-    /* avoid synthetic accessor */int initialCacheSize;
-    /* avoid synthetic accessor */Map<Id, Object> cache;
+    /* avoid synthetic accessor */ int initialCacheSize;
+    /* avoid synthetic accessor */ Map<Id, Object> cache;
 
     /**
      * GC run state constants.
@@ -467,28 +467,10 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
             return;
         }
 
-        // Mark all nodes that belong to currently active puts
-        markLock.writeLock().lock();
-
         try {
-            gcpm.start();
-            gcState.set(MARKING);
-
-            for (PutTokenImpl token : putTokens.keySet()) {
-                markNode(token.getLastModified());
-            }
-
-        } catch (Exception e) {
-            /* unable to perform GC */
-            gcState.set(NOT_ACTIVE);
-            e.printStackTrace();
-            return;
-        } finally {
-            markLock.writeLock().unlock();
-        }
-
-        try {
-            doMark();
+            markUncommittedPuts();
+            markBranches();
+            markCommits();
         } catch (Exception e) {
             /* unable to perform GC */
             gcState.set(NOT_ACTIVE);
@@ -506,7 +488,38 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
             gcState.set(NOT_ACTIVE);
         }
     }
+    
+    /**
+     * Mark uncommitted puts.
+     * 
+     * @throws Exception
+     *             if an error occurs
+     */
+    private void markUncommittedPuts() throws Exception {
+        markLock.writeLock().lock();
 
+        try {
+            gcpm.start();
+            gcState.set(MARKING);
+
+            for (PutTokenImpl token : putTokens.keySet()) {
+                markNode(token.getLastModified());
+            }
+        } finally {
+            markLock.writeLock().unlock();
+        }
+    }
+
+    /**
+     * Mark branches.
+     * 
+     * @throws Exception
+     *             if an error occurs
+     */
+    private void markBranches() throws Exception {
+        // TODO
+    }
+    
     /**
      * Mark all commits and nodes in a garbage collection cycle. Can be
      * customized by subclasses. If this method throws an exception, the cycle
@@ -515,7 +528,7 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
      * @throws Exception
      *             if an error occurs
      */
-    protected void doMark() throws Exception {
+    protected void markCommits() throws Exception {
         StoredCommit commit = getHeadCommit();
         long tsLimit = commit.getCommitTS() - (60 * 60 * 1000);
 

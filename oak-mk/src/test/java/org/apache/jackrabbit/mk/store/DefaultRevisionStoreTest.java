@@ -34,6 +34,7 @@ import org.apache.jackrabbit.mk.persistence.GCPersistence;
 import org.apache.jackrabbit.mk.persistence.InMemPersistence;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -48,7 +49,7 @@ public class DefaultRevisionStoreTest {
     public void setup() throws Exception {
         rs = new DefaultRevisionStore(createPersistence()) {
             @Override
-            protected void doMark() throws Exception {
+            protected void markCommits() throws Exception {
                 StoredCommit commit = getHeadCommit();
                 
                 // Keep head commit only
@@ -99,6 +100,26 @@ public class DefaultRevisionStoreTest {
         assertEquals(1, ((JsopArray) Jsop.parse(history)).size());
     }
 
+    /**
+     * Verify branch and merge works with garbage collection.
+     * 
+     * @throws Exception if an error occurs
+     */
+    @Ignore
+    @Test
+    public void testBranchMerge() throws Exception {
+        mk.commit("/", "+\"a\" : { \"b\":{}, \"c\":{} }", mk.getHeadRevision(), null);
+        String branchRevisionId = mk.branch(mk.getHeadRevision());
+
+        mk.commit("/a", "+\"d\" : {}", mk.getHeadRevision(), null);
+        branchRevisionId = mk.commit("/a", "+\"e\" : {}", branchRevisionId, null);
+        
+        rs.gc();
+
+        branchRevisionId = mk.commit("/a", "+\"f\" : {}", branchRevisionId, null);
+        mk.merge(branchRevisionId, null);
+    }
+    
     /**
      * Verify garbage collection can run concurrently with commits.
      * 
