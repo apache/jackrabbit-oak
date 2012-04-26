@@ -410,7 +410,7 @@ public class TreeImpl2 implements Tree {
 
             @Override
             public void childNodeChanged(String name, NodeState before, NodeState after) {
-                isDirty[0] = true;  // FIXME cut transitivity here
+                // cut transitivity here
             }
 
             @Override
