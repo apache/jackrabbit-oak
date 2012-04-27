@@ -489,7 +489,7 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
             if (firstBranchRootId != null && firstBranchRootId.compareTo(firstCommitId) < 0) {
                 firstCommitId = firstBranchRootId;
             }
-            /* repair dangling parent commit of first, preserved commit */
+            /* repair dangling parent commit of first preserved commit */
             StoredCommit commit = getCommit(firstCommitId);
             if (commit.getParentId() != null) {
                 MutableCommit firstCommit = new MutableCommit(commit);
