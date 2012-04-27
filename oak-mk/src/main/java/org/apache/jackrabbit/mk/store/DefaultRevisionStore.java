@@ -295,7 +295,6 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
         if (branchRootId != null) {
             branches.remove(branchRootId);
         }
-
         return id;
     }
 
@@ -304,7 +303,7 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
 
         Id commitId = writeCommit(token, commit);
         putTokens.remove(token);
-        
+
         Id branchRootId = commit.getBranchRootId();
         if (branchRootId != null) {
             branches.put(branchRootId, commitId);
@@ -530,7 +529,8 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
             gcpm.start();
             gcState.set(MARKING);
 
-            for (PutTokenImpl token : putTokens.keySet()) {
+            PutTokenImpl[] putTokens = this.putTokens.keySet().toArray(new PutTokenImpl[0]);
+            for (PutTokenImpl token : putTokens) {
                 markNode(token.getLastModified());
             }
         } finally {
