@@ -80,7 +80,7 @@ class NodeTypeImpl implements NodeType {
         this.mapper = mapper;
         this.name = name;
 
-        Matcher matcher = CND_PATTERN.matcher(cnd.replace("\r\n", "\n"));
+        Matcher matcher = CND_PATTERN.matcher(cnd);
         matcher.matches();
 
         this.isAbstract = matcher.group(5) != null;

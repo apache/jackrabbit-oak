@@ -56,7 +56,7 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
                     "builtin_nodetypes.cnd");
             try {
                 String cnd = IOUtils.toString(stream, "UTF-8");
-                Matcher matcher = CND_PATTERN.matcher(cnd);
+                Matcher matcher = CND_PATTERN.matcher(cnd.replace("\r\n", "\n"));
                 while (matcher.find()) {
                     String name = matcher.group(1);
                     types.put(name, new NodeTypeImpl(
