@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.jcr;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.Paths;
 
 import javax.jcr.RepositoryException;
@@ -167,12 +168,12 @@ public class PropertyDelegate extends ItemDelegate {
 
     private synchronized void resolve() {
         parent = sessionContext.getTree(parent.getPath());
-        String path = Paths.concat(parent.getPath(), propertyState.getName());
+        String path = PathUtils.concat(parent.getPath(), propertyState.getName());
 
         if (parent == null) {
             propertyState = null;
         } else {
-            propertyState = parent.getProperty(Paths.getName(path));
+            propertyState = parent.getProperty(PathUtils.getName(path));
         }
     }
 }

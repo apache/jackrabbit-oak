@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.namespace.NamespaceRegistryImpl;
 import org.apache.jackrabbit.oak.jcr.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.namepath.AbstractNameMapper;
@@ -160,8 +161,8 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     private void internalMove(String srcAbsPath, String destAbsPath) throws RepositoryException {
         ensureIsAlive();
 
-        String srcPath = Paths.relativize("/", srcAbsPath);
-        String destPath = Paths.relativize("/", destAbsPath);
+        String srcPath = PathUtils.relativize("/", srcAbsPath);
+        String destPath = PathUtils.relativize("/", destAbsPath);
         root.move(srcPath, destPath);
     }
 

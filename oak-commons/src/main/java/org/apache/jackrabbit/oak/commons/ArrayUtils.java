@@ -14,9 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.util;
+package org.apache.jackrabbit.oak.commons;
 
 import java.lang.reflect.Array;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Array utility methods.
@@ -194,4 +196,43 @@ public class ArrayUtils {
         }
     }
 
+        /**
+     * Check whether an array contains a given element
+     * @param array
+     * @param element
+     * @param <T>
+     * @return {@code true} iff {@code array} contains {@code element}.
+     */
+    public static <T> boolean contains(T[] array, T element) {
+        for (T t : array) {
+            if (element == null && t == null || element != null && element.equals(t)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Convert an array to a set.
+     * @param elements
+     * @param <T>
+     * @return
+     */
+    public static <T> Set<T> toSet(T... elements) {
+        return new HashSet<T>(java.util.Arrays.asList(elements));
+    }
+
+    // TODO duplicate of copyArrayAdd?
+    /**
+     * Create a new array of the same type with an additional element added.
+     * @param array
+     * @param value
+     * @param <T>
+     * @return array of {@code array.length + 1} with {@code value} as its last element.
+     */
+    public static <T> T[] add(T[] array, T value) {
+        T[] copy = java.util.Arrays.copyOf(array, array.length + 1);
+        copy[array.length] = value;
+        return copy;
+    }
 }

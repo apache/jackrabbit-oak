@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.mk.index;
 
-import org.apache.jackrabbit.mk.util.PathUtils;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 
 /**
  * An index page.

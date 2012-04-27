@@ -23,9 +23,9 @@ import org.apache.jackrabbit.mk.json.JsopWriter;
 import org.apache.jackrabbit.mk.util.Cache;
 import org.apache.jackrabbit.mk.util.ExceptionFactory;
 import org.apache.jackrabbit.mk.util.IOUtils;
-import org.apache.jackrabbit.mk.util.PathUtils;
 import org.apache.jackrabbit.mk.util.StringCache;
 import org.apache.jackrabbit.mk.util.StringUtils;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 
 import java.io.OutputStream;
 import java.security.DigestOutputStream;

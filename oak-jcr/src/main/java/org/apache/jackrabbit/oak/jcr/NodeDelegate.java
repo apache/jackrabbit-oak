@@ -20,7 +20,7 @@ import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
-import org.apache.jackrabbit.oak.namepath.Paths;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.util.Function1;
 import org.apache.jackrabbit.oak.util.Iterators;
 
@@ -41,12 +41,12 @@ public class NodeDelegate extends ItemDelegate {
     }
 
     NodeDelegate addNode(String relPath) throws RepositoryException {
-        Tree parentState = getTree(Paths.getParentPath(relPath));
+        Tree parentState = getTree(PathUtils.getParentPath(relPath));
         if (parentState == null) {
             throw new PathNotFoundException(relPath);
         }
 
-        String name = Paths.getName(relPath);
+        String name = PathUtils.getName(relPath);
         parentState.addChild(name);
         return new NodeDelegate(sessionContext, parentState.getChild(name));
     }
@@ -74,7 +74,7 @@ public class NodeDelegate extends ItemDelegate {
     }
 
     int getDepth() throws RepositoryException {
-        return Paths.getDepth(getPath());
+        return PathUtils.getDepth(getPath());
     }
 
     @Override
@@ -115,12 +115,12 @@ public class NodeDelegate extends ItemDelegate {
     PropertyDelegate getPropertyOrNull(String relOakPath)
             throws RepositoryException {
 
-        Tree parent = getTree(Paths.getParentPath(relOakPath));
+        Tree parent = getTree(PathUtils.getParentPath(relOakPath));
         if (parent == null) {
             return null;
         }
 
-        String name = Paths.getName(relOakPath);
+        String name = PathUtils.getName(relOakPath);
         PropertyState propertyState = parent.getProperty(name);
         return propertyState == null ? null : new PropertyDelegate(
                 sessionContext, parent, propertyState);
@@ -148,11 +148,11 @@ public class NodeDelegate extends ItemDelegate {
         return getPropertyOrNull(oakName);
     }
 
-    // ------------------------------------------------------------< private >---
+    // -----------------------------------------------------------< private >---
 
     private Tree getTree(String relPath) {
         Tree tree = getTree();
-        for (String name : Paths.elements(relPath)) {
+        for (String name : PathUtils.elements(relPath)) {
             if (tree == null) {
                 return null;
             }

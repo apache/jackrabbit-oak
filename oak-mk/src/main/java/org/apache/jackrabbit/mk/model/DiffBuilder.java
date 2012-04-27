@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.mk.model;
 
 import org.apache.jackrabbit.mk.json.JsopBuilder;
-import org.apache.jackrabbit.mk.util.PathUtils;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 
 import java.util.HashMap;
 import java.util.Map;

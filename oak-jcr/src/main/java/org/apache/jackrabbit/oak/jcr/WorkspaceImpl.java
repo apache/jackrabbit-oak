@@ -21,6 +21,7 @@ import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.nodetype.NodeTypeManagerImpl;
 import org.apache.jackrabbit.oak.jcr.query.QueryManagerImpl;
 import org.apache.jackrabbit.oak.jcr.security.privileges.PrivilegeManagerImpl;
@@ -101,8 +102,8 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
             ContentSession contentSession = sessionContext.getContentSession();
             Root root = contentSession.getCurrentRoot();
 
-            String srcPath = Paths.relativize("/", srcAbsPath);
-            String destPath = Paths.relativize("/", destAbsPath);
+            String srcPath = PathUtils.relativize("/", srcAbsPath);
+            String destPath = PathUtils.relativize("/", destAbsPath);
             root.copy(srcPath, destPath);
 
             root.commit();
@@ -132,8 +133,8 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
             ContentSession contentSession = sessionContext.getContentSession();
             Root root = contentSession.getCurrentRoot();
 
-            String srcPath = Paths.relativize("/", srcAbsPath);
-            String destPath = Paths.relativize("/", destAbsPath);
+            String srcPath = PathUtils.relativize("/", srcAbsPath);
+            String destPath = PathUtils.relativize("/", destAbsPath);
             root.move(srcPath, destPath);
 
             root.commit();
