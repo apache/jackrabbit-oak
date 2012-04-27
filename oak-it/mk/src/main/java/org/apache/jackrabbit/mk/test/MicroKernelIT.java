@@ -124,13 +124,71 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
             previousTS = ts;
         }
 
-        // test with 'negative' range (switch from and to)
+        // test with 'negative' range (from and to swapped)
         array = parseJSONArray(mk.getJournal(toRev, fromRev, ""));
         // there should be exactly 0 entries
         assertEquals(array.size(), 0);
     }
 
+
     @Test
+    public void waitForCommit() {
+        final long TIMEOUT = 100;
+
+        // concurrent commit
+        String oldHead = mk.getHeadRevision();
+
+        Thread t = new Thread("") {
+            @Override
+            public void run() {
+                try {
+                    sleep(TIMEOUT / 2);
+                } catch (InterruptedException ignore) {
+                }
+                String newHead = mk.commit("/", "+\"foo\":{}", null, "");
+                setName(newHead);
+            }
+        };
+        t.start();
+        String newHead = null;
+        try {
+            newHead = mk.waitForCommit(oldHead, TIMEOUT);
+            t.join();
+        } catch (InterruptedException ignore) {
+        }
+
+        assertFalse(oldHead.equals(newHead));
+        assertEquals(newHead, t.getName());
+        assertEquals(newHead, mk.getHeadRevision());
+
+        // the current head is already more recent than oldRevision;
+        // the method should return immediately (TIMEOUT not applied)
+        String currentHead = mk.getHeadRevision();
+        newHead = null;
+        try {
+            long t0 = System.currentTimeMillis();
+            newHead = mk.waitForCommit(oldHead, TIMEOUT);
+            long t1 = System.currentTimeMillis();
+            assertTrue((t1 - t0) < TIMEOUT);
+        } catch (InterruptedException ignore) {
+        }
+        assertEquals(currentHead, newHead);
+
+        // there's no more recent head available;
+        // the method should wait TIMEOUT ms
+        currentHead = mk.getHeadRevision();
+        newHead = null;
+        try {
+            long t0 = System.currentTimeMillis();
+            newHead = mk.waitForCommit(currentHead, TIMEOUT);
+            long t1 = System.currentTimeMillis();
+            assertTrue((t1 - t0) >= TIMEOUT);
+        } catch (InterruptedException ignore) {
+        }
+        assertEquals(currentHead, newHead);
+    }
+
+        @Test
     public void addAndMove() {
         String head = mk.getHeadRevision();
         head = mk.commit("",
