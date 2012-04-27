@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.core;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
-import org.apache.jackrabbit.mk.util.PathUtils;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -48,6 +48,7 @@ import static org.junit.Assert.assertEquals;
  * Run with -DKernelRootFuzzIT-seed=42 to set a specific seed (i.e. 42);
  */
 public class RootImplFuzzIT {
+
     static final Logger log = LoggerFactory.getLogger(RootImplFuzzIT.class);
 
     private static final int OP_COUNT = 5000;

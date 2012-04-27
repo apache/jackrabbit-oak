@@ -19,12 +19,12 @@
 package org.apache.jackrabbit.oak.core;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
-import org.apache.jackrabbit.mk.util.PathUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.TreeImpl.Listener;
 import org.apache.jackrabbit.oak.kernel.ChildNodeEntry;
 import org.apache.jackrabbit.oak.kernel.NodeState;
@@ -41,9 +41,9 @@ import java.util.Iterator;
 import java.util.List;
 
 import static java.util.Collections.singletonList;
-import static org.apache.jackrabbit.mk.util.PathUtils.elements;
-import static org.apache.jackrabbit.mk.util.PathUtils.getName;
-import static org.apache.jackrabbit.mk.util.PathUtils.getParentPath;
+import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 
 /**
  * This {@code Root} implementation listens on the root of the underlying

@@ -24,7 +24,7 @@ import java.util.Iterator;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.mk.json.JsopWriter;
 import org.apache.jackrabbit.mk.simple.NodeImpl.ChildVisitor;
-import org.apache.jackrabbit.mk.util.ArrayUtils;
+import org.apache.jackrabbit.oak.commons.ArrayUtils;
 import org.apache.jackrabbit.mk.util.ExceptionFactory;
 import org.apache.jackrabbit.mk.util.IOUtils;
 import org.apache.jackrabbit.mk.util.StringCache;
