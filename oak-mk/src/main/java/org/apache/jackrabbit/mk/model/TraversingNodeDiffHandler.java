@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.mk.model;
 
-import java.util.Stack;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 
-import org.apache.jackrabbit.mk.util.PathUtils;
+import java.util.Stack;
 
 /**
  *

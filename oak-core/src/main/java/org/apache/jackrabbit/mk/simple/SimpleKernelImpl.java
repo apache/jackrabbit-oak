@@ -30,8 +30,8 @@ import org.apache.jackrabbit.mk.util.AscendingClock;
 import org.apache.jackrabbit.mk.util.Cache;
 import org.apache.jackrabbit.mk.util.CommitGate;
 import org.apache.jackrabbit.mk.util.ExceptionFactory;
-import org.apache.jackrabbit.mk.util.PathUtils;
 import org.apache.jackrabbit.mk.wrapper.MicroKernelWrapperBase;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 
 import java.io.IOException;
 import java.io.InputStream;

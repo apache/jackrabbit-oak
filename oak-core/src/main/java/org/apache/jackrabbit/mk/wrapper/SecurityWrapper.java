@@ -25,8 +25,8 @@ import org.apache.jackrabbit.mk.json.JsopWriter;
 import org.apache.jackrabbit.mk.simple.NodeImpl;
 import org.apache.jackrabbit.mk.simple.NodeMap;
 import org.apache.jackrabbit.mk.util.ExceptionFactory;
-import org.apache.jackrabbit.mk.util.PathUtils;
 import org.apache.jackrabbit.mk.util.SimpleLRUCache;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 
 /**
  * A microkernel prototype implementation that filters nodes based on simple

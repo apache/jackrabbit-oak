@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.query.ast;
 
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.mk.simple.NodeImpl;
-import org.apache.jackrabbit.mk.util.PathUtils;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 

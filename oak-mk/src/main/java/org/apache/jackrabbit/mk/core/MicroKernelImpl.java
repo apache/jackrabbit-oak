@@ -35,7 +35,7 @@ import org.apache.jackrabbit.mk.model.NodeState;
 import org.apache.jackrabbit.mk.model.PropertyState;
 import org.apache.jackrabbit.mk.model.StoredCommit;
 import org.apache.jackrabbit.mk.util.CommitGate;
-import org.apache.jackrabbit.mk.util.PathUtils;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 
 /**
  *

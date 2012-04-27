@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.query;
 
-import org.apache.jackrabbit.mk.util.PathUtils;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 
 import java.math.BigDecimal;
 import java.text.ParseException;

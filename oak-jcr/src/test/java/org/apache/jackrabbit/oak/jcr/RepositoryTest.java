@@ -64,8 +64,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import static java.util.Arrays.asList;
-import static org.apache.jackrabbit.oak.jcr.util.Arrays.contains;
-import static org.apache.jackrabbit.oak.jcr.util.Arrays.toSet;
+import static org.apache.jackrabbit.oak.commons.ArrayUtils.contains;
+import static org.apache.jackrabbit.oak.commons.ArrayUtils.toSet;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;

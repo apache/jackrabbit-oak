@@ -18,10 +18,10 @@ package org.apache.jackrabbit.oak.kernel;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
-import org.apache.jackrabbit.mk.util.PathUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.util.CoreValueUtil;
 
 public class KernelNodeStateBuilder implements NodeStateBuilder {

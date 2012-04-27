@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.mk.index;
 
 import org.apache.jackrabbit.mk.json.JsopBuilder;
-import org.apache.jackrabbit.mk.util.PathUtils;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 
 /**
  * A tree allows to query a value for a given key, similar to
