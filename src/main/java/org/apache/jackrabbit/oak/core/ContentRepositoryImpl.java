@@ -63,9 +63,22 @@ public class ContentRepositoryImpl implements ContentRepository {
     }
 
     private ContentRepositoryImpl(MicroKernel mk) {
-        this(mk, new Indexer(mk));
+        this(mk, getDefaultIndexProvider(mk));
     }
 
+    private static QueryIndexProvider getDefaultIndexProvider(MicroKernel mk) {
+        QueryIndexProvider provider = new Indexer(mk);
+        provider.init();
+        return provider;
+    }
+
+    /**
+     * Creates an Oak repository instance based on the given, already
+     * initialized components.
+     *
+     * @param mk underlying kernel instance
+     * @param indexProvider index provider
+     */
     public ContentRepositoryImpl(MicroKernel mk, QueryIndexProvider indexProvider) {
         microKernel = mk;
         valueFactory = new CoreValueFactoryImpl(microKernel);
@@ -73,7 +86,6 @@ public class ContentRepositoryImpl implements ContentRepository {
         queryEngine = new QueryEngineImpl(microKernel, valueFactory, indexProvider);
 
         // FIXME: workspace setup must be done elsewhere...
-        indexProvider.init();
         queryEngine.init();
         NodeState root = nodeStore.getRoot();
 
