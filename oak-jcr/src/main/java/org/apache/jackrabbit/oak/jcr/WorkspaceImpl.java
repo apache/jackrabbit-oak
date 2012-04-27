@@ -54,7 +54,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
      */
     private static final Logger log = LoggerFactory.getLogger(WorkspaceImpl.class);
 
-    private final SessionContext<SessionImpl> sessionContext;
+    private final SessionContext sessionContext;
 
     private QueryManagerImpl queryManager;
 
@@ -62,9 +62,9 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
 
     private final NodeTypeManager nodeTypeManager;
 
-    public WorkspaceImpl(
-            SessionContext<SessionImpl> sessionContext,
-            NamespaceRegistry nsRegistry) throws RepositoryException {
+    public WorkspaceImpl(SessionContext sessionContext, NamespaceRegistry nsRegistry)
+            throws RepositoryException {
+
         this.sessionContext = sessionContext;
         this.nsRegistry = nsRegistry;
         this.nodeTypeManager =

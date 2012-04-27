@@ -22,7 +22,6 @@ import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.jcr.SessionContext;
-import org.apache.jackrabbit.oak.jcr.SessionImpl;
 import org.apache.jackrabbit.oak.jcr.WorkspaceImpl;
 import org.apache.jackrabbit.oak.jcr.query.qom.QueryObjectModelFactoryImpl;
 
@@ -46,9 +45,9 @@ public class QueryManagerImpl implements QueryManager {
 
     private final QueryObjectModelFactoryImpl qomFactory = new QueryObjectModelFactoryImpl();
     private final QueryEngine queryEngine;
-    private final SessionContext<SessionImpl> sessionContext;
+    private final SessionContext sessionContext;
 
-    public QueryManagerImpl(WorkspaceImpl workspace, SessionContext<SessionImpl> sessionContext) {
+    public QueryManagerImpl(WorkspaceImpl workspace, SessionContext sessionContext) {
         queryEngine = sessionContext.getContentSession().getQueryEngine();
         this.sessionContext = sessionContext;
     }

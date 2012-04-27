@@ -25,7 +25,6 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.jcr.NodeImpl;
 import org.apache.jackrabbit.oak.jcr.SessionContext;
-import org.apache.jackrabbit.oak.jcr.SessionImpl;
 import org.apache.jackrabbit.oak.jcr.security.user.action.AuthorizableAction;
 import org.apache.jackrabbit.oak.jcr.value.ValueConverter;
 import org.slf4j.Logger;
@@ -52,11 +51,11 @@ public class UserManagerImpl implements UserManager {
      */
     private static final Logger log = LoggerFactory.getLogger(UserManagerImpl.class);
 
-    private final SessionContext<SessionImpl> sessionContext;
+    private final SessionContext sessionContext;
     private final UserManagerConfig config;
     private final AuthorizableNodeCreator nodeCreator;
 
-    public UserManagerImpl(SessionContext<SessionImpl> sessionContext, UserManagerConfig config) {
+    public UserManagerImpl(SessionContext sessionContext, UserManagerConfig config) {
         this.sessionContext = sessionContext;
         this.config = config;
         nodeCreator = new AuthorizableNodeCreator(sessionContext);

@@ -33,10 +33,10 @@ import java.util.List;
 
 public class NodeDelegate extends ItemDelegate {
 
-    private final SessionContext<SessionImpl> sessionContext;
+    private final SessionContext sessionContext;
     private Tree tree;
 
-    NodeDelegate(SessionContext<SessionImpl> sessionContext, Tree tree) {
+    NodeDelegate(SessionContext sessionContext, Tree tree) {
         this.sessionContext = sessionContext;
         this.tree = tree;
     }
@@ -131,7 +131,7 @@ public class NodeDelegate extends ItemDelegate {
                 sessionContext, parent, propertyState);
     }
 
-    SessionContext<SessionImpl> getSessionContext() {
+    SessionContext getSessionContext() {
         return sessionContext;
     }
 
