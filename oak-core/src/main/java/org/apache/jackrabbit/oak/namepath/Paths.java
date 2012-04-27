@@ -16,13 +16,11 @@
 */
 package org.apache.jackrabbit.oak.namepath;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.NoSuchElementException;
-
 import org.apache.jackrabbit.mk.util.PathUtils;
 import org.apache.jackrabbit.oak.namepath.JcrNameParser.Listener;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * All path in the Oak API have the following form
@@ -107,6 +105,17 @@ public final class Paths {
      */
     public static int getDepth(String path) {
         return PathUtils.getDepth(path);
+    }
+
+    /**
+     * Split a path into elements. The root path ("/") and the empty path ("")
+     * is zero elements.
+     *
+     * @param path the path
+     * @return an Iterable for the path elements
+     */
+    public static Iterable<String> elements(String path) {
+        return PathUtils.elements(path);
     }
 
     public static String toOakName(String name, final NameMapper mapper) {
@@ -284,61 +293,6 @@ public final class Paths {
         
         jcrPath.deleteCharAt(jcrPath.length() - 1);
         return jcrPath.toString();
-    }
-
-    //------------------------------------------------------------< private >--- 
-
-    private static Iterable<String> split(final String string, final char separator) {
-        return new Iterable<String>() {
-            @Override
-            public Iterator<String> iterator() {
-                return new Iterator<String>() {
-                    int pos = !string.isEmpty() && string.charAt(0) == separator ? 1 : 0;
-                    String next;
-
-                    @Override
-                    public boolean hasNext() {
-                        if (next == null) {
-                            if (pos >= string.length()) {
-                                return false;
-                            }
-                            else {
-                                int i = string.indexOf(separator, pos);
-                                if (i < 0) {
-                                    next = string.substring(pos);
-                                    pos = string.length();
-                                }
-                                else {
-                                    next = string.substring(pos, i);
-                                    pos = i + 1;
-                                }
-                                return true;
-                            }
-                        }
-                        else {
-                            return true;
-                        }
-                    }
-
-                    @Override
-                    public String next() {
-                        if (hasNext()) {
-                            String next = this.next;
-                            this.next = null;
-                            return next;
-                        }
-                        else {
-                            throw new NoSuchElementException();
-                        }
-                    }
-
-                    @Override
-                    public void remove() {
-                        throw new UnsupportedOperationException("remove");
-                    }
-                };
-            }
-        };
     }
 
 }
