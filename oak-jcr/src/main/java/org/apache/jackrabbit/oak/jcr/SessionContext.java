@@ -38,7 +38,7 @@ public interface SessionContext {
     LockManager getLockManager() throws RepositoryException;
     VersionManager getVersionManager() throws RepositoryException;
     Root getRoot();
-    Tree getContentTree(String path);
+    Tree getTree(String path);
     String toOakPath(String jcrPath) throws RepositoryException;
     String toJcrPath(String oakPath);
 }
