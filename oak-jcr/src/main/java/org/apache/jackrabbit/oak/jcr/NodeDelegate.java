@@ -43,7 +43,7 @@ public class NodeDelegate extends ItemDelegate {
 
     NodeDelegate addNode(String relPath) throws RepositoryException {
         String parentPath = Paths.concat(getPath(), Paths.getParentPath(relPath));
-        Tree parentState = getBranch().getTree(parentPath);
+        Tree parentState = getRoot().getTree(parentPath);
         if (parentState == null) {
             throw new PathNotFoundException(relPath);
         }
@@ -90,7 +90,7 @@ public class NodeDelegate extends ItemDelegate {
 
     NodeDelegate getNodeOrNull(String relOakPath) {
         String absPath = Paths.concat(getPath(), relOakPath);
-        Tree tree = getBranch().getTree(absPath);
+        Tree tree = getRoot().getTree(absPath);
         return tree == null ? null : new NodeDelegate(sessionContext, tree);
     }
 
@@ -120,7 +120,7 @@ public class NodeDelegate extends ItemDelegate {
 
         String absPath = Paths.concat(getPath(),
                 Paths.getParentPath(relOakPath));
-        Tree parent = getBranch().getTree(absPath);
+        Tree parent = getRoot().getTree(absPath);
         if (parent == null) {
             return null;
         }
@@ -155,8 +155,8 @@ public class NodeDelegate extends ItemDelegate {
 
     // ------------------------------------------------------------< private >---
 
-    private Root getBranch() {
-        return sessionContext.getBranch();
+    private Root getRoot() {
+        return sessionContext.getRoot();
     }
 
     private Tree getState() {
@@ -164,7 +164,7 @@ public class NodeDelegate extends ItemDelegate {
     }
 
     private synchronized Tree getTree() {
-        return tree = getBranch().getTree(tree.getPath());
+        return tree = getRoot().getTree(tree.getPath());
     }
 
     private Iterator<NodeDelegate> nodeDelegateIterator(

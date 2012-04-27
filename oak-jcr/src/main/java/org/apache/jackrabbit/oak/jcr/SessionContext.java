@@ -37,7 +37,7 @@ public interface SessionContext {
     NameMapper getNameMapper();
     LockManager getLockManager() throws RepositoryException;
     VersionManager getVersionManager() throws RepositoryException;
-    Root getBranch();
+    Root getRoot();
     Tree getContentTree(String path);
     String toOakPath(String jcrPath) throws RepositoryException;
     String toJcrPath(String oakPath);
