@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.jcr;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.namepath.Paths;
@@ -42,8 +41,7 @@ public class NodeDelegate extends ItemDelegate {
     }
 
     NodeDelegate addNode(String relPath) throws RepositoryException {
-        String parentPath = Paths.concat(getPath(), Paths.getParentPath(relPath));
-        Tree parentState = getRoot().getTree(parentPath);
+        Tree parentState = getTree(Paths.getParentPath(relPath));
         if (parentState == null) {
             throw new PathNotFoundException(relPath);
         }
@@ -89,8 +87,7 @@ public class NodeDelegate extends ItemDelegate {
     }
 
     NodeDelegate getNodeOrNull(String relOakPath) {
-        String absPath = Paths.concat(getPath(), relOakPath);
-        Tree tree = getRoot().getTree(absPath);
+        Tree tree = getTree(relOakPath);
         return tree == null ? null : new NodeDelegate(sessionContext, tree);
     }
 
@@ -118,9 +115,7 @@ public class NodeDelegate extends ItemDelegate {
     PropertyDelegate getPropertyOrNull(String relOakPath)
             throws RepositoryException {
 
-        String absPath = Paths.concat(getPath(),
-                Paths.getParentPath(relOakPath));
-        Tree parent = getRoot().getTree(absPath);
+        Tree parent = getTree(Paths.getParentPath(relOakPath));
         if (parent == null) {
             return null;
         }
@@ -155,8 +150,15 @@ public class NodeDelegate extends ItemDelegate {
 
     // ------------------------------------------------------------< private >---
 
-    private Root getRoot() {
-        return sessionContext.getRoot();
+    private Tree getTree(String relPath) {
+        Tree tree = getTree();
+        for (String name : Paths.elements(relPath)) {
+            if (tree == null) {
+                return null;
+            }
+            tree = tree.getChild(name);
+        }
+        return tree;
     }
 
     private synchronized Tree getTree() {

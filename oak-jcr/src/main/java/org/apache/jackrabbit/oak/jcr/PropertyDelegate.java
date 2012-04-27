@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.jcr;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.Paths;
 
@@ -166,12 +165,8 @@ public class PropertyDelegate extends ItemDelegate {
 
     //------------------------------------------------------------< private >---
 
-    private Root getBranch() {
-        return sessionContext.getRoot();
-    }
-
     private synchronized void resolve() {
-        parent = getBranch().getTree(parent.getPath());
+        parent = sessionContext.getTree(parent.getPath());
         String path = Paths.concat(parent.getPath(), propertyState.getName());
 
         if (parent == null) {
