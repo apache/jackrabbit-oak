@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.jcr.security.privileges;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.jcr.NodeImpl;
 import org.apache.jackrabbit.oak.jcr.SessionContext;
-import org.apache.jackrabbit.oak.jcr.SessionImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,9 +54,9 @@ public class PrivilegeManagerImpl implements PrivilegeManager {
     private static final String REP_IS_ABSTRACT = "rep:isAbstract";
     private static final String REP_CONTAINS = "rep:contains";
 
-    private final SessionContext<SessionImpl> sessionContext;
+    private final SessionContext sessionContext;
 
-    public PrivilegeManagerImpl(SessionContext<SessionImpl> sessionContext) {
+    public PrivilegeManagerImpl(SessionContext sessionContext) {
         this.sessionContext = sessionContext;
         // TODO: add additional validation ??
     }

@@ -32,7 +32,7 @@ import javax.jcr.ValueFactory;
  */
 abstract class ItemImpl implements Item {
 
-    protected final SessionContext<SessionImpl> sessionContext;
+    protected final SessionContext sessionContext;
     protected final ItemDelegate dlg;
 
     /**
@@ -40,7 +40,7 @@ abstract class ItemImpl implements Item {
      */
     private static final Logger log = LoggerFactory.getLogger(ItemImpl.class);
 
-    protected ItemImpl(SessionContext<SessionImpl> sessionContext, ItemDelegate itemDelegate) {
+    protected ItemImpl(SessionContext sessionContext, ItemDelegate itemDelegate) {
         this.sessionContext = sessionContext;
         this.dlg = itemDelegate;
     }

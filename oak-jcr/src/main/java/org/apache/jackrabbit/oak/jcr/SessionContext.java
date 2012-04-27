@@ -25,12 +25,11 @@ import org.apache.jackrabbit.oak.jcr.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 
 import javax.jcr.RepositoryException;
-import javax.jcr.Session;
 import javax.jcr.lock.LockManager;
 import javax.jcr.version.VersionManager;
 
-public interface SessionContext<T extends Session> {
-    T getSession();
+public interface SessionContext {
+    SessionImpl getSession();
     GlobalContext getGlobalContext();
     String getWorkspaceName();
     ContentSession getContentSession();

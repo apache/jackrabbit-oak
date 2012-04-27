@@ -65,7 +65,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     private final ValueFactoryImpl valueFactory;
     private final Workspace workspace;
     private final NamespaceRegistry nsreg;
-    private final SessionContext<SessionImpl> sessionContext = new Context();
+    private final SessionContext sessionContext = new Context();
     private final NameMapper nameMapper = new SessionNameMapper();
 
     private boolean isAlive = true;
@@ -484,7 +484,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
 
     //--------------------------------------------------------------------------
 
-    private class Context implements SessionContext<SessionImpl> {
+    private class Context implements SessionContext {
 
         @Override
         public SessionImpl getSession() {

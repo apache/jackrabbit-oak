@@ -30,11 +30,11 @@ import java.util.List;
 
 public class PropertyDelegate extends ItemDelegate {
 
-    private final SessionContext<SessionImpl> sessionContext;
+    private final SessionContext sessionContext;
     private Tree parent;
     private PropertyState propertyState;
 
-    PropertyDelegate(SessionContext<SessionImpl> sessionContext, Tree parent,
+    PropertyDelegate(SessionContext sessionContext, Tree parent,
             PropertyState propertyState) {
         this.sessionContext = sessionContext;
         this.parent = parent;
@@ -160,7 +160,7 @@ public class PropertyDelegate extends ItemDelegate {
         return '/' + getParentContentTree().getPath() + '/' + getName();
     }
 
-    SessionContext<SessionImpl> getSessionContext() {
+    SessionContext getSessionContext() {
         return sessionContext;
     }
 

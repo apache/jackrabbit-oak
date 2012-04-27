@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.jcr.security.user;
 
 import org.apache.jackrabbit.oak.jcr.NodeImpl;
 import org.apache.jackrabbit.oak.jcr.SessionContext;
-import org.apache.jackrabbit.oak.jcr.SessionImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,7 +31,7 @@ class AuthorizableNodeCreator {
      */
     private static final Logger log = LoggerFactory.getLogger(AuthorizableNodeCreator.class);
 
-    AuthorizableNodeCreator(SessionContext<SessionImpl> sessionContext) {
+    AuthorizableNodeCreator(SessionContext sessionContext) {
         // TODO
     }
 
