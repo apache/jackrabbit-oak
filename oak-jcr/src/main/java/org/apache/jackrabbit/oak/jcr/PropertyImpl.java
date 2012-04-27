@@ -38,7 +38,7 @@ import javax.jcr.nodetype.PropertyDefinition;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.jcr.util.LogUtil;
-import org.apache.jackrabbit.oak.jcr.util.ValueConverter;
+import org.apache.jackrabbit.oak.jcr.value.ValueConverter;
 import org.apache.jackrabbit.value.ValueHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

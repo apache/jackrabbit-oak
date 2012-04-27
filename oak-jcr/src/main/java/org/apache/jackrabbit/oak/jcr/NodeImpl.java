@@ -23,7 +23,7 @@ import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.jcr.util.ItemNameMatcher;
 import org.apache.jackrabbit.oak.jcr.util.LogUtil;
-import org.apache.jackrabbit.oak.jcr.util.ValueConverter;
+import org.apache.jackrabbit.oak.jcr.value.ValueConverter;
 import org.apache.jackrabbit.oak.util.Function1;
 import org.apache.jackrabbit.oak.util.Iterators;
 import org.apache.jackrabbit.oak.util.Predicate;

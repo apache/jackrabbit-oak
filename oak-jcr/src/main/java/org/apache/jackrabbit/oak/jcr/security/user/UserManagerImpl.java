@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.jcr.NodeImpl;
 import org.apache.jackrabbit.oak.jcr.SessionContext;
 import org.apache.jackrabbit.oak.jcr.SessionImpl;
 import org.apache.jackrabbit.oak.jcr.security.user.action.AuthorizableAction;
-import org.apache.jackrabbit.oak.jcr.util.ValueConverter;
+import org.apache.jackrabbit.oak.jcr.value.ValueConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
