@@ -130,6 +130,39 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         assertEquals(array.size(), 0);
     }
 
+    @Test
+    public void diff() {
+        String rev0 = mk.getHeadRevision();
+
+        String rev1 = mk.commit("/test", "+\"enemenemuh\":{}", null, null);
+
+        // get reverse diff
+        String reverseDiff = mk.diff(rev1, rev0, null);
+        assertNotNull(reverseDiff);
+        assertTrue(reverseDiff.length() > 0);
+
+        // commit reverse diff
+        String rev2 = mk.commit("", reverseDiff, null, null);
+
+        // diff of rev0->rev2 should be empty
+        assertEquals(mk.diff(rev0, rev2, null), "");
+    }
+
+    @Test
+    public void snapshotIsolation() {
+        final int NUM_COMMITS = 1000;
+
+        String[] revs = new String[NUM_COMMITS];
+
+        // perform NUM_COMMITS commits
+        for (int i = 0; i < NUM_COMMITS; i++) {
+            revs[i] = mk.commit("/test", "^\"cnt\":" + i, null, null);
+        }
+        for (int i = 0; i < NUM_COMMITS; i++) {
+            JSONObject obj = parseJSONObject(mk.getNodes("/test", revs[i], 1, 0, -1, null));
+            assertPropertyValue(obj, "cnt", (long) i);
+        }
+    }
 
     @Test
     public void waitForCommit() {
