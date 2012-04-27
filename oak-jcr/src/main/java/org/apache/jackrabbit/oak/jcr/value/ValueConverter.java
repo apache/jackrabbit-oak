@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.jcr.util;
+package org.apache.jackrabbit.oak.jcr.value;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.jcr.SessionContext;
