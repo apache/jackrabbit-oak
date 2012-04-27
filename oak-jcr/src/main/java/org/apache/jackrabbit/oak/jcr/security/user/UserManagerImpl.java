@@ -327,16 +327,16 @@ public class UserManagerImpl implements UserManager {
 
     void setInternalProperty(NodeImpl userNode, String name, String value, int type) throws RepositoryException {
         CoreValue cv = ValueConverter.toCoreValue(value, type, sessionContext);
-        sessionContext.getContentTree(userNode.getOakPath()).setProperty(name, cv);
+        sessionContext.getTree(userNode.getOakPath()).setProperty(name, cv);
     }
 
     void setInternalProperty(NodeImpl userNode, String name, String[] values, int type) throws RepositoryException {
         List<CoreValue> cvs = ValueConverter.toCoreValues(values, type, sessionContext);
-        sessionContext.getContentTree(userNode.getOakPath()).setProperty(name, cvs);
+        sessionContext.getTree(userNode.getOakPath()).setProperty(name, cvs);
     }
 
     void removeInternalProperty(NodeImpl userNode, String name) {
-        sessionContext.getContentTree(userNode.getOakPath()).removeProperty(name);
+        sessionContext.getTree(userNode.getOakPath()).removeProperty(name);
     }
 
     private Authorizable getAuthorizable(NodeImpl node) throws RepositoryException {
