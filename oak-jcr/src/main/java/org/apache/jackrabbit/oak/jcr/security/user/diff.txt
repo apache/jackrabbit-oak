@@ -28,8 +28,6 @@ Group:
 TODO:
 ================================================================================
 
-- Namespace handling on session level
-
 - Path handling that rely on oak-core implementation
 
 - Configuration based on oak-core implementation
