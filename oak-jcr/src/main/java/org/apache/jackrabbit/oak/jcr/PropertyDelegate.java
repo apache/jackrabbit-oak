@@ -167,7 +167,7 @@ public class PropertyDelegate extends ItemDelegate {
     //------------------------------------------------------------< private >---
 
     private Root getBranch() {
-        return sessionContext.getBranch();
+        return sessionContext.getRoot();
     }
 
     private synchronized void resolve() {

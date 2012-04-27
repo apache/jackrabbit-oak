@@ -527,7 +527,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
         }
 
         @Override
-        public Root getBranch() {
+        public Root getRoot() {
             return root;
         }
 
