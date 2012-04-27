@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 
+import javax.inject.Inject;
 import javax.jcr.Repository;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
@@ -33,8 +34,6 @@ import org.ops4j.pax.exam.CoreOptions;
 import org.ops4j.pax.exam.Option;
 import org.ops4j.pax.exam.junit.Configuration;
 import org.ops4j.pax.exam.junit.JUnit4TestRunner;
-import org.osgi.framework.BundleContext;
-import org.osgi.framework.ServiceReference;
 
 @RunWith(JUnit4TestRunner.class)
 @SuppressWarnings({ "rawtypes", "unchecked" })
@@ -56,48 +55,30 @@ public class OSGiIT {
                 bundle(new File(base, "oak-core.jar").toURI().toURL().toString()),
                 bundle(new File(base, "oak-jcr.jar").toURI().toURL().toString()));
     }
- 
+
+    @Inject
+    private MicroKernel kernel;
+
     @Test
-    public void testMicroKernel(BundleContext bc) throws Exception {
-        ServiceReference reference =
-                bc.getServiceReference(MicroKernel.class.getName());
-
-        Object service = bc.getService(reference);
-        assert service instanceof MicroKernel;
-
-        MicroKernel kernel = (MicroKernel) service;
+    public void testMicroKernel() {
         System.out.println(kernel);
         System.out.println(kernel.getHeadRevision());
-
-        bc.ungetService(reference);
     }
 
+    @Inject
+    private ContentRepository oakRepository;
+
     @Test
-    public void testContentRepository(BundleContext bc) throws Exception {
-        ServiceReference reference =
-                bc.getServiceReference(ContentRepository.class.getName());
-
-        Object service = bc.getService(reference);
-        assert service instanceof ContentRepository;
-
-        ContentRepository repository = (ContentRepository) service;
-        System.out.println(repository);
-
-        bc.ungetService(reference);
+    public void testOakRepository() {
+        System.out.println(oakRepository);
     }
 
+    @Inject
+    private Repository jcrRepository;
+
     @Test
-    public void testRepository(BundleContext bc) throws Exception {
-        ServiceReference reference =
-                bc.getServiceReference(Repository.class.getName());
-
-        Object service = bc.getService(reference);
-        assert service instanceof ContentRepository;
-
-        Repository repository = (Repository) service;
-        System.out.println(repository);
-
-        bc.ungetService(reference);
+    public void testJcrRepository() {
+        System.out.println(jcrRepository);
     }
 
 }

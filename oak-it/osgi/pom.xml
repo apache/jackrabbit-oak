@@ -32,7 +32,7 @@
 
   <properties>
     <skip.deployment>true</skip.deployment>
-    <pax.exam.version>2.2.0</pax.exam.version>
+    <pax.exam.version>2.4.0.RC1</pax.exam.version>
   </properties>
 
   <build>
@@ -90,6 +90,12 @@
       <groupId>org.ops4j.pax.exam</groupId>
       <artifactId>pax-exam-junit4</artifactId>
       <version>${pax.exam.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.geronimo.specs</groupId>
+      <artifactId>geronimo-atinject_1.0_spec</artifactId>
+      <version>1.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
