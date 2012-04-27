@@ -42,8 +42,7 @@ public class KernelNodeStateBuilder implements NodeStateBuilder {
     public static NodeStateBuilder create(MicroKernel kernel, CoreValueFactory valueFactory,
             String path, String revision) {
 
-        String[] r = {revision};
-        return new KernelNodeStateBuilder(kernel, valueFactory, path, r);
+        return new KernelNodeStateBuilder(kernel, valueFactory, path, new String[] {revision});
     }
 
     @Override
