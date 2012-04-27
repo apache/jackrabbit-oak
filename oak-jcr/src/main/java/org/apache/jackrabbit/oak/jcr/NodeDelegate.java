@@ -142,14 +142,14 @@ public class NodeDelegate extends ItemDelegate {
     PropertyDelegate setProperty(String oakName, CoreValue value)
             throws RepositoryException {
 
-        getState().setProperty(oakName, value);
+        getTree().setProperty(oakName, value);
         return getPropertyOrNull(oakName);
     }
 
     PropertyDelegate setProperty(String oakName, List<CoreValue> value)
             throws RepositoryException {
 
-        getState().setProperty(oakName, value);
+        getTree().setProperty(oakName, value);
         return getPropertyOrNull(oakName);
     }
 
@@ -159,12 +159,8 @@ public class NodeDelegate extends ItemDelegate {
         return sessionContext.getRoot();
     }
 
-    private Tree getState() {
-        return getTree();
-    }
-
     private synchronized Tree getTree() {
-        return tree = getRoot().getTree(tree.getPath());
+        return tree = sessionContext.getTree(tree.getPath());
     }
 
     private Iterator<NodeDelegate> nodeDelegateIterator(
