@@ -74,7 +74,7 @@ public interface Tree {
     String getName();
 
     /**
-     * @return  path of this {@code Tree} instance.
+     * @return  path of this {@code Tree} instance relative to its {@link Root}.
      */
     String getPath();
 
