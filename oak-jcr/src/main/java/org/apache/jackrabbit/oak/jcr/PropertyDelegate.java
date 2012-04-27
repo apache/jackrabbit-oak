@@ -20,7 +20,6 @@ import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.namepath.Paths;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;

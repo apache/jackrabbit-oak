@@ -29,7 +29,8 @@ import org.apache.jackrabbit.oak.jcr.namespace.NamespaceRegistryImpl;
 import org.apache.jackrabbit.oak.jcr.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.namepath.AbstractNameMapper;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
-import org.apache.jackrabbit.oak.namepath.Paths;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.ContentHandler;
@@ -68,6 +69,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     private final NamespaceRegistry nsreg;
     private final SessionContext sessionContext = new Context();
     private final NameMapper nameMapper = new SessionNameMapper();
+    private final NamePathMapper namePathMapper = new NamePathMapperImpl(nameMapper);
 
     private boolean isAlive = true;
     private Root root;
@@ -76,7 +78,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
             throws RepositoryException {
         this.globalContext = globalContext;
         this.contentSession = contentSession;
-        this.valueFactory = new ValueFactoryImpl(contentSession.getCoreValueFactory(), nameMapper);
+        this.valueFactory = new ValueFactoryImpl(contentSession.getCoreValueFactory(), namePathMapper);
         this.nsreg = new NamespaceRegistryImpl(contentSession);
         this.workspace = new WorkspaceImpl(sessionContext, this.nsreg);
         this.root = contentSession.getCurrentRoot();
@@ -155,7 +157,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
 
     @Override
     public void move(String srcAbsPath, String destAbsPath) throws RepositoryException {
-        internalMove(sessionContext.toOakPath(srcAbsPath), sessionContext.toOakPath(destAbsPath));
+        internalMove(sessionContext.getNamePathMapper().toOakPath(srcAbsPath), sessionContext.getNamePathMapper().toOakPath(destAbsPath));
     }
 
     private void internalMove(String srcAbsPath, String destAbsPath) throws RepositoryException {
@@ -226,7 +228,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
 
     @Override
     public ContentHandler getImportContentHandler(String parentAbsPath, int uuidBehavior) throws RepositoryException {
-        return internalGetImportContentHandler(sessionContext.toOakPath(parentAbsPath), uuidBehavior);
+        return internalGetImportContentHandler(sessionContext.getNamePathMapper().toOakPath(parentAbsPath), uuidBehavior);
     }
 
     private ContentHandler internalGetImportContentHandler(String parentAbsPath, int uuidBehavior) throws RepositoryException {
@@ -276,7 +278,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
 
     @Override
     public boolean hasPermission(String absPath, String actions) throws RepositoryException {
-        return internalHasPermission(sessionContext.toOakPath(absPath), actions);
+        return internalHasPermission(sessionContext.getNamePathMapper().toOakPath(absPath), actions);
     }
 
     private boolean internalHasPermission(String absPath, String actions) throws RepositoryException {
@@ -513,11 +515,6 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
         }
 
         @Override
-        public NameMapper getNameMapper() {
-            return nameMapper;
-        }
-
-        @Override
         public LockManager getLockManager() throws RepositoryException {
             return getWorkspace().getLockManager();
         }
@@ -538,17 +535,8 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
         }
 
         @Override
-        public String toOakPath(String jcrPath) throws RepositoryException {
-            try {
-                return Paths.toOakPath(jcrPath, sessionContext.getNameMapper());
-            } catch (IllegalArgumentException ex) {
-                throw new RepositoryException(ex);
-            }
-        }
-
-        @Override
-        public String toJcrPath(String oakPath) {
-            return Paths.toJcrPath(oakPath, sessionContext.getNameMapper());
+        public NamePathMapper getNamePathMapper() {
+            return namePathMapper;
         }
     }
 }

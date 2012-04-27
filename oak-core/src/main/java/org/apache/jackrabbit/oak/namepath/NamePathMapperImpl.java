@@ -1,61 +1,57 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.jackrabbit.oak.namepath;
 
-import org.apache.jackrabbit.oak.namepath.JcrNameParser.Listener;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * All path in the Oak API have the following form
- * <p>
- * <pre>
- * PATH    := ("/" ELEMENT)* | ELEMENT ("/" ELEMENT)*
- * ELEMENT := [PREFIX ":"] NAME
- * PREFIX  := non empty string not containing ":" and "/"
- * NAME    := non empty string not containing ":" and "/" TODO: check whether this is correct
- * </pre>
+ * NamePathMapperImpl...
  */
-public final class Paths {
+public class NamePathMapperImpl implements NamePathMapper {
 
-    private Paths() {}
+    /**
+     * logger instance
+     */
+    private static final Logger log = LoggerFactory.getLogger(NamePathMapperImpl.class);
 
-    public static String toOakName(String name, final NameMapper mapper) {
-        final StringBuilder element = new StringBuilder();
-        
-        Listener listener = new JcrNameParser.Listener() {
-            @Override
-            public void error(String message) {
-                throw new RuntimeException(message);
-            }
+    private final NameMapper nameMapper;
 
-            @Override
-            public void name(String name) {
-                String p = mapper.getOakName(name);
-                element.append(p);
-            }
-        };
-
-        JcrNameParser.parse(name, listener);
-        return element.toString();
+    public NamePathMapperImpl(NameMapper nameMapper) {
+        this.nameMapper = nameMapper;
     }
-    
-    public static String toOakPath(String jcrPath, final NameMapper mapper) {
+
+    //---------------------------------------------------------< NameMapper >---
+    @Override
+    public String getOakName(String jcrName) {
+        return nameMapper.getOakName(jcrName);
+    }
+
+    @Override
+    public String getJcrName(String oakName) {
+        return nameMapper.getJcrName(oakName);
+    }
+
+    //---------------------------------------------------------< PathMapper >---
+    @Override
+    public String toOakPath(String jcrPath) {
         final List<String> elements = new ArrayList<String>();
 
         if ("/".equals(jcrPath)) {
@@ -111,13 +107,13 @@ public final class Paths {
 
             @Override
             public void name(String name) {
-                String p = mapper.getOakName(name);
+                String p = nameMapper.getOakName(name);
                 elements.add(p);
             }
         };
 
         JcrPathParser.parse(jcrPath, listener);
-        
+
         StringBuilder oakPath = new StringBuilder();
         for (String element : elements) {
             if (element.isEmpty()) {
@@ -129,16 +125,17 @@ public final class Paths {
                 oakPath.append('/');
             }
         }
-        
+
         // root path is special-cased early on so it does not need to
         // be considered here
         oakPath.deleteCharAt(oakPath.length() - 1);
         return oakPath.toString();
     }
-    
-    public static String toJcrPath(String oakPath, final NameMapper mapper) {
+
+    @Override
+    public String toJcrPath(String oakPath) {
         final List<String> elements = new ArrayList<String>();
-        
+
         if ("/".equals(oakPath)) {
             // avoid the need to special case the root path later on
             return "/";
@@ -189,13 +186,13 @@ public final class Paths {
 
             @Override
             public void name(String name) {
-                String p = mapper.getJcrName(name);
+                String p = nameMapper.getJcrName(name);
                 elements.add(p);
             }
         };
 
         JcrPathParser.parse(oakPath, listener);
-        
+
         StringBuilder jcrPath = new StringBuilder();
         for (String element : elements) {
             if (element.isEmpty()) {
@@ -207,9 +204,8 @@ public final class Paths {
                 jcrPath.append('/');
             }
         }
-        
+
         jcrPath.deleteCharAt(jcrPath.length() - 1);
         return jcrPath.toString();
     }
-
 }

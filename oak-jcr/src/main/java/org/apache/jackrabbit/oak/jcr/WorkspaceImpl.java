@@ -25,7 +25,6 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.nodetype.NodeTypeManagerImpl;
 import org.apache.jackrabbit.oak.jcr.query.QueryManagerImpl;
 import org.apache.jackrabbit.oak.jcr.security.privileges.PrivilegeManagerImpl;
-import org.apache.jackrabbit.oak.namepath.Paths;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.ContentHandler;
@@ -68,8 +67,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
 
         this.sessionContext = sessionContext;
         this.nsRegistry = nsRegistry;
-        this.nodeTypeManager =
-                new NodeTypeManagerImpl(sessionContext.getNameMapper());
+        this.nodeTypeManager = new NodeTypeManagerImpl(sessionContext.getNamePathMapper());
     }
 
     //----------------------------------------------------------< Workspace >---
