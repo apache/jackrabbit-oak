@@ -18,8 +18,7 @@ package org.apache.jackrabbit.oak.jcr.value;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.namepath.NameMapper;
-import org.apache.jackrabbit.oak.namepath.Paths;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,17 +47,17 @@ class ValueImpl implements Value {
     private static final Logger log = LoggerFactory.getLogger(ValueImpl.class);
 
     private final CoreValue value;
-    private final NameMapper nameMapper;
+    private final NamePathMapper namePathMapper;
 
     /**
      * Constructs a {@code ValueImpl} object based on a {@code CoreValue}
      *
      * @param value the value object this {@code ValueImpl} should represent
-     * @param nameMapper
+     * @param namePathMapper
      */
-    public ValueImpl(CoreValue value, NameMapper nameMapper) {
+    public ValueImpl(CoreValue value, NamePathMapper namePathMapper) {
         this.value = value;
-        this.nameMapper = nameMapper;
+        this.namePathMapper = namePathMapper;
     }
 
     CoreValue unwrap() {
@@ -151,9 +150,9 @@ class ValueImpl implements Value {
     public String getString() throws RepositoryException {
         switch (getType()) {
             case PropertyType.NAME :
-                return nameMapper.getJcrName(value.toString());
+                return namePathMapper.getJcrName(value.toString());
             case PropertyType.PATH:
-                return Paths.toJcrPath(value.toString(), nameMapper);
+                return namePathMapper.toJcrPath(value.toString());
             case PropertyType.BINARY:
                 InputStream stream = getStream();
                 try {

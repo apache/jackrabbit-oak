@@ -22,7 +22,7 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.jcr.value.ValueFactoryImpl;
-import org.apache.jackrabbit.oak.namepath.NameMapper;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.lock.LockManager;
@@ -34,11 +34,9 @@ public interface SessionContext {
     String getWorkspaceName();
     ContentSession getContentSession();
     ValueFactoryImpl getValueFactory();
-    NameMapper getNameMapper();
     LockManager getLockManager() throws RepositoryException;
     VersionManager getVersionManager() throws RepositoryException;
     Root getRoot();
     Tree getTree(String path);
-    String toOakPath(String jcrPath) throws RepositoryException;
-    String toJcrPath(String oakPath);
+    NamePathMapper getNamePathMapper();
 }

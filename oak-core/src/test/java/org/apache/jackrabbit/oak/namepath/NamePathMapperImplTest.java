@@ -27,14 +27,15 @@ import java.util.UUID;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-public class PathsTest {
+public class NamePathMapperImplTest {
 
     private TestNameMapper mapper = new TestNameMapper();
+    private NamePathMapper npMapper = new NamePathMapperImpl(mapper);
 
     @Test
     public void testValidIdentifierPath() {
         String idPath = '[' + UUID.randomUUID().toString()+ ']';
-        Paths.toOakPath(idPath, mapper);
+        npMapper.toOakPath(idPath);
     }
 
     @Test
@@ -45,7 +46,7 @@ public class PathsTest {
 
         for (String jcrPath : invalid) {
             try {
-                Paths.toOakPath(jcrPath, mapper);
+                npMapper.toOakPath(jcrPath);
                 fail("Invalid identifier path");
             } catch (Exception e) {
                 // success
@@ -55,33 +56,33 @@ public class PathsTest {
 
     @Test
     public void testJcrToOak() {
-        assertEquals("/", Paths.toOakPath("/", mapper));
-        assertEquals("foo", Paths.toOakPath("{}foo", mapper));
-        assertEquals("/oak-foo:bar", Paths.toOakPath("/foo:bar", mapper));
+        assertEquals("/", npMapper.toOakPath("/"));
+        assertEquals("foo", npMapper.toOakPath("{}foo"));
+        assertEquals("/oak-foo:bar", npMapper.toOakPath("/foo:bar"));
         assertEquals("/oak-foo:bar/oak-quu:qux",
-                Paths.toOakPath("/foo:bar/quu:qux", mapper));
-        assertEquals("oak-foo:bar", Paths.toOakPath("foo:bar", mapper));
-        assertEquals("oak-nt:unstructured", Paths.toOakPath(
-                "{http://www.jcp.org/jcr/nt/1.0}unstructured", mapper));
-        assertEquals("foobar/oak-jcr:content", Paths.toOakPath(
-                "foobar/{http://www.jcp.org/jcr/1.0}content", mapper));
+                npMapper.toOakPath("/foo:bar/quu:qux"));
+        assertEquals("oak-foo:bar", npMapper.toOakPath("foo:bar"));
+        assertEquals("oak-nt:unstructured", npMapper.toOakPath(
+                "{http://www.jcp.org/jcr/nt/1.0}unstructured"));
+        assertEquals("foobar/oak-jcr:content", npMapper.toOakPath(
+                "foobar/{http://www.jcp.org/jcr/1.0}content"));
     }
 
     @Test
     public void testOakToJcr() {
-        assertEquals("/jcr-foo:bar", Paths.toJcrPath("/foo:bar", mapper));
+        assertEquals("/jcr-foo:bar", npMapper.toJcrPath("/foo:bar"));
         assertEquals("/jcr-foo:bar/jcr-quu:qux",
-                Paths.toJcrPath("/foo:bar/quu:qux", mapper));
-        assertEquals("jcr-foo:bar", Paths.toJcrPath("foo:bar", mapper));
+                npMapper.toJcrPath("/foo:bar/quu:qux"));
+        assertEquals("jcr-foo:bar", npMapper.toJcrPath("foo:bar"));
 
         try {
-            Paths.toJcrPath("{http://www.jcp.org/jcr/nt/1.0}unstructured", mapper);
+            npMapper.toJcrPath("{http://www.jcp.org/jcr/nt/1.0}unstructured");
             fail("expanded name should not be accepted");
         } catch (IllegalStateException expected) {
         }
 
         try {
-            Paths.toJcrPath("foobar/{http://www.jcp.org/jcr/1.0}content", mapper);
+            npMapper.toJcrPath("foobar/{http://www.jcp.org/jcr/1.0}content");
             fail("expanded name should not be accepted");
         } catch (IllegalStateException expected) {
         }
