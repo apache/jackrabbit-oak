@@ -19,6 +19,4 @@ TODO:
   it should make sure no circular aggregation has been introduced in a
   deeper level).
 
-- Namespace handling on session level
-
 - Path/Name/NodeTypes handling that rely on oak-core implementation
