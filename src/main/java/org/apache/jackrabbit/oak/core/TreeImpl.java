@@ -237,13 +237,16 @@ public class TreeImpl implements Tree {
     @Override
     public TreeImpl getChild(String name) {
         NodeStateBuilder childBuilder = builder.getChildBuilder(name);
-        NodeState childBaseState = baseState == null
-            ? null
-            : baseState.getChildNode(name);
+        if (childBuilder == null) {
+            return null;
+        }
+        else {
+            NodeState childBaseState = baseState == null
+                    ? null
+                    : baseState.getChildNode(name);
 
-        return childBuilder == null
-            ? null
-            : new TreeImpl(store, childBaseState, childBuilder, this, name, listener);
+            return new TreeImpl(store, childBaseState, childBuilder, this, name, listener);
+        }
     }
 
     @Override
