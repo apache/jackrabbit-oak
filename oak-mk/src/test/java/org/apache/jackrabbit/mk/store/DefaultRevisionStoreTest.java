@@ -151,7 +151,7 @@ public class DefaultRevisionStoreTest {
     }
 
     /**
-     * Verify garbage collection can run concurrently with commits.
+     * Verify garbage collection can run concurrently with branch & merge.
      * 
      * @throws Exception if an error occurs
      */
@@ -171,9 +171,15 @@ public class DefaultRevisionStoreTest {
         try {
             for (int i = 0; i < 20; i++) {
                 String branchId = mk.branch(mk.getHeadRevision());
-                branchId = mk.commit("/a/b/c/d", "+\"e\" : {}", branchId, null);
-                Thread.sleep(10);
-                branchId = mk.commit("/a/b/c/d", "-\"e\"", branchId, null);
+                if ((i & 1) == 0) {
+                    /* add some data in even runs */
+                    branchId = mk.commit("/a/b/c/d", "+\"e\" : {}", branchId, null);
+                    Thread.sleep(10);
+                    branchId = mk.commit("/a/b/c/d/e", "+\"f\" : {}", branchId, null);
+                } else {
+                    /* remove added data in odd runs */
+                    branchId = mk.commit("/a/b/c/d", "-\"e\"", branchId, null);
+                }
                 Thread.sleep(30);
                 mk.merge(branchId, null);
             }
