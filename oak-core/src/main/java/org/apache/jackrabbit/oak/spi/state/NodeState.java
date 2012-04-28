@@ -19,9 +19,9 @@ package org.apache.jackrabbit.oak.spi.state;
 import org.apache.jackrabbit.oak.api.PropertyState;
 
 /**
- * A tree consists of nodes and properties, each of which evolves
- * through different states during its lifecycle. This interface
- * represents a specific, immutable state of a node in a tree. A node
+ * A node in a content tree consists of child nodes and properties, each
+ * of which evolves through different states during its lifecycle. This
+ * interface represents a specific, immutable state of a node. The state
  * consists of an unordered set of name -&gt; item mappings, where
  * each item is either a property or a child node.
  * <p>
@@ -90,8 +90,6 @@ import org.apache.jackrabbit.oak.api.PropertyState;
  * implemented according to this equality contract.
  */
 public interface NodeState {
-
-    // TODO: check if can be replaced by the mk.model interface
 
     /**
      * Returns the named property. The name is an opaque string and

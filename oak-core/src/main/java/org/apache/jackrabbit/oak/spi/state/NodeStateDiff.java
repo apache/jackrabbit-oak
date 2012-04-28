@@ -27,8 +27,12 @@ import org.apache.jackrabbit.oak.api.PropertyState;
  * added, changed or deleted methods where appropriate. Differences in
  * the ordering of properties or child nodes do not affect the comparison,
  * and the order in which such differences are reported is unspecified.
- *
- * TODO: check if can be replaced by mk.model.NodeStateDiff
+ * <p>
+ * Note that the {@link NodeStore#compare(NodeState, NodeState, NodeStateDiff)}
+ * method only compares the given states without recursing to the subtrees
+ * below. An implementation of this interface should recursively call that
+ * method for the relevant child node entries to find out all the changes
+ * across the entire subtree below the given node.
  */
 public interface NodeStateDiff {
 
