@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.core;
+package org.apache.jackrabbit.oak.kernel;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.CoreValue;
@@ -29,7 +29,7 @@ import java.math.BigDecimal;
 /**
  * CoreValueFactoryImpl... TODO javadoc
  */
-public class CoreValueFactoryImpl implements CoreValueFactory {
+class CoreValueFactoryImpl implements CoreValueFactory {
 
     /**
      * logger instance

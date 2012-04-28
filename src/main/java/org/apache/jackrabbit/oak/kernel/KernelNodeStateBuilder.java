@@ -16,9 +16,12 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
+import java.util.List;
+
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -97,13 +100,19 @@ public class KernelNodeStateBuilder implements NodeStateBuilder {
     }
 
     @Override
-    public void setProperty(PropertyState property) {
-        String targetPath = PathUtils.concat(path, property.getName());
-        String value = property.isArray()
-            ? CoreValueUtil.toJsonArray(property.getValues())
-            : CoreValueUtil.toJsonValue(property.getValue());
+    public void setProperty(String name, CoreValue value) {
+        String targetPath = PathUtils.concat(path, name);
+        String json = CoreValueUtil.toJsonValue(value);
 
-        revision[0] = kernel.commit("", "^\"" + targetPath + "\":" + value, revision[0], null);
+        revision[0] = kernel.commit("", "^\"" + targetPath + "\":" + json, revision[0], null);
+    }
+
+    @Override
+    public void setProperty(String name, List<CoreValue> values) {
+        String targetPath = PathUtils.concat(path, name);
+        String json = CoreValueUtil.toJsonArray(values);
+
+        revision[0] = kernel.commit("", "^\"" + targetPath + "\":" + json, revision[0], null);
     }
 
     @Override

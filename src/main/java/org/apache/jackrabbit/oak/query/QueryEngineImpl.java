@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.query.index.TraversingIndex;
 import org.apache.jackrabbit.oak.spi.QueryIndex;
 import org.apache.jackrabbit.oak.spi.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 public class QueryEngineImpl implements QueryEngine {
 
@@ -39,9 +40,9 @@ public class QueryEngineImpl implements QueryEngine {
     private final SQL2Parser parserSQL2;
     private final QueryIndexProvider indexProvider;
 
-    public QueryEngineImpl(MicroKernel mk, CoreValueFactory valueFactory, QueryIndexProvider indexProvider) {
+    public QueryEngineImpl(NodeStore store, MicroKernel mk, QueryIndexProvider indexProvider) {
         this.mk = mk;
-        this.vf = valueFactory;
+        this.vf = store.getValueFactory();
         this.indexProvider = indexProvider;
         parserSQL2 = new SQL2Parser(vf);
     }

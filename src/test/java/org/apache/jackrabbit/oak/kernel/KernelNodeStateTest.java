@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
+import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.core.AbstractOakTest;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -37,13 +38,12 @@ import static junit.framework.Assert.assertNull;
 public class KernelNodeStateTest extends AbstractOakTest {
 
     @Override
-    protected NodeState createInitialState() {
+    protected NodeState createInitialState(MicroKernel microKernel) {
         String jsop =
                 "+\"test\":{\"a\":1,\"b\":2,\"c\":3,"
                 + "\"x\":{},\"y\":{},\"z\":{}}";
-        String revision = microKernel.commit(
-                "/", jsop, microKernel.getHeadRevision(), "test data");
-        return new KernelNodeState(microKernel, valueFactory, "/test", revision);
+        microKernel.commit("/", jsop, null, "test data");
+        return store.getRoot().getChildNode("test");
     }
 
     @Test
