@@ -39,9 +39,9 @@ public class KernelNodeStore extends AbstractNodeStore {
     final MicroKernel kernel;
     final CoreValueFactory valueFactory;
 
-    public KernelNodeStore(MicroKernel kernel, CoreValueFactory valueFactory) {
+    public KernelNodeStore(MicroKernel kernel) {
         this.kernel = kernel;
-        this.valueFactory = valueFactory;
+        this.valueFactory = new CoreValueFactoryImpl(kernel);
     }
 
     @Override
@@ -72,73 +72,8 @@ public class KernelNodeStore extends AbstractNodeStore {
     }
 
     @Override
-    public void compare(NodeState before, NodeState after, NodeStateDiff diff) {
-        compareProperties(before, after, diff);
-        compareChildNodes(before, after, diff);
-    }
-
-    /**
-     * Compares the properties of the given two node states.
-     *
-     * @param before node state before changes
-     * @param after node state after changes
-     * @param diff handler of node state differences
-     */
-    protected void compareProperties(
-            NodeState before, NodeState after, NodeStateDiff diff) {
-        Set<String> beforeProperties = new HashSet<String>();
-
-        for (PropertyState beforeProperty : before.getProperties()) {
-            String name = beforeProperty.getName();
-            PropertyState afterProperty = after.getProperty(name);
-            if (afterProperty == null) {
-                diff.propertyDeleted(beforeProperty);
-            } else {
-                beforeProperties.add(name);
-                if (!beforeProperty.equals(afterProperty)) {
-                    diff.propertyChanged(beforeProperty, afterProperty);
-                }
-            }
-        }
-
-        for (PropertyState afterProperty : after.getProperties()) {
-            if (!beforeProperties.contains(afterProperty.getName())) {
-                diff.propertyAdded(afterProperty);
-            }
-        }
-    }
-
-    /**
-     * Compares the child nodes of the given two node states.
-     *
-     * @param before node state before changes
-     * @param after node state after changes
-     * @param diff handler of node state differences
-     */
-    protected void compareChildNodes(
-            NodeState before, NodeState after, NodeStateDiff diff) {
-        Set<String> beforeChildNodes = new HashSet<String>();
-
-        for (ChildNodeEntry beforeCNE : before.getChildNodeEntries(0, -1)) {
-            String name = beforeCNE.getName();
-            NodeState beforeChild = beforeCNE.getNodeState();
-            NodeState afterChild = after.getChildNode(name);
-            if (afterChild == null) {
-                diff.childNodeDeleted(name, beforeChild);
-            } else {
-                beforeChildNodes.add(name);
-                if (!beforeChild.equals(afterChild)) {
-                    diff.childNodeChanged(name, beforeChild, afterChild);
-                }
-            }
-        }
-
-        for (ChildNodeEntry afterChild : after.getChildNodeEntries(0, -1)) {
-            String name = afterChild.getName();
-            if (!beforeChildNodes.contains(name)) {
-                diff.childNodeAdded(name, afterChild.getNodeState());
-            }
-        }
+    public CoreValueFactory getValueFactory() {
+        return valueFactory;
     }
 
 }

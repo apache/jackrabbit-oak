@@ -18,15 +18,14 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
-import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -45,21 +44,12 @@ import static org.junit.Assert.assertTrue;
 
 public class RootImplTest extends AbstractOakTest {
 
-    private NodeStore store;
-
     @Override
-    @Before
-    public void setUp() {
-        super.setUp();
-    }
-
-    @Override
-    protected NodeState createInitialState() {
+    protected NodeState createInitialState(MicroKernel microKernel) {
         String jsop =
                 "+\"test\":{\"a\":1,\"b\":2,\"c\":3,"
                         + "\"x\":{},\"y\":{},\"z\":{}}";
-        String revision = microKernel.commit("/", jsop, microKernel.getHeadRevision(), "test data");
-        store = new KernelNodeStore(microKernel, valueFactory);
+        microKernel.commit("/", jsop, microKernel.getHeadRevision(), "test data");
         return store.getRoot().getChildNode("test");
     }
 

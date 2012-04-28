@@ -19,7 +19,9 @@ package org.apache.jackrabbit.oak.core;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
+import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Before;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,18 +37,20 @@ public abstract class AbstractOakTest {
     private static final Logger log = LoggerFactory.getLogger(AbstractOakTest.class);
 
     // TODO: use regular oak-repo setup
-    protected MicroKernel microKernel;
+    protected NodeStore store;
     protected CoreValueFactory valueFactory;
 
     protected NodeState state;
 
     @Before
     public void setUp() {
-        microKernel = new MicroKernelImpl();
-        valueFactory = new CoreValueFactoryImpl(microKernel);
+        MicroKernel microKernel = new MicroKernelImpl();
+        store = new KernelNodeStore(microKernel);
+        valueFactory = store.getValueFactory();
 
-        state = createInitialState();
+        state = createInitialState(microKernel);
     }
 
-    protected abstract NodeState createInitialState();
+    protected abstract NodeState createInitialState(MicroKernel microKernel);
+
 }

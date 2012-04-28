@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
+import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.core.AbstractOakTest;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -33,15 +34,14 @@ public class LargeKernelNodeStateTest extends AbstractOakTest {
     private final int N = KernelNodeState.MAX_CHILD_NODE_NAMES;
 
     @Override
-    protected NodeState createInitialState() {
+    protected NodeState createInitialState(MicroKernel microKernel) {
         StringBuilder jsop = new StringBuilder("+\"test\":{\"a\":1");
         for (int i = 0; i <= N; i++) {
             jsop.append(",\"x" + i + "\":{}");
         }
         jsop.append('}');
-        String revision = microKernel.commit(
-                "/", jsop.toString(), microKernel.getHeadRevision(), "test data");
-        return new KernelNodeState(microKernel, valueFactory, "/test", revision);
+        microKernel.commit("/", jsop.toString(), null, "test data");
+        return store.getRoot().getChildNode("test");
     }
 
     @Test

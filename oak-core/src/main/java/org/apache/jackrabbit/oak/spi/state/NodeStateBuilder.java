@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.spi.state;
 
+import java.util.List;
+
+import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 
 /**
@@ -67,9 +70,11 @@ public interface NodeStateBuilder {
     /**
      * Set a property.
      *
-     * @param property  property to set
+     * @param name property name
      */
-    void setProperty(PropertyState property);
+    void setProperty(String name, CoreValue values);
+
+    void setProperty(String name, List<CoreValue> values);
 
     /**
      * Remove the named property

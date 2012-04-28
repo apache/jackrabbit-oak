@@ -42,16 +42,14 @@ class ContentSessionImpl implements ContentSession {
     private final String workspaceName;
     private final NodeStore store;
     private final QueryEngine queryEngine;
-    private final CoreValueFactory valueFactory;
 
     public ContentSessionImpl(SimpleCredentials credentials, String workspaceName,
-                              NodeStore store, QueryEngine queryEngine, CoreValueFactory valueFactory) {
+                              NodeStore store, QueryEngine queryEngine) {
 
         this.credentials = credentials;
         this.workspaceName = workspaceName;
         this.store = store;
         this.queryEngine = queryEngine;
-        this.valueFactory = valueFactory;
     }
 
     @Override
@@ -97,7 +95,7 @@ class ContentSessionImpl implements ContentSession {
 
     @Override
     public CoreValueFactory getCoreValueFactory() {
-        return valueFactory;
+        return store.getValueFactory();
     }
 
 }

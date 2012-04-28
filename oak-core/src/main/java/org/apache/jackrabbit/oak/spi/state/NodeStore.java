@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.spi.state;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.CoreValueFactory;
 
 /**
  * Storage abstraction for trees. At any given point in time the stored
@@ -44,6 +45,13 @@ public interface NodeStore {
      * @return  builder instance
      */
     NodeStateBuilder getBuilder(NodeState base);
+
+    /**
+     * Returns the factory for creating values used for building node states.
+     *
+     * @return value factory
+     */
+    CoreValueFactory getValueFactory();
 
     /**
      * Updates the state of the tree.

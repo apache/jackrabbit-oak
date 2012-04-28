@@ -41,7 +41,7 @@ import org.junit.Test;
 public class QueryTest extends AbstractQueryTest {
 
     private QueryIndexProvider ip = new Indexer(mk);
-    private QueryEngineImpl qe = new QueryEngineImpl(mk, vf, ip);
+    private QueryEngineImpl qe = new QueryEngineImpl(store, mk, ip);
 
     @Before
     public void setup() {

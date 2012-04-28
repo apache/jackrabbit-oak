@@ -22,7 +22,7 @@ import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.mk.simple.SimpleKernelImpl;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
-import org.apache.jackrabbit.oak.core.CoreValueFactoryImpl;
+import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -61,7 +61,7 @@ public class CoreValueUtilTest {
     @Before
     public void setUp() throws IOException {
         microKernel = new SimpleKernelImpl("mem:" + getClass().getName());
-        valueFactory = new CoreValueFactoryImpl(microKernel);
+        valueFactory = new KernelNodeStore(microKernel).getValueFactory();
 
         singleValueMap = new HashMap<CoreValue, String>();
         singleValueMap.put(valueFactory.createValue("abc"), "\"abc\"");
