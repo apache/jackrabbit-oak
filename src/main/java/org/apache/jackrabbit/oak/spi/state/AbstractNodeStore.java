@@ -16,60 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.kernel;
+package org.apache.jackrabbit.oak.spi.state;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.spi.state.AbstractNodeStore;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStateBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 import java.util.HashSet;
 import java.util.Set;
-/**
- * {@link MicroKernel}-based {@link NodeStore} implementation.
- */
-public class KernelNodeStore extends AbstractNodeStore {
 
-    final MicroKernel kernel;
-    final CoreValueFactory valueFactory;
-
-    public KernelNodeStore(MicroKernel kernel, CoreValueFactory valueFactory) {
-        this.kernel = kernel;
-        this.valueFactory = valueFactory;
-    }
-
-    @Override
-    public NodeState getRoot() {
-        return new KernelNodeState(kernel, valueFactory, "/", kernel.getHeadRevision());
-    }
-
-    @Override
-    public NodeStateBuilder getBuilder(NodeState base) {
-        if (!(base instanceof KernelNodeState)) {
-            throw new IllegalArgumentException("Alien node state");
-        }
-
-        KernelNodeState kernelNodeState = (KernelNodeState) base;
-        String branchRevision = kernel.branch(kernelNodeState.getRevision());
-        String path = kernelNodeState.getPath();
-        return KernelNodeStateBuilder.create(kernel, valueFactory, path, branchRevision);
-    }
-
-    @Override
-    public void apply(NodeStateBuilder builder) throws CommitFailedException {
-        if (!(builder instanceof  KernelNodeStateBuilder)) {
-            throw new IllegalArgumentException("Alien builder");
-        }
-        
-        KernelNodeStateBuilder kernelNodeStateBuilder = (KernelNodeStateBuilder) builder;
-        kernelNodeStateBuilder.apply();
-    }
+public abstract class AbstractNodeStore implements NodeStore {
 
     @Override
     public void compare(NodeState before, NodeState after, NodeStateDiff diff) {
