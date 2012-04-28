@@ -14,7 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.kernel;
+package org.apache.jackrabbit.oak.spi.state;
+
 
 /**
  * TODO: document OR replace by mk.model ChildNodeEntry interface

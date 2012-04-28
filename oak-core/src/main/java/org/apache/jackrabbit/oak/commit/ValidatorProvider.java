@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.commit;
 
-import org.apache.jackrabbit.oak.kernel.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * Extension point for plugging in different kinds of validation rules

@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.commit;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.kernel.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * Content change validator. An instance of this interface is used to

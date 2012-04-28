@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.core;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
-import org.apache.jackrabbit.oak.kernel.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Before;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

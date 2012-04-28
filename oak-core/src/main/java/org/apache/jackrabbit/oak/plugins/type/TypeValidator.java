@@ -24,7 +24,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commit.Validator;
-import org.apache.jackrabbit.oak.kernel.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 class TypeValidator implements Validator {
 
