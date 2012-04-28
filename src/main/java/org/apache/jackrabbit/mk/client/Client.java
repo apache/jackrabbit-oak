@@ -96,15 +96,12 @@ public class Client implements MicroKernel {
     //-------------------------------------------------- implements MicroKernel
     
     @Override
-    public synchronized void dispose() {
-        if (!disposed.compareAndSet(false, true)) {
-            return;
-        }
-        IOUtils.closeQuietly(executor);
+    public void dispose() {
+	// do nothing
     }
 
     @Override
-    public synchronized String getHeadRevision() throws MicroKernelException {
+    public String getHeadRevision() throws MicroKernelException {
         Request request = null;
         
         try {
@@ -118,7 +115,7 @@ public class Client implements MicroKernel {
     }
 
     @Override
-    public synchronized String getRevisionHistory(long since, int maxEntries)
+    public String getRevisionHistory(long since, int maxEntries)
             throws MicroKernelException {
 
         Request request = null;
@@ -136,7 +133,7 @@ public class Client implements MicroKernel {
     }
 
     @Override
-    public synchronized String waitForCommit(String oldHeadRevisionId, long maxWaitMillis)
+    public String waitForCommit(String oldHeadRevisionId, long maxWaitMillis)
             throws MicroKernelException, InterruptedException {
 
         Request request = null;
@@ -154,7 +151,7 @@ public class Client implements MicroKernel {
     }
 
     @Override
-    public synchronized String getJournal(String fromRevisionId, String toRevisionId, String filter)
+    public String getJournal(String fromRevisionId, String toRevisionId, String filter)
             throws MicroKernelException {
         
         Request request = null;
@@ -173,7 +170,7 @@ public class Client implements MicroKernel {
     }
 
     @Override
-    public synchronized String diff(String fromRevisionId, String toRevisionId, String filter)
+    public String diff(String fromRevisionId, String toRevisionId, String filter)
             throws MicroKernelException {
         Request request = null;
 
@@ -191,7 +188,7 @@ public class Client implements MicroKernel {
     }
 
     @Override
-    public synchronized boolean nodeExists(String path, String revisionId)
+    public boolean nodeExists(String path, String revisionId)
             throws MicroKernelException {
 
         Request request = null;
@@ -209,7 +206,7 @@ public class Client implements MicroKernel {
     }
 
     @Override
-    public synchronized long getChildNodeCount(String path, String revisionId)
+    public long getChildNodeCount(String path, String revisionId)
             throws MicroKernelException {
 
         Request request = null;
@@ -227,14 +224,14 @@ public class Client implements MicroKernel {
     }
 
     @Override
-    public synchronized String getNodes(String path, String revisionId)
+    public String getNodes(String path, String revisionId)
             throws MicroKernelException {
 
         return getNodes(path, revisionId, 1, 0, -1, null);
     }
 
     @Override
-    public synchronized String getNodes(String path, String revisionId, int depth,
+    public String getNodes(String path, String revisionId, int depth,
             long offset, int count, String filter) throws MicroKernelException {
         
         Request request = null;
@@ -258,7 +255,7 @@ public class Client implements MicroKernel {
     }
 
     @Override
-    public synchronized String commit(String path, String jsonDiff, String revisionId,
+    public String commit(String path, String jsonDiff, String revisionId,
             String message) throws MicroKernelException {
         
         Request request = null;
@@ -278,7 +275,7 @@ public class Client implements MicroKernel {
     }
 
     @Override
-    public synchronized String branch(String trunkRevisionId)
+    public String branch(String trunkRevisionId)
             throws MicroKernelException {
 
         Request request = null;
@@ -295,7 +292,7 @@ public class Client implements MicroKernel {
     }
 
     @Override
-    public synchronized String merge(String branchRevisionId, String message)
+    public String merge(String branchRevisionId, String message)
             throws MicroKernelException {
 
         Request request = null;
@@ -313,7 +310,7 @@ public class Client implements MicroKernel {
     }
 
     @Override
-    public synchronized long getLength(String blobId) throws MicroKernelException {
+    public long getLength(String blobId) throws MicroKernelException {
         Request request = null;
 
         try {
@@ -328,7 +325,7 @@ public class Client implements MicroKernel {
     }
 
     @Override
-    public synchronized int read(String blobId, long pos, byte[] buff, int off, int length)
+    public int read(String blobId, long pos, byte[] buff, int off, int length)
             throws MicroKernelException {
 
         Request request = null;
@@ -347,7 +344,7 @@ public class Client implements MicroKernel {
     }
 
     @Override
-    public synchronized String write(InputStream in) throws MicroKernelException {
+    public String write(InputStream in) throws MicroKernelException {
         Request request = null;
 
         try {
@@ -385,23 +382,7 @@ public class Client implements MicroKernel {
      * @throws MicroKernelException if an exception occurs
      */
     private Request createRequest(String command) throws IOException, MicroKernelException {
-        if (disposed.get()) {
-            throw new IllegalStateException("This instance has already been disposed");
-        }
-        if (executor != null && !executor.isAlive()) {
-            IOUtils.closeQuietly(executor);
-            executor = null;
-        }
-        if (executor == null) {
-            executor = new HttpExecutor(createSocket());
-        }
-        return new Request(executor, command);
+        return new Request(socketFactory, addr, command);
     }
     
-    private Socket createSocket() throws IOException {
-        if (addr == null) {
-            return socketFactory.createSocket();
-        }
-        return socketFactory.createSocket(addr.getAddress(), addr.getPort());
-    }
 }

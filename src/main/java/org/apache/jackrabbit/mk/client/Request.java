@@ -20,9 +20,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.InetSocketAddress;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
+
+import javax.net.SocketFactory;
 
 import org.apache.jackrabbit.mk.util.IOUtils;
 
@@ -31,8 +33,10 @@ import org.apache.jackrabbit.mk.util.IOUtils;
  * implementation.
  */
 class Request implements Closeable {
-    
-    private HttpExecutor executor;
+
+    private final SocketFactory socketFactory;
+
+    private final InetSocketAddress socketAddress;
     
     private final String command;
     
@@ -40,21 +44,21 @@ class Request implements Closeable {
     
     private InputStream in;
     
-    private InputStream resultIn;
-    
-    private final AtomicBoolean executed = new AtomicBoolean();
-    
     /**
      * Create a new instance of this class.
      * 
-     * @param executor executor
+     * @param socketFactory socket factory
+     * @param socketAddress server address
      * @param command command name
      */
-    public Request(HttpExecutor executor, String command) {
-        this.executor = executor;
+    public Request(
+            SocketFactory socketFactory, InetSocketAddress socketAddress,
+            String command) {
+        this.socketFactory = socketFactory;
+        this.socketAddress = socketAddress;
         this.command = command;
     }
-    
+
     /**
      * Add a string parameter.
      *
@@ -108,13 +112,22 @@ class Request implements Closeable {
      * 
      * @throws IOException if an I/O error occurs
      */
-    public void execute() throws IOException {
-        if (!executed.compareAndSet(false, true)) {
-            return;
+    private byte[] execute() throws IOException {
+        HttpExecutor executor = new HttpExecutor(socketFactory, socketAddress);
+        try {
+            InputStream stream = executor.execute(command, params, in);
+            try {
+                ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+                IOUtils.copy(stream, buffer);
+                return buffer.toByteArray();
+            } finally {
+                stream.close();
+            }
+        } finally {
+            executor.close();
         }
-        resultIn = executor.execute(command, params, in);
     }
-    
+
     /**
      * Return a string from the result stream. Automatically executes
      * the request first.
@@ -123,9 +136,7 @@ class Request implements Closeable {
      * @throws IOException if an I/O error occurs
      */
     public String getString() throws IOException {
-        execute();
-        
-        return new String(toByteArray(resultIn), "8859_1");
+        return new String(execute(), "8859_1");
     }
 
     /**
@@ -137,8 +148,6 @@ class Request implements Closeable {
      * @throws IOException if an I/O error occurs
      */
     public boolean getBoolean() throws IOException {
-        execute();
-        
         return Boolean.parseBoolean(getString());
     }
     
@@ -151,8 +160,6 @@ class Request implements Closeable {
      * @throws IOException if an I/O error occurs
      */
     public long getLong() throws IOException {
-        execute();
-        
         return Long.parseLong(getString());
     }
 
@@ -168,29 +175,23 @@ class Request implements Closeable {
      * @throws IOException if an I/O error occurs
      */
     public int read(byte[] b, int off, int len) throws IOException {
-        execute();
-        
-        int count = 0;
-        while (count < len) {
-            int n = resultIn.read(b, off + count, len - count);
-            if (n < 0) {
-                break;
-            }
-            count += n;
+        if (len == 0) {
+            return 0;
         }
-        return count == 0 && len != 0 ? -1 : count;
+
+        byte[] bytes = execute();
+        len = Math.min(bytes.length, len);
+        if (len == 0) {
+            return -1;
+        }
+
+        System.arraycopy(bytes, 0, b, off, len);
+        return len;
     }
-    
+
     @Override
     public void close() {
-        IOUtils.closeQuietly(resultIn);
-        
-        executor = null;
+        // do nothing
     }
-    
-    private static byte[] toByteArray(InputStream in) throws IOException {
-        ByteArrayOutputStream out = new ByteArrayOutputStream(1024);
-        IOUtils.copy(in, out);
-        return out.toByteArray();
-    }
+
 }

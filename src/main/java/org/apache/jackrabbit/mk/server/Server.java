@@ -143,7 +143,7 @@ public class Server {
     }
 
     private ExecutorService createExecutorService() {
-        return Executors.newFixedThreadPool(10);
+        return Executors.newCachedThreadPool();
     }
 
     /**
