@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.kernel;
+package org.apache.jackrabbit.oak.spi.state;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 
@@ -40,7 +40,7 @@ public interface NodeStore {
      * The builder is initialized with all the properties and child nodes
      * from the given base node state.
      *
-     * @param base  base node state
+     * @param base  base node state, or {@code null} for building new nodes
      * @return  builder instance
      */
     NodeStateBuilder getBuilder(NodeState base);

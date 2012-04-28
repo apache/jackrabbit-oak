@@ -20,6 +20,8 @@ package org.apache.jackrabbit.oak.kernel;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.core.AbstractOakTest;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
 import java.util.ArrayList;
