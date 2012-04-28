@@ -22,7 +22,7 @@ import java.util.Set;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commit.Validator;
 import org.apache.jackrabbit.oak.commit.ValidatorProvider;
-import org.apache.jackrabbit.oak.kernel.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 public class NameValidatorProvider implements ValidatorProvider {
 

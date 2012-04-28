@@ -18,6 +18,9 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
+import org.apache.jackrabbit.oak.spi.state.AbstractChildNodeEntry;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+
 class KernelChildNodeEntry extends AbstractChildNodeEntry {
 
     private final String name;
