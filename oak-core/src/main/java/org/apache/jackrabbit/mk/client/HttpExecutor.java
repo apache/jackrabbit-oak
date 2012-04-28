@@ -28,12 +28,15 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URLEncoder;
 import java.security.SecureRandom;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Random;
+
+import javax.net.SocketFactory;
 
 /**
  * Executes commands as HTTP requests.
@@ -59,10 +62,18 @@ class HttpExecutor implements Closeable {
     /**
      * Create a new instance of this class.
      * 
-     * @param socket socket
+     * @param socketFactory socket factory
+     * @param socketAddress server address
+     * @throws IOException if the server could not be contacted
      */
-    public HttpExecutor(Socket socket) {
-        this.socket = socket;
+    public HttpExecutor(SocketFactory socketFactory, InetSocketAddress socketAddress)
+	    throws IOException {
+        if (socketAddress != null) {
+            socket = socketFactory.createSocket(
+                    socketAddress.getAddress(), socketAddress.getPort());
+        } else {
+            socket = socketFactory.createSocket();
+        }
     }
     
     /**
