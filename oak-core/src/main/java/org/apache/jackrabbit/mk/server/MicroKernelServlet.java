@@ -126,7 +126,7 @@ class MicroKernelServlet {
 
             String headRevision = mk.getHeadRevision();
 
-            String oldHead = request.getParameter("old_revision_id", headRevision);
+            String oldHead = request.getParameter("revision_id", headRevision);
             long maxWaitMillis = request.getParameter("max_wait_millis", 0L);
 
             String currentHead;
