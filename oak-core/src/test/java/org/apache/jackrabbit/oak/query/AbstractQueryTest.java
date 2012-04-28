@@ -19,7 +19,8 @@ package org.apache.jackrabbit.oak.query;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
-import org.apache.jackrabbit.oak.core.CoreValueFactoryImpl;
+import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
  * AbstractQueryTest...
@@ -28,5 +29,9 @@ public abstract class AbstractQueryTest {
 
     // TODO improve: use ContentRepository here instead of creating mk instance.
     protected final MicroKernel mk = new MicroKernelImpl();
-    protected final CoreValueFactory vf = new CoreValueFactoryImpl(mk);
+
+    protected final NodeStore store = new KernelNodeStore(mk);
+
+    protected final CoreValueFactory vf = store.getValueFactory();
+
 }

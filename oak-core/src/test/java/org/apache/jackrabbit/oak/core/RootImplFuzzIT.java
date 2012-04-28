@@ -77,13 +77,13 @@ public class RootImplFuzzIT {
         counter = 0;
 
         MicroKernel mk1 = new MicroKernelImpl("./target/mk1/" + random.nextInt());
-        vf = new CoreValueFactoryImpl(mk1);
-        store1 = new KernelNodeStore(mk1, vf);
+        store1 = new KernelNodeStore(mk1);
+        vf = store1.getValueFactory();
         mk1.commit("", "+\"/test\":{} +\"/test/root\":{}", mk1.getHeadRevision(), "");
         root1 = new RootImpl(store1, "test");
 
         MicroKernel mk2 = new MicroKernelImpl("./target/mk2/" + random.nextInt());
-        store2 = new KernelNodeStore(mk2, vf);
+        store2 = new KernelNodeStore(mk2);
         mk2.commit("", "+\"/test\":{} +\"/test/root\":{}", mk2.getHeadRevision(), "");
         root2 = new RootImpl(store2, "test");
     }

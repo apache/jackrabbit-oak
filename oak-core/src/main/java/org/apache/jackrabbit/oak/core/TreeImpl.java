@@ -351,7 +351,7 @@ public class TreeImpl implements Tree {
 
     @Override
     public void setProperty(String name, CoreValue value) {
-        builder.setProperty(new PropertyStateImpl(name, value));
+        builder.setProperty(name, value);
         if (listener != null) {
             listener.setProperty(this, name, value);
         }
@@ -359,7 +359,7 @@ public class TreeImpl implements Tree {
 
     @Override
     public void setProperty(String name, List<CoreValue> values) {
-        builder.setProperty(new PropertyStateImpl(name, values));
+        builder.setProperty(name, values);
         if (listener != null) {
             listener.setProperty(this, name, values);
         }

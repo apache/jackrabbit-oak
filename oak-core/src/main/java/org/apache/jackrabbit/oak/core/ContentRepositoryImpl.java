@@ -21,7 +21,6 @@ import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.mk.index.Indexer;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
@@ -50,7 +49,6 @@ public class ContentRepositoryImpl implements ContentRepository {
     private static final String DEFAULT_WORKSPACE_NAME = "default";
 
     private final MicroKernel microKernel;
-    private final CoreValueFactory valueFactory;
     private final QueryEngine queryEngine;
     private final NodeStore nodeStore;
 
@@ -81,9 +79,8 @@ public class ContentRepositoryImpl implements ContentRepository {
      */
     public ContentRepositoryImpl(MicroKernel mk, QueryIndexProvider indexProvider) {
         microKernel = mk;
-        valueFactory = new CoreValueFactoryImpl(microKernel);
-        nodeStore = new KernelNodeStore(microKernel, valueFactory);
-        queryEngine = new QueryEngineImpl(microKernel, valueFactory, indexProvider);
+        nodeStore = new KernelNodeStore(microKernel);
+        queryEngine = new QueryEngineImpl(nodeStore, microKernel, indexProvider);
 
         // FIXME: workspace setup must be done elsewhere...
         queryEngine.init();
@@ -124,7 +121,7 @@ public class ContentRepositoryImpl implements ContentRepository {
             throw new NoSuchWorkspaceException(workspaceName);
         }
 
-        return new ContentSessionImpl(sc, workspaceName, nodeStore, queryEngine, valueFactory);
+        return new ContentSessionImpl(sc, workspaceName, nodeStore, queryEngine);
     }
 
 }
