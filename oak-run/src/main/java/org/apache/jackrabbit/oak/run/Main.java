@@ -73,31 +73,28 @@ public class Main {
 
     public static class HttpServer {
 
-        private Server server;
+        private final ServletContextHandler context;
+
+        private final Server server;
 
         public HttpServer(String uri, String args[]) {
-            ServletContextHandler context = new ServletContextHandler(
-                    ServletContextHandler.SECURITY);
+            context = new ServletContextHandler(ServletContextHandler.SECURITY);
             context.setContextPath("/");
 
             if (args.length == 0) {
                 System.out.println("Starting an in-memory repository");
                 System.out.println(URI + " -> [memory]");
-                Servlet servlet = new RepositoryServlet(null);
-                context.addServlet(new ServletHolder(servlet), "/*");
+                addServlet(null, "/*");
             } else if (args.length == 1) {
                 System.out.println("Starting a standalone repository");
                 System.out.println(URI + " -> " + args[0]);
-                Servlet servlet = new RepositoryServlet(args[0]);
-                context.addServlet(new ServletHolder(servlet), "/*");
+                addServlet(args[0], "/*");
             } else {
                 System.out.println("Starting a clustered repository");
                 for (int i = 0; i < args.length; i++) {
                     // FIXME: Use a clustered MicroKernel implementation
                     System.out.println(URI + "/node" + i + "/ -> " + args[i]);
-                    Servlet servlet = new RepositoryServlet(args[i]);
-                    context.addServlet(new ServletHolder(servlet), "/node" + i
-                            + "/*");
+                    addServlet(args[i], "/node" + i + "/*");
                 }
             }
 
@@ -116,6 +113,16 @@ public class Main {
         public void stop() throws Exception {
             server.stop();
         }
+
+        private void addServlet(String repo, String path) {
+            Servlet servlet = new RepositoryServlet(repo);
+            ServletHolder holder = new ServletHolder(servlet);
+            holder.setInitParameter(
+                    RepositoryServlet.INIT_PARAM_MISSING_AUTH_MAPPING,
+                    "admin:admin");
+            context.addServlet(holder, path);
+        }
+
     }
 
 }
