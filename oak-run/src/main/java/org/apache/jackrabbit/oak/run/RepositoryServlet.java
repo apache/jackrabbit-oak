@@ -50,6 +50,7 @@ class RepositoryServlet extends JCRWebdavServerServlet {
         } catch (RepositoryException e) {
             throw new ServletException("Could not start a repository", e);
         }
+
         super.init();
     }
 
