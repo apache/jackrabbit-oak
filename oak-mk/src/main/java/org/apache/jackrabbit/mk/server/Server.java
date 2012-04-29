@@ -32,7 +32,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.net.ServerSocketFactory;
 
-import org.apache.jackrabbit.mk.MicroKernelFactory;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 
 /**
@@ -242,31 +241,4 @@ public class Server {
         }
     }
 
-    public static void main(String[] args) throws Exception {
-        if (args.length == 0) {
-            System.out.println(String.format("usage: %s microkernel-url [port] [bindaddr]",
-                    Server.class.getName()));
-            return;
-        }
-
-        MicroKernel mk = MicroKernelFactory.getInstance(args[0]);
-
-        final Server server = new Server(mk);
-        if (args.length >= 2) {
-            server.setPort(Integer.parseInt(args[1]));
-        } else {
-            server.setPort(28080);
-        }
-        if (args.length >= 3) {
-            server.setBindAddress(InetAddress.getByName(args[2]));
-        }
-        server.start();
-
-        Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
-            @Override
-            public void run() {
-                server.stop();
-            }
-        }, "ShutdownHook"));
-    }
 }

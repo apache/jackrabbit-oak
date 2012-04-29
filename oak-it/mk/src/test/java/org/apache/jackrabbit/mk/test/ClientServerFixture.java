@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.server;
+package org.apache.jackrabbit.mk.test;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -22,6 +22,7 @@ import java.net.InetSocketAddress;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.client.Client;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
+import org.apache.jackrabbit.mk.server.Server;
 import org.apache.jackrabbit.mk.test.MicroKernelFixture;
 
 public class ClientServerFixture implements MicroKernelFixture {

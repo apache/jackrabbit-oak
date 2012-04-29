@@ -14,3 +14,4 @@
 #  limitations under the License.
 
 org.apache.jackrabbit.mk.test.MicroKernelImplFixture
+org.apache.jackrabbit.mk.test.ClientServerFixture
