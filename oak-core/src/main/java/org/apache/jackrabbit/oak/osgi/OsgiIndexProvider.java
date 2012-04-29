@@ -18,10 +18,6 @@
  */
 package org.apache.jackrabbit.oak.osgi;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.spi.QueryIndex;
 import org.apache.jackrabbit.oak.spi.QueryIndexProvider;
@@ -29,6 +25,11 @@ import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
 import org.osgi.util.tracker.ServiceTracker;
 import org.osgi.util.tracker.ServiceTrackerCustomizer;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * This index provider combines all indexes of all available OSGi index
@@ -85,7 +86,7 @@ public class OsgiIndexProvider implements ServiceTrackerCustomizer, QueryIndexPr
 
     @Override
     public List<QueryIndex> getQueryIndexes(MicroKernel mk) {
-        if (providers.size() == 0) {
+        if (providers.isEmpty()) {
             return Collections.emptyList();
         } else if (providers.size() == 1) {
             return providers.get(0).getQueryIndexes(mk);
