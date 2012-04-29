@@ -43,6 +43,7 @@
               org.apache.jackrabbit.mk.json,
               org.apache.jackrabbit.mk.util,
               org.apache.jackrabbit.mk.core,
+              org.apache.jackrabbit.mk.client,
               org.apache.jackrabbit.mk.blobs
             </Export-Package>
             <Bundle-Activator>

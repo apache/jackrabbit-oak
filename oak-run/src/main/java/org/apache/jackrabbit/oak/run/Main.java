@@ -33,8 +33,14 @@ public class Main {
     public static void main(String[] args) throws Exception {
         printProductInfo();
 
-        HttpServer httpServer = new HttpServer(URI, args);
-        httpServer.start();
+        if (args.length > 0 && "mk".equals(args[0])) {
+            String[] newArgs = new String[args.length - 1];
+            System.arraycopy(args, 1, newArgs, 0, newArgs.length);
+            MicroKernelServer.main(newArgs);
+        } else {
+            HttpServer httpServer = new HttpServer(URI, args);
+            httpServer.start();
+        }
     }
 
     private static void printProductInfo() {
