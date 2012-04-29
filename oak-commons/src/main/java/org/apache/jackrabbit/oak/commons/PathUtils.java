@@ -40,6 +40,9 @@ public class PathUtils {
 
     private static final String[] EMPTY_ARRAY = new String[0];
 
+    private PathUtils() {
+    }
+
     /**
      * Whether the path is the root path ("/").
      *
@@ -69,7 +72,7 @@ public class PathUtils {
     }
 
     private static boolean isAbsolutePath(String path) {
-        return path.length() > 0 && path.charAt(0) == '/';
+        return !path.isEmpty() && path.charAt(0) == '/';
     }
 
     /**
@@ -95,7 +98,7 @@ public class PathUtils {
     public static String getAncestorPath(String path, int nth) {
         assertValid(path);
 
-        if (path.length() == 0 || denotesRootPath(path)
+        if (path.isEmpty() || denotesRootPath(path)
                 || nth <= 0) {
             return path;
         }
@@ -126,7 +129,7 @@ public class PathUtils {
     public static String getName(String path) {
         assertValid(path);
 
-        if (path.length() == 0 || denotesRootPath(path)) {
+        if (path.isEmpty() || denotesRootPath(path)) {
             return "";
         }
         int end = path.length() - 1;
@@ -173,7 +176,7 @@ public class PathUtils {
     public static String[] split(String path) {
         assertValid(path);
 
-        if (path.length() == 0) {
+        if (path.isEmpty()) {
             return EMPTY_ARRAY;
         } else if (isAbsolutePath(path)) {
             if (path.length() == 1) {
@@ -211,6 +214,7 @@ public class PathUtils {
             int pos = PathUtils.isAbsolute(path) ? 1 : 0;
             String next;
 
+            @Override
             public boolean hasNext() {
                 if (next == null) {
                     if (pos >= path.length()) {
@@ -234,6 +238,7 @@ public class PathUtils {
                 }
             }
 
+            @Override
             public String next() {
                 if (hasNext()) {
                     String next = this.next;
@@ -245,12 +250,14 @@ public class PathUtils {
                 }
             }
 
+            @Override
             public void remove() {
                 throw new UnsupportedOperationException("remove");
             }
         };
 
         return new Iterable<String>() {
+            @Override
             public Iterator<String> iterator() {
                 return it;
             }
@@ -271,13 +278,12 @@ public class PathUtils {
         StringBuilder buff = new StringBuilder(parentLen + size * 5);
         buff.append(parentPath);
         boolean needSlash = parentLen > 0 && !denotesRootPath(parentPath);
-        for (int i = 0; i < size; i++) {
-            String s = relativePaths[i];
+        for (String s : relativePaths) {
             assertValid(s);
             if (isAbsolutePath(s)) {
                 throw new IllegalArgumentException("Cannot append absolute path " + s);
             }
-            if (s.length() > 0) {
+            if (!s.isEmpty()) {
                 if (needSlash) {
                     buff.append('/');
                 }
@@ -299,9 +305,9 @@ public class PathUtils {
         assertValid(parentPath);
         assertValid(subPath);
         // special cases
-        if (parentPath.length() == 0) {
+        if (parentPath.isEmpty()) {
             return subPath;
-        } else if (subPath.length() == 0) {
+        } else if (subPath.isEmpty()) {
             return parentPath;
         } else if (isAbsolutePath(subPath)) {
             throw new IllegalArgumentException("Cannot append absolute path " + subPath);
@@ -324,7 +330,7 @@ public class PathUtils {
     public static boolean isAncestor(String ancestor, String path) {
         assertValid(ancestor);
         assertValid(path);
-        if (ancestor.length() == 0 || path.length() == 0) {
+        if (ancestor.isEmpty() || path.isEmpty()) {
             return false;
         }
         if (!denotesRoot(ancestor)) {
@@ -384,7 +390,7 @@ public class PathUtils {
      * @param path the path
      */
     public static void validate(String path) {
-        if (path.length() == 0 || denotesRootPath(path)) {
+        if (path.isEmpty() || denotesRootPath(path)) {
             return;
         } else if (path.charAt(path.length() - 1) == '/') {
             throw new IllegalArgumentException("Path may not end with '/': " + path);

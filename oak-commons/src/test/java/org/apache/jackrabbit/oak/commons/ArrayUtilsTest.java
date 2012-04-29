@@ -16,11 +16,10 @@
  */
 package org.apache.jackrabbit.oak.commons;
 
+import org.junit.Test;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-
-import org.apache.jackrabbit.oak.commons.ArrayUtils;
-import org.junit.Test;
 
 /**
  * Tests the ArrayUtils class
@@ -51,8 +50,8 @@ public class ArrayUtilsTest {
 
     @Test
     public void insertObject() {
-        Long[] x = {Long.valueOf(10), Long.valueOf(20)};
-        Long[] y = ArrayUtils.arrayInsert(x, 1, Long.valueOf(15));
+        Long[] x = {10L, 20L};
+        Long[] y = ArrayUtils.arrayInsert(x, 1, 15L);
         assertFalse(x == y);
         assertEquals(3, y.length);
         assertEquals(Long.valueOf(10), y[0]);
@@ -95,7 +94,7 @@ public class ArrayUtilsTest {
 
     @Test
     public void removeObject() {
-        Long[] x = {Long.valueOf(10), Long.valueOf(20)};
+        Long[] x = {10L, 20L};
         Long[] y = ArrayUtils.arrayRemove(x, 1);
         assertFalse(x == y);
         assertEquals(1, y.length);
@@ -117,8 +116,8 @@ public class ArrayUtilsTest {
 
     @Test
     public void replaceObject() {
-        Long[] x = {Long.valueOf(10), Long.valueOf(20)};
-        Long[] y = ArrayUtils.arrayReplace(x, 1, Long.valueOf(11));
+        Long[] x = {10L, 20L};
+        Long[] y = ArrayUtils.arrayReplace(x, 1, 11L);
         assertFalse(x == y);
         assertEquals(2, y.length);
         assertEquals(Long.valueOf(10), y[0]);

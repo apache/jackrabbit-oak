@@ -29,6 +29,9 @@ public class ArrayUtils {
     public static final long[] EMPTY_LONG_ARRAY = new long[0];
     public static final int[] EMPTY_INTEGER_ARRAY = new int[0];
 
+    private ArrayUtils() {
+    }
+
     /**
      * Replace an element in a clone of the array at the given position.
      *
