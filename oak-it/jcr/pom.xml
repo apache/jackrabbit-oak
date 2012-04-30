@@ -46,7 +46,6 @@
               <value>
 org.apache.jackrabbit.test.api.NodeDiscoveringNodeTypesTest#testIsNodeType
 org.apache.jackrabbit.test.api.NamespaceRemappingTest#testNamespaceRemapping
-org.apache.jackrabbit.test.api.NamespaceRemappingTest#testExceptionOnUnknownPrefix
 org.apache.jackrabbit.test.api.SessionReadMethodsTest#testGetNodeByUUIDFailure
 org.apache.jackrabbit.test.api.ExportSysViewTest
 org.apache.jackrabbit.test.api.ExportDocViewTest
