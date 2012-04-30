@@ -2,15 +2,15 @@
 Jackrabbit Oak - the next generation content repository
 =======================================================
 
-Jackrabbit Oak is an effort to implement a scalable and performant hierarchical content
-repository for use as the foundation of modern world-class web sites and
-other demanding content applications.
+Jackrabbit Oak is an effort to implement a scalable and performant
+hierarchical content repository for use as the foundation of modern
+world-class web sites and other demanding content applications.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Jackrabbit Oak 0.1 is to be considered alpha-level software. Use at your own risk 
-with no stability or compatibility guarantees. 
+Oak is currently alpha-level software. Use at your own risk with no
+stability or compatibility guarantees.
 
 Getting Started
 ---------------
@@ -20,16 +20,26 @@ Maven 3 and Java 6 (or higher) like this:
 
     mvn clean install
 
+To run the build with all integration tests enabled, use:
+
+    mvn clean install -PintegrationTesting
+
 The build consists of the following main components:
 
-    oak-parent - parent POM
-    oak-mk     - MicroKernel API and default implementation
-    oak-core   - Oak repository API and implementation
-    oak-jcr    - JCR binding for the Oak repository
-    oak-run    - runnable jar packaging
-    oak-it     - integration tests
-    oak-bench  - performance tests
+  - oak-parent    - parent POM
+  - oak-commons   - shared utility code
+  - oak-mk        - MicroKernel API and default implementation
+  - [oak-core][1] - Oak repository API and implementation
+  - oak-jcr       - JCR binding for the Oak repository
+  - oak-sling     - integration with Apache Sling
+  - oak-run       - runnable jar packaging
+  - oak-it        - integration tests
+    - oak-it/mk   - integration tests for MicroKernel
+    - oak-it/jcr  - integration tests for JCR
+    - oak-it/osgi - integration tests for OSGi
+  - oak-bench     - performance tests
 
+  [1]: oak-core/README.md
 
 License (see also LICENSE.txt)
 ------------------------------
