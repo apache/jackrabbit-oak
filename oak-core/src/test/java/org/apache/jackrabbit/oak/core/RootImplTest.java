@@ -25,7 +25,6 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -411,7 +410,31 @@ public class RootImplTest extends AbstractOakTest {
         assertEquals(Status.EXISTING, tree.getChildStatus("one"));
         assertEquals(Status.MODIFIED, tree.getChild("one").getChildStatus("two"));
     }
-    
+
+    @Test
+    public void rebase() throws CommitFailedException {
+        RootImpl root1 = new RootImpl(store, "test");
+        RootImpl root2 = new RootImpl(store, "test");
+
+        checkEqual(root1.getTree("/"), root2.getTree("/"));
+
+        CoreValue value = valueFactory.createValue("V1");
+        root2.getTree("/").addChild("one").addChild("two").addChild("three")
+                .setProperty("p1", value);
+        root2.commit();
+
+        root1.rebase();
+        checkEqual(root1.getTree("/"), (root2.getTree("/")));
+
+        Tree one = root2.getTree("/one");
+        one.removeChild("two");
+        one.addChild("four");
+        root2.commit();
+
+        root1.rebase();
+        checkEqual(root1.getTree("/"), (root2.getTree("/")));
+    }
+
     @Test
     @Ignore("WIP") // TODO: move to oak-bench
     public void largeChildList() throws CommitFailedException {
