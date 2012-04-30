@@ -41,8 +41,10 @@ The build consists of the following main components:
 
   [1]: oak-core/README.md
 
-License (see also LICENSE.txt)
-------------------------------
+License
+-------
+
+(see [LICENSE.txt](LICENSE.txt) for full license details)
 
 Collective work: Copyright 2012 The Apache Software Foundation.
 

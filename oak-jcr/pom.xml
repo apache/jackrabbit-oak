@@ -48,6 +48,20 @@
         </configuration>
       </plugin>
     </plugins>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.rat</groupId>
+          <artifactId>apache-rat-plugin</artifactId>
+          <configuration>
+            <excludes>
+              <exclude>src/main/java/org/apache/jackrabbit/oak/jcr/security/user/diff.txt</exclude>
+              <exclude>src/main/java/org/apache/jackrabbit/oak/jcr/security/privileges/diff.txt</exclude>
+            </excludes>
+          </configuration>
+        </plugin>
+      </plugins>
+    </pluginManagement>
   </build>
 
   <dependencies>
