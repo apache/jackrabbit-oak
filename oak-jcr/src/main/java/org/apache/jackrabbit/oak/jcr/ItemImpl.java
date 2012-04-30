@@ -165,7 +165,12 @@ abstract class ItemImpl implements Item {
 
     
     String toOakPath(String jcrPath) throws RepositoryException {
-        return sessionContext.getNamePathMapper().toOakPath(jcrPath);
+        try {
+            return sessionContext.getNamePathMapper().toOakPath(jcrPath);
+        } catch (IllegalArgumentException ex) {
+            // TODO we shouldn't have to catch this one
+            throw new RepositoryException(ex);
+        }
     }
 
     String toJcrPath(String oakPath) {
