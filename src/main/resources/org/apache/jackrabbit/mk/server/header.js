@@ -1,1 +1,0 @@
-document.write('<div class="header"><div class="logo"><a href="http://jackrabbit.apache.org/" align="right"><img src="logo.png" align="right"></a></div><a href="index.html">&micro;Kernel</a><br>prototype</div>');
