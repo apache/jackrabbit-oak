@@ -156,7 +156,8 @@ public class PropertyDelegate extends ItemDelegate {
 
     @Override
     String getPath() {
-        return '/' + getParentContentTree().getPath() + '/' + getName();
+        String parentPath = getParentContentTree().getPath();
+        return parentPath.isEmpty() ? "/" + getName() : "/" + parentPath + "/" + getName();
     }
 
     SessionContext getSessionContext() {

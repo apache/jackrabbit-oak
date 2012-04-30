@@ -482,11 +482,11 @@ public class NodeImpl extends ItemImpl implements Node  {
     public String getIdentifier() throws RepositoryException {
         checkStatus();
 
-        if (isNodeType(JcrConstants.MIX_REFERENCEABLE)) {
-            return getProperty(JcrConstants.JCR_UUID).getString();
+        if (isNodeType(NodeType.MIX_REFERENCEABLE)) {
+            return getProperty(Property.JCR_UUID).getString();
         } else {
             // TODO
-            return getPath();
+            return dlg.getPath();
         }
     }
 
@@ -561,7 +561,8 @@ public class NodeImpl extends ItemImpl implements Node  {
 
         // TODO: check if transient changes to mixin-types are reflected here
         NodeTypeManager ntMgr = getSession().getWorkspace().getNodeTypeManager();
-        String primaryNtName = getProperty(JcrConstants.JCR_PRIMARYTYPE).getString();
+        String primaryNtName = getProperty(Property.JCR_PRIMARY_TYPE).getString();
+
         return ntMgr.getNodeType(primaryNtName);
     }
 
@@ -590,13 +591,16 @@ public class NodeImpl extends ItemImpl implements Node  {
     public boolean isNodeType(String nodeTypeName) throws RepositoryException {
         checkStatus();
 
-        if (hasProperty(JcrConstants.JCR_PRIMARYTYPE) && getProperty(JcrConstants.JCR_PRIMARYTYPE).getString().equals(nodeTypeName)) {
+        // TODO: might be expanded, need a better way for this
+        String jcrName = sessionContext.getNamePathMapper().getJcrName(sessionContext.getNamePathMapper().getOakName(nodeTypeName));
+
+        if (hasProperty(Property.JCR_PRIMARY_TYPE) && getProperty(Property.JCR_PRIMARY_TYPE).getString().equals(jcrName)) {
             return true;
         }
-        if (hasProperty(JcrConstants.JCR_MIXINTYPES)) {
-            Value[] mixins = getProperty(JcrConstants.JCR_MIXINTYPES).getValues();
+        if (hasProperty(Property.JCR_MIXIN_TYPES)) {
+            Value[] mixins = getProperty(Property.JCR_MIXIN_TYPES).getValues();
             for (Value mixin : mixins) {
-                if (mixin.getString().equals(nodeTypeName)) {
+                if (mixin.getString().equals(jcrName)) {
                     return true;
                 }
             }
