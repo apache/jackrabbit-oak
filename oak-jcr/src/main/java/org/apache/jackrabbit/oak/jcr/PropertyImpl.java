@@ -84,7 +84,10 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @Override
     public Item getAncestor(int depth) throws RepositoryException {
-        if (depth == getDepth() - 1) {
+        int mydepth = getDepth();
+        if (depth == mydepth) {
+            return this;
+        } else if (depth == mydepth - 1) {
             return getParent();
         } else {
             return getParent().getAncestor(depth);
