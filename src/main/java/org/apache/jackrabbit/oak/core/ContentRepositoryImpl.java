@@ -87,8 +87,13 @@ public class ContentRepositoryImpl implements ContentRepository {
         NodeState root = nodeStore.getRoot();
 
         NodeState wspNode = root.getChildNode(DEFAULT_WORKSPACE_NAME);
+
+        // FIXME: depends on CoreValue's name mangling
+        String ntUnstructured = "nam:nt:unstructured";
+
         if (wspNode == null) {
-            microKernel.commit("/", "+\"" + DEFAULT_WORKSPACE_NAME + "\":{}" + "^\"" + DEFAULT_WORKSPACE_NAME + "/jcr:primaryType\":\"nt:unstructured\" ", null, null);
+            microKernel.commit("/", "+\"" + DEFAULT_WORKSPACE_NAME + "\":{}" + "^\"" + DEFAULT_WORKSPACE_NAME
+                    + "/jcr:primaryType\":\"" + ntUnstructured + "\" ", null, null);
         }
     }
 
