@@ -143,7 +143,7 @@ A candidate for the Jackrabbit Oak ${project.version} release is available at:
 
 The release candidate is a zip archive of the sources in:
 
-    http://svn.apache.org/repos/asf/jackrabbit/oak/tags/${project.version}/
+    http://svn.apache.org/repos/asf/jackrabbit/oak/tags/${project.artifactId}-${project.version}/
 
 The SHA1 checksum of the archive is ${checksum}.
 
