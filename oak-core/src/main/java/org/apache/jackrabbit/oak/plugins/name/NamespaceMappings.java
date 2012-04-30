@@ -54,6 +54,8 @@ public class NamespaceMappings {
 
         // Namespace included in Jackrabbit 2.x
         defaults.put("sv", "http://www.jcp.org/jcr/sv/1.0");
+
+        // TODO: see OAK-74
         defaults.put("rep", "internal");
 
         // test prefix TODO: remove again.
