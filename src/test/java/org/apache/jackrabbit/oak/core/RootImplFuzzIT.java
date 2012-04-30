@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.core.RootImplFuzzIT.Operation.Rebase;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.junit.Before;
 import org.junit.Test;
@@ -267,12 +268,24 @@ public class RootImplFuzzIT {
                 return "save";
             }
         }
+
+        static class Rebase extends Operation {
+            @Override
+            void apply(RootImpl root) {
+                root.rebase();
+            }
+
+            @Override
+            public String toString() {
+                return "rebase";
+            }
+        }
     }
 
     private Operation createOperation() {
         Operation op;
         do {
-            switch (random.nextInt(10)) {
+            switch (random.nextInt(11)) {
                 case 0:
                 case 1:
                 case 2:
@@ -299,6 +312,9 @@ public class RootImplFuzzIT {
                     break;
                 case 9:
                     op = new Save();
+                    break;
+                case 10:
+                    op = new Rebase();
                     break;
                 default:
                     throw new IllegalStateException();
