@@ -40,6 +40,7 @@
           <instructions>
             <Export-Package>
               org.apache.jackrabbit.mk.api,
+              org.apache.jackrabbit.mk.server,
               org.apache.jackrabbit.mk.json,
               org.apache.jackrabbit.mk.util,
               org.apache.jackrabbit.mk.core,
