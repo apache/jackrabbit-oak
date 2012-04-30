@@ -111,5 +111,5 @@ echo "[INFO] -------------------------------------------------------------------
 echo "[INFO] "
 
 cd "$ZIPTAGDIR"
-mvn package # -Ppedantic
+mvn package -Ppedantic
 
