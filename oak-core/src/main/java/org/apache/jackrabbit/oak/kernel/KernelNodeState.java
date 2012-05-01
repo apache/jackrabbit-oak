@@ -27,7 +27,6 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.util.CoreValueUtil;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -99,9 +98,9 @@ class KernelNodeState extends AbstractNodeState {
                     }
                     childNodes.put(name, new KernelNodeState(kernel, valueFactory, childPath, revision));
                 } else if (reader.matches('[')) {
-                    properties.put(name, new PropertyStateImpl(name, CoreValueUtil.listFromJsopReader(reader, valueFactory)));
+                    properties.put(name, new PropertyStateImpl(name, CoreValueMapper.listFromJsopReader(reader, valueFactory)));
                 } else {
-                    CoreValue cv = CoreValueUtil.fromJsopReader(reader, valueFactory);
+                    CoreValue cv = CoreValueMapper.fromJsopReader(reader, valueFactory);
                     properties.put(name, new PropertyStateImpl(name, cv));
                 }
             } while (reader.matches(','));
@@ -228,7 +227,7 @@ class KernelNodeState extends AbstractNodeState {
     private List<CoreValue> readArray(JsopReader reader) {
         List<CoreValue> values = new ArrayList<CoreValue>();
         while (!reader.matches(']')) {
-            values.add(CoreValueUtil.fromJsopReader(reader, valueFactory));
+            values.add(CoreValueMapper.fromJsopReader(reader, valueFactory));
             reader.matches(',');
         }
         return values;

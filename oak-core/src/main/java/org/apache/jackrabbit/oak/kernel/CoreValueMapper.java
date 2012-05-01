@@ -14,15 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.util;
+package org.apache.jackrabbit.oak.kernel;
 
 import org.apache.jackrabbit.mk.json.JsonBuilder;
 import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.jcr.PropertyType;
 import java.util.ArrayList;
@@ -33,20 +31,13 @@ import java.util.Map;
 /**
  * CoreValueUtil provides methods to convert {@code CoreValue}s to the JSON
  * representation passed to MicroKernel and vice versa.
- *
- * TODO: review if this should be added to CoreValue/*Factory interfaces/implementation
  */
-public class CoreValueUtil {
-
-    /**
-     * logger instance
-     */
-    private static final Logger log = LoggerFactory.getLogger(CoreValueUtil.class);
+class CoreValueMapper {
 
     private static final Map<Integer, String> TYPE2HINT = new HashMap<Integer, String>();
     private static final Map<String, Integer> HINT2TYPE = new HashMap<String, Integer>();
 
-    private CoreValueUtil() {
+    private CoreValueMapper() {
     }
 
     static {
@@ -174,4 +165,5 @@ public class CoreValueUtil {
     private static boolean startsWithHint(String jsonString) {
         return jsonString.length() >= 4 && jsonString.charAt(3) == ':';
     }
+
 }

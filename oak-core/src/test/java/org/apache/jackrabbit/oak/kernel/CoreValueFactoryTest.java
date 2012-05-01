@@ -22,7 +22,6 @@ import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.kernel.CoreValueFactoryImpl;
-import org.apache.jackrabbit.oak.util.CoreValueUtil;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -144,7 +143,7 @@ public class CoreValueFactoryTest {
     public void testToJsonValue() throws IOException {
         for (CoreValue v : singleValueMap.keySet()) {
             String json = singleValueMap.get(v);
-            assertEquals(json, CoreValueUtil.toJsonValue(v));
+            assertEquals(json, CoreValueMapper.toJsonValue(v));
         }
     }
 
@@ -153,7 +152,7 @@ public class CoreValueFactoryTest {
         for (CoreValue v : singleValueMap.keySet()) {
             String json = singleValueMap.get(v);
             JsopReader reader = new JsopTokenizer(json);
-            assertEquals(v, CoreValueUtil.fromJsopReader(reader, valueFactory));
+            assertEquals(v, CoreValueMapper.fromJsopReader(reader, valueFactory));
         }
     }
 
@@ -161,7 +160,7 @@ public class CoreValueFactoryTest {
     public void testToJsonArray() throws IOException {
         for (String json : mvValueMap.keySet()) {
             List<CoreValue> values = mvValueMap.get(json);
-            assertEquals(json, CoreValueUtil.toJsonArray(values));
+            assertEquals(json, CoreValueMapper.toJsonArray(values));
         }
     }
 
@@ -171,7 +170,7 @@ public class CoreValueFactoryTest {
             List<CoreValue> values = mvValueMap.get(json);
             JsopReader reader = new JsopTokenizer(json);
             if (reader.matches('[')) {
-                assertEquals(values, CoreValueUtil.listFromJsopReader(reader, valueFactory));
+                assertEquals(values, CoreValueMapper.listFromJsopReader(reader, valueFactory));
             }
         }
     }
