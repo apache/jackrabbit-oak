@@ -28,7 +28,6 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateBuilder;
-import org.apache.jackrabbit.oak.util.CoreValueUtil;
 
 public class KernelNodeStateBuilder implements NodeStateBuilder {
     private final MicroKernel kernel;
@@ -102,7 +101,7 @@ public class KernelNodeStateBuilder implements NodeStateBuilder {
     @Override
     public void setProperty(String name, CoreValue value) {
         String targetPath = PathUtils.concat(path, name);
-        String json = CoreValueUtil.toJsonValue(value);
+        String json = CoreValueMapper.toJsonValue(value);
 
         revision[0] = kernel.commit("", "^\"" + targetPath + "\":" + json, revision[0], null);
     }
@@ -110,7 +109,7 @@ public class KernelNodeStateBuilder implements NodeStateBuilder {
     @Override
     public void setProperty(String name, List<CoreValue> values) {
         String targetPath = PathUtils.concat(path, name);
-        String json = CoreValueUtil.toJsonArray(values);
+        String json = CoreValueMapper.toJsonArray(values);
 
         revision[0] = kernel.commit("", "^\"" + targetPath + "\":" + json, revision[0], null);
     }
@@ -193,8 +192,8 @@ public class KernelNodeStateBuilder implements NodeStateBuilder {
         for (PropertyState property : nodeState.getProperties()) {
             String targetPath = PathUtils.concat(path, property.getName());
             String value = property.isArray()
-                ? CoreValueUtil.toJsonArray(property.getValues())
-                : CoreValueUtil.toJsonValue(property.getValue());
+                ? CoreValueMapper.toJsonArray(property.getValues())
+                : CoreValueMapper.toJsonValue(property.getValue());
 
             jsop.append("^\"").append(targetPath).append("\":").append(value);
         }
