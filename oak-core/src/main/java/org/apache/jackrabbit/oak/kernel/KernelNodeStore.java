@@ -21,32 +21,46 @@ package org.apache.jackrabbit.oak.kernel;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeStore;
-import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
-import java.util.HashSet;
-import java.util.Set;
 /**
  * {@link MicroKernel}-based {@link NodeStore} implementation.
  */
 public class KernelNodeStore extends AbstractNodeStore {
 
-    final MicroKernel kernel;
-    final CoreValueFactory valueFactory;
+    /**
+     * The {@link MicroKernel} instance used to store the content tree.
+     */
+    private final MicroKernel kernel;
+
+    /**
+     * Value factory backed by the {@link #kernel} instance.
+     */
+    private final CoreValueFactory valueFactory;
+
+    /**
+     * State of the current root node.
+     */
+    private KernelNodeState root;
 
     public KernelNodeStore(MicroKernel kernel) {
         this.kernel = kernel;
         this.valueFactory = new CoreValueFactoryImpl(kernel);
+        this.root = new KernelNodeState(
+                kernel, valueFactory, "/", kernel.getHeadRevision());
     }
 
     @Override
-    public NodeState getRoot() {
-        return new KernelNodeState(kernel, valueFactory, "/", kernel.getHeadRevision());
+    public synchronized NodeState getRoot() {
+        String revision = kernel.getHeadRevision();
+        if (!revision.equals(root.getRevision())) {
+            root = new KernelNodeState(
+                    kernel, valueFactory, "/", kernel.getHeadRevision());
+        }
+        return root;
     }
 
     @Override
