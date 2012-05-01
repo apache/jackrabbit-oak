@@ -14,19 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.util;
+package org.apache.jackrabbit.oak.kernel;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
-import org.apache.jackrabbit.mk.simple.SimpleKernelImpl;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
-import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
+import org.apache.jackrabbit.oak.kernel.CoreValueFactoryImpl;
+import org.apache.jackrabbit.oak.util.CoreValueUtil;
 import org.junit.Before;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.jcr.PropertyType;
 import java.io.ByteArrayInputStream;
@@ -44,25 +42,17 @@ import static org.junit.Assert.assertEquals;
 /**
  * CoreValueUtilTest...
  */
-public class CoreValueUtilTest {
+public class CoreValueFactoryTest {
 
-    /**
-     * logger instance
-     */
-    private static final Logger log = LoggerFactory.getLogger(CoreValueUtilTest.class);
-
-    // TODO: use regular oak-repo setup
-    private MicroKernel microKernel;
-    private CoreValueFactory valueFactory;
+    private final CoreValueFactory valueFactory =
+            new CoreValueFactoryImpl(new MicroKernelImpl());
 
     private Map<CoreValue, String> singleValueMap;
+
     private Map<String, List<CoreValue>> mvValueMap;
 
     @Before
     public void setUp() throws IOException {
-        microKernel = new SimpleKernelImpl("mem:" + getClass().getName());
-        valueFactory = new KernelNodeStore(microKernel).getValueFactory();
-
         singleValueMap = new HashMap<CoreValue, String>();
         singleValueMap.put(valueFactory.createValue("abc"), "\"abc\"");
         singleValueMap.put(valueFactory.createValue("a:bc"), "\"a:bc\"");
@@ -185,4 +175,5 @@ public class CoreValueUtilTest {
             }
         }
     }
+
 }
