@@ -29,13 +29,10 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.util.Iterators;
-import org.apache.jackrabbit.oak.util.PagedIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
@@ -210,7 +207,7 @@ public class RootImpl implements Root {
                 for (PropertyState property : state.getProperties()) {
                     setProperty(property, child);
                 }
-                for (ChildNodeEntry entry : childNodeEntries(state)) {
+                for (ChildNodeEntry entry : state.getChildNodeEntries()) {
                     addChild(entry.getName(), entry.getNodeState(), child);
                 }
             }
@@ -222,22 +219,6 @@ public class RootImpl implements Root {
                 else {
                     target.setProperty(property.getName(), property.getValue());
                 }
-            }
-
-            @SuppressWarnings("unchecked")
-            private Iterable<? extends ChildNodeEntry> childNodeEntries(final NodeState nodeState) {
-                return new Iterable() {  // Java's type system is too weak to express the exact type here
-                    @Override
-                    public Iterator<? extends ChildNodeEntry> iterator() {
-                        return Iterators.flatten(
-                            new PagedIterator<ChildNodeEntry>(1024) {
-                                @Override
-                                protected Iterator<? extends ChildNodeEntry> getPage(long pos, int size) {
-                                    return nodeState.getChildNodeEntries(pos, size).iterator();
-                                }
-                            });
-                    }
-                };
             }
 
         });

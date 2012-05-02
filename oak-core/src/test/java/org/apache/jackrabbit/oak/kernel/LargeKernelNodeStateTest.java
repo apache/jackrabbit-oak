@@ -25,19 +25,17 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
 import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.assertNull;
 
 public class LargeKernelNodeStateTest extends AbstractOakTest {
-
-    private final int N = KernelNodeState.MAX_CHILD_NODE_NAMES;
+    private static final int N = KernelNodeState.MAX_CHILD_NODE_NAMES;
 
     @Override
     protected NodeState createInitialState(MicroKernel microKernel) {
         StringBuilder jsop = new StringBuilder("+\"test\":{\"a\":1");
         for (int i = 0; i <= N; i++) {
-            jsop.append(",\"x" + i + "\":{}");
+            jsop.append(",\"x").append(i).append("\":{}");
         }
         jsop.append('}');
         microKernel.commit("/", jsop.toString(), null, "test data");
@@ -61,36 +59,10 @@ public class LargeKernelNodeStateTest extends AbstractOakTest {
     @SuppressWarnings("unused")
     public void testGetChildNodeEntries() {
         long count = 0;
-        for (ChildNodeEntry entry : state.getChildNodeEntries(0, -1)) {
+        for (ChildNodeEntry entry : state.getChildNodeEntries()) {
             count++;
         }
         assertEquals(N + 1, count);
-    }
-
-    @Test
-    @SuppressWarnings("unused")
-    public void testGetChildNodeEntriesWithOffset() {
-        long count = 0;
-        for (ChildNodeEntry entry : state.getChildNodeEntries(N, -1)) {
-            count++;
-        }
-        assertEquals(1, count);
-
-        // Offset beyond the range
-        assertFalse(state.getChildNodeEntries(N + 1, -1).iterator().hasNext());
-    }
-
-    @Test
-    @SuppressWarnings("unused")
-    public void testGetChildNodeEntriesWithCount() {
-        long count = 0;
-        for (ChildNodeEntry entry : state.getChildNodeEntries(0, N + 1)) {
-            count++;
-        }
-        assertEquals(N + 1, count);
-
-        // Zero count
-        assertFalse(state.getChildNodeEntries(0, 0).iterator().hasNext());
     }
 
 }

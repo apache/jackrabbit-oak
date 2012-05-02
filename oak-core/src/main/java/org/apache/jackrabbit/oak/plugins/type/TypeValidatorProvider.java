@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.type;
 
-import java.util.HashSet;
-import java.util.Set;
-
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+
+import java.util.HashSet;
+import java.util.Set;
 
 public class TypeValidatorProvider implements ValidatorProvider {
 
@@ -93,7 +93,7 @@ public class TypeValidatorProvider implements ValidatorProvider {
         if (system != null) {
             NodeState registry = system.getChildNode("jcr:nodeTypes");
             if (registry != null) {
-                for (ChildNodeEntry child : registry.getChildNodeEntries(0, -1)) {
+                for (ChildNodeEntry child : registry.getChildNodeEntries()) {
                     types.add(child.getName());
                 }
             }
