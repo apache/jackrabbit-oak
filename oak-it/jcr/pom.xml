@@ -50,7 +50,7 @@ org.apache.jackrabbit.test.api.PathTest
 org.apache.jackrabbit.test.api.AddNodeTest#testSameNameSiblings
 org.apache.jackrabbit.test.api.AddNodeTest#testConstraintViolation
 org.apache.jackrabbit.test.api.AddNodeTest#testRepositoryException
-org.apache.jackrabbit.test.api.ReferencesTest
+org.apache.jackrabbit.test.api.ReferencesTest#testNonReferenceable
 org.apache.jackrabbit.test.api.SessionTest
 org.apache.jackrabbit.test.api.SessionUUIDTest
 org.apache.jackrabbit.test.api.NodeTest
