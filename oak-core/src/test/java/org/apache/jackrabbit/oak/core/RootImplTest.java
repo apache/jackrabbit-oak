@@ -135,6 +135,9 @@ public class RootImplTest extends AbstractOakTest {
         tree = root.getTree("/");
 
         assertTrue(tree.hasChild("new"));
+
+        tree.getChild("new").addChild("more");
+        assertTrue(tree.getChild("new").hasChild("more"));
     }
 
     @Test
@@ -264,6 +267,7 @@ public class RootImplTest extends AbstractOakTest {
     }
 
     @Test
+    @Ignore("OAK-79")  // TODO depends on OAK-79
     public void deepCopy() throws CommitFailedException {
         RootImpl root = new RootImpl(store, "test");
         Tree tree = root.getTree("/");
