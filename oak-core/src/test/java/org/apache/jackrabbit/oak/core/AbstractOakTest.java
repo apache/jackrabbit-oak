@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.core;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
-import org.apache.jackrabbit.oak.kernel.KernelNodeStore2;
+import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Before;
@@ -45,7 +45,7 @@ public abstract class AbstractOakTest {
     @Before
     public void setUp() {
         MicroKernel microKernel = new MicroKernelImpl();
-        store = new KernelNodeStore2(microKernel);
+        store = new KernelNodeStore(microKernel);
         valueFactory = store.getValueFactory();
 
         state = createInitialState(microKernel);
