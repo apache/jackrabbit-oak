@@ -622,6 +622,14 @@ public class NodeImpl extends ItemImpl implements Node  {
     public void setPrimaryType(String nodeTypeName) throws RepositoryException {
         checkStatus();
 
+        // TODO: figure out the right place for this check
+        NodeTypeManager ntm = sessionContext.getNodeTypeManager();
+        NodeType nt = ntm.getNodeType(nodeTypeName); // throws on not found
+        if (nt.isAbstract() || nt.isMixin()) {
+            throw new ConstraintViolationException();
+        }
+        // TODO: END
+
         CoreValue cv = ValueConverter.toCoreValue(nodeTypeName, PropertyType.NAME, sessionContext);
         dlg.setProperty(toOakPath(Property.JCR_PRIMARY_TYPE), cv);
     }
@@ -629,6 +637,10 @@ public class NodeImpl extends ItemImpl implements Node  {
     @Override
     public void addMixin(String mixinName) throws RepositoryException {
         checkStatus();
+        // TODO: figure out the right place for this check
+        NodeTypeManager ntm = sessionContext.getNodeTypeManager();
+        ntm.getNodeType(mixinName); // throws on not found
+        // TODO: END
 
         // todo implement addMixin
     }
@@ -642,7 +654,11 @@ public class NodeImpl extends ItemImpl implements Node  {
 
     @Override
     public boolean canAddMixin(String mixinName) throws RepositoryException {
-        // TODO
+        // TODO: figure out the right place for this check
+        NodeTypeManager ntm = sessionContext.getNodeTypeManager();
+        ntm.getNodeType(mixinName); // throws on not found
+        // TODO: END
+
         return false;
     }
 
