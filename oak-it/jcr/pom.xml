@@ -62,8 +62,10 @@ org.apache.jackrabbit.test.api.SetValueFormatExceptionTest
 org.apache.jackrabbit.test.api.SetValueVersionExceptionTest
 org.apache.jackrabbit.test.api.SetPropertyNodeTest
 org.apache.jackrabbit.test.api.SetPropertyNodeTest
-org.apache.jackrabbit.test.api.SetPropertyStringTest
-org.apache.jackrabbit.test.api.SetPropertyValueTest
+org.apache.jackrabbit.test.api.SetPropertyStringTest#testSetSingleStringArrayValueFormatException
+org.apache.jackrabbit.test.api.SetPropertyStringTest#testSetSingleStringArrayValueFormatExceptionWithPropertyType
+org.apache.jackrabbit.test.api.SetPropertyValueTest#testSetSingleValueArrayValueFormatException
+org.apache.jackrabbit.test.api.SetPropertyValueTest#testSetSingleValueArrayValueFormatExceptionWithPropertyType
 org.apache.jackrabbit.test.api.SetPropertyConstraintViolationExceptionTest
 org.apache.jackrabbit.test.api.SetPropertyAssumeTypeTest
 org.apache.jackrabbit.test.api.NodeAddMixinTest
