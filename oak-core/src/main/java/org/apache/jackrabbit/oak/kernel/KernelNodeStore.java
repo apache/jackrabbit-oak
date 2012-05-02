@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.jackrabbit.oak.kernel;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
@@ -151,7 +167,7 @@ public class KernelNodeStore extends AbstractNodeStore {
          */
         void addNode(String relPath) {
             jsop.append("+\"").append(relPath).append("\":{}");
-            root = addNode(root, EMPTY_STATE, PathUtils.elements(relPath).iterator());
+            root = addNode(root, EmptyNodeState.INSTANCE, PathUtils.elements(relPath).iterator());
             purgeOnLimit();
         }
 
@@ -333,10 +349,10 @@ public class KernelNodeStore extends AbstractNodeStore {
         private NodeState addNode(NodeState parent, NodeState node, Iterator<String> path) {
             String name = path.next();
             if (path.hasNext()) {
-                return setChildNode(parent, name, addNode(parent.getChildNode(name), node, path));
+                return new SetNodeDecorator(parent, name, addNode(parent.getChildNode(name), node, path));
             }
             else {
-                return addChildNode(parent, name, node);
+                return new AddNodeDecorator(parent, name, node);
             }
         }
 
@@ -350,10 +366,10 @@ public class KernelNodeStore extends AbstractNodeStore {
         private NodeState removeNode(NodeState parent, Iterator<String> path) {
             String name = path.next();
             if (path.hasNext()) {
-                return setChildNode(parent, name, removeNode(parent.getChildNode(name), path));
+                return new SetNodeDecorator(parent, name, removeNode(parent.getChildNode(name), path));
             }
             else {
-                return removeChildNode(parent, name);
+                return new RemoveNodeDecorator(parent, name);
             }
         }
 
@@ -369,10 +385,10 @@ public class KernelNodeStore extends AbstractNodeStore {
         private NodeState addProperty(NodeState parent, PropertyState property, Iterator<String> parentPath) {
             if (parentPath.hasNext()) {
                 String name = parentPath.next();
-                return setChildNode(parent, name, addProperty(parent.getChildNode(name), property, parentPath));
+                return new SetNodeDecorator(parent, name, addProperty(parent.getChildNode(name), property, parentPath));
             }
             else {
-                return addChildProperty(parent, property);
+                return new AddPropertyDecorator(property, parent);
             }
         }
 
@@ -388,10 +404,10 @@ public class KernelNodeStore extends AbstractNodeStore {
         private NodeState setProperty(NodeState parent, PropertyState property, Iterator<String> parentPath) {
             if (parentPath.hasNext()) {
                 String name = parentPath.next();
-                return setChildNode(parent, name, setProperty(parent.getChildNode(name), property, parentPath));
+                return new SetNodeDecorator(parent, name, setProperty(parent.getChildNode(name), property, parentPath));
             }
             else {
-                return setChildProperty(parent, property);
+                return new SetPropertyDecorator(property, parent);
             }
         }
 
@@ -405,10 +421,10 @@ public class KernelNodeStore extends AbstractNodeStore {
         private NodeState removeProperty(NodeState parent, Iterator<String> path) {
             String name = path.next();
             if (path.hasNext()) {
-                return setChildNode(parent, name, removeProperty(parent.getChildNode(name), path));
+                return new SetNodeDecorator(parent, name, removeProperty(parent.getChildNode(name), path));
             }
             else {
-                return removeChildProperty(parent, name);
+                return new RemovePropertyDecorator(name, parent);
             }
         }
 
@@ -425,152 +441,133 @@ public class KernelNodeStore extends AbstractNodeStore {
             return state;
         }
 
-        private final NodeState EMPTY_STATE = new AbstractNodeState() {
+        /**
+         * {@code NodeState} decorator adding a new node state.
+         */
+        private class AddNodeDecorator extends AbstractNodeState {
+            private final NodeState parent;
+            private final String childName;
+            private final NodeState node;
+
+            /**
+             * Construct a new {@code NodeState} from {@code parent} with {@code node} added
+             * as new child with name {@code childName}.
+             * @param parent
+             * @param childName
+             * @param node
+             * @return
+             */
+            public AddNodeDecorator(NodeState parent, String childName, NodeState node) {
+                this.parent = parent;
+                this.childName = childName;
+                this.node = node;
+            }
+
             @Override
             public PropertyState getProperty(String name) {
-                return null;
+                return parent.getProperty(name);
             }
 
             @Override
             public long getPropertyCount() {
-                return 0;
+                return parent.getPropertyCount();
             }
 
             @Override
             public Iterable<? extends PropertyState> getProperties() {
-                return new Iterable<PropertyState>() {
-                    @Override
-                    public Iterator<PropertyState> iterator() {
-                        return Iterators.empty();
-                    }
-                };
+                return parent.getProperties();
             }
 
             @Override
             public NodeState getChildNode(String name) {
-                return null;
+                return childName.equals(name) ? node : parent.getChildNode(name);
             }
 
             @Override
             public long getChildNodeCount() {
-                return 0;
+                return 1 + parent.getChildNodeCount();
             }
 
             @Override
-            public Iterable<? extends ChildNodeEntry> getChildNodeEntries(long offset, int count) {
-                return new Iterable<ChildNodeEntry>() {
-                    @Override
-                    public Iterator<ChildNodeEntry> iterator() {
-                        return Iterators.empty();
-                    }
-                };
-            }
-        };
-
-        /**
-         * Construct a new {@code NodeState} from {@code parent} with {@code node} added
-         * as new child with name {@code childName}.
-         * @param parent
-         * @param childName
-         * @param node
-         * @return
-         */
-        private NodeState addChildNode(final NodeState parent, final String childName, final NodeState node) {
-            return new AbstractNodeState() {
-                @Override
-                public PropertyState getProperty(String name) {
-                    return parent.getProperty(name);
-                }
-
-                @Override
-                public long getPropertyCount() {
-                    return parent.getPropertyCount();
-                }
-
-                @Override
-                public Iterable<? extends PropertyState> getProperties() {
-                    return parent.getProperties();
-                }
-
-                @Override
-                public NodeState getChildNode(String name) {
-                    return childName.equals(name) ? node : parent.getChildNode(name);
-                }
-
-                @Override
-                public long getChildNodeCount() {
-                    return 1 + parent.getChildNodeCount();
-                }
-
-                @Override
-                public Iterable<? extends ChildNodeEntry> getChildNodeEntries(final long offset, final int count) {
-                    if (offset >= getChildNodeCount()) {
-                        return new Iterable<ChildNodeEntry>() {
-                            @Override
-                            public Iterator<ChildNodeEntry> iterator() {
-                                return Iterators.empty();
-                            }
-                        };
-                    }
-                    else if (count == -1 || offset + count > getChildNodeCount()) {
-                        return new Iterable<ChildNodeEntry>() {
-                            @Override
-                            public Iterator<ChildNodeEntry> iterator() {
-                                return Iterators.chain(
-                                    parent.getChildNodeEntries(offset, count).iterator(),
-                                    Iterators.singleton(new KernelChildNodeEntry(childName, node)));
-                            }
-                        };
-                    }
-                    else {
-                        return parent.getChildNodeEntries(offset, count);
-                    }
-                }
-
-            };
-        }
-
-        /**
-         * Construct a new {@code NodeState} from {@code parent} with child node state
-         * {@code childName} replaced with {@code node}.
-         * @param parent
-         * @param childName
-         * @param node
-         * @return
-         */
-        private NodeState setChildNode(final NodeState parent, final String childName, final NodeState node) {
-            return new AbstractNodeState() {
-                @Override
-                public PropertyState getProperty(String name) {
-                    return parent.getProperty(name);
-                }
-
-                @Override
-                public long getPropertyCount() {
-                    return parent.getPropertyCount();
-                }
-
-                @Override
-                public Iterable<? extends PropertyState> getProperties() {
-                    return parent.getProperties();
-                }
-
-                @Override
-                public NodeState getChildNode(String name) {
-                    return childName.equals(name) ? node : parent.getChildNode(name);
-                }
-
-                @Override
-                public long getChildNodeCount() {
-                    return parent.getChildNodeCount();
-                }
-
-                @Override
-                public Iterable<? extends ChildNodeEntry> getChildNodeEntries(final long offset, final int count) {
+            public Iterable<? extends ChildNodeEntry> getChildNodeEntries(final long offset, final int count) {
+                if (offset >= getChildNodeCount()) {
                     return new Iterable<ChildNodeEntry>() {
                         @Override
                         public Iterator<ChildNodeEntry> iterator() {
-                            return Iterators.map(parent.getChildNodeEntries(offset, count).iterator(),
+                            return Iterators.empty();
+                        }
+                    };
+                }
+                else if (count == -1 || offset + count > getChildNodeCount()) {
+                    return new Iterable<ChildNodeEntry>() {
+                        @Override
+                        public Iterator<ChildNodeEntry> iterator() {
+                            return Iterators.chain(
+                                    parent.getChildNodeEntries(offset, count).iterator(),
+                                    Iterators.singleton(new KernelChildNodeEntry(childName, node)));
+                        }
+                    };
+                }
+                else {
+                    return parent.getChildNodeEntries(offset, count);
+                }
+            }
+
+        }
+
+        /**
+         * {@code NodeState} decorator modifying an existing node state to a new node state.
+         */
+        private class SetNodeDecorator extends AbstractNodeState {
+            private final NodeState parent;
+            private final String childName;
+            private final NodeState node;
+
+            /**
+             * Construct a new {@code NodeState} from {@code parent} with child node state
+             * {@code childName} replaced with {@code node}.
+             * @param parent
+             * @param childName
+             * @param node
+             * @return
+             */
+            public SetNodeDecorator(NodeState parent, String childName, NodeState node) {
+                this.parent = parent;
+                this.childName = childName;
+                this.node = node;
+            }
+
+            @Override
+            public PropertyState getProperty(String name) {
+                return parent.getProperty(name);
+            }
+
+            @Override
+            public long getPropertyCount() {
+                return parent.getPropertyCount();
+            }
+
+            @Override
+            public Iterable<? extends PropertyState> getProperties() {
+                return parent.getProperties();
+            }
+
+            @Override
+            public NodeState getChildNode(String name) {
+                return childName.equals(name) ? node : parent.getChildNode(name);
+            }
+
+            @Override
+            public long getChildNodeCount() {
+                return parent.getChildNodeCount();
+            }
+
+            @Override
+            public Iterable<? extends ChildNodeEntry> getChildNodeEntries(final long offset, final int count) {
+                return new Iterable<ChildNodeEntry>() {
+                    @Override
+                    public Iterator<ChildNodeEntry> iterator() {
+                        return Iterators.map(parent.getChildNodeEntries(offset, count).iterator(),
                                 new Function1<ChildNodeEntry, ChildNodeEntry>() {
                                     @Override
                                     public ChildNodeEntry apply(ChildNodeEntry cne) {
@@ -579,226 +576,262 @@ public class KernelNodeStore extends AbstractNodeStore {
                                                 : cne;
                                     }
                                 });
-                        }
-                    };
-                }
-            };
+                    }
+                };
+            }
         }
 
         /**
-         * Construct a new {@code NodeState} from {@code parent} with child node state
-         * {@code childName} removed.
-         * @param parent
-         * @param childName
-         * @return
+         * {@code NodeState} decorator removing a node state
          */
-        private NodeState removeChildNode(final NodeState parent, final String childName) {
-            return new AbstractNodeState() {
-                @Override
-                public PropertyState getProperty(String name) {
-                    return parent.getProperty(name);
-                }
+        private class RemoveNodeDecorator extends AbstractNodeState {
+            private final NodeState parent;
+            private final String childName;
 
-                @Override
-                public long getPropertyCount() {
-                    return parent.getPropertyCount();
-                }
+            /**
+             * Construct a new {@code NodeState} from {@code parent} with child node state
+             * {@code childName} removed.
+             * @param parent
+             * @param childName
+             * @return
+             */
+            public RemoveNodeDecorator(NodeState parent, String childName) {
+                this.parent = parent;
+                this.childName = childName;
+            }
 
-                @Override
-                public Iterable<? extends PropertyState> getProperties() {
-                    return parent.getProperties();
-                }
+            @Override
+            public PropertyState getProperty(String name) {
+                return parent.getProperty(name);
+            }
 
-                @Override
-                public NodeState getChildNode(String name) {
-                    return childName.equals(name) ? null : parent.getChildNode(name);
-                }
+            @Override
+            public long getPropertyCount() {
+                return parent.getPropertyCount();
+            }
 
-                @Override
-                public long getChildNodeCount() {
-                    return parent.getChildNodeCount() - 1;
-                }
+            @Override
+            public Iterable<? extends PropertyState> getProperties() {
+                return parent.getProperties();
+            }
 
-                @Override
-                public Iterable<? extends ChildNodeEntry> getChildNodeEntries(final long offset, final int count) {
-                    return new Iterable<ChildNodeEntry>() {
-                        @Override
-                        public Iterator<ChildNodeEntry> iterator() {
-                            return Iterators.filter(parent.getChildNodeEntries(offset, count).iterator(), // FIXME offsetting doesn't compose with filtering
+            @Override
+            public NodeState getChildNode(String name) {
+                return childName.equals(name) ? null : parent.getChildNode(name);
+            }
+
+            @Override
+            public long getChildNodeCount() {
+                return parent.getChildNodeCount() - 1;
+            }
+
+            @Override
+            public Iterable<? extends ChildNodeEntry> getChildNodeEntries(final long offset, final int count) {
+                return new Iterable<ChildNodeEntry>() {
+                    @Override
+                    public Iterator<ChildNodeEntry> iterator() {
+                        return Iterators.filter(parent.getChildNodeEntries(offset, count).iterator(), // FIXME offsetting doesn't compose with filtering
                                 new Predicate<ChildNodeEntry>() {
                                     @Override
                                     public boolean evaluate(ChildNodeEntry cne) {
                                         return !childName.equals(cne.getName());
                                     }
                                 }
-                            );
-                        }
-                    };
-                }
-            };
+                        );
+                    }
+                };
+            }
         }
 
         /**
-         * Construct a new {@code NodeState} from {@code parent} with {@code property}
-         * added.
-         * @param parent
-         * @param property
-         * @return
+         * {@code NodeState} decorator adding a new property state
          */
-        private NodeState addChildProperty(final NodeState parent, final PropertyState property) {
-            return new AbstractNodeState() {
-                @Override
-                public PropertyState getProperty(String name) {
-                    return property.getName().equals(name)
+        private class AddPropertyDecorator extends AbstractNodeState {
+            private final PropertyState property;
+            private final NodeState parent;
+
+            /**
+             * Construct a new {@code NodeState} from {@code parent} with {@code property}
+             * added.
+             * @param parent
+             * @param property
+             * @return
+             */
+            public AddPropertyDecorator(PropertyState property, NodeState parent) {
+                this.property = property;
+                this.parent = parent;
+            }
+
+            @Override
+            public PropertyState getProperty(String name) {
+                return property.getName().equals(name)
+                    ? property
+                    : parent.getProperty(name);
+            }
+
+            @Override
+            public long getPropertyCount() {
+                return parent.getPropertyCount() + 1;
+            }
+
+            @Override
+            public Iterable<? extends PropertyState> getProperties() {
+                return new Iterable<PropertyState>() {
+                    @Override
+                    public Iterator<PropertyState> iterator() {
+                        return Iterators.chain(
+                                parent.getProperties().iterator(),
+                                Iterators.singleton(property));
+                    }
+                };
+            }
+
+            @Override
+            public NodeState getChildNode(String name) {
+                return parent.getChildNode(name);
+            }
+
+            @Override
+            public long getChildNodeCount() {
+                return parent.getChildNodeCount();
+            }
+
+            @Override
+            public Iterable<? extends ChildNodeEntry> getChildNodeEntries(long offset, int count) {
+                return parent.getChildNodeEntries(offset, count);
+            }
+        }
+
+        /**
+         * {@code NodeState} decorator modifying an existing property state.
+         */
+        private class SetPropertyDecorator extends AbstractNodeState {
+            private final PropertyState property;
+            private final NodeState parent;
+
+            /**
+             * Construct a new {@code NodeState} from {@code parent} with {@code property}
+             * replaced.
+             * @param parent
+             * @param property
+             * @return
+             */
+            public SetPropertyDecorator(PropertyState property, NodeState parent) {
+                this.property = property;
+                this.parent = parent;
+            }
+
+            @Override
+            public PropertyState getProperty(String name) {
+                return property.getName().equals(name)
                         ? property
                         : parent.getProperty(name);
-                }
+            }
 
-                @Override
-                public long getPropertyCount() {
-                    return parent.getPropertyCount() + 1;
-                }
+            @Override
+            public long getPropertyCount() {
+                return parent.getPropertyCount();
+            }
 
-                @Override
-                public Iterable<? extends PropertyState> getProperties() {
-                    return new Iterable<PropertyState>() {
-                        @Override
-                        public Iterator<PropertyState> iterator() {
-                            return Iterators.chain(
-                                    parent.getProperties().iterator(),
-                                    Iterators.singleton(property));
-                        }
-                    };
-                }
+            @Override
+            public Iterable<? extends PropertyState> getProperties() {
+                return new Iterable<PropertyState>() {
+                    @Override
+                    public Iterator<PropertyState> iterator() {
+                        return Iterators.map(parent.getProperties().iterator(),
+                                new Function1<PropertyState, PropertyState>() {
+                                    @Override
+                                    public PropertyState apply(PropertyState state) {
+                                        return property.getName().equals(state.getName())
+                                                ? property
+                                                : state;
+                                    }
+                                }
+                        );
+                    }
+                };
+            }
 
-                @Override
-                public NodeState getChildNode(String name) {
-                    return parent.getChildNode(name);
-                }
+            @Override
+            public NodeState getChildNode(String name) {
+                return parent.getChildNode(name);
+            }
 
-                @Override
-                public long getChildNodeCount() {
-                    return parent.getChildNodeCount();
-                }
+            @Override
+            public long getChildNodeCount() {
+                return parent.getChildNodeCount();
+            }
 
-                @Override
-                public Iterable<? extends ChildNodeEntry> getChildNodeEntries(long offset, int count) {
-                    return parent.getChildNodeEntries(offset, count);
-                }
-            };
+            @Override
+            public Iterable<? extends ChildNodeEntry> getChildNodeEntries(long offset, int count) {
+                return parent.getChildNodeEntries(offset, count);
+            }
         }
 
         /**
-         * Construct a new {@code NodeState} from {@code parent} with {@code property}
-         * replaced.
-         * @param parent
-         * @param property
-         * @return
+         * {@code NodeState} decorator removing an existing property state.
          */
-        private NodeState setChildProperty(final NodeState parent, final PropertyState property) {
-            return new AbstractNodeState() {
-                @Override
-                public PropertyState getProperty(String name) {
-                    return property.getName().equals(name)
-                            ? property
-                            : parent.getProperty(name);
-                }
+        private class RemovePropertyDecorator extends AbstractNodeState {
+            private final String propertyName;
+            private final NodeState parent;
 
-                @Override
-                public long getPropertyCount() {
-                    return parent.getPropertyCount();
-                }
+            /**
+             * Construct a new {@code NodeState} from {@code parent} with {@code propertyName}
+             * removed.
+             * @param parent
+             * @param propertyName
+             * @return
+             */
+            public RemovePropertyDecorator(String propertyName, NodeState parent) {
+                this.propertyName = propertyName;
+                this.parent = parent;
+            }
 
-                @Override
-                public Iterable<? extends PropertyState> getProperties() {
-                    return new Iterable<PropertyState>() {
-                        @Override
-                        public Iterator<PropertyState> iterator() {
-                            return Iterators.map(parent.getProperties().iterator(),
-                                    new Function1<PropertyState, PropertyState>() {
-                                        @Override
-                                        public PropertyState apply(PropertyState state) {
-                                            return property.getName().equals(state.getName())
-                                                    ? property
-                                                    : state;
-                                        }
+            @Override
+            public PropertyState getProperty(String name) {
+                return propertyName.equals(name)
+                    ? null
+                    : parent.getProperty(name);
+            }
+
+            @Override
+            public long getPropertyCount() {
+                return parent.getPropertyCount() - 1;
+            }
+
+            @Override
+            public Iterable<? extends PropertyState> getProperties() {
+                return new Iterable<PropertyState>() {
+                    @Override
+                    public Iterator<PropertyState> iterator() {
+                        return Iterators.filter(parent.getProperties().iterator(),
+                                new Predicate<PropertyState>() {
+                                    @Override
+                                    public boolean evaluate(PropertyState prop) {
+                                        return !propertyName.equals(prop.getName());
                                     }
-                            );
-                        }
-                    };
-                }
+                                }
+                        );
+                    }
+                };
+            }
 
-                @Override
-                public NodeState getChildNode(String name) {
-                    return parent.getChildNode(name);
-                }
+            @Override
+            public NodeState getChildNode(String name) {
+                return parent.getChildNode(name);
+            }
 
-                @Override
-                public long getChildNodeCount() {
-                    return parent.getChildNodeCount();
-                }
+            @Override
+            public long getChildNodeCount() {
+                return parent.getChildNodeCount();
+            }
 
-                @Override
-                public Iterable<? extends ChildNodeEntry> getChildNodeEntries(long offset, int count) {
-                    return parent.getChildNodeEntries(offset, count);
-                }
-            };
-        }
-
-        /**
-         * Construct a new {@code NodeState} from {@code parent} with {@code propertyName}
-         * removed.
-         * @param parent
-         * @param propertyName
-         * @return
-         */
-        private NodeState removeChildProperty(final NodeState parent, final String propertyName) {
-            return new AbstractNodeState() {
-                @Override
-                public PropertyState getProperty(String name) {
-                    return propertyName.equals(name)
-                        ? null
-                        : parent.getProperty(name);
-                }
-
-                @Override
-                public long getPropertyCount() {
-                    return parent.getPropertyCount() - 1;
-                }
-
-                @Override
-                public Iterable<? extends PropertyState> getProperties() {
-                    return new Iterable<PropertyState>() {
-                        @Override
-                        public Iterator<PropertyState> iterator() {
-                            return Iterators.filter(parent.getProperties().iterator(),
-                                    new Predicate<PropertyState>() {
-                                        @Override
-                                        public boolean evaluate(PropertyState prop) {
-                                            return !propertyName.equals(prop.getName());
-                                        }
-                                    }
-                            );
-                        }
-                    };
-                }
-
-                @Override
-                public NodeState getChildNode(String name) {
-                    return parent.getChildNode(name);
-                }
-
-                @Override
-                public long getChildNodeCount() {
-                    return parent.getChildNodeCount();
-                }
-
-                @Override
-                public Iterable<? extends ChildNodeEntry> getChildNodeEntries(long offset, int count) {
-                    return parent.getChildNodeEntries(offset, count);
-                }
-            };
+            @Override
+            public Iterable<? extends ChildNodeEntry> getChildNodeEntries(long offset, int count) {
+                return parent.getChildNodeEntries(offset, count);
+            }
         }
 
     }
+
 }
