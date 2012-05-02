@@ -20,13 +20,13 @@ package org.apache.jackrabbit.oak.core;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.RootImplFuzzIT.Operation.Rebase;
-import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
+import org.apache.jackrabbit.oak.kernel.KernelNodeStore2;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -56,10 +56,10 @@ public class RootImplFuzzIT {
 
     private final Random random;
 
-    private KernelNodeStore store1;
+    private KernelNodeStore2 store1;
     private RootImpl root1;
 
-    private KernelNodeStore store2;
+    private KernelNodeStore2 store2;
     private RootImpl root2;
 
     private int counter;
@@ -78,13 +78,13 @@ public class RootImplFuzzIT {
         counter = 0;
 
         MicroKernel mk1 = new MicroKernelImpl("./target/mk1/" + random.nextInt());
-        store1 = new KernelNodeStore(mk1);
+        store1 = new KernelNodeStore2(mk1);
         vf = store1.getValueFactory();
         mk1.commit("", "+\"/test\":{} +\"/test/root\":{}", mk1.getHeadRevision(), "");
         root1 = new RootImpl(store1, "test");
 
         MicroKernel mk2 = new MicroKernelImpl("./target/mk2/" + random.nextInt());
-        store2 = new KernelNodeStore(mk2);
+        store2 = new KernelNodeStore2(mk2);
         mk2.commit("", "+\"/test\":{} +\"/test/root\":{}", mk2.getHeadRevision(), "");
         root2 = new RootImpl(store2, "test");
     }
@@ -98,6 +98,7 @@ public class RootImplFuzzIT {
             checkEqual(root1.getTree("/"), root2.getTree("/"));
 
             root1.commit();
+            checkEqual(root1.getTree("/"), root2.getTree("/"));
             if (op instanceof Save) {
                 root2.commit();
                 assertEquals(store1.getRoot(), store2.getRoot());
@@ -300,6 +301,7 @@ public class RootImplFuzzIT {
                 case 5:
                     // Too many copy ops make the test way slow
                     op = random.nextInt(10) == 0 ? createCopyNode() : null;
+                    op = null; // FIXME: depends on OAK-79
                     break;
                 case 6:
                     op = createAddProperty();
@@ -430,12 +432,13 @@ public class RootImplFuzzIT {
     }
 
     private static void checkEqual(Tree tree1, Tree tree2) {
-        assertEquals(tree1.getPath(), tree2.getPath());
-        assertEquals(tree1.getChildrenCount(), tree2.getChildrenCount());
-        assertEquals(tree1.getPropertyCount(), tree2.getPropertyCount());
+        assertEquals(tree1.getPath() + "!=" + tree2.getPath(), tree1.getPath(), tree2.getPath());
+        assertEquals(tree1.getPath() + "!=" + tree2.getPath(), tree1.getChildrenCount(), tree2.getChildrenCount());
+        assertEquals(tree1.getPath() + "!=" + tree2.getPath(), tree1.getPropertyCount(), tree2.getPropertyCount());
 
         for (PropertyState property1 : tree1.getProperties()) {
-            assertEquals(property1, tree2.getProperty(property1.getName()));
+            PropertyState property2 = tree2.getProperty(property1.getName());
+            assertEquals(property1 + "!=" + property2, property1, property2);
         }
 
         for (Tree child1 : tree1.getChildren()) {
