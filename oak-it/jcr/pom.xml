@@ -70,10 +70,12 @@ org.apache.jackrabbit.test.api.SetPropertyValueTest#testSetSingleValueArrayValue
 org.apache.jackrabbit.test.api.SetPropertyValueTest#testSetSingleValueArrayValueFormatExceptionWithPropertyType
 org.apache.jackrabbit.test.api.SetPropertyConstraintViolationExceptionTest
 org.apache.jackrabbit.test.api.SetPropertyAssumeTypeTest
-org.apache.jackrabbit.test.api.NodeAddMixinTest
-org.apache.jackrabbit.test.api.NodeCanAddMixinTest
-org.apache.jackrabbit.test.api.NodeRemoveMixinTest
-org.apache.jackrabbit.test.api.NodeSetPrimaryTypeTest
+org.apache.jackrabbit.test.api.NodeAddMixinTest#testAddNonExisting
+org.apache.jackrabbit.test.api.NodeAddMixinTest#testAddInheritedMixin
+org.apache.jackrabbit.test.api.NodeCanAddMixinTest#testNonExisting
+org.apache.jackrabbit.test.api.NodeSetPrimaryTypeTest#testAddNonExisting
+org.apache.jackrabbit.test.api.NodeSetPrimaryTypeTest#testSetMixinAsPrimaryType
+org.apache.jackrabbit.test.api.NodeSetPrimaryTypeTest#testSetAbstractAsPrimaryType
 org.apache.jackrabbit.test.api.WorkspaceCloneReferenceableTest
 org.apache.jackrabbit.test.api.WorkspaceCloneSameNameSibsTest
 org.apache.jackrabbit.test.api.WorkspaceCloneTest
