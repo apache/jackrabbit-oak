@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 0.1
+Release Notes -- Apache Jackrabbit Oak -- Version 0.2
 
 Introduction
 ------------
@@ -10,8 +10,38 @@ other demanding content applications.
 The Oak effort is a part of the Apache Jackrabbit project. 
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Jackrabbit Oak 0.1 is to be considered alpha-level software. Use at your own risk 
+Jackrabbit Oak 0.2 is to be considered alpha-level software. Use at your own risk 
 with no stability or compatibility guarantees. 
+
+Changes in Oak 0.2
+------------------
+
+New features
+
+  [OAK-59] - Implement Session.move
+  [OAK-63] - Implement workspace copy and move
+
+Improvements
+
+  [OAK-29] - Simplify SessionContext
+  [OAK-30] - Strongly typed wrapper for the MicroKernel
+  [OAK-31] - In-memory MicroKernel for testing
+  [OAK-44] - Release managements tweaks
+  [OAK-46] - Efficient diffing of large child node lists
+  [OAK-48] - MicroKernel.getNodes() should return null for not existing nodes instead of throwing an exception
+  [OAK-52] - Create smoke-test build profile
+  [OAK-53] - exclude longer running tests in the default maven profile
+  [OAK-67] - Initial OSGi Bundle Setup
+  [OAK-70] - MicroKernelInputStream test and optimization
+  [OAK-71] - Logging dependencies
+  [OAK-81] - Remove offset and count parameters from NodeState.getChildNodeEntries()
+
+Bug fixes
+
+  [OAK-20] - Remove usages of MK API from oak-jcr
+  [OAK-62] - ConnectionImpl should not acquire Microkernel instance
+  [OAK-69] - oak-run fails with NPE
+  [OAK-78] - waitForCommit() test failure for MK remoting
 
 Changes in Oak 0.1
 ------------------
