@@ -31,9 +31,8 @@ public class OakRepositoryFactory implements RepositoryFactory {
 
     @SuppressWarnings({"rawtypes", "unchecked"})
     @Override
-    public Repository getRepository(Map parameters)
-            throws RepositoryException {
-        Object value = parameters.get(REPOSITORY_URI);
+    public Repository getRepository(Map parameters) throws RepositoryException {
+        Object value = parameters == null ? null : parameters.get(REPOSITORY_URI);
         if (value != null) {
             try {
                 URI uri = new URI(value.toString());
