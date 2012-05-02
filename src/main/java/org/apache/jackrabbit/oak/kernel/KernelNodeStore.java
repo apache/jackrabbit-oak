@@ -332,7 +332,7 @@ public class KernelNodeStore extends AbstractNodeStore {
                 jsop.append("^\"").append(targetPath).append("\":").append(value);
             }
 
-            for (ChildNodeEntry child : nodeState.getChildNodeEntries(0, -1)) {
+            for (ChildNodeEntry child : nodeState.getChildNodeEntries()) {
                 String targetPath = PathUtils.concat(path, child.getName());
                 buildJsop(targetPath, child.getNodeState());
             }
@@ -489,28 +489,15 @@ public class KernelNodeStore extends AbstractNodeStore {
             }
 
             @Override
-            public Iterable<? extends ChildNodeEntry> getChildNodeEntries(final long offset, final int count) {
-                if (offset >= getChildNodeCount()) {
-                    return new Iterable<ChildNodeEntry>() {
-                        @Override
-                        public Iterator<ChildNodeEntry> iterator() {
-                            return Iterators.empty();
-                        }
-                    };
-                }
-                else if (count == -1 || offset + count > getChildNodeCount()) {
-                    return new Iterable<ChildNodeEntry>() {
-                        @Override
-                        public Iterator<ChildNodeEntry> iterator() {
-                            return Iterators.chain(
-                                    parent.getChildNodeEntries(offset, count).iterator(),
-                                    Iterators.singleton(new KernelChildNodeEntry(childName, node)));
-                        }
-                    };
-                }
-                else {
-                    return parent.getChildNodeEntries(offset, count);
-                }
+            public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
+                return new Iterable<ChildNodeEntry>() {
+                    @Override
+                    public Iterator<ChildNodeEntry> iterator() {
+                        return Iterators.chain(
+                            parent.getChildNodeEntries().iterator(),
+                            Iterators.singleton(new KernelChildNodeEntry(childName, node)));
+                    }
+                };
             }
 
         }
@@ -563,19 +550,19 @@ public class KernelNodeStore extends AbstractNodeStore {
             }
 
             @Override
-            public Iterable<? extends ChildNodeEntry> getChildNodeEntries(final long offset, final int count) {
+            public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
                 return new Iterable<ChildNodeEntry>() {
                     @Override
                     public Iterator<ChildNodeEntry> iterator() {
-                        return Iterators.map(parent.getChildNodeEntries(offset, count).iterator(),
-                                new Function1<ChildNodeEntry, ChildNodeEntry>() {
-                                    @Override
-                                    public ChildNodeEntry apply(ChildNodeEntry cne) {
-                                        return childName.equals(cne.getName())
-                                                ? new KernelChildNodeEntry(childName, node)
-                                                : cne;
-                                    }
-                                });
+                        return Iterators.map(parent.getChildNodeEntries().iterator(),
+                            new Function1<ChildNodeEntry, ChildNodeEntry>() {
+                                @Override
+                                public ChildNodeEntry apply(ChildNodeEntry cne) {
+                                    return childName.equals(cne.getName())
+                                            ? new KernelChildNodeEntry(childName, node)
+                                            : cne;
+                                }
+                            });
                     }
                 };
             }
@@ -626,17 +613,17 @@ public class KernelNodeStore extends AbstractNodeStore {
             }
 
             @Override
-            public Iterable<? extends ChildNodeEntry> getChildNodeEntries(final long offset, final int count) {
+            public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
                 return new Iterable<ChildNodeEntry>() {
                     @Override
                     public Iterator<ChildNodeEntry> iterator() {
-                        return Iterators.filter(parent.getChildNodeEntries(offset, count).iterator(), // FIXME offsetting doesn't compose with filtering
-                                new Predicate<ChildNodeEntry>() {
-                                    @Override
-                                    public boolean evaluate(ChildNodeEntry cne) {
-                                        return !childName.equals(cne.getName());
-                                    }
+                        return Iterators.filter(parent.getChildNodeEntries().iterator(),
+                            new Predicate<ChildNodeEntry>() {
+                                @Override
+                                public boolean evaluate(ChildNodeEntry cne) {
+                                    return !childName.equals(cne.getName());
                                 }
+                            }
                         );
                     }
                 };
@@ -697,8 +684,8 @@ public class KernelNodeStore extends AbstractNodeStore {
             }
 
             @Override
-            public Iterable<? extends ChildNodeEntry> getChildNodeEntries(long offset, int count) {
-                return parent.getChildNodeEntries(offset, count);
+            public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
+                return parent.getChildNodeEntries();
             }
         }
 
@@ -739,14 +726,14 @@ public class KernelNodeStore extends AbstractNodeStore {
                     @Override
                     public Iterator<PropertyState> iterator() {
                         return Iterators.map(parent.getProperties().iterator(),
-                                new Function1<PropertyState, PropertyState>() {
-                                    @Override
-                                    public PropertyState apply(PropertyState state) {
-                                        return property.getName().equals(state.getName())
-                                                ? property
-                                                : state;
-                                    }
+                            new Function1<PropertyState, PropertyState>() {
+                                @Override
+                                public PropertyState apply(PropertyState state) {
+                                    return property.getName().equals(state.getName())
+                                            ? property
+                                            : state;
                                 }
+                            }
                         );
                     }
                 };
@@ -763,8 +750,8 @@ public class KernelNodeStore extends AbstractNodeStore {
             }
 
             @Override
-            public Iterable<? extends ChildNodeEntry> getChildNodeEntries(long offset, int count) {
-                return parent.getChildNodeEntries(offset, count);
+            public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
+                return parent.getChildNodeEntries();
             }
         }
 
@@ -805,12 +792,12 @@ public class KernelNodeStore extends AbstractNodeStore {
                     @Override
                     public Iterator<PropertyState> iterator() {
                         return Iterators.filter(parent.getProperties().iterator(),
-                                new Predicate<PropertyState>() {
-                                    @Override
-                                    public boolean evaluate(PropertyState prop) {
-                                        return !propertyName.equals(prop.getName());
-                                    }
+                            new Predicate<PropertyState>() {
+                                @Override
+                                public boolean evaluate(PropertyState prop) {
+                                    return !propertyName.equals(prop.getName());
                                 }
+                            }
                         );
                     }
                 };
@@ -827,8 +814,8 @@ public class KernelNodeStore extends AbstractNodeStore {
             }
 
             @Override
-            public Iterable<? extends ChildNodeEntry> getChildNodeEntries(long offset, int count) {
-                return parent.getChildNodeEntries(offset, count);
+            public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
+                return parent.getChildNodeEntries();
             }
         }
 

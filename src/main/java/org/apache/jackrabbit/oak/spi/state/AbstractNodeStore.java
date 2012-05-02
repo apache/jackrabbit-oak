@@ -73,7 +73,7 @@ public abstract class AbstractNodeStore implements NodeStore {
             NodeState before, NodeState after, NodeStateDiff diff) {
         Set<String> beforeChildNodes = new HashSet<String>();
 
-        for (ChildNodeEntry beforeCNE : before.getChildNodeEntries(0, -1)) {
+        for (ChildNodeEntry beforeCNE : before.getChildNodeEntries()) {
             String name = beforeCNE.getName();
             NodeState beforeChild = beforeCNE.getNodeState();
             NodeState afterChild = after.getChildNode(name);
@@ -87,7 +87,7 @@ public abstract class AbstractNodeStore implements NodeStore {
             }
         }
 
-        for (ChildNodeEntry afterChild : after.getChildNodeEntries(0, -1)) {
+        for (ChildNodeEntry afterChild : after.getChildNodeEntries()) {
             String name = afterChild.getName();
             if (!beforeChildNodes.contains(name)) {
                 diff.childNodeAdded(name, afterChild.getNodeState());

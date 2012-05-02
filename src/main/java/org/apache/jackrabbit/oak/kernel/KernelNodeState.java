@@ -27,12 +27,15 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.util.Iterators;
+import org.apache.jackrabbit.oak.util.PagedIterator;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 /**
  * Basic {@link NodeState} implementation based on the {@link MicroKernel}
@@ -146,8 +149,36 @@ class KernelNodeState extends AbstractNodeState {
         return child;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
-    public Iterable<? extends ChildNodeEntry> getChildNodeEntries(
+    public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
+        return new Iterable() {  // Java's type system is too weak to express the exact type here
+            @Override
+            public Iterator<? extends ChildNodeEntry> iterator() {
+                return Iterators.flatten(
+                    new PagedIterator<ChildNodeEntry>(MAX_CHILD_NODE_NAMES) {
+                        @Override
+                        protected Iterator<? extends ChildNodeEntry> getPage(long pos, int size) {
+                            return getChildNodeEntries(pos, size);
+                        }
+                    });
+            }
+        };
+    }
+
+    //------------------------------------------------------------< internal >---
+
+    String getRevision() {
+        return revision;
+    }
+
+    String getPath() {
+        return path;
+    }
+
+    //------------------------------------------------------------< private >---
+
+    private Iterator<? extends ChildNodeEntry> getChildNodeEntries(
             long offset, int count) {
         init();
         boolean all;
@@ -165,7 +196,7 @@ class KernelNodeState extends AbstractNodeState {
         List<ChildNodeEntry> entries = new ArrayList<ChildNodeEntry>();
 
         if (offset < childNodes.size()) {
-            Iterator<Map.Entry<String, NodeState>> iterator =
+            Iterator<Entry<String, NodeState>> iterator =
                     childNodes.entrySet().iterator();
             while (offset > 0) {
                 iterator.next();
@@ -203,17 +234,7 @@ class KernelNodeState extends AbstractNodeState {
             reader.read(JsopTokenizer.END);
         }
 
-        return entries;
-    }
-
-    //------------------------------------------------------------< internal >---
-
-    String getRevision() {
-        return revision;
-    }
-
-    String getPath() {
-        return path;
+        return entries.iterator();
     }
 
     private String getChildPath(String name) {

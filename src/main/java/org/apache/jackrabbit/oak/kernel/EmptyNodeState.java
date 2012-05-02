@@ -66,7 +66,7 @@ public class EmptyNodeState extends AbstractNodeState {
     }
 
     @Override
-    public Iterable<? extends ChildNodeEntry> getChildNodeEntries(long offset, int count) {
+    public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
         return new Iterable<ChildNodeEntry>() {
             @Override
             public Iterator<ChildNodeEntry> iterator() {

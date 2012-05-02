@@ -28,7 +28,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
  * the {@link #getProperty(String)} and {@link #getPropertyCount()} methods
  * based on {@link #getProperties()}. The {@link #getChildNode(String)} and
  * {@link #getChildNodeCount()} methods are similarly implemented based on
- * {@link #getChildNodeEntries(long, int)}. Subclasses should normally
+ * {@link #getChildNodeEntries()}. Subclasses should normally
  * override these method with a more efficient alternatives.
  */
 public abstract class AbstractNodeState implements NodeState {
@@ -55,7 +55,7 @@ public abstract class AbstractNodeState implements NodeState {
 
     @Override
     public NodeState getChildNode(String name) {
-        for (ChildNodeEntry entry : getChildNodeEntries(0, -1)) {
+        for (ChildNodeEntry entry : getChildNodeEntries()) {
             if (name.equals(entry.getName())) {
                 return entry.getNodeState();
             }
@@ -67,7 +67,7 @@ public abstract class AbstractNodeState implements NodeState {
     @SuppressWarnings("unused")
     public long getChildNodeCount() {
         long count = 0;
-        for (ChildNodeEntry entry : getChildNodeEntries(0, -1)) {
+        for (ChildNodeEntry entry : getChildNodeEntries()) {
             count++;
         }
         return count;
@@ -105,7 +105,7 @@ public abstract class AbstractNodeState implements NodeState {
         }
 
         long childNodeCount = 0;
-        for (ChildNodeEntry entry : getChildNodeEntries(0, -1)) {
+        for (ChildNodeEntry entry : getChildNodeEntries()) {
             if (!entry.getNodeState().equals(other.getChildNode(entry.getName()))) {
                 return false;
             }
