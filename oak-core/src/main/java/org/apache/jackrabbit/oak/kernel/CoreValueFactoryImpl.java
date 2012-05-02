@@ -43,7 +43,7 @@ class CoreValueFactoryImpl implements CoreValueFactory {
         this.mk = mk;
     }
 
-    //-----------------------------------------< javax.jcr.CoreValueFactory >---
+    //-----------------------------------------< org.apache.jackrabbit.oak.api.CoreValueFactory >---
     @Override
     public CoreValue createValue(String value) {
         return new CoreValueImpl(value, PropertyType.STRING);
