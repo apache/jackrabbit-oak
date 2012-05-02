@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
 import org.apache.jackrabbit.commons.iterator.PropertyIteratorAdapter;
 import org.apache.jackrabbit.oak.api.CoreValue;
@@ -45,6 +44,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Value;
 import javax.jcr.lock.Lock;
+import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeManager;
@@ -154,9 +154,17 @@ public class NodeImpl extends ItemImpl implements Node  {
 
         if (primaryNodeTypeName == null) {
             // TODO retrieve matching nt from effective definition based on name-matching.
-            primaryNodeTypeName = JcrConstants.NT_UNSTRUCTURED;
+            primaryNodeTypeName = NodeType.NT_UNSTRUCTURED;
         }
 
+        // TODO: figure out the right place for this check
+        NodeTypeManager ntm = sessionContext.getNodeTypeManager();
+        NodeType nt = ntm.getNodeType(primaryNodeTypeName); // throws on not found
+        if (nt.isAbstract() || nt.isMixin()) {
+            throw new ConstraintViolationException();
+        }
+        // TODO: END
+        
         NodeDelegate added = dlg.addNode(toOakPath(relPath));
         Node childNode = new NodeImpl(added);
         childNode.setPrimaryType(primaryNodeTypeName);
@@ -471,8 +479,8 @@ public class NodeImpl extends ItemImpl implements Node  {
     public String getUUID() throws RepositoryException {
         checkStatus();
 
-        if (hasProperty(JcrConstants.JCR_UUID) && isNodeType(JcrConstants.MIX_REFERENCEABLE)) {
-            return getProperty(JcrConstants.JCR_UUID).getString();
+        if (hasProperty(Property.JCR_UUID) && isNodeType(NodeType.MIX_REFERENCEABLE)) {
+            return getProperty(Property.JCR_UUID).getString();
         }
 
         throw new UnsupportedRepositoryOperationException("Node is not referenceable.");
@@ -574,9 +582,9 @@ public class NodeImpl extends ItemImpl implements Node  {
         checkStatus();
 
         // TODO: check if transient changes to mixin-types are reflected here
-        if (hasProperty(JcrConstants.JCR_MIXINTYPES)) {
+        if (hasProperty(Property.JCR_MIXIN_TYPES)) {
             NodeTypeManager ntMgr = getSession().getWorkspace().getNodeTypeManager();
-            Value[] mixinNames = getProperty(JcrConstants.JCR_MIXINTYPES).getValues();
+            Value[] mixinNames = getProperty(Property.JCR_MIXIN_TYPES).getValues();
             NodeType[] mixinTypes = new NodeType[mixinNames.length];
             for (int i = 0; i < mixinNames.length; i++) {
                 mixinTypes[i] = ntMgr.getNodeType(mixinNames[i].getString());
@@ -615,7 +623,7 @@ public class NodeImpl extends ItemImpl implements Node  {
         checkStatus();
 
         CoreValue cv = ValueConverter.toCoreValue(nodeTypeName, PropertyType.NAME, sessionContext);
-        dlg.setProperty(toOakPath(JcrConstants.JCR_PRIMARYTYPE), cv);
+        dlg.setProperty(toOakPath(Property.JCR_PRIMARY_TYPE), cv);
     }
 
     @Override

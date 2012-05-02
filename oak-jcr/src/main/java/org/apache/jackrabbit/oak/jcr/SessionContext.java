@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.lock.LockManager;
+import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.version.VersionManager;
 
 public interface SessionContext {
@@ -39,4 +40,5 @@ public interface SessionContext {
     Root getRoot();
     Tree getTree(String path);
     NamePathMapper getNamePathMapper();
+    NodeTypeManager getNodeTypeManager() throws RepositoryException;
 }
