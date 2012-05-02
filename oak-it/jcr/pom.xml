@@ -97,7 +97,6 @@ org.apache.jackrabbit.test.api.SessionRemoveItemTest
 org.apache.jackrabbit.test.api.HasPermissionTest
 org.apache.jackrabbit.test.api.WorkspaceTest
 org.apache.jackrabbit.test.api.ShareableNodeTest
-org.apache.jackrabbit.test.api.RepositoryFactoryTest
 org.apache.jackrabbit.test.api.LifecycleTest
 org.apache.jackrabbit.test.api.query
 org.apache.jackrabbit.test.api.query.qom
