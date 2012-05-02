@@ -28,12 +28,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.util.Function1;
 import org.apache.jackrabbit.oak.util.Iterators;
-import org.apache.jackrabbit.oak.util.PagedIterator;
 
 import java.util.Iterator;
 import java.util.List;
-
-import static org.apache.jackrabbit.oak.util.Iterators.flatten;
 
 /**
  * Implementation of tree based on {@link NodeStateBuilder}s. Each subtree
@@ -310,14 +307,8 @@ public class TreeImpl implements Tree {
         return new Iterable<Tree>() {
             @Override
             public Iterator<Tree> iterator() {
-
-                Iterator<? extends ChildNodeEntry> childEntries = flatten(
-                    new PagedIterator<ChildNodeEntry>(1024) {
-                        @Override
-                        protected Iterator<? extends ChildNodeEntry> getPage(long pos, int size) {
-                            return getNodeState().getChildNodeEntries(pos, size).iterator();
-                        }
-                    });
+                Iterator<? extends ChildNodeEntry> childEntries =
+                        getNodeState().getChildNodeEntries().iterator();
 
                 return Iterators.map(childEntries, new Function1<ChildNodeEntry, Tree>() {
                     @Override
