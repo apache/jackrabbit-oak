@@ -118,6 +118,11 @@ abstract class ItemImpl implements Item {
     @Override
     public void save() throws RepositoryException {
         log.warn("Item#save is no longer supported. Please use Session#save instead.");
+        
+        if (isNew()) {
+            throw new RepositoryException("Item.save() not allowed on new item");
+        }
+        
         getSession().save();
     }
 
