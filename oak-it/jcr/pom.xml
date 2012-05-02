@@ -48,7 +48,6 @@ org.apache.jackrabbit.test.api.NodeDiscoveringNodeTypesTest#testIsNodeType
 org.apache.jackrabbit.test.api.SessionReadMethodsTest#testGetNodeByUUIDFailure
 org.apache.jackrabbit.test.api.PathTest
 org.apache.jackrabbit.test.api.AddNodeTest
-org.apache.jackrabbit.test.api.NamespaceRegistryTest
 org.apache.jackrabbit.test.api.ReferencesTest
 org.apache.jackrabbit.test.api.SessionTest
 org.apache.jackrabbit.test.api.SessionUUIDTest

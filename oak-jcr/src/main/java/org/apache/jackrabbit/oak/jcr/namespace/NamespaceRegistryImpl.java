@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr.namespace;
 
+import java.util.Locale;
+
 import javax.jcr.NamespaceException;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.RepositoryException;
@@ -39,6 +41,8 @@ public class NamespaceRegistryImpl implements NamespaceRegistry {
     @Override
     public void registerNamespace(String prefix, String uri)
             throws RepositoryException {
+        checkMutablePrefix(prefix);
+        checkMutableURI(uri);
         try {
             nsMappings.registerNamespace(prefix, uri);
         } catch (CommitFailedException e) {
@@ -50,7 +54,11 @@ public class NamespaceRegistryImpl implements NamespaceRegistry {
 
     @Override
     public void unregisterNamespace(String prefix) throws RepositoryException {
+        checkMutablePrefix(prefix);
         try {
+            if (nsMappings.getURI(prefix) == null) {
+                throw new NamespaceException("prefix '" + prefix + "' is unused");
+            }
             nsMappings.unregisterNamespace(prefix);
         } catch (CommitFailedException e) {
             throw new RepositoryException(
@@ -108,6 +116,20 @@ public class NamespaceRegistryImpl implements NamespaceRegistry {
             throw new RepositoryException(
                     "Failed to retrieve the namespace prefix for URI "
                     + uri, e);
+        }
+    }
+
+    private void checkMutablePrefix(String prefix) throws NamespaceException {
+        if ("jcr".equals(prefix) || "nt".equals(prefix) || "mix".equals(prefix) || "sv".equals(prefix)
+                || prefix.toLowerCase(Locale.ENGLISH).startsWith("xml")) {
+            throw new NamespaceException("Can not map or remap prefix '" + prefix + "'");
+        }
+    }
+
+    private void checkMutableURI(String uri) throws NamespaceException {
+        if ("http://www.jcp.org/jcr/1.0".equals(uri) || "http://www.jcp.org/jcr/nt/1.0".equals(uri)
+                || "http://www.jcp.org/jcr/mix/1.0".equals(uri) || "http://www.jcp.org/jcr/sv/1.0".equals(uri)) {
+            throw new NamespaceException("Can not map or remap uri '" + uri + "'");
         }
     }
 }
