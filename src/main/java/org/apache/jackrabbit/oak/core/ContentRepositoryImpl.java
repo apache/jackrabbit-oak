@@ -22,7 +22,7 @@ import org.apache.jackrabbit.mk.index.Indexer;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.QueryEngine;
-import org.apache.jackrabbit.oak.kernel.KernelNodeStore2;
+import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
 import org.apache.jackrabbit.oak.spi.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -79,7 +79,7 @@ public class ContentRepositoryImpl implements ContentRepository {
      */
     public ContentRepositoryImpl(MicroKernel mk, QueryIndexProvider indexProvider) {
         microKernel = mk;
-        nodeStore = new KernelNodeStore2(microKernel);
+        nodeStore = new KernelNodeStore(microKernel);
         queryEngine = new QueryEngineImpl(nodeStore, microKernel, indexProvider);
 
         // FIXME: workspace setup must be done elsewhere...
