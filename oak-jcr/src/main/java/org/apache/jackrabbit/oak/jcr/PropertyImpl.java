@@ -16,11 +16,13 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import java.io.InputStream;
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.List;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree.Status;
+import org.apache.jackrabbit.oak.jcr.util.LogUtil;
+import org.apache.jackrabbit.oak.jcr.value.ValueConverter;
+import org.apache.jackrabbit.value.ValueHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.jcr.Binary;
 import javax.jcr.Item;
@@ -34,14 +36,11 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFormatException;
 import javax.jcr.nodetype.PropertyDefinition;
-
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Tree.Status;
-import org.apache.jackrabbit.oak.jcr.util.LogUtil;
-import org.apache.jackrabbit.oak.jcr.value.ValueConverter;
-import org.apache.jackrabbit.value.ValueHelper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.io.InputStream;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.List;
 
 /**
  * {@code PropertyImpl}...
@@ -56,7 +55,6 @@ public class PropertyImpl extends ItemImpl implements Property {
     private final PropertyDelegate dlg;
     
     PropertyImpl(PropertyDelegate dlg) {
-
         super(dlg.getSessionContext(), dlg);
         this.dlg = dlg;
     }
@@ -76,7 +74,7 @@ public class PropertyImpl extends ItemImpl implements Property {
     @Override
     public Node getParent() throws RepositoryException {
         return new NodeImpl(new NodeDelegate(sessionContext,
-                dlg.getParentContentTree()));
+                dlg.getParentTree()));
     }
 
     /**
@@ -84,10 +82,10 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @Override
     public Item getAncestor(int depth) throws RepositoryException {
-        int mydepth = getDepth();
-        if (depth == mydepth) {
+        int myDepth = getDepth();
+        if (depth == myDepth) {
             return this;
-        } else if (depth == mydepth - 1) {
+        } else if (depth == myDepth - 1) {
             return getParent();
         } else {
             return getParent().getAncestor(depth);
