@@ -69,6 +69,7 @@ public class UserManagerImpl implements UserManager {
     public Authorizable getAuthorizable(String id) throws RepositoryException {
         Authorizable authorizable = null;
         try {
+            // FIXME use NodeDelegate instead od NodeImpl
             NodeImpl node = (NodeImpl) sessionDelegate.getSession().getNodeByIdentifier(buildIdentifier(id));
             authorizable = getAuthorizable(node);
         } catch (ItemNotFoundException e) {

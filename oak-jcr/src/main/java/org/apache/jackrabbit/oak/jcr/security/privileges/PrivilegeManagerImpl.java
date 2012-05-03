@@ -96,6 +96,7 @@ public class PrivilegeManagerImpl implements PrivilegeManager {
 
     //--------------------------------------------------------------------------
     private NodeImpl getPrivilegeRoot() throws RepositoryException {
+        // FIXME use NodeDelegate instead of NodeImpl
         return (NodeImpl) sessionDelegate.getSession().getNode(PRIVILEGE_ROOT);
     }
 
