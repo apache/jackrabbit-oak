@@ -29,13 +29,13 @@ import org.apache.jackrabbit.mk.util.ExceptionFactory;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.mk.wrapper.MicroKernelWrapper;
 import org.apache.jackrabbit.mk.wrapper.MicroKernelWrapperBase;
+import org.apache.jackrabbit.oak.spi.QueryIndexProvider;
 
 /**
  * The index mechanism, as a wrapper.
  */
 public class IndexWrapper extends MicroKernelWrapperBase implements MicroKernel {
 
-    private static final String INDEX_PATH = "/index";
     private static final String TYPE_PREFIX = "prefix:";
     private static final String TYPE_PROPERTY = "property:";
     private static final String UNIQUE = "unique";
@@ -48,8 +48,12 @@ public class IndexWrapper extends MicroKernelWrapperBase implements MicroKernel 
 
     public IndexWrapper(MicroKernel mk) {
         this.mk = MicroKernelWrapperBase.wrap(mk);
-        this.indexer = new Indexer(mk);
+        this.indexer = new Indexer(this, mk, Indexer.INDEX_CONFIG_ROOT);
         indexer.init();
+    }
+
+    public QueryIndexProvider getIndexer() {
+        return indexer;
     }
 
     @Override
@@ -64,6 +68,10 @@ public class IndexWrapper extends MicroKernelWrapperBase implements MicroKernel 
 
     @Override
     public boolean nodeExists(String path, String revisionId) {
+        String indexRoot = indexer.getIndexRootNode();
+        if (path.startsWith(indexRoot)) {
+            return false;
+        }
         return mk.nodeExists(path, revisionId);
     }
 
@@ -99,7 +107,8 @@ public class IndexWrapper extends MicroKernelWrapperBase implements MicroKernel 
 
     @Override
     public String commitStream(String rootPath, JsopReader jsonDiff, String revisionId, String message) {
-        if (!rootPath.startsWith(INDEX_PATH)) {
+        String indexRoot = indexer.getIndexRootNode();
+        if (!rootPath.startsWith(indexRoot)) {
             String rev = mk.commitStream(rootPath, jsonDiff, revisionId, message);
             jsonDiff.resetReader();
             indexer.updateIndex(rootPath, jsonDiff, rev);
@@ -125,7 +134,7 @@ public class IndexWrapper extends MicroKernelWrapperBase implements MicroKernel 
                 t.read('{');
                 // parse but ignore
                 NodeImpl.parse(map, t, 0);
-                path = PathUtils.relativize(INDEX_PATH, path);
+                path = PathUtils.relativize(indexRoot, path);
                 if (path.startsWith(TYPE_PREFIX)) {
                     String prefix = path.substring(TYPE_PREFIX.length());
                     PrefixIndex idx = indexer.createPrefixIndex(prefix);
@@ -144,7 +153,20 @@ public class IndexWrapper extends MicroKernelWrapperBase implements MicroKernel 
                 }
                 break;
             case '-':
-                throw ExceptionFactory.get("Removing indexes is not yet implemented");
+                path = PathUtils.relativize(indexRoot, path);
+                if (path.startsWith(TYPE_PREFIX)) {
+                    String prefix = path.substring(TYPE_PREFIX.length());
+                    indexer.removePrefixIndex(prefix);
+                } else if (path.startsWith(TYPE_PROPERTY)) {
+                    String property = path.substring(TYPE_PROPERTY.length());
+                    boolean unique = false;
+                    if (property.endsWith("," + UNIQUE)) {
+                        unique = true;
+                        property = property.substring(0, property.length() - UNIQUE.length() - 1);
+                    }
+                    indexer.removePropertyIndex(property, unique);
+                }
+                break;
             default:
                 throw ExceptionFactory.get("token: " + (char) t.getTokenType());
             }
@@ -154,10 +176,11 @@ public class IndexWrapper extends MicroKernelWrapperBase implements MicroKernel 
 
     @Override
     public JsopReader getNodesStream(String path, String revisionId, int depth, long offset, int count, String filter) {
-        if (!path.startsWith(INDEX_PATH)) {
+        String indexRoot = indexer.getIndexRootNode();
+        if (!path.startsWith(indexRoot)) {
             return mk.getNodesStream(path, revisionId, depth, offset, count, filter);
         }
-        String index = PathUtils.relativize(INDEX_PATH, path);
+        String index = PathUtils.relativize(indexRoot, path);
         int idx = index.indexOf('?');
         if (idx < 0) {
             // invalid query - expected: /index/prefix:x?y

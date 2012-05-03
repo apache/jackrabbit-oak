@@ -23,16 +23,10 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 
 /**
  * A mechanism to index data. Indexes might be added or removed at runtime,
- * possibly by changing content in the repository. The provider knows about
- * indexes, and informs the query engine about indexes that where added or
- * removed at runtime.
+ * possibly by changing content in the repository. The provider knows about the
+ * indexes available at a given time.
  */
 public interface QueryIndexProvider {
-
-    /**
-     * Initialize the instance.
-     */
-    void init();
 
     /**
      * Get the currently configured indexes for the given MicroKernel instance.

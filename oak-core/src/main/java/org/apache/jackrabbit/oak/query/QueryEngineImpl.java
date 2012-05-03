@@ -47,12 +47,6 @@ public class QueryEngineImpl implements QueryEngine {
         parserSQL2 = new SQL2Parser(vf);
     }
 
-    @Override
-    public void init() {
-        // TODO the list of index providers should be configurable as well
-        indexProvider.init();
-    }
-
     /**
      * Parse the query (check if it's valid) and get the list of bind variable names.
      *
