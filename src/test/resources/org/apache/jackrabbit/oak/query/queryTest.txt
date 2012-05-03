@@ -21,7 +21,24 @@
 # * new tests are typically be added on top, after the syntax docs
 # * use ascii character only
 
-+ "test": { "jcr:resource": {}, "resource": { "x" : {}}}
+# test the property content index
+
+commit / + "test": { "a": { "id": "10" }, "b": { "id" : "20" }}
+commit /jcr:system/indexes + "property:id": {}
+
+explain select * from [nt:base] where id = '10'
+nt:base AS nt:base /* propertyIndex "id [10..10]" */
+
+select * from [nt:base] where id = '10'
+/test/a
+
+explain select * from [nt:base] where id > '10'
+nt:base AS nt:base /* traverse "//*" */
+
+commit / - "test"
+commit /jcr:system/indexes - "property:id"
+
+commit / + "test": { "jcr:resource": {}, "resource": { "x" : {}}}
 
 select * from [nt:base] where id = -1
 
@@ -54,10 +71,10 @@ select * from [nt:base] as x where isdescendantnode(x, '/')
 /test/resource
 /test/resource/x
 
-- "test"
+commit / - "test"
 
-+ "parents": { "p0": {"id": "0"}, "p1": {"id": "1"}, "p2": {"id": "2"}}
-+ "children": { "c1": {"p": "1"}, "c2": {"p": "1"}, "c3": {"p": "2"}, "c4": {"p": "3"}}
+commit / + "parents": { "p0": {"id": "0"}, "p1": {"id": "1"}, "p2": {"id": "2"}}
+commit / + "children": { "c1": {"p": "1"}, "c2": {"p": "1"}, "c3": {"p": "2"}, "c4": {"p": "3"}}
 
 # relative property
 select * from [nt:base] where [c1/p] = '1'
@@ -117,11 +134,11 @@ select * from [nt:base] as p inner join [nt:base] as c on p.id = c.p
 explain select * from [nt:base] as p inner join [nt:base] as c on p.id = c.p
 nt:base AS p /* traverse "//*" */ INNER JOIN nt:base AS c /* traverse "//*" */
 
-- "parents"
-- "children"
+commit / - "parents"
+commit / - "children"
 
-+ "test": { "hello": { "x": "1" }, "world": { "x": "2" } }
-+ "test2": { "id":"1", "x": "2" }
+commit / + "test": { "hello": { "x": "1" }, "world": { "x": "2" } }
+commit / + "test2": { "id":"1", "x": "2" }
 
 select * from [nt:base]
 /
@@ -155,14 +172,14 @@ select * from [nt:base] where x is null
 /jcr:system/indexes
 /test
 
-- "test"
-- "test2"
+commit / - "test"
+commit / - "test2"
 
-+ "test": { "name": "hello" }
-+ "test2": { "name": "World!" }
-+ "test3": { "name": "Hallo" }
-+ "test4": { "name": "10%" }
-+ "test5": { "name": "10 percent" }
+commit / + "test": { "name": "hello" }
+commit / + "test2": { "name": "World!" }
+commit / + "test3": { "name": "Hallo" }
+commit / + "test4": { "name": "10%" }
+commit / + "test5": { "name": "10 percent" }
 
 select name from [nt:base] order by upper(name)
 10 percent

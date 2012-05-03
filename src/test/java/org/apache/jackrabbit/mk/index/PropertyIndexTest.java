@@ -29,7 +29,7 @@ public class PropertyIndexTest {
     @Test
     public void test() {
         MicroKernel mk = new MicroKernelImpl();
-        Indexer indexer = new Indexer(mk, "index");
+        Indexer indexer = new Indexer(mk, mk, "index");
         indexer.init();
         PropertyIndex index = indexer.createPropertyIndex("id", true);
 

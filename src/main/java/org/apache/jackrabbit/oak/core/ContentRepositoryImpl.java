@@ -42,7 +42,7 @@ import javax.security.auth.login.LoginException;
 public class ContentRepositoryImpl implements ContentRepository {
 
     /** Logger instance */
-    private static final Logger log =
+    private static final Logger LOG =
             LoggerFactory.getLogger(ContentRepositoryImpl.class);
 
     // TODO: retrieve default wsp-name from configuration
@@ -64,12 +64,6 @@ public class ContentRepositoryImpl implements ContentRepository {
         this(mk, getDefaultIndexProvider(mk));
     }
 
-    private static QueryIndexProvider getDefaultIndexProvider(MicroKernel mk) {
-        QueryIndexProvider provider = new Indexer(mk);
-        provider.init();
-        return provider;
-    }
-
     /**
      * Creates an Oak repository instance based on the given, already
      * initialized components.
@@ -83,7 +77,6 @@ public class ContentRepositoryImpl implements ContentRepository {
         queryEngine = new QueryEngineImpl(nodeStore, microKernel, indexProvider);
 
         // FIXME: workspace setup must be done elsewhere...
-        queryEngine.init();
         NodeState root = nodeStore.getRoot();
 
         NodeState wspNode = root.getChildNode(DEFAULT_WORKSPACE_NAME);
@@ -95,6 +88,10 @@ public class ContentRepositoryImpl implements ContentRepository {
             microKernel.commit("/", "+\"" + DEFAULT_WORKSPACE_NAME + "\":{}" + "^\"" + DEFAULT_WORKSPACE_NAME
                     + "/jcr:primaryType\":\"" + ntUnstructured + "\" ", null, null);
         }
+    }
+
+    private static QueryIndexProvider getDefaultIndexProvider(MicroKernel mk) {
+        return new Indexer(mk);
     }
 
     @Override

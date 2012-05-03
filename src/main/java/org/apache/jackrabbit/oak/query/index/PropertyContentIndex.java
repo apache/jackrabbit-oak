@@ -42,39 +42,29 @@ public class PropertyContentIndex implements QueryIndex {
 
     @Override
     public double getCost(Filter filter) {
-        String propertyName = index.getName();
+        String propertyName = index.getPropertyName();
         Filter.PropertyRestriction restriction = filter.getPropertyRestriction(propertyName);
         if (restriction == null) {
             return Double.MAX_VALUE;
         }
+        if (restriction.first != restriction.last) {
+            // only support equality matches (for now)
+            return Double.MAX_VALUE;
+        }
         boolean unique = index.isUnique();
-        if (restriction.first == restriction.last) {
-            return unique ? 2 : 20;
-        }
-        int estimatedMatches = 1000000;
-        if (restriction.first != null) {
-            estimatedMatches /= 10;
-        }
-        if (restriction.last != null) {
-            estimatedMatches /= 10;
-        }
-        if (unique) {
-            estimatedMatches /= 100;
-        }
-        return estimatedMatches;
+        return unique ? 2 : 20;
     }
 
     @Override
     public String getPlan(Filter filter) {
-        String propertyName = index.getName();
+        String propertyName = index.getPropertyName();
         Filter.PropertyRestriction restriction = filter.getPropertyRestriction(propertyName);
-
         return "propertyIndex \"" + restriction.propertyName + " " + restriction.toString() + '"';
     }
 
     @Override
     public Cursor query(Filter filter, String revisionId) {
-        String propertyName = index.getName();
+        String propertyName = index.getPropertyName();
         Filter.PropertyRestriction restriction = filter.getPropertyRestriction(propertyName);
         if (restriction == null) {
             throw new IllegalArgumentException("No restriction for " + propertyName);
@@ -131,6 +121,7 @@ public class PropertyContentIndex implements QueryIndex {
         public boolean next() {
             if (it.hasNext()) {
                 currentPath = it.next();
+                return true;
             }
             return false;
         }

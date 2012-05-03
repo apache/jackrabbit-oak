@@ -44,30 +44,41 @@ import java.util.Map.Entry;
 public class Indexer implements QueryIndexProvider {
 
     // TODO discuss where to store index config data
-    private static final String INDEX_CONFIG_ROOT = "/jcr:system/indexes";
+    static final String INDEX_CONFIG_ROOT = "/jcr:system/indexes";
 
     private static final boolean DISABLED = Boolean.getBoolean("mk.indexDisabled");
 
     private MicroKernel mk;
+    private MicroKernel mkWrapper;
     private String revision;
     private String indexRootNode;
     private StringBuilder buffer;
     private HashMap<String, Index> indexes = new HashMap<String, Index>();
+    private ArrayList<QueryIndex> queryIndexList;
     private HashMap<String, BTreePage> modified = new HashMap<String, BTreePage>();
     private SimpleLRUCache<String, BTreePage> cache = SimpleLRUCache.newInstance(100);
     private String readRevision;
+    private boolean init;
 
-    public Indexer(MicroKernel mk, String indexRootNode) {
+    public Indexer(MicroKernel mkWrapper, MicroKernel mk, String indexRootNode) {
+        this.mkWrapper = mkWrapper;
         this.mk = mk;
         this.indexRootNode = indexRootNode;
     }
 
     public Indexer(MicroKernel mk) {
-        this(mk, INDEX_CONFIG_ROOT);
+        this(mk, mk, INDEX_CONFIG_ROOT);
     }
 
-    @Override
+    public String getIndexRootNode() {
+        return indexRootNode;
+    }
+
     public void init() {
+        if (init) {
+            return;
+        }
+        init = true;
         if (!PathUtils.isAbsolute(indexRootNode)) {
             indexRootNode = "/" + indexRootNode;
         }
@@ -106,9 +117,16 @@ public class Indexer implements QueryIndexProvider {
                 }
                 if (p != null) {
                     indexes.put(p.getName(), p);
+                    queryIndexList = null;
                 }
             }
         }
+    }
+
+    public void removePropertyIndex(String property, boolean unique) {
+        PropertyIndex index = new PropertyIndex(this, property, unique);
+        indexes.remove(index.getName());
+        queryIndexList = null;
     }
 
     public PropertyIndex createPropertyIndex(String property, boolean unique) {
@@ -119,6 +137,12 @@ public class Indexer implements QueryIndexProvider {
         }
         buildAndAddIndex(index);
         return index;
+    }
+
+    public void removePrefixIndex(String prefix) {
+        PrefixIndex index = new PrefixIndex(this, prefix);
+        indexes.remove(index.getName());
+        queryIndexList = null;
     }
 
     public PrefixIndex createPrefixIndex(String prefix) {
@@ -490,6 +514,7 @@ public class Indexer implements QueryIndexProvider {
     private void buildAndAddIndex(Index index) {
         addRecursive(index, "/");
         indexes.put(index.getName(), index);
+        queryIndexList = null;
     }
 
     private void addRecursive(Index index, String path) {
@@ -510,20 +535,23 @@ public class Indexer implements QueryIndexProvider {
 
     @Override
     public List<QueryIndex> getQueryIndexes(MicroKernel mk) {
-        if (mk != this.mk) {
+        init();
+        if (mk != this.mkWrapper) {
             return Collections.emptyList();
         }
-        ArrayList<QueryIndex> list = new ArrayList<QueryIndex>();
-        for (Index index : indexes.values()) {
-            QueryIndex qi = null;
-            if (index instanceof PropertyIndex) {
-                qi = new PropertyContentIndex(mk, (PropertyIndex) index);
-            } else if (index instanceof PrefixIndex) {
-                // TODO support prefix indexes?
+        if (queryIndexList == null) {
+            queryIndexList = new ArrayList<QueryIndex>();
+            for (Index index : indexes.values()) {
+                QueryIndex qi = null;
+                if (index instanceof PropertyIndex) {
+                    qi = new PropertyContentIndex(mk, (PropertyIndex) index);
+                } else if (index instanceof PrefixIndex) {
+                    // TODO support prefix indexes?
+                }
+                queryIndexList.add(qi);
             }
-            list.add(qi);
         }
-        return list;
+        return queryIndexList;
     }
 
 }
