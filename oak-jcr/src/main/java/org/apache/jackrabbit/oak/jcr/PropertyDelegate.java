@@ -64,7 +64,7 @@ public class PropertyDelegate extends ItemDelegate {
             @Override
             public boolean isMultiple() {
                 // TODO
-                return propertyState.isArray();
+                return getPropertyState().isArray();
             }
 
             @Override
@@ -94,7 +94,7 @@ public class PropertyDelegate extends ItemDelegate {
             @Override
             public String getName() {
                 // TODO
-                return propertyState.getName();
+                return getPropertyState().getName();
             }
 
             @Override
