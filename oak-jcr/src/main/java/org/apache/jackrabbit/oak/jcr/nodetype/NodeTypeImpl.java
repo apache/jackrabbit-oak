@@ -48,7 +48,7 @@ class NodeTypeImpl implements NodeType {
 
     private static final Pattern DEF_PATTERN = Pattern.compile(
             "  ([\\+\\-]) (\\S+) \\((\\S+?)\\)( = (\\S+))?"
-            + "(( (mandatory|autocreated|protected|multiple))*)"
+            + "(( (mandatory|autocreated|protected|multiple|sns))*)"
             + "( ([A-Z]+))?(.*)");
 
     private final NodeTypeManager manager;
@@ -85,8 +85,8 @@ class NodeTypeImpl implements NodeType {
 
         this.isAbstract = matcher.group(5) != null;
         this.mixin = matcher.group(4) != null;
-        this.hasOrderableChildNodes = matcher.group(7) != null;
-        this.primaryItemName = matcher.group(8);
+        this.hasOrderableChildNodes = matcher.group(6) != null;
+        this.primaryItemName = matcher.group(7);
 
         String supertypes = matcher.group(2);
         if (supertypes != null)  {
@@ -112,6 +112,7 @@ class NodeTypeImpl implements NodeType {
                 boolean autoCreated = matcher.group(6).contains(" autocreated");
                 boolean isProtected = matcher.group(6).contains(" protected");
                 boolean multiple = matcher.group(6).contains(" multiple");
+                boolean allowSNS = matcher.group(6).contains(" sns");
 
                 int onParentVersionAction = OnParentVersionAction.COPY;
                 if (matcher.group(10) != null) {
@@ -123,7 +124,7 @@ class NodeTypeImpl implements NodeType {
                     declaredChildNodeDefinitions.add(new NodeDefinitionImpl(
                             this, mapper, defName, autoCreated, mandatory,
                             onParentVersionAction, isProtected, manager,
-                            defType.split(", "), matcher.group(5), false));
+                            defType.split(", "), matcher.group(5), allowSNS));
                 } else if ("-".equals(matcher.group(1))) {
                     declaredPropertyDefinitions.add(new PropertyDefinitionImpl(
                             this, mapper, defName, autoCreated, mandatory,
