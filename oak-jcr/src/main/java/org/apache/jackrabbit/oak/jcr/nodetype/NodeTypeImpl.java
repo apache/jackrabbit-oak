@@ -282,11 +282,16 @@ class NodeTypeImpl implements NodeType {
     @Override
     public NodeTypeIterator getDeclaredSubtypes() {
         try {
-            Collection<NodeType> types =
-                    new ArrayList<NodeType>(declaredSuperTypeNames.length);
-            for (String declaredSuperTypeName : declaredSuperTypeNames) {
-                types.add(manager.getNodeType(
-                        mapper.getJcrName(declaredSuperTypeName)));
+            Collection<NodeType> types = new ArrayList<NodeType>();
+            NodeTypeIterator iterator = manager.getAllNodeTypes();
+            while (iterator.hasNext()) {
+                NodeType type = iterator.nextNodeType();
+                if (type.isNodeType(getName()) && !isNodeType(type.getName())) {
+                    List<String> declaredSuperTypeNames = Arrays.asList(type.getDeclaredSupertypeNames());
+                    if (declaredSuperTypeNames.contains(type)) {
+                        types.add(type);
+                    }
+                }
             }
             return new NodeTypeIteratorAdapter(types);
         } catch (RepositoryException e) {
