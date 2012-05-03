@@ -73,20 +73,68 @@ public class SessionDelegate {
         return context.getInstance(Repository.class);
     }
 
+    public Session getSession() {
+        return session;
+    }
+
+    public Workspace getWorkspace() {
+        return workspace;
+    }
+
+    public String getWorkspaceName() {
+        return contentSession.getWorkspaceName();
+    }
+
+    public boolean isAlive() {
+        return isAlive;
+    }
+
     public AuthInfo getAuthInfo() {
         return contentSession.getAuthInfo();
+    }
+
+    public void logout() {
+        if (!isAlive) {
+            // ignore
+            return;
+        }
+
+        isAlive = false;
+        // TODO
+
+        try {
+            contentSession.close();
+        } catch (IOException e) {
+            log.warn("Error while closing connection", e);
+        }
     }
 
     public ValueFactoryImpl getValueFactory() {
         return valueFactory;
     }
 
-    public Tree getTree(String path) {
-        return root.getTree(path);
-    }
-
     public NamePathMapper getNamePathMapper() {
         return namePathMapper;
+    }
+
+    public NodeTypeManager getNodeTypeManager() throws RepositoryException {
+        return workspace.getNodeTypeManager();
+    }
+
+    public VersionManager getVersionManager() throws RepositoryException {
+        return workspace.getVersionManager();
+    }
+
+    public LockManager getLockManager() throws RepositoryException {
+        return workspace.getLockManager();
+    }
+
+    public QueryEngine getQueryEngine() {
+        return contentSession.getQueryEngine();
+    }
+
+    public Tree getTree(String path) {
+        return root.getTree(path);
     }
 
     public void move(String srcAbsPath, String destAbsPath, boolean transientOp)
@@ -94,7 +142,6 @@ public class SessionDelegate {
 
         String srcPath = PathUtils.relativize("/", srcAbsPath);  // TODO: is this needed?
         String destPath = PathUtils.relativize("/", destAbsPath);
-
         try {
             if (transientOp) {
                 root.move(srcPath, destPath);
@@ -111,16 +158,20 @@ public class SessionDelegate {
     }
 
     public void copy(String srcAbsPath, String destAbsPath) throws RepositoryException {
+        String srcPath = PathUtils.relativize("/", srcAbsPath);
+        String destPath = PathUtils.relativize("/", destAbsPath);
         try {
             Root currentRoot = contentSession.getCurrentRoot();
-            String srcPath = PathUtils.relativize("/", srcAbsPath);
-            String destPath = PathUtils.relativize("/", destAbsPath);
             currentRoot.copy(srcPath, destPath);
             currentRoot.commit();
         }
         catch (CommitFailedException e) {
             throw new RepositoryException(e);
         }
+    }
+
+    public boolean hasPendingChanges() {
+        return root.hasPendingChanges();
     }
 
     public void save() throws RepositoryException {
@@ -141,58 +192,6 @@ public class SessionDelegate {
         }
     }
 
-    public boolean hasPendingChanges() {
-        return root.hasPendingChanges();
-    }
-
-    public boolean isAlive() {
-        return isAlive;
-    }
-
-    public void logout() {
-        if (!isAlive) {
-            // ignore
-            return;
-        }
-
-        isAlive = false;
-        // TODO
-
-        try {
-            contentSession.close();
-        } catch (IOException e) {
-            log.warn("Error while closing connection", e);
-        }
-    }
-
-    public Workspace getWorkspace() {
-        return workspace;
-    }
-
-    public Session getSession() {
-        return session;
-    }
-
-    public String getWorkspaceName() {
-        return contentSession.getWorkspaceName();
-    }
-
-    public QueryEngine getQueryEngine() {
-        return contentSession.getQueryEngine();
-    }
-
-    public NodeTypeManager getNodeTypeManager() throws RepositoryException {
-        return workspace.getNodeTypeManager();
-    }
-
-    public VersionManager getVersionManager() throws RepositoryException {
-        return workspace.getVersionManager();
-    }
-
-    public LockManager getLockManager() throws RepositoryException {
-        return workspace.getLockManager();
-    }
-
     //-------------------------------------------< SessionNamespaceResolver >---
 
     private class SessionNameMapper extends AbstractNameMapper {
@@ -201,7 +200,7 @@ public class SessionDelegate {
         protected String getJcrPrefix(String oakPrefix) {
             try {
                 String ns = nsRegistry.getURI(oakPrefix);
-                return getSession().getNamespacePrefix(ns);
+                return session.getNamespacePrefix(ns);
             } catch (RepositoryException e) {
                 // TODO
                 return null;
