@@ -55,7 +55,7 @@ public class PropertyImpl extends ItemImpl implements Property {
     private final PropertyDelegate dlg;
     
     PropertyImpl(PropertyDelegate dlg) {
-        super(dlg.getSessionContext(), dlg);
+        super(dlg.getSessionDelegate(), dlg);
         this.dlg = dlg;
     }
 
@@ -73,7 +73,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @Override
     public Node getParent() throws RepositoryException {
-        return new NodeImpl(new NodeDelegate(sessionContext,
+        return new NodeImpl(new NodeDelegate(sessionDelegate,
                 dlg.getParentTree()));
     }
 
@@ -320,7 +320,7 @@ public class PropertyImpl extends ItemImpl implements Property {
             throw new ValueFormatException(LogUtil.safeGetJCRPath(this) + " is multi-valued.");
         }
 
-        return ValueConverter.toValue(getPropertyState().getValue(), sessionContext);
+        return ValueConverter.toValue(getPropertyState().getValue(), sessionDelegate);
     }
 
     @Override
@@ -330,7 +330,7 @@ public class PropertyImpl extends ItemImpl implements Property {
             throw new ValueFormatException(LogUtil.safeGetJCRPath(this) + " is not multi-valued.");
         }
 
-        return ValueConverter.toValues(getPropertyState().getValues(), sessionContext);
+        return ValueConverter.toValues(getPropertyState().getValues(), sessionDelegate);
     }
 
     /**
@@ -561,8 +561,8 @@ public class PropertyImpl extends ItemImpl implements Property {
        if (value == null) {
            dlg.remove();
        } else {
-           Value targetValue = ValueHelper.convert(value, requiredType, sessionContext.getValueFactory());
-           dlg.setValue(ValueConverter.toCoreValue(targetValue, sessionContext));
+           Value targetValue = ValueHelper.convert(value, requiredType, sessionDelegate.getValueFactory());
+           dlg.setValue(ValueConverter.toCoreValue(targetValue, sessionDelegate));
        }
    }
 
@@ -582,8 +582,8 @@ public class PropertyImpl extends ItemImpl implements Property {
       if (values == null) {
           remove();
       } else {
-          Value[] targetValues = ValueHelper.convert(values, requiredType, sessionContext.getValueFactory());
-          dlg.setValues(ValueConverter.toCoreValues(targetValues, sessionContext));
+          Value[] targetValues = ValueHelper.convert(values, requiredType, sessionDelegate.getValueFactory());
+          dlg.setValues(ValueConverter.toCoreValues(targetValues, sessionDelegate));
       }
   }
 

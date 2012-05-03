@@ -22,7 +22,6 @@ import org.apache.jackrabbit.oak.jcr.RepositoryImpl;
 import org.apache.jackrabbit.webdav.jcr.JCRWebdavServerServlet;
 
 import javax.jcr.Repository;
-import javax.jcr.RepositoryException;
 import javax.servlet.ServletException;
 
 class RepositoryServlet extends JCRWebdavServerServlet {
@@ -45,12 +44,7 @@ class RepositoryServlet extends JCRWebdavServerServlet {
             kernel = new MicroKernelImpl();
         }
 
-        try {
-            repository = new RepositoryImpl();
-        } catch (RepositoryException e) {
-            throw new ServletException("Could not start a repository", e);
-        }
-
+        repository = new RepositoryImpl();
         super.init();
     }
 

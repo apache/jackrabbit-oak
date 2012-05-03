@@ -24,7 +24,7 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.jcr.NodeImpl;
-import org.apache.jackrabbit.oak.jcr.SessionContext;
+import org.apache.jackrabbit.oak.jcr.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.security.user.action.AuthorizableAction;
 import org.apache.jackrabbit.oak.jcr.value.ValueConverter;
 import org.slf4j.Logger;
@@ -51,14 +51,14 @@ public class UserManagerImpl implements UserManager {
      */
     private static final Logger log = LoggerFactory.getLogger(UserManagerImpl.class);
 
-    private final SessionContext sessionContext;
+    private final SessionDelegate sessionDelegate;
     private final UserManagerConfig config;
     private final AuthorizableNodeCreator nodeCreator;
 
-    public UserManagerImpl(SessionContext sessionContext, UserManagerConfig config) {
-        this.sessionContext = sessionContext;
+    public UserManagerImpl(SessionDelegate sessionDelegate, UserManagerConfig config) {
+        this.sessionDelegate = sessionDelegate;
         this.config = config;
-        nodeCreator = new AuthorizableNodeCreator(sessionContext);
+        nodeCreator = new AuthorizableNodeCreator(sessionDelegate);
     }
 
     //--------------------------------------------------------< UserManager >---
@@ -69,7 +69,7 @@ public class UserManagerImpl implements UserManager {
     public Authorizable getAuthorizable(String id) throws RepositoryException {
         Authorizable authorizable = null;
         try {
-            NodeImpl node = (NodeImpl) sessionContext.getSession().getNodeByIdentifier(buildIdentifier(id));
+            NodeImpl node = (NodeImpl) sessionDelegate.getSession().getNodeByIdentifier(buildIdentifier(id));
             authorizable = getAuthorizable(node);
         } catch (ItemNotFoundException e) {
             log.debug("No authorizable with ID " + id);
@@ -82,7 +82,7 @@ public class UserManagerImpl implements UserManager {
      */
     @Override
     public Authorizable getAuthorizable(Principal principal) throws RepositoryException {
-        Session session = sessionContext.getSession();
+        Session session = sessionDelegate.getSession();
         Authorizable authorizable = null;
         if (principal instanceof ItemBasedPrincipal) {
             String authPath = ((ItemBasedPrincipal) principal).getPath();
@@ -228,7 +228,7 @@ public class UserManagerImpl implements UserManager {
      */
     void onCreate(User user, String password) throws RepositoryException {
         for (AuthorizableAction action : config.getAuthorizableActions()) {
-            action.onCreate(user, password, sessionContext.getSession());
+            action.onCreate(user, password, sessionDelegate.getSession());
         }
     }
 
@@ -242,7 +242,7 @@ public class UserManagerImpl implements UserManager {
      */
     void onCreate(Group group) throws RepositoryException {
         for (AuthorizableAction action : config.getAuthorizableActions()) {
-            action.onCreate(group, sessionContext.getSession());
+            action.onCreate(group, sessionDelegate.getSession());
         }
     }
 
@@ -256,7 +256,7 @@ public class UserManagerImpl implements UserManager {
      */
     void onRemove(Authorizable authorizable) throws RepositoryException {
         for (AuthorizableAction action : config.getAuthorizableActions()) {
-            action.onRemove(authorizable, sessionContext.getSession());
+            action.onRemove(authorizable, sessionDelegate.getSession());
         }
     }
 
@@ -271,7 +271,7 @@ public class UserManagerImpl implements UserManager {
      */
     void onPasswordChange(User user, String password) throws RepositoryException {
         for (AuthorizableAction action : config.getAuthorizableActions()) {
-            action.onPasswordChange(user, password, sessionContext.getSession());
+            action.onPasswordChange(user, password, sessionDelegate.getSession());
         }
     }
 
@@ -326,17 +326,17 @@ public class UserManagerImpl implements UserManager {
     }
 
     void setInternalProperty(NodeImpl userNode, String name, String value, int type) throws RepositoryException {
-        CoreValue cv = ValueConverter.toCoreValue(value, type, sessionContext);
-        sessionContext.getTree(userNode.getOakPath()).setProperty(name, cv);
+        CoreValue cv = ValueConverter.toCoreValue(value, type, sessionDelegate);
+        sessionDelegate.getTree(userNode.getOakPath()).setProperty(name, cv);
     }
 
     void setInternalProperty(NodeImpl userNode, String name, String[] values, int type) throws RepositoryException {
-        List<CoreValue> cvs = ValueConverter.toCoreValues(values, type, sessionContext);
-        sessionContext.getTree(userNode.getOakPath()).setProperty(name, cvs);
+        List<CoreValue> cvs = ValueConverter.toCoreValues(values, type, sessionDelegate);
+        sessionDelegate.getTree(userNode.getOakPath()).setProperty(name, cvs);
     }
 
     void removeInternalProperty(NodeImpl userNode, String name) {
-        sessionContext.getTree(userNode.getOakPath()).removeProperty(name);
+        sessionDelegate.getTree(userNode.getOakPath()).removeProperty(name);
     }
 
     private Authorizable getAuthorizable(NodeImpl node) throws RepositoryException {

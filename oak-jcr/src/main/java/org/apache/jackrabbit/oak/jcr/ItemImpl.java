@@ -31,7 +31,7 @@ import javax.jcr.ValueFactory;
  */
 abstract class ItemImpl implements Item {
 
-    protected final SessionContext sessionContext;
+    protected final SessionDelegate sessionDelegate;
     protected final ItemDelegate dlg;
 
     /**
@@ -39,8 +39,8 @@ abstract class ItemImpl implements Item {
      */
     private static final Logger log = LoggerFactory.getLogger(ItemImpl.class);
 
-    protected ItemImpl(SessionContext sessionContext, ItemDelegate itemDelegate) {
-        this.sessionContext = sessionContext;
+    protected ItemImpl(SessionDelegate sessionDelegate, ItemDelegate itemDelegate) {
+        this.sessionDelegate = sessionDelegate;
         this.dlg = itemDelegate;
     }
 
@@ -75,7 +75,7 @@ abstract class ItemImpl implements Item {
 
     @Override
     public Session getSession() throws RepositoryException {
-        return sessionContext.getSession();
+        return sessionDelegate.getSession();
     }
 
     /**
@@ -142,7 +142,10 @@ abstract class ItemImpl implements Item {
      */
     void checkStatus() throws RepositoryException {
         // check session status
-        sessionContext.getSession().ensureIsAlive();
+
+        if (!sessionDelegate.isAlive()) {
+            throw new RepositoryException("This session has been closed.");
+        }
 
         // TODO: validate item state.
     }
@@ -155,7 +158,12 @@ abstract class ItemImpl implements Item {
      * @throws RepositoryException
      */
     void ensureNoPendingSessionChanges() throws RepositoryException {
-        sessionContext.getSession().ensureNoPendingChanges();
+        // check for pending changes
+        if (sessionDelegate.hasPendingChanges()) {
+            String msg = "Unable to perform operation. Session has pending changes.";
+            log.debug(msg);
+            throw new InvalidItemStateException(msg);
+        }
     }
 
     /**
@@ -164,13 +172,13 @@ abstract class ItemImpl implements Item {
      * @return the value factory
      */
     ValueFactory getValueFactory() {
-        return sessionContext.getValueFactory();
+        return sessionDelegate.getValueFactory();
     }
 
     
     String toOakPath(String jcrPath) throws RepositoryException {
         try {
-            return sessionContext.getNamePathMapper().toOakPath(jcrPath);
+            return sessionDelegate.getNamePathMapper().toOakPath(jcrPath);
         } catch (IllegalArgumentException ex) {
             // TODO we shouldn't have to catch this one
             throw new RepositoryException(ex);
@@ -178,6 +186,6 @@ abstract class ItemImpl implements Item {
     }
 
     String toJcrPath(String oakPath) {
-        return sessionContext.getNamePathMapper().toJcrPath(oakPath);
+        return sessionDelegate.getNamePathMapper().toJcrPath(oakPath);
     }
 }

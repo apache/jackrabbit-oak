@@ -72,7 +72,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     private final NodeDelegate dlg;
     
     NodeImpl(NodeDelegate dlg) {
-        super(dlg.getSessionContext(), dlg);
+        super(dlg.getSessionDelegate(), dlg);
         this.dlg = dlg;
     }
 
@@ -158,7 +158,7 @@ public class NodeImpl extends ItemImpl implements Node  {
         }
 
         // TODO: figure out the right place for this check
-        NodeTypeManager ntm = sessionContext.getNodeTypeManager();
+        NodeTypeManager ntm = sessionDelegate.getSession().getWorkspace().getNodeTypeManager();
         NodeType nt = ntm.getNodeType(primaryNodeTypeName); // throws on not found
         if (nt.isAbstract() || nt.isMixin()) {
             throw new ConstraintViolationException();
@@ -204,7 +204,7 @@ public class NodeImpl extends ItemImpl implements Node  {
             p.remove();
             return p;
         } else {
-            CoreValue oakValue = ValueConverter.toCoreValue(targetValue, sessionContext);
+            CoreValue oakValue = ValueConverter.toCoreValue(targetValue, sessionDelegate);
             return new PropertyImpl(dlg.setProperty(toOakPath(jcrName), oakValue));
         }
     }
@@ -234,7 +234,7 @@ public class NodeImpl extends ItemImpl implements Node  {
             p.remove();
             return p;
         } else {
-            List<CoreValue> oakValue = ValueConverter.toCoreValues(targetValues, sessionContext);
+            List<CoreValue> oakValue = ValueConverter.toCoreValues(targetValues, sessionDelegate);
             return new PropertyImpl(dlg.setProperty(toOakPath(jcrName), oakValue));
         }
     }
@@ -600,10 +600,10 @@ public class NodeImpl extends ItemImpl implements Node  {
         checkStatus();
 
         // TODO: might be expanded, need a better way for this
-        String jcrName = sessionContext.getNamePathMapper().getJcrName(sessionContext.getNamePathMapper().getOakName(nodeTypeName));
+        String jcrName = sessionDelegate.getNamePathMapper().getJcrName(sessionDelegate.getNamePathMapper().getOakName(nodeTypeName));
 
         // TODO: figure out the right place for this check
-        NodeTypeManager ntm = sessionContext.getNodeTypeManager();
+        NodeTypeManager ntm = sessionDelegate.getSession().getWorkspace().getNodeTypeManager();
         NodeType ntToCheck = ntm.getNodeType(jcrName); // throws on not found
         String nameToCheck = ntToCheck.getName();
 
@@ -627,14 +627,14 @@ public class NodeImpl extends ItemImpl implements Node  {
         checkStatus();
 
         // TODO: figure out the right place for this check
-        NodeTypeManager ntm = sessionContext.getNodeTypeManager();
+        NodeTypeManager ntm = sessionDelegate.getNodeTypeManager();
         NodeType nt = ntm.getNodeType(nodeTypeName); // throws on not found
         if (nt.isAbstract() || nt.isMixin()) {
             throw new ConstraintViolationException();
         }
         // TODO: END
 
-        CoreValue cv = ValueConverter.toCoreValue(nodeTypeName, PropertyType.NAME, sessionContext);
+        CoreValue cv = ValueConverter.toCoreValue(nodeTypeName, PropertyType.NAME, sessionDelegate);
         dlg.setProperty(toOakPath(Property.JCR_PRIMARY_TYPE), cv);
     }
 
@@ -642,7 +642,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     public void addMixin(String mixinName) throws RepositoryException {
         checkStatus();
         // TODO: figure out the right place for this check
-        NodeTypeManager ntm = sessionContext.getNodeTypeManager();
+        NodeTypeManager ntm = sessionDelegate.getNodeTypeManager();
         ntm.getNodeType(mixinName); // throws on not found
         // TODO: END
 
@@ -659,7 +659,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     @Override
     public boolean canAddMixin(String mixinName) throws RepositoryException {
         // TODO: figure out the right place for this check
-        NodeTypeManager ntm = sessionContext.getNodeTypeManager();
+        NodeTypeManager ntm = sessionDelegate.getNodeTypeManager();
         ntm.getNodeType(mixinName); // throws on not found
         // TODO: END
 
@@ -754,7 +754,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public Version checkin() throws RepositoryException {
-        return sessionContext.getVersionManager().checkin(getPath());
+        return sessionDelegate.getVersionManager().checkin(getPath());
     }
 
     /**
@@ -762,7 +762,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public void checkout() throws RepositoryException {
-        sessionContext.getVersionManager().checkout(getPath());
+        sessionDelegate.getVersionManager().checkout(getPath());
     }
 
     /**
@@ -770,7 +770,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public void doneMerge(Version version) throws RepositoryException {
-        sessionContext.getVersionManager().doneMerge(getPath(), version);
+        sessionDelegate.getVersionManager().doneMerge(getPath(), version);
     }
 
     /**
@@ -778,7 +778,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public void cancelMerge(Version version) throws RepositoryException {
-        sessionContext.getVersionManager().cancelMerge(getPath(), version);
+        sessionDelegate.getVersionManager().cancelMerge(getPath(), version);
     }
 
     /**
@@ -786,7 +786,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public NodeIterator merge(String srcWorkspace, boolean bestEffort) throws RepositoryException {
-        return sessionContext.getVersionManager().merge(getPath(), srcWorkspace, bestEffort);
+        return sessionDelegate.getVersionManager().merge(getPath(), srcWorkspace, bestEffort);
     }
 
     /**
@@ -794,7 +794,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public boolean isCheckedOut() throws RepositoryException {
-        return sessionContext.getVersionManager().isCheckedOut(getPath());
+        return sessionDelegate.getVersionManager().isCheckedOut(getPath());
     }
 
     /**
@@ -802,7 +802,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public void restore(String versionName, boolean removeExisting) throws RepositoryException {
-        sessionContext.getVersionManager().restore(getPath(), versionName, removeExisting);
+        sessionDelegate.getVersionManager().restore(getPath(), versionName, removeExisting);
     }
 
     /**
@@ -810,7 +810,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public void restore(Version version, boolean removeExisting) throws RepositoryException {
-        sessionContext.getVersionManager().restore(version, removeExisting);
+        sessionDelegate.getVersionManager().restore(version, removeExisting);
     }
 
     /**
@@ -832,7 +832,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public void restoreByLabel(String versionLabel, boolean removeExisting) throws RepositoryException {
-        sessionContext.getVersionManager().restoreByLabel(getPath(), versionLabel, removeExisting);
+        sessionDelegate.getVersionManager().restoreByLabel(getPath(), versionLabel, removeExisting);
     }
 
     /**
@@ -840,7 +840,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public VersionHistory getVersionHistory() throws RepositoryException {
-        return sessionContext.getVersionManager().getVersionHistory(getPath());
+        return sessionDelegate.getVersionManager().getVersionHistory(getPath());
     }
 
     /**
@@ -848,7 +848,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public Version getBaseVersion() throws RepositoryException {
-        return sessionContext.getVersionManager().getBaseVersion(getPath());
+        return sessionDelegate.getVersionManager().getBaseVersion(getPath());
     }
 
     /**
@@ -856,7 +856,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public Lock lock(boolean isDeep, boolean isSessionScoped) throws RepositoryException {
-        return sessionContext.getLockManager().lock(getPath(), isDeep, isSessionScoped, Long.MAX_VALUE, null);
+        return sessionDelegate.getLockManager().lock(getPath(), isDeep, isSessionScoped, Long.MAX_VALUE, null);
     }
 
     /**
@@ -864,7 +864,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public Lock getLock() throws RepositoryException {
-        return sessionContext.getLockManager().getLock(getPath());
+        return sessionDelegate.getLockManager().getLock(getPath());
     }
 
     /**
@@ -872,7 +872,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public void unlock() throws RepositoryException {
-        sessionContext.getLockManager().unlock(getPath());
+        sessionDelegate.getLockManager().unlock(getPath());
     }
 
     /**
@@ -880,7 +880,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public boolean holdsLock() throws RepositoryException {
-        return sessionContext.getLockManager().holdsLock(getPath());
+        return sessionDelegate.getLockManager().holdsLock(getPath());
     }
 
     /**
@@ -888,7 +888,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public boolean isLocked() throws RepositoryException {
-        return sessionContext.getLockManager().isLocked(getPath());
+        return sessionDelegate.getLockManager().isLocked(getPath());
     }
 
 

@@ -51,7 +51,7 @@ public class RepositoryImpl implements Repository {
      * Utility constructor that creates a new in-memory repository for use
      * mostly in test cases.
      */
-    public RepositoryImpl() throws RepositoryException {
+    public RepositoryImpl() {
         this(new ContentRepositoryImpl());
     }
 
@@ -122,7 +122,7 @@ public class RepositoryImpl implements Repository {
         ContentRepository contentRepository = context.getInstance(ContentRepository.class);
         try {
             ContentSession contentSession = contentRepository.login(credentials, workspaceName);
-            return new SessionImpl(context, contentSession);
+            return new SessionDelegate(context, contentSession).getSession();
         } catch (LoginException e) {
             throw new javax.jcr.LoginException(e.getMessage());
         }

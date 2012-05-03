@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.jcr.query;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Result;
-import org.apache.jackrabbit.oak.jcr.SessionContext;
+import org.apache.jackrabbit.oak.jcr.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.WorkspaceImpl;
 import org.apache.jackrabbit.oak.jcr.query.qom.QueryObjectModelFactoryImpl;
 
@@ -45,11 +45,11 @@ public class QueryManagerImpl implements QueryManager {
 
     private final QueryObjectModelFactoryImpl qomFactory = new QueryObjectModelFactoryImpl();
     private final QueryEngine queryEngine;
-    private final SessionContext sessionContext;
+    private final SessionDelegate sessionDelegate;
 
-    public QueryManagerImpl(WorkspaceImpl workspace, SessionContext sessionContext) {
-        queryEngine = sessionContext.getContentSession().getQueryEngine();
-        this.sessionContext = sessionContext;
+    public QueryManagerImpl(WorkspaceImpl workspace, SessionDelegate sessionDelegate) {
+        queryEngine = sessionDelegate.getQueryEngine();
+        this.sessionDelegate = sessionDelegate;
     }
 
     @Override
@@ -94,7 +94,7 @@ public class QueryManagerImpl implements QueryManager {
         try {
             HashMap<String, CoreValue> bindMap = convertMap(bindVariableMap);
             Result r = queryEngine.executeQuery(statement, language, bindMap);
-            return new QueryResultImpl(r, sessionContext.getValueFactory());
+            return new QueryResultImpl(r, sessionDelegate.getValueFactory());
         } catch (ParseException e) {
             throw new InvalidQueryException(e);
         }
@@ -104,7 +104,7 @@ public class QueryManagerImpl implements QueryManager {
 
         HashMap<String, CoreValue> map = new HashMap<String, CoreValue>();
         for (Entry<String, Value> e : bindVariableMap.entrySet()) {
-            map.put(e.getKey(), sessionContext.getValueFactory().getCoreValue(e.getValue()));
+            map.put(e.getKey(), sessionDelegate.getValueFactory().getCoreValue(e.getValue()));
         }
         return map;
     }

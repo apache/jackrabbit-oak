@@ -20,7 +20,7 @@
 package org.apache.jackrabbit.oak.jcr.value;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.jcr.SessionContext;
+import org.apache.jackrabbit.oak.jcr.SessionDelegate;
 
 import javax.jcr.Value;
 import javax.jcr.ValueFormatException;
@@ -35,41 +35,41 @@ import java.util.List;
 public final class ValueConverter {
     private ValueConverter() {}
 
-    public static CoreValue toCoreValue(String value, int propertyType, SessionContext sessionContext) throws ValueFormatException {
-        return toCoreValue(sessionContext.getValueFactory().createValue(value, propertyType), sessionContext);
+    public static CoreValue toCoreValue(String value, int propertyType, SessionDelegate sessionDelegate) throws ValueFormatException {
+        return toCoreValue(sessionDelegate.getValueFactory().createValue(value, propertyType), sessionDelegate);
     }
 
-    public static CoreValue toCoreValue(Value value, SessionContext sessionContext) {
-        ValueFactoryImpl vf = sessionContext.getValueFactory();
+    public static CoreValue toCoreValue(Value value, SessionDelegate sessionDelegate) {
+        ValueFactoryImpl vf = sessionDelegate.getValueFactory();
         return vf.getCoreValue(value);
     }
 
-    public static List<CoreValue> toCoreValues(String[] values, int propertyType, SessionContext sessionContext) throws ValueFormatException {
+    public static List<CoreValue> toCoreValues(String[] values, int propertyType, SessionDelegate sessionDelegate) throws ValueFormatException {
         Value[] vs = new Value[values.length];
         for (int i = 0; i < values.length; i++) {
-            vs[i] = sessionContext.getValueFactory().createValue(values[i], propertyType);
+            vs[i] = sessionDelegate.getValueFactory().createValue(values[i], propertyType);
         }
-        return toCoreValues(vs, sessionContext);
+        return toCoreValues(vs, sessionDelegate);
     }
 
-    public static List<CoreValue> toCoreValues(Value[] values, SessionContext sessionContext) {
+    public static List<CoreValue> toCoreValues(Value[] values, SessionDelegate sessionDelegate) {
         List<CoreValue> cvs = new ArrayList<CoreValue>(values.length);
         for (Value jcrValue : values) {
             if (jcrValue != null) {
-                cvs.add(toCoreValue(jcrValue, sessionContext));
+                cvs.add(toCoreValue(jcrValue, sessionDelegate));
             }
         }
         return cvs;
     }
 
-    public static Value toValue(CoreValue coreValue, SessionContext sessionContext) {
-        return sessionContext.getValueFactory().createValue(coreValue);
+    public static Value toValue(CoreValue coreValue, SessionDelegate sessionDelegate) {
+        return sessionDelegate.getValueFactory().createValue(coreValue);
     }
 
-    public static Value[] toValues(Iterable<CoreValue> coreValues, SessionContext sessionContext) {
+    public static Value[] toValues(Iterable<CoreValue> coreValues, SessionDelegate sessionDelegate) {
         List<Value> values = new ArrayList<Value>();
         for (CoreValue cv : coreValues) {
-            values.add(toValue(cv, sessionContext));
+            values.add(toValue(cv, sessionDelegate));
         }
         return values.toArray(new Value[values.size()]);
     }
