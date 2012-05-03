@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.jcr.security.privileges;
 
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.jcr.NodeImpl;
-import org.apache.jackrabbit.oak.jcr.SessionContext;
+import org.apache.jackrabbit.oak.jcr.SessionDelegate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,10 +54,10 @@ public class PrivilegeManagerImpl implements PrivilegeManager {
     private static final String REP_IS_ABSTRACT = "rep:isAbstract";
     private static final String REP_CONTAINS = "rep:contains";
 
-    private final SessionContext sessionContext;
+    private final SessionDelegate sessionDelegate;
 
-    public PrivilegeManagerImpl(SessionContext sessionContext) {
-        this.sessionContext = sessionContext;
+    public PrivilegeManagerImpl(SessionDelegate sessionDelegate) {
+        this.sessionDelegate = sessionDelegate;
         // TODO: add additional validation ??
     }
 
@@ -96,7 +96,7 @@ public class PrivilegeManagerImpl implements PrivilegeManager {
 
     //--------------------------------------------------------------------------
     private NodeImpl getPrivilegeRoot() throws RepositoryException {
-        return (NodeImpl) sessionContext.getSession().getNode(PRIVILEGE_ROOT);
+        return (NodeImpl) sessionDelegate.getSession().getNode(PRIVILEGE_ROOT);
     }
 
     private Privilege getPrivilege(Node privilegeNode, Map<String, Privilege> collected) throws RepositoryException {

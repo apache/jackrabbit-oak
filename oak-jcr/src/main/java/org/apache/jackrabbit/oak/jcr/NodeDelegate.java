@@ -33,11 +33,11 @@ import java.util.List;
 
 public class NodeDelegate extends ItemDelegate {
 
-    private final SessionContext sessionContext;
+    private final SessionDelegate sessionDelegate;
     private Tree tree;
 
-    NodeDelegate(SessionContext sessionContext, Tree tree) {
-        this.sessionContext = sessionContext;
+    NodeDelegate(SessionDelegate sessionDelegate, Tree tree) {
+        this.sessionDelegate = sessionDelegate;
         this.tree = tree;
     }
 
@@ -49,7 +49,7 @@ public class NodeDelegate extends ItemDelegate {
 
         String name = PathUtils.getName(relPath);
         parentState.addChild(name);
-        return new NodeDelegate(sessionContext, parentState.getChild(name));
+        return new NodeDelegate(sessionDelegate, parentState.getChild(name));
     }
 
     NodeDelegate getAncestor(int depth) throws RepositoryException {
@@ -63,7 +63,7 @@ public class NodeDelegate extends ItemDelegate {
             ancestor = ancestor.getParent();
             current -= 1;
         }
-        return new NodeDelegate(sessionContext, ancestor);
+        return new NodeDelegate(sessionDelegate, ancestor);
     }
 
     Iterator<NodeDelegate> getChildren() throws RepositoryException {
@@ -85,7 +85,7 @@ public class NodeDelegate extends ItemDelegate {
 
     NodeDelegate getNodeOrNull(String relOakPath) {
         Tree tree = getTree(relOakPath);
-        return tree == null ? null : new NodeDelegate(sessionContext, tree);
+        return tree == null ? null : new NodeDelegate(sessionDelegate, tree);
     }
 
     NodeDelegate getParent() throws RepositoryException {
@@ -93,7 +93,7 @@ public class NodeDelegate extends ItemDelegate {
             throw new ItemNotFoundException("Root has no parent");
         }
 
-        return new NodeDelegate(sessionContext, getTree().getParent());
+        return new NodeDelegate(sessionDelegate, getTree().getParent());
     }
 
     @Override
@@ -120,11 +120,11 @@ public class NodeDelegate extends ItemDelegate {
         String name = PathUtils.getName(relOakPath);
         PropertyState propertyState = parent.getProperty(name);
         return propertyState == null ? null : new PropertyDelegate(
-                sessionContext, parent, propertyState);
+                sessionDelegate, parent, propertyState);
     }
 
-    SessionContext getSessionContext() {
-        return sessionContext;
+    SessionDelegate getSessionDelegate() {
+        return sessionDelegate;
     }
 
     void remove() throws RepositoryException {
@@ -166,7 +166,7 @@ public class NodeDelegate extends ItemDelegate {
     }
     
     private synchronized Tree getTree() {
-        return tree = sessionContext.getTree(tree.getPath());
+        return tree = sessionDelegate.getTree(tree.getPath());
     }
 
     private Iterator<NodeDelegate> nodeDelegateIterator(
@@ -175,7 +175,7 @@ public class NodeDelegate extends ItemDelegate {
                 new Function1<Tree, NodeDelegate>() {
                     @Override
                     public NodeDelegate apply(Tree state) {
-                        return new NodeDelegate(sessionContext, state);
+                        return new NodeDelegate(sessionDelegate, state);
                     }
                 });
     }
@@ -186,7 +186,7 @@ public class NodeDelegate extends ItemDelegate {
                 new Function1<PropertyState, PropertyDelegate>() {
                     @Override
                     public PropertyDelegate apply(PropertyState propertyState) {
-                        return new PropertyDelegate(sessionContext, tree,
+                        return new PropertyDelegate(sessionDelegate, tree,
                                 propertyState);
                     }
                 });

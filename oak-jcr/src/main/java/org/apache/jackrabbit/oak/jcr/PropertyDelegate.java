@@ -29,13 +29,13 @@ import java.util.List;
 
 public class PropertyDelegate extends ItemDelegate {
 
-    private final SessionContext sessionContext;
+    private final SessionDelegate sessionDelegate;
     private Tree parent;
     private PropertyState propertyState;
 
-    PropertyDelegate(SessionContext sessionContext, Tree parent,
+    PropertyDelegate(SessionDelegate sessionDelegate, Tree parent,
             PropertyState propertyState) {
-        this.sessionContext = sessionContext;
+        this.sessionDelegate = sessionDelegate;
         this.parent = parent;
         this.propertyState = propertyState;
     }
@@ -160,14 +160,14 @@ public class PropertyDelegate extends ItemDelegate {
         return parentPath.isEmpty() ? '/' + getName() : '/' + parentPath + '/' + getName();
     }
 
-    SessionContext getSessionContext() {
-        return sessionContext;
+    SessionDelegate getSessionDelegate() {
+        return sessionDelegate;
     }
 
     //------------------------------------------------------------< private >---
 
     private synchronized void resolve() {
-        parent = sessionContext.getTree(parent.getPath());
+        parent = sessionDelegate.getTree(parent.getPath());
         String path = PathUtils.concat(parent.getPath(), propertyState.getName());
 
         if (parent == null) {

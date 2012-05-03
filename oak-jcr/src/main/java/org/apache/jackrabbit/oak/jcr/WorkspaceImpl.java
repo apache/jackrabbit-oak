@@ -18,10 +18,6 @@ package org.apache.jackrabbit.oak.jcr;
 
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
-import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.nodetype.NodeTypeManagerImpl;
 import org.apache.jackrabbit.oak.jcr.query.QueryManagerImpl;
 import org.apache.jackrabbit.oak.jcr.security.privileges.PrivilegeManagerImpl;
@@ -54,7 +50,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
      */
     private static final Logger log = LoggerFactory.getLogger(WorkspaceImpl.class);
 
-    private final SessionContext sessionContext;
+    private final SessionDelegate sessionDelegate;
 
     private QueryManagerImpl queryManager;
 
@@ -62,23 +58,23 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
 
     private final NodeTypeManager nodeTypeManager;
 
-    public WorkspaceImpl(SessionContext sessionContext, NamespaceRegistry nsRegistry)
+    public WorkspaceImpl(SessionDelegate sessionDelegate, NamespaceRegistry nsRegistry)
             throws RepositoryException {
 
-        this.sessionContext = sessionContext;
+        this.sessionDelegate = sessionDelegate;
         this.nsRegistry = nsRegistry;
-        this.nodeTypeManager = new NodeTypeManagerImpl(sessionContext.getNamePathMapper());
+        this.nodeTypeManager = new NodeTypeManagerImpl(sessionDelegate.getNamePathMapper());
     }
 
     //----------------------------------------------------------< Workspace >---
     @Override
     public Session getSession() {
-        return sessionContext.getSession();
+        return sessionDelegate.getSession();
     }
 
     @Override
     public String getName() {
-        return sessionContext.getWorkspaceName();
+        return sessionDelegate.getWorkspaceName();
     }
 
     @Override
@@ -96,19 +92,8 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
             throw new UnsupportedRepositoryOperationException("Not implemented.");
         }
 
-        try {
-            ContentSession contentSession = sessionContext.getContentSession();
-            Root root = contentSession.getCurrentRoot();
-
-            String srcPath = PathUtils.relativize("/", srcAbsPath);
-            String destPath = PathUtils.relativize("/", destAbsPath);
-            root.copy(srcPath, destPath);
-
-            root.commit();
-        }
-        catch (CommitFailedException e) {
-            throw new RepositoryException(e);
-        }
+        // FIXME: convert to oak paths
+        sessionDelegate.copy(srcAbsPath, destAbsPath);
     }
 
     @SuppressWarnings("deprecation")
@@ -118,7 +103,6 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
         ensureIsAlive();
 
         // TODO -> SPI
-
     }
 
     @SuppressWarnings("deprecation")
@@ -127,19 +111,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
         ensureSupportedOption(Repository.LEVEL_2_SUPPORTED);
         ensureIsAlive();
 
-        try {
-            ContentSession contentSession = sessionContext.getContentSession();
-            Root root = contentSession.getCurrentRoot();
-
-            String srcPath = PathUtils.relativize("/", srcAbsPath);
-            String destPath = PathUtils.relativize("/", destAbsPath);
-            root.move(srcPath, destPath);
-
-            root.commit();
-        }
-        catch (CommitFailedException e) {
-            throw new RepositoryException(e);
-        }
+        sessionDelegate.move(srcAbsPath, destAbsPath, false);
     }
 
     @Override
@@ -158,7 +130,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     public QueryManager getQueryManager() throws RepositoryException {
         ensureIsAlive();
         if (queryManager == null) {
-            queryManager = new QueryManagerImpl(this, sessionContext);
+            queryManager = new QueryManagerImpl(this, sessionDelegate);
         }
         return queryManager;
     }
@@ -251,18 +223,102 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
      */
     @Override
     public PrivilegeManager getPrivilegeManager() throws RepositoryException {
-        return new PrivilegeManagerImpl(sessionContext);
+        return new PrivilegeManagerImpl(sessionDelegate);
     }
 
 
     //------------------------------------------------------------< private >---
 
     private void ensureIsAlive() throws RepositoryException {
-        sessionContext.getSession().ensureIsAlive();
+        // check session status
+        if (!sessionDelegate.isAlive()) {
+            throw new RepositoryException("This session has been closed.");
+        }
     }
 
-    private void ensureSupportedOption(String option) throws RepositoryException {
-        sessionContext.getSession().ensureSupportsOption(option);
+    /**
+     * Returns true if the repository supports the given option. False otherwise.
+     *
+     * @param option Any of the option constants defined by {@link Repository}
+     * that either returns 'true' or 'false'. I.e.
+     * <ul>
+     * <li>{@link Repository#LEVEL_1_SUPPORTED}</li>
+     * <li>{@link Repository#LEVEL_2_SUPPORTED}</li>
+     * <li>{@link Repository#OPTION_ACCESS_CONTROL_SUPPORTED}</li>
+     * <li>{@link Repository#OPTION_ACTIVITIES_SUPPORTED}</li>
+     * <li>{@link Repository#OPTION_BASELINES_SUPPORTED}</li>
+     * <li>{@link Repository#OPTION_JOURNALED_OBSERVATION_SUPPORTED}</li>
+     * <li>{@link Repository#OPTION_LIFECYCLE_SUPPORTED}</li>
+     * <li>{@link Repository#OPTION_LOCKING_SUPPORTED}</li>
+     * <li>{@link Repository#OPTION_NODE_AND_PROPERTY_WITH_SAME_NAME_SUPPORTED}</li>
+     * <li>{@link Repository#OPTION_NODE_TYPE_MANAGEMENT_SUPPORTED}</li>
+     * <li>{@link Repository#OPTION_OBSERVATION_SUPPORTED}</li>
+     * <li>{@link Repository#OPTION_QUERY_SQL_SUPPORTED}</li>
+     * <li>{@link Repository#OPTION_RETENTION_SUPPORTED}</li>
+     * <li>{@link Repository#OPTION_SHAREABLE_NODES_SUPPORTED}</li>
+     * <li>{@link Repository#OPTION_SIMPLE_VERSIONING_SUPPORTED}</li>
+     * <li>{@link Repository#OPTION_TRANSACTIONS_SUPPORTED}</li>
+     * <li>{@link Repository#OPTION_UNFILED_CONTENT_SUPPORTED}</li>
+     * <li>{@link Repository#OPTION_UPDATE_MIXIN_NODE_TYPES_SUPPORTED}</li>
+     * <li>{@link Repository#OPTION_UPDATE_PRIMARY_NODE_TYPE_SUPPORTED}</li>
+     * <li>{@link Repository#OPTION_VERSIONING_SUPPORTED}</li>
+     * <li>{@link Repository#OPTION_WORKSPACE_MANAGEMENT_SUPPORTED}</li>
+     * <li>{@link Repository#OPTION_XML_EXPORT_SUPPORTED}</li>
+     * <li>{@link Repository#OPTION_XML_IMPORT_SUPPORTED}</li>
+     * <li>{@link Repository#WRITE_SUPPORTED}</li>
+     * </ul>
+     * @return true if the repository supports the given option. False otherwise.
+     */
+    private boolean isSupportedOption(String option) {
+        String desc = sessionDelegate.getSession().getRepository().getDescriptor(option);
+        // if the descriptors are not available return true. the missing
+        // functionality of the given SPI impl will in this case be detected
+        // upon the corresponding SPI call (see JCR-3143).
+        return (desc == null) ? true : Boolean.valueOf(desc);
     }
+
+    /**
+     * Make sure the repository supports the option indicated by the given string
+     * and throw an exception otherwise.
+     *
+     * @param option Any of the option constants defined by {@link Repository}
+     * that either returns 'true' or 'false'. I.e.
+     * <ul>
+     * <li>{@link Repository#LEVEL_1_SUPPORTED}</li>
+     * <li>{@link Repository#LEVEL_2_SUPPORTED}</li>
+     * <li>{@link Repository#OPTION_ACCESS_CONTROL_SUPPORTED}</li>
+     * <li>{@link Repository#OPTION_ACTIVITIES_SUPPORTED}</li>
+     * <li>{@link Repository#OPTION_BASELINES_SUPPORTED}</li>
+     * <li>{@link Repository#OPTION_JOURNALED_OBSERVATION_SUPPORTED}</li>
+     * <li>{@link Repository#OPTION_LIFECYCLE_SUPPORTED}</li>
+     * <li>{@link Repository#OPTION_LOCKING_SUPPORTED}</li>
+     * <li>{@link Repository#OPTION_NODE_AND_PROPERTY_WITH_SAME_NAME_SUPPORTED}</li>
+     * <li>{@link Repository#OPTION_NODE_TYPE_MANAGEMENT_SUPPORTED}</li>
+     * <li>{@link Repository#OPTION_OBSERVATION_SUPPORTED}</li>
+     * <li>{@link Repository#OPTION_QUERY_SQL_SUPPORTED}</li>
+     * <li>{@link Repository#OPTION_RETENTION_SUPPORTED}</li>
+     * <li>{@link Repository#OPTION_SHAREABLE_NODES_SUPPORTED}</li>
+     * <li>{@link Repository#OPTION_SIMPLE_VERSIONING_SUPPORTED}</li>
+     * <li>{@link Repository#OPTION_TRANSACTIONS_SUPPORTED}</li>
+     * <li>{@link Repository#OPTION_UNFILED_CONTENT_SUPPORTED}</li>
+     * <li>{@link Repository#OPTION_UPDATE_MIXIN_NODE_TYPES_SUPPORTED}</li>
+     * <li>{@link Repository#OPTION_UPDATE_PRIMARY_NODE_TYPE_SUPPORTED}</li>
+     * <li>{@link Repository#OPTION_VERSIONING_SUPPORTED}</li>
+     * <li>{@link Repository#OPTION_WORKSPACE_MANAGEMENT_SUPPORTED}</li>
+     * <li>{@link Repository#OPTION_XML_EXPORT_SUPPORTED}</li>
+     * <li>{@link Repository#OPTION_XML_IMPORT_SUPPORTED}</li>
+     * <li>{@link Repository#WRITE_SUPPORTED}</li>
+     * </ul>
+     * @throws UnsupportedRepositoryOperationException If the given option is
+     * not supported.
+     * @throws RepositoryException If another error occurs.
+     * @see javax.jcr.Repository#getDescriptorKeys()
+     */
+    private void ensureSupportedOption(String option) throws RepositoryException {
+        if (!isSupportedOption(option)) {
+            throw new UnsupportedRepositoryOperationException(option + " is not supported by this repository.");
+        }
+    }
+
 
 }

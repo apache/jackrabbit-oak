@@ -20,24 +20,12 @@ import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.AbstractSession;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.jcr.namespace.NamespaceRegistryImpl;
-import org.apache.jackrabbit.oak.jcr.value.ValueFactoryImpl;
-import org.apache.jackrabbit.oak.namepath.AbstractNameMapper;
-import org.apache.jackrabbit.oak.namepath.NameMapper;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.ContentHandler;
 
 import javax.jcr.Credentials;
 import javax.jcr.InvalidItemStateException;
-import javax.jcr.NamespaceRegistry;
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -45,12 +33,8 @@ import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.ValueFactory;
 import javax.jcr.Workspace;
-import javax.jcr.lock.LockManager;
-import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.retention.RetentionManager;
 import javax.jcr.security.AccessControlManager;
-import javax.jcr.version.VersionManager;
-import java.io.IOException;
 import java.security.AccessControlException;
 
 /**
@@ -63,54 +47,37 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
      */
     private static final Logger log = LoggerFactory.getLogger(SessionImpl.class);
 
-    private final GlobalContext globalContext;
-    private final ContentSession contentSession;
-    private final ValueFactoryImpl valueFactory;
-    private final Workspace workspace;
-    private final NamespaceRegistry nsreg;
-    private final SessionContext sessionContext = new Context();
-    private final NameMapper nameMapper = new SessionNameMapper();
-    private final NamePathMapper namePathMapper = new NamePathMapperImpl(nameMapper);
+    private final SessionDelegate dlg;
 
-    private boolean isAlive = true;
-    private Root root;
-
-    SessionImpl(GlobalContext globalContext, ContentSession contentSession)
-            throws RepositoryException {
-        this.globalContext = globalContext;
-        this.contentSession = contentSession;
-        this.valueFactory = new ValueFactoryImpl(contentSession.getCoreValueFactory(), namePathMapper);
-        this.nsreg = new NamespaceRegistryImpl(contentSession);
-        this.workspace = new WorkspaceImpl(sessionContext, this.nsreg);
-        this.root = contentSession.getCurrentRoot();
+    SessionImpl(SessionDelegate dlg) {
+        this.dlg = dlg;
     }
-
 
     //------------------------------------------------------------< Session >---
 
     @Override
     public Repository getRepository() {
-        return globalContext.getInstance(Repository.class);
+        return dlg.getRepository();
     }
 
     @Override
     public String getUserID() {
-        return contentSession.getAuthInfo().getUserID();
+        return dlg.getAuthInfo().getUserID();
     }
 
     @Override
     public String[] getAttributeNames() {
-        return contentSession.getAuthInfo().getAttributeNames();
+        return dlg.getAuthInfo().getAttributeNames();
     }
 
     @Override
     public Object getAttribute(String name) {
-        return contentSession.getAuthInfo().getAttribute(name);
+        return dlg.getAuthInfo().getAttribute(name);
     }
 
     @Override
     public Workspace getWorkspace() {
-        return workspace;
+        return dlg.getWorkspace();
     }
 
     /**
@@ -125,7 +92,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     @Override
     public ValueFactory getValueFactory() throws RepositoryException {
         ensureIsAlive();
-        return sessionContext.getValueFactory();
+        return dlg.getValueFactory();
     }
 
     //------------------------------------------------------------< Reading >---
@@ -133,7 +100,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     @Override
     public Node getRootNode() throws RepositoryException {
         ensureIsAlive();
-        return new NodeImpl(new NodeDelegate(sessionContext, root.getTree("/")));
+        return new NodeImpl(new NodeDelegate(dlg, dlg.getTree("/")));
     }
 
     @Override
@@ -158,15 +125,8 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
 
     @Override
     public void move(String srcAbsPath, String destAbsPath) throws RepositoryException {
-        internalMove(sessionContext.getNamePathMapper().toOakPath(srcAbsPath), sessionContext.getNamePathMapper().toOakPath(destAbsPath));
-    }
-
-    private void internalMove(String srcAbsPath, String destAbsPath) throws RepositoryException {
         ensureIsAlive();
-
-        String srcPath = PathUtils.relativize("/", srcAbsPath);
-        String destPath = PathUtils.relativize("/", destAbsPath);
-        root.move(srcPath, destPath);
+        dlg.move(dlg.getNamePathMapper().toOakPath(srcAbsPath), dlg.getNamePathMapper().toOakPath(destAbsPath), true);
     }
 
     //------------------------------------------------------------< state >---
@@ -174,62 +134,39 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     @Override
     public void save() throws RepositoryException {
         ensureIsAlive();
-        try {
-            root.commit();
-            root = contentSession.getCurrentRoot();
-        } catch (CommitFailedException e) {
-            throw new RepositoryException(e);
-        }
+        dlg.save();
     }
 
     @Override
     public void refresh(boolean keepChanges) throws RepositoryException {
         ensureIsAlive();
-        if (keepChanges) {
-            root.rebase();
-        }
-        else {
-            root = contentSession.getCurrentRoot();
-        }
+        dlg.refresh(keepChanges);
     }
 
     @Override
     public boolean hasPendingChanges() throws RepositoryException {
         ensureIsAlive();
-
-        return root.hasPendingChanges();
+        return dlg.hasPendingChanges();
     }
 
     //----------------------------------------------------------< Lifecycle >---
 
     @Override
     public boolean isLive() {
-        return isAlive;
+        return dlg.isAlive();
     }
 
 
     @Override
     public void logout() {
-        if (!isAlive) {
-            // ignore
-            return;
-        }
-
-        isAlive = false;
-        // TODO
-
-        try {
-            contentSession.close();
-        } catch (IOException e) {
-            log.warn("Error while closing connection", e);
-        }
+        dlg.logout();
     }
 
     //----------------------------------------------------< Import / Export >---
 
     @Override
     public ContentHandler getImportContentHandler(String parentAbsPath, int uuidBehavior) throws RepositoryException {
-        return internalGetImportContentHandler(sessionContext.getNamePathMapper().toOakPath(parentAbsPath), uuidBehavior);
+        return internalGetImportContentHandler(dlg.getNamePathMapper().toOakPath(parentAbsPath), uuidBehavior);
     }
 
     private ContentHandler internalGetImportContentHandler(String parentAbsPath, int uuidBehavior) throws RepositoryException {
@@ -279,7 +216,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
 
     @Override
     public boolean hasPermission(String absPath, String actions) throws RepositoryException {
-        return internalHasPermission(sessionContext.getNamePathMapper().toOakPath(absPath), actions);
+        return internalHasPermission(dlg.getNamePathMapper().toOakPath(absPath), actions);
     }
 
     private boolean internalHasPermission(String absPath, String actions) throws RepositoryException {
@@ -334,43 +271,6 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
         throw new UnsupportedOperationException("Implementation missing");
     }
 
-    //-------------------------------------------< SessionNamespaceResolver >---
-    
-    private class SessionNameMapper extends AbstractNameMapper {
-
-        @Override
-        protected String getJcrPrefix(String oakPrefix) {
-            try {
-                String ns = nsreg.getURI(oakPrefix);
-                return getNamespacePrefix(ns);
-            } catch (RepositoryException e) {
-                // TODO
-                return null;
-            }
-        }
-
-        @Override
-        protected String getOakPrefix(String jcrPrefix) {
-            try {
-                String ns = getNamespaceURI(jcrPrefix);
-                return nsreg.getPrefix(ns);
-            } catch (RepositoryException e) {
-                // TODO
-                return null;
-            }
-        }
-
-        @Override
-        protected String getOakPrefixFromURI(String uri) {
-            try {
-                return nsreg.getPrefix(uri);
-            } catch (RepositoryException e) {
-                // TODO
-                return null;
-            }
-        }
-    }
-
     //--------------------------------------------------------------------------
 
     /**
@@ -381,7 +281,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
      */
     void ensureIsAlive() throws RepositoryException {
         // check session status
-        if (!isAlive) {
+        if (!dlg.isAlive()) {
             throw new RepositoryException("This session has been closed.");
         }
     }
@@ -486,63 +386,4 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
         }
     }
 
-    //--------------------------------------------------------------------------
-
-    private class Context implements SessionContext {
-
-        @Override
-        public SessionImpl getSession() {
-            return SessionImpl.this;
-        }
-
-        @Override
-        public GlobalContext getGlobalContext() {
-            return globalContext;
-        }
-
-        @Override
-        public String getWorkspaceName() {
-            return contentSession.getWorkspaceName();
-        }
-
-        @Override
-        public ContentSession getContentSession() {
-            return contentSession;
-        }
-
-        @Override
-        public ValueFactoryImpl getValueFactory() {
-            return valueFactory;
-        }
-
-        @Override
-        public LockManager getLockManager() throws RepositoryException {
-            return getWorkspace().getLockManager();
-        }
-
-        @Override
-        public VersionManager getVersionManager() throws RepositoryException {
-            return getWorkspace().getVersionManager();
-        }
-
-        @Override
-        public Root getRoot() {
-            return root;
-        }
-
-        @Override
-        public Tree getTree(String oakPath) {
-            return root.getTree(oakPath);
-        }
-
-        @Override
-        public NamePathMapper getNamePathMapper() {
-            return namePathMapper;
-        }
-
-        @Override
-        public NodeTypeManager getNodeTypeManager() throws RepositoryException {
-            return getWorkspace().getNodeTypeManager();
-        }
-    }
 }
