@@ -63,6 +63,7 @@
             <excludes>
               <exclude>release.properties</exclude>
               <exclude>.git/**</exclude>
+              <exclude>.idea/**</exclude>
               <exclude>.gitignore</exclude>
             </excludes>
           </configuration>
