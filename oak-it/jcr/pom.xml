@@ -97,7 +97,6 @@ org.apache.jackrabbit.test.api.SessionRemoveItemTest#testRemoveItem4
 org.apache.jackrabbit.test.api.HasPermissionTest
 org.apache.jackrabbit.test.api.WorkspaceTest
 org.apache.jackrabbit.test.api.ShareableNodeTest
-org.apache.jackrabbit.test.api.nodetype.NodeDefTest#testGetDefaultPrimaryTypes
 org.apache.jackrabbit.test.api.nodetype.NodeTypeTest
 org.apache.jackrabbit.test.api.nodetype.PredefinedNodeTypeTest
 org.apache.jackrabbit.test.api.nodetype.CanAddChildNodeCallWithNodeTypeTest

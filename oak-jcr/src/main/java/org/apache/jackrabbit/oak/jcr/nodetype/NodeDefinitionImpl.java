@@ -73,16 +73,16 @@ class NodeDefinitionImpl extends ItemDefinitionImpl implements NodeDefinition {
     @Override
     public NodeType getDefaultPrimaryType() {
         try {
-            return manager.getNodeType(getDefaultPrimaryTypeName());
+            String defaultName = getDefaultPrimaryTypeName();
+            return defaultName == null ? null : manager.getNodeType(getDefaultPrimaryTypeName());
         } catch (RepositoryException e) {
-            throw new IllegalStateException(
-                    "Inconsistent node definition: " + this, e);
+            throw new IllegalStateException("Inconsistent node definition: " + this, e);
         }
     }
 
     @Override
     public String getDefaultPrimaryTypeName() {
-        return mapper.getJcrName(defaultPrimaryTypeName);
+        return defaultPrimaryTypeName == null ? null : mapper.getJcrName(defaultPrimaryTypeName);
     }
 
     @Override
