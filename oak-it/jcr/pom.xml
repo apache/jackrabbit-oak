@@ -44,7 +44,6 @@
             <property>
               <name>known.issues</name>
               <value>
-org.apache.jackrabbit.test.api.NodeDiscoveringNodeTypesTest#testIsNodeType
 org.apache.jackrabbit.test.api.SessionReadMethodsTest#testGetNodeByUUIDFailure
 org.apache.jackrabbit.test.api.PathTest
 org.apache.jackrabbit.test.api.AddNodeTest#testSameNameSiblings

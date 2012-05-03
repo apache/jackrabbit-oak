@@ -229,7 +229,7 @@ class NodeTypeImpl implements NodeType {
             Queue<String> queue = new LinkedList<String>(
                     Arrays.asList(getDeclaredSupertypeNames()));
             while (!queue.isEmpty()) {
-                String name = mapper.getJcrName(queue.remove());
+                String name = queue.remove();
                 if (added.add(name)) {
                     NodeType type = manager.getNodeType(name);
                     types.add(type);

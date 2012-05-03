@@ -602,19 +602,23 @@ public class NodeImpl extends ItemImpl implements Node  {
         // TODO: might be expanded, need a better way for this
         String jcrName = sessionContext.getNamePathMapper().getJcrName(sessionContext.getNamePathMapper().getOakName(nodeTypeName));
 
-        if (hasProperty(Property.JCR_PRIMARY_TYPE) && getProperty(Property.JCR_PRIMARY_TYPE).getString().equals(jcrName)) {
+        // TODO: figure out the right place for this check
+        NodeTypeManager ntm = sessionContext.getNodeTypeManager();
+        NodeType ntToCheck = ntm.getNodeType(jcrName); // throws on not found
+        String nameToCheck = ntToCheck.getName();
+
+        NodeType currentPrimaryType = getPrimaryNodeType();
+        if (currentPrimaryType.isNodeType(nameToCheck)) {
             return true;
         }
-        if (hasProperty(Property.JCR_MIXIN_TYPES)) {
-            Value[] mixins = getProperty(Property.JCR_MIXIN_TYPES).getValues();
-            for (Value mixin : mixins) {
-                if (mixin.getString().equals(jcrName)) {
-                    return true;
-                }
+
+        for (NodeType mixin : getMixinNodeTypes()) {
+            if (mixin.isNodeType(nameToCheck)) {
+                return true;
             }
         }
+        // TODO: END
 
-        // TODO evaluate effective node type
         return false;
     }
 
