@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.mk.simple;
 
+import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -26,7 +27,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.TreeMap;
 import java.util.Map.Entry;
-import org.apache.jackrabbit.mk.fs.FilePath;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.mk.simple.NodeImpl.ChildVisitor;
 import org.apache.jackrabbit.mk.util.Cache;
@@ -49,7 +49,8 @@ public class NodeMapInDb extends NodeMap implements Cache.Backend<Long, NodeImpl
 
     NodeMapInDb(String dir) {
         try {
-            url = "jdbc:h2:" + FilePath.get(dir).resolve("nodes").toRealPath().toString() + System.getProperty("mk.db", "");
+            String path = new File(dir, "nodes").getAbsolutePath();
+            url = "jdbc:h2:" + path + System.getProperty("mk.db", "");
             Class.forName("org.h2.Driver");
             conn = DriverManager.getConnection(url);
             Statement stat = conn.createStatement();

@@ -22,7 +22,6 @@ import java.util.Collection;
 import java.util.List;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.fs.FileUtils;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
@@ -56,7 +55,6 @@ public class MultiMkTestBase {
 
     @Before
     public void setUp() throws Exception {
-        FileUtils.deleteRecursive("target/temp", false);
         mk = MicroKernelFactory.getInstance(url + ";clean");
         cleanRepository(mk);
 
