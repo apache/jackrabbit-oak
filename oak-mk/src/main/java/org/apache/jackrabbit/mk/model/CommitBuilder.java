@@ -613,8 +613,8 @@ public class CommitBuilder {
             MutableNode destParent = getOrCreateStagedNode(destParentPath);
             destParent.add(new ChildNode(destNodeName, srcCNE.getId()));
 
-            if (srcCNE.getId() == null) {
-                // a 'new' node is being copied
+            if (staged.containsKey(srcPath)) {
+                // the copied subtree is modified
 
                 // update staging area
                 copyStagedNodes(srcPath, destPath);
