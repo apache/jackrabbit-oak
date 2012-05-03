@@ -221,22 +221,37 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         assertEquals(currentHead, newHead);
     }
 
-        @Test
+    @Test
     public void addAndMove() {
         String head = mk.getHeadRevision();
         head = mk.commit("",
                 "+\"/root\":{}\n" +
-                "+\"/root/a\":{}\n" +
-                "",
+                "+\"/root/a\":{}\n",
                 head, "");
 
         head = mk.commit("",
                 "+\"/root/a/b\":{}\n" +
-                ">\"/root/a\":\"/root/c\"\n" +
-                "",
+                ">\"/root/a\":\"/root/c\"\n",
                 head, "");
 
         assertFalse(mk.nodeExists("/root/a", head));
+        assertTrue(mk.nodeExists("/root/c/b", head));
+    }
+
+    @Test
+    public void addAndCopy() {
+        mk.commit("/",
+                "+\"x\":{}\n" +
+                "+\"y\":{}\n",
+                null, "");
+
+        mk.commit("/",
+                "+\"x/a\":{}\n" +
+                "*\"x\":\"y/x1\"\n",
+                null, "");
+
+        assertTrue(mk.nodeExists("/x/a", null));
+        assertTrue(mk.nodeExists("/y/x1/a", null));
     }
 
     @Test
