@@ -228,6 +228,9 @@ class NodeTypeImpl implements NodeType {
             Set<String> added = new HashSet<String>();
             Queue<String> queue = new LinkedList<String>(
                     Arrays.asList(getDeclaredSupertypeNames()));
+            if (!isMixin()) {
+                queue.add(mapper.getJcrName(mapper.getOakName(NodeType.NT_BASE)));
+            }
             while (!queue.isEmpty()) {
                 String name = queue.remove();
                 if (added.add(name)) {
