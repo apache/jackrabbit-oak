@@ -124,18 +124,18 @@ public class PropertyDelegate extends ItemDelegate {
     }
     
     void remove() throws RepositoryException {
-        getParentContentTree().removeProperty(getName());
+        getParentTree().removeProperty(getName());
     }
     
     void setValue(CoreValue value) throws RepositoryException {
-        getParentContentTree().setProperty(getName(), value);
+        getParentTree().setProperty(getName(), value);
     }
 
     void setValues(List<CoreValue> values) throws RepositoryException {
-        getParentContentTree().setProperty(getName(), values);
+        getParentTree().setProperty(getName(), values);
     }
 
-    Tree getParentContentTree() {
+    Tree getParentTree() {
         resolve();
         return parent;
     }
@@ -146,7 +146,7 @@ public class PropertyDelegate extends ItemDelegate {
     }
 
     Tree.Status getPropertyStatus() {
-        return getParentContentTree().getPropertyStatus(getName());
+        return getParentTree().getPropertyStatus(getName());
     }
     
     @Override
@@ -156,8 +156,8 @@ public class PropertyDelegate extends ItemDelegate {
 
     @Override
     String getPath() {
-        String parentPath = getParentContentTree().getPath();
-        return parentPath.isEmpty() ? "/" + getName() : "/" + parentPath + "/" + getName();
+        String parentPath = getParentTree().getPath();
+        return parentPath.isEmpty() ? '/' + getName() : '/' + parentPath + '/' + getName();
     }
 
     SessionContext getSessionContext() {

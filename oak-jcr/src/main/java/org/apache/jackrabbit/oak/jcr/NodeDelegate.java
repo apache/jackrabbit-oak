@@ -74,10 +74,6 @@ public class NodeDelegate extends ItemDelegate {
         return getTree().getChildrenCount();
     }
 
-    int getDepth() throws RepositoryException {
-        return PathUtils.getDepth(getPath());
-    }
-
     @Override
     String getName() {
         return getTree().getName();
@@ -162,7 +158,7 @@ public class NodeDelegate extends ItemDelegate {
         return tree;
     }
 
-    private Tree check(Tree t) throws InvalidItemStateException {
+    private static Tree check(Tree t) throws InvalidItemStateException {
         if (t == null) {
             throw new InvalidItemStateException();
         }

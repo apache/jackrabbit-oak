@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,7 +51,7 @@ abstract class ItemImpl implements Item {
      */
     @Override
     public int getDepth() throws RepositoryException {
-        return PathUtils.getDepth(dlg.getPath());
+        return dlg.getDepth();
     }
 
     /**
