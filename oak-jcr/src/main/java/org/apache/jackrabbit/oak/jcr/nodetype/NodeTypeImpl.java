@@ -124,7 +124,7 @@ class NodeTypeImpl implements NodeType {
                             this, mapper, defName, autoCreated, mandatory,
                             onParentVersionAction, isProtected, manager,
                             defType.split(", "), matcher.group(5), false));
-                } else if ("+".equals(matcher.group(1))) {
+                } else if ("-".equals(matcher.group(1))) {
                     declaredPropertyDefinitions.add(new PropertyDefinitionImpl(
                             this, mapper, defName, autoCreated, mandatory,
                             onParentVersionAction, isProtected,
