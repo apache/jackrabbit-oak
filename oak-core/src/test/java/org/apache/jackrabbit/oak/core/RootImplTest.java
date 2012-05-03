@@ -267,7 +267,6 @@ public class RootImplTest extends AbstractOakTest {
     }
 
     @Test
-    @Ignore("OAK-79")  // TODO depends on OAK-79
     public void deepCopy() throws CommitFailedException {
         RootImpl root = new RootImpl(store, "test");
         Tree tree = root.getTree("/");
