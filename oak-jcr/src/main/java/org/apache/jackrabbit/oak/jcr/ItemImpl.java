@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import org.apache.jackrabbit.commons.AbstractItem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,7 +30,7 @@ import javax.jcr.ValueFactory;
 /**
  * {@code ItemImpl}...
  */
-abstract class ItemImpl implements Item {
+abstract class ItemImpl extends AbstractItem {
 
     protected final SessionDelegate sessionDelegate;
     protected final ItemDelegate dlg;
@@ -45,14 +46,6 @@ abstract class ItemImpl implements Item {
     }
 
     //---------------------------------------------------------------< Item >---
-
-    /**
-     * @see javax.jcr.Item#getDepth()
-     */
-    @Override
-    public int getDepth() throws RepositoryException {
-        return dlg.getDepth();
-    }
 
     /**
      * @see javax.jcr.Item#getName()
