@@ -505,6 +505,8 @@ public class PropertyImpl extends ItemImpl implements Property {
         return dlg.getPropertyState().isArray();
     }
 
+    //------------------------------------------------------------< private >---
+
     /**
      * Return the length of the specified JCR value object.
      *
@@ -580,7 +582,7 @@ public class PropertyImpl extends ItemImpl implements Property {
           throw new ValueFormatException("Attempt to set multiple values to single valued property.");
       }
       if (values == null) {
-          remove();
+          dlg.remove();
       } else {
           Value[] targetValues = ValueHelper.convert(values, requiredType, sessionDelegate.getValueFactory());
           dlg.setValues(ValueConverter.toCoreValues(targetValues, sessionDelegate));

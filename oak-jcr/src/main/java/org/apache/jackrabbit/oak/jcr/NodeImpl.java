@@ -158,7 +158,7 @@ public class NodeImpl extends ItemImpl implements Node  {
         }
 
         // TODO: figure out the right place for this check
-        NodeTypeManager ntm = sessionDelegate.getSession().getWorkspace().getNodeTypeManager();
+        NodeTypeManager ntm = sessionDelegate.getNodeTypeManager();
         NodeType nt = ntm.getNodeType(primaryNodeTypeName); // throws on not found
         if (nt.isAbstract() || nt.isMixin()) {
             throw new ConstraintViolationException();
@@ -568,7 +568,7 @@ public class NodeImpl extends ItemImpl implements Node  {
         checkStatus();
 
         // TODO: check if transient changes to mixin-types are reflected here
-        NodeTypeManager ntMgr = getSession().getWorkspace().getNodeTypeManager();
+        NodeTypeManager ntMgr = sessionDelegate.getNodeTypeManager();
         String primaryNtName = getProperty(Property.JCR_PRIMARY_TYPE).getString();
 
         return ntMgr.getNodeType(primaryNtName);
@@ -583,7 +583,7 @@ public class NodeImpl extends ItemImpl implements Node  {
 
         // TODO: check if transient changes to mixin-types are reflected here
         if (hasProperty(Property.JCR_MIXIN_TYPES)) {
-            NodeTypeManager ntMgr = getSession().getWorkspace().getNodeTypeManager();
+            NodeTypeManager ntMgr = sessionDelegate.getNodeTypeManager();
             Value[] mixinNames = getProperty(Property.JCR_MIXIN_TYPES).getValues();
             NodeType[] mixinTypes = new NodeType[mixinNames.length];
             for (int i = 0; i < mixinNames.length; i++) {
@@ -600,10 +600,10 @@ public class NodeImpl extends ItemImpl implements Node  {
         checkStatus();
 
         // TODO: might be expanded, need a better way for this
-        String jcrName = sessionDelegate.getNamePathMapper().getJcrName(sessionDelegate.getNamePathMapper().getOakName(nodeTypeName));
+        String jcrName = toJcrName(toOakName(nodeTypeName));
 
         // TODO: figure out the right place for this check
-        NodeTypeManager ntm = sessionDelegate.getSession().getWorkspace().getNodeTypeManager();
+        NodeTypeManager ntm = sessionDelegate.getNodeTypeManager();
         NodeType ntToCheck = ntm.getNodeType(jcrName); // throws on not found
         String nameToCheck = ntToCheck.getName();
 
@@ -949,18 +949,14 @@ public class NodeImpl extends ItemImpl implements Node  {
     private NodeImpl getNodeOrNull(String relJcrPath)
             throws RepositoryException {
 
-        String relOakPath = toOakPath(relJcrPath);
-
-        NodeDelegate nd = dlg.getNodeOrNull(relOakPath);
+        NodeDelegate nd = dlg.getNodeOrNull(toOakPath(relJcrPath));
         return nd == null ? null : new NodeImpl(nd);
     }
 
     private PropertyImpl getPropertyOrNull(String relJcrPath)
             throws RepositoryException {
 
-        String relOakPath = toOakPath(relJcrPath);
-
-        PropertyDelegate pd = dlg.getPropertyOrNull(relOakPath);
+        PropertyDelegate pd = dlg.getPropertyOrNull(toOakPath(relJcrPath));
         return pd == null ? null : new PropertyImpl(pd);
     }
 

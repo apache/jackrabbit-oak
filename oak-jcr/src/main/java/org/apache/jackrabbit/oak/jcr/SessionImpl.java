@@ -125,7 +125,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     @Override
     public void move(String srcAbsPath, String destAbsPath) throws RepositoryException {
         ensureIsAlive();
-        dlg.move(dlg.getNamePathMapper().toOakPath(srcAbsPath), dlg.getNamePathMapper().toOakPath(destAbsPath), true);
+        dlg.move(toOakPath(srcAbsPath), toOakPath(destAbsPath), true);
     }
 
     //------------------------------------------------------------< state >---
@@ -165,7 +165,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
 
     @Override
     public ContentHandler getImportContentHandler(String parentAbsPath, int uuidBehavior) throws RepositoryException {
-        return internalGetImportContentHandler(dlg.getNamePathMapper().toOakPath(parentAbsPath), uuidBehavior);
+        return internalGetImportContentHandler(toOakPath(parentAbsPath), uuidBehavior);
     }
 
     private ContentHandler internalGetImportContentHandler(String parentAbsPath, int uuidBehavior) throws RepositoryException {
@@ -215,7 +215,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
 
     @Override
     public boolean hasPermission(String absPath, String actions) throws RepositoryException {
-        return internalHasPermission(dlg.getNamePathMapper().toOakPath(absPath), actions);
+        return internalHasPermission(toOakPath(absPath), actions);
     }
 
     private boolean internalHasPermission(String absPath, String actions) throws RepositoryException {
@@ -282,6 +282,15 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
         // check session status
         if (!dlg.isAlive()) {
             throw new RepositoryException("This session has been closed.");
+        }
+    }
+
+    private String toOakPath(String jcrPath) throws RepositoryException {
+        try {
+            return dlg.getNamePathMapper().toOakPath(jcrPath);
+        } catch (IllegalArgumentException ex) {
+            // TODO we shouldn't have to catch this one
+            throw new RepositoryException(ex);
         }
     }
 

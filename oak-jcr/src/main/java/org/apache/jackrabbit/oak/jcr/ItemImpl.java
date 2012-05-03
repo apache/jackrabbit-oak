@@ -134,7 +134,8 @@ abstract class ItemImpl implements Item {
         getSession().refresh(keepChanges);
     }
 
-    //--------------------------------------------------------------------------
+    //------------------------------------------------------------< internal >---
+
     /**
      * Performs a sanity check on this item and the associated session.
      *
@@ -175,6 +176,9 @@ abstract class ItemImpl implements Item {
         return sessionDelegate.getValueFactory();
     }
 
+    String toOakName(String jcrName) {
+        return sessionDelegate.getNamePathMapper().getOakName(jcrName);
+    }
     
     String toOakPath(String jcrPath) throws RepositoryException {
         try {
@@ -183,6 +187,10 @@ abstract class ItemImpl implements Item {
             // TODO we shouldn't have to catch this one
             throw new RepositoryException(ex);
         }
+    }
+
+    String toJcrName(String oakName) {
+        return sessionDelegate.getNamePathMapper().getJcrName(oakName);
     }
 
     String toJcrPath(String oakPath) {
