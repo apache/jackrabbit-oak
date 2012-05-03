@@ -51,12 +51,9 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     private static final Logger log = LoggerFactory.getLogger(WorkspaceImpl.class);
 
     private final SessionDelegate sessionDelegate;
-
-    private QueryManagerImpl queryManager;
-
     private final NamespaceRegistry nsRegistry;
-
     private final NodeTypeManager nodeTypeManager;
+    private final QueryManagerImpl queryManager;
 
     public WorkspaceImpl(SessionDelegate sessionDelegate, NamespaceRegistry nsRegistry)
             throws RepositoryException {
@@ -64,6 +61,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
         this.sessionDelegate = sessionDelegate;
         this.nsRegistry = nsRegistry;
         this.nodeTypeManager = new NodeTypeManagerImpl(sessionDelegate.getNamePathMapper());
+        this.queryManager = new QueryManagerImpl(this, sessionDelegate);
     }
 
     //----------------------------------------------------------< Workspace >---
@@ -93,7 +91,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
         }
 
         // FIXME: convert to oak paths
-        sessionDelegate.copy(srcAbsPath, destAbsPath);
+        sessionDelegate.copy(toOakPath(srcAbsPath), toOakPath(destAbsPath));
     }
 
     @SuppressWarnings("deprecation")
@@ -111,7 +109,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
         ensureSupportedOption(Repository.LEVEL_2_SUPPORTED);
         ensureIsAlive();
 
-        sessionDelegate.move(srcAbsPath, destAbsPath, false);
+        sessionDelegate.move(toOakPath(srcAbsPath), toOakPath(destAbsPath), false);
     }
 
     @Override
@@ -129,9 +127,6 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     @Override
     public QueryManager getQueryManager() throws RepositoryException {
         ensureIsAlive();
-        if (queryManager == null) {
-            queryManager = new QueryManagerImpl(this, sessionDelegate);
-        }
         return queryManager;
     }
 
@@ -317,6 +312,15 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     private void ensureSupportedOption(String option) throws RepositoryException {
         if (!isSupportedOption(option)) {
             throw new UnsupportedRepositoryOperationException(option + " is not supported by this repository.");
+        }
+    }
+
+    private String toOakPath(String jcrPath) throws RepositoryException {
+        try {
+            return sessionDelegate.getNamePathMapper().toOakPath(jcrPath);
+        } catch (IllegalArgumentException ex) {
+            // TODO we shouldn't have to catch this one
+            throw new RepositoryException(ex);
         }
     }
 
