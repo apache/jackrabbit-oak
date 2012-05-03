@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.util.Function1;
 import org.apache.jackrabbit.oak.util.Iterators;
 
+import javax.jcr.InvalidItemStateException;
 import javax.jcr.ItemNotFoundException;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
@@ -92,7 +93,7 @@ public class NodeDelegate extends ItemDelegate {
     }
 
     NodeDelegate getParent() throws RepositoryException {
-        if (getTree().getParent() == null) {
+        if (check(getTree()).getParent() == null) {
             throw new ItemNotFoundException("Root has no parent");
         }
 
@@ -161,6 +162,13 @@ public class NodeDelegate extends ItemDelegate {
         return tree;
     }
 
+    private Tree check(Tree t) throws InvalidItemStateException {
+        if (t == null) {
+            throw new InvalidItemStateException();
+        }
+        return t;
+    }
+    
     private synchronized Tree getTree() {
         return tree = sessionContext.getTree(tree.getPath());
     }
