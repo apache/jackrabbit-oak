@@ -35,6 +35,9 @@ public class MicroKernelImplFixture implements MicroKernelFixture {
 
     @Override
     public void tearDownCluster(MicroKernel[] cluster) {
+        for (int i = 0; i < cluster.length; i++) {
+            ((MicroKernelImpl) cluster[i]).dispose();
+        }
     }
 
 }
