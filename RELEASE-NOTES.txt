@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 0.2
+Release Notes -- Apache Jackrabbit Oak -- Version 0.2.1
 
 Introduction
 ------------
@@ -10,10 +10,13 @@ other demanding content applications.
 The Oak effort is a part of the Apache Jackrabbit project. 
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Jackrabbit Oak 0.2 is to be considered alpha-level software. Use at your own risk 
-with no stability or compatibility guarantees. 
+Jackrabbit Oak 0.2.x is to be considered alpha-level software. Use at your own risk 
+with no stability or compatibility guarantees.
 
-Changes in Oak 0.2
+The earlier 0.2 release candidate was rejected because of a minor licensing issue 
+that is now resolved.
+
+Changes in Oak 0.2.1
 ------------------
 
 New features
@@ -42,6 +45,7 @@ Bug fixes
   [OAK-62] - ConnectionImpl should not acquire Microkernel instance
   [OAK-69] - oak-run fails with NPE
   [OAK-78] - waitForCommit() test failure for MK remoting
+  [OAK-82] - Running MicroKernelIT test with the InMem persistence creates a lot of GC threads
 
 Changes in Oak 0.1
 ------------------
