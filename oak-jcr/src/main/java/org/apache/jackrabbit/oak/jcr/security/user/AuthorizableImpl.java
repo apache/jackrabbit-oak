@@ -55,7 +55,7 @@ abstract class AuthorizableImpl implements Authorizable {
     static final String REP_MEMBERS = "rep:members";
     static final String REP_IMPERSONATORS = "rep:impersonators";
 
-    private final NodeImpl node;
+    private final NodeImpl node;  // FIXME use NodeDelegate instead of NodeImpl
     private final UserManagerImpl userManager;
 
     private int hashCode;
@@ -265,7 +265,7 @@ abstract class AuthorizableImpl implements Authorizable {
     public String toString() {
         try {
             String typeStr = (isGroup()) ? "Group '" : "User '";
-            return new StringBuilder().append(typeStr).append(getID()).append('\'').toString();
+            return typeStr + getID() + '\'';
         } catch (RepositoryException e) {
             return super.toString();
         }
