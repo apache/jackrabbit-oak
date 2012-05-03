@@ -20,7 +20,6 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.client.Client;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
-import org.apache.jackrabbit.mk.fs.FileUtils;
 import org.apache.jackrabbit.mk.index.IndexWrapper;
 import org.apache.jackrabbit.mk.server.Server;
 import org.apache.jackrabbit.mk.simple.SimpleKernelImpl;
@@ -29,6 +28,7 @@ import org.apache.jackrabbit.mk.wrapper.LogWrapper;
 import org.apache.jackrabbit.mk.wrapper.SecurityWrapper;
 import org.apache.jackrabbit.mk.wrapper.VirtualRepositoryWrapper;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -75,6 +75,8 @@ public class MicroKernelFactory {
             tail = tail.replaceAll("\\{homeDir\\}", System.getProperty("homeDir", "."));
 
             if (clean) {
+                // TODO: The factory should not control repository lifecycle
+                // See also https://issues.apache.org/jira/browse/OAK-32
                 String dir;
                 if (head.equals("fs")) {
                     dir = tail + "/.mk";
@@ -82,12 +84,7 @@ public class MicroKernelFactory {
                     dir = tail.substring(tail.lastIndexOf(':') + 1);
                     INSTANCES.remove(tail);
                 }
-
-                try {
-                    FileUtils.deleteRecursive(dir, false);
-                } catch (Exception e) {
-                    throw ExceptionFactory.convert(e);
-                }
+                deleteRecursive(new File(dir));
             }
 
             if (head.equals("fs")) {
@@ -172,6 +169,19 @@ public class MicroKernelFactory {
         } else {
             throw new IllegalArgumentException(url);
         }
+    }
+
+    /**
+     * Delete a directory or file and all subdirectories and files inside it.
+     *
+     * @param path the path
+     */
+    private static void deleteRecursive(File file) {
+        File[] files = file.listFiles();
+        for (int i = 0; files != null && i < files.length; i++) {
+            deleteRecursive(files[i]);
+        }
+        file.delete();
     }
 
 }
