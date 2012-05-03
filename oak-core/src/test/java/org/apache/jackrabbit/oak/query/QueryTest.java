@@ -27,12 +27,10 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import org.apache.jackrabbit.mk.index.Indexer;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.spi.QueryIndexProvider;
-import org.junit.Before;
 import org.junit.Test;
 
 /**
@@ -40,13 +38,8 @@ import org.junit.Test;
  */
 public class QueryTest extends AbstractQueryTest {
 
-    private QueryIndexProvider ip = new Indexer(mk);
+    private QueryIndexProvider ip = mk.getIndexer();
     private QueryEngineImpl qe = new QueryEngineImpl(store, mk, ip);
-
-    @Before
-    public void setup() {
-        qe.init();
-    }
 
     @Test
     public void script() throws Exception {
@@ -151,9 +144,13 @@ public class QueryTest extends AbstractQueryTest {
                             errors = true;
                         }
                     }
-                } else {
+                } else if (line.startsWith("commit")) {
                     w.println(line);
-                    mk.commit("/", line, mk.getHeadRevision(), "");
+                    line = line.substring("commit".length()).trim();
+                    int spaceIndex = line.indexOf(' ');
+                    String path = line.substring(0, spaceIndex).trim();
+                    String diff = line.substring(spaceIndex).trim();
+                    mk.commit(path, diff, mk.getHeadRevision(), "");
                 }
             }
         } finally {

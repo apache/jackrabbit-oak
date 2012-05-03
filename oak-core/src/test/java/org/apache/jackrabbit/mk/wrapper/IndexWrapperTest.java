@@ -36,47 +36,47 @@ public class IndexWrapperTest {
 
     @Test
     public void getNodes() {
-        assertNull(mk.getNodes("/index/unknown", head));
+        assertNull(mk.getNodes("/jcr:system/indexes/unknown", head));
         assertNull(mk.getNodes("/unknown", head));
     }
 
     @Test
     public void prefix() {
-        head = mk.commit("/index", "+ \"prefix:x\": {}", head, "");
+        head = mk.commit("/jcr:system/indexes", "+ \"prefix:x\": {}", head, "");
         head = mk.commit("/", "+ \"n1\": { \"value\":\"a:no\" }", head, "");
         head = mk.commit("/", "+ \"n2\": { \"value\":\"x:yes\" }", head, "");
         head = mk.commit("/", "+ \"n3\": { \"value\":\"x:a\" }", head, "");
         head = mk.commit("/", "+ \"n4\": { \"value\":\"x:a\" }", head, "");
-        String empty = mk.getNodes("/index/prefix:x?x:no", head);
+        String empty = mk.getNodes("/jcr:system/indexes/prefix:x?x:no", head);
         assertEquals("[]", empty);
-        String yes = mk.getNodes("/index/prefix:x?x:yes", head);
+        String yes = mk.getNodes("/jcr:system/indexes/prefix:x?x:yes", head);
         assertEquals("[\"/n2/value\"]", yes);
-        String a = mk.getNodes("/index/prefix:x?x:a", head);
+        String a = mk.getNodes("/jcr:system/indexes/prefix:x?x:a", head);
         assertEquals("[\"/n3/value\",\"/n4/value\"]", a);
     }
 
     @Test
     public void propertyUnique() {
-        head = mk.commit("/index", "+ \"property:id,unique\": {}", head, "");
+        head = mk.commit("/jcr:system/indexes", "+ \"property:id,unique\": {}", head, "");
         head = mk.commit("/", "+ \"n1\": { \"value\":\"empty\" }", head, "");
         head = mk.commit("/", "+ \"n2\": { \"id\":\"1\" }", head, "");
-        String empty = mk.getNodes("/index/property:id,unique?0", head);
+        String empty = mk.getNodes("/jcr:system/indexes/property:id,unique?0", head);
         assertEquals("[]", empty);
-        String one = mk.getNodes("/index/property:id,unique?1", head);
+        String one = mk.getNodes("/jcr:system/indexes/property:id,unique?1", head);
         assertEquals("[\"/n2\"]", one);
     }
 
     @Test
     public void propertyNonUnique() {
-        head = mk.commit("/index", "+ \"property:ref\": {}", head, "");
+        head = mk.commit("/jcr:system/indexes", "+ \"property:ref\": {}", head, "");
         head = mk.commit("/", "+ \"n1\": { \"ref\":\"a\" }", head, "");
         head = mk.commit("/", "+ \"n2\": { \"ref\":\"b\" }", head, "");
         head = mk.commit("/", "+ \"n3\": { \"ref\":\"b\" }", head, "");
-        String empty = mk.getNodes("/index/property:ref?no", head);
+        String empty = mk.getNodes("/jcr:system/indexes/property:ref?no", head);
         assertEquals("[]", empty);
-        String one = mk.getNodes("/index/property:ref?a", head);
+        String one = mk.getNodes("/jcr:system/indexes/property:ref?a", head);
         assertEquals("[\"/n1\"]", one);
-        String two = mk.getNodes("/index/property:ref?b", head);
+        String two = mk.getNodes("/jcr:system/indexes/property:ref?b", head);
         assertEquals("[\"/n2\",\"/n3\"]", two);
     }
 

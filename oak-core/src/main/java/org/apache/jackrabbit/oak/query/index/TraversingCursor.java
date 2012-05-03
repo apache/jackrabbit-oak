@@ -41,6 +41,9 @@ public class TraversingCursor implements Cursor {
 
     private boolean loadChildren(String path, long offset) {
         String s = mk.getNodes(path, revisionId, 0, offset, childBlockSize, null);
+        if (s == null) {
+            return false;
+        }
         NodeCursor c = new NodeCursor();
         c.node = NodeImpl.parse(s);
         c.node.setPath(path);
@@ -56,7 +59,11 @@ public class TraversingCursor implements Cursor {
             if (currentPath == null) {
                 return null;
             }
-            currentNode = NodeImpl.parse(mk.getNodes(currentPath, revisionId));
+            String s = mk.getNodes(currentPath, revisionId);
+            if (s == null) {
+                return null;
+            }
+            currentNode = NodeImpl.parse(s);
             currentNode.setPath(currentPath);
         }
         return currentNode;

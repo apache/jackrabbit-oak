@@ -28,11 +28,6 @@ import java.util.Map;
 public interface QueryEngine {
 
     /**
-     * Initialize the query engine. This includes reading the list of indexes.
-     */
-    void init();
-
-    /**
      * Parse the query (check if it's valid) and get the list of bind variable names.
      *
      * @param statement

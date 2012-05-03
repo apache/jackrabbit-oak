@@ -30,7 +30,7 @@ public class PrefixIndexTest {
     @Test
     public void test() {
         MicroKernel mk = new MicroKernelImpl();
-        Indexer indexer = new Indexer(mk, "index");
+        Indexer indexer = new Indexer(mk, mk, "index");
         indexer.init();
         PrefixIndex index = indexer.createPrefixIndex("d:");
 

@@ -53,6 +53,10 @@ public class PropertyIndex implements Index {
         return new PropertyIndex(indexer, propertyName, unique);
     }
 
+    public String getPropertyName() {
+        return propertyName;
+    }
+
     @Override
     public String getName() {
         return tree.getName();
