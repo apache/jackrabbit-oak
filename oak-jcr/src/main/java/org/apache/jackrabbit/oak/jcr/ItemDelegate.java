@@ -17,15 +17,9 @@
 
 package org.apache.jackrabbit.oak.jcr;
 
-import org.apache.jackrabbit.oak.commons.PathUtils;
-
 public abstract class ItemDelegate {
     
     abstract String getName();
 
     abstract String getPath();
-
-    public int getDepth() {
-        return PathUtils.getDepth(getPath());
-    }
 }

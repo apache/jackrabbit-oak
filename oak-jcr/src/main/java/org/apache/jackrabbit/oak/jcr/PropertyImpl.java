@@ -25,7 +25,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.jcr.Binary;
-import javax.jcr.Item;
 import javax.jcr.ItemNotFoundException;
 import javax.jcr.ItemVisitor;
 import javax.jcr.Node;
@@ -75,21 +74,6 @@ public class PropertyImpl extends ItemImpl implements Property {
     public Node getParent() throws RepositoryException {
         return new NodeImpl(new NodeDelegate(sessionDelegate,
                 dlg.getParentTree()));
-    }
-
-    /**
-     * @see Item#getAncestor(int)
-     */
-    @Override
-    public Item getAncestor(int depth) throws RepositoryException {
-        int myDepth = getDepth();
-        if (depth == myDepth) {
-            return this;
-        } else if (depth == myDepth - 1) {
-            return getParent();
-        } else {
-            return getParent().getAncestor(depth);
-        }
     }
 
     /**

@@ -99,14 +99,6 @@ public class NodeImpl extends ItemImpl implements Node  {
     }
 
     /**
-     * @see Item#getAncestor(int)
-     */
-    @Override
-    public Item getAncestor(int depth) throws RepositoryException {
-        return new NodeImpl(dlg.getAncestor(depth));
-    }
-
-    /**
      * @see javax.jcr.Item#isNew()
      */
     @Override

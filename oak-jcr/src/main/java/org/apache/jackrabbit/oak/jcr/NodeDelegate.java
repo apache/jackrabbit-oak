@@ -52,20 +52,6 @@ public class NodeDelegate extends ItemDelegate {
         return new NodeDelegate(sessionDelegate, parentState.getChild(name));
     }
 
-    NodeDelegate getAncestor(int depth) throws RepositoryException {
-        int current = getDepth();
-        if (depth < 0 || depth > current) {
-            throw new ItemNotFoundException("ancestor at depth " + depth
-                    + " does not exist");
-        }
-        Tree ancestor = getTree();
-        while (depth < current) {
-            ancestor = ancestor.getParent();
-            current -= 1;
-        }
-        return new NodeDelegate(sessionDelegate, ancestor);
-    }
-
     Iterator<NodeDelegate> getChildren() throws RepositoryException {
         return nodeDelegateIterator(getTree().getChildren().iterator());
     }
