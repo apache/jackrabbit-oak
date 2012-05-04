@@ -79,12 +79,11 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
         return dlg.getWorkspace();
     }
 
-    /**
-     * @see javax.jcr.Session#impersonate(Credentials)
-     */
     @Override
     public Session impersonate(Credentials credentials) throws RepositoryException {
         ensureIsAlive();
+
+        // TODO
         throw new UnsupportedRepositoryOperationException("TODO: Session.impersonate");
     }
 
@@ -93,8 +92,6 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
         ensureIsAlive();
         return dlg.getValueFactory();
     }
-
-    //------------------------------------------------------------< Reading >---
 
     @Override
     public Node getRootNode() throws RepositoryException {
@@ -120,15 +117,11 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
         }
     }
 
-    //------------------------------------------------------------< Writing >---
-
     @Override
     public void move(String srcAbsPath, String destAbsPath) throws RepositoryException {
         ensureIsAlive();
-        dlg.move(toOakPath(srcAbsPath), toOakPath(destAbsPath), true);
+        dlg.move(dlg.getOakPath(srcAbsPath), dlg.getOakPath(destAbsPath), true);
     }
-
-    //------------------------------------------------------------< state >---
 
     @Override
     public void save() throws RepositoryException {
@@ -148,8 +141,6 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
         return dlg.hasPendingChanges();
     }
 
-    //----------------------------------------------------------< Lifecycle >---
-
     @Override
     public boolean isLive() {
         return dlg.isAlive();
@@ -161,19 +152,14 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
         dlg.logout();
     }
 
-    //----------------------------------------------------< Import / Export >---
-
     @Override
     public ContentHandler getImportContentHandler(String parentAbsPath, int uuidBehavior) throws RepositoryException {
-        return internalGetImportContentHandler(toOakPath(parentAbsPath), uuidBehavior);
-    }
-
-    private ContentHandler internalGetImportContentHandler(String parentAbsPath, int uuidBehavior) throws RepositoryException {
         ensureIsAlive();
+
+        // TODO
+        String internalPath = dlg.getOakPath(parentAbsPath);
         throw new UnsupportedRepositoryOperationException("TODO: Session.getImportContentHandler");
     }
-
-    //------------------------------------------------------------< Locking >---
 
     /**
      * @see javax.jcr.Session#addLockToken(String)
@@ -211,15 +197,10 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
         }
     }
 
-    //------------------------------------------------------< AccessControl >---
-
     @Override
     public boolean hasPermission(String absPath, String actions) throws RepositoryException {
-        return internalHasPermission(toOakPath(absPath), actions);
-    }
-
-    private boolean internalHasPermission(String absPath, String actions) throws RepositoryException {
         ensureIsAlive();
+        String internalPath = dlg.getOakPath(absPath);
 
         // TODO
         return false;
@@ -249,8 +230,9 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
         throw new UnsupportedRepositoryOperationException("TODO: Session.getAccessControlManager");
     }
 
-    //----------------------------------------------------------< Retention >---
-
+    /**
+     * @see javax.jcr.Session#getRetentionManager()
+     */
     @Override
     public RetentionManager getRetentionManager() throws RepositoryException {
         throw new UnsupportedRepositoryOperationException("Retention Management is not supported.");
@@ -284,14 +266,4 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
             throw new RepositoryException("This session has been closed.");
         }
     }
-
-    private String toOakPath(String jcrPath) throws RepositoryException {
-        try {
-            return dlg.getNamePathMapper().getOakPath(jcrPath);
-        } catch (IllegalArgumentException ex) {
-            // TODO we shouldn't have to catch this one
-            throw new RepositoryException(ex);
-        }
-    }
-
 }
