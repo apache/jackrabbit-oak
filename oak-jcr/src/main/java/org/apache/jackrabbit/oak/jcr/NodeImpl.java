@@ -401,7 +401,7 @@ public class NodeImpl extends ItemImpl implements Node  {
 
         Property property = getPropertyOrNull(relPath);
         if (property == null) {
-            throw new PathNotFoundException(relPath);
+            throw new PathNotFoundException(relPath + " not found on " + getPath());
         } else {
             return property;
         }
