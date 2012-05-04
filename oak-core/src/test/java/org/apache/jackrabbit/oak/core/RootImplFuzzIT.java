@@ -301,7 +301,6 @@ public class RootImplFuzzIT {
                 case 5:
                     // Too many copy ops make the test way slow
                     op = random.nextInt(10) == 0 ? createCopyNode() : null;
-                    op = null; // FIXME: depends on OAK-83
                     break;
                 case 6:
                     op = createAddProperty();
