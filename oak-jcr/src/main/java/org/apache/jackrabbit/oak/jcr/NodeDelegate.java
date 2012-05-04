@@ -65,8 +65,8 @@ public class NodeDelegate extends ItemDelegate {
         return getTree().getName();
     }
 
-    Status getNodeStatus() {
-        return getTree().getParent().getChildStatus(getName());
+    Status getNodeStatus() throws InvalidItemStateException {
+        return check(getTree().getParent()).getChildStatus(getName());
     }
 
     NodeDelegate getNodeOrNull(String relOakPath) {
