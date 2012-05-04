@@ -86,11 +86,33 @@ class NodeTypeImpl implements NodeType {
 
     @Override
     public String[] getDeclaredSupertypeNames() {
-        String[] names = new String[declaredSuperTypeNames.length];
-        for (int i = 0; i < names.length; i++) {
-            names[i] = mapper.getJcrName(declaredSuperTypeNames[i]);
+        List<String> names = new ArrayList<String>();
+        boolean addNtBase = !mixin;
+        for (String name : declaredSuperTypeNames) {
+            
+            String jcrName = mapper.getJcrName(name); 
+            
+            // TODO: figure out a more performant way
+            // check of at least one declared super type being a non-mixin type
+            if (addNtBase) {
+                try {
+                    NodeType nt = manager.getNodeType(jcrName);
+                    if (! nt.isMixin()) {
+                        addNtBase = false;
+                    }
+                }
+                catch (RepositoryException ex) {
+                    // ignored
+                }
+            }    
+            names.add(jcrName);
         }
-        return names;
+        
+        if (addNtBase) {
+            names.add(mapper.getJcrName("nt:base"));
+        }
+        
+        return names.toArray(new String[names.size()]);
     }
 
     @Override
@@ -141,9 +163,6 @@ class NodeTypeImpl implements NodeType {
             Set<String> added = new HashSet<String>();
             Queue<String> queue = new LinkedList<String>(
                     Arrays.asList(getDeclaredSupertypeNames()));
-            if (!isMixin()) {
-                queue.add(mapper.getJcrName(mapper.getOakName(NodeType.NT_BASE)));
-            }
             while (!queue.isEmpty()) {
                 String name = queue.remove();
                 if (added.add(name)) {

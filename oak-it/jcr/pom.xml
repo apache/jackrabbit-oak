@@ -97,7 +97,8 @@ org.apache.jackrabbit.test.api.SessionRemoveItemTest#testRemoveItem4
 org.apache.jackrabbit.test.api.HasPermissionTest
 org.apache.jackrabbit.test.api.WorkspaceTest
 org.apache.jackrabbit.test.api.ShareableNodeTest
-org.apache.jackrabbit.test.api.nodetype.PredefinedNodeTypeTest
+org.apache.jackrabbit.test.api.nodetype.PredefinedNodeTypeTest#testSimpleVersionable
+org.apache.jackrabbit.test.api.nodetype.PredefinedNodeTypeTest#testChildNodeDef
 org.apache.jackrabbit.test.api.nodetype.CanSetPropertyDateTest#testConversions
 org.apache.jackrabbit.test.api.nodetype.CanSetPropertyMultipleTest#testReturnFalseBecauseIsProtected
 org.apache.jackrabbit.test.api.nodetype.CanSetPropertyMultipleTest#testReturnFalseBecauseIsNotMultiple
