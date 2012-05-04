@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.jcr.security.user;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.jcr.security.principal.EveryonePrincipal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -147,10 +148,12 @@ class GroupImpl extends AuthorizableImpl implements Group {
 
     //--------------------------------------------------------------------------
     /**
+     * Internal implementation of {@link #getDeclaredMembers()} and {@link #getMembers()}.
      *
-     * @param includeInherited
-     * @return
-     * @throws RepositoryException
+     * @param includeInherited Flag indicating if only the declared or all members
+     * should be returned.
+     * @return Iterator of authorizables being member of this group.
+     * @throws RepositoryException If an error occurs.
      */
     private Iterator<Authorizable> getMembers(boolean includeInherited) throws RepositoryException {
         if (isEveryone()) {
@@ -163,11 +166,14 @@ class GroupImpl extends AuthorizableImpl implements Group {
     }
 
     /**
+     * Internal implementation of {@link #isDeclaredMember(Authorizable)} and {@link #isMember(Authorizable)}.
      *
-     * @param authorizable
-     * @param includeInherited
-     * @return
-     * @throws RepositoryException
+     * @param authorizable The authorizable to test.
+     * @param includeInherited Flag indicating if only declared or all members
+     * should taken into account.
+     * @return {@code true} if the specified authorizable is member or declared
+     * member of this group; {@code false} otherwise.
+     * @throws RepositoryException If an error occurs.
      */
     private boolean isMember(Authorizable authorizable, boolean includeInherited) throws RepositoryException {
         if (!isValidAuthorizableImpl(authorizable)) {
@@ -184,7 +190,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
     }
 
     /**
-     *
+     * Principal representation of this group instance.
      */
     private class GroupPrincipal extends ItemBasedPrincipalImpl implements java.security.acl.Group {
 
@@ -204,14 +210,57 @@ class GroupImpl extends AuthorizableImpl implements Group {
 
         @Override
         public boolean isMember(Principal principal) {
-            // TODO
-            return false;
+            boolean isMember = false;
+            try {
+                // shortcut for everyone group -> avoid collecting all members
+                // as all users and groups are member of everyone.
+                if (isEveryone()) {
+                    isMember = !EveryonePrincipal.NAME.equals(principal.getName());
+                } else {
+                    Authorizable a = getUserManager().getAuthorizable(principal);
+                    if (a != null) {
+                        isMember = GroupImpl.this.isMember(a);
+                    }
+                }
+            } catch (RepositoryException e) {
+                log.warn("Failed to determine group membership", e.getMessage());
+            }
+
+            // principal doesn't represent a known authorizable or an error occurred.
+            return isMember;
         }
 
         @Override
         public Enumeration<? extends Principal> members() {
-            // TODO
-            return null;
+            final Iterator<Authorizable> iterator;
+            try {
+                iterator = GroupImpl.this.getMembers();
+            } catch (RepositoryException e) {
+                // should not occur.
+                String msg = "Unable to retrieve Group members: " + e.getMessage();
+                log.error(msg);
+                throw new IllegalStateException(msg);
+            }
+
+            Enumeration<Principal> members = new Enumeration<Principal>() {
+
+                @Override
+                public boolean hasMoreElements() {
+                    return iterator.hasNext();
+                }
+
+                @Override
+                public Principal nextElement() {
+                    try {
+                        return iterator.next().getPrincipal();
+                    } catch (RepositoryException e) {
+                        String msg = "Internal error while retrieving principal: " + e.getMessage();
+                        log.error(msg);
+                        throw new IllegalStateException(msg);
+                    }
+                }
+            };
+            return members;
         }
     }
 }
