@@ -51,7 +51,7 @@ public class NamePathMapperImpl implements NamePathMapper {
 
     //---------------------------------------------------------< PathMapper >---
     @Override
-    public String toOakPath(String jcrPath) {
+    public String getOakPath(String jcrPath) {
         final List<String> elements = new ArrayList<String>();
 
         if ("/".equals(jcrPath)) {
@@ -133,7 +133,7 @@ public class NamePathMapperImpl implements NamePathMapper {
     }
 
     @Override
-    public String toJcrPath(String oakPath) {
+    public String getJcrPath(String oakPath) {
         final List<String> elements = new ArrayList<String>();
 
         if ("/".equals(oakPath)) {

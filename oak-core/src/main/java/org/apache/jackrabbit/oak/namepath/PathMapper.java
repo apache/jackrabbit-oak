@@ -21,8 +21,8 @@ package org.apache.jackrabbit.oak.namepath;
  */
 public interface PathMapper {
 
-    String toOakPath(String jcrPath);
+    String getOakPath(String jcrPath);
 
-    String toJcrPath(String oakPath);
+    String getJcrPath(String oakPath);
 
 }
