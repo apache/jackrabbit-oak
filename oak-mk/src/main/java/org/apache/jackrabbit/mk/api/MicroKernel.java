@@ -77,20 +77,14 @@ public interface MicroKernel {
      *   ...
      * ]
      * </pre>
-     * The {@code path} parameter allows to filter the revisions by path, i.e.
-     * only those revisions that affected the subtree rooted at {@code path}
-     * will be included.
      *
      * @param since      timestamp (ms) of earliest revision to be returned
      * @param maxEntries maximum #entries to be returned;
      *                   if < 0, no limit will be applied.
-     * @param path       optional path filter; if {@code null} or {@code ""} the
-     *                   default ({@code"/"}) will be assumed, i.e. no filter
-     *                   will be applied
      * @return a list of revisions in chronological order in JSON format.
      * @throws MicroKernelException if an error occurs
      */
-    String /* jsonArray */ getRevisionHistory(long since, int maxEntries/*, String path*/)
+    String /* jsonArray */ getRevisionHistory(long since, int maxEntries)
             throws MicroKernelException;
 
     /**
@@ -133,10 +127,6 @@ public interface MicroKernel {
      * If {@code fromRevisionId} and {@code toRevisionId} are not in chronological
      * order the returned journal will be empty (i.e. {@code []})
      * <p/>
-     * The {@code path} parameter allows to filter the revisions by path, i.e.
-     * only those revisions that affected the subtree rooted at {@code path}
-     * will be included.
-     * <p/>
      * A {@code MicroKernelException} is thrown if either {@code fromRevisionId}
      * or {@code toRevisionId}  doesn't exist, denotes a <i>private</i> branch
      * revision or if another error occurs.
@@ -144,14 +134,14 @@ public interface MicroKernel {
      * @param fromRevisionId id of first revision to be returned in journal
      * @param toRevisionId   id of last revision to be returned in journal,
      *                       if {@code null} the current head revision is assumed
-     * @param path           optional path filter; if {@code null} or {@code ""}
-     *                       the default ({@code"/"}) will be assumed, i.e. no
-     *                       filter will be applied
+     * @param filter         (optional) filter criteria
+     *                       (e.g. path, property names, etc);
+     *                       TODO specify format and semantics
      * @return a chronological list of revisions in JSON format
      * @throws MicroKernelException if an error occurs
      */
     String /* jsonArray */ getJournal(String fromRevisionId, String toRevisionId,
-                                      String path)
+                                      String filter)
             throws MicroKernelException;
 
     /**
@@ -159,21 +149,17 @@ public interface MicroKernel {
      * revisions. The changes will be consolidated if the specified range
      * covers intermediary revisions. {@code fromRevisionId} and {@code toRevisionId}
      * don't need not be in a specific chronological order.
-     * <p/>
-     * The {@code path} parameter allows to filter the revisions by path, i.e.
-     * only those revisions that affected the subtree rooted at {@code path}
-     * will be included.
      *
      * @param fromRevisionId a revision id, if {@code null} the current head revision is assumed
      * @param toRevisionId   another revision id, if {@code null} the current head revision is assumed
-     * @param path           optional path filter; if {@code null} or {@code ""}
-     *                       the default ({@code"/"}) will be assumed, i.e. no
-     *                       filter will be applied
+     * @param filter         (optional) filter criteria
+     *                       (e.g. path, property names, etc);
+     *                       TODO specify format and semantics
      * @return JSON diff representation of the changes
      * @throws MicroKernelException if an error occurs
      */
     String /* JSON diff */ diff(String fromRevisionId, String toRevisionId,
-                                String path)
+                                String filter)
             throws MicroKernelException;
 
     //-------------------------------------------------------------< READ ops >
@@ -264,20 +250,6 @@ public interface MicroKernel {
      * <p/>
      * The {@code offset} and {@code count} parameters are only applied to the
      * direct child nodes of the root of the returned node tree.
-     * <p/>
-     * The {@code filter} parameter allows to specify the names of properties
-     * to be included or excluded.
-     * <p/>
-     * Format:
-     * <pre>
-     * {
-     *   incl: [ "foo", "foo1" ],
-     *   excl: [ "bar", "tmp" ]
-     * }
-     * </pre>
-     * TODO clarify (globbing) syntax, semantics and implicit default filter (OAK-75)
-     * <p/>
-     * For more information see {@link #getNodes(String, String)}.
      *
      * @param path       path denoting root of node tree to be retrieved
      * @param revisionId revision id, if {@code null} the current head revision is assumed
@@ -285,11 +257,11 @@ public interface MicroKernel {
      * @param offset     start position in the iteration order of child nodes (0 to start at the
      *                   beginning)
      * @param count      maximum number of child nodes to retrieve (-1 for all)
-     * @param filter     optional filter on property names; if {@code null} or
-     *                   {@code ""} the default filter will be assumed
+     * @param filter     (optional) filter criteria
+     *                   (e.g. names of properties to be included, etc);
+     *                   TODO specify format and semantics
      * @return node tree in JSON format or {@code null} if the specified node does not exist
      * @throws MicroKernelException if the specified revision does not exist or if another error occurs
-     * @see #getNodes(String, String)
      */
     String /* jsonTree */ getNodes(String path, String revisionId, int depth,
                                    long offset, int count, String filter)
