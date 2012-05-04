@@ -108,24 +108,25 @@ class GroupImpl extends AuthorizableImpl implements Group {
             log.warn("Invalid Authorizable: {}", authorizable);
             return false;
         }
-        if (isEveryone() || ((AuthorizableImpl) authorizable).isEveryone()) {
+
+        AuthorizableImpl authorizableImpl = ((AuthorizableImpl) authorizable);
+        if (isEveryone() || authorizableImpl.isEveryone()) {
             return false;
         }
 
-        AuthorizableImpl authImpl = ((AuthorizableImpl) authorizable);
-        Node memberNode = authImpl.getNode();
-        if (memberNode.isSame(getNode())) {
-            String msg = "Attempt to add a group as member of itself (" + getID() + ").";
-            log.warn(msg);
-            return false;
+        if (authorizableImpl.isGroup()) {
+            if (getID().equals(authorizableImpl.getID())) {
+                String msg = "Attempt to add a group as member of itself (" + getID() + ").";
+                log.warn(msg);
+                return false;
+            }
+            if (((Group) authorizableImpl).isMember(this)) {
+                log.warn("Attempt to create circular group membership.");
+                return false;
+            }
         }
 
-        if (authImpl.isGroup() && ((GroupImpl) authImpl).isMember(this)) {
-            log.warn("Attempt to create circular group membership.");
-            return false;
-        }
-
-        return getUserManager().getMembershipManager().addMember(this, authImpl);
+        return getUserManager().getMembershipManager().addMember(this, authorizableImpl);
     }
 
     /**
