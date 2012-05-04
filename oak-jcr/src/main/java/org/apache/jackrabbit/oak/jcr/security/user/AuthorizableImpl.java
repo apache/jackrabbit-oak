@@ -33,6 +33,7 @@ import javax.jcr.Value;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.PropertyDefinition;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
@@ -86,7 +87,7 @@ abstract class AuthorizableImpl implements Authorizable {
      */
     @Override
     public Iterator<Group> declaredMemberOf() throws RepositoryException {
-        return collectMembership(false);
+        return getMembership(false);
     }
 
     /**
@@ -94,7 +95,7 @@ abstract class AuthorizableImpl implements Authorizable {
      */
     @Override
     public Iterator<Group> memberOf() throws RepositoryException {
-        return collectMembership(true);
+        return getMembership(true);
     }
 
     /**
@@ -315,9 +316,11 @@ abstract class AuthorizableImpl implements Authorizable {
     }
 
     /**
+     * Returns {@code true} if this authorizable represents the 'everyone' group.
      *
-     * @return
-     * @throws RepositoryException
+     * @return {@code true} if this authorizable represents the group everyone
+     * is member of; {@code false} otherwise.
+     * @throws RepositoryException If an error occurs.
      */
     boolean isEveryone() throws RepositoryException {
         return isGroup() && EveryonePrincipal.NAME.equals(getPrincipalName());
@@ -395,9 +398,23 @@ abstract class AuthorizableImpl implements Authorizable {
         return n;
     }
 
-    private Iterator<Group> collectMembership(boolean includeIndirect) throws RepositoryException {
+    /**
+     * Retrieve the group membership of this authorizable.
+     *
+     * @param includeInherited Flag indicating whether the resulting iterator only
+     * contains groups this authorizable is declared member of or if inherited
+     * group membership is respected.
+     *
+     * @return Iterator of groups this authorizable is (declared) member of.
+     * @throws RepositoryException If an error occurs.
+     */
+    private Iterator<Group> getMembership(boolean includeInherited) throws RepositoryException {
+        if (isEveryone()) {
+            return Collections.<Group>emptySet().iterator();
+        }
+
         MembershipManager membershipManager = userManager.getMembershipManager();
-        if (includeIndirect) {
+        if (includeInherited) {
             return membershipManager.getMembership(this);
         } else {
             return membershipManager.getDeclaredMembership(this);
