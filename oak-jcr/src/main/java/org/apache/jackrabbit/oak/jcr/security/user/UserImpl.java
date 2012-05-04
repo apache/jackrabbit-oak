@@ -44,7 +44,7 @@ class UserImpl extends AuthorizableImpl implements User {
 
     void checkValidNode(Node node) throws RepositoryException {
         if (node == null || !node.isNodeType(AuthorizableImpl.NT_REP_USER)) {
-            throw new IllegalArgumentException("Invalid group node: node type rep:Group expected.");
+            throw new IllegalArgumentException("Invalid user node: node type rep:User expected.");
         }
     }
 
