@@ -33,13 +33,10 @@ class NodeDefinitionImpl extends ItemDefinitionImpl implements NodeDefinition {
 
     private final boolean allowsSameNameSiblings;
 
-    protected NodeDefinitionImpl(
-            NodeType type, NameMapper mapper, String name, boolean autoCreated,
-            boolean mandatory, int onParentRevision, boolean isProtected,
-            NodeTypeManager manager, String[] requiredPrimaryTypeNames,
+    protected NodeDefinitionImpl(NodeTypeManager manager, NodeType type, NameMapper mapper, String name, boolean autoCreated,
+            boolean mandatory, int onParentRevision, boolean isProtected, String[] requiredPrimaryTypeNames,
             String defaultPrimaryTypeName, boolean allowsSameNameSiblings) {
-        super(type, mapper, name, autoCreated,
-                mandatory, onParentRevision, isProtected);
+        super(type, mapper, name, autoCreated, mandatory, onParentRevision, isProtected);
         this.manager = manager;
         this.requiredPrimaryTypeNames = requiredPrimaryTypeNames;
         this.defaultPrimaryTypeName = defaultPrimaryTypeName;
