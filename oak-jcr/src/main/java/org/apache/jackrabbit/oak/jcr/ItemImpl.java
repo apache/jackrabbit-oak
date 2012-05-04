@@ -175,7 +175,7 @@ abstract class ItemImpl extends AbstractItem {
     
     String toOakPath(String jcrPath) throws RepositoryException {
         try {
-            return sessionDelegate.getNamePathMapper().getOakPath(jcrPath);
+            return sessionDelegate.getOakPath(jcrPath);
         } catch (IllegalArgumentException ex) {
             // TODO we shouldn't have to catch this one
             throw new RepositoryException(ex);

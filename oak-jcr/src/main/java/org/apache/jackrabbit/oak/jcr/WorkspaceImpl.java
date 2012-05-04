@@ -90,7 +90,6 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
             throw new UnsupportedRepositoryOperationException("Not implemented.");
         }
 
-        // FIXME: convert to oak paths
         sessionDelegate.copy(sessionDelegate.getOakPath(srcAbsPath), sessionDelegate.getOakPath(destAbsPath));
     }
 
