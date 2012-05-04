@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.jcr.security.user;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
-import org.apache.jackrabbit.oak.jcr.NodeImpl;
+import org.apache.jackrabbit.oak.jcr.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,33 +55,46 @@ abstract class AuthorizableImpl implements Authorizable {
     static final String REP_MEMBERS = "rep:members";
     static final String REP_IMPERSONATORS = "rep:impersonators";
 
-    private final NodeImpl node;  // FIXME use NodeDelegate instead of NodeImpl
+    private final Node node;
     private final UserManagerImpl userManager;
 
     private int hashCode;
 
-    AuthorizableImpl(NodeImpl node, UserManagerImpl userManager) {
+    AuthorizableImpl(Node node, UserManagerImpl userManager) throws RepositoryException {
+        checkValidNode(node);
         this.node = node;
         this.userManager = userManager;
     }
 
+    abstract void checkValidNode(Node node) throws RepositoryException;
+
+    static boolean isValidAuthorizableImpl(Authorizable authorizable) {
+        return authorizable instanceof AuthorizableImpl;
+    }
+
     //-------------------------------------------------------< Authorizable >---
+    /**
+     * @see org.apache.jackrabbit.api.security.user.Authorizable#getID()
+     */
     @Override
     public String getID() throws RepositoryException {
-        // TODO
-        return null;
+        return Text.unescapeIllegalJcrChars(getNode().getName());
     }
 
+    /**
+     * @see Authorizable#declaredMemberOf()
+     */
     @Override
     public Iterator<Group> declaredMemberOf() throws RepositoryException {
-        // TODO
-        return null;
+        return collectMembership(false);
     }
 
+    /**
+     * @see Authorizable#memberOf()
+     */
     @Override
     public Iterator<Group> memberOf() throws RepositoryException {
-        // TODO
-        return null;
+        return collectMembership(true);
     }
 
     /**
@@ -265,7 +278,7 @@ abstract class AuthorizableImpl implements Authorizable {
     public String toString() {
         try {
             String typeStr = (isGroup()) ? "Group '" : "User '";
-            return typeStr + getID() + '\'';
+            return new StringBuilder().append(typeStr).append(getID()).append('\'').toString();
         } catch (RepositoryException e) {
             return super.toString();
         }
@@ -275,7 +288,7 @@ abstract class AuthorizableImpl implements Authorizable {
     /**
      * @return The node associated with this authorizable instance.
      */
-    NodeImpl getNode() {
+    Node getNode() {
         return node;
     }
 
@@ -299,6 +312,15 @@ abstract class AuthorizableImpl implements Authorizable {
             principalName = getID();
         }
         return principalName;
+    }
+
+    /**
+     *
+     * @return
+     * @throws RepositoryException
+     */
+    boolean isEveryone() throws RepositoryException {
+        return isGroup() && EveryonePrincipal.NAME.equals(getPrincipalName());
     }
 
     /**
@@ -371,5 +393,14 @@ abstract class AuthorizableImpl implements Authorizable {
             n = node;
         }
         return n;
+    }
+
+    private Iterator<Group> collectMembership(boolean includeIndirect) throws RepositoryException {
+        MembershipManager membershipManager = userManager.getMembershipManager();
+        if (includeIndirect) {
+            return membershipManager.getMembership(this);
+        } else {
+            return membershipManager.getDeclaredMembership(this);
+        }
     }
 }

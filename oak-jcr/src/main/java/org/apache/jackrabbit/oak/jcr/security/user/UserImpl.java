@@ -18,11 +18,11 @@ package org.apache.jackrabbit.oak.jcr.security.user;
 
 import org.apache.jackrabbit.api.security.user.Impersonation;
 import org.apache.jackrabbit.api.security.user.User;
-import org.apache.jackrabbit.oak.jcr.NodeImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.jcr.Credentials;
+import javax.jcr.Node;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
@@ -38,8 +38,14 @@ class UserImpl extends AuthorizableImpl implements User {
      */
     private static final Logger log = LoggerFactory.getLogger(UserImpl.class);
 
-    UserImpl(NodeImpl node, UserManagerImpl userManager) {
+    UserImpl(Node node, UserManagerImpl userManager) throws RepositoryException {
         super(node, userManager);
+    }
+
+    void checkValidNode(Node node) throws RepositoryException {
+        if (node == null || !node.isNodeType(AuthorizableImpl.NT_REP_USER)) {
+            throw new IllegalArgumentException("Invalid group node: node type rep:Group expected.");
+        }
     }
 
     //-------------------------------------------------------< Authorizable >---
