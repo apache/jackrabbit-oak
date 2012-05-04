@@ -31,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.jcr.ItemNotFoundException;
+import javax.jcr.Node;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -46,15 +47,14 @@ import java.util.List;
  */
 public class UserManagerImpl implements UserManager {
 
-    /**
-     * logger instance
-     */
     private static final Logger log = LoggerFactory.getLogger(UserManagerImpl.class);
 
     private final SessionDelegate sessionDelegate;
     private final UserManagerConfig config;
     private final AuthorizableNodeCreator nodeCreator;
 
+    private MembershipManager membershipManager;
+    
     public UserManagerImpl(SessionDelegate sessionDelegate, UserManagerConfig config) {
         this.sessionDelegate = sessionDelegate;
         this.config = config;
@@ -69,8 +69,7 @@ public class UserManagerImpl implements UserManager {
     public Authorizable getAuthorizable(String id) throws RepositoryException {
         Authorizable authorizable = null;
         try {
-            // FIXME use NodeDelegate instead od NodeImpl
-            NodeImpl node = (NodeImpl) sessionDelegate.getSession().getNodeByIdentifier(buildIdentifier(id));
+            Node node = getSession().getNodeByIdentifier(buildIdentifier(id));
             authorizable = getAuthorizable(node);
         } catch (ItemNotFoundException e) {
             log.debug("No authorizable with ID " + id);
@@ -83,7 +82,7 @@ public class UserManagerImpl implements UserManager {
      */
     @Override
     public Authorizable getAuthorizable(Principal principal) throws RepositoryException {
-        Session session = sessionDelegate.getSession();
+        Session session = getSession();
         Authorizable authorizable = null;
         if (principal instanceof ItemBasedPrincipal) {
             String authPath = ((ItemBasedPrincipal) principal).getPath();
@@ -108,10 +107,17 @@ public class UserManagerImpl implements UserManager {
         return authorizable;
     }
 
+    /**
+     * @see UserManager#getAuthorizableByPath(String)
+     */
     @Override
     public Authorizable getAuthorizableByPath(String path) throws RepositoryException {
-        // TODO
-        return null;
+        Session session = getSession();
+        if (session.nodeExists(path)) {
+            return getAuthorizable(session.getNode(path));
+        } else {
+            return null;
+        }
     }
 
     @Override
@@ -229,7 +235,7 @@ public class UserManagerImpl implements UserManager {
      */
     void onCreate(User user, String password) throws RepositoryException {
         for (AuthorizableAction action : config.getAuthorizableActions()) {
-            action.onCreate(user, password, sessionDelegate.getSession());
+            action.onCreate(user, password, getSession());
         }
     }
 
@@ -243,7 +249,7 @@ public class UserManagerImpl implements UserManager {
      */
     void onCreate(Group group) throws RepositoryException {
         for (AuthorizableAction action : config.getAuthorizableActions()) {
-            action.onCreate(group, sessionDelegate.getSession());
+            action.onCreate(group, getSession());
         }
     }
 
@@ -257,7 +263,7 @@ public class UserManagerImpl implements UserManager {
      */
     void onRemove(Authorizable authorizable) throws RepositoryException {
         for (AuthorizableAction action : config.getAuthorizableActions()) {
-            action.onRemove(authorizable, sessionDelegate.getSession());
+            action.onRemove(authorizable, getSession());
         }
     }
 
@@ -272,7 +278,7 @@ public class UserManagerImpl implements UserManager {
      */
     void onPasswordChange(User user, String password) throws RepositoryException {
         for (AuthorizableAction action : config.getAuthorizableActions()) {
-            action.onPasswordChange(user, password, sessionDelegate.getSession());
+            action.onPasswordChange(user, password, getSession());
         }
     }
 
@@ -293,7 +299,7 @@ public class UserManagerImpl implements UserManager {
      * @param forceHash If true the specified password will always be hashed.
      * @throws javax.jcr.RepositoryException If an error occurs
      */
-    void setPassword(NodeImpl userNode, String password, boolean forceHash) throws RepositoryException {
+    void setPassword(Node userNode, String password, boolean forceHash) throws RepositoryException {
         if (password != null) {
             log.debug("Password is null.");
             return;
@@ -326,21 +332,32 @@ public class UserManagerImpl implements UserManager {
         setInternalProperty(userNode, AuthorizableImpl.REP_PRINCIPAL_NAME, principal.getName(), PropertyType.STRING);
     }
 
-    void setInternalProperty(NodeImpl userNode, String name, String value, int type) throws RepositoryException {
+    void setInternalProperty(Node userNode, String name, String value, int type) throws RepositoryException {
         CoreValue cv = ValueConverter.toCoreValue(value, type, sessionDelegate);
-        sessionDelegate.getTree(userNode.getOakPath()).setProperty(name, cv);
+        sessionDelegate.getTree(getInternalPath(userNode)).setProperty(name, cv);
     }
 
-    void setInternalProperty(NodeImpl userNode, String name, String[] values, int type) throws RepositoryException {
+    void setInternalProperty(Node userNode, String name, String[] values, int type) throws RepositoryException {
         List<CoreValue> cvs = ValueConverter.toCoreValues(values, type, sessionDelegate);
-        sessionDelegate.getTree(userNode.getOakPath()).setProperty(name, cvs);
+        sessionDelegate.getTree(getInternalPath(userNode)).setProperty(name, cvs);
     }
 
-    void removeInternalProperty(NodeImpl userNode, String name) {
-        sessionDelegate.getTree(userNode.getOakPath()).removeProperty(name);
+    void removeInternalProperty(Node userNode, String name) throws RepositoryException {
+        sessionDelegate.getTree(getInternalPath(userNode)).removeProperty(name);
     }
 
-    private Authorizable getAuthorizable(NodeImpl node) throws RepositoryException {
+    Session getSession() {
+        return sessionDelegate.getSession();
+    }
+
+    MembershipManager getMembershipManager() {
+        if (membershipManager == null) {
+            membershipManager = new MembershipManager(this, sessionDelegate);
+        }
+        return membershipManager;
+    }
+
+    private Authorizable getAuthorizable(Node node) throws RepositoryException {
         if (node.isNodeType(AuthorizableImpl.NT_REP_USER)) {
             return new UserImpl(node, this);
         } else if (node.isNodeType(AuthorizableImpl.NT_REP_GROUP)) {
@@ -357,5 +374,9 @@ public class UserManagerImpl implements UserManager {
 
     private void checkValidID(String authorizableID) {
         // TODO
+    }
+
+    private String getInternalPath(Node node) throws RepositoryException {
+        return sessionDelegate.getNamePathMapper().toOakPath(node.getPath());
     }
 }

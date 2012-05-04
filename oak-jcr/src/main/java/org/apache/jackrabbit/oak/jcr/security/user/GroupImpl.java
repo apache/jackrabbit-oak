@@ -18,10 +18,11 @@ package org.apache.jackrabbit.oak.jcr.security.user;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
-import org.apache.jackrabbit.oak.jcr.NodeImpl;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import java.security.Principal;
 import java.util.Enumeration;
@@ -37,8 +38,15 @@ class GroupImpl extends AuthorizableImpl implements Group {
      */
     private static final Logger log = LoggerFactory.getLogger(GroupImpl.class);
 
-    public GroupImpl(NodeImpl node, UserManagerImpl userManager) {
+    GroupImpl(Node node, UserManagerImpl userManager) throws RepositoryException {
         super(node, userManager);
+    }
+
+    @Override
+    void checkValidNode(Node node) throws RepositoryException {
+        if (node == null || !node.isNodeType(AuthorizableImpl.NT_REP_GROUP)) {
+            throw new IllegalArgumentException("Invalid group node: node type rep:Group expected.");
+        }
     }
 
     //-------------------------------------------------------< Authorizable >---
@@ -59,44 +67,121 @@ class GroupImpl extends AuthorizableImpl implements Group {
     }
 
     //--------------------------------------------------------------< Group >---
-
+    /**
+     * @see org.apache.jackrabbit.api.security.user.Group#getDeclaredMembers()
+     */
     @Override
     public Iterator<Authorizable> getDeclaredMembers() throws RepositoryException {
-        // TODO
-        return null;
+        return getMembers(false);
     }
 
+    /**
+     * @see org.apache.jackrabbit.api.security.user.Group#getMembers()
+     */
     @Override
     public Iterator<Authorizable> getMembers() throws RepositoryException {
-        // TODO
-        return null;
+        return getMembers(true);
     }
 
+    /**
+     * @see org.apache.jackrabbit.api.security.user.Group#isDeclaredMember(org.apache.jackrabbit.api.security.user.Authorizable)
+     */
     @Override
     public boolean isDeclaredMember(Authorizable authorizable) throws RepositoryException {
-        // TODO
-        return false;
+        return isMember(authorizable, false);
     }
 
+    /**
+     * @see org.apache.jackrabbit.api.security.user.Group#isMember(org.apache.jackrabbit.api.security.user.Authorizable)
+     */
     @Override
     public boolean isMember(Authorizable authorizable) throws RepositoryException {
-        // TODO
-        return false;
+        return isMember(authorizable, true);
     }
 
+    /**
+     * @see org.apache.jackrabbit.api.security.user.Group#addMember(org.apache.jackrabbit.api.security.user.Authorizable)
+     */
     @Override
     public boolean addMember(Authorizable authorizable) throws RepositoryException {
-        // TODO
-        return false;
+        if (!isValidAuthorizableImpl(authorizable)) {
+            log.warn("Invalid Authorizable: {}", authorizable);
+            return false;
+        }
+        if (isEveryone() || ((AuthorizableImpl) authorizable).isEveryone()) {
+            return false;
+        }
+
+        AuthorizableImpl authImpl = ((AuthorizableImpl) authorizable);
+        Node memberNode = authImpl.getNode();
+        if (memberNode.isSame(getNode())) {
+            String msg = "Attempt to add a group as member of itself (" + getID() + ").";
+            log.warn(msg);
+            return false;
+        }
+
+        if (authImpl.isGroup() && ((GroupImpl) authImpl).isMember(this)) {
+            log.warn("Attempt to create circular group membership.");
+            return false;
+        }
+
+        return getUserManager().getMembershipManager().addMember(this, authImpl);
     }
 
+    /**
+     * @see org.apache.jackrabbit.api.security.user.Group#removeMember(org.apache.jackrabbit.api.security.user.Authorizable)
+     */
     @Override
     public boolean removeMember(Authorizable authorizable) throws RepositoryException {
-        // TODO
-        return false;
+        if (!isValidAuthorizableImpl(authorizable)) {
+            log.warn("Invalid Authorizable: {}", authorizable);
+            return false;
+        }
+        if (isEveryone()) {
+            return false;
+        }
+
+        return getUserManager().getMembershipManager().removeMember(this, (AuthorizableImpl) authorizable);
     }
 
     //--------------------------------------------------------------------------
+    /**
+     *
+     * @param includeInherited
+     * @return
+     * @throws RepositoryException
+     */
+    private Iterator<Authorizable> getMembers(boolean includeInherited) throws RepositoryException {
+        if (isEveryone()) {
+            return getUserManager().findAuthorizables(AuthorizableImpl.REP_PRINCIPAL_NAME, null, UserManager.SEARCH_TYPE_AUTHORIZABLE);
+        } else if (includeInherited) {
+            return getUserManager().getMembershipManager().getMembers(this);
+        } else {
+            return getUserManager().getMembershipManager().getDeclaredMembers(this);
+        }
+    }
+
+    /**
+     *
+     * @param authorizable
+     * @param includeInherited
+     * @return
+     * @throws RepositoryException
+     */
+    private boolean isMember(Authorizable authorizable, boolean includeInherited) throws RepositoryException {
+        if (!isValidAuthorizableImpl(authorizable)) {
+            return false;
+        } else if (getNode().isSame(((AuthorizableImpl) authorizable).getNode())) {
+            return false;
+        } else if (isEveryone()) {
+            return true;
+        } else if (includeInherited) {
+            return getUserManager().getMembershipManager().hasMember(this, (AuthorizableImpl) authorizable);
+        } else {
+            return getUserManager().getMembershipManager().hasDeclaredMember(this, (AuthorizableImpl) authorizable);
+        }
+    }
+
     /**
      *
      */
