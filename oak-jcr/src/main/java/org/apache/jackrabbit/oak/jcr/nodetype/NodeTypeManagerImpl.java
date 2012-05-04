@@ -16,69 +16,85 @@
  */
 package org.apache.jackrabbit.oak.jcr.nodetype;
 
-import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
-import org.apache.jackrabbit.oak.namepath.NameMapper;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
+import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeDefinitionTemplate;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeDefinition;
 import javax.jcr.nodetype.NodeTypeIterator;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.NodeTypeTemplate;
+import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+
+import org.apache.jackrabbit.commons.cnd.CompactNodeTypeDefReader;
+import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory;
+import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory.AbstractNodeDefinitionBuilder;
+import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory.AbstractNodeTypeDefinitionBuilder;
+import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory.AbstractPropertyDefinitionBuilder;
+import org.apache.jackrabbit.commons.cnd.ParseException;
+import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
+import org.apache.jackrabbit.oak.namepath.NameMapper;
 
 public class NodeTypeManagerImpl implements NodeTypeManager {
 
-    private static final Pattern CND_PATTERN =
-            Pattern.compile("\\[(\\S*)?\\](.*?)\n\n", Pattern.DOTALL);
-
     private final NameMapper mapper;
+    private final List<NodeType> types;
 
-    private final Map<String, NodeType> types = new HashMap<String, NodeType>();
+    private final Map<String, NodeType> typemap = new HashMap<String, NodeType>();
 
     public NodeTypeManagerImpl(NameMapper mapper) throws RepositoryException {
         this.mapper = mapper;
 
         try {
-            InputStream stream = NodeTypeManagerImpl.class.getResourceAsStream(
-                    "builtin_nodetypes.cnd");
+            InputStream stream = NodeTypeManagerImpl.class.getResourceAsStream("builtin_nodetypes.cnd");
+            Reader reader = new InputStreamReader(stream, "UTF-8");
             try {
-                String cnd = IOUtils.toString(stream, "UTF-8");
-                Matcher matcher = CND_PATTERN.matcher(cnd.replace("\r\n", "\n"));
-                while (matcher.find()) {
-                    String name = matcher.group(1);
-                    types.put(name, new NodeTypeImpl(
-                            this, mapper, name, matcher.group(2)));
-                }
+                DefinitionBuilderFactory<NodeType, Map<String, String>> dbf = new DefinitionBuilderFactoryImpl(this, mapper);
+                CompactNodeTypeDefReader<NodeType, Map<String, String>> cndr = new CompactNodeTypeDefReader<NodeType, Map<String, String>>(
+                        reader, null, dbf);
+
+                types = cndr.getNodeTypeDefinitions();
+            } catch (ParseException ex) {
+                throw new RepositoryException("Failed to load built-in node types", ex);
             } finally {
                 stream.close();
             }
-        } catch (IOException e) {
-            throw new RepositoryException(
-                    "Failed to load built-in node types", e);
+        } catch (IOException ex) {
+            throw new RepositoryException("Failed to load built-in node types", ex);
+        }
+    }
+
+    private void init() {
+        if (typemap.isEmpty()) {
+            for (NodeType t : types) {
+                typemap.put(t.getName(), t);
+            }
         }
     }
 
     @Override
     public boolean hasNodeType(String name) throws RepositoryException {
-        return types.containsKey(mapper.getOakName(name));
+        init();
+        return typemap.containsKey(mapper.getOakName(name));
     }
 
     @Override
     public NodeType getNodeType(String name) throws RepositoryException {
-        NodeType type = types.get(mapper.getOakName(name));
+        init();
+        NodeType type = typemap.get(mapper.getOakName(name));
         if (type == null) {
             throw new NoSuchNodeTypeException("Unknown node type: " + name);
         }
@@ -87,13 +103,15 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
 
     @Override
     public NodeTypeIterator getAllNodeTypes() throws RepositoryException {
-        return new NodeTypeIteratorAdapter(types.values());
+        init();
+        return new NodeTypeIteratorAdapter(typemap.values());
     }
 
     @Override
     public NodeTypeIterator getPrimaryNodeTypes() throws RepositoryException {
+        init();
         Collection<NodeType> primary = new ArrayList<NodeType>();
-        for (NodeType type : types.values()) {
+        for (NodeType type : typemap.values()) {
             if (!type.isMixin()) {
                 primary.add(type);
             }
@@ -103,8 +121,9 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
 
     @Override
     public NodeTypeIterator getMixinNodeTypes() throws RepositoryException {
+        init();
         Collection<NodeType> mixin = new ArrayList<NodeType>();
-        for (NodeType type : types.values()) {
+        for (NodeType type : typemap.values()) {
             if (type.isMixin()) {
                 mixin.add(type);
             }
@@ -118,36 +137,31 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
     }
 
     @Override
-    public NodeTypeTemplate createNodeTypeTemplate(NodeTypeDefinition ntd)
-            throws RepositoryException {
+    public NodeTypeTemplate createNodeTypeTemplate(NodeTypeDefinition ntd) throws RepositoryException {
 
         throw new UnsupportedRepositoryOperationException();
     }
 
     @Override
-    public NodeDefinitionTemplate createNodeDefinitionTemplate()
-            throws RepositoryException {
+    public NodeDefinitionTemplate createNodeDefinitionTemplate() throws RepositoryException {
 
         throw new UnsupportedRepositoryOperationException();
     }
 
     @Override
-    public PropertyDefinitionTemplate createPropertyDefinitionTemplate()
-            throws RepositoryException {
+    public PropertyDefinitionTemplate createPropertyDefinitionTemplate() throws RepositoryException {
 
         throw new UnsupportedRepositoryOperationException();
     }
 
     @Override
-    public NodeType registerNodeType(NodeTypeDefinition ntd, boolean allowUpdate)
-            throws RepositoryException {
+    public NodeType registerNodeType(NodeTypeDefinition ntd, boolean allowUpdate) throws RepositoryException {
 
         throw new UnsupportedRepositoryOperationException();
     }
 
     @Override
-    public NodeTypeIterator registerNodeTypes(NodeTypeDefinition[] ntds,
-            boolean allowUpdate) throws RepositoryException {
+    public NodeTypeIterator registerNodeTypes(NodeTypeDefinition[] ntds, boolean allowUpdate) throws RepositoryException {
 
         throw new UnsupportedRepositoryOperationException();
     }
@@ -162,4 +176,175 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
         throw new UnsupportedRepositoryOperationException();
     }
 
+    private class DefinitionBuilderFactoryImpl extends DefinitionBuilderFactory<NodeType, Map<String, String>> {
+
+        private Map<String, String> nsmap = new HashMap<String, String>();
+
+        private final NodeTypeManager ntm;
+        private final NameMapper mapper;
+
+        public DefinitionBuilderFactoryImpl(NodeTypeManager ntm, NameMapper mapper) {
+            this.ntm = ntm;
+            this.mapper = mapper;
+        }
+
+        @Override
+        public Map<String, String> getNamespaceMapping() {
+            return this.nsmap;
+        }
+
+        @Override
+        public org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory.AbstractNodeTypeDefinitionBuilder<NodeType> newNodeTypeDefinitionBuilder()
+                throws RepositoryException {
+            return new NodeTypeDefinitionBuilderImpl(this.ntm, this.mapper);
+        }
+
+        @Override
+        public void setNamespace(String prefix, String uri) throws RepositoryException {
+            this.nsmap.put(prefix, uri);
+        }
+
+        @Override
+        public void setNamespaceMapping(Map<String, String> nsmap) {
+            this.nsmap = nsmap;
+        }
+    }
+
+    private class NodeTypeDefinitionBuilderImpl extends AbstractNodeTypeDefinitionBuilder<NodeType> {
+
+        private List<PropertyDefinitionBuilderImpl> propertyDefinitions = new ArrayList<PropertyDefinitionBuilderImpl>();
+        private List<NodeDefinitionBuilderImpl> childNodeDefinitions = new ArrayList<NodeDefinitionBuilderImpl>();
+
+        private final NodeTypeManager ntm;
+        private final NameMapper mapper;
+
+        private String primaryItemName;
+        private List<String> declaredSuperTypes = new ArrayList<String>();
+
+        public NodeTypeDefinitionBuilderImpl(NodeTypeManager ntm, NameMapper mapper) {
+            this.ntm = ntm;
+            this.mapper = mapper;
+        }
+
+        @Override
+        public void addSupertype(String superType) throws RepositoryException {
+            this.declaredSuperTypes.add(superType);
+        }
+
+        @Override
+        public void setPrimaryItemName(String primaryItemName) throws RepositoryException {
+            this.primaryItemName = primaryItemName;
+        }
+
+        @Override
+        public AbstractPropertyDefinitionBuilder<NodeType> newPropertyDefinitionBuilder() throws RepositoryException {
+            return new PropertyDefinitionBuilderImpl(this);
+        }
+
+        @Override
+        public AbstractNodeDefinitionBuilder<NodeType> newNodeDefinitionBuilder() throws RepositoryException {
+            return new NodeDefinitionBuilderImpl(this);
+        }
+
+        @Override
+        public NodeType build() throws RepositoryException {
+
+            NodeTypeImpl result = new NodeTypeImpl(ntm, mapper, name, declaredSuperTypes.toArray(new String[declaredSuperTypes
+                    .size()]), primaryItemName, isMixin, isAbstract, isOrderable);
+
+            for (PropertyDefinitionBuilderImpl pdb : propertyDefinitions) {
+                result.addPropertyDefinition(pdb.getPropertyDefinition(result, mapper));
+            }
+
+            for (NodeDefinitionBuilderImpl ndb : childNodeDefinitions) {
+                result.addChildNodeDefinition(ndb.getNodeDefinition(ntm, result, mapper));
+            }
+
+            return result;
+        }
+
+        public void addPropertyDefinition(PropertyDefinitionBuilderImpl pd) {
+            this.propertyDefinitions.add(pd);
+        }
+
+        public void addNodeDefinition(NodeDefinitionBuilderImpl nd) {
+            this.childNodeDefinitions.add(nd);
+        }
+    }
+
+    private class NodeDefinitionBuilderImpl extends AbstractNodeDefinitionBuilder<NodeType> {
+
+        private String declaringNodeType;
+        private String defaultPrimaryType;
+        private List<String> requiredPrimaryTypes = new ArrayList<String>();
+
+        private final NodeTypeDefinitionBuilderImpl ndtb;
+
+        public NodeDefinitionBuilderImpl(NodeTypeDefinitionBuilderImpl ntdb) {
+            this.ndtb = ntdb;
+        }
+
+        public NodeDefinition getNodeDefinition(NodeTypeManager ntm, NodeType nt, NameMapper mapper) {
+            return new NodeDefinitionImpl(ntm, nt, mapper, name, autocreate, isMandatory, onParent, isProtected,
+                    requiredPrimaryTypes.toArray(new String[requiredPrimaryTypes.size()]), defaultPrimaryType, allowSns);
+        };
+
+        @Override
+        public void setDefaultPrimaryType(String defaultPrimaryType) throws RepositoryException {
+            this.defaultPrimaryType = defaultPrimaryType;
+        }
+
+        @Override
+        public void addRequiredPrimaryType(String name) throws RepositoryException {
+            this.requiredPrimaryTypes.add(name);
+        }
+
+        @Override
+        public void setDeclaringNodeType(String declaringNodeType) throws RepositoryException {
+            this.declaringNodeType = declaringNodeType;
+        }
+
+        @Override
+        public void build() throws RepositoryException {
+            this.ndtb.addNodeDefinition(this);
+        }
+    }
+
+    private class PropertyDefinitionBuilderImpl extends AbstractPropertyDefinitionBuilder<NodeType> {
+
+        private String declaringNodeType;
+        private List<String> defaultValues = new ArrayList<String>();
+        private List<String> valueConstraints = new ArrayList<String>();
+
+        private final NodeTypeDefinitionBuilderImpl ndtb;
+
+        public PropertyDefinitionBuilderImpl(NodeTypeDefinitionBuilderImpl ntdb) {
+            this.ndtb = ntdb;
+        }
+
+        public PropertyDefinition getPropertyDefinition(NodeType nt, NameMapper mapper) {
+            return new PropertyDefinitionImpl(nt, mapper, name, autocreate, isMandatory, onParent, isProtected, requiredType,
+                    isMultiple);
+        }
+
+        @Override
+        public void addValueConstraint(String constraint) throws RepositoryException {
+            this.valueConstraints.add(constraint);
+        }
+
+        @Override
+        public void addDefaultValues(String value) throws RepositoryException {
+            this.defaultValues.add(value);
+        }
+
+        @Override
+        public void setDeclaringNodeType(String declaringNodeType) throws RepositoryException {
+            this.declaringNodeType = declaringNodeType;
+        }
+
+        @Override
+        public void build() throws RepositoryException {
+            this.ndtb.addPropertyDefinition(this);
+        }
+    }
 }
