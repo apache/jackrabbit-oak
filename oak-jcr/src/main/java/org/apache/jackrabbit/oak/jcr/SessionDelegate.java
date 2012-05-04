@@ -57,7 +57,7 @@ public class SessionDelegate {
     private boolean isAlive = true;
     private Root root;
 
-    public SessionDelegate(GlobalContext context, ContentSession contentSession)
+    SessionDelegate(GlobalContext context, ContentSession contentSession)
             throws RepositoryException {
 
         this.context = context;
@@ -115,6 +115,22 @@ public class SessionDelegate {
 
     public NamePathMapper getNamePathMapper() {
         return namePathMapper;
+    }
+
+    /**
+     * Shortcut for {@code SessionDelegate.getNamePathMapper().getOakPath(jcrPath)}.
+     *
+     * @param jcrPath
+     * @return
+     * @throws RepositoryException
+     */
+    public String getOakPath(String jcrPath) throws RepositoryException {
+        try {
+            return getNamePathMapper().getOakPath(jcrPath);
+        } catch (IllegalArgumentException ex) {
+            // TODO we shouldn't have to catch this one
+            throw new RepositoryException(ex);
+        }
     }
 
     public NodeTypeManager getNodeTypeManager() throws RepositoryException {

@@ -91,7 +91,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
         }
 
         // FIXME: convert to oak paths
-        sessionDelegate.copy(toOakPath(srcAbsPath), toOakPath(destAbsPath));
+        sessionDelegate.copy(sessionDelegate.getOakPath(srcAbsPath), sessionDelegate.getOakPath(destAbsPath));
     }
 
     @SuppressWarnings("deprecation")
@@ -109,7 +109,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
         ensureSupportedOption(Repository.LEVEL_2_SUPPORTED);
         ensureIsAlive();
 
-        sessionDelegate.move(toOakPath(srcAbsPath), toOakPath(destAbsPath), false);
+        sessionDelegate.move(sessionDelegate.getOakPath(srcAbsPath), sessionDelegate.getOakPath(destAbsPath), false);
     }
 
     @Override
@@ -142,8 +142,10 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
 
     @Override
     public ObservationManager getObservationManager() throws RepositoryException {
-        ensureSupportedOption(Repository.OPTION_OBSERVATION_SUPPORTED);
         ensureIsAlive();
+        ensureSupportedOption(Repository.OPTION_OBSERVATION_SUPPORTED);
+
+        // TODO
         throw new UnsupportedRepositoryOperationException("TODO: Workspace.getObservationManager");
     }
 
@@ -151,6 +153,8 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     public VersionManager getVersionManager() throws RepositoryException {
         ensureIsAlive();
         ensureSupportedOption(Repository.OPTION_VERSIONING_SUPPORTED);
+
+        // TODO
         throw new UnsupportedRepositoryOperationException("TODO: Workspace.getVersionManager");
     }
 
@@ -165,16 +169,18 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     @SuppressWarnings("deprecation")
     @Override
     public ContentHandler getImportContentHandler(String parentAbsPath, int uuidBehavior) throws RepositoryException {
-        ensureSupportedOption(Repository.LEVEL_2_SUPPORTED);
         ensureIsAlive();
+        ensureSupportedOption(Repository.LEVEL_2_SUPPORTED);
+
+        // TODO
         throw new UnsupportedRepositoryOperationException("TODO: Workspace.getImportContentHandler");
     }
 
     @SuppressWarnings("deprecation")
     @Override
     public void importXML(String parentAbsPath, InputStream in, int uuidBehavior) throws IOException, RepositoryException {
-        ensureSupportedOption(Repository.LEVEL_2_SUPPORTED);
         ensureIsAlive();
+        ensureSupportedOption(Repository.LEVEL_2_SUPPORTED);
 
         // TODO -> SPI
     }
@@ -220,7 +226,6 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     public PrivilegeManager getPrivilegeManager() throws RepositoryException {
         return new PrivilegeManagerImpl(sessionDelegate);
     }
-
 
     //------------------------------------------------------------< private >---
 
@@ -314,15 +319,4 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
             throw new UnsupportedRepositoryOperationException(option + " is not supported by this repository.");
         }
     }
-
-    private String toOakPath(String jcrPath) throws RepositoryException {
-        try {
-            return sessionDelegate.getNamePathMapper().getOakPath(jcrPath);
-        } catch (IllegalArgumentException ex) {
-            // TODO we shouldn't have to catch this one
-            throw new RepositoryException(ex);
-        }
-    }
-
-
 }
