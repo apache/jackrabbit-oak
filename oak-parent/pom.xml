@@ -78,6 +78,11 @@
           <extensions>true</extensions>
         </plugin>
         <plugin>
+          <groupId>org.apache.felix</groupId>
+          <artifactId>maven-scr-plugin</artifactId>
+          <version>1.7.4</version>
+        </plugin>
+        <plugin>
           <artifactId>maven-deploy-plugin</artifactId>
           <configuration>
             <skip>${skip.deployment}</skip>
@@ -97,17 +102,22 @@
       <dependency>
         <groupId>org.osgi</groupId>
         <artifactId>org.osgi.core</artifactId>
-        <version>4.0.0</version>
+        <version>4.2.0</version>
       </dependency>
       <dependency>
         <groupId>org.osgi</groupId>
         <artifactId>org.osgi.compendium</artifactId>
-        <version>4.0.0</version>
+        <version>4.2.0</version>
       </dependency>
       <dependency>
         <groupId>biz.aQute</groupId>
         <artifactId>bndlib</artifactId>
         <version>1.50.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.felix</groupId>
+        <artifactId>org.apache.felix.scr.annotations</artifactId>
+        <version>1.6.0</version>
       </dependency>
       <dependency>
         <groupId>junit</groupId>
