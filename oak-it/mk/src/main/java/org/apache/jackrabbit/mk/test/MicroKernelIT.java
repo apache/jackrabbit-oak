@@ -255,6 +255,17 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
     }
 
     @Test
+    public void copyToDescendant() {
+        mk.commit("/",
+                "+\"test/child\":{}\n" +
+                "*\"test\":\"test/copy\"\n",
+                null, "");
+
+        assertTrue(mk.nodeExists("/test/child", null));
+        assertTrue(mk.nodeExists("/test/copy/child", null));
+    }
+
+    @Test
     public void getNodes() {
         String head = mk.getHeadRevision();
 

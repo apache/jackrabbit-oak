@@ -284,13 +284,18 @@ public class CommitBuilder {
         }
     }
 
-    void copyStagedNodes(String srcPath, String destPath) throws Exception {
+    void copyStagedNodes(String srcPath, String destPath, String breakAtSrcPath) throws Exception {
+        if (srcPath.equals(breakAtSrcPath)) {
+            // OAK-83: prevent infinite recursion when copying to descendant path
+            return;
+        }
+
         MutableNode node = staged.get(srcPath);
         if (node != null) {
             staged.put(destPath, new MutableNode(node, store, destPath));
             for (Iterator<String> it = node.getChildNodeNames(0, -1); it.hasNext(); ) {
                 String childName = it.next();
-                copyStagedNodes(PathUtils.concat(srcPath, childName), PathUtils.concat(destPath, childName));
+                copyStagedNodes(PathUtils.concat(srcPath, childName), PathUtils.concat(destPath, childName), breakAtSrcPath);
             }
         }
     }
@@ -617,7 +622,7 @@ public class CommitBuilder {
                 // the copied subtree is modified
 
                 // update staging area
-                copyStagedNodes(srcPath, destPath);
+                copyStagedNodes(srcPath, destPath, destPath);
             }
         }
 
