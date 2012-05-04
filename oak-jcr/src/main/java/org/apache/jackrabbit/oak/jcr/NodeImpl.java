@@ -31,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.jcr.Binary;
+import javax.jcr.InvalidItemStateException;
 import javax.jcr.Item;
 import javax.jcr.ItemNotFoundException;
 import javax.jcr.ItemVisitor;
@@ -103,7 +104,11 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public boolean isNew() {
-        return dlg.getNodeStatus() == Status.NEW;
+        try {
+            return dlg.getNodeStatus() == Status.NEW;
+        } catch (InvalidItemStateException ex) {
+            return false;
+        }
     }
 
     /**
@@ -111,7 +116,11 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public boolean isModified() {
-        return dlg.getNodeStatus() == Status.MODIFIED;
+        try {
+            return dlg.getNodeStatus() == Status.MODIFIED;
+        } catch (InvalidItemStateException ex) {
+            return false;
+        }
     }
 
     /**

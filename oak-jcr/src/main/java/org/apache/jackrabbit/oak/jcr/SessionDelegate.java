@@ -16,6 +16,19 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import java.io.IOException;
+
+import javax.jcr.ItemExistsException;
+import javax.jcr.NamespaceRegistry;
+import javax.jcr.PathNotFoundException;
+import javax.jcr.Repository;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.Workspace;
+import javax.jcr.lock.LockManager;
+import javax.jcr.nodetype.NodeTypeManager;
+import javax.jcr.version.VersionManager;
+
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -31,16 +44,6 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.jcr.NamespaceRegistry;
-import javax.jcr.Repository;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.Workspace;
-import javax.jcr.lock.LockManager;
-import javax.jcr.nodetype.NodeTypeManager;
-import javax.jcr.version.VersionManager;
-import java.io.IOException;
 
 public class SessionDelegate {
     static final Logger log = LoggerFactory.getLogger(SessionDelegate.class);
@@ -158,6 +161,28 @@ public class SessionDelegate {
 
         String srcPath = PathUtils.relativize("/", srcAbsPath);  // TODO: is this needed?
         String destPath = PathUtils.relativize("/", destAbsPath);
+        
+        // TODO: do the checks below belong here?
+
+        // check destination
+        Tree dest = getTree(destPath);
+        if (dest != null) {
+            throw new ItemExistsException(destPath);
+        }
+        
+        // check parent of destination
+        String destParentPath = PathUtils.getParentPath(destPath);
+        Tree destParent = getTree(destParentPath);
+        if (destParent == null) {
+            throw new PathNotFoundException(destParentPath);
+        }
+        
+        // check source exists
+        Tree src = getTree(srcPath);
+        if (src == null) {
+            throw new PathNotFoundException(srcPath);
+        }
+        
         try {
             if (transientOp) {
                 root.move(srcPath, destPath);
