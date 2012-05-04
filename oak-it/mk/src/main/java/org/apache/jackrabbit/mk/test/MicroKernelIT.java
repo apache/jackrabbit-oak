@@ -263,6 +263,19 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
 
         assertTrue(mk.nodeExists("/test/child", null));
         assertTrue(mk.nodeExists("/test/copy/child", null));
+        JSONObject obj = parseJSONObject(mk.getNodes("/test", null, 99, 0, -1, null));
+        assertPropertyValue(obj, ":childNodeCount", 2l);
+        assertPropertyValue(obj, "copy/:childNodeCount", 1l);
+        assertPropertyValue(obj, "copy/child/:childNodeCount", 0l);
+
+        mk.commit("", "+\"/root\":{} +\"/root/N4\":{} *\"/root/N4\":\"/root/N4/N5\"", null, null);
+        assertTrue(mk.nodeExists("/root", null));
+        assertTrue(mk.nodeExists("/root/N4", null));
+        assertTrue(mk.nodeExists("/root/N4/N5", null));
+        obj = parseJSONObject(mk.getNodes("/root", null, 99, 0, -1, null));
+        assertPropertyValue(obj, ":childNodeCount", 1l);
+        assertPropertyValue(obj, "N4/:childNodeCount", 1l);
+        assertPropertyValue(obj, "N4/N5/:childNodeCount", 0l);
     }
 
     @Test

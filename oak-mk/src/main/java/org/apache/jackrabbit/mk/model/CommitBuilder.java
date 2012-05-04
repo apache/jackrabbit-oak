@@ -615,15 +615,16 @@ public class CommitBuilder {
                 throw new NotFoundException(srcPath);
             }
 
-            MutableNode destParent = getOrCreateStagedNode(destParentPath);
-            destParent.add(new ChildNode(destNodeName, srcCNE.getId()));
-
             if (staged.containsKey(srcPath)) {
                 // the copied subtree is modified
 
                 // update staging area
                 copyStagedNodes(srcPath, destPath, destPath);
             }
+
+            MutableNode destParent = getOrCreateStagedNode(destParentPath);
+            destParent.add(new ChildNode(destNodeName, srcCNE.getId()));
+
         }
 
         @Override
