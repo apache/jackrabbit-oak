@@ -198,6 +198,7 @@ public class NamespaceMappings {
         if (system == null) {
             if (create) {
                 system = tree.addChild("jcr:system");
+                system.setProperty("jcr:primaryType", this.session.getCoreValueFactory().createValue("rep:system", PropertyType.NAME));
             } else {
                 return null;
             }
@@ -205,7 +206,7 @@ public class NamespaceMappings {
         Tree namespaces = system.getChild("jcr:namespaces");
         if (namespaces == null && create) {
             namespaces = system.addChild("jcr:namespaces");
-            namespaces.setProperty("jcr:primaryType", this.session.getCoreValueFactory().createValue("rep:system", PropertyType.NAME));
+            namespaces.setProperty("jcr:primaryType", this.session.getCoreValueFactory().createValue("nt:unstructured", PropertyType.NAME));
         }
         return namespaces;
     }
