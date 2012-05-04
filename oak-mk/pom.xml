@@ -47,12 +47,22 @@
               org.apache.jackrabbit.mk.client,
               org.apache.jackrabbit.mk.blobs
             </Export-Package>
-            <Bundle-Activator>
-              org.apache.jackrabbit.mk.osgi.Activator
-            </Bundle-Activator>
           </instructions>
         </configuration>
       </plugin>
+      <plugin>
+        <groupId>org.apache.felix</groupId>
+        <artifactId>maven-scr-plugin</artifactId>
+        <version>1.7.2</version>
+        <executions>
+          <execution>
+            <id>generate-scr-scrdescriptor</id>
+            <goals>
+              <goal>scr</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>      
     </plugins>
     <pluginManagement>
       <plugins>
@@ -78,10 +88,22 @@
       <optional>true</optional>
     </dependency>
     <dependency>
+      <groupId>org.osgi</groupId>
+      <artifactId>org.osgi.compendium</artifactId>
+      <scope>provided</scope>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
       <groupId>biz.aQute</groupId>
       <artifactId>bndlib</artifactId>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+        <groupId>org.apache.felix</groupId>
+        <artifactId>org.apache.felix.scr.annotations</artifactId>
+        <scope>provided</scope>
+    </dependency>
+    
 
     <!-- commons dependency -->
     <dependency>
