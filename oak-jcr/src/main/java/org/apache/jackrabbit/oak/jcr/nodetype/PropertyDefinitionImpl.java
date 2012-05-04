@@ -20,23 +20,29 @@ import javax.jcr.Value;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.PropertyDefinition;
 
+import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.jcr.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 
 class PropertyDefinitionImpl
         extends ItemDefinitionImpl implements PropertyDefinition {
 
     private final int requiredType;
-
     private final boolean multiple;
+    private final CoreValue[] defaultCoreValues;
 
+    private final ValueFactoryImpl vfac;
+    
     public PropertyDefinitionImpl(
-            NodeType type, NameMapper mapper, String name, boolean autoCreated,
+            NodeType type, NameMapper mapper, ValueFactoryImpl vfac, String name, boolean autoCreated,
             boolean mandatory, int onParentRevision, boolean isProtected,
-            int requiredType, boolean multiple) {
+            int requiredType, boolean multiple, CoreValue[] defaultCoreValues) {
         super(type, mapper, name, autoCreated,
                 mandatory, onParentRevision, isProtected);
+        this.vfac = vfac;
         this.requiredType = requiredType;
         this.multiple = multiple;
+        this.defaultCoreValues = defaultCoreValues;
     }
 
     @Override
@@ -51,7 +57,11 @@ class PropertyDefinitionImpl
 
     @Override
     public Value[] getDefaultValues() {
-        return new Value[0];
+        Value[] defaults = new Value[defaultCoreValues.length];
+        for (int i = 0; i < defaults.length; i++) {
+            defaults[i] = vfac.createValue(defaultCoreValues[i]);
+        }
+        return defaults;
     }
 
     @Override

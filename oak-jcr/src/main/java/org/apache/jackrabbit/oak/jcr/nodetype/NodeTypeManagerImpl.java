@@ -46,6 +46,8 @@ import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory.AbstractNodeTy
 import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory.AbstractPropertyDefinitionBuilder;
 import org.apache.jackrabbit.commons.cnd.ParseException;
 import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
+import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.jcr.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 
 public class NodeTypeManagerImpl implements NodeTypeManager {
@@ -55,14 +57,14 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
 
     private final Map<String, NodeType> typemap = new HashMap<String, NodeType>();
 
-    public NodeTypeManagerImpl(NameMapper mapper) throws RepositoryException {
+    public NodeTypeManagerImpl(ValueFactoryImpl vf, NameMapper mapper) throws RepositoryException {
         this.mapper = mapper;
 
         try {
             InputStream stream = NodeTypeManagerImpl.class.getResourceAsStream("builtin_nodetypes.cnd");
             Reader reader = new InputStreamReader(stream, "UTF-8");
             try {
-                DefinitionBuilderFactory<NodeType, Map<String, String>> dbf = new DefinitionBuilderFactoryImpl(this, mapper);
+                DefinitionBuilderFactory<NodeType, Map<String, String>> dbf = new DefinitionBuilderFactoryImpl(this, vf, mapper);
                 CompactNodeTypeDefReader<NodeType, Map<String, String>> cndr = new CompactNodeTypeDefReader<NodeType, Map<String, String>>(
                         reader, null, dbf);
 
@@ -181,27 +183,29 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
         private Map<String, String> nsmap = new HashMap<String, String>();
 
         private final NodeTypeManager ntm;
+        private final ValueFactoryImpl vf;
         private final NameMapper mapper;
 
-        public DefinitionBuilderFactoryImpl(NodeTypeManager ntm, NameMapper mapper) {
+        public DefinitionBuilderFactoryImpl(NodeTypeManager ntm, ValueFactoryImpl vf, NameMapper mapper) {
             this.ntm = ntm;
+            this.vf = vf;
             this.mapper = mapper;
         }
 
         @Override
         public Map<String, String> getNamespaceMapping() {
-            return this.nsmap;
+            return nsmap;
         }
 
         @Override
         public org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory.AbstractNodeTypeDefinitionBuilder<NodeType> newNodeTypeDefinitionBuilder()
                 throws RepositoryException {
-            return new NodeTypeDefinitionBuilderImpl(this.ntm, this.mapper);
+            return new NodeTypeDefinitionBuilderImpl(ntm, vf, mapper);
         }
 
         @Override
         public void setNamespace(String prefix, String uri) throws RepositoryException {
-            this.nsmap.put(prefix, uri);
+            nsmap.put(prefix, uri);
         }
 
         @Override
@@ -216,13 +220,15 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
         private List<NodeDefinitionBuilderImpl> childNodeDefinitions = new ArrayList<NodeDefinitionBuilderImpl>();
 
         private final NodeTypeManager ntm;
+        private final ValueFactoryImpl vf;
         private final NameMapper mapper;
 
         private String primaryItemName;
         private List<String> declaredSuperTypes = new ArrayList<String>();
 
-        public NodeTypeDefinitionBuilderImpl(NodeTypeManager ntm, NameMapper mapper) {
+        public NodeTypeDefinitionBuilderImpl(NodeTypeManager ntm, ValueFactoryImpl vf, NameMapper mapper) {
             this.ntm = ntm;
+            this.vf = vf;
             this.mapper = mapper;
         }
 
@@ -253,7 +259,7 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
                     .size()]), primaryItemName, isMixin, isAbstract, isOrderable);
 
             for (PropertyDefinitionBuilderImpl pdb : propertyDefinitions) {
-                result.addPropertyDefinition(pdb.getPropertyDefinition(result, mapper));
+                result.addPropertyDefinition(pdb.getPropertyDefinition(result, vf, mapper));
             }
 
             for (NodeDefinitionBuilderImpl ndb : childNodeDefinitions) {
@@ -322,9 +328,16 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
             this.ndtb = ntdb;
         }
 
-        public PropertyDefinition getPropertyDefinition(NodeType nt, NameMapper mapper) {
-            return new PropertyDefinitionImpl(nt, mapper, name, autocreate, isMandatory, onParent, isProtected, requiredType,
-                    isMultiple);
+        public PropertyDefinition getPropertyDefinition(NodeType nt, ValueFactoryImpl vf, NameMapper mapper) {
+            
+            CoreValue[] defaultCoreValues = new CoreValue[defaultValues.size()];
+            
+            for (int i = 0; i < defaultCoreValues.length; i++) {
+                defaultCoreValues[i] = vf.getCoreValueFactory().createValue(defaultValues.get(i), requiredType);
+            }
+            
+            return new PropertyDefinitionImpl(nt, mapper, vf, name, autocreate, isMandatory, onParent, isProtected, requiredType,
+                    isMultiple, defaultCoreValues);
         }
 
         @Override
