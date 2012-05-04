@@ -16,12 +16,14 @@
 */
 package org.apache.jackrabbit.oak.plugins.name;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 
+import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -190,7 +192,7 @@ public class NamespaceMappings {
         root.commit();
     }
 
-    private static Tree getNamespaces(Root root, boolean create) {
+    private Tree getNamespaces(Root root, boolean create) {
         Tree tree = root.getTree("/");
         Tree system = tree.getChild("jcr:system");
         if (system == null) {
@@ -203,6 +205,7 @@ public class NamespaceMappings {
         Tree namespaces = system.getChild("jcr:namespaces");
         if (namespaces == null && create) {
             namespaces = system.addChild("jcr:namespaces");
+            namespaces.setProperty("jcr:primaryType", this.session.getCoreValueFactory().createValue("rep:system", PropertyType.NAME));
         }
         return namespaces;
     }
