@@ -192,7 +192,7 @@ public class SessionDelegate {
         }
     }
 
-    //-------------------------------------------< SessionNamespaceResolver >---
+    //--------------------------------------------------< SessionNameMapper >---
 
     private class SessionNameMapper extends AbstractNameMapper {
 
@@ -228,5 +228,4 @@ public class SessionDelegate {
             }
         }
     }
-
 }

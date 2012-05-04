@@ -151,7 +151,7 @@ public class ValueFactoryImpl implements ValueFactory {
             if (type == PropertyType.NAME) {
                 cv = factory.createValue(namePathMapper.getOakName(value), type);
             } else if (type == PropertyType.PATH) {
-                String oakPath = namePathMapper.toOakPath(value);
+                String oakPath = namePathMapper.getOakPath(value);
                 cv = factory.createValue(oakPath, type);
             } else if (type == PropertyType.DATE) {
                 if (ISO8601.parse(value) == null) {

@@ -152,7 +152,7 @@ class ValueImpl implements Value {
             case PropertyType.NAME :
                 return namePathMapper.getJcrName(value.toString());
             case PropertyType.PATH:
-                return namePathMapper.toJcrPath(value.toString());
+                return namePathMapper.getJcrPath(value.toString());
             case PropertyType.BINARY:
                 InputStream stream = getStream();
                 try {

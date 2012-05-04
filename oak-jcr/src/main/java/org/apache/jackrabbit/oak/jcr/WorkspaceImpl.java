@@ -317,7 +317,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
 
     private String toOakPath(String jcrPath) throws RepositoryException {
         try {
-            return sessionDelegate.getNamePathMapper().toOakPath(jcrPath);
+            return sessionDelegate.getNamePathMapper().getOakPath(jcrPath);
         } catch (IllegalArgumentException ex) {
             // TODO we shouldn't have to catch this one
             throw new RepositoryException(ex);

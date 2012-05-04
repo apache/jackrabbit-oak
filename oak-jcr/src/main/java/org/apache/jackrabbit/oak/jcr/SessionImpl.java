@@ -287,7 +287,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
 
     private String toOakPath(String jcrPath) throws RepositoryException {
         try {
-            return dlg.getNamePathMapper().toOakPath(jcrPath);
+            return dlg.getNamePathMapper().getOakPath(jcrPath);
         } catch (IllegalArgumentException ex) {
             // TODO we shouldn't have to catch this one
             throw new RepositoryException(ex);
