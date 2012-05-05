@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.util.Function1;
 import org.apache.jackrabbit.oak.util.Iterators;
 
 import javax.jcr.InvalidItemStateException;
+import javax.jcr.ItemExistsException;
 import javax.jcr.ItemNotFoundException;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
@@ -48,8 +49,12 @@ public class NodeDelegate extends ItemDelegate {
         }
 
         String name = PathUtils.getName(relPath);
-        parentState.addChild(name);
-        return new NodeDelegate(sessionDelegate, parentState.getChild(name));
+        if (parentState.hasChild(name)) {
+            throw new ItemExistsException(relPath);
+        }
+
+        Tree added = parentState.addChild(name);
+        return new NodeDelegate(sessionDelegate, added);
     }
 
     Iterator<NodeDelegate> getChildren() throws RepositoryException {
