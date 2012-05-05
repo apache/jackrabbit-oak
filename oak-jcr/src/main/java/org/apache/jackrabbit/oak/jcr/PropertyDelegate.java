@@ -160,6 +160,11 @@ public class PropertyDelegate extends ItemDelegate {
         return parentPath.isEmpty() ? '/' + getName() : '/' + parentPath + '/' + getName();
     }
 
+    @Override
+    boolean isStale() {
+        return getParentTree() == null;
+    }
+
     SessionDelegate getSessionDelegate() {
         return sessionDelegate;
     }

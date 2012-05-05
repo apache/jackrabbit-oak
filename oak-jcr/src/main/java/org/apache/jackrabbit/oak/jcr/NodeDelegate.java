@@ -24,16 +24,18 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.util.Function1;
 import org.apache.jackrabbit.oak.util.Iterators;
 
-import javax.jcr.InvalidItemStateException;
-import javax.jcr.ItemExistsException;
-import javax.jcr.ItemNotFoundException;
-import javax.jcr.PathNotFoundException;
-import javax.jcr.RepositoryException;
 import java.util.Iterator;
 import java.util.List;
 
+/**
+ * {@code NodeDelegate} serve as internal representations of {@code Node}s.
+ * The methods of this class do not throw checked exceptions. Instead clients
+ * are expected to inspect the return value and ensure that all preconditions
+ * hold before a method is invoked. Specifically the behaviour of all methods
+ * of this class but {@link #isStale()} is undefined if the instance is stale.
+ * An item is stale if the underlying items does not exist anymore.
+ */
 public class NodeDelegate extends ItemDelegate {
-
     private final SessionDelegate sessionDelegate;
     private Tree tree;
 
@@ -42,92 +44,173 @@ public class NodeDelegate extends ItemDelegate {
         this.tree = tree;
     }
 
-    NodeDelegate addNode(String relPath) throws RepositoryException {
-        Tree parentState = getTree(PathUtils.getParentPath(relPath));
-        if (parentState == null) {
-            throw new PathNotFoundException(relPath);
-        }
-
-        String name = PathUtils.getName(relPath);
-        if (parentState.hasChild(name)) {
-            throw new ItemExistsException(relPath);
-        }
-
-        Tree added = parentState.addChild(name);
-        return new NodeDelegate(sessionDelegate, added);
-    }
-
-    Iterator<NodeDelegate> getChildren() {
-        return nodeDelegateIterator(getTree().getChildren().iterator());
-    }
-
-    long getChildrenCount() {
-        return getTree().getChildrenCount();
-    }
-
+    /**
+     * Get the name of this node
+     * @return oak name of the node
+     */
     @Override
     String getName() {
         return getTree().getName();
     }
 
-    Status getNodeStatus() throws InvalidItemStateException {
-        return check(getTree().getParent()).getChildStatus(getName());
-    }
-
-    NodeDelegate getNodeOrNull(String relOakPath) {
-        Tree tree = getTree(relOakPath);
-        return tree == null ? null : new NodeDelegate(sessionDelegate, tree);
-    }
-
-    NodeDelegate getParent() throws RepositoryException {
-        if (check(getTree()).getParent() == null) {
-            throw new ItemNotFoundException("Root has no parent");
-        }
-
-        return new NodeDelegate(sessionDelegate, getTree().getParent());
-    }
-
+    /**
+     * Get the path of this node
+     * @return oak path of the node
+     */
     @Override
     String getPath() {
         return '/' + getTree().getPath();
     }
 
-    Iterator<PropertyDelegate> getProperties() throws RepositoryException {
-        return propertyDelegateIterator(getTree().getProperties().iterator());
+    /**
+     * Determine whether this node is stale
+     * @return  {@code true} iff stale
+     */
+    @Override
+    boolean isStale() {
+        return getTree() == null;
     }
 
-    long getPropertyCount() {
-        return getTree().getPropertyCount();
+    /**
+     * Determine whether this is the root node
+     * @return  {@code true} iff this is the root node
+     */
+    boolean isRoot() {
+        return getParentTree() == null;
     }
 
-    PropertyDelegate getPropertyOrNull(String relOakPath) {
-        Tree parent = getTree(PathUtils.getParentPath(relOakPath));
+    /**
+     * Get the status of this node
+     * @return  {@link Status} of this node
+     */
+    Status getStatus() {
+        Tree parent = getParentTree();
         if (parent == null) {
-            return null;
+            return Status.EXISTING;  // FIXME: return correct status for root
         }
-
-        String name = PathUtils.getName(relOakPath);
-        PropertyState propertyState = parent.getProperty(name);
-        return propertyState == null ? null : new PropertyDelegate(
-                sessionDelegate, parent, propertyState);
+        else {
+            return parent.getChildStatus(getName());
+        }
     }
 
+    /**
+     * Get the session which with this node is associated
+     * @return  {@link SessionDelegate} to which this node belongs
+     */
     SessionDelegate getSessionDelegate() {
         return sessionDelegate;
     }
 
+    /**
+     * Get the parent of this node
+     * @return  parent of this node or {@code null} it this is the root
+     */
+    NodeDelegate getParent() {
+        Tree parent = getParentTree();
+        return parent == null ? null : new NodeDelegate(sessionDelegate, parent);
+    }
+
+    /**
+     * Get the number of properties of this node
+     * @return  number of properties of this node
+     */
+    long getPropertyCount() {
+        return getTree().getPropertyCount();
+    }
+
+    /**
+     * Get a property
+     * @param relPath  oak path
+     * @return  property at the path given by {@code relPath} or {@code null} if
+     * no such property exists
+     */
+    PropertyDelegate getProperty(String relPath) {
+        Tree parent = getTree(PathUtils.getParentPath(relPath));
+        if (parent == null) {
+            return null;
+        }
+
+        String name = PathUtils.getName(relPath);
+        PropertyState propertyState = parent.getProperty(name);
+        return propertyState == null
+            ? null
+            : new PropertyDelegate(sessionDelegate, parent, propertyState);
+    }
+
+    /**
+     * Get the properties of this node
+     * @return  properties of this node
+     */
+    Iterator<PropertyDelegate> getProperties() {
+        return propertyDelegateIterator(getTree().getProperties().iterator());
+    }
+
+    /**
+     * Get the number of child nodes
+     * @return  number of child nodes of this node
+     */
+    long getChildCount() {
+        return getTree().getChildrenCount();
+    }
+
+    /**
+     * Get child node
+     * @param relPath  oak path
+     * @return  node at the path given by {@code relPath} or {@code null} if
+     * no such node exists
+     */
+    NodeDelegate getChild(String relPath) {
+        Tree tree = getTree(relPath);
+        return tree == null ? null : new NodeDelegate(sessionDelegate, tree);
+    }
+
+    /**
+     * Get child nodes
+     * @return  child nodes of this node
+     */
+    Iterator<NodeDelegate> getChildren() {
+        return nodeDelegateIterator(getTree().getChildren().iterator());
+    }
+
+    /**
+     * Set a property
+     * @param name  oak name
+     * @param value
+     * @return  the set property
+     */
+    PropertyDelegate setProperty(String name, CoreValue value) {
+        getTree().setProperty(name, value);
+        return getProperty(name);
+    }
+
+    /**
+     * Set a multi valued property
+     * @param name  oak name
+     * @param value
+     * @return  the set property
+     */
+    PropertyDelegate setProperty(String name, List<CoreValue> value) {
+        getTree().setProperty(name, value);
+        return getProperty(name);
+    }
+
+    /**
+     * Add a child node
+     * @param name  oak name
+     * @return  the added node or {@code null} if such a node already exists
+     */
+    NodeDelegate addChild(String name) {
+        Tree tree = getTree();
+        return tree.hasChild(name)
+            ? null
+            : new NodeDelegate(sessionDelegate, tree.addChild(name));
+    }
+
+    /**
+     * Remove this node
+     */
     void remove() {
-        getTree().getParent().removeChild(getName());
-    }
-
-    PropertyDelegate setProperty(String oakName, CoreValue value) {
-        getTree().setProperty(oakName, value);
-        return getPropertyOrNull(oakName);
-    }
-
-    PropertyDelegate setProperty(String oakName, List<CoreValue> value) {
-        getTree().setProperty(oakName, value);
-        return getPropertyOrNull(oakName);
+        getParentTree().removeChild(getName());
     }
 
     // -----------------------------------------------------------< private >---
@@ -143,13 +226,10 @@ public class NodeDelegate extends ItemDelegate {
         return tree;
     }
 
-    private static Tree check(Tree t) throws InvalidItemStateException {
-        if (t == null) {
-            throw new InvalidItemStateException();
-        }
-        return t;
+    private Tree getParentTree() {
+        return getTree().getParent();
     }
-    
+
     private synchronized Tree getTree() {
         return tree = sessionDelegate.getTree(tree.getPath());
     }

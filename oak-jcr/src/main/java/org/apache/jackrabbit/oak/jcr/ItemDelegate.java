@@ -22,4 +22,7 @@ public abstract class ItemDelegate {
     abstract String getName();
 
     abstract String getPath();
+
+    abstract boolean isStale();
+
 }

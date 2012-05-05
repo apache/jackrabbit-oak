@@ -21,6 +21,7 @@ import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
 import org.apache.jackrabbit.commons.iterator.PropertyIteratorAdapter;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.Tree.Status;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.util.LogUtil;
 import org.apache.jackrabbit.oak.jcr.value.ValueConverter;
 import org.apache.jackrabbit.oak.util.Function1;
@@ -31,8 +32,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.jcr.Binary;
-import javax.jcr.InvalidItemStateException;
 import javax.jcr.Item;
+import javax.jcr.ItemExistsException;
 import javax.jcr.ItemNotFoundException;
 import javax.jcr.ItemVisitor;
 import javax.jcr.Node;
@@ -96,7 +97,12 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public Node getParent() throws RepositoryException {
-        return new NodeImpl(dlg.getParent());
+        checkStatus();
+        NodeDelegate parent = dlg.getParent();
+        if (parent == null) {
+            throw new ItemNotFoundException("Root has no parent");
+        }
+        return new NodeImpl(parent);
     }
 
     /**
@@ -104,11 +110,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public boolean isNew() {
-        try {
-            return dlg.getNodeStatus() == Status.NEW;
-        } catch (InvalidItemStateException ex) {
-            return false;
-        }
+        return !dlg.isStale() && dlg.getStatus() == Status.NEW;
     }
 
     /**
@@ -116,11 +118,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public boolean isModified() {
-        try {
-            return dlg.getNodeStatus() == Status.MODIFIED;
-        } catch (InvalidItemStateException ex) {
-            return false;
-        }
+        return !dlg.isStale() && dlg.getStatus() == Status.MODIFIED;
     }
 
     /**
@@ -128,6 +126,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public void remove() throws RepositoryException {
+        checkStatus();
         dlg.remove();
     }
 
@@ -146,12 +145,24 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public Node addNode(String relPath) throws RepositoryException {
+        checkStatus();
         return addNode(relPath, null);
     }
 
     @Override
     public Node addNode(String relPath, String primaryNodeTypeName) throws RepositoryException {
         checkStatus();
+
+        String oakPath = toOakPath(relPath);
+        String oakName = PathUtils.getName(oakPath);
+        NodeDelegate parent = dlg.getChild(PathUtils.getParentPath(oakPath));
+        if (parent == null) {
+            throw new PathNotFoundException(relPath);
+        }
+
+        if (parent.getChild(oakName) != null) {
+            throw new ItemExistsException(relPath);
+        }
 
         if (primaryNodeTypeName == null) {
             // TODO retrieve matching nt from effective definition based on name-matching.
@@ -166,7 +177,7 @@ public class NodeImpl extends ItemImpl implements Node  {
         }
         // TODO: END
         
-        NodeDelegate added = dlg.addNode(toOakPath(relPath));
+        NodeDelegate added = parent.addChild(oakName);
         Node childNode = new NodeImpl(added);
         childNode.setPrimaryType(primaryNodeTypeName);
         return childNode;
@@ -442,6 +453,8 @@ public class NodeImpl extends ItemImpl implements Node  {
 
     @Override
     public PropertyIterator getProperties(final String[] nameGlobs) throws RepositoryException {
+        checkStatus();
+
         Iterator<PropertyDelegate> propertyNames = filter(dlg.getProperties(),
                 new Predicate<PropertyDelegate>() {
                     @Override
@@ -551,7 +564,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     public boolean hasNodes() throws RepositoryException {
         checkStatus();
 
-        return dlg.getChildrenCount() != 0;
+        return dlg.getChildCount() != 0;
     }
 
     @Override
@@ -950,14 +963,14 @@ public class NodeImpl extends ItemImpl implements Node  {
     private NodeImpl getNodeOrNull(String relJcrPath)
             throws RepositoryException {
 
-        NodeDelegate nd = dlg.getNodeOrNull(toOakPath(relJcrPath));
+        NodeDelegate nd = dlg.getChild(toOakPath(relJcrPath));
         return nd == null ? null : new NodeImpl(nd);
     }
 
     private PropertyImpl getPropertyOrNull(String relJcrPath)
             throws RepositoryException {
 
-        PropertyDelegate pd = dlg.getPropertyOrNull(toOakPath(relJcrPath));
+        PropertyDelegate pd = dlg.getProperty(toOakPath(relJcrPath));
         return pd == null ? null : new PropertyImpl(pd);
     }
 

@@ -135,8 +135,11 @@ abstract class ItemImpl extends AbstractItem {
      * @throws RepositoryException if this item has been rendered invalid for some reason
      */
     void checkStatus() throws RepositoryException {
-        // check session status
+        if (dlg.isStale()) {
+            throw new InvalidItemStateException("stale");
+        }
 
+        // check session status
         if (!sessionDelegate.isAlive()) {
             throw new RepositoryException("This session has been closed.");
         }
