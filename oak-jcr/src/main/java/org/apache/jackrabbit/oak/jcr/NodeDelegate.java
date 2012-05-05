@@ -179,8 +179,8 @@ public class NodeDelegate extends ItemDelegate {
      * @return  the set property
      */
     PropertyDelegate setProperty(String name, CoreValue value) {
-        getTree().setProperty(name, value);
-        return getProperty(name);
+        PropertyState propertyState = getTree().setProperty(name, value);
+        return new PropertyDelegate(sessionDelegate, getTree(), propertyState);
     }
 
     /**
@@ -190,8 +190,8 @@ public class NodeDelegate extends ItemDelegate {
      * @return  the set property
      */
     PropertyDelegate setProperty(String name, List<CoreValue> value) {
-        getTree().setProperty(name, value);
-        return getProperty(name);
+        PropertyState propertyState = getTree().setProperty(name, value);
+        return new PropertyDelegate(sessionDelegate, getTree(), propertyState);
     }
 
     /**
