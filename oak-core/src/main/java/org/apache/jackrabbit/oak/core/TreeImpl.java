@@ -339,19 +339,21 @@ public class TreeImpl implements Tree {
     }
 
     @Override
-    public void setProperty(String name, CoreValue value) {
-        builder.setProperty(name, value);
+    public PropertyState setProperty(String name, CoreValue value) {
+        PropertyState property = builder.setProperty(name, value);
         if (listener != null) {
             listener.setProperty(this, name, value);
         }
+        return property;
     }
 
     @Override
-    public void setProperty(String name, List<CoreValue> values) {
-        builder.setProperty(name, values);
+    public PropertyState setProperty(String name, List<CoreValue> values) {
+        PropertyState property = builder.setProperty(name, values);
         if (listener != null) {
             listener.setProperty(this, name, values);
         }
+        return property;
     }
 
     @Override

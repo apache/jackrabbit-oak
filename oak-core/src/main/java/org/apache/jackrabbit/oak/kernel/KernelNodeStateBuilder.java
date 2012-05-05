@@ -88,7 +88,7 @@ public class KernelNodeStateBuilder implements NodeStateBuilder {
     }
 
     @Override
-    public void setProperty(String name, CoreValue value) {
+    public PropertyState setProperty(String name, CoreValue value) {
         PropertyState property = new PropertyStateImpl(name, value);
         if (hasProperty(name)) {
             context.setProperty(property, path);
@@ -96,10 +96,11 @@ public class KernelNodeStateBuilder implements NodeStateBuilder {
         else {
             context.addProperty(property, path);
         }
+        return property;
     }
 
     @Override
-    public void setProperty(String name, List<CoreValue> values) {
+    public PropertyState setProperty(String name, List<CoreValue> values) {
         PropertyState property = new PropertyStateImpl(name, values);
         if (hasProperty(name)) {
             context.setProperty(property, path);
@@ -107,6 +108,7 @@ public class KernelNodeStateBuilder implements NodeStateBuilder {
         else {
             context.addProperty(property, path);
         }
+        return property;
     }
 
     @Override
