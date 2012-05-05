@@ -57,11 +57,11 @@ public class NodeDelegate extends ItemDelegate {
         return new NodeDelegate(sessionDelegate, added);
     }
 
-    Iterator<NodeDelegate> getChildren() throws RepositoryException {
+    Iterator<NodeDelegate> getChildren() {
         return nodeDelegateIterator(getTree().getChildren().iterator());
     }
 
-    long getChildrenCount() throws RepositoryException {
+    long getChildrenCount() {
         return getTree().getChildrenCount();
     }
 
@@ -96,13 +96,11 @@ public class NodeDelegate extends ItemDelegate {
         return propertyDelegateIterator(getTree().getProperties().iterator());
     }
 
-    long getPropertyCount() throws RepositoryException {
+    long getPropertyCount() {
         return getTree().getPropertyCount();
     }
 
-    PropertyDelegate getPropertyOrNull(String relOakPath)
-            throws RepositoryException {
-
+    PropertyDelegate getPropertyOrNull(String relOakPath) {
         Tree parent = getTree(PathUtils.getParentPath(relOakPath));
         if (parent == null) {
             return null;
@@ -118,20 +116,16 @@ public class NodeDelegate extends ItemDelegate {
         return sessionDelegate;
     }
 
-    void remove() throws RepositoryException {
+    void remove() {
         getTree().getParent().removeChild(getName());
     }
 
-    PropertyDelegate setProperty(String oakName, CoreValue value)
-            throws RepositoryException {
-
+    PropertyDelegate setProperty(String oakName, CoreValue value) {
         getTree().setProperty(oakName, value);
         return getPropertyOrNull(oakName);
     }
 
-    PropertyDelegate setProperty(String oakName, List<CoreValue> value)
-            throws RepositoryException {
-
+    PropertyDelegate setProperty(String oakName, List<CoreValue> value) {
         getTree().setProperty(oakName, value);
         return getPropertyOrNull(oakName);
     }
