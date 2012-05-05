@@ -182,16 +182,18 @@ public interface Tree {
      *
      * @param name The name of this property
      * @param value The value of this property
+     * @return the affected property state
      */
-    void setProperty(String name, CoreValue value);
+    PropertyState setProperty(String name, CoreValue value);
 
     /**
      * Set a multivalued valued property state
      *
      * @param name The name of this property
      * @param values The value of this property
+     * @return the affected property state
      */
-    void setProperty(String name, List<CoreValue> values);
+    PropertyState setProperty(String name, List<CoreValue> values);
 
     /**
      * Remove a property
