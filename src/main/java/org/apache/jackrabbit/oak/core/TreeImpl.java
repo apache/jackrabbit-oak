@@ -323,12 +323,10 @@ public class TreeImpl implements Tree {
 
     @Override
     public Tree addChild(String name) {
-        builder.addNode(name);
-        TreeImpl added = getChild(name);
-        if (added != null) {
+        if (builder.addNode(name) != null) {
             listener.addChild(this, name);
         }
-        return added;
+        return getChild(name);
     }
 
     @Override
