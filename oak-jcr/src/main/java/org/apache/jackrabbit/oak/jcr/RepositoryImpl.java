@@ -40,11 +40,11 @@ public class RepositoryImpl implements Repository {
      */
     private static final Logger log = LoggerFactory.getLogger(RepositoryImpl.class);
 
-    private final GlobalContext context;
     private final Descriptors descriptors = new Descriptors(new SimpleValueFactory());
+    private final ContentRepository contentRepository;
 
-    public RepositoryImpl(ContentRepository repository) {
-        this.context = new GlobalContext(this, repository);
+    public RepositoryImpl(ContentRepository contentRepository) {
+        this.contentRepository = contentRepository;
     }
 
     /**
@@ -119,10 +119,9 @@ public class RepositoryImpl implements Repository {
     @Override
     public Session login(Credentials credentials, String workspaceName) throws RepositoryException {
         // TODO: needs complete refactoring
-        ContentRepository contentRepository = context.getInstance(ContentRepository.class);
         try {
             ContentSession contentSession = contentRepository.login(credentials, workspaceName);
-            return new SessionDelegate(context, contentSession).getSession();
+            return new SessionDelegate(this, contentSession).getSession();
         } catch (LoginException e) {
             throw new javax.jcr.LoginException(e.getMessage());
         }
