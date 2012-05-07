@@ -36,6 +36,9 @@
   <properties>
     <skip.deployment>false</skip.deployment>
     <known.issues />
+    <project.reporting.outputEncoding>
+      ${project.build.sourceEncoding}
+    </project.reporting.outputEncoding>
   </properties>
 
   <issueManagement>
