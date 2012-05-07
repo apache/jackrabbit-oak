@@ -150,21 +150,20 @@ class KernelNodeState extends AbstractNodeState {
         return child;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
-        return new Iterable() {  // Java's type system is too weak to express the exact type here
+        return (new Iterable<ChildNodeEntry>() {
             @Override
-            public Iterator<? extends ChildNodeEntry> iterator() {
+            public Iterator<ChildNodeEntry> iterator() {
                 return Iterators.flatten(
                     new PagedIterator<ChildNodeEntry>(MAX_CHILD_NODE_NAMES) {
                         @Override
                         protected Iterator<? extends ChildNodeEntry> getPage(long pos, int size) {
                             return getChildNodeEntries(pos, size);
                         }
-                    });
+                });
             }
-        };
+        });
     }
 
     //------------------------------------------------------------< internal >---
