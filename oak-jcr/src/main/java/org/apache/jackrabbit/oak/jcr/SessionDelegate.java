@@ -102,6 +102,15 @@ public class SessionDelegate {
         }
     }
 
+    public NodeDelegate getRoot() {
+        return new NodeDelegate(this, getTree("/"));
+    }
+
+    public NodeDelegate getNode(String path) {
+        Tree tree = getTree(path);
+        return tree == null ? null : new NodeDelegate(this, tree);
+    }
+
     public ValueFactoryImpl getValueFactory() {
         return valueFactory;
     }
@@ -254,7 +263,7 @@ public class SessionDelegate {
 
     //------------------------------------------------------------< internal >---
 
-    public Tree getTree(String path) {  // FIXME: make this package private
+    Tree getTree(String path) {
         return root.getTree(path);
     }
 
