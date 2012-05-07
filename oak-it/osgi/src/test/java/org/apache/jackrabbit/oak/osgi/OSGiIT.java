@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.osgi;
 
 import static org.ops4j.pax.exam.CoreOptions.bundle;
 import static org.ops4j.pax.exam.CoreOptions.junitBundles;
+import static org.ops4j.pax.exam.CoreOptions.mavenBundle;
 
 import java.io.File;
 import java.io.IOException;
@@ -45,6 +46,7 @@ public class OSGiIT {
         File base = new File(TARGET, "test-bundles");
         return CoreOptions.options(
                 junitBundles(),
+                mavenBundle("org.apache.felix", "org.apache.felix.scr", "1.6.0"),
                 bundle(new File(base, "jcr.jar").toURI().toURL().toString()),
                 bundle(new File(base, "commons-io.jar").toURI().toURL().toString()),
                 bundle(new File(base, "commons-collections.jar").toURI().toURL().toString()),
