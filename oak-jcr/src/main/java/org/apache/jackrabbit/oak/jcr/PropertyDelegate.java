@@ -27,15 +27,32 @@ import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.PropertyDefinition;
 import java.util.List;
 
+/**
+ * {@code PropertyDelegate} serve as internal representations of {@code Property}s.
+ * The methods of this class do not throw checked exceptions. Instead clients
+ * are expected to inspect the return value and ensure that all preconditions
+ * hold before a method is invoked. Specifically the behaviour of all methods
+ * of this class but {@link #isStale()} is undefined if the instance is stale.
+ * An item is stale if the underlying items does not exist anymore.
+ */
 public class PropertyDelegate extends ItemDelegate {
 
-    private final SessionDelegate sessionDelegate;
+    /**
+     * The underlying {@link Tree} of the parent node. In order to ensure the
+     * instance is up to date, this field <em>should not be accessed directly</em>
+     * but rather the {@link #getParentTree()} Tree()} method should be used.
+     */
     private Tree parent;
+
+    /**
+     * The underlying {@link PropertyState}. In order to ensure the instance is up
+     * to date, this field <em>should not be accessed directly</em> but rather the
+     * {@link #getPropertyState()} method should be used.
+     */
     private PropertyState propertyState;
 
-    PropertyDelegate(SessionDelegate sessionDelegate, Tree parent,
-            PropertyState propertyState) {
-        this.sessionDelegate = sessionDelegate;
+    PropertyDelegate(SessionDelegate sessionDelegate, Tree parent, PropertyState propertyState) {
+        super(sessionDelegate);
         this.parent = parent;
         this.propertyState = propertyState;
     }
@@ -47,14 +64,12 @@ public class PropertyDelegate extends ItemDelegate {
 
     @Override
     String getPath() {
-        String parentPath = getParentTree().getPath();
-        return parentPath.isEmpty() ? '/' + getName() : '/' + parentPath + '/' + getName();
+        return getParent().getPath() + '/' + getName();
     }
 
     @Override
     NodeDelegate getParent() {
-        Tree parent = getParentTree();
-        return parent == null ? null : new NodeDelegate(sessionDelegate, parent);
+        return new NodeDelegate(sessionDelegate, getParentTree());
     }
 
     @Override
@@ -72,18 +87,34 @@ public class PropertyDelegate extends ItemDelegate {
         return sessionDelegate;
     }
 
+    /**
+     * Get the value of the property
+     * @return  value or {@code null} if multi values
+     */
     CoreValue getValue() {
         return getPropertyState().getValue();
     }
 
+    /**
+     * Get the value of the property
+     * @return  value or {@code null} if single valued
+     */
     Iterable<CoreValue> getValues() {
         return getPropertyState().getValues();
     }
 
+    /**
+     * Determine whether the property is multi valued
+     * @return  {@code true} if multi valued
+     */
     boolean isMultivalue() {
         return getPropertyState().isArray();
     }
 
+    /**
+     * Get the property definition of the property
+     * @return
+     */
     PropertyDefinition getDefinition() {
         // TODO
         return new PropertyDefinition() {
@@ -167,14 +198,25 @@ public class PropertyDelegate extends ItemDelegate {
         };
     }
 
+    /**
+     * Set the value of the property
+     * @param value
+     */
     void setValue(CoreValue value) {
         getParentTree().setProperty(getName(), value);
     }
 
+    /**
+     * Set the values of the property
+     * @param values
+     */
     void setValues(List<CoreValue> values) {
         getParentTree().setProperty(getName(), values);
     }
 
+    /**
+     * Remove the property
+     */
     void remove() {
         getParentTree().removeProperty(getName());
     }

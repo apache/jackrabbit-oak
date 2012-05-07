@@ -36,55 +36,40 @@ import java.util.List;
  * An item is stale if the underlying items does not exist anymore.
  */
 public class NodeDelegate extends ItemDelegate {
-    private final SessionDelegate sessionDelegate;
+
+    /**
+     * The underlying {@link Tree} instance. In order to ensure the instance
+     * is up to date, this field <em>should not be accessed directly</em> but
+     * rather the {@link #getTree()} method should be used.
+     */
     private Tree tree;
 
     NodeDelegate(SessionDelegate sessionDelegate, Tree tree) {
-        this.sessionDelegate = sessionDelegate;
+        super(sessionDelegate);
         this.tree = tree;
     }
 
-    /**
-     * Get the name of this node
-     * @return oak name of the node
-     */
     @Override
     String getName() {
         return getTree().getName();
     }
 
-    /**
-     * Get the path of this node
-     * @return oak path of the node
-     */
     @Override
     String getPath() {
         return '/' + getTree().getPath();
     }
 
-    /**
-     * Get the parent of this node
-     * @return  parent of this node or {@code null} it this is the root
-     */
     @Override
     NodeDelegate getParent() {
         Tree parent = getParentTree();
         return parent == null ? null : new NodeDelegate(sessionDelegate, parent);
     }
 
-    /**
-     * Determine whether this node is stale
-     * @return  {@code true} iff stale
-     */
     @Override
     boolean isStale() {
         return getTree() == null;
     }
 
-    /**
-     * Get the status of this node
-     * @return  {@link Status} of this node
-     */
     @Override
     Status getStatus() {
         Tree parent = getParentTree();
@@ -96,10 +81,6 @@ public class NodeDelegate extends ItemDelegate {
         }
     }
 
-    /**
-     * Get the session which with this node is associated
-     * @return  {@link SessionDelegate} to which this node belongs
-     */
     @Override
     SessionDelegate getSessionDelegate() {
         return sessionDelegate;
@@ -114,8 +95,8 @@ public class NodeDelegate extends ItemDelegate {
     }
 
     /**
-     * Get the number of properties of this node
-     * @return  number of properties of this node
+     * Get the number of properties of the node
+     * @return  number of properties of the node
      */
     long getPropertyCount() {
         return getTree().getPropertyCount();
@@ -141,8 +122,8 @@ public class NodeDelegate extends ItemDelegate {
     }
 
     /**
-     * Get the properties of this node
-     * @return  properties of this node
+     * Get the properties of the node
+     * @return  properties of the node
      */
     Iterator<PropertyDelegate> getProperties() {
         return propertyDelegateIterator(getTree().getProperties().iterator());
@@ -150,7 +131,7 @@ public class NodeDelegate extends ItemDelegate {
 
     /**
      * Get the number of child nodes
-     * @return  number of child nodes of this node
+     * @return  number of child nodes of the node
      */
     long getChildCount() {
         return getTree().getChildrenCount();
@@ -169,7 +150,7 @@ public class NodeDelegate extends ItemDelegate {
 
     /**
      * Get child nodes
-     * @return  child nodes of this node
+     * @return  child nodes of the node
      */
     Iterator<NodeDelegate> getChildren() {
         return nodeDelegateIterator(getTree().getChildren().iterator());
@@ -210,7 +191,7 @@ public class NodeDelegate extends ItemDelegate {
     }
 
     /**
-     * Remove this node
+     * Remove the node
      */
     void remove() {
         getParentTree().removeChild(getName());
