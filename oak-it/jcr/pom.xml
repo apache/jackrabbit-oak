@@ -111,8 +111,6 @@ org.apache.jackrabbit.test.api.query
 org.apache.jackrabbit.test.api.query.qom
 org.apache.jackrabbit.test.api.util
 org.apache.jackrabbit.test.api.observation
-org.apache.jackrabbit.test.api.retention
-org.apache.jackrabbit.test.api.security
               </value>
             </property>
           </systemProperties>
