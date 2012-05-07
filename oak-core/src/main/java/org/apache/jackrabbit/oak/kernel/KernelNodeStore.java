@@ -22,6 +22,8 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeStore;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -167,7 +169,7 @@ public class KernelNodeStore extends AbstractNodeStore {
          */
         void addNode(String relPath) {
             jsop.append("+\"").append(relPath).append("\":{}");
-            root = addNode(root, EmptyNodeState.INSTANCE, PathUtils.elements(relPath).iterator());
+            root = addNode(root, MemoryNodeState.EMPTY_NODE, PathUtils.elements(relPath).iterator());
             purgeOnLimit();
         }
 
@@ -495,7 +497,7 @@ public class KernelNodeStore extends AbstractNodeStore {
                     public Iterator<ChildNodeEntry> iterator() {
                         return Iterators.chain(
                             parent.getChildNodeEntries().iterator(),
-                            Iterators.singleton(new KernelChildNodeEntry(childName, node)));
+                            Iterators.singleton(new MemoryChildNodeEntry(childName, node)));
                     }
                 };
             }
@@ -559,7 +561,7 @@ public class KernelNodeStore extends AbstractNodeStore {
                                 @Override
                                 public ChildNodeEntry apply(ChildNodeEntry cne) {
                                     return childName.equals(cne.getName())
-                                            ? new KernelChildNodeEntry(childName, node)
+                                            ? new MemoryChildNodeEntry(childName, node)
                                             : cne;
                                 }
                             });

@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.spi.state;
 
+import java.util.Iterator;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 
 /**
@@ -44,13 +47,8 @@ public abstract class AbstractNodeState implements NodeState {
     }
 
     @Override
-    @SuppressWarnings("unused")
     public long getPropertyCount() {
-        long count = 0;
-        for (PropertyState property : getProperties()) {
-            count++;
-        }
-        return count;
+        return count(getProperties());
     }
 
     @Override
@@ -64,13 +62,42 @@ public abstract class AbstractNodeState implements NodeState {
     }
 
     @Override
-    @SuppressWarnings("unused")
     public long getChildNodeCount() {
-        long count = 0;
-        for (ChildNodeEntry entry : getChildNodeEntries()) {
-            count++;
+        return count(getChildNodeEntries());
+    }
+
+    private static long count(Iterable<?> iterable) {
+        long n = 0;
+        Iterator<?> iterator = iterable.iterator();
+        while (iterator.hasNext()) {
+            iterator.next();
+            n++;
         }
-        return count;
+        return n;
+    }
+
+    /**
+     * Returns a string representation of this child node entry.
+     *
+     * @return string representation
+     */
+    public String toString() {
+        StringBuilder builder = new StringBuilder("{");
+        AtomicBoolean first = new AtomicBoolean(true);
+        for (PropertyState property : getProperties()) {
+            if (first.getAndSet(false)) {
+                builder.append(',');
+            }
+            builder.append(' ').append(property);
+        }
+        for (ChildNodeEntry entry : getChildNodeEntries()) {
+            if (first.getAndSet(false)) {
+                builder.append(',');
+            }
+            builder.append(' ').append(entry);
+        }
+        builder.append(" }");
+        return builder.toString();
     }
 
     /**
@@ -93,25 +120,25 @@ public abstract class AbstractNodeState implements NodeState {
 
         NodeState other = (NodeState) that;
 
-        long propertyCount = 0;
+        if (getPropertyCount() != other.getPropertyCount()
+                || getChildNodeCount() != other.getChildNodeCount()) {
+            return false;
+        }
+
         for (PropertyState property : getProperties()) {
             if (!property.equals(other.getProperty(property.getName()))) {
                 return false;
             }
-            propertyCount++;
-        }
-        if (propertyCount != other.getPropertyCount()) {
-            return false;
         }
 
-        long childNodeCount = 0;
         for (ChildNodeEntry entry : getChildNodeEntries()) {
-            if (!entry.getNodeState().equals(other.getChildNode(entry.getName()))) {
+            if (!entry.getNodeState().equals(
+                    other.getChildNode(entry.getName()))) {
                 return false;
             }
-            childNodeCount++;
         }
-        return childNodeCount == other.getChildNodeCount();
+
+        return true;
 
     }
 
