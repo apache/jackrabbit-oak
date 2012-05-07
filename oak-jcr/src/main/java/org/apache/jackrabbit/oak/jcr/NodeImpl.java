@@ -78,11 +78,6 @@ public class NodeImpl extends ItemImpl implements Node  {
         this.dlg = dlg;
     }
 
-    // TODO
-    public String getOakPath() {
-        return dlg.getPath();
-    }
-    
     //---------------------------------------------------------------< Item >---
     /**
      * @see javax.jcr.Item#isNode()
@@ -366,12 +361,12 @@ public class NodeImpl extends ItemImpl implements Node  {
     public Node getNode(String relPath) throws RepositoryException {
         checkStatus();
 
-        NodeImpl node = getNodeOrNull(relPath);
-        if (node == null) {
+        NodeDelegate nd = dlg.getChild(toOakPath(relPath));
+        if (nd == null) {
             throw new PathNotFoundException(relPath);
         }
         else {
-            return node;
+            return new NodeImpl(nd);
         }
     }
 
@@ -419,11 +414,11 @@ public class NodeImpl extends ItemImpl implements Node  {
     public Property getProperty(String relPath) throws RepositoryException {
         checkStatus();
 
-        Property property = getPropertyOrNull(relPath);
-        if (property == null) {
+        PropertyDelegate pd = dlg.getProperty(toOakPath(relPath));
+        if (pd == null) {
             throw new PathNotFoundException(relPath + " not found on " + getPath());
         } else {
-            return property;
+            return new PropertyImpl(pd);
         }
     }
 
@@ -550,14 +545,14 @@ public class NodeImpl extends ItemImpl implements Node  {
     public boolean hasNode(String relPath) throws RepositoryException {
         checkStatus();
 
-        return getNodeOrNull(relPath) != null;
+        return dlg.getChild(toOakPath(relPath)) != null;
     }
 
     @Override
     public boolean hasProperty(String relPath) throws RepositoryException {
         checkStatus();
 
-        return getPropertyOrNull(relPath) != null;
+        return dlg.getProperty(toOakPath(relPath)) != null;
     }
 
     @Override
@@ -943,35 +938,20 @@ public class NodeImpl extends ItemImpl implements Node  {
     private static Iterator<Node> nodeIterator(Iterator<NodeDelegate> childNodes) {
         return Iterators.map(childNodes, new Function1<NodeDelegate, Node>() {
             @Override
-            public Node apply(NodeDelegate state) {
-                return new NodeImpl(state);
+            public Node apply(NodeDelegate nodeDelegate) {
+                return new NodeImpl(nodeDelegate);
             }
         });
     }
 
-    private static Iterator<Property> propertyIterator(
-            Iterator<PropertyDelegate> properties) {
+    private static Iterator<Property> propertyIterator(Iterator<PropertyDelegate> properties) {
         return Iterators.map(properties,
-                new Function1<PropertyDelegate, Property>() {
-                    @Override
-                    public Property apply(PropertyDelegate propertyDelegate) {
-                        return new PropertyImpl(propertyDelegate);
-                    }
-                });
-    }
-
-    private NodeImpl getNodeOrNull(String relJcrPath)
-            throws RepositoryException {
-
-        NodeDelegate nd = dlg.getChild(toOakPath(relJcrPath));
-        return nd == null ? null : new NodeImpl(nd);
-    }
-
-    private PropertyImpl getPropertyOrNull(String relJcrPath)
-            throws RepositoryException {
-
-        PropertyDelegate pd = dlg.getProperty(toOakPath(relJcrPath));
-        return pd == null ? null : new PropertyImpl(pd);
+            new Function1<PropertyDelegate, Property>() {
+                @Override
+                public Property apply(PropertyDelegate propertyDelegate) {
+                    return new PropertyImpl(propertyDelegate);
+                }
+            });
     }
 
     private static int getTargetType(Value value, int type) {
