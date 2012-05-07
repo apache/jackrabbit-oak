@@ -32,7 +32,6 @@
 
   <properties>
     <skip.deployment>true</skip.deployment>
-    <jackrabbit.version>2.4.0</jackrabbit.version>
     <jetty.version>8.1.2.v20120308</jetty.version>
   </properties>
 
