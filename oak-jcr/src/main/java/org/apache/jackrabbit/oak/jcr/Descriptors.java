@@ -98,7 +98,7 @@ public class Descriptors {
                 trueValue, true, true));
         put(new Descriptor(
                 OPTION_NODE_TYPE_MANAGEMENT_SUPPORTED,
-                trueValue, true, true));
+                falseValue, true, true));
         put(new Descriptor(
                 NODE_TYPE_MANAGEMENT_AUTOCREATED_DEFINITIONS_SUPPORTED,
                 trueValue, true, true));
