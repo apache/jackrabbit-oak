@@ -50,28 +50,28 @@ public class NodeDelegate extends ItemDelegate {
     }
 
     @Override
-    String getName() {
+    public String getName() {
         return getTree().getName();
     }
 
     @Override
-    String getPath() {
+    public String getPath() {
         return '/' + getTree().getPath();
     }
 
     @Override
-    NodeDelegate getParent() {
+    public NodeDelegate getParent() {
         Tree parent = getParentTree();
         return parent == null ? null : new NodeDelegate(sessionDelegate, parent);
     }
 
     @Override
-    boolean isStale() {
+    public boolean isStale() {
         return getTree() == null;
     }
 
     @Override
-    Status getStatus() {
+    public Status getStatus() {
         Tree parent = getParentTree();
         if (parent == null) {
             return Status.EXISTING;  // FIXME: return correct status for root
@@ -82,7 +82,7 @@ public class NodeDelegate extends ItemDelegate {
     }
 
     @Override
-    SessionDelegate getSessionDelegate() {
+    public SessionDelegate getSessionDelegate() {
         return sessionDelegate;
     }
 
@@ -90,7 +90,7 @@ public class NodeDelegate extends ItemDelegate {
      * Determine whether this is the root node
      * @return  {@code true} iff this is the root node
      */
-    boolean isRoot() {
+    public boolean isRoot() {
         return getParentTree() == null;
     }
 
@@ -98,7 +98,7 @@ public class NodeDelegate extends ItemDelegate {
      * Get the number of properties of the node
      * @return  number of properties of the node
      */
-    long getPropertyCount() {
+    public long getPropertyCount() {
         return getTree().getPropertyCount();
     }
 
@@ -108,7 +108,7 @@ public class NodeDelegate extends ItemDelegate {
      * @return  property at the path given by {@code relPath} or {@code null} if
      * no such property exists
      */
-    PropertyDelegate getProperty(String relPath) {
+    public PropertyDelegate getProperty(String relPath) {
         Tree parent = getTree(PathUtils.getParentPath(relPath));
         if (parent == null) {
             return null;
@@ -125,7 +125,7 @@ public class NodeDelegate extends ItemDelegate {
      * Get the properties of the node
      * @return  properties of the node
      */
-    Iterator<PropertyDelegate> getProperties() {
+    public Iterator<PropertyDelegate> getProperties() {
         return propertyDelegateIterator(getTree().getProperties().iterator());
     }
 
@@ -133,7 +133,7 @@ public class NodeDelegate extends ItemDelegate {
      * Get the number of child nodes
      * @return  number of child nodes of the node
      */
-    long getChildCount() {
+    public long getChildCount() {
         return getTree().getChildrenCount();
     }
 
@@ -143,7 +143,7 @@ public class NodeDelegate extends ItemDelegate {
      * @return  node at the path given by {@code relPath} or {@code null} if
      * no such node exists
      */
-    NodeDelegate getChild(String relPath) {
+    public NodeDelegate getChild(String relPath) {
         Tree tree = getTree(relPath);
         return tree == null ? null : new NodeDelegate(sessionDelegate, tree);
     }
@@ -152,7 +152,7 @@ public class NodeDelegate extends ItemDelegate {
      * Get child nodes
      * @return  child nodes of the node
      */
-    Iterator<NodeDelegate> getChildren() {
+    public Iterator<NodeDelegate> getChildren() {
         return nodeDelegateIterator(getTree().getChildren().iterator());
     }
 
@@ -162,7 +162,7 @@ public class NodeDelegate extends ItemDelegate {
      * @param value
      * @return  the set property
      */
-    PropertyDelegate setProperty(String name, CoreValue value) {
+    public PropertyDelegate setProperty(String name, CoreValue value) {
         PropertyState propertyState = getTree().setProperty(name, value);
         return new PropertyDelegate(sessionDelegate, getTree(), propertyState);
     }
@@ -173,7 +173,7 @@ public class NodeDelegate extends ItemDelegate {
      * @param value
      * @return  the set property
      */
-    PropertyDelegate setProperty(String name, List<CoreValue> value) {
+    public PropertyDelegate setProperty(String name, List<CoreValue> value) {
         PropertyState propertyState = getTree().setProperty(name, value);
         return new PropertyDelegate(sessionDelegate, getTree(), propertyState);
     }
@@ -183,7 +183,7 @@ public class NodeDelegate extends ItemDelegate {
      * @param name  oak name
      * @return  the added node or {@code null} if such a node already exists
      */
-    NodeDelegate addChild(String name) {
+    public NodeDelegate addChild(String name) {
         Tree tree = getTree();
         return tree.hasChild(name)
             ? null
@@ -193,7 +193,7 @@ public class NodeDelegate extends ItemDelegate {
     /**
      * Remove the node
      */
-    void remove() {
+    public void remove() {
         getParentTree().removeChild(getName());
     }
 

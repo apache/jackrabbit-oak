@@ -58,32 +58,32 @@ public class PropertyDelegate extends ItemDelegate {
     }
 
     @Override
-    String getName() {
+    public String getName() {
         return getPropertyState().getName();
     }
 
     @Override
-    String getPath() {
+    public String getPath() {
         return getParent().getPath() + '/' + getName();
     }
 
     @Override
-    NodeDelegate getParent() {
+    public NodeDelegate getParent() {
         return new NodeDelegate(sessionDelegate, getParentTree());
     }
 
     @Override
-    boolean isStale() {
+    public boolean isStale() {
         return getPropertyState() == null;
     }
 
     @Override
-    Status getStatus() {
+    public Status getStatus() {
         return getParentTree().getPropertyStatus(getName());
     }
 
     @Override
-    SessionDelegate getSessionDelegate() {
+    public SessionDelegate getSessionDelegate() {
         return sessionDelegate;
     }
 
@@ -91,7 +91,7 @@ public class PropertyDelegate extends ItemDelegate {
      * Get the value of the property
      * @return  value or {@code null} if multi values
      */
-    CoreValue getValue() {
+    public CoreValue getValue() {
         return getPropertyState().getValue();
     }
 
@@ -99,7 +99,7 @@ public class PropertyDelegate extends ItemDelegate {
      * Get the value of the property
      * @return  value or {@code null} if single valued
      */
-    Iterable<CoreValue> getValues() {
+    public Iterable<CoreValue> getValues() {
         return getPropertyState().getValues();
     }
 
@@ -107,7 +107,7 @@ public class PropertyDelegate extends ItemDelegate {
      * Determine whether the property is multi valued
      * @return  {@code true} if multi valued
      */
-    boolean isMultivalue() {
+    public boolean isMultivalue() {
         return getPropertyState().isArray();
     }
 
@@ -115,7 +115,7 @@ public class PropertyDelegate extends ItemDelegate {
      * Get the property definition of the property
      * @return
      */
-    PropertyDefinition getDefinition() {
+    public PropertyDefinition getDefinition() {
         // TODO
         return new PropertyDefinition() {
 
@@ -202,7 +202,7 @@ public class PropertyDelegate extends ItemDelegate {
      * Set the value of the property
      * @param value
      */
-    void setValue(CoreValue value) {
+    public void setValue(CoreValue value) {
         getParentTree().setProperty(getName(), value);
     }
 
@@ -210,14 +210,14 @@ public class PropertyDelegate extends ItemDelegate {
      * Set the values of the property
      * @param values
      */
-    void setValues(List<CoreValue> values) {
+    public void setValues(List<CoreValue> values) {
         getParentTree().setProperty(getName(), values);
     }
 
     /**
      * Remove the property
      */
-    void remove() {
+    public void remove() {
         getParentTree().removeProperty(getName());
     }
 

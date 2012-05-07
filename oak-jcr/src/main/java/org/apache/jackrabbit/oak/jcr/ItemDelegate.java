@@ -34,35 +34,35 @@ public abstract class ItemDelegate {
      * Get the name of this item
      * @return oak name of this item
      */
-    abstract String getName();
+    public abstract String getName();
 
     /**
      * Get the path of this item
      * @return oak path of this item
      */
-    abstract String getPath();
+    public abstract String getPath();
 
     /**
      * Get the parent of this item
      * @return  parent of this item or {@code null} for root
      */
-    abstract NodeDelegate getParent();
+    public abstract NodeDelegate getParent();
 
     /**
      * Determine whether this item is stale
      * @return  {@code true} iff stale
      */
-    abstract boolean isStale();
+    public abstract boolean isStale();
 
     /**
      * Get the status of this item
      * @return  {@link Status} of this item
      */
-    abstract Status getStatus();
+    public abstract Status getStatus();
 
     /**
      * Get the session delegate with which this item is associated
      * @return  {@link SessionDelegate} to which this item belongs
      */
-    abstract SessionDelegate getSessionDelegate();
+    public abstract SessionDelegate getSessionDelegate();
 }
