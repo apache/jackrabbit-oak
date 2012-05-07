@@ -63,6 +63,16 @@ public class NodeDelegate extends ItemDelegate {
     }
 
     /**
+     * Get the parent of this node
+     * @return  parent of this node or {@code null} it this is the root
+     */
+    @Override
+    NodeDelegate getParent() {
+        Tree parent = getParentTree();
+        return parent == null ? null : new NodeDelegate(sessionDelegate, parent);
+    }
+
+    /**
      * Determine whether this node is stale
      * @return  {@code true} iff stale
      */
@@ -72,17 +82,10 @@ public class NodeDelegate extends ItemDelegate {
     }
 
     /**
-     * Determine whether this is the root node
-     * @return  {@code true} iff this is the root node
-     */
-    boolean isRoot() {
-        return getParentTree() == null;
-    }
-
-    /**
      * Get the status of this node
      * @return  {@link Status} of this node
      */
+    @Override
     Status getStatus() {
         Tree parent = getParentTree();
         if (parent == null) {
@@ -97,17 +100,17 @@ public class NodeDelegate extends ItemDelegate {
      * Get the session which with this node is associated
      * @return  {@link SessionDelegate} to which this node belongs
      */
+    @Override
     SessionDelegate getSessionDelegate() {
         return sessionDelegate;
     }
 
     /**
-     * Get the parent of this node
-     * @return  parent of this node or {@code null} it this is the root
+     * Determine whether this is the root node
+     * @return  {@code true} iff this is the root node
      */
-    NodeDelegate getParent() {
-        Tree parent = getParentTree();
-        return parent == null ? null : new NodeDelegate(sessionDelegate, parent);
+    boolean isRoot() {
+        return getParentTree() == null;
     }
 
     /**

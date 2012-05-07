@@ -17,12 +17,19 @@
 
 package org.apache.jackrabbit.oak.jcr;
 
+import org.apache.jackrabbit.oak.api.Tree.Status;
+
 public abstract class ItemDelegate {
     
     abstract String getName();
 
     abstract String getPath();
 
+    abstract NodeDelegate getParent();
+
     abstract boolean isStale();
 
+    abstract Status getStatus();
+
+    abstract SessionDelegate getSessionDelegate();
 }

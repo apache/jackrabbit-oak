@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.jcr.util.LogUtil;
 import org.apache.jackrabbit.oak.jcr.value.ValueConverter;
@@ -72,8 +71,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @Override
     public Node getParent() throws RepositoryException {
-        return new NodeImpl(new NodeDelegate(sessionDelegate,
-                dlg.getParentTree()));
+        return new NodeImpl(dlg.getParent());
     }
 
     /**
@@ -81,7 +79,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @Override
     public boolean isNew() {
-        return dlg.getPropertyStatus() == Status.NEW;
+        return dlg.getStatus() == Status.NEW;
     }
 
     /**
@@ -89,7 +87,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @Override
     public boolean isModified() {
-        return dlg.getPropertyStatus() == Status.MODIFIED;
+        return dlg.getStatus() == Status.MODIFIED;
     }
 
     /**
@@ -97,6 +95,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @Override
     public void remove() throws RepositoryException {
+        checkStatus();
         dlg.remove();
     }
 
@@ -304,7 +303,7 @@ public class PropertyImpl extends ItemImpl implements Property {
             throw new ValueFormatException(LogUtil.safeGetJCRPath(this) + " is multi-valued.");
         }
 
-        return ValueConverter.toValue(getPropertyState().getValue(), sessionDelegate);
+        return ValueConverter.toValue(dlg.getValue(), sessionDelegate);
     }
 
     @Override
@@ -314,7 +313,7 @@ public class PropertyImpl extends ItemImpl implements Property {
             throw new ValueFormatException(LogUtil.safeGetJCRPath(this) + " is not multi-valued.");
         }
 
-        return ValueConverter.toValues(getPropertyState().getValues(), sessionDelegate);
+        return ValueConverter.toValues(dlg.getValues(), sessionDelegate);
     }
 
     /**
@@ -486,7 +485,8 @@ public class PropertyImpl extends ItemImpl implements Property {
 
     @Override
     public boolean isMultiple() throws RepositoryException {
-        return dlg.getPropertyState().isArray();
+        checkStatus();
+        return dlg.isMultivalue();
     }
 
     //------------------------------------------------------------< private >---
@@ -513,22 +513,18 @@ public class PropertyImpl extends ItemImpl implements Property {
     * @return the required type for this property.
     * @throws javax.jcr.RepositoryException
     */
-   private int getRequiredType(int defaultType) throws RepositoryException {
-       // check type according to definition of this property
-       PropertyDefinition def = getDefinition();
-       int reqType = (def == null) ? PropertyType.UNDEFINED : getDefinition().getRequiredType();
-       if (reqType == PropertyType.UNDEFINED) {
-           if (defaultType == PropertyType.UNDEFINED) {
-               reqType = PropertyType.STRING;
-           } else {
-               reqType = defaultType;
-           }
-       }
-       return reqType;
-   }
-
-    private PropertyState getPropertyState() {
-        return dlg.getPropertyState();
+    private int getRequiredType(int defaultType) throws RepositoryException {
+        // check type according to definition of this property
+        PropertyDefinition def = getDefinition();
+        int reqType = (def == null) ? PropertyType.UNDEFINED : getDefinition().getRequiredType();
+        if (reqType == PropertyType.UNDEFINED) {
+            if (defaultType == PropertyType.UNDEFINED) {
+                reqType = PropertyType.STRING;
+            } else {
+                reqType = defaultType;
+            }
+        }
+        return reqType;
     }
 
     /**
@@ -537,40 +533,40 @@ public class PropertyImpl extends ItemImpl implements Property {
     * @param requiredType
     * @throws RepositoryException
     */
-   private void setValue(Value value, int requiredType) throws RepositoryException {
-       assert(requiredType != PropertyType.UNDEFINED);
+    private void setValue(Value value, int requiredType) throws RepositoryException {
+        assert(requiredType != PropertyType.UNDEFINED);
 
-      // TODO check again if definition validation should be respected here.
-       if (isMultiple()) {
-           throw new ValueFormatException("Attempt to set a single value to multi-valued property.");
-       }
-       if (value == null) {
-           dlg.remove();
-       } else {
-           Value targetValue = ValueHelper.convert(value, requiredType, sessionDelegate.getValueFactory());
-           dlg.setValue(ValueConverter.toCoreValue(targetValue, sessionDelegate));
-       }
-   }
+        // TODO check again if definition validation should be respected here.
+        if (isMultiple()) {
+            throw new ValueFormatException("Attempt to set a single value to multi-valued property.");
+        }
+        if (value == null) {
+            dlg.remove();
+        } else {
+            Value targetValue = ValueHelper.convert(value, requiredType, sessionDelegate.getValueFactory());
+            dlg.setValue(ValueConverter.toCoreValue(targetValue, sessionDelegate));
+        }
+    }
 
-   /**
+    /**
    *
    * @param values
    * @param requiredType
    * @throws RepositoryException
    */
-  private void setValues(Value[] values, int requiredType) throws RepositoryException {
-      assert(requiredType != PropertyType.UNDEFINED);
+    private void setValues(Value[] values, int requiredType) throws RepositoryException {
+        assert(requiredType != PropertyType.UNDEFINED);
 
-      // TODO check again if definition validation should be respected here.
-      if (!isMultiple()) {
-          throw new ValueFormatException("Attempt to set multiple values to single valued property.");
-      }
-      if (values == null) {
-          dlg.remove();
-      } else {
-          Value[] targetValues = ValueHelper.convert(values, requiredType, sessionDelegate.getValueFactory());
-          dlg.setValues(ValueConverter.toCoreValues(targetValues, sessionDelegate));
-      }
-  }
+        // TODO check again if definition validation should be respected here.
+        if (!isMultiple()) {
+            throw new ValueFormatException("Attempt to set multiple values to single valued property.");
+        }
+        if (values == null) {
+            dlg.remove();
+        } else {
+            Value[] targetValues = ValueHelper.convert(values, requiredType, sessionDelegate.getValueFactory());
+            dlg.setValues(ValueConverter.toCoreValues(targetValues, sessionDelegate));
+        }
+    }
 
 }

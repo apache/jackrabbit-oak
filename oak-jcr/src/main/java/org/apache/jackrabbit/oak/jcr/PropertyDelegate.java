@@ -19,9 +19,9 @@ package org.apache.jackrabbit.oak.jcr;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
-import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.PropertyDefinition;
@@ -40,7 +40,51 @@ public class PropertyDelegate extends ItemDelegate {
         this.propertyState = propertyState;
     }
 
-    PropertyDefinition getDefinition() throws RepositoryException {
+    @Override
+    String getName() {
+        return getPropertyState().getName();
+    }
+
+    @Override
+    String getPath() {
+        String parentPath = getParentTree().getPath();
+        return parentPath.isEmpty() ? '/' + getName() : '/' + parentPath + '/' + getName();
+    }
+
+    @Override
+    NodeDelegate getParent() {
+        Tree parent = getParentTree();
+        return parent == null ? null : new NodeDelegate(sessionDelegate, parent);
+    }
+
+    @Override
+    boolean isStale() {
+        return getPropertyState() == null;
+    }
+
+    @Override
+    Status getStatus() {
+        return getParentTree().getPropertyStatus(getName());
+    }
+
+    @Override
+    SessionDelegate getSessionDelegate() {
+        return sessionDelegate;
+    }
+
+    CoreValue getValue() {
+        return getPropertyState().getValue();
+    }
+
+    Iterable<CoreValue> getValues() {
+        return getPropertyState().getValues();
+    }
+
+    boolean isMultivalue() {
+        return getPropertyState().isArray();
+    }
+
+    PropertyDefinition getDefinition() {
         // TODO
         return new PropertyDefinition() {
 
@@ -122,54 +166,30 @@ public class PropertyDelegate extends ItemDelegate {
             }
         };
     }
-    
-    void remove() throws RepositoryException {
-        getParentTree().removeProperty(getName());
-    }
-    
-    void setValue(CoreValue value) throws RepositoryException {
+
+    void setValue(CoreValue value) {
         getParentTree().setProperty(getName(), value);
     }
 
-    void setValues(List<CoreValue> values) throws RepositoryException {
+    void setValues(List<CoreValue> values) {
         getParentTree().setProperty(getName(), values);
     }
 
-    Tree getParentTree() {
-        resolve();
-        return parent;
+    void remove() {
+        getParentTree().removeProperty(getName());
     }
 
-    PropertyState getPropertyState() {
+    //------------------------------------------------------------< private >---
+
+    private PropertyState getPropertyState() {
         resolve();
         return propertyState;
     }
 
-    Tree.Status getPropertyStatus() {
-        return getParentTree().getPropertyStatus(getName());
+    private Tree getParentTree() {
+        resolve();
+        return parent;
     }
-    
-    @Override
-    String getName() {
-        return getPropertyState().getName();
-    }
-
-    @Override
-    String getPath() {
-        String parentPath = getParentTree().getPath();
-        return parentPath.isEmpty() ? '/' + getName() : '/' + parentPath + '/' + getName();
-    }
-
-    @Override
-    boolean isStale() {
-        return getParentTree() == null;
-    }
-
-    SessionDelegate getSessionDelegate() {
-        return sessionDelegate;
-    }
-
-    //------------------------------------------------------------< private >---
 
     private synchronized void resolve() {
         parent = sessionDelegate.getTree(parent.getPath());
@@ -181,4 +201,5 @@ public class PropertyDelegate extends ItemDelegate {
             propertyState = parent.getProperty(PathUtils.getName(path));
         }
     }
+
 }
