@@ -191,7 +191,7 @@ public final class Iterators {
      * @param <T>
      * @return
      */
-    public static <T> Iterator<? extends T> flatten(final Iterator<Iterator<? extends T>> iterators) {
+    public static <T> Iterator<T> flatten(final Iterator<Iterator<? extends T>> iterators) {
         return new Iterator<T>() {
             private Iterator<? extends T> current;
 
