@@ -69,9 +69,10 @@ public class Repository {
      */
     protected Repository() {
         this.homeDir = null;
-        
-        DefaultRevisionStore rs = new DefaultRevisionStore(new InMemPersistence());
-        
+
+        DefaultRevisionStore rs =
+                new DefaultRevisionStore(new InMemPersistence(), null);
+
         try {
             rs.initialize();
         } catch (Exception e) {

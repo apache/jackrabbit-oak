@@ -59,7 +59,9 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
 
     private boolean initialized;
     private Id head;
-    private AtomicLong commitCounter;
+
+    private final AtomicLong commitCounter = new AtomicLong();
+
     private final ReentrantReadWriteLock headLock = new ReentrantReadWriteLock();
     private final Persistence pm;
     protected final GCPersistence gcpm;
@@ -99,12 +101,21 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
      * Active branches (Key: branch root id, Value: branch head).
      */
     private final Map<Id,Id> branches = Collections.synchronizedMap(new TreeMap<Id, Id>());
-    
-    public DefaultRevisionStore(Persistence pm) {
-        this.pm = pm;
-        this.gcpm = (pm instanceof GCPersistence) ? (GCPersistence) pm : null;
 
-        commitCounter = new AtomicLong();
+    public DefaultRevisionStore(Persistence pm) {
+        this(pm, (pm instanceof GCPersistence) ? (GCPersistence) pm : null);
+    }
+
+    /**
+     * Alternative constructor that allows disabling of garbage collection
+     * for an in-memory test repository.
+     *
+     * @param pm persistence manager
+     * @param gcpm the same persistence manager, or {@code null} for no GC
+     */
+    public DefaultRevisionStore(Persistence pm, GCPersistence gcpm) {
+        this.pm = pm;
+        this.gcpm = gcpm;
     }
 
     public void initialize() throws Exception {
