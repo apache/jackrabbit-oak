@@ -41,6 +41,7 @@ import javax.jcr.Session;
 import javax.jcr.Workspace;
 import javax.jcr.lock.LockManager;
 import javax.jcr.nodetype.NodeTypeManager;
+import javax.jcr.query.QueryManager;
 import javax.jcr.version.VersionManager;
 import java.io.IOException;
 
@@ -64,33 +65,25 @@ public class SessionDelegate {
         this.contentSession = contentSession;
         this.valueFactory = new ValueFactoryImpl(contentSession.getCoreValueFactory(), namePathMapper);
         this.nsRegistry = new NamespaceRegistryImpl(contentSession);
-        this.workspace = new WorkspaceImpl(this, this.nsRegistry);
-        this.root = contentSession.getCurrentRoot();
+        this.workspace = new WorkspaceImpl(this, nsRegistry);
         this.session = new SessionImpl(this);
-    }
-
-    public Repository getRepository() {
-        return repository;
-    }
-
-    public Session getSession() {
-        return session;
-    }
-
-    public Workspace getWorkspace() {
-        return workspace;
-    }
-
-    public String getWorkspaceName() {
-        return contentSession.getWorkspaceName();
+        this.root = contentSession.getCurrentRoot();
     }
 
     public boolean isAlive() {
         return isAlive;
     }
 
+    public Session getSession() {
+        return session;
+    }
+
     public AuthInfo getAuthInfo() {
         return contentSession.getAuthInfo();
+    }
+
+    public Repository getRepository() {
+        return repository;
     }
 
     public void logout() {
@@ -117,6 +110,29 @@ public class SessionDelegate {
         return namePathMapper;
     }
 
+    public boolean hasPendingChanges() {
+        return root.hasPendingChanges();
+    }
+
+    public void save() throws RepositoryException {
+        try {
+            root.commit();
+            root = contentSession.getCurrentRoot();
+        }
+        catch (CommitFailedException e) {
+            throw new RepositoryException(e);
+        }
+    }
+
+    public void refresh(boolean keepChanges) {
+        if (keepChanges) {
+            root.rebase();
+        }
+        else {
+            root = contentSession.getCurrentRoot();
+        }
+    }
+
     /**
      * Shortcut for {@code SessionDelegate.getNamePathMapper().getOakPath(jcrPath)}.
      *
@@ -133,53 +149,74 @@ public class SessionDelegate {
         }
     }
 
-    public NodeTypeManager getNodeTypeManager() throws RepositoryException {
-        return workspace.getNodeTypeManager();
+    //------------------------------------------------------------< Workspace >---
+
+    public Workspace getWorkspace() {
+        return workspace;
     }
 
-    public VersionManager getVersionManager() throws RepositoryException {
-        return workspace.getVersionManager();
+    public String getWorkspaceName() {
+        return contentSession.getWorkspaceName();
     }
 
-    public LockManager getLockManager() throws RepositoryException {
-        return workspace.getLockManager();
-    }
+    public void copy(String srcAbsPath, String destAbsPath) throws RepositoryException {
+        String srcPath = PathUtils.relativize("/", srcAbsPath);
+        String destPath = PathUtils.relativize("/", destAbsPath);
 
-    public QueryEngine getQueryEngine() {
-        return contentSession.getQueryEngine();
-    }
+        // check destination
+        Tree dest = getTree(destPath);
+        if (dest != null) {
+            throw new ItemExistsException(destAbsPath);
+        }
 
-    public Tree getTree(String path) {
-        return root.getTree(path);
+        // check parent of destination
+        String destParentPath = PathUtils.getParentPath(destPath);
+        Tree destParent = getTree(destParentPath);
+        if (destParent == null) {
+            throw new PathNotFoundException(PathUtils.getParentPath(destAbsPath));
+        }
+
+        // check source exists
+        Tree src = getTree(srcPath);
+        if (src == null) {
+            throw new PathNotFoundException(srcAbsPath);
+        }
+
+        try {
+            Root currentRoot = contentSession.getCurrentRoot();
+            currentRoot.copy(srcPath, destPath);
+            currentRoot.commit();
+        }
+        catch (CommitFailedException e) {
+            throw new RepositoryException(e);
+        }
     }
 
     public void move(String srcAbsPath, String destAbsPath, boolean transientOp)
             throws RepositoryException {
 
-        String srcPath = PathUtils.relativize("/", srcAbsPath);  // TODO: is this needed?
+        String srcPath = PathUtils.relativize("/", srcAbsPath);
         String destPath = PathUtils.relativize("/", destAbsPath);
-        
-        // TODO: do the checks below belong here?
 
         // check destination
         Tree dest = getTree(destPath);
         if (dest != null) {
-            throw new ItemExistsException(destPath);
+            throw new ItemExistsException(destAbsPath);
         }
-        
+
         // check parent of destination
         String destParentPath = PathUtils.getParentPath(destPath);
         Tree destParent = getTree(destParentPath);
         if (destParent == null) {
-            throw new PathNotFoundException(destParentPath);
+            throw new PathNotFoundException(PathUtils.getParentPath(destAbsPath));
         }
-        
+
         // check source exists
         Tree src = getTree(srcPath);
         if (src == null) {
-            throw new PathNotFoundException(srcPath);
+            throw new PathNotFoundException(srcAbsPath);
         }
-        
+
         try {
             if (transientOp) {
                 root.move(srcPath, destPath);
@@ -195,39 +232,30 @@ public class SessionDelegate {
         }
     }
 
-    public void copy(String srcAbsPath, String destAbsPath) throws RepositoryException {
-        String srcPath = PathUtils.relativize("/", srcAbsPath);
-        String destPath = PathUtils.relativize("/", destAbsPath);
-        try {
-            Root currentRoot = contentSession.getCurrentRoot();
-            currentRoot.copy(srcPath, destPath);
-            currentRoot.commit();
-        }
-        catch (CommitFailedException e) {
-            throw new RepositoryException(e);
-        }
+    public LockManager getLockManager() throws RepositoryException {
+        return workspace.getLockManager();
     }
 
-    public boolean hasPendingChanges() {
-        return root.hasPendingChanges();
+    public QueryEngine getQueryEngine() {
+        return contentSession.getQueryEngine();
     }
 
-    public void save() throws RepositoryException {
-        try {
-            root.commit();
-            root = contentSession.getCurrentRoot();
-        } catch (CommitFailedException e) {
-            throw new RepositoryException(e);
-        }
+    public QueryManager getQueryManager() throws RepositoryException {
+        return workspace.getQueryManager();
     }
 
-    public void refresh(boolean keepChanges) {
-        if (keepChanges) {
-            root.rebase();
-        }
-        else {
-            root = contentSession.getCurrentRoot();
-        }
+    public NodeTypeManager getNodeTypeManager() throws RepositoryException {
+        return workspace.getNodeTypeManager();
+    }
+
+    public VersionManager getVersionManager() throws RepositoryException {
+        return workspace.getVersionManager();
+    }
+
+    //------------------------------------------------------------< internal >---
+
+    public Tree getTree(String path) {  // FIXME: make this package private
+        return root.getTree(path);
     }
 
     //--------------------------------------------------< SessionNameMapper >---
