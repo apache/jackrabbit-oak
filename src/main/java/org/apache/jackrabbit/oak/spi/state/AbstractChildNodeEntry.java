@@ -25,6 +25,16 @@ package org.apache.jackrabbit.oak.spi.state;
 public abstract class AbstractChildNodeEntry implements ChildNodeEntry {
 
     /**
+     * Returns a string representation of this child node entry.
+     *
+     * @return string representation
+     */
+    @Override
+    public String toString() {
+        return getName() + ": " + getNodeState();
+    }
+
+    /**
      * Checks whether the given object is equal to this one. Two child node
      * entries are considered equal if both their names and referenced node
      * states match. Subclasses may override this method with a more efficient

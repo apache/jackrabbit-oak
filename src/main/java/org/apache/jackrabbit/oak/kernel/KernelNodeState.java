@@ -24,6 +24,7 @@ import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -203,9 +204,7 @@ class KernelNodeState extends AbstractNodeState {
                 offset--;
             }
             while (count > 0 && iterator.hasNext()) {
-                Map.Entry<String, NodeState> entry = iterator.next();
-                entries.add(new KernelChildNodeEntry(
-                        entry.getKey(), entry.getValue()));
+                entries.add(new MemoryChildNodeEntry(iterator.next()));
                 count--;
             }
             offset = childNodes.size();
@@ -223,9 +222,9 @@ class KernelNodeState extends AbstractNodeState {
                 if (reader.matches('{')) {
                     reader.read('}');
                     String childPath = getChildPath(name);
-                    NodeState child =
-                            new KernelNodeState(kernel, valueFactory, childPath, revision);
-                    entries.add(new KernelChildNodeEntry(name, child));
+                    NodeState child = new KernelNodeState(
+                            kernel, valueFactory, childPath, revision);
+                    entries.add(new MemoryChildNodeEntry(name, child));
                 } else {
                     reader.read();
                 }

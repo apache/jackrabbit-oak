@@ -16,20 +16,42 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.kernel;
+package org.apache.jackrabbit.oak.plugins.memory;
+
+import java.util.Map;
 
 import org.apache.jackrabbit.oak.spi.state.AbstractChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-class KernelChildNodeEntry extends AbstractChildNodeEntry {
+/**
+ * Basic JavaBean implementation of a child node entry.
+ */
+public class MemoryChildNodeEntry extends AbstractChildNodeEntry {
 
     private final String name;
 
     private final NodeState node;
 
-    public KernelChildNodeEntry(String name, NodeState node) {
+    /**
+     * Creates a child node entry with the given name and referenced
+     * child node state.
+     *
+     * @param name child node name
+     * @param node child node state
+     */
+    public MemoryChildNodeEntry(String name, NodeState node) {
         this.name = name;
         this.node = node;
+    }
+
+    /**
+     * Utility constructor that copies the name and referenced
+     * child node state from the given map entry.
+     *
+     * @param entry map entry
+     */
+    public MemoryChildNodeEntry(Map.Entry<String, NodeState> entry) {
+        this(entry.getKey(), entry.getValue());
     }
 
     @Override
