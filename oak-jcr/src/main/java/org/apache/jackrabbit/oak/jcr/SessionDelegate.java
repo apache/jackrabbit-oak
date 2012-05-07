@@ -16,19 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import java.io.IOException;
-
-import javax.jcr.ItemExistsException;
-import javax.jcr.NamespaceRegistry;
-import javax.jcr.PathNotFoundException;
-import javax.jcr.Repository;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.Workspace;
-import javax.jcr.lock.LockManager;
-import javax.jcr.nodetype.NodeTypeManager;
-import javax.jcr.version.VersionManager;
-
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -45,12 +32,24 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.jcr.ItemExistsException;
+import javax.jcr.NamespaceRegistry;
+import javax.jcr.PathNotFoundException;
+import javax.jcr.Repository;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.Workspace;
+import javax.jcr.lock.LockManager;
+import javax.jcr.nodetype.NodeTypeManager;
+import javax.jcr.version.VersionManager;
+import java.io.IOException;
+
 public class SessionDelegate {
     static final Logger log = LoggerFactory.getLogger(SessionDelegate.class);
 
     private final NameMapper nameMapper = new SessionNameMapper();
     private final NamePathMapper namePathMapper = new NamePathMapperImpl(nameMapper);
-    private final GlobalContext context;
+    private final Repository repository;
     private final ContentSession contentSession;
     private final ValueFactoryImpl valueFactory;
     private final NamespaceRegistry nsRegistry;
@@ -60,10 +59,8 @@ public class SessionDelegate {
     private boolean isAlive = true;
     private Root root;
 
-    SessionDelegate(GlobalContext context, ContentSession contentSession)
-            throws RepositoryException {
-
-        this.context = context;
+    SessionDelegate(Repository repository, ContentSession contentSession) throws RepositoryException {
+        this.repository = repository;
         this.contentSession = contentSession;
         this.valueFactory = new ValueFactoryImpl(contentSession.getCoreValueFactory(), namePathMapper);
         this.nsRegistry = new NamespaceRegistryImpl(contentSession);
@@ -73,7 +70,7 @@ public class SessionDelegate {
     }
 
     public Repository getRepository() {
-        return context.getInstance(Repository.class);
+        return repository;
     }
 
     public Session getSession() {
