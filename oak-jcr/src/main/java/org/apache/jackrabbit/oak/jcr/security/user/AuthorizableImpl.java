@@ -50,6 +50,7 @@ abstract class AuthorizableImpl implements Authorizable {
     static final String NT_REP_AUTHORIZABLE = "rep:Authorizable";
     static final String NT_REP_USER = "rep:User";
     static final String NT_REP_GROUP = "rep:Group";
+    static final String NT_REP_MEMBERS = "rep:Members";
     static final String REP_PRINCIPAL_NAME = "rep:principalName";
     static final String REP_PASSWORD = "rep:password";
     static final String REP_DISABLED = "rep:disabled";
@@ -414,10 +415,6 @@ abstract class AuthorizableImpl implements Authorizable {
         }
 
         MembershipManager membershipManager = userManager.getMembershipManager();
-        if (includeInherited) {
-            return membershipManager.getMembership(this);
-        } else {
-            return membershipManager.getDeclaredMembership(this);
-        }
+        return membershipManager.getMembership(this, includeInherited);
     }
 }

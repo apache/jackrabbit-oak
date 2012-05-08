@@ -36,6 +36,7 @@ import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
+import javax.jcr.Value;
 import java.io.UnsupportedEncodingException;
 import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
@@ -342,6 +343,11 @@ public class UserManagerImpl implements UserManager {
         sessionDelegate.getNode(getInternalPath(userNode)).setProperty(name, cvs);
     }
 
+    void setInternalProperty(Node userNode, String name, Value[] values) throws RepositoryException {
+        List<CoreValue> cvs = ValueConverter.toCoreValues(values, sessionDelegate);
+        sessionDelegate.getNode(getInternalPath(userNode)).setProperty(name, cvs);
+    }
+
     void removeInternalProperty(Node userNode, String name) throws RepositoryException {
         sessionDelegate.getNode(getInternalPath(userNode)).getProperty(name).remove();
     }
@@ -352,12 +358,17 @@ public class UserManagerImpl implements UserManager {
 
     MembershipManager getMembershipManager() {
         if (membershipManager == null) {
-            membershipManager = new MembershipManager(this, sessionDelegate);
+            int splitSize = config.getConfigValue(UserManagerConfig.PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE, 0);
+            if (splitSize < 4) {
+                log.warn("Invalid value {} for {}. Expected integer >= 4", splitSize, UserManagerConfig.PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE);
+                splitSize = 0;
+            }
+            membershipManager = new MembershipManager(this, splitSize, sessionDelegate);
         }
         return membershipManager;
     }
 
-    private Authorizable getAuthorizable(Node node) throws RepositoryException {
+    Authorizable getAuthorizable(Node node) throws RepositoryException {
         if (node.isNodeType(AuthorizableImpl.NT_REP_USER)) {
             return new UserImpl(node, this);
         } else if (node.isNodeType(AuthorizableImpl.NT_REP_GROUP)) {
