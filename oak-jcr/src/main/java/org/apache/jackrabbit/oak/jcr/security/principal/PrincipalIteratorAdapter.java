@@ -31,8 +31,7 @@ import java.util.NoSuchElementException;
  *
  * TODO: move to jackrabbit-jcr-commons
  */
-public class PrincipalIteratorAdapter extends RangeIteratorDecorator
-        implements PrincipalIterator {
+public class PrincipalIteratorAdapter extends RangeIteratorDecorator implements PrincipalIterator {
 
     /**
      * Static instance of an empty {@link PrincipalIterator}.
