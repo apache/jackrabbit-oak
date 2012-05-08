@@ -47,6 +47,7 @@ import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory.AbstractProper
 import org.apache.jackrabbit.commons.cnd.ParseException;
 import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.jcr.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 
@@ -259,11 +260,12 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
                     .size()]), primaryItemName, isMixin, isAbstract, isOrderable);
 
             for (PropertyDefinitionBuilderImpl pdb : propertyDefinitions) {
-                result.addPropertyDefinition(pdb.getPropertyDefinition(result, vf, mapper));
+                result.addPropertyDefinition(new PropertyDefinitionImpl(result, mapper, vf, pdb.getPropertyDefinitionDelegate(vf
+                        .getCoreValueFactory())));
             }
 
             for (NodeDefinitionBuilderImpl ndb : childNodeDefinitions) {
-                result.addChildNodeDefinition(ndb.getNodeDefinition(ntm, result, mapper));
+                result.addChildNodeDefinition(new NodeDefinitionImpl(ntm, result, mapper, ndb.getNodeDefinitionDelegate()));
             }
 
             return result;
@@ -290,10 +292,9 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
             this.ndtb = ntdb;
         }
 
-        public NodeDefinition getNodeDefinition(NodeTypeManager ntm, NodeType nt, NameMapper mapper) {
-            return new NodeDefinitionImpl(ntm, nt, mapper, new NodeDefinitionDelegate(name, autocreate, isMandatory, onParent,
-                    isProtected, requiredPrimaryTypes.toArray(new String[requiredPrimaryTypes.size()]), defaultPrimaryType,
-                    allowSns));
+        public NodeDefinitionDelegate getNodeDefinitionDelegate() {
+            return new NodeDefinitionDelegate(name, autocreate, isMandatory, onParent, isProtected,
+                    requiredPrimaryTypes.toArray(new String[requiredPrimaryTypes.size()]), defaultPrimaryType, allowSns);
         };
 
         @Override
@@ -329,16 +330,16 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
             this.ndtb = ntdb;
         }
 
-        public PropertyDefinition getPropertyDefinition(NodeType nt, ValueFactoryImpl vf, NameMapper mapper) {
-            
+        public PropertyDefinitionDelegate getPropertyDefinitionDelegate(CoreValueFactory cvf) {
+
             CoreValue[] defaultCoreValues = new CoreValue[defaultValues.size()];
-            
+
             for (int i = 0; i < defaultCoreValues.length; i++) {
-                defaultCoreValues[i] = vf.getCoreValueFactory().createValue(defaultValues.get(i), requiredType);
+                defaultCoreValues[i] = cvf.createValue(defaultValues.get(i), requiredType);
             }
-            
-            return new PropertyDefinitionImpl(nt, mapper, vf, new PropertyDefinitionDelegate(name, autocreate, isMandatory,
-                    onParent, isProtected, requiredType, isMultiple, defaultCoreValues));
+
+            return new PropertyDefinitionDelegate(name, autocreate, isMandatory, onParent, isProtected, requiredType, isMultiple,
+                    defaultCoreValues);
         }
 
         @Override
