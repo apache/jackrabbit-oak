@@ -23,6 +23,8 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
+import org.apache.jackrabbit.oak.spi.security.authentication.CallbackHandlerImpl;
+import org.apache.jackrabbit.oak.spi.security.authentication.ConfigurationImpl;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
 import org.apache.jackrabbit.oak.spi.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -30,9 +32,10 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.jcr.GuestCredentials;
+import javax.jcr.Credentials;
 import javax.jcr.NoSuchWorkspaceException;
-import javax.jcr.SimpleCredentials;
+import javax.security.auth.login.Configuration;
+import javax.security.auth.login.LoginContext;
 import javax.security.auth.login.LoginException;
 
 /**
@@ -42,26 +45,26 @@ import javax.security.auth.login.LoginException;
 public class ContentRepositoryImpl implements ContentRepository {
 
     /** Logger instance */
-    private static final Logger LOG =
-            LoggerFactory.getLogger(ContentRepositoryImpl.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ContentRepositoryImpl.class);
 
     // TODO: retrieve default wsp-name from configuration
     private static final String DEFAULT_WORKSPACE_NAME = "default";
+
+    private static final String APP_NAME = "jackrabbit.oak";
 
     private final MicroKernel microKernel;
     private final QueryEngine queryEngine;
     private final NodeStore nodeStore;
 
+    private final Configuration authConfig;
+
     /**
-     * Utility constructor that creates a new in-memory repository for use
-     * mostly in test cases.
+     * Utility constructor that creates a new in-memory repository with default
+     * query index provider. This constructor is intended to be used within
+     * test cases only.
      */
     public ContentRepositoryImpl() {
-        this(new MicroKernelImpl());
-    }
-
-    private ContentRepositoryImpl(MicroKernel mk) {
-        this(mk, getDefaultIndexProvider(mk));
+        this(new MicroKernelImpl(), null);
     }
 
     /**
@@ -74,7 +77,11 @@ public class ContentRepositoryImpl implements ContentRepository {
     public ContentRepositoryImpl(MicroKernel mk, QueryIndexProvider indexProvider) {
         microKernel = mk;
         nodeStore = new KernelNodeStore(microKernel);
-        queryEngine = new QueryEngineImpl(nodeStore, microKernel, indexProvider);
+        QueryIndexProvider qip = (indexProvider == null) ? getDefaultIndexProvider(microKernel) : indexProvider;
+        queryEngine = new QueryEngineImpl(nodeStore, microKernel, qip);
+
+        // TODO: use configurable authentication config
+        authConfig = new ConfigurationImpl();
 
         // FIXME: workspace setup must be done elsewhere...
         NodeState root = nodeStore.getRoot();
@@ -95,7 +102,7 @@ public class ContentRepositoryImpl implements ContentRepository {
     }
 
     @Override
-    public ContentSession login(Object credentials, String workspaceName)
+    public ContentSession login(Credentials credentials, String workspaceName)
             throws LoginException, NoSuchWorkspaceException {
         if (workspaceName == null) {
             workspaceName = DEFAULT_WORKSPACE_NAME;
@@ -104,26 +111,14 @@ public class ContentRepositoryImpl implements ContentRepository {
         // TODO: add proper implementation
         // TODO  - authentication against configurable spi-authentication
         // TODO  - validation of workspace name (including access rights for the given 'user')
-
-        final SimpleCredentials sc;
-        if (credentials == null || credentials instanceof GuestCredentials) {
-            sc = new SimpleCredentials("anonymous", new char[0]);
-        } else if (credentials instanceof SimpleCredentials) {
-            sc = (SimpleCredentials) credentials;
-        } else {
-            sc = null;
-        }
-
-        if (sc == null) {
-            throw new LoginException("login failed");
-        }
+        LoginContext loginContext = new LoginContext(APP_NAME, null, new CallbackHandlerImpl(credentials), authConfig);
+        loginContext.login();
 
         NodeState wspRoot = nodeStore.getRoot().getChildNode(workspaceName);
         if (wspRoot == null) {
             throw new NoSuchWorkspaceException(workspaceName);
         }
 
-        return new ContentSessionImpl(sc, workspaceName, nodeStore, queryEngine);
+        return new ContentSessionImpl(loginContext, workspaceName, nodeStore, queryEngine);
     }
-
 }
