@@ -158,7 +158,7 @@ public class SessionDelegate {
         }
     }
 
-    //------------------------------------------------------------< Workspace >---
+    //----------------------------------------------------------< Workspace >---
 
     public Workspace getWorkspace() {
         return workspace;
