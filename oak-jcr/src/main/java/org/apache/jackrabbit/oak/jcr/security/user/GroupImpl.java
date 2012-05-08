@@ -118,13 +118,18 @@ class GroupImpl extends AuthorizableImpl implements Group {
         if (authorizableImpl.isGroup()) {
             if (getID().equals(authorizableImpl.getID())) {
                 String msg = "Attempt to add a group as member of itself (" + getID() + ").";
-                log.warn(msg);
+                log.debug(msg);
                 return false;
             }
             if (((Group) authorizableImpl).isMember(this)) {
-                log.warn("Attempt to create circular group membership.");
+                log.debug("Attempt to create circular group membership.");
                 return false;
             }
+        }
+
+        if (isDeclaredMember(authorizable)) {
+            log.debug("Authorizable {} is already declared member of {}", authorizable.getID(), getID());
+            return false;
         }
 
         return getUserManager().getMembershipManager().addMember(this, authorizableImpl);
@@ -141,9 +146,9 @@ class GroupImpl extends AuthorizableImpl implements Group {
         }
         if (isEveryone()) {
             return false;
+        } else {
+            return getUserManager().getMembershipManager().removeMember(this, (AuthorizableImpl) authorizable);
         }
-
-        return getUserManager().getMembershipManager().removeMember(this, (AuthorizableImpl) authorizable);
     }
 
     //--------------------------------------------------------------------------
@@ -158,10 +163,9 @@ class GroupImpl extends AuthorizableImpl implements Group {
     private Iterator<Authorizable> getMembers(boolean includeInherited) throws RepositoryException {
         if (isEveryone()) {
             return getUserManager().findAuthorizables(AuthorizableImpl.REP_PRINCIPAL_NAME, null, UserManager.SEARCH_TYPE_AUTHORIZABLE);
-        } else if (includeInherited) {
-            return getUserManager().getMembershipManager().getMembers(this);
         } else {
-            return getUserManager().getMembershipManager().getDeclaredMembers(this);
+            MembershipManager mMgr = getUserManager().getMembershipManager();
+            return mMgr.getMembers(this, UserManager.SEARCH_TYPE_AUTHORIZABLE, includeInherited);
         }
     }
 
@@ -178,14 +182,15 @@ class GroupImpl extends AuthorizableImpl implements Group {
     private boolean isMember(Authorizable authorizable, boolean includeInherited) throws RepositoryException {
         if (!isValidAuthorizableImpl(authorizable)) {
             return false;
-        } else if (getNode().isSame(((AuthorizableImpl) authorizable).getNode())) {
-            return false;
-        } else if (isEveryone()) {
+        }
+
+        if (isEveryone()) {
             return true;
-        } else if (includeInherited) {
-            return getUserManager().getMembershipManager().hasMember(this, (AuthorizableImpl) authorizable);
+        } else if (getID().equals(authorizable.getID())) {
+            return false;
         } else {
-            return getUserManager().getMembershipManager().hasDeclaredMember(this, (AuthorizableImpl) authorizable);
+            AuthorizableImpl authorizableImpl = (AuthorizableImpl) authorizable;
+            return getUserManager().getMembershipManager().isMember(this, authorizableImpl, includeInherited);
         }
     }
 

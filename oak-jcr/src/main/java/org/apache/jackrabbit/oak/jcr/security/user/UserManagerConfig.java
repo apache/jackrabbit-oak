@@ -30,6 +30,17 @@ public class UserManagerConfig {
     private static final Logger log = LoggerFactory.getLogger(UserManagerImpl.class);
 
     /**
+     * If this parameter is present group members are collected in a node
+     * structure below a {@link AuthorizableImpl#REP_MEMBERS} node instead of the
+     * default multi valued property {@link AuthorizableImpl#REP_MEMBERS}.
+     * Its value determines the maximum number of member properties until
+     * additional intermediate nodes are inserted. Valid values are integers
+     * &gt; 4. The default value is 0 and indicates that the
+     * {@link AuthorizableImpl#REP_MEMBERS} property is used to record group members.
+     */
+    public static final String PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE = "groupMembershipSplitSize";
+
+    /**
      * Configuration parameter to change the default algorithm used to generate
      * password hashes. The default value is {@link PasswordUtility#DEFAULT_ALGORITHM}.
      */

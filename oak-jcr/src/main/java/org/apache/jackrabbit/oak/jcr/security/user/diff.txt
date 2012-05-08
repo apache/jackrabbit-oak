@@ -18,7 +18,6 @@ UserManager:
 Authorizable:
 - setProperty, removeProperty executes no extra shortcut check for protected properties
 - not relying on rep:principalName to exist -> using ID as fallback
--
 
 User:
 
@@ -32,6 +31,7 @@ TODO:
 
 - Configuration based on oak-core implementation
 
+- check if node type definition with rep:members child node and/or rep:members child prop still works.
 
 
 
