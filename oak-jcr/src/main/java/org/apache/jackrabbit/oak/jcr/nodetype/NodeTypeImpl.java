@@ -34,100 +34,72 @@ import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.PropertyDefinition;
 
 import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
+import org.apache.jackrabbit.oak.jcr.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 
 class NodeTypeImpl implements NodeType {
 
     private final NodeTypeManager manager;
-
     private final NameMapper mapper;
-    
-    private final String name;
+    private final ValueFactoryImpl valueFactory;
 
-    private final String[] declaredSuperTypeNames;
+    private final NodeTypeDelegate dlg;
 
-    private final boolean isAbstract;
-
-    private final boolean mixin;
-
-    private final boolean hasOrderableChildNodes;
-
-    private final String primaryItemName;
-
-    private final List<PropertyDefinition> declaredPropertyDefinitions = new ArrayList<PropertyDefinition>();
-
-    private final List<NodeDefinition> declaredChildNodeDefinitions =
-            new ArrayList<NodeDefinition>();
-
-    public NodeTypeImpl(NodeTypeManager manager, NameMapper mapper, String name, String[] declaredSuperTypeNames,
-            String primaryItemName, boolean mixin, boolean isAbstract, boolean hasOrderableChildNodes) {
+    public NodeTypeImpl(NodeTypeManager manager, ValueFactoryImpl valueFactory, NameMapper mapper, NodeTypeDelegate delegate) {
         this.manager = manager;
+        this.valueFactory = valueFactory;
         this.mapper = mapper;
-        this.name = name;
-        this.declaredSuperTypeNames = declaredSuperTypeNames;
-        this.primaryItemName = primaryItemName;
-        this.mixin = mixin;
-        this.isAbstract = isAbstract;
-        this.hasOrderableChildNodes = hasOrderableChildNodes;
-    }
-    
-    public void addPropertyDefinition(PropertyDefinition declaredPropertyDefinition) {
-        this.declaredPropertyDefinitions.add(declaredPropertyDefinition);
-    }
-
-    public void addChildNodeDefinition(NodeDefinition declaredChildNodeDefinition) {
-        this.declaredChildNodeDefinitions.add(declaredChildNodeDefinition);
+        this.dlg = delegate;
     }
 
     @Override
     public String getName() {
-        return mapper.getJcrName(name);
+        return mapper.getJcrName(dlg.getName());
     }
 
     @Override
     public String[] getDeclaredSupertypeNames() {
         List<String> names = new ArrayList<String>();
-        boolean addNtBase = !mixin;
-        for (String name : declaredSuperTypeNames) {
-            
-            String jcrName = mapper.getJcrName(name); 
-            
+        boolean addNtBase = !isMixin();
+        for (String name : dlg.getDeclaredSuperTypeNames()) {
+
+            String jcrName = mapper.getJcrName(name);
+
             // TODO: figure out a more performant way
             // check of at least one declared super type being a non-mixin type
             if (addNtBase) {
                 try {
                     NodeType nt = manager.getNodeType(jcrName);
-                    if (! nt.isMixin()) {
+                    if (!nt.isMixin()) {
                         addNtBase = false;
                     }
-                }
-                catch (RepositoryException ex) {
+                } catch (RepositoryException ex) {
                     // ignored
                 }
-            }    
+            }
             names.add(jcrName);
         }
-        
+
         if (addNtBase) {
             names.add(mapper.getJcrName("nt:base"));
         }
-        
+
         return names.toArray(new String[names.size()]);
     }
 
     @Override
     public boolean isAbstract() {
-        return isAbstract;
+        return dlg.isAbstract();
     }
 
     @Override
     public boolean isMixin() {
-        return mixin;
+        return dlg.isMixin();
     }
 
     @Override
     public boolean hasOrderableChildNodes() {
-        return hasOrderableChildNodes;
+        return dlg.hasOrderableChildNodes();
     }
 
     @Override
@@ -137,6 +109,7 @@ class NodeTypeImpl implements NodeType {
 
     @Override
     public String getPrimaryItemName() {
+        String primaryItemName = dlg.getPrimaryItemName();
         if (primaryItemName != null) {
             return mapper.getJcrName(primaryItemName);
         } else {
@@ -146,14 +119,26 @@ class NodeTypeImpl implements NodeType {
 
     @Override
     public PropertyDefinition[] getDeclaredPropertyDefinitions() {
-        return declaredPropertyDefinitions.toArray(
-                new PropertyDefinition[declaredPropertyDefinitions.size()]);
+        List<PropertyDefinitionDelegate> definitionDelegates = dlg.getPropertyDefinitionDelegates();
+        PropertyDefinition[] result = new PropertyDefinition[definitionDelegates.size()];
+
+        for (int i = 0; i < result.length; i++) {
+            result[i] = new PropertyDefinitionImpl(this, mapper, valueFactory, definitionDelegates.get(i));
+        }
+
+        return result;
     }
 
     @Override
     public NodeDefinition[] getDeclaredChildNodeDefinitions() {
-        return declaredChildNodeDefinitions.toArray(
-                new NodeDefinition[declaredChildNodeDefinitions.size()]);
+        List<NodeDefinitionDelegate> definitionDelegates = dlg.getChildNodeDefinitionDelegates();
+        NodeDefinition[] result = new NodeDefinition[definitionDelegates.size()];
+
+        for (int i = 0; i < result.length; i++) {
+            result[i] = new NodeDefinitionImpl(manager, this, mapper, definitionDelegates.get(i));
+        }
+
+        return result;
     }
 
     @Override
@@ -161,8 +146,7 @@ class NodeTypeImpl implements NodeType {
         try {
             Collection<NodeType> types = new ArrayList<NodeType>();
             Set<String> added = new HashSet<String>();
-            Queue<String> queue = new LinkedList<String>(
-                    Arrays.asList(getDeclaredSupertypeNames()));
+            Queue<String> queue = new LinkedList<String>(Arrays.asList(getDeclaredSupertypeNames()));
             while (!queue.isEmpty()) {
                 String name = queue.remove();
                 if (added.add(name)) {
@@ -173,8 +157,7 @@ class NodeTypeImpl implements NodeType {
             }
             return types.toArray(new NodeType[types.size()]);
         } catch (RepositoryException e) {
-            throw new IllegalStateException(
-                    "Inconsistent node type: " + this, e);
+            throw new IllegalStateException("Inconsistent node type: " + this, e);
         }
     }
 
@@ -188,8 +171,7 @@ class NodeTypeImpl implements NodeType {
             }
             return types;
         } catch (RepositoryException e) {
-            throw new IllegalStateException(
-                    "Inconsistent node type: " + this, e);
+            throw new IllegalStateException("Inconsistent node type: " + this, e);
         }
     }
 
@@ -206,8 +188,7 @@ class NodeTypeImpl implements NodeType {
             }
             return new NodeTypeIteratorAdapter(types);
         } catch (RepositoryException e) {
-            throw new IllegalStateException(
-                    "Inconsistent node type: " + this, e);
+            throw new IllegalStateException("Inconsistent node type: " + this, e);
         }
     }
 
@@ -227,8 +208,7 @@ class NodeTypeImpl implements NodeType {
             }
             return new NodeTypeIteratorAdapter(types);
         } catch (RepositoryException e) {
-            throw new IllegalStateException(
-                    "Inconsistent node type: " + this, e);
+            throw new IllegalStateException("Inconsistent node type: " + this, e);
         }
     }
 
@@ -247,11 +227,9 @@ class NodeTypeImpl implements NodeType {
 
     @Override
     public PropertyDefinition[] getPropertyDefinitions() {
-        Collection<PropertyDefinition> definitions =
-                new ArrayList<PropertyDefinition>();
+        Collection<PropertyDefinition> definitions = new ArrayList<PropertyDefinition>();
         for (NodeType type : getSupertypes()) {
-            definitions.addAll(Arrays.asList(
-                    type.getDeclaredPropertyDefinitions()));
+            definitions.addAll(Arrays.asList(type.getDeclaredPropertyDefinitions()));
         }
         definitions.addAll(Arrays.asList(getDeclaredPropertyDefinitions()));
         return definitions.toArray(new PropertyDefinition[definitions.size()]);
@@ -259,11 +237,9 @@ class NodeTypeImpl implements NodeType {
 
     @Override
     public NodeDefinition[] getChildNodeDefinitions() {
-        Collection<NodeDefinition> definitions =
-                new ArrayList<NodeDefinition>();
+        Collection<NodeDefinition> definitions = new ArrayList<NodeDefinition>();
         for (NodeType type : getSupertypes()) {
-            definitions.addAll(Arrays.asList(
-                    type.getDeclaredChildNodeDefinitions()));
+            definitions.addAll(Arrays.asList(type.getDeclaredChildNodeDefinitions()));
         }
         definitions.addAll(Arrays.asList(getDeclaredChildNodeDefinitions()));
         return definitions.toArray(new NodeDefinition[definitions.size()]);

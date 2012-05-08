@@ -29,14 +29,12 @@ import java.util.Map;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
-import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeDefinitionTemplate;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeDefinition;
 import javax.jcr.nodetype.NodeTypeIterator;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.NodeTypeTemplate;
-import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
 
 import org.apache.jackrabbit.commons.cnd.CompactNodeTypeDefReader;
@@ -53,23 +51,25 @@ import org.apache.jackrabbit.oak.namepath.NameMapper;
 
 public class NodeTypeManagerImpl implements NodeTypeManager {
 
+    private final ValueFactoryImpl vf;
     private final NameMapper mapper;
-    private final List<NodeType> types;
+    private final List<NodeTypeDelegate> typeDelegates;
 
     private final Map<String, NodeType> typemap = new HashMap<String, NodeType>();
 
     public NodeTypeManagerImpl(ValueFactoryImpl vf, NameMapper mapper) throws RepositoryException {
+        this.vf = vf;
         this.mapper = mapper;
 
         try {
             InputStream stream = NodeTypeManagerImpl.class.getResourceAsStream("builtin_nodetypes.cnd");
             Reader reader = new InputStreamReader(stream, "UTF-8");
             try {
-                DefinitionBuilderFactory<NodeType, Map<String, String>> dbf = new DefinitionBuilderFactoryImpl(this, vf, mapper);
-                CompactNodeTypeDefReader<NodeType, Map<String, String>> cndr = new CompactNodeTypeDefReader<NodeType, Map<String, String>>(
+                DefinitionBuilderFactory<NodeTypeDelegate, Map<String, String>> dbf = new DefinitionDelegateBuilderFactory(vf);
+                CompactNodeTypeDefReader<NodeTypeDelegate, Map<String, String>> cndr = new CompactNodeTypeDefReader<NodeTypeDelegate, Map<String, String>>(
                         reader, null, dbf);
 
-                types = cndr.getNodeTypeDefinitions();
+                typeDelegates = cndr.getNodeTypeDefinitions();
             } catch (ParseException ex) {
                 throw new RepositoryException("Failed to load built-in node types", ex);
             } finally {
@@ -82,8 +82,9 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
 
     private void init() {
         if (typemap.isEmpty()) {
-            for (NodeType t : types) {
-                typemap.put(t.getName(), t);
+            for (NodeTypeDelegate t : typeDelegates) {
+                NodeType nt = new NodeTypeImpl(this, vf, mapper, t);
+                typemap.put(t.getName(), nt);
             }
         }
     }
@@ -179,18 +180,14 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
         throw new UnsupportedRepositoryOperationException();
     }
 
-    private class DefinitionBuilderFactoryImpl extends DefinitionBuilderFactory<NodeType, Map<String, String>> {
+    private class DefinitionDelegateBuilderFactory extends DefinitionBuilderFactory<NodeTypeDelegate, Map<String, String>> {
 
         private Map<String, String> nsmap = new HashMap<String, String>();
 
-        private final NodeTypeManager ntm;
         private final ValueFactoryImpl vf;
-        private final NameMapper mapper;
 
-        public DefinitionBuilderFactoryImpl(NodeTypeManager ntm, ValueFactoryImpl vf, NameMapper mapper) {
-            this.ntm = ntm;
+        public DefinitionDelegateBuilderFactory(ValueFactoryImpl vf) {
             this.vf = vf;
-            this.mapper = mapper;
         }
 
         @Override
@@ -199,9 +196,9 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
         }
 
         @Override
-        public org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory.AbstractNodeTypeDefinitionBuilder<NodeType> newNodeTypeDefinitionBuilder()
+        public org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory.AbstractNodeTypeDefinitionBuilder<NodeTypeDelegate> newNodeTypeDefinitionBuilder()
                 throws RepositoryException {
-            return new NodeTypeDefinitionBuilderImpl(ntm, vf, mapper);
+            return new NodeTypeDefinitionDelegateBuilder(vf);
         }
 
         @Override
@@ -215,22 +212,18 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
         }
     }
 
-    private class NodeTypeDefinitionBuilderImpl extends AbstractNodeTypeDefinitionBuilder<NodeType> {
+    private class NodeTypeDefinitionDelegateBuilder extends AbstractNodeTypeDefinitionBuilder<NodeTypeDelegate> {
 
-        private List<PropertyDefinitionBuilderImpl> propertyDefinitions = new ArrayList<PropertyDefinitionBuilderImpl>();
-        private List<NodeDefinitionBuilderImpl> childNodeDefinitions = new ArrayList<NodeDefinitionBuilderImpl>();
+        private List<PropertyDefinitionDelegateBuilder> propertyDefinitions = new ArrayList<PropertyDefinitionDelegateBuilder>();
+        private List<NodeDefinitionDelegateBuilder> childNodeDefinitions = new ArrayList<NodeDefinitionDelegateBuilder>();
 
-        private final NodeTypeManager ntm;
         private final ValueFactoryImpl vf;
-        private final NameMapper mapper;
 
         private String primaryItemName;
         private List<String> declaredSuperTypes = new ArrayList<String>();
 
-        public NodeTypeDefinitionBuilderImpl(NodeTypeManager ntm, ValueFactoryImpl vf, NameMapper mapper) {
-            this.ntm = ntm;
+        public NodeTypeDefinitionDelegateBuilder(ValueFactoryImpl vf) {
             this.vf = vf;
-            this.mapper = mapper;
         }
 
         @Override
@@ -244,51 +237,50 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
         }
 
         @Override
-        public AbstractPropertyDefinitionBuilder<NodeType> newPropertyDefinitionBuilder() throws RepositoryException {
-            return new PropertyDefinitionBuilderImpl(this);
+        public AbstractPropertyDefinitionBuilder<NodeTypeDelegate> newPropertyDefinitionBuilder() throws RepositoryException {
+            return new PropertyDefinitionDelegateBuilder(this);
         }
 
         @Override
-        public AbstractNodeDefinitionBuilder<NodeType> newNodeDefinitionBuilder() throws RepositoryException {
-            return new NodeDefinitionBuilderImpl(this);
+        public AbstractNodeDefinitionBuilder<NodeTypeDelegate> newNodeDefinitionBuilder() throws RepositoryException {
+            return new NodeDefinitionDelegateBuilder(this);
         }
 
         @Override
-        public NodeType build() throws RepositoryException {
+        public NodeTypeDelegate build() throws RepositoryException {
 
-            NodeTypeImpl result = new NodeTypeImpl(ntm, mapper, name, declaredSuperTypes.toArray(new String[declaredSuperTypes
-                    .size()]), primaryItemName, isMixin, isAbstract, isOrderable);
+            NodeTypeDelegate result = new NodeTypeDelegate(name, declaredSuperTypes.toArray(new String[declaredSuperTypes.size()]),
+                    primaryItemName, isMixin, isAbstract, isOrderable);
 
-            for (PropertyDefinitionBuilderImpl pdb : propertyDefinitions) {
-                result.addPropertyDefinition(new PropertyDefinitionImpl(result, mapper, vf, pdb.getPropertyDefinitionDelegate(vf
-                        .getCoreValueFactory())));
+            for (PropertyDefinitionDelegateBuilder pdb : propertyDefinitions) {
+                result.addPropertyDefinitionDelegate(pdb.getPropertyDefinitionDelegate(vf.getCoreValueFactory()));
             }
 
-            for (NodeDefinitionBuilderImpl ndb : childNodeDefinitions) {
-                result.addChildNodeDefinition(new NodeDefinitionImpl(ntm, result, mapper, ndb.getNodeDefinitionDelegate()));
+            for (NodeDefinitionDelegateBuilder ndb : childNodeDefinitions) {
+                result.addChildNodeDefinitionDelegate(ndb.getNodeDefinitionDelegate());
             }
 
             return result;
         }
 
-        public void addPropertyDefinition(PropertyDefinitionBuilderImpl pd) {
+        public void addPropertyDefinition(PropertyDefinitionDelegateBuilder pd) {
             this.propertyDefinitions.add(pd);
         }
 
-        public void addNodeDefinition(NodeDefinitionBuilderImpl nd) {
+        public void addNodeDefinition(NodeDefinitionDelegateBuilder nd) {
             this.childNodeDefinitions.add(nd);
         }
     }
 
-    private class NodeDefinitionBuilderImpl extends AbstractNodeDefinitionBuilder<NodeType> {
+    private class NodeDefinitionDelegateBuilder extends AbstractNodeDefinitionBuilder<NodeTypeDelegate> {
 
         private String declaringNodeType;
         private String defaultPrimaryType;
         private List<String> requiredPrimaryTypes = new ArrayList<String>();
 
-        private final NodeTypeDefinitionBuilderImpl ndtb;
+        private final NodeTypeDefinitionDelegateBuilder ndtb;
 
-        public NodeDefinitionBuilderImpl(NodeTypeDefinitionBuilderImpl ntdb) {
+        public NodeDefinitionDelegateBuilder(NodeTypeDefinitionDelegateBuilder ntdb) {
             this.ndtb = ntdb;
         }
 
@@ -318,15 +310,15 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
         }
     }
 
-    private class PropertyDefinitionBuilderImpl extends AbstractPropertyDefinitionBuilder<NodeType> {
+    private class PropertyDefinitionDelegateBuilder extends AbstractPropertyDefinitionBuilder<NodeTypeDelegate> {
 
         private String declaringNodeType;
         private List<String> defaultValues = new ArrayList<String>();
         private List<String> valueConstraints = new ArrayList<String>();
 
-        private final NodeTypeDefinitionBuilderImpl ndtb;
+        private final NodeTypeDefinitionDelegateBuilder ndtb;
 
-        public PropertyDefinitionBuilderImpl(NodeTypeDefinitionBuilderImpl ntdb) {
+        public PropertyDefinitionDelegateBuilder(NodeTypeDefinitionDelegateBuilder ntdb) {
             this.ndtb = ntdb;
         }
 
