@@ -108,7 +108,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     @Override
     public Node getNodeByIdentifier(String id) throws RepositoryException {
         ensureIsAlive();
-
+        // TODO following line throws IndexOutOfBoundsException if id is empty
         if (id.charAt(0) == '/') {
             return getNode(id);
         } else {
@@ -253,7 +253,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     }
 
     //------------------------------------------------------------< private >---
-    
+
     /**
      * Ensure that this session is alive and throw an exception otherwise.
      *
