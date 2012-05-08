@@ -23,30 +23,16 @@ import org.apache.jackrabbit.oak.namepath.NameMapper;
 
 class ItemDefinitionImpl implements ItemDefinition {
 
+    private final ItemDefinitionDelegate dlg;
+
     private final NodeType type;
 
     protected final NameMapper mapper;
 
-    private final String name;
-
-    private final boolean autoCreated;
-
-    private final boolean mandatory;
-
-    private final int onParentRevision;
-
-    private final boolean isProtected;
-
-    protected ItemDefinitionImpl(
-            NodeType type, NameMapper mapper, String name, boolean autoCreated,
-            boolean mandatory, int onParentRevision, boolean isProtected) {
+    protected ItemDefinitionImpl(NodeType type, NameMapper mapper, ItemDefinitionDelegate delegate) {
+        this.dlg = delegate;
         this.type = type;
         this.mapper = mapper;
-        this.name = name;
-        this.autoCreated = autoCreated;
-        this.mandatory = mandatory;
-        this.onParentRevision = onParentRevision;
-        this.isProtected = isProtected;
     }
 
     @Override
@@ -56,28 +42,26 @@ class ItemDefinitionImpl implements ItemDefinition {
 
     @Override
     public String getName() {
-        return mapper.getJcrName(name);
+        return mapper.getJcrName(dlg.getName());
     }
 
     @Override
     public boolean isAutoCreated() {
-        return autoCreated;
+        return dlg.isAutoCreated();
     }
 
     @Override
     public boolean isMandatory() {
-        return mandatory;
+        return dlg.isMandatory();
     }
 
     @Override
     public int getOnParentVersion() {
-        return onParentRevision;
+        return dlg.getOnParentVersion();
     }
 
     @Override
     public boolean isProtected() {
-        return isProtected;
+        return dlg.isProtected();
     }
-
-
 }
