@@ -372,7 +372,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         assertPropertyValue(obj, "a/b/depth", 2l);
         assertPropertyValue(obj, "a/b/:childNodeCount", 1l);
         assertPropertyValue(obj, "a/b/c/depth", 3l);
-        assertPropertyValue(obj, "a/b/c:childNodeCount", 1l);
+        assertPropertyValue(obj, "a/b/c/:childNodeCount", 1l);
         child = resolveObjectValue(obj, "a/b/c/d");
         assertNotNull(child);
         assertEquals(child.size(), 0);
@@ -390,7 +390,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         assertPropertyValue(parseJSONObject(mk.getNodes("/test", head, 1, 0, -1, null)), "tst", tst);
 
         // 2nd pass
-        tst = System.currentTimeMillis();
+        ++tst;
         String oldHead = head;
         head = mk.commit("/test", "^\"tst\":" + tst, null, null);
         assertFalse(head.equals(oldHead));
