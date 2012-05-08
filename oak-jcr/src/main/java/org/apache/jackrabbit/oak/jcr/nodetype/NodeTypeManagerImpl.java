@@ -196,8 +196,7 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
         }
 
         @Override
-        public org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory.AbstractNodeTypeDefinitionBuilder<NodeTypeDelegate> newNodeTypeDefinitionBuilder()
-                throws RepositoryException {
+        public AbstractNodeTypeDefinitionBuilder<NodeTypeDelegate> newNodeTypeDefinitionBuilder() throws RepositoryException {
             return new NodeTypeDefinitionDelegateBuilder(vf);
         }
 
