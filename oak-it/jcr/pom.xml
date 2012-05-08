@@ -92,7 +92,6 @@ org.apache.jackrabbit.test.api.CheckPermissionTest
 org.apache.jackrabbit.test.api.DocumentViewImportTest
 org.apache.jackrabbit.test.api.SerializationTest
 org.apache.jackrabbit.test.api.GetWeakReferencesTest
-org.apache.jackrabbit.test.api.SessionRemoveItemTest#testRemoveItem3
 org.apache.jackrabbit.test.api.SessionRemoveItemTest#testRemoveItem4
 org.apache.jackrabbit.test.api.HasPermissionTest
 org.apache.jackrabbit.test.api.WorkspaceTest
