@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.api;
 
+import javax.jcr.Credentials;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.security.auth.login.LoginException;
 
@@ -25,7 +26,7 @@ import javax.security.auth.login.LoginException;
  * <p>
  * All access to the repository happens through authenticated
  * {@link ContentSession} instances acquired through the
- * {@link #login(Object, String)} method, which is why that is the only
+ * {@link #login(Credentials, String)} method, which is why that is the only
  * method of this interface.
  * <p>
  * Starting and stopping ContentRepository instances is the responsibility
@@ -75,7 +76,7 @@ public interface ContentRepository {
      * @throws LoginException if authentication failed
      * @throws NoSuchWorkspaceException
      */
-    ContentSession login(Object credentials, String workspaceName)
+    ContentSession login(Credentials credentials, String workspaceName)
             throws LoginException, NoSuchWorkspaceException;
 
 }

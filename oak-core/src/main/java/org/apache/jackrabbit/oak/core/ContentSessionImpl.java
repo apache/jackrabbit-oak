@@ -27,7 +27,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.jcr.SimpleCredentials;
+import javax.security.auth.login.LoginContext;
 import java.io.IOException;
+import java.util.Set;
 
 /**
  * {@link MicroKernel}-based implementation of the {@link ContentSession} interface.
@@ -38,15 +40,14 @@ class ContentSessionImpl implements ContentSession {
     private static final Logger log =
             LoggerFactory.getLogger(ContentSessionImpl.class);
 
-    private final SimpleCredentials credentials;
+    private final LoginContext loginContext;
     private final String workspaceName;
     private final NodeStore store;
     private final QueryEngine queryEngine;
 
-    public ContentSessionImpl(SimpleCredentials credentials, String workspaceName,
+    public ContentSessionImpl(LoginContext loginContext, String workspaceName,
                               NodeStore store, QueryEngine queryEngine) {
-
-        this.credentials = credentials;
+        this.loginContext = loginContext;
         this.workspaceName = workspaceName;
         this.store = store;
         this.queryEngine = queryEngine;
@@ -54,21 +55,23 @@ class ContentSessionImpl implements ContentSession {
 
     @Override
     public AuthInfo getAuthInfo() {
-        // todo implement getAuthInfo
+        // todo implement properly with extension point or pass it with the constructor...
+        Set<SimpleCredentials> creds = loginContext.getSubject().getPublicCredentials(SimpleCredentials.class);
+        final SimpleCredentials sc = (creds.isEmpty()) ? new SimpleCredentials(null, new char[0]) : creds.iterator().next();
         return new AuthInfo() {
             @Override
-            public String getUserID() {
-                return credentials.getUserID();
+            public String  getUserID() {
+                return sc.getUserID();
             }
 
             @Override
             public String[] getAttributeNames() {
-                return credentials.getAttributeNames();
+                return sc.getAttributeNames();
             }
 
             @Override
             public Object getAttribute(String attributeName) {
-                return credentials.getAttribute(attributeName);
+                return sc.getAttribute(attributeName);
             }
         };
     }
