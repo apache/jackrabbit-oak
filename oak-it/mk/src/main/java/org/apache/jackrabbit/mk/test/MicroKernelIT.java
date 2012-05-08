@@ -146,6 +146,8 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
 
         // diff of rev0->rev2 should be empty
         assertEquals(mk.diff(rev0, rev2, null), "");
+
+
     }
 
     @Test
@@ -158,6 +160,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         for (int i = 0; i < NUM_COMMITS; i++) {
             revs[i] = mk.commit("/test", "^\"cnt\":" + i, null, null);
         }
+        // verify that each revision contains the expected distinct property value
         for (int i = 0; i < NUM_COMMITS; i++) {
             JSONObject obj = parseJSONObject(mk.getNodes("/test", revs[i], 1, 0, -1, null));
             assertPropertyValue(obj, "cnt", (long) i);
@@ -318,6 +321,84 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         } catch (MicroKernelException e) {
             // expected
         }
+    }
+
+    @Test
+    public void getNodesDepth() {
+        mk.commit("", "+\"/testRoot\":{\"depth\":0}", null, "");
+        mk.commit("/testRoot", "+\"a\":{\"depth\":1}\n" +
+                "+\"a/b\":{\"depth\":2}\n" +
+                "+\"a/b/c\":{\"depth\":3}\n" +
+                "+\"a/b/c/d\":{\"depth\":4}\n" +
+                "+\"a/b/c/d/e\":{\"depth\":5}\n",
+                null, "");
+
+        // depth = 0: properties, including :childNodeCount and empty child node objects
+        JSONObject obj = parseJSONObject(mk.getNodes("/testRoot", null, 0, 0, -1, null));
+        assertPropertyValue(obj, "depth", 0l);
+        assertPropertyValue(obj, ":childNodeCount", 1l);
+        JSONObject child = resolveObjectValue(obj, "a");
+        assertNotNull(child);
+        assertEquals(child.size(), 0);
+
+        // depth = 1: properties, child nodes and their properties (including :childNodeCount)
+        obj = parseJSONObject(mk.getNodes("/testRoot", null, 1, 0, -1, null));
+        assertPropertyValue(obj, "depth", 0l);
+        assertPropertyValue(obj, ":childNodeCount", 1l);
+        assertPropertyValue(obj, "a/depth", 1l);
+        assertPropertyValue(obj, "a/:childNodeCount", 1l);
+        child = resolveObjectValue(obj, "a/b");
+        assertNotNull(child);
+        assertEquals(child.size(), 0);
+
+        // depth = 2: [and so on...]
+        obj = parseJSONObject(mk.getNodes("/testRoot", null, 2, 0, -1, null));
+        assertPropertyValue(obj, "depth", 0l);
+        assertPropertyValue(obj, ":childNodeCount", 1l);
+        assertPropertyValue(obj, "a/depth", 1l);
+        assertPropertyValue(obj, "a/:childNodeCount", 1l);
+        assertPropertyValue(obj, "a/b/depth", 2l);
+        assertPropertyValue(obj, "a/b/:childNodeCount", 1l);
+        child = resolveObjectValue(obj, "a/b/c");
+        assertNotNull(child);
+        assertEquals(child.size(), 0);
+
+        // depth = 3: [and so on...]
+        obj = parseJSONObject(mk.getNodes("/testRoot", null, 3, 0, -1, null));
+        assertPropertyValue(obj, "depth", 0l);
+        assertPropertyValue(obj, ":childNodeCount", 1l);
+        assertPropertyValue(obj, "a/depth", 1l);
+        assertPropertyValue(obj, "a/:childNodeCount", 1l);
+        assertPropertyValue(obj, "a/b/depth", 2l);
+        assertPropertyValue(obj, "a/b/:childNodeCount", 1l);
+        assertPropertyValue(obj, "a/b/c/depth", 3l);
+        assertPropertyValue(obj, "a/b/c:childNodeCount", 1l);
+        child = resolveObjectValue(obj, "a/b/c/d");
+        assertNotNull(child);
+        assertEquals(child.size(), 0);
+    }
+
+    @Test
+    public void getNodesRevision() {
+        // 1st pass
+        long tst = System.currentTimeMillis();
+        String head = mk.commit("/test", "^\"tst\":" + tst, null, null);
+        assertEquals(head, mk.getHeadRevision());
+        // test getNodes with 'null' revision
+        assertPropertyValue(parseJSONObject(mk.getNodes("/test", null, 1, 0, -1, null)), "tst", tst);
+        // test getNodes with specific revision
+        assertPropertyValue(parseJSONObject(mk.getNodes("/test", head, 1, 0, -1, null)), "tst", tst);
+
+        // 2nd pass
+        tst = System.currentTimeMillis();
+        String oldHead = head;
+        head = mk.commit("/test", "^\"tst\":" + tst, null, null);
+        assertFalse(head.equals(oldHead));
+        assertEquals(head, mk.getHeadRevision());
+        // test getNodes with 'null' revision
+        assertPropertyValue(parseJSONObject(mk.getNodes("/test", null, 1, 0, -1, null)), "tst", tst);
+        // test getNodes with specific revision
+        assertPropertyValue(parseJSONObject(mk.getNodes("/test", head, 1, 0, -1, null)), "tst", tst);
     }
 
     @Test
