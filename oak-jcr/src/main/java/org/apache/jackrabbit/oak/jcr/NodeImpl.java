@@ -803,7 +803,13 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public boolean isCheckedOut() throws RepositoryException {
-        return sessionDelegate.getVersionManager().isCheckedOut(getPath());
+        try {
+            return sessionDelegate.getVersionManager().isCheckedOut(getPath());
+        } catch (UnsupportedRepositoryOperationException ex) {
+            // when versioning is not supported all nodes are considered to be
+            // checked out
+            return true;
+        }
     }
 
     /**
@@ -897,9 +903,14 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @Override
     public boolean isLocked() throws RepositoryException {
-        return sessionDelegate.getLockManager().isLocked(getPath());
+        try {
+            return sessionDelegate.getLockManager().isLocked(getPath());
+        } catch (UnsupportedRepositoryOperationException ex) {
+            // when locking is not supported all nodes are considered not to be
+            // locked
+            return false;
+        }
     }
-
 
     @Override
     public NodeIterator getSharedSet() throws RepositoryException {
