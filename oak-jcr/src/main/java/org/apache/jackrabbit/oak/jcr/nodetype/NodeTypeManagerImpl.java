@@ -291,8 +291,9 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
         }
 
         public NodeDefinition getNodeDefinition(NodeTypeManager ntm, NodeType nt, NameMapper mapper) {
-            return new NodeDefinitionImpl(ntm, nt, mapper, name, autocreate, isMandatory, onParent, isProtected,
-                    requiredPrimaryTypes.toArray(new String[requiredPrimaryTypes.size()]), defaultPrimaryType, allowSns);
+            return new NodeDefinitionImpl(ntm, nt, mapper, new NodeDefinitionDelegate(name, autocreate, isMandatory, onParent,
+                    isProtected, requiredPrimaryTypes.toArray(new String[requiredPrimaryTypes.size()]), defaultPrimaryType,
+                    allowSns));
         };
 
         @Override
@@ -336,8 +337,8 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
                 defaultCoreValues[i] = vf.getCoreValueFactory().createValue(defaultValues.get(i), requiredType);
             }
             
-            return new PropertyDefinitionImpl(nt, mapper, vf, name, autocreate, isMandatory, onParent, isProtected, requiredType,
-                    isMultiple, defaultCoreValues);
+            return new PropertyDefinitionImpl(nt, mapper, vf, new PropertyDefinitionDelegate(name, autocreate, isMandatory,
+                    onParent, isProtected, requiredType, isMultiple, defaultCoreValues));
         }
 
         @Override

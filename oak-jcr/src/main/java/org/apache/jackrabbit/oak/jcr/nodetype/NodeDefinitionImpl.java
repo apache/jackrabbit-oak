@@ -27,20 +27,12 @@ class NodeDefinitionImpl extends ItemDefinitionImpl implements NodeDefinition {
 
     private final NodeTypeManager manager;
 
-    private final String[] requiredPrimaryTypeNames;
+    private final NodeDefinitionDelegate dlg;
 
-    private final String defaultPrimaryTypeName;
-
-    private final boolean allowsSameNameSiblings;
-
-    protected NodeDefinitionImpl(NodeTypeManager manager, NodeType type, NameMapper mapper, String name, boolean autoCreated,
-            boolean mandatory, int onParentRevision, boolean isProtected, String[] requiredPrimaryTypeNames,
-            String defaultPrimaryTypeName, boolean allowsSameNameSiblings) {
-        super(type, mapper, name, autoCreated, mandatory, onParentRevision, isProtected);
+    protected NodeDefinitionImpl(NodeTypeManager manager, NodeType type, NameMapper mapper, NodeDefinitionDelegate delegate) {
+        super(type, mapper, delegate);
         this.manager = manager;
-        this.requiredPrimaryTypeNames = requiredPrimaryTypeNames;
-        this.defaultPrimaryTypeName = defaultPrimaryTypeName;
-        this.allowsSameNameSiblings = allowsSameNameSiblings;
+        this.dlg = delegate;
     }
 
     @Override
@@ -51,8 +43,7 @@ class NodeDefinitionImpl extends ItemDefinitionImpl implements NodeDefinition {
             try {
                 types[i] = manager.getNodeType(names[i]);
             } catch (RepositoryException e) {
-                throw new IllegalStateException(
-                        "Inconsistent node definition: " + this, e);
+                throw new IllegalStateException("Inconsistent node definition: " + this, e);
             }
         }
         return types;
@@ -60,11 +51,12 @@ class NodeDefinitionImpl extends ItemDefinitionImpl implements NodeDefinition {
 
     @Override
     public String[] getRequiredPrimaryTypeNames() {
-        String[] names = new String[requiredPrimaryTypeNames.length];
-        for (int i = 0; i < names.length; i++) {
-            names[i] = mapper.getJcrName(requiredPrimaryTypeNames[i]);
+        String[] requiredPrimaryTypeNames = dlg.getRequiredPrimaryTypeNames();
+        String[] result = new String[requiredPrimaryTypeNames.length];
+        for (int i = 0; i < result.length; i++) {
+            result[i] = mapper.getJcrName(requiredPrimaryTypeNames[i]);
         }
-        return names;
+        return result;
     }
 
     @Override
@@ -79,12 +71,13 @@ class NodeDefinitionImpl extends ItemDefinitionImpl implements NodeDefinition {
 
     @Override
     public String getDefaultPrimaryTypeName() {
+        String defaultPrimaryTypeName = dlg.getDefaultPrimaryTypeName();
         return defaultPrimaryTypeName == null ? null : mapper.getJcrName(defaultPrimaryTypeName);
     }
 
     @Override
     public boolean allowsSameNameSiblings() {
-        return allowsSameNameSiblings;
+        return dlg.allowsSameNameSiblings();
     }
 
 }

@@ -24,30 +24,21 @@ import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.jcr.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 
-class PropertyDefinitionImpl
-        extends ItemDefinitionImpl implements PropertyDefinition {
+class PropertyDefinitionImpl extends ItemDefinitionImpl implements PropertyDefinition {
 
-    private final int requiredType;
-    private final boolean multiple;
-    private final CoreValue[] defaultCoreValues;
+    private final PropertyDefinitionDelegate dlg;
 
     private final ValueFactoryImpl vfac;
-    
-    public PropertyDefinitionImpl(
-            NodeType type, NameMapper mapper, ValueFactoryImpl vfac, String name, boolean autoCreated,
-            boolean mandatory, int onParentRevision, boolean isProtected,
-            int requiredType, boolean multiple, CoreValue[] defaultCoreValues) {
-        super(type, mapper, name, autoCreated,
-                mandatory, onParentRevision, isProtected);
+
+    public PropertyDefinitionImpl(NodeType type, NameMapper mapper, ValueFactoryImpl vfac, PropertyDefinitionDelegate delegate) {
+        super(type, mapper, delegate);
         this.vfac = vfac;
-        this.requiredType = requiredType;
-        this.multiple = multiple;
-        this.defaultCoreValues = defaultCoreValues;
+        this.dlg = delegate;
     }
 
     @Override
     public int getRequiredType() {
-        return requiredType;
+        return dlg.getRequiredType();
     }
 
     @Override
@@ -57,16 +48,17 @@ class PropertyDefinitionImpl
 
     @Override
     public Value[] getDefaultValues() {
-        Value[] defaults = new Value[defaultCoreValues.length];
+        CoreValue[] defaults = dlg.getDefaultCoreValues();
+        Value[] result = new Value[defaults.length];
         for (int i = 0; i < defaults.length; i++) {
-            defaults[i] = vfac.createValue(defaultCoreValues[i]);
+            result[i] = vfac.createValue(defaults[i]);
         }
-        return defaults;
+        return result;
     }
 
     @Override
     public boolean isMultiple() {
-        return multiple;
+        return dlg.isMultiple();
     }
 
     @Override
