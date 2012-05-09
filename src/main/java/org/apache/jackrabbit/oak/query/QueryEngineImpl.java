@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.query;
 
 import java.text.ParseException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -45,6 +46,11 @@ public class QueryEngineImpl implements QueryEngine {
         this.vf = store.getValueFactory();
         this.indexProvider = indexProvider;
         parserSQL2 = new SQL2Parser(vf);
+    }
+
+    @Override
+    public List<String> getSupportedQueryLanguages() {
+        return Arrays.asList(SQL2, XPATH);
     }
 
     /**

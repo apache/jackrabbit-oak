@@ -57,11 +57,11 @@ public class ChildNodeJoinConditionImpl extends JoinConditionImpl {
     public void bindSelector(SourceImpl source) {
         parentSelector = source.getSelector(parentSelectorName);
         if (parentSelector == null) {
-            throw new RuntimeException("Unknown selector: " + parentSelector);
+            throw new IllegalArgumentException("Unknown selector: " + parentSelector);
         }
         childSelector = source.getSelector(childSelectorName);
         if (childSelector == null) {
-            throw new RuntimeException("Unknown selector: " + childSelectorName);
+            throw new IllegalArgumentException("Unknown selector: " + childSelectorName);
         }
     }
 
