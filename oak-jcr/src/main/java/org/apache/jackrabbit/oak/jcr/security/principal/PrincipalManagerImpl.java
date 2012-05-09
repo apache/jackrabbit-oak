@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.jcr.security.principal;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,16 +35,20 @@ public class PrincipalManagerImpl implements PrincipalManager {
      */
     private static final Logger log = LoggerFactory.getLogger(PrincipalManagerImpl.class);
 
+    private final PrincipalProvider principalProvider;
+
+    public PrincipalManagerImpl(PrincipalProvider principalProvider) {
+        this.principalProvider = principalProvider;
+    }
+
     @Override
     public boolean hasPrincipal(String principalName) {
-        // TODO
-        return false;
+        return principalProvider.getPrincipal(principalName) != null;
     }
 
     @Override
     public Principal getPrincipal(String principalName) {
-        // TODO
-        return null;
+        return principalProvider.getPrincipal(principalName);
     }
 
     @Override
@@ -66,8 +71,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 
     @Override
     public PrincipalIterator getGroupMembership(Principal principal) {
-        // TODO
-        return null;
+        return new PrincipalIteratorAdapter(principalProvider.getGroupMembership(principal));
     }
 
     @Override

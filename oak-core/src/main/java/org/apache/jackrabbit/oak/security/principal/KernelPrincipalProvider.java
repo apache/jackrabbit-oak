@@ -40,7 +40,8 @@ public class KernelPrincipalProvider implements PrincipalProvider {
 
     @Override
     public Principal getPrincipal(final String principalName) {
-        // TODO
+        // TODO: use user-defined query to search for a principalName property
+        // TODO  that is defined by a user/group node.
         return new Principal() {
             @Override
             public String getName() {
