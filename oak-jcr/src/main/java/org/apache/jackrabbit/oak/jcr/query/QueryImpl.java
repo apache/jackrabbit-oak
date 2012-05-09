@@ -21,7 +21,9 @@ package org.apache.jackrabbit.oak.jcr.query;
 import java.util.HashMap;
 import java.util.List;
 import javax.jcr.Node;
+import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
+import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Value;
 import javax.jcr.query.InvalidQueryException;
 import javax.jcr.query.Query;
@@ -46,7 +48,11 @@ public class QueryImpl implements Query {
     }
 
     @Override
-    public void bindValue(String varName, Value value) {
+    public void bindValue(String varName, Value value) throws RepositoryException {
+        parse();
+        if (!bindVariableMap.containsKey(varName)) {
+            throw new IllegalArgumentException("Variable name " + varName + " is not a valid variable in this query");
+        }
         bindVariableMap.put(varName, value);
     }
 
@@ -101,8 +107,12 @@ public class QueryImpl implements Query {
 
     @Override
     public Node storeAsNode(String absPath) throws RepositoryException {
+        manager.ensureIsAlive();
+        if (manager.getSessionDelegate().getNode(absPath) == null) {
+            throw new PathNotFoundException("The specified path does not exist: " + absPath);
+        }
         // TODO not implemented yet
-        return null;
+        throw new UnsupportedRepositoryOperationException("This feature is not supported");
     }
 
 }

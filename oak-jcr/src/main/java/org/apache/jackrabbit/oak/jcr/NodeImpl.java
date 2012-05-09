@@ -73,8 +73,8 @@ public class NodeImpl extends ItemImpl implements Node  {
     private static final Logger log = LoggerFactory.getLogger(NodeImpl.class);
 
     private final NodeDelegate dlg;
-    
-    NodeImpl(NodeDelegate dlg) {
+
+    public NodeImpl(NodeDelegate dlg) {
         super(dlg.getSessionDelegate(), dlg);
         this.dlg = dlg;
     }
@@ -172,7 +172,7 @@ public class NodeImpl extends ItemImpl implements Node  {
             throw new ConstraintViolationException();
         }
         // TODO: END
-        
+
         NodeDelegate added = parent.addChild(oakName);
         Node childNode = new NodeImpl(added);
         childNode.setPrimaryType(primaryNodeTypeName);
@@ -696,59 +696,59 @@ public class NodeImpl extends ItemImpl implements Node  {
 
         // TODO
         return new NodeDefinition() {
- 
+
             // This is a workaround to make AbstractJCRTest.cleanup happy
-            
+
             @Override
             public boolean isProtected() {
                 return false;
             }
-            
+
             @Override
             public boolean isMandatory() {
                 return false;
             }
-            
+
             @Override
             public boolean isAutoCreated() {
                 return false;
             }
-            
+
             @Override
             public int getOnParentVersion() {
                 return OnParentVersionAction.COPY;
             }
-            
+
             @Override
             public String getName() {
                 return "default";
             }
-            
+
             @Override
             public NodeType getDeclaringNodeType() {
                 return null;
             }
-            
+
             @Override
             public NodeType[] getRequiredPrimaryTypes() {
                 return null;
             }
-            
+
             @Override
             public String[] getRequiredPrimaryTypeNames() {
                 return null;
             }
-            
+
             @Override
             public String getDefaultPrimaryTypeName() {
                 return null;
             }
-            
+
             @Override
             public NodeType getDefaultPrimaryType() {
                 return null;
             }
-            
+
             @Override
             public boolean allowsSameNameSiblings() {
                 return false;

@@ -18,13 +18,12 @@
  */
 package org.apache.jackrabbit.oak.jcr.query;
 
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.QueryEngine;
-import org.apache.jackrabbit.oak.api.Result;
-import org.apache.jackrabbit.oak.jcr.SessionDelegate;
-import org.apache.jackrabbit.oak.jcr.WorkspaceImpl;
-import org.apache.jackrabbit.oak.jcr.query.qom.QueryObjectModelFactoryImpl;
-
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map.Entry;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
@@ -33,27 +32,34 @@ import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.qom.QueryObjectModelFactory;
-import java.text.ParseException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map.Entry;
+import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.QueryEngine;
+import org.apache.jackrabbit.oak.api.Result;
+import org.apache.jackrabbit.oak.jcr.SessionDelegate;
+import org.apache.jackrabbit.oak.jcr.query.qom.QueryObjectModelFactoryImpl;
 
 /**
  * The implementation of the corresponding JCR interface.
  */
 public class QueryManagerImpl implements QueryManager {
 
-    private final QueryObjectModelFactoryImpl qomFactory = new QueryObjectModelFactoryImpl();
+    private final QueryObjectModelFactoryImpl qomFactory;
     private final QueryEngine queryEngine;
     private final SessionDelegate sessionDelegate;
+    private final HashSet<String> supportedQueryLanguages = new HashSet<String>();
 
-    public QueryManagerImpl(WorkspaceImpl workspace, SessionDelegate sessionDelegate) {
-        queryEngine = sessionDelegate.getQueryEngine();
+    public QueryManagerImpl(SessionDelegate sessionDelegate) {
         this.sessionDelegate = sessionDelegate;
+        qomFactory = new QueryObjectModelFactoryImpl(this, sessionDelegate.getValueFactory());
+        queryEngine = sessionDelegate.getQueryEngine();
+        supportedQueryLanguages.addAll(queryEngine.getSupportedQueryLanguages());
     }
 
     @Override
-    public Query createQuery(String statement, String language) throws RepositoryException {
+    public QueryImpl createQuery(String statement, String language) throws RepositoryException {
+        if (!supportedQueryLanguages.contains(language)) {
+            throw new InvalidQueryException("The specified language is not supported: " + language);
+        }
         return new QueryImpl(this, statement, language);
     }
 
@@ -70,15 +76,12 @@ public class QueryManagerImpl implements QueryManager {
 
     @Override
     public String[] getSupportedQueryLanguages() throws RepositoryException {
-        @SuppressWarnings("deprecation")
+        ArrayList<String> list = new ArrayList<String>(queryEngine.getSupportedQueryLanguages());
+        // JQOM is supported in this level only (converted to JCR_SQL2)
+        list.add(Query.JCR_JQOM);
         // create a new instance each time because the array is mutable
         // (the caller could modify it)
-        String[] s = {
-            Query.JCR_JQOM,
-            Query.JCR_SQL2,
-            Query.XPATH
-        };
-        return s;
+        return list.toArray(new String[list.size()]);
     }
 
     public List<String> parse(String statement, String language) throws InvalidQueryException {
@@ -94,19 +97,31 @@ public class QueryManagerImpl implements QueryManager {
         try {
             HashMap<String, CoreValue> bindMap = convertMap(bindVariableMap);
             Result r = queryEngine.executeQuery(statement, language, bindMap);
-            return new QueryResultImpl(r, sessionDelegate.getValueFactory());
+            return new QueryResultImpl(sessionDelegate, r);
+        } catch (IllegalArgumentException e) {
+            throw new InvalidQueryException(e);
         } catch (ParseException e) {
             throw new InvalidQueryException(e);
         }
     }
 
     private HashMap<String, CoreValue> convertMap(HashMap<String, Value> bindVariableMap) {
-
         HashMap<String, CoreValue> map = new HashMap<String, CoreValue>();
         for (Entry<String, Value> e : bindVariableMap.entrySet()) {
             map.put(e.getKey(), sessionDelegate.getValueFactory().getCoreValue(e.getValue()));
         }
         return map;
+    }
+
+    SessionDelegate getSessionDelegate() {
+        return sessionDelegate;
+    }
+
+    void ensureIsAlive() throws RepositoryException {
+        // check session status
+        if (!sessionDelegate.isAlive()) {
+            throw new RepositoryException("This session has been closed.");
+        }
     }
 
 }
