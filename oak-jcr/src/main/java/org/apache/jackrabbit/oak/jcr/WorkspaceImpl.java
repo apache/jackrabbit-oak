@@ -90,7 +90,9 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
             throw new UnsupportedRepositoryOperationException("Not implemented.");
         }
 
-        sessionDelegate.copy(sessionDelegate.getOakPath(srcAbsPath), sessionDelegate.getOakPath(destAbsPath));
+        sessionDelegate.copy(
+                sessionDelegate.getOakPathOrThrowNotFound(srcAbsPath),
+                sessionDelegate.getOakPathOrThrowNotFound(destAbsPath));
     }
 
     @SuppressWarnings("deprecation")
@@ -108,7 +110,10 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
         ensureSupportedOption(Repository.LEVEL_2_SUPPORTED);
         ensureIsAlive();
 
-        sessionDelegate.move(sessionDelegate.getOakPath(srcAbsPath), sessionDelegate.getOakPath(destAbsPath), false);
+        sessionDelegate.move(
+                sessionDelegate.getOakPathOrThrowNotFound(srcAbsPath),
+                sessionDelegate.getOakPathOrThrowNotFound(destAbsPath),
+                false);
     }
 
     @Override

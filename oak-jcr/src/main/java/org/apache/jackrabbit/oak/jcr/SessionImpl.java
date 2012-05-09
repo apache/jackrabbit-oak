@@ -26,6 +26,7 @@ import org.xml.sax.ContentHandler;
 
 import javax.jcr.Credentials;
 import javax.jcr.Node;
+import javax.jcr.PathNotFoundException;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -120,7 +121,10 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     @Override
     public void move(String srcAbsPath, String destAbsPath) throws RepositoryException {
         ensureIsAlive();
-        dlg.move(dlg.getOakPath(srcAbsPath), dlg.getOakPath(destAbsPath), true);
+        dlg.move(
+                dlg.getOakPathOrThrowNotFound(srcAbsPath),
+                dlg.getOakPathOrThrowNotFound(destAbsPath),
+                true);
     }
 
     @Override
@@ -156,8 +160,9 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     public ContentHandler getImportContentHandler(String parentAbsPath, int uuidBehavior) throws RepositoryException {
         ensureIsAlive();
 
-        // TODO
-        String internalPath = dlg.getOakPath(parentAbsPath);
+        @SuppressWarnings("unused")
+        String oakPath = dlg.getOakPathOrThrowNotFound(parentAbsPath);
+
         throw new UnsupportedRepositoryOperationException("TODO: Session.getImportContentHandler");
     }
 
@@ -200,7 +205,11 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     @Override
     public boolean hasPermission(String absPath, String actions) throws RepositoryException {
         ensureIsAlive();
-        String internalPath = dlg.getOakPath(absPath);
+
+        String oakPath = dlg.getOakPathOrNull(absPath);
+        if (oakPath == null) {
+            return false; // TODO should we throw an exception here?
+        }
 
         // TODO
         return false;
@@ -266,4 +275,5 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
             throw new RepositoryException("This session has been closed.");
         }
     }
+
 }

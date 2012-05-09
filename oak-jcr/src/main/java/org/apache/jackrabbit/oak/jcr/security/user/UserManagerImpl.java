@@ -388,6 +388,7 @@ public class UserManagerImpl implements UserManager {
     }
 
     private String getInternalPath(Node node) throws RepositoryException {
-        return sessionDelegate.getOakPath(node.getPath());
+        return sessionDelegate.getOakPathOrThrow(node.getPath());
     }
+
 }
