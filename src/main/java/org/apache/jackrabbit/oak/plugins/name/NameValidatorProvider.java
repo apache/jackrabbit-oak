@@ -39,7 +39,7 @@ public class NameValidatorProvider implements ValidatorProvider {
         // Jackrabbit 2.x prefixes are always available
         prefixes.add("rep");
 
-        // Find any extra prefixes from /jcr:system/jcr:namespaceRegistry
+        // Find any extra prefixes from /jcr:system/jcr:namespaces
         NodeState system = after.getChildNode("jcr:system");
         if (system != null) {
             NodeState registry = system.getChildNode("jcr:namespaces");
