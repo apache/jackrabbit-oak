@@ -143,6 +143,11 @@ public class NamePathMapperImpl implements NamePathMapper {
             }
         }
 
+        // empty path: map to "."
+        if (oakPath.length() == 0) {
+            return ".";
+        }
+        
         // root path is special-cased early on so it does not need to
         // be considered here
         oakPath.deleteCharAt(oakPath.length() - 1);
@@ -226,6 +231,11 @@ public class NamePathMapperImpl implements NamePathMapper {
                 jcrPath.append(element);
                 jcrPath.append('/');
             }
+        }
+
+        // empty path: map to "."
+        if (jcrPath.length() == 0) {
+            return ".";
         }
 
         jcrPath.deleteCharAt(jcrPath.length() - 1);
