@@ -42,10 +42,10 @@ public class ImpersonationCallback implements Callback {
 
     /**
      * Returns the impersonator {@link Subject} set on this callback or
-     * <code>null</code> if not set.
+     * {@code null} if not set.
      *
      * @return the impersonator {@link Subject} set on this callback or
-     * <code>null</code> if not set.
+     * {@code null} if not set.
      */
     public Subject getImpersonator() {
         return impersonatingSubject;
