@@ -53,6 +53,7 @@ public class NamePathMapperImpl implements NamePathMapper {
     @Override
     public String getOakPath(String jcrPath) {
         final List<String> elements = new ArrayList<String>();
+        final StringBuilder parseErrors = new StringBuilder();
 
         if ("/".equals(jcrPath)) {
             // avoid the need to special case the root path later on
@@ -61,64 +62,73 @@ public class NamePathMapperImpl implements NamePathMapper {
 
         JcrPathParser.Listener listener = new JcrPathParser.Listener() {
 
-            // TODO: replace RuntimeException by something that oak-jcr can deal with (e.g. ValueFactory)
-
             @Override
-            public void root() {
+            public boolean root() {
                 if (!elements.isEmpty()) {
-                    throw new RuntimeException("/ on non-empty path");
+                    parseErrors.append("/ on non-empty path");
+                    return false;
                 }
                 elements.add("");
+                return true;
             }
 
             @Override
-            public void identifier(String identifier) {
+            public boolean identifier(String identifier) {
                 if (!elements.isEmpty()) {
-                    throw new RuntimeException("[identifier] on non-empty path");
+                    parseErrors.append("[identifier] on non-empty path");
+                    return false;
                 }
                 elements.add(identifier);  // todo resolve identifier
-                // todo seal
+                // todo seal elements
+                return true;
             }
 
             @Override
-            public void current() {
+            public boolean current() {
                 // nothing to do here
+                return true;
             }
 
             @Override
-            public void parent() {
+            public boolean parent() {
                 if (elements.isEmpty()) {
-                    throw new RuntimeException(".. of empty path");
+                    parseErrors.append(".. of empty path");
+                    return false;
                 }
                 elements.remove(elements.size() - 1);
+                return true;
             }
 
             @Override
-            public void index(int index) {
+            public boolean index(int index) {
                 if (index > 1) {
-                    throw new RuntimeException("index > 1");
+                    parseErrors.append("index > 1");
+                    return false;
                 }
+                return true;
             }
 
             @Override
             public void error(String message) {
-                throw new RuntimeException(message);
+                parseErrors.append(message);
             }
 
             @Override
-            public void name(String name) {
+            public boolean name(String name) {
                 String p = nameMapper.getOakName(name);
                 if (p == null) {
-                    error("Invalid name: " + name);
+                    parseErrors.append("Invalid name: ").append(name);
+                    return false;
                 }
                 elements.add(p);
+                return true;
             }
         };
 
-        try {
-            JcrPathParser.parse(jcrPath, listener);
-        } catch (RuntimeException e) {
-            return null; // TODO Avoid exceptions for control flow
+        JcrPathParser.parse(jcrPath, listener);
+        if (parseErrors.length() != 0) {
+            log.debug("Could not parser path " + jcrPath + ": " + parseErrors.toString());
+            return null;
         }
 
         StringBuilder oakPath = new StringBuilder();
@@ -150,51 +160,57 @@ public class NamePathMapperImpl implements NamePathMapper {
 
         JcrPathParser.Listener listener = new JcrPathParser.Listener() {
             @Override
-            public void root() {
+            public boolean root() {
                 if (!elements.isEmpty()) {
-                    throw new RuntimeException("/ on non-empty path");
+                    throw new IllegalArgumentException("/ on non-empty path");
                 }
                 elements.add("");
+                return true;
             }
 
             @Override
-            public void identifier(String identifier) {
+            public boolean identifier(String identifier) {
                 if (!elements.isEmpty()) {
-                    throw new RuntimeException("[identifier] on non-empty path");
+                    throw new IllegalArgumentException("[identifier] on non-empty path");
                 }
                 elements.add(identifier);  // todo resolve identifier
-                // todo seal
+                // todo seal elements
+                return true;
             }
 
             @Override
-            public void current() {
+            public boolean current() {
                 // nothing to do here
+                return false;
             }
 
             @Override
-            public void parent() {
+            public boolean parent() {
                 if (elements.isEmpty()) {
-                    throw new RuntimeException(".. of empty path");
+                    throw new IllegalArgumentException(".. of empty path");
                 }
                 elements.remove(elements.size() - 1);
+                return true;
             }
 
             @Override
-            public void index(int index) {
+            public boolean index(int index) {
                 if (index > 1) {
-                    throw new RuntimeException("index > 1");
+                    throw new IllegalArgumentException("index > 1");
                 }
+                return true;
             }
 
             @Override
             public void error(String message) {
-                throw new RuntimeException(message);
+                throw new IllegalArgumentException(message);
             }
 
             @Override
-            public void name(String name) {
+            public boolean name(String name) {
                 String p = nameMapper.getJcrName(name);
                 elements.add(p);
+                return true;
             }
         };
 

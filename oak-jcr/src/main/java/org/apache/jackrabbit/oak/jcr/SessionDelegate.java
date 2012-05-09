@@ -142,52 +142,18 @@ public class SessionDelegate {
         }
     }
 
-    /**
-     * Shortcut for {@code SessionDelegate.getNamePathMapper().getOakPath(jcrPath)}.
-     *
-     * @param jcrPath JCR path
-     * @return Oak path, or {@code null}
-     */
+    public <T extends Throwable> String getOakPathOrThrow(String jcrPath, T t) throws T {
+        String oakPath = getOakPathOrNull(jcrPath);
+        if (oakPath != null || t == null) {
+            return oakPath;
+        } else {
+            throw t;
+        }
+    }
+
     public String getOakPathOrNull(String jcrPath) {
         return getNamePathMapper().getOakPath(jcrPath);
     }
-
-    /**
-     * Returns the Oak path for the given JCR path, or throws a
-     * {@link PathNotFoundException} if the path can not be mapped.
-     *
-     * @param jcrPath JCR path
-     * @return Oak path
-     * @throws PathNotFoundException if the path can not be mapped
-     */
-    public String getOakPathOrThrowNotFound(String jcrPath)
-            throws PathNotFoundException {
-        String oakPath = getOakPathOrNull(jcrPath);
-        if (oakPath != null) {
-            return oakPath;
-        } else {
-            throw new PathNotFoundException(jcrPath);
-        }
-    }
-
-    /**
-     * Returns the Oak path for the given JCR path, or throws a
-     * {@link RepositoryException} if the path can not be mapped.
-     *
-     * @param jcrPath JCR path
-     * @return Oak path
-     * @throws RepositoryException if the path can not be mapped
-     */
-    public String getOakPathOrThrow(String jcrPath)
-            throws RepositoryException {
-        String oakPath = getOakPathOrNull(jcrPath);
-        if (oakPath != null) {
-            return oakPath;
-        } else {
-            throw new RepositoryException("Invalid path: " + jcrPath);
-        }
-    }
-
     //----------------------------------------------------------< Workspace >---
 
     public Workspace getWorkspace() {
@@ -307,7 +273,7 @@ public class SessionDelegate {
                 String ns = nsRegistry.getURI(oakPrefix);
                 return session.getNamespacePrefix(ns);
             } catch (RepositoryException e) {
-                // TODO
+                log.debug("Could not get JCR prefix for OAK prefix " + oakPrefix);
                 return null;
             }
         }
@@ -318,7 +284,7 @@ public class SessionDelegate {
                 String ns = getSession().getNamespaceURI(jcrPrefix);
                 return nsRegistry.getPrefix(ns);
             } catch (RepositoryException e) {
-                // TODO
+                log.debug("Could not get OAK prefix for JCR prefix " + jcrPrefix);
                 return null;
             }
         }
@@ -328,7 +294,7 @@ public class SessionDelegate {
             try {
                 return nsRegistry.getPrefix(uri);
             } catch (RepositoryException e) {
-                // TODO
+                log.debug("Could not get OAK prefix for URI " + uri);
                 return null;
             }
         }

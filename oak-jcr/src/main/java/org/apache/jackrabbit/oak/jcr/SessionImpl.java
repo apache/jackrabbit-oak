@@ -122,8 +122,8 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     public void move(String srcAbsPath, String destAbsPath) throws RepositoryException {
         ensureIsAlive();
         dlg.move(
-                dlg.getOakPathOrThrowNotFound(srcAbsPath),
-                dlg.getOakPathOrThrowNotFound(destAbsPath),
+                dlg.getOakPathOrThrow(srcAbsPath, new PathNotFoundException(srcAbsPath)),
+                dlg.getOakPathOrThrow(destAbsPath, new PathNotFoundException(destAbsPath)),
                 true);
     }
 
@@ -161,7 +161,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
         ensureIsAlive();
 
         @SuppressWarnings("unused")
-        String oakPath = dlg.getOakPathOrThrowNotFound(parentAbsPath);
+        String oakPath = dlg.getOakPathOrThrow(parentAbsPath, new PathNotFoundException(parentAbsPath));
 
         throw new UnsupportedRepositoryOperationException("TODO: Session.getImportContentHandler");
     }

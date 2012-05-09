@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.jcr.value;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
-import org.apache.jackrabbit.oak.jcr.SessionDelegate;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.Logger;
