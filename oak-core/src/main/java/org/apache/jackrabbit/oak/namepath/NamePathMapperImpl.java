@@ -108,6 +108,9 @@ public class NamePathMapperImpl implements NamePathMapper {
             @Override
             public void name(String name) {
                 String p = nameMapper.getOakName(name);
+                if (p == null) {
+                    error("Invalid name: " + name);
+                }
                 elements.add(p);
             }
         };

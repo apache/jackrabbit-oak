@@ -24,6 +24,8 @@ import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.util.LogUtil;
 import org.apache.jackrabbit.oak.jcr.value.ValueConverter;
+import org.apache.jackrabbit.oak.namepath.NameMapper;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.util.Function1;
 import org.apache.jackrabbit.oak.util.Iterators;
 import org.apache.jackrabbit.oak.util.Predicate;
@@ -609,7 +611,12 @@ public class NodeImpl extends ItemImpl implements Node  {
         checkStatus();
 
         // TODO: might be expanded, need a better way for this
-        String jcrName = toJcrName(toOakName(nodeTypeName));
+        NameMapper mapper = sessionDelegate.getNamePathMapper();
+        String oakName = mapper.getOakName(nodeTypeName);
+        if (oakName == null) {
+            return false; // An unknown name can't belong to a valid type
+        }
+        String jcrName = mapper.getJcrName(oakName);
 
         // TODO: figure out the right place for this check
         NodeTypeManager ntm = sessionDelegate.getNodeTypeManager();

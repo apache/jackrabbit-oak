@@ -172,10 +172,6 @@ abstract class ItemImpl extends AbstractItem {
         return sessionDelegate.getValueFactory();
     }
 
-    String toOakName(String jcrName) {
-        return sessionDelegate.getNamePathMapper().getOakName(jcrName);
-    }
-    
     String toOakPath(String jcrPath) throws RepositoryException {
         try {
             return sessionDelegate.getOakPath(jcrPath);
@@ -183,10 +179,6 @@ abstract class ItemImpl extends AbstractItem {
             // TODO we shouldn't have to catch this one
             throw new RepositoryException(ex);
         }
-    }
-
-    String toJcrName(String oakName) {
-        return sessionDelegate.getNamePathMapper().getJcrName(oakName);
     }
 
     String toJcrPath(String oakPath) {
