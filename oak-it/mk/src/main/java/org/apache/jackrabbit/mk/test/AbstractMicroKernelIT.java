@@ -18,7 +18,10 @@ package org.apache.jackrabbit.mk.test;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.ServiceLoader;
+import java.util.Set;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.json.simple.JSONArray;
@@ -177,6 +180,28 @@ public abstract class AbstractMicroKernelIT {
         } catch (Exception e) {
             throw new AssertionError("not a valid JSON array: " + e.getMessage());
         }
+    }
+
+    protected Set<String> getNodeNames(JSONObject obj) {
+        Set<String> names = new HashSet<String>();
+        Set<Map.Entry> entries = obj.entrySet();
+        for (Map.Entry entry : entries) {
+            if (entry.getValue() instanceof JSONObject) {
+                names.add((String) entry.getKey());
+            }
+        }
+        return names;
+    }
+
+    protected Set<String> getPropertyNames(JSONObject obj) {
+        Set<String> names = new HashSet<String>();
+        Set<Map.Entry> entries = obj.entrySet();
+        for (Map.Entry entry : entries) {
+            if (! (entry.getValue() instanceof JSONObject)) {
+                names.add((String) entry.getKey());
+            }
+        }
+        return names;
     }
 
     protected void assertPropertyExists(JSONObject obj, String relPath)
