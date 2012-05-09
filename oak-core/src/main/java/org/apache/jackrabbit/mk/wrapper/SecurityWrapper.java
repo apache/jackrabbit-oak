@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.mk.wrapper;
 
-import java.io.InputStream;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopStream;
@@ -27,6 +26,8 @@ import org.apache.jackrabbit.mk.simple.NodeMap;
 import org.apache.jackrabbit.mk.util.ExceptionFactory;
 import org.apache.jackrabbit.mk.util.SimpleLRUCache;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+
+import java.io.InputStream;
 
 /**
  * A microkernel prototype implementation that filters nodes based on simple
@@ -51,7 +52,7 @@ public class SecurityWrapper extends MicroKernelWrapperBase implements MicroKern
     /**
      * Decorates the given {@link MicroKernel} with authentication and
      * authorization. The responsibility of properly disposing the given
-     * MikroKernel instance remains with the caller.
+     * MicroKernel instance remains with the caller.
      *
      * @param mk the wrapped kernel
      * @param user the user name
