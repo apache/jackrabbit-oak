@@ -37,15 +37,18 @@ class CoreValueMapper {
     private static final Map<Integer, String> TYPE2HINT = new HashMap<Integer, String>();
     private static final Map<String, Integer> HINT2TYPE = new HashMap<String, Integer>();
 
-    private CoreValueMapper() {
-    }
-
     static {
         for (int type = PropertyType.UNDEFINED; type <= PropertyType.DECIMAL; type++) {
             String hint = PropertyType.nameFromValue(type).substring(0,3).toLowerCase();
             TYPE2HINT.put(type, hint);
             HINT2TYPE.put(hint, type);
         }
+    }
+
+    /**
+     * Avoid instantiation.
+     */
+    private CoreValueMapper() {
     }
 
     /**
@@ -87,7 +90,7 @@ class CoreValueMapper {
      * Returns an JSON array containing the JSON representation of the
      * specified values.
      *
-     * @param values
+     * @param values The values to be converted to a JSON array.
      * @return JSON array containing the JSON representation of the specified
      * values.
      * @see #toJsonValue(org.apache.jackrabbit.oak.api.CoreValue)
@@ -154,6 +157,16 @@ class CoreValueMapper {
         return values;
     }
 
+    //--------------------------------------------------------------------------
+    /**
+     * Build the JSON representation of the specified value consisting of
+     * a leading type hint, followed by ':" and the String conversion of this
+     * value.
+     *
+     * @param value The value to be serialized.
+     * @return The string representation of the specified value including a
+     * leading type hint.
+     */
     private static String buildJsonStringWithHint(CoreValue value) {
         StringBuilder sb = new StringBuilder();
         sb.append(TYPE2HINT.get(value.getType()));
@@ -162,6 +175,15 @@ class CoreValueMapper {
         return JsonBuilder.encode(sb.toString());
     }
 
+    /**
+     * Returns {@code true} if the specified JSON String represents a value
+     * serialization that includes a leading type hint.
+     *
+     * @param jsonString The JSON String representation of a {@code CoreValue}
+     * @return {@code true} if the {@code jsonString} starts with a type
+     * hint; {@code false} otherwise.
+     * @see #buildJsonStringWithHint(org.apache.jackrabbit.oak.api.CoreValue)
+     */
     private static boolean startsWithHint(String jsonString) {
         return jsonString.length() >= 4 && jsonString.charAt(3) == ':';
     }
