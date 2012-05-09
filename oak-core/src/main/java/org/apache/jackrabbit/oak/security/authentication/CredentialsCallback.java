@@ -14,29 +14,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.security.authentication;
+package org.apache.jackrabbit.oak.security.authentication;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.security.auth.login.AppConfigurationEntry;
-import javax.security.auth.login.Configuration;
-import java.util.Collections;
+import javax.jcr.Credentials;
+import javax.security.auth.callback.Callback;
+import java.io.Serializable;
 
 /**
- * ConfigurationImpl...
+ * Callback implementation to retrieve {@code Credentials}
  */
-public class ConfigurationImpl extends Configuration {
+public class CredentialsCallback implements Callback, Serializable {
+
+    private Credentials credentials;
 
     /**
-     * logger instance
+     * Get the retrieved credentials.
+     *
+     * @return the retrieved credentials (which may be null)
      */
-    private static final Logger log = LoggerFactory.getLogger(ConfigurationImpl.class);
+    public Credentials getCredentials() {
+        return credentials;
+    }
 
-    @Override
-    public AppConfigurationEntry[] getAppConfigurationEntry(String s) {
-        // TODO
-        AppConfigurationEntry entry = new AppConfigurationEntry(LoginModuleImpl.class.getName(), AppConfigurationEntry.LoginModuleControlFlag.REQUIRED, Collections.<String, Object>emptyMap());
-        return new AppConfigurationEntry[] {entry};
+    /**
+     * Set the retrieved credentials.
+     *
+     * @param credentials the retrieved credentials (which may be null)
+     */
+    public void setCredentials(Credentials credentials) {
+        this.credentials = credentials;
     }
 }
