@@ -16,16 +16,22 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import java.util.Calendar;
+
 import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
+import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.jcr.ValueFactory;
 
 public class TestContentLoader {
 
     public void loadTestContent(Session session) throws RepositoryException {
 
-        getOrAddNode(session.getRootNode(), "testdata");
+        Node data = getOrAddNode(session.getRootNode(), "testdata");
+        addPropertyTestData(getOrAddNode(data, "property"));
+
         session.save();
     }
 
@@ -35,5 +41,21 @@ public class TestContentLoader {
         } catch (PathNotFoundException e) {
             return node.addNode(name);
         }
+    }
+
+    /**
+     * Creates a boolean, double, long, calendar and a path property at the
+     * given node.
+     */
+    private  void addPropertyTestData(Node node) throws RepositoryException {
+        node.setProperty("boolean", true);
+        node.setProperty("double", Math.PI);
+        node.setProperty("long", 90834953485278298l);
+        Calendar c = Calendar.getInstance();
+        c.set(2005, 6, 18, 17, 30);
+        node.setProperty("calendar", c);
+        ValueFactory factory = node.getSession().getValueFactory();
+        node.setProperty("path", factory.createValue("/", PropertyType.PATH));
+        node.setProperty("multi", new String[] { "one", "two", "three" });
     }
 }
