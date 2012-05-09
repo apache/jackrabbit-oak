@@ -25,7 +25,6 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.util.LogUtil;
 import org.apache.jackrabbit.oak.jcr.value.ValueConverter;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.util.Function1;
 import org.apache.jackrabbit.oak.util.Iterators;
 import org.apache.jackrabbit.oak.util.Predicate;
@@ -150,7 +149,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     public Node addNode(String relPath, String primaryNodeTypeName) throws RepositoryException {
         checkStatus();
 
-        String oakPath = sessionDelegate.getOakPathOrThrow(relPath);
+        String oakPath = sessionDelegate.getOakPathOrThrow(relPath, new RepositoryException());
         String oakName = PathUtils.getName(oakPath);
         NodeDelegate parent = dlg.getChild(PathUtils.getParentPath(oakPath));
         if (parent == null) {
@@ -213,7 +212,7 @@ public class NodeImpl extends ItemImpl implements Node  {
             p.remove();
             return p;
         } else {
-            String oakName = sessionDelegate.getOakPathOrThrow(jcrName);
+            String oakName = sessionDelegate.getOakPathOrThrow(jcrName, new RepositoryException());
             CoreValue oakValue = ValueConverter.toCoreValue(targetValue, sessionDelegate);
             return new PropertyImpl(dlg.setProperty(oakName, oakValue));
         }
@@ -244,7 +243,7 @@ public class NodeImpl extends ItemImpl implements Node  {
             p.remove();
             return p;
         } else {
-            String oakName = sessionDelegate.getOakPathOrThrow(jcrName);
+            String oakName = sessionDelegate.getOakPathOrThrow(jcrName, new RepositoryException());
             List<CoreValue> oakValue = ValueConverter.toCoreValues(targetValues, sessionDelegate);
             return new PropertyImpl(dlg.setProperty(oakName, oakValue));
         }
@@ -365,7 +364,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     public Node getNode(String relPath) throws RepositoryException {
         checkStatus();
 
-        String oakPath = sessionDelegate.getOakPathOrThrowNotFound(relPath);
+        String oakPath = sessionDelegate.getOakPathOrThrow(relPath, new PathNotFoundException(relPath));
         NodeDelegate nd = dlg.getChild(oakPath);
         if (nd == null) {
             throw new PathNotFoundException(relPath);
@@ -419,7 +418,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     public Property getProperty(String relPath) throws RepositoryException {
         checkStatus();
 
-        String oakPath = sessionDelegate.getOakPathOrThrowNotFound(relPath);
+        String oakPath = sessionDelegate.getOakPathOrThrow(relPath, new PathNotFoundException());
         PropertyDelegate pd = dlg.getProperty(oakPath);
         if (pd == null) {
             throw new PathNotFoundException(relPath + " not found on " + getPath());
@@ -551,7 +550,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     public boolean hasNode(String relPath) throws RepositoryException {
         checkStatus();
 
-        String oakPath = sessionDelegate.getOakPathOrNull(relPath);
+        String oakPath = sessionDelegate.getOakPathOrThrow(relPath, new RepositoryException());
         return oakPath != null && dlg.getChild(oakPath) != null;
     }
 
@@ -559,7 +558,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     public boolean hasProperty(String relPath) throws RepositoryException {
         checkStatus();
 
-        String oakPath = sessionDelegate.getOakPathOrNull(relPath);
+        String oakPath = sessionDelegate.getOakPathOrThrow(relPath, new RepositoryException());
         return oakPath != null && dlg.getProperty(oakPath) != null;
     }
 
@@ -657,7 +656,7 @@ public class NodeImpl extends ItemImpl implements Node  {
         // TODO: END
 
         String jcrPrimaryType =
-                sessionDelegate.getOakPathOrThrow(Property.JCR_PRIMARY_TYPE);
+                sessionDelegate.getOakPathOrThrow(Property.JCR_PRIMARY_TYPE, new RepositoryException());
         CoreValue cv = ValueConverter.toCoreValue(nodeTypeName, PropertyType.NAME, sessionDelegate);
         dlg.setProperty(jcrPrimaryType, cv);
     }

@@ -27,6 +27,7 @@ import org.xml.sax.ContentHandler;
 import org.xml.sax.InputSource;
 
 import javax.jcr.NamespaceRegistry;
+import javax.jcr.PathNotFoundException;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -91,8 +92,8 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
         }
 
         sessionDelegate.copy(
-                sessionDelegate.getOakPathOrThrowNotFound(srcAbsPath),
-                sessionDelegate.getOakPathOrThrowNotFound(destAbsPath));
+                sessionDelegate.getOakPathOrThrow(srcAbsPath, new PathNotFoundException(srcAbsPath)),
+                sessionDelegate.getOakPathOrThrow(destAbsPath, new PathNotFoundException(srcAbsPath)));
     }
 
     @SuppressWarnings("deprecation")
@@ -111,8 +112,8 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
         ensureIsAlive();
 
         sessionDelegate.move(
-                sessionDelegate.getOakPathOrThrowNotFound(srcAbsPath),
-                sessionDelegate.getOakPathOrThrowNotFound(destAbsPath),
+                sessionDelegate.getOakPathOrThrow(srcAbsPath, new PathNotFoundException(srcAbsPath)),
+                sessionDelegate.getOakPathOrThrow(destAbsPath, new PathNotFoundException(destAbsPath)),
                 false);
     }
 

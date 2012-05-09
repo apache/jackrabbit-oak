@@ -35,13 +35,13 @@ public class JcrPathParser {
 
     private JcrPathParser() {
     }
-    
+
     interface Listener extends JcrNameParser.Listener {
-        void root();
-        void identifier(String identifier);
-        void current();
-        void parent();
-        void index(int index);
+        boolean root();
+        boolean identifier(String identifier);
+        boolean current();
+        boolean parent();
+        boolean index(int index);
     }
 
     public static void parse(String jcrPath, Listener listener) {
@@ -62,7 +62,9 @@ public class JcrPathParser {
         // check if absolute path
         int pos = 0;
         if (jcrPath.charAt(0) == '/') {
-            listener.root();
+            if (!listener.root()) {
+                return;
+            }
             pos++;
         }
 
@@ -113,7 +115,9 @@ public class JcrPathParser {
                         }
 
                         JcrNameParser.parse(name, listener);
-                        listener.index(index);
+                        if (!listener.index(index)) {
+                            return;
+                        }
                         state = STATE_PREFIX_START;
                         lastPos = pos;
                         name = null;
@@ -127,16 +131,22 @@ public class JcrPathParser {
                                 return;
                             }
                             String identifier = jcrPath.substring(lastPos, pos - 2);
-                            listener.identifier(identifier);
+                            if (!listener.identifier(identifier)) {
+                                return;
+                            }
                             state = STATE_PREFIX_START;
                             lastPos = pos;
                         }
                     } else if (state == STATE_DOT) {
-                        listener.current();
+                        if (!listener.current()) {
+                            return;
+                        }
                         lastPos = pos;
                         state = STATE_PREFIX_START;
                     } else if (state == STATE_DOTDOT) {
-                        listener.parent();
+                        if (!listener.parent()) {
+                            return;
+                        }
                         lastPos = pos;
                         state = STATE_PREFIX_START;
                     } else if (state != STATE_URI

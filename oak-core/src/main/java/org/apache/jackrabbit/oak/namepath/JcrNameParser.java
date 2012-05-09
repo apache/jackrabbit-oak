@@ -52,9 +52,9 @@ public class JcrNameParser {
          * Informs this listener about the result of {@link JcrNameParser#parse(String, org.apache.jackrabbit.oak.namepath.JcrNameParser.Listener)}
          *
          * @param name The resulting name upon successful completion of
-         * {@link JcrNameParser#parse(String, org.apache.jackrabbit.oak.namepath.JcrNameParser.Listener)}
+         * {@link org.apache.jackrabbit.oak.namepath.JcrNameParser#parse(String, org.apache.jackrabbit.oak.namepath.JcrNameParser.Listener)}
          */
-        void name(String name);
+        boolean name(String name);
     }
 
     /**
