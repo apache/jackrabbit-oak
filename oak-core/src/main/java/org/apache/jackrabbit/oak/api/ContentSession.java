@@ -77,6 +77,11 @@ public interface ContentSession extends Closeable {
      */
     QueryEngine getQueryEngine();
 
+    /**
+     * Returns the internal value factory.
+     *
+     * @return the internal value factory.
+     */
     CoreValueFactory getCoreValueFactory();
 
     // TODO : add versioning operations
