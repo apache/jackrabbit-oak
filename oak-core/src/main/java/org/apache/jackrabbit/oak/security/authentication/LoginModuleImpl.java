@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.authentication;
 
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,6 +30,7 @@ import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.auth.login.LoginException;
 import javax.security.auth.spi.LoginModule;
 import java.io.IOException;
+import java.security.Principal;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -47,6 +49,7 @@ public class LoginModuleImpl implements LoginModule {
     private CallbackHandler callbackHandler;
 
     private Set<Credentials> credentials;
+    private String principalName;
 
     //--------------------------------------------------------< LoginModule >---
     @Override
@@ -61,18 +64,20 @@ public class LoginModuleImpl implements LoginModule {
     public boolean login() throws LoginException {
         // TODO
         credentials = retrieveCredentials();
-        if (credentials.isEmpty()) {
-            credentials.add(new GuestCredentials());
+        if (supportsCredentials()) {
+            principalName = retrievePrincipalName();
+            return true;
+        } else {
+            return false;
         }
-        return supportsCredentials(credentials);
-
     }
 
     @Override
     public boolean commit() throws LoginException {
         // TODO
 
-        subject.getPublicCredentials().add(credentials);
+        subject.getPrincipals().addAll(retrievePrincipals(principalName));
+        subject.getPublicCredentials().addAll(credentials);
         return true;
     }
 
@@ -113,7 +118,7 @@ public class LoginModuleImpl implements LoginModule {
         return credentials;
     }
 
-    private static boolean supportsCredentials(Set<Credentials> credentials) {
+    private boolean supportsCredentials() {
         for (Credentials creds : credentials) {
             if (creds instanceof SimpleCredentials) {
                 return true;
@@ -122,5 +127,40 @@ public class LoginModuleImpl implements LoginModule {
             }
         }
         return false;
+    }
+
+    private String retrievePrincipalName() {
+        for (Credentials creds : credentials) {
+            if (creds instanceof SimpleCredentials) {
+                return ((SimpleCredentials) creds).getUserID();
+            } else if (creds instanceof GuestCredentials) {
+                return "anonymous";
+            }
+        }
+
+        return null;
+    }
+
+    private Set<Principal> retrievePrincipals(String principalName) {
+        Set<Principal> principals = new HashSet<Principal>();
+        try {
+            PrincipalProviderCallback principalCallBack = new PrincipalProviderCallback();
+            callbackHandler.handle(new Callback[] {principalCallBack});
+            PrincipalProvider pp = principalCallBack.getPrincipalProvider();
+            if (pp != null) {
+                Principal p = pp.getPrincipal(principalName);
+                if (p != null) {
+                    principals.add(p);
+                    principals.addAll(pp.getGroupMembership(p));
+                }
+            }
+
+        } catch (IOException e) {
+            log.warn(e.getMessage());
+        } catch (UnsupportedCallbackException e) {
+            log.warn(e.getMessage());
+        }
+
+        return principals;
     }
 }

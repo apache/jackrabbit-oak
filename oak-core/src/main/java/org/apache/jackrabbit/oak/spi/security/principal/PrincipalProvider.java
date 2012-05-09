@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.spi.security.principal;
 
 import java.security.Principal;
 import java.security.acl.Group;
-import java.util.Iterator;
+import java.util.Set;
 
 /**
  * PrincipalProvider... TODO
@@ -48,5 +48,5 @@ public interface PrincipalProvider {
      * @return an iterator returning all groups the given principal is member of.
      * @see java.security.acl.Group#isMember(java.security.Principal)
      */
-    Iterator<Group> getGroupMembership(Principal principal);
+    Set<Group> getGroupMembership(Principal principal);
 }

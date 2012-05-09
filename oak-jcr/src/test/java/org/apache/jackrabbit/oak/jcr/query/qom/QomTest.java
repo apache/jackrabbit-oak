@@ -70,8 +70,7 @@ public class QomTest extends AbstractRepositoryTest {
 
     @Before
     public void before() throws RepositoryException {
-        Repository repository = getRepository();
-        Session session = repository.login();
+        Session session = getSession();
         vf = session.getValueFactory();
         QueryManager qm = session.getWorkspace().getQueryManager();
         f = qm.getQOMFactory();

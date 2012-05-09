@@ -1,0 +1,4 @@
+differences regarding jackrabbit 2.x implementation
+================================================================================
+
+- null credential login is no longer treated equivalent to GuestCredentials.
