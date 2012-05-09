@@ -37,8 +37,7 @@ import java.util.Set;
 class ContentSessionImpl implements ContentSession {
 
     /** Logger instance */
-    private static final Logger log =
-            LoggerFactory.getLogger(ContentSessionImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(ContentSessionImpl.class);
 
     private final LoginContext loginContext;
     private final String workspaceName;
