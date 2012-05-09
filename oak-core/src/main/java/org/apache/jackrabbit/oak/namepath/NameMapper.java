@@ -18,9 +18,26 @@ package org.apache.jackrabbit.oak.namepath;
 
 public interface NameMapper {
 
-    // TODO consider error handling
+    /**
+     * Returns the Oak name for the given JCR name, or {@code null} if no
+     * such mapping exists because the given JCR name contains an unknown
+     * namespace URI or prefix, or is otherwise invalid.
+     *
+     * @param jcrName JCR name
+     * @return Oak name, or {@code null}
+     */
     String getOakName(String jcrName);
 
-    // TODO consider error handling
+    /**
+     * Returns the JCR name for the given Oak name. The given name is
+     * expected to have come from a valid Oak repository that contains
+     * only valid names with proper namespace mappings. If that's not
+     * the case, either a programming error or a repository corruption
+     * has occurred and an appropriate unchecked exception gets thrown.
+     *
+     * @param oakName Oak name
+     * @return JCR name
+     */
     String getJcrName(String oakName);
+
 }
