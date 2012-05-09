@@ -103,7 +103,7 @@ public class SessionDelegate {
     }
 
     public NodeDelegate getRoot() {
-        return new NodeDelegate(this, getTree("/"));
+        return new NodeDelegate(this, getTree(""));
     }
 
     public NodeDelegate getNode(String path) {
