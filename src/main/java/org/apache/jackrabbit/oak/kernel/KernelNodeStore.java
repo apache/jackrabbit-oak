@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeStore;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -57,6 +58,11 @@ public class KernelNodeStore extends AbstractNodeStore {
     private final MicroKernel kernel;
 
     /**
+     * Commit hook.
+     */
+    private final CommitHook commitHook;
+
+    /**
      * Value factory backed by the {@link #kernel} instance.
      */
     private final CoreValueFactory valueFactory;
@@ -66,8 +72,9 @@ public class KernelNodeStore extends AbstractNodeStore {
      */
     private KernelNodeState root;
 
-    public KernelNodeStore(MicroKernel kernel) {
+    public KernelNodeStore(MicroKernel kernel, CommitHook commitHook) {
         this.kernel = kernel;
+        this.commitHook = commitHook;
         this.valueFactory = new CoreValueFactoryImpl(kernel);
         this.root = new KernelNodeState(
                 kernel, valueFactory, "/", kernel.getHeadRevision());

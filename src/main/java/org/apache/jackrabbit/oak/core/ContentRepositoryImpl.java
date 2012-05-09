@@ -23,6 +23,7 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
+import org.apache.jackrabbit.oak.spi.commit.EmptyCommitHook;
 import org.apache.jackrabbit.oak.spi.security.authentication.CallbackHandlerImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.ConfigurationImpl;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
@@ -76,7 +77,7 @@ public class ContentRepositoryImpl implements ContentRepository {
      */
     public ContentRepositoryImpl(MicroKernel mk, QueryIndexProvider indexProvider) {
         microKernel = mk;
-        nodeStore = new KernelNodeStore(microKernel);
+        nodeStore = new KernelNodeStore(microKernel, new EmptyCommitHook());
         QueryIndexProvider qip = (indexProvider == null) ? getDefaultIndexProvider(microKernel) : indexProvider;
         queryEngine = new QueryEngineImpl(nodeStore, microKernel, qip);
 
