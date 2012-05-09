@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.mk;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.json.simple.parser.ParseException;
 
 /**
  * A simple hello world app.
@@ -27,13 +26,13 @@ public class HelloWorld {
     private HelloWorld() {
     }
 
-    public static void main(String... args) throws ParseException {
+    public static void main(String... args) {
         test("fs:{homeDir};clean");
         test("simple:");
         test("simple:fs:target/temp;clean");
     }
 
-    private static void test(String url) throws ParseException {
+    private static void test(String url) {
         MicroKernel mk = MicroKernelFactory.getInstance(url);
         System.out.println(url);
         String head = mk.getHeadRevision();
