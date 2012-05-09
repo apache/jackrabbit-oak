@@ -61,14 +61,13 @@ public class ComparisonImpl extends ConstraintImpl {
         case GREATER_THAN:
         case LESS_OR_EQUAL:
         case LESS_THAN:
-            return operand1.currentValue() .equals(operand2.currentValue());
+            return operand1.currentValue().equals(operand2.currentValue());
         case NOT_EQUAL:
             return !operand1.currentValue().equals(operand2.currentValue());
         case LIKE:
             return evaluateLike(v1, v2);
         }
-        // TODO Auto-generated method stub
-        return false;
+        throw new IllegalArgumentException("Unknown operator: " + operator);
     }
 
     private static boolean evaluateLike(CoreValue v1, CoreValue v2) {
@@ -142,7 +141,7 @@ public class ComparisonImpl extends ConstraintImpl {
                     }
                     return false;
                 default:
-                    throw new RuntimeException("Internal error: " + type);
+                    throw new IllegalArgumentException("Internal error: " + type);
                 }
             }
             return si == sLen;

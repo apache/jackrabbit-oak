@@ -76,9 +76,13 @@ public class XPathToSQL2Converter {
                     descendants = true;
                 } else if (readIf("jcr:root")) {
                     path = "/";
-                    read("/");
                     if (readIf("/")) {
-                        descendants = true;
+                        if (readIf("/")) {
+                            descendants = true;
+                        }
+                    } else {
+                        // expected end of statement
+                        break;
                     }
                 } else {
                     descendants = false;
@@ -86,24 +90,34 @@ public class XPathToSQL2Converter {
                 if (readIf("*")) {
                     nodeType = "nt:base";
                     from = nodeType;
+                } else if (readIf("text")) {
+                    // TODO support text() and jcr:xmltext?
+                    read("(");
+                    read(")");
+                    path = PathUtils.concat(path, "jcr:xmltext");
                 } else if (readIf("element")) {
                     read("(");
-                    if (readIf("*")) {
+                    if (readIf(")")) {
                         // any
                         children = true;
                     } else {
-                        children = false;
-                        String name = readIdentifier();
-                        path = PathUtils.concat(path, name);
+                        if (readIf("*")) {
+                            // any
+                            children = true;
+                        } else {
+                            children = false;
+                            String name = readIdentifier();
+                            path = PathUtils.concat(path, name);
+                        }
+                        if (readIf(",")) {
+                            nodeType = readIdentifier();
+                            from = nodeType;
+                        } else {
+                            nodeType = "nt:base";
+                            from = nodeType;
+                        }
+                        read(")");
                     }
-                    if (readIf(",")) {
-                        nodeType = readIdentifier();
-                        from = nodeType;
-                    } else {
-                        nodeType = "nt:base";
-                        from = nodeType;
-                    }
-                    read(")");
                 } else if (readIf("@")) {
                     Property p = new Property(readIdentifier());
                     columnList.add(p);
@@ -163,6 +177,7 @@ public class XPathToSQL2Converter {
             throw getSyntaxError("<end>");
         }
         StringBuilder buff = new StringBuilder("select ");
+        buff.append("[jcr:path], ");
         if (columnList.isEmpty()) {
             buff.append('*');
         } else {

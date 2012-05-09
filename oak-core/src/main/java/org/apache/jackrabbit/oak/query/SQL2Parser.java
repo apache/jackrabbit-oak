@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.query;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.ast.AstElementFactory;
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.ast.BindVariableValueImpl;
@@ -200,7 +201,7 @@ public class SQL2Parser {
                 read(",");
                 String selector2 = readName();
                 if (readIf(",")) {
-                    c = factory.sameNodeJoinCondition(selector1, selector2, readPath());
+                    c = factory.sameNodeJoinCondition(selector1, selector2, readAbsolutePath());
                 } else {
                     // TODO verify "." is correct
                     c = factory.sameNodeJoinCondition(selector1, selector2, ".");
@@ -355,21 +356,21 @@ public class SQL2Parser {
         } else if ("ISSAMENODE".equalsIgnoreCase(functionName)) {
             String name = readName();
             if (readIf(",")) {
-                c = factory.sameNode(name, readPath());
+                c = factory.sameNode(name, readAbsolutePath());
             } else {
                 c = factory.sameNode(getOnlySelectorName(), name);
             }
         } else if ("ISCHILDNODE".equalsIgnoreCase(functionName)) {
             String name = readName();
             if (readIf(",")) {
-                c = factory.childNode(name, readPath());
+                c = factory.childNode(name, readAbsolutePath());
             } else {
                 c = factory.childNode(getOnlySelectorName(), name);
             }
         } else if ("ISDESCENDANTNODE".equalsIgnoreCase(functionName)) {
             String name = readName();
             if (readIf(",")) {
-                c = factory.descendantNode(name, readPath());
+                c = factory.descendantNode(name, readAbsolutePath());
             } else {
                 c = factory.descendantNode(getOnlySelectorName(), name);
             }
@@ -378,6 +379,14 @@ public class SQL2Parser {
         }
         read(")");
         return c;
+    }
+
+    private String readAbsolutePath() throws ParseException {
+        String path = readPath();
+        if (!PathUtils.isAbsolute(path)) {
+            throw getSyntaxError("absolute path");
+        }
+        return path;
     }
 
     private String readPath() throws ParseException {
@@ -591,6 +600,16 @@ public class SQL2Parser {
 
     private ColumnImpl[] resolveColumns(ArrayList<ColumnOrWildcard> list) throws ParseException {
         ArrayList<ColumnImpl> columns = new ArrayList<ColumnImpl>();
+//        for (SelectorImpl selector : selectors) {
+//            String selectorName = selector.getSelectorName();
+//            String columnName;
+//            if (selectors.size() > 1) {
+//                columnName = selectorName + "." + "jcr:path";
+//            } else {
+//                columnName = "jcr:path";
+//            }
+//            columns.add(factory.column(selectorName, "jcr:path", columnName));
+//        }
         for (ColumnOrWildcard c : list) {
             if (c.propertyName == null) {
                 for (SelectorImpl selector : selectors) {
@@ -965,7 +984,7 @@ public class SQL2Parser {
     }
 
     private ParseException getSyntaxError(String expected) {
-        int index = Math.min(parseIndex, statement.length() - 1);
+        int index = Math.max(0, Math.min(parseIndex, statement.length() - 1));
         String query = statement.substring(0, index) + "(*)" + statement.substring(index).trim();
         if (expected != null) {
             query += "; expected: " + expected;

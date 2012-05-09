@@ -32,11 +32,16 @@ nt:base AS nt:base /* propertyIndex "id [10..10]" */
 select * from [nt:base] where id = '10'
 /test/a
 
+select [jcr:path], * from [nt:base] where id = '10'
+/test/a, null
+
 explain select * from [nt:base] where id > '10'
 nt:base AS nt:base /* traverse "//*" */
 
 commit / - "test"
 commit /jcr:system/indexes - "property:id"
+
+# other tests
 
 commit / + "test": { "jcr:resource": {}, "resource": { "x" : {}}}
 
