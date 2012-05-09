@@ -26,7 +26,6 @@ import org.xml.sax.ContentHandler;
 
 import javax.jcr.Credentials;
 import javax.jcr.Node;
-import javax.jcr.PathNotFoundException;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -122,8 +121,8 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     public void move(String srcAbsPath, String destAbsPath) throws RepositoryException {
         ensureIsAlive();
         dlg.move(
-                dlg.getOakPathOrThrow(srcAbsPath, new PathNotFoundException(srcAbsPath)),
-                dlg.getOakPathOrThrow(destAbsPath, new PathNotFoundException(destAbsPath)),
+                dlg.getOakPathOrThrowNotFound(srcAbsPath),
+                dlg.getOakPathOrThrowNotFound(destAbsPath),
                 true);
     }
 
@@ -161,7 +160,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
         ensureIsAlive();
 
         @SuppressWarnings("unused")
-        String oakPath = dlg.getOakPathOrThrow(parentAbsPath, new PathNotFoundException(parentAbsPath));
+        String oakPath = dlg.getOakPathOrThrowNotFound(parentAbsPath);
 
         throw new UnsupportedRepositoryOperationException("TODO: Session.getImportContentHandler");
     }
