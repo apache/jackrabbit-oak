@@ -174,7 +174,7 @@ public class MicroKernelFactory {
     /**
      * Delete a directory or file and all subdirectories and files inside it.
      *
-     * @param path the path
+     * @param file the file denoting the directory to delete
      */
     private static void deleteRecursive(File file) {
         File[] files = file.listFiles();
