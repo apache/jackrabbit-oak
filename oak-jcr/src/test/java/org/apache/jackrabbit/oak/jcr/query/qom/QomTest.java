@@ -18,12 +18,13 @@
  */
 package org.apache.jackrabbit.oak.jcr.query.qom;
 
-import org.apache.jackrabbit.commons.SimpleValueFactory;
-import org.junit.Test;
-
+import static org.junit.Assert.assertEquals;
+import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
+import javax.jcr.query.QueryManager;
 import javax.jcr.query.qom.And;
 import javax.jcr.query.qom.BindVariableValue;
 import javax.jcr.query.qom.ChildNode;
@@ -55,15 +56,26 @@ import javax.jcr.query.qom.SameNodeJoinCondition;
 import javax.jcr.query.qom.Selector;
 import javax.jcr.query.qom.Source;
 import javax.jcr.query.qom.UpperCase;
-
-import static org.junit.Assert.assertEquals;
+import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
+import org.junit.Before;
+import org.junit.Test;
 
 /**
  * Tests the QueryObjectModelFactory and other QOM classes.
  */
-public class QomTest {
-    private final QueryObjectModelFactory f = new QueryObjectModelFactoryImpl();
-    private final ValueFactory vf = new SimpleValueFactory();
+public class QomTest extends AbstractRepositoryTest {
+
+    private ValueFactory vf;
+    private QueryObjectModelFactory f;
+
+    @Before
+    public void before() throws RepositoryException {
+        Repository repository = getRepository();
+        Session session = repository.login();
+        vf = session.getValueFactory();
+        QueryManager qm = session.getWorkspace().getQueryManager();
+        f = qm.getQOMFactory();
+    }
 
     @Test
     public void and() throws RepositoryException {

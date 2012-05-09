@@ -45,7 +45,7 @@ public class SelectorImpl extends SourceImpl implements Selector {
     @Override
     public String toString() {
         // TODO quote nodeTypeName?
-        return nodeTypeName + " AS " + getSelectorName();
+        return "[" + nodeTypeName + "] AS " + getSelectorName();
     }
 
 }

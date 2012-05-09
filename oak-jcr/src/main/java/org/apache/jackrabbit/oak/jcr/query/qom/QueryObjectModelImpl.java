@@ -13,12 +13,13 @@
  */
 package org.apache.jackrabbit.oak.jcr.query.qom;
 
-import org.apache.jackrabbit.commons.SimpleValueFactory;
-
+import java.util.ArrayList;
+import java.util.HashMap;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
+import javax.jcr.query.Query;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.qom.Column;
 import javax.jcr.query.qom.Constraint;
@@ -26,27 +27,29 @@ import javax.jcr.query.qom.Ordering;
 import javax.jcr.query.qom.QueryObjectModel;
 import javax.jcr.query.qom.Selector;
 import javax.jcr.query.qom.Source;
-import java.util.ArrayList;
-import java.util.HashMap;
+import org.apache.jackrabbit.oak.jcr.query.QueryManagerImpl;
 
 /**
  * The implementation of the corresponding JCR interface.
  */
 public class QueryObjectModelImpl implements QueryObjectModel {
 
+    private final QueryManagerImpl queryManager;
+    private final ValueFactory valueFactory;
     final Source source;
     final Constraint constraint;
     final HashMap<String, Value> bindVariableMap = new HashMap<String, Value>();
     final ArrayList<Selector> selectors = new ArrayList<Selector>();
-
     private final Ordering[] orderings;
     private final Column[] columns;
     private long limit;
     private long offset;
-    private final ValueFactory valueFactory = new SimpleValueFactory();
+    private boolean parsed;
 
-    public QueryObjectModelImpl(Source source, Constraint constraint, Ordering[] orderings,
+    public QueryObjectModelImpl(QueryManagerImpl queryManager, ValueFactory valueFactory, Source source, Constraint constraint, Ordering[] orderings,
             Column[] columns) {
+        this.queryManager = queryManager;
+        this.valueFactory = valueFactory;
         this.source = source;
         this.constraint = constraint;
         this.orderings = orderings;
@@ -54,7 +57,9 @@ public class QueryObjectModelImpl implements QueryObjectModel {
     }
 
     public void bindVariables() {
-        ((ConstraintImpl) constraint).bindVariables(this);
+        if (constraint != null) {
+            ((ConstraintImpl) constraint).bindVariables(this);
+        }
     }
 
     @Override
@@ -78,10 +83,11 @@ public class QueryObjectModelImpl implements QueryObjectModel {
     }
 
     @Override
-    public String[] getBindVariableNames() {
-        String[] array = new String[bindVariableMap.size()];
-        array = bindVariableMap.keySet().toArray(array);
-        return array;
+    public String[] getBindVariableNames() throws RepositoryException {
+        parse();
+        String[] names = new String[bindVariableMap.size()];
+        bindVariableMap.keySet().toArray(names);
+        return names;
     }
 
     @Override
@@ -99,28 +105,67 @@ public class QueryObjectModelImpl implements QueryObjectModel {
     }
 
     @Override
-    public void bindValue(String arg0, javax.jcr.Value arg1) throws IllegalArgumentException,
-            RepositoryException {
-        // TODO Auto-generated method stub
+    public void bindValue(String varName, Value value) throws RepositoryException {
+        parse();
+        if (!bindVariableMap.containsKey(varName)) {
+            throw new IllegalArgumentException("Variable name " + varName + " is not a valid variable in this query");
+        }
+        bindVariableMap.put(varName, value);
+    }
 
+    private void parse() throws RepositoryException {
+        if (parsed) {
+            return;
+        }
+        String[] names = queryManager.createQuery(getStatement(), Query.JCR_SQL2).getBindVariableNames();
+        for (String n : names) {
+            bindVariableMap.put(n, null);
+        }
     }
 
     @Override
     public QueryResult execute() throws RepositoryException {
-        // TODO Auto-generated method stub
-        return null;
+        return queryManager.executeQuery(getStatement(), Query.JCR_SQL2, bindVariableMap, limit, offset);
     }
 
     @Override
     public String getLanguage() {
-        // TODO Auto-generated method stub
-        return null;
+        return Query.JCR_JQOM;
     }
 
     @Override
     public String getStatement() {
-        // TODO Auto-generated method stub
-        return null;
+        StringBuilder buff = new StringBuilder();
+        buff.append("select ");
+        int i;
+        if (columns != null) {
+            i = 0;
+            for (Column c : columns) {
+                if (i++ > 0) {
+                    buff.append(", ");
+                }
+                buff.append(c);
+            }
+        } else {
+            buff.append("*");
+        }
+        buff.append(" from ");
+        buff.append(source);
+        if (constraint != null) {
+            buff.append(" where ");
+            buff.append(constraint);
+        }
+        if (orderings != null) {
+            buff.append(" order by ");
+            i = 0;
+            for (Ordering o : orderings) {
+                if (i++ > 0) {
+                    buff.append(", ");
+                }
+                buff.append(o);
+            }
+        }
+        return buff.toString();
     }
 
     @Override

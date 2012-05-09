@@ -14,6 +14,7 @@
 package org.apache.jackrabbit.oak.jcr.query.qom;
 
 import javax.jcr.Value;
+import javax.jcr.ValueFactory;
 import javax.jcr.query.qom.ChildNode;
 import javax.jcr.query.qom.ChildNodeJoinCondition;
 import javax.jcr.query.qom.Column;
@@ -45,11 +46,20 @@ import javax.jcr.query.qom.Selector;
 import javax.jcr.query.qom.Source;
 import javax.jcr.query.qom.StaticOperand;
 import javax.jcr.query.qom.UpperCase;
+import org.apache.jackrabbit.oak.jcr.query.QueryManagerImpl;
 
 /**
  * The implementation of the corresponding JCR interface.
  */
 public class QueryObjectModelFactoryImpl implements QueryObjectModelFactory {
+
+    private final QueryManagerImpl queryManager;
+    private final ValueFactory valueFactory;
+
+    public QueryObjectModelFactoryImpl(QueryManagerImpl queryManager, ValueFactory valueFactory) {
+        this.queryManager = queryManager;
+        this.valueFactory = valueFactory;
+    }
 
     @Override
     public AndImpl and(Constraint constraint1, Constraint constraint2) {
@@ -193,7 +203,7 @@ public class QueryObjectModelFactoryImpl implements QueryObjectModelFactory {
 
     @Override
     public QueryObjectModel createQuery(Source source, Constraint constraint, Ordering[] orderings, Column[] columns) {
-        QueryObjectModelImpl qom = new QueryObjectModelImpl(source, constraint, orderings, columns);
+        QueryObjectModelImpl qom = new QueryObjectModelImpl(queryManager, valueFactory, source, constraint, orderings, columns);
         qom.bindVariables();
         return qom;
     }

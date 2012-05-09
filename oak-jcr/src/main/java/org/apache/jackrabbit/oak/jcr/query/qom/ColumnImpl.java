@@ -52,7 +52,7 @@ public class ColumnImpl extends QOMNode implements Column {
     public String toString() {
         if (propertyName != null) {
             return getSelectorName() + '.' + getPropertyName()
-                    + " AS " + getColumnName();
+                    + " AS [" + columnName + "]";
         } else {
             return getSelectorName() + ".*";
         }

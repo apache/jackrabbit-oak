@@ -61,7 +61,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
         this.sessionDelegate = sessionDelegate;
         this.nsRegistry = nsRegistry;
         this.nodeTypeManager = new NodeTypeManagerImpl(sessionDelegate.getValueFactory(), sessionDelegate.getNamePathMapper());
-        this.queryManager = new QueryManagerImpl(this, sessionDelegate);
+        this.queryManager = new QueryManagerImpl(sessionDelegate);
     }
 
     //----------------------------------------------------------< Workspace >---
