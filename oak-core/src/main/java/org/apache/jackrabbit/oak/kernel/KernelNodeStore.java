@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.EmptyCommitHook;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeStore;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -72,6 +73,10 @@ public class KernelNodeStore extends AbstractNodeStore {
      */
     private KernelNodeState root;
 
+    public KernelNodeStore(MicroKernel kernel) {
+        this(kernel, new EmptyCommitHook());
+    }
+
     public KernelNodeStore(MicroKernel kernel, CommitHook commitHook) {
         this.kernel = kernel;
         this.commitHook = commitHook;
@@ -96,11 +101,9 @@ public class KernelNodeStore extends AbstractNodeStore {
             throw new IllegalArgumentException("Alien node state");
         }
 
-        KernelNodeState kernelNodeState = (KernelNodeState) base;
-        String branchRevision = kernel.branch(kernelNodeState.getRevision());
-        String path = kernelNodeState.getPath();
-        KernelNodeState branchRoot = new KernelNodeState(kernel, valueFactory, path, branchRevision);
-        return KernelNodeStateBuilder.create(new NodeStateBuilderContext(branchRoot));
+        NodeStateBuilderContext context =
+                new NodeStateBuilderContext((KernelNodeState) base);
+        return KernelNodeStateBuilder.create(context);
     }
 
     @Override
@@ -132,7 +135,10 @@ public class KernelNodeStore extends AbstractNodeStore {
         /** Path of the root of the whole subtree */
         private final String path;
 
-        /** Root of the subtree */
+        /** Original root of the subtree */
+        private final NodeState base;
+
+        /** Current root of the subtree */
         private NodeState root;
 
         /** Current branch revision */
@@ -141,10 +147,12 @@ public class KernelNodeStore extends AbstractNodeStore {
         /** Pending changes */
         private StringBuilder jsop = new StringBuilder();
 
-        NodeStateBuilderContext(KernelNodeState root) {
-            this.path = root.getPath();
-            this.root = root;
-            this.revision = root.getRevision();
+        NodeStateBuilderContext(KernelNodeState base) {
+            this.base = base;
+            this.path = base.getPath();
+            this.revision = kernel.branch(base.getRevision());
+            this.root = new KernelNodeState(
+                    kernel, valueFactory, path, revision);
         }
 
         /**
@@ -288,6 +296,10 @@ public class KernelNodeStore extends AbstractNodeStore {
         void applyPendingChanges() throws CommitFailedException {
             try {
                 purgePendingChanges();
+
+                // TODO handle potential commit changes from the hook
+                commitHook.beforeCommit(KernelNodeStore.this, base, root);
+
                 kernel.merge(revision, null);
                 revision = null;
             }
