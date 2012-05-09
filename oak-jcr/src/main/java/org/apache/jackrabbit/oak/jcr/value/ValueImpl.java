@@ -113,7 +113,13 @@ class ValueImpl implements Value {
     @Override
     public BigDecimal getDecimal() throws RepositoryException {
         try {
-            return value.getDecimal();
+            switch (getType()) {
+                case PropertyType.DATE:
+                    Calendar cal = getDate();
+                    return BigDecimal.valueOf(cal.getTimeInMillis());
+                default:
+                    return value.getDecimal();
+            }
         } catch (NumberFormatException e) {
             throw new ValueFormatException("Incompatible type " + PropertyType.nameFromValue(getType()));
         }
@@ -125,7 +131,13 @@ class ValueImpl implements Value {
     @Override
     public double getDouble() throws RepositoryException {
         try {
-            return value.getDouble();
+            switch (getType()) {
+                case PropertyType.DATE:
+                    Calendar cal = getDate();
+                    return cal.getTimeInMillis();
+                default:
+                    return value.getDouble();
+            }
         } catch (NumberFormatException e) {
             throw new ValueFormatException("Incompatible type " + PropertyType.nameFromValue(getType()));
         }
@@ -137,7 +149,13 @@ class ValueImpl implements Value {
     @Override
     public long getLong() throws RepositoryException {
         try {
-            return value.getLong();
+            switch (getType()) {
+                case PropertyType.DATE:
+                    Calendar cal = getDate();
+                    return cal.getTimeInMillis();
+                default:
+                    return value.getLong();
+            }
         } catch (NumberFormatException e) {
             throw new ValueFormatException("Incompatible type " + PropertyType.nameFromValue(getType()));
         }
