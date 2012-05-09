@@ -25,6 +25,8 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 public class NamePathMapperImplTest {
@@ -35,7 +37,7 @@ public class NamePathMapperImplTest {
     @Test
     public void testValidIdentifierPath() {
         String idPath = '[' + UUID.randomUUID().toString()+ ']';
-        npMapper.getOakPath(idPath);
+        assertNotNull(npMapper.getOakPath(idPath));
     }
 
     @Test
@@ -45,12 +47,7 @@ public class NamePathMapperImplTest {
         invalid.add('[' + UUID.randomUUID().toString()+ "]/a/b/c");
 
         for (String jcrPath : invalid) {
-            try {
-                npMapper.getOakPath(jcrPath);
-                fail("Invalid identifier path");
-            } catch (Exception e) {
-                // success
-            }
+            assertNull(npMapper.getOakPath(jcrPath));
         }
     }
 

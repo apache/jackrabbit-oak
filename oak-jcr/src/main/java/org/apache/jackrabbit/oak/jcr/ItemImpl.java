@@ -172,15 +172,6 @@ abstract class ItemImpl extends AbstractItem {
         return sessionDelegate.getValueFactory();
     }
 
-    String toOakPath(String jcrPath) throws RepositoryException {
-        try {
-            return sessionDelegate.getOakPath(jcrPath);
-        } catch (IllegalArgumentException ex) {
-            // TODO we shouldn't have to catch this one
-            throw new RepositoryException(ex);
-        }
-    }
-
     String toJcrPath(String oakPath) {
         return sessionDelegate.getNamePathMapper().getJcrPath(oakPath);
     }

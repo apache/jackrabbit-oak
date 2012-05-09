@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.jcr.value;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
+import org.apache.jackrabbit.oak.jcr.SessionDelegate;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.Logger;
@@ -156,6 +157,9 @@ public class ValueFactoryImpl implements ValueFactory {
                 cv = factory.createValue(oakName, type);
             } else if (type == PropertyType.PATH) {
                 String oakPath = namePathMapper.getOakPath(value);
+                if (oakPath == null) {
+                    throw new ValueFormatException("Invalid path: " + value);
+                }
                 cv = factory.createValue(oakPath, type);
             } else if (type == PropertyType.DATE) {
                 if (ISO8601.parse(value) == null) {
@@ -166,13 +170,6 @@ public class ValueFactoryImpl implements ValueFactory {
                 cv = factory.createValue(value, type);
             }
         } catch (NumberFormatException e) {
-            throw new ValueFormatException("Invalid value " + value + " for type " + PropertyType.nameFromValue(type));
-        } catch (IllegalArgumentException e) {
-            // TODO: review exception handling in path resolution again
-            throw new ValueFormatException("Invalid value " + value + " for type " + PropertyType.nameFromValue(type));
-        } catch (Exception e) {
-            // TODO: review exception handling in path/name resolution again
-            // TODO: throws RuntimeException which is pretty ugly
             throw new ValueFormatException("Invalid value " + value + " for type " + PropertyType.nameFromValue(type));
         }
 

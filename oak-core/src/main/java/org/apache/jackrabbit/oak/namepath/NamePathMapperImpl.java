@@ -115,7 +115,11 @@ public class NamePathMapperImpl implements NamePathMapper {
             }
         };
 
-        JcrPathParser.parse(jcrPath, listener);
+        try {
+            JcrPathParser.parse(jcrPath, listener);
+        } catch (RuntimeException e) {
+            return null; // TODO Avoid exceptions for control flow
+        }
 
         StringBuilder oakPath = new StringBuilder();
         for (String element : elements) {

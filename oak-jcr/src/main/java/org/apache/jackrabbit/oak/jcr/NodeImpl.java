@@ -150,7 +150,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     public Node addNode(String relPath, String primaryNodeTypeName) throws RepositoryException {
         checkStatus();
 
-        String oakPath = toOakPath(relPath);
+        String oakPath = sessionDelegate.getOakPathOrThrow(relPath);
         String oakName = PathUtils.getName(oakPath);
         NodeDelegate parent = dlg.getChild(PathUtils.getParentPath(oakPath));
         if (parent == null) {
@@ -213,8 +213,9 @@ public class NodeImpl extends ItemImpl implements Node  {
             p.remove();
             return p;
         } else {
+            String oakName = sessionDelegate.getOakPathOrThrow(jcrName);
             CoreValue oakValue = ValueConverter.toCoreValue(targetValue, sessionDelegate);
-            return new PropertyImpl(dlg.setProperty(toOakPath(jcrName), oakValue));
+            return new PropertyImpl(dlg.setProperty(oakName, oakValue));
         }
     }
 
@@ -243,8 +244,9 @@ public class NodeImpl extends ItemImpl implements Node  {
             p.remove();
             return p;
         } else {
+            String oakName = sessionDelegate.getOakPathOrThrow(jcrName);
             List<CoreValue> oakValue = ValueConverter.toCoreValues(targetValues, sessionDelegate);
-            return new PropertyImpl(dlg.setProperty(toOakPath(jcrName), oakValue));
+            return new PropertyImpl(dlg.setProperty(oakName, oakValue));
         }
     }
 
@@ -363,7 +365,8 @@ public class NodeImpl extends ItemImpl implements Node  {
     public Node getNode(String relPath) throws RepositoryException {
         checkStatus();
 
-        NodeDelegate nd = dlg.getChild(toOakPath(relPath));
+        String oakPath = sessionDelegate.getOakPathOrThrowNotFound(relPath);
+        NodeDelegate nd = dlg.getChild(oakPath);
         if (nd == null) {
             throw new PathNotFoundException(relPath);
         }
@@ -416,7 +419,8 @@ public class NodeImpl extends ItemImpl implements Node  {
     public Property getProperty(String relPath) throws RepositoryException {
         checkStatus();
 
-        PropertyDelegate pd = dlg.getProperty(toOakPath(relPath));
+        String oakPath = sessionDelegate.getOakPathOrThrowNotFound(relPath);
+        PropertyDelegate pd = dlg.getProperty(oakPath);
         if (pd == null) {
             throw new PathNotFoundException(relPath + " not found on " + getPath());
         } else {
@@ -547,14 +551,16 @@ public class NodeImpl extends ItemImpl implements Node  {
     public boolean hasNode(String relPath) throws RepositoryException {
         checkStatus();
 
-        return dlg.getChild(toOakPath(relPath)) != null;
+        String oakPath = sessionDelegate.getOakPathOrNull(relPath);
+        return oakPath != null && dlg.getChild(oakPath) != null;
     }
 
     @Override
     public boolean hasProperty(String relPath) throws RepositoryException {
         checkStatus();
 
-        return dlg.getProperty(toOakPath(relPath)) != null;
+        String oakPath = sessionDelegate.getOakPathOrNull(relPath);
+        return oakPath != null && dlg.getProperty(oakPath) != null;
     }
 
     @Override
@@ -650,8 +656,10 @@ public class NodeImpl extends ItemImpl implements Node  {
         }
         // TODO: END
 
+        String jcrPrimaryType =
+                sessionDelegate.getOakPathOrThrow(Property.JCR_PRIMARY_TYPE);
         CoreValue cv = ValueConverter.toCoreValue(nodeTypeName, PropertyType.NAME, sessionDelegate);
-        dlg.setProperty(toOakPath(Property.JCR_PRIMARY_TYPE), cv);
+        dlg.setProperty(jcrPrimaryType, cv);
     }
 
     @Override
