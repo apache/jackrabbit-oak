@@ -49,7 +49,7 @@ public class QueryTest extends AbstractRepositoryTest {
     @Test
     public void simple() throws RepositoryException {
         Repository repository = getRepository();
-        Session session = repository.login();
+        Session session = createAnonymousSession();
         try {
             Node hello = session.getRootNode().addNode("hello");
             hello.setProperty("id",  "1");

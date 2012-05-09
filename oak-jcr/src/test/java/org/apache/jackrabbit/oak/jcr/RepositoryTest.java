@@ -26,6 +26,7 @@ import org.junit.Test;
 import util.NumberStream;
 
 import javax.jcr.Binary;
+import javax.jcr.GuestCredentials;
 import javax.jcr.Item;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.NoSuchWorkspaceException;
@@ -77,7 +78,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
     @Before
     public void setup() throws RepositoryException {
-        Session session = getRepository().login();
+        Session session = createAnonymousSession();
         ValueFactory valueFactory = session.getValueFactory();
         try {
             Node root = session.getRootNode();
@@ -117,7 +118,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
     @Test(expected = NoSuchWorkspaceException.class)
     public void loginInvalidWorkspace() throws RepositoryException {
         Repository repository = getRepository();
-        repository.login("invalid");
+        repository.login(new GuestCredentials(), "invalid");
     }
 
     @Ignore("WIP") // TODO implement workspace management
@@ -138,7 +139,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
     public void createDeleteWorkspace() throws RepositoryException {
         getSession().getWorkspace().createWorkspace("new");
 
-        Session session2 = getRepository().login();
+        Session session2 = createAnonymousSession();
         try {
             String[] workspaces = session2.getWorkspace().getAccessibleWorkspaceNames();
             assertTrue(asList(workspaces).contains("new"));
@@ -151,7 +152,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
             session2.logout();
         }
 
-        Session session4 = getRepository().login();
+        Session session4 = createAnonymousSession();
         try {
             String[] workspaces = session4.getWorkspace().getAccessibleWorkspaceNames();
             assertFalse(asList(workspaces).contains("new"));
@@ -316,7 +317,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertFalse(added.isModified());
         session.save();
 
-        Session session2 = getRepository().login();
+        Session session2 = createAnonymousSession();
         try {
             assertTrue(session2.nodeExists(newNode));
             added = session2.getNode(newNode);
@@ -340,7 +341,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         node.addNode(nodeName);
         session.save();
 
-        Session session2 = getRepository().login();
+        Session session2 = createAnonymousSession();
         try {
             assertTrue(session2.nodeExists(newNode));
         }
@@ -384,7 +385,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         parentNode.setProperty("multi string", values);
         parentNode.getSession().save();
 
-        Session session2 = getRepository().login();
+        Session session2 = createAnonymousSession();
         try {
             Property property = session2.getProperty(TEST_PATH + "/multi string");
             assertTrue(property.isMultiple());
@@ -415,7 +416,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         parentNode.setProperty("multi long", values);
         parentNode.getSession().save();
 
-        Session session2 = getRepository().login();
+        Session session2 = createAnonymousSession();
         try {
             Property property = session2.getProperty(TEST_PATH + "/multi long");
             assertTrue(property.isMultiple());
@@ -446,7 +447,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         parentNode.setProperty("multi double", values);
         parentNode.getSession().save();
 
-        Session session2 = getRepository().login();
+        Session session2 = createAnonymousSession();
         try {
             Property property = session2.getProperty(TEST_PATH + "/multi double");
             assertTrue(property.isMultiple());
@@ -477,7 +478,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         parentNode.setProperty("multi boolean", values);
         parentNode.getSession().save();
 
-        Session session2 = getRepository().login();
+        Session session2 = createAnonymousSession();
         try {
             Property property = session2.getProperty(TEST_PATH + "/multi boolean");
             assertTrue(property.isMultiple());
@@ -508,7 +509,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         parentNode.setProperty("multi decimal", values);
         parentNode.getSession().save();
 
-        Session session2 = getRepository().login();
+        Session session2 = createAnonymousSession();
         try {
             Property property = session2.getProperty(TEST_PATH + "/multi decimal");
             assertTrue(property.isMultiple());
@@ -541,7 +542,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         parentNode.setProperty("multi date", values);
         parentNode.getSession().save();
 
-        Session session2 = getRepository().login();
+        Session session2 = createAnonymousSession();
         try {
             Property property = session2.getProperty(TEST_PATH + "/multi date");
             assertTrue(property.isMultiple());
@@ -572,7 +573,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         parentNode.setProperty("multi uri", values);
         parentNode.getSession().save();
 
-        Session session2 = getRepository().login();
+        Session session2 = createAnonymousSession();
         try {
             Property property = session2.getProperty(TEST_PATH + "/multi uri");
             assertTrue(property.isMultiple());
@@ -603,7 +604,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         parentNode.setProperty("multi name", values);
         parentNode.getSession().save();
 
-        Session session2 = getRepository().login();
+        Session session2 = createAnonymousSession();
         try {
             Property property = session2.getProperty(TEST_PATH + "/multi name");
             assertTrue(property.isMultiple());
@@ -634,7 +635,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         parentNode.setProperty("multi path", values);
         parentNode.getSession().save();
 
-        Session session2 = getRepository().login();
+        Session session2 = createAnonymousSession();
         try {
             Property property = session2.getProperty(TEST_PATH + "/multi path");
             assertTrue(property.isMultiple());
@@ -689,7 +690,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         parentNode.setProperty("multi binary", values);
         parentNode.getSession().save();
 
-        Session session2 = getRepository().login();
+        Session session2 = createAnonymousSession();
         try {
             Property property = session2.getProperty(TEST_PATH + "/multi binary");
             assertTrue(property.isMultiple());
@@ -730,7 +731,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         parentNode.setProperty("multi reference", values);
         parentNode.getSession().save();
 
-        Session session2 = getRepository().login();
+        Session session2 = createAnonymousSession();
         try {
             Property property = session2.getProperty(TEST_PATH + "/multi reference");
             assertTrue(property.isMultiple());
@@ -771,7 +772,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         parentNode.setProperty("multi weak reference", values);
         parentNode.getSession().save();
 
-        Session session2 = getRepository().login();
+        Session session2 = createAnonymousSession();
         try {
             Property property = session2.getProperty(TEST_PATH + "/multi weak reference");
             assertTrue(property.isMultiple());
@@ -794,7 +795,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         parentNode.setProperty("multi empty", values, PropertyType.BOOLEAN);
         parentNode.getSession().save();
 
-        Session session2 = getRepository().login();
+        Session session2 = createAnonymousSession();
         try {
             Property property = session2.getProperty(TEST_PATH + "/multi empty");
             assertTrue(property.isMultiple());
@@ -814,7 +815,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         parentNode.setProperty("multi empty", values, PropertyType.BOOLEAN);
         parentNode.getSession().save();
 
-        Session session2 = getRepository().login();
+        Session session2 = createAnonymousSession();
         try {
             Property property = session2.getProperty(TEST_PATH + "/multi empty");
             assertTrue(property.isMultiple());
@@ -837,7 +838,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         parentNode.setProperty("multi with null", values);
         parentNode.getSession().save();
 
-        Session session2 = getRepository().login();
+        Session session2 = createAnonymousSession();
         try {
             Property property = session2.getProperty(TEST_PATH + "/multi with null");
             assertTrue(property.isMultiple());
@@ -880,7 +881,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertFalse(property.isNew());
         property.getSession().save();
 
-        Session session2 = getRepository().login();
+        Session session2 = createAnonymousSession();
         try {
             Property property2 = session2.getProperty(TEST_PATH + "/string");
             assertEquals("new value", property2.getString());
@@ -895,7 +896,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         Node parentNode = getNode(TEST_PATH);
         addProperty(parentNode, "NaN", getSession().getValueFactory().createValue(Double.NaN));
 
-        Session session2 = getRepository().login();
+        Session session2 = createAnonymousSession();
         try {
             Property property2 = session2.getProperty(TEST_PATH + "/NaN");
             assertTrue(Double.isNaN(property2.getDouble()));
@@ -920,7 +921,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         parentNode.setProperty("multi string2", values);
         parentNode.getSession().save();
 
-        Session session2 = getRepository().login();
+        Session session2 = createAnonymousSession();
         try {
             Property property = session2.getProperty(TEST_PATH + "/multi string2");
             assertTrue(property.isMultiple());
@@ -940,7 +941,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         parentNode.setProperty("newProperty", "some value");
         parentNode.getSession().save();
 
-        Session session2 = getRepository().login();
+        Session session2 = createAnonymousSession();
         try {
             session2.getProperty(TEST_PATH + "/newProperty").setValue((String) null);
             session2.save();
@@ -949,7 +950,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
             session2.logout();
         }
 
-        Session session3 = getRepository().login();
+        Session session3 = createAnonymousSession();;
         try {
             assertFalse(session3.propertyExists(TEST_PATH + "/newProperty"));
         }
@@ -964,7 +965,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         parentNode.setProperty("newProperty", "some value");
         parentNode.getSession().save();
 
-        Session session2 = getRepository().login();
+        Session session2 = createAnonymousSession();;
         try {
             session2.getProperty(TEST_PATH + "/newProperty").remove();
             session2.save();
@@ -973,7 +974,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
             session2.logout();
         }
 
-        Session session3 = getRepository().login();
+        Session session3 = createAnonymousSession();;
         try {
             assertFalse(session3.propertyExists(TEST_PATH + "/newProperty"));
         }
@@ -988,7 +989,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         parentNode.addNode("newNode");
         parentNode.getSession().save();
 
-        Session session2 = getRepository().login();
+        Session session2 = createAnonymousSession();;
         try {
             session2.getNode(TEST_PATH + "/newNode").remove();
             assertTrue(session2.getNode(TEST_PATH).isModified());
@@ -998,7 +999,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
             session2.logout();
         }
 
-        Session session3 = getRepository().login();
+        Session session3 = createAnonymousSession();;
         try {
             assertFalse(session3.nodeExists(TEST_PATH + "/newNode"));
             assertFalse(session3.getNode(TEST_PATH).isModified());
@@ -1010,8 +1011,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
     @Test
     public void sessionSave() throws RepositoryException {
-        Session session1 = getRepository().login();
-        Session session2 = getRepository().login();
+        Session session1 = createAnonymousSession();;
+        Session session2 = createAnonymousSession();;
         try {
             // Add some items and ensure they are accessible through this session
             session1.getNode("/").addNode("node1");
@@ -1060,7 +1061,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
     @Test
     public void sessionRefresh() throws RepositoryException {
-        Session session = getRepository().login();
+        Session session = createAnonymousSession();;
         try {
             // Add some items and ensure they are accessible through this session
             session.getNode("/").addNode("node1");
@@ -1102,8 +1103,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
     @Test
     public void sessionRefreshFalse() throws RepositoryException {
-        Session session1 = getRepository().login();
-        Session session2 = getRepository().login();
+        Session session1 = createAnonymousSession();;
+        Session session2 = createAnonymousSession();;
         try {
             Node foo = session1.getNode("/foo");
             foo.addNode("added");
@@ -1123,8 +1124,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
     @Test
     public void sessionRefreshTrue() throws RepositoryException {
-        Session session1 = getRepository().login();
-        Session session2 = getRepository().login();
+        Session session1 = createAnonymousSession();;
+        Session session2 = createAnonymousSession();;
         try {
             Node foo = session1.getNode("/foo");
             foo.addNode("added");
@@ -1144,8 +1145,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
     @Test
     public void sessionIsolation() throws RepositoryException {
-        Session session1 = getRepository().login();
-        Session session2 = getRepository().login();
+        Session session1 = createAnonymousSession();;
+        Session session2 = createAnonymousSession();;
         try {
             session1.getRootNode().addNode("node1");
             session2.getRootNode().addNode("node2");
@@ -1169,8 +1170,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
     @Test
     public void saveRefreshConflict() throws RepositoryException {
-        Session session1 = getRepository().login();
-        Session session2 = getRepository().login();
+        Session session1 = createAnonymousSession();;
+        Session session2 = createAnonymousSession();;
         try {
             session1.getRootNode().addNode("node");
             session2.getRootNode().addNode("node");
@@ -1200,8 +1201,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
         getSession().getRootNode().addNode("node");
         getSession().save();
 
-        Session session1 = getRepository().login();
-        Session session2 = getRepository().login();
+        Session session1 = createAnonymousSession();;
+        Session session2 = createAnonymousSession();;
         try {
             session1.getNode("/node").remove();
             session2.getNode("/node").addNode("2");
@@ -1226,7 +1227,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
     @Test
     public void liveNodes() throws RepositoryException {
-        Session session = getRepository().login();
+        Session session = createAnonymousSession();;
         try {
             Node n1 = (Node) session.getItem(TEST_PATH);
             Node n2 = (Node) session.getItem(TEST_PATH);
@@ -1331,7 +1332,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         testNode.setPrimaryType("nt:folder");
         getSession().save();
 
-        Session session2 = getRepository().login();
+        Session session2 = createAnonymousSession();;
         try {
             testNode = session2.getNode(TEST_PATH);
             assertEquals("nt:folder", testNode.getPrimaryNodeType().getName());
@@ -1408,7 +1409,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         testNode.addMixin("mix:test");
         testNode.getSession().save();
 
-        Session session2 = getRepository().login();
+        Session session2 = createAnonymousSession();;
         try {
             mix = session2.getNode(TEST_PATH).getMixinNodeTypes();
             assertEquals(1, mix.length);
@@ -1421,7 +1422,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         testNode.removeMixin("mix:test");
         testNode.getSession().save();
 
-        session2 = getRepository().login();
+        session2 = createAnonymousSession();;
         try {
             mix = session2.getNode(TEST_PATH).getMixinNodeTypes();
             assertEquals(0, mix.length);
@@ -1701,7 +1702,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertTrue(added.isNew());
         getSession().save();
 
-        Session session2 = getRepository().login();
+        Session session2 = createAnonymousSession();;
         try {
             assertTrue(session2.propertyExists(propertyPath));
             Value value2 = session2.getProperty(propertyPath).getValue();

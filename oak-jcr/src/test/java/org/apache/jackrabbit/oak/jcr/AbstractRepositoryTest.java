@@ -38,20 +38,20 @@ public abstract class AbstractRepositoryTest {
     private Session session;
 
     public void logout() throws RepositoryException {
-        Session session = getRepository().login();
+        Session cleanupSession = createAnonymousSession();
         try {
-            Node root = session.getRootNode();
+            Node root = cleanupSession.getRootNode();
             NodeIterator ns = root.getNodes();
             while (ns.hasNext()) {
                 ns.nextNode().remove();
             }
-            session.save();
+            cleanupSession.save();
         }
         finally {
-            session.logout();
+            cleanupSession.logout();
         }
 
-
+        // release session field
         if (session != null) {
             session.logout();
             session = null;
@@ -68,7 +68,7 @@ public abstract class AbstractRepositoryTest {
 
     protected Session getSession() throws RepositoryException {
         if (session == null) {
-            session = getRepository().login(new GuestCredentials());
+            session = createAnonymousSession();
         }
         return session;
     }
@@ -79,6 +79,10 @@ public abstract class AbstractRepositoryTest {
 
     protected Property getProperty(String path) throws RepositoryException {
         return getSession().getProperty(path);
+    }
+
+    protected Session createAnonymousSession() throws RepositoryException {
+        return getRepository().login(new GuestCredentials());
     }
 
 }

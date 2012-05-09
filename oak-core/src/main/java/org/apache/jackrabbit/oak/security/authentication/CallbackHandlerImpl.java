@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.authentication;
 
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,9 +41,11 @@ public class CallbackHandlerImpl implements CallbackHandler {
     private static final Logger log = LoggerFactory.getLogger(CallbackHandlerImpl.class);
 
     private final Credentials credentials;
+    private final PrincipalProvider principalProvider;
 
-    public CallbackHandlerImpl(Credentials credentials) {
+    public CallbackHandlerImpl(Credentials credentials, PrincipalProvider principalProvider) {
         this.credentials = credentials;
+        this.principalProvider = principalProvider;
     }
 
     //----------------------------------------------------< CallbackHandler >---
@@ -57,6 +60,8 @@ public class CallbackHandlerImpl implements CallbackHandler {
                 ((PasswordCallback) callback).setPassword(getPassword());
             } else if (callback instanceof ImpersonationCallback) {
                 ((ImpersonationCallback) callback).setImpersonator(getImpersonationSubject());
+            } else if (callback instanceof PrincipalProviderCallback) {
+                ((PrincipalProviderCallback) callback).setPrincipalProvider(principalProvider);
             } else {
                 throw new UnsupportedCallbackException(callback);
             }
