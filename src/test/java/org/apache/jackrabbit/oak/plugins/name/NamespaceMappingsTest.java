@@ -22,12 +22,14 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.junit.Test;
 
+import javax.jcr.GuestCredentials;
+
 public class NamespaceMappingsTest {
 
     @Test
     public void testMappings() throws Exception {
         ContentRepository repository = new ContentRepositoryImpl();
-        ContentSession session = repository.login(null, "default");
+        ContentSession session = repository.login(new GuestCredentials(), "default");
         NamespaceMappings r = new NamespaceMappings(session);
 
         r.registerNamespace("p", "n");

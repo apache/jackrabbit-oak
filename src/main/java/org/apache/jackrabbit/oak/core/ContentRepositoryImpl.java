@@ -26,8 +26,10 @@ import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
 import org.apache.jackrabbit.oak.security.authentication.CallbackHandlerImpl;
 import org.apache.jackrabbit.oak.security.authentication.ConfigurationImpl;
+import org.apache.jackrabbit.oak.security.principal.KernelPrincipalProvider;
 import org.apache.jackrabbit.oak.spi.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.commit.EmptyCommitHook;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
@@ -58,6 +60,7 @@ public class ContentRepositoryImpl implements ContentRepository {
     private final NodeStore nodeStore;
 
     private final Configuration authConfig;
+    private final PrincipalProvider principalProvider;
 
     /**
      * Utility constructor that creates a new in-memory repository with default
@@ -81,8 +84,9 @@ public class ContentRepositoryImpl implements ContentRepository {
         QueryIndexProvider qip = (indexProvider == null) ? getDefaultIndexProvider(microKernel) : indexProvider;
         queryEngine = new QueryEngineImpl(nodeStore, microKernel, qip);
 
-        // TODO: use configurable authentication config
+        // TODO: use configurable authentication config and principal provider
         authConfig = new ConfigurationImpl();
+        principalProvider = new KernelPrincipalProvider();
 
         // FIXME: workspace setup must be done elsewhere...
         NodeState root = nodeStore.getRoot();
@@ -112,7 +116,7 @@ public class ContentRepositoryImpl implements ContentRepository {
         // TODO: add proper implementation
         // TODO  - authentication against configurable spi-authentication
         // TODO  - validation of workspace name (including access rights for the given 'user')
-        LoginContext loginContext = new LoginContext(APP_NAME, null, new CallbackHandlerImpl(credentials), authConfig);
+        LoginContext loginContext = new LoginContext(APP_NAME, null, new CallbackHandlerImpl(credentials, principalProvider), authConfig);
         loginContext.login();
 
         NodeState wspRoot = nodeStore.getRoot().getChildNode(workspaceName);
