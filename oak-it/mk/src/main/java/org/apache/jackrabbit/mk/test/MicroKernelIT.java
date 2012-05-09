@@ -380,6 +380,11 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         child = resolveObjectValue(obj, "a/b/c/d");
         assertNotNull(child);
         assertEquals(child.size(), 0);
+
+        // getNodes(path, revId) must return same result as getNodes(path, revId, 1, 0, -1, null)
+        obj = parseJSONObject(mk.getNodes("/testRoot", null));
+        JSONObject obj1 = parseJSONObject(mk.getNodes("/testRoot", null, 1, 0, -1, null));
+        assertEquals(obj, obj1);
     }
 
     @Test
