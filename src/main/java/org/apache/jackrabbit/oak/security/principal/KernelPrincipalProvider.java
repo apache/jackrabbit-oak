@@ -27,7 +27,8 @@ import java.util.Set;
 
 /**
  * The {@code KernelPrincipalProvider} is a principal provider implementation
- * that operates on data obtained from {@code MicroKernel} directly.
+ * that operates on principal information read from user information stored
+ * in the{@code MicroKernel}.
  */
 public class KernelPrincipalProvider implements PrincipalProvider {
 
