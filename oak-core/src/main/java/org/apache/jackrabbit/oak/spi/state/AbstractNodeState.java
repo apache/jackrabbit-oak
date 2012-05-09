@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.spi.state;
 
+import org.apache.jackrabbit.oak.api.PropertyState;
+
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import org.apache.jackrabbit.oak.api.PropertyState;
 
 /**
  * Abstract base class for {@link NodeState} implementations.
@@ -85,13 +85,13 @@ public abstract class AbstractNodeState implements NodeState {
         StringBuilder builder = new StringBuilder("{");
         AtomicBoolean first = new AtomicBoolean(true);
         for (PropertyState property : getProperties()) {
-            if (first.getAndSet(false)) {
+            if (!first.getAndSet(false)) {
                 builder.append(',');
             }
             builder.append(' ').append(property);
         }
         for (ChildNodeEntry entry : getChildNodeEntries()) {
-            if (first.getAndSet(false)) {
+            if (!first.getAndSet(false)) {
                 builder.append(',');
             }
             builder.append(' ').append(entry);
