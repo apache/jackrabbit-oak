@@ -23,6 +23,12 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Random;
+import java.util.Set;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -146,8 +152,6 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
 
         // diff of rev0->rev2 should be empty
         assertEquals(mk.diff(rev0, rev2, null), "");
-
-
     }
 
     @Test
@@ -376,6 +380,65 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         child = resolveObjectValue(obj, "a/b/c/d");
         assertNotNull(child);
         assertEquals(child.size(), 0);
+    }
+
+    @Test
+    public void getNodesOffset() {
+        // number of siblings (multiple of 10)
+        final int NUM_SIBLINGS = 1000;
+        // set of all sibling names
+        final Set<String> siblingNames = new HashSet<String>(NUM_SIBLINGS);
+
+        // populate siblings
+        Random rand = new Random();
+        StringBuffer sb = new StringBuffer("+\"/testRoot\":{");
+        for (int i = 0; i < NUM_SIBLINGS; i++) {
+            String name = "n" + rand.nextLong();
+            siblingNames.add(name);
+            sb.append("\n\"");
+            sb.append(name);
+            sb.append("\":{}");
+            if (i < NUM_SIBLINGS - 1) {
+                sb.append(',');
+            }
+        }
+        sb.append("\n}");
+        String head = mk.commit("", sb.toString(), null, "");
+
+        // get all siblings in one call
+        JSONObject obj = parseJSONObject(mk.getNodes("/testRoot", head, 0, 0, -1, null));
+        assertPropertyValue(obj, ":childNodeCount", (long) NUM_SIBLINGS);
+        assertEquals(siblingNames, getNodeNames(obj));
+
+        // list of sibling names in iteration order
+        final List<String> orderedSiblingNames = new ArrayList<String>(NUM_SIBLINGS);
+
+        // get siblings one by one
+        for (int i = 0; i < NUM_SIBLINGS; i++) {
+            obj = parseJSONObject(mk.getNodes("/testRoot", head, 0, i, 1, null));
+            assertPropertyValue(obj, ":childNodeCount", (long) NUM_SIBLINGS);
+            Set<String> set = getNodeNames(obj);
+            assertEquals(set.size(), 1);
+            orderedSiblingNames.add(set.iterator().next());
+        }
+
+        // check completeness
+        Set<String> names = new HashSet<String>(siblingNames);
+        names.removeAll(orderedSiblingNames);
+        assertTrue(names.isEmpty());
+
+        // we've now established the expected iteration order
+
+        // get siblings in 10 chunks
+        for (int i = 0; i < 10; i++) {
+            obj = parseJSONObject(mk.getNodes("/testRoot", head, 0, i * 10, NUM_SIBLINGS / 10, null));
+            assertPropertyValue(obj, ":childNodeCount", (long) NUM_SIBLINGS);
+            names = getNodeNames(obj);
+            assertEquals(names.size(), NUM_SIBLINGS / 10);
+            List<String> subList = orderedSiblingNames.subList(i * 10, (i * 10) + (NUM_SIBLINGS / 10));
+            names.removeAll(subList);
+            assertTrue(names.isEmpty());
+        }
     }
 
     @Test
