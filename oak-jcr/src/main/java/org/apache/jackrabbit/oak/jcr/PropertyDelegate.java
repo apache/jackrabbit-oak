@@ -235,11 +235,11 @@ public class PropertyDelegate extends ItemDelegate {
 
     private synchronized void resolve() {
         parent = sessionDelegate.getTree(parent.getPath());
-        String path = PathUtils.concat(parent.getPath(), propertyState.getName());
 
         if (parent == null) {
             propertyState = null;
         } else {
+            String path = PathUtils.concat(parent.getPath(), propertyState.getName());
             propertyState = parent.getProperty(PathUtils.getName(path));
         }
     }
