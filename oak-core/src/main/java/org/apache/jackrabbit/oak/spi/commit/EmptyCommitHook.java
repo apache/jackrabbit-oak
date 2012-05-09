@@ -42,12 +42,14 @@ public class EmptyCommitHook implements CommitHook {
      */
     public static final CommitHook INSTANCE = new EmptyCommitHook();
 
+    @Override
     public NodeState beforeCommit(
             NodeStore store, NodeState before, NodeState after)
             throws CommitFailedException {
         return after;
     }
 
+    @Override
     public void afterCommit(
             NodeStore store, NodeState before, NodeState after) {
         // do nothing

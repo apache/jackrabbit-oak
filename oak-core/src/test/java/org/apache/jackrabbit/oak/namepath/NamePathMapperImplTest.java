@@ -40,7 +40,7 @@ public class NamePathMapperImplTest {
 
     @Test
     public void testInvalidIdentifierPath() {
-        List<String> invalid = new ArrayList();
+        List<String> invalid = new ArrayList<String>();
         invalid.add('[' + UUID.randomUUID().toString()+ "]abc");
         invalid.add('[' + UUID.randomUUID().toString()+ "]/a/b/c");
 
@@ -102,7 +102,7 @@ public class NamePathMapperImplTest {
 
         @Override
         protected String getJcrPrefix(String oakPrefix) {
-            if (oakPrefix.length() == 0) {
+            if (oakPrefix.isEmpty()) {
                 return oakPrefix;
             } else {
                 return "jcr-" + oakPrefix;
@@ -111,7 +111,7 @@ public class NamePathMapperImplTest {
 
         @Override
         protected String getOakPrefix(String jcrPrefix) {
-            if (jcrPrefix.length() == 0) {
+            if (jcrPrefix.isEmpty()) {
                 return jcrPrefix;
             } else {
                 return "oak-" + jcrPrefix;
