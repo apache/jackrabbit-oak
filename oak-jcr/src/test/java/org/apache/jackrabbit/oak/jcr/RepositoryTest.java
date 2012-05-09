@@ -1059,7 +1059,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
     }
 
     @Test
-    @Ignore("WIP") // TODO needs implementation of Tree.refresh
     public void sessionRefresh() throws RepositoryException {
         Session session = getRepository().login();
         try {
