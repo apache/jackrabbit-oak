@@ -199,9 +199,10 @@ class NodeTypeImpl implements NodeType {
             NodeTypeIterator iterator = manager.getAllNodeTypes();
             while (iterator.hasNext()) {
                 NodeType type = iterator.nextNodeType();
-                if (type.isNodeType(getName()) && !isNodeType(type.getName())) {
+                String name = type.getName();
+                if (type.isNodeType(getName()) && !isNodeType(name)) {
                     List<String> declaredSuperTypeNames = Arrays.asList(type.getDeclaredSupertypeNames());
-                    if (declaredSuperTypeNames.contains(type)) {
+                    if (declaredSuperTypeNames.contains(name)) {
                         types.add(type);
                     }
                 }
