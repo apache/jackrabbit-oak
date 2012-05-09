@@ -149,7 +149,11 @@ public class ValueFactoryImpl implements ValueFactory {
         CoreValue cv;
         try {
             if (type == PropertyType.NAME) {
-                cv = factory.createValue(namePathMapper.getOakName(value), type);
+                String oakName = namePathMapper.getOakName(value);
+                if (oakName == null) {
+                    throw new ValueFormatException("Invalid name: " + value);
+                }
+                cv = factory.createValue(oakName, type);
             } else if (type == PropertyType.PATH) {
                 String oakPath = namePathMapper.getOakPath(value);
                 cv = factory.createValue(oakPath, type);
@@ -164,7 +168,7 @@ public class ValueFactoryImpl implements ValueFactory {
         } catch (NumberFormatException e) {
             throw new ValueFormatException("Invalid value " + value + " for type " + PropertyType.nameFromValue(type));
         } catch (IllegalArgumentException e) {
-            // TODO: review exception handling in path/name resolution again
+            // TODO: review exception handling in path resolution again
             throw new ValueFormatException("Invalid value " + value + " for type " + PropertyType.nameFromValue(type));
         } catch (Exception e) {
             // TODO: review exception handling in path/name resolution again

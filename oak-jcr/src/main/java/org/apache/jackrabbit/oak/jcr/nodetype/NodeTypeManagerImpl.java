@@ -92,13 +92,15 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
     @Override
     public boolean hasNodeType(String name) throws RepositoryException {
         init();
-        return typemap.containsKey(mapper.getOakName(name));
+        String oakName = mapper.getOakName(name); // can be null, which is fine
+        return typemap.containsKey(oakName);
     }
 
     @Override
     public NodeType getNodeType(String name) throws RepositoryException {
         init();
-        NodeType type = typemap.get(mapper.getOakName(name));
+        String oakName = mapper.getOakName(name); // can be null, which is fine
+        NodeType type = typemap.get(oakName);
         if (type == null) {
             throw new NoSuchNodeTypeException("Unknown node type: " + name);
         }
