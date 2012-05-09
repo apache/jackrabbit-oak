@@ -57,7 +57,7 @@ public abstract class AbstractNameMapper implements NameMapper {
             String name = jcrName.substring(pos + 1);
             String oakPrefix = getOakPrefix(pref);
             if (oakPrefix == null) {
-                throw new IllegalArgumentException("prefix '" + pref + "' is not mapped" );
+                return null; // not a mapped name
             } else {
                 return oakPrefix + ':' + name;
             }
