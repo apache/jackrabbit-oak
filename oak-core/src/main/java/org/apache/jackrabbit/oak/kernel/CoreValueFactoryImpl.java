@@ -19,22 +19,16 @@ package org.apache.jackrabbit.oak.kernel;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.jcr.PropertyType;
 import java.io.InputStream;
 import java.math.BigDecimal;
 
 /**
- * CoreValueFactoryImpl... TODO javadoc
+ * {@code CoreValueFactoryImpl} is the default implementation of the
+ * {@code CoreValueFactory} interface.
  */
 class CoreValueFactoryImpl implements CoreValueFactory {
-
-    /**
-     * logger instance
-     */
-    private static final Logger log = LoggerFactory.getLogger(CoreValueFactoryImpl.class);
 
     private final MicroKernel mk;
 
@@ -43,7 +37,7 @@ class CoreValueFactoryImpl implements CoreValueFactory {
         this.mk = mk;
     }
 
-    //-----------------------------------------< org.apache.jackrabbit.oak.api.CoreValueFactory >---
+    //---------------------------------------------------< CoreValueFactory >---
     @Override
     public CoreValue createValue(String value) {
         return new CoreValueImpl(value, PropertyType.STRING);
