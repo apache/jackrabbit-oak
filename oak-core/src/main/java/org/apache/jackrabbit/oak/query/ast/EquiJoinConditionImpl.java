@@ -69,11 +69,11 @@ public class EquiJoinConditionImpl extends JoinConditionImpl {
     public void bindSelector(SourceImpl source) {
         selector1 = source.getSelector(selector1Name);
         if (selector1 == null) {
-            throw new RuntimeException("Unknown selector: " + selector1Name);
+            throw new IllegalArgumentException("Unknown selector: " + selector1Name);
         }
         selector2 = source.getSelector(selector2Name);
         if (selector2 == null) {
-            throw new RuntimeException("Unknown selector: " + selector2Name);
+            throw new IllegalArgumentException("Unknown selector: " + selector2Name);
         }
     }
 

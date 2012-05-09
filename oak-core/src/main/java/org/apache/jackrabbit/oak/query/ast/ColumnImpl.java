@@ -52,7 +52,7 @@ public class ColumnImpl extends AstElement {
     public String toString() {
         if (propertyName != null) {
             return getSelectorName() + '.' + getPropertyName()
-                    + " AS " + getColumnName();
+                    + " AS [" + columnName + "]";
         } else {
             return getSelectorName() + ".*";
         }

@@ -120,7 +120,7 @@ public class FilterImpl implements Filter {
         propertyRestrictions.clear();
         valuePrefix = "none";
         nodeType = "none";
-        path = "none";
+        path = "/";
         pathRestriction = PathRestriction.EXACT;
         alwaysFalse = true;
     }
@@ -158,7 +158,7 @@ public class FilterImpl implements Filter {
         case ALL_CHILDREN:
             return PathUtils.isAncestor(this.path, path);
         default:
-            throw new RuntimeException("Unknown path restriction: " + pathRestriction);
+            throw new IllegalArgumentException("Unknown path restriction: " + pathRestriction);
         }
     }
 

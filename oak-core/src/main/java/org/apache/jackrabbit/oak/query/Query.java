@@ -448,7 +448,7 @@ public class Query {
     public CoreValue getBindVariableValue(String bindVariableName) {
         CoreValue v = bindVariableMap.get(bindVariableName);
         if (v == null) {
-            throw new RuntimeException("Bind variable value not set: " + bindVariableName);
+            throw new IllegalArgumentException("Bind variable value not set: " + bindVariableName);
         }
         return v;
     }

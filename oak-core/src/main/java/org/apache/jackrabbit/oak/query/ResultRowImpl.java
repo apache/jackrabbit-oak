@@ -63,7 +63,7 @@ public class ResultRowImpl implements ResultRow, Comparable<ResultRowImpl> {
     @Override
     public CoreValue[] getValues() {
         CoreValue[] v2 = new CoreValue[values.length];
-        System.arraycopy(values, 0, v2, 0, v2.length);
+        System.arraycopy(values, 0, v2, 0, values.length);
         return v2;
     }
 
