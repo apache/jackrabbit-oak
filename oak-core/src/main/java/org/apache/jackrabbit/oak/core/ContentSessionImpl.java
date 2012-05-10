@@ -31,7 +31,7 @@ import java.io.IOException;
 import java.util.Set;
 
 /**
- * {@link MicroKernel}-based implementation of the {@link ContentSession} interface.
+ * {@code MicroKernel}-based implementation of the {@link ContentSession} interface.
  */
 class ContentSessionImpl implements ContentSession {
 
