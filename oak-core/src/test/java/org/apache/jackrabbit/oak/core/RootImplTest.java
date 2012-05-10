@@ -230,6 +230,20 @@ public class RootImplTest extends AbstractOakTest {
     }
 
     @Test
+    public void move2() {
+        RootImpl root = new RootImpl(store, "test");
+        Tree r = root.getTree("");
+        Tree x = r.getChild("x");
+        Tree y = r.getChild("y");
+
+        assertFalse(y.hasChild("x"));
+        assertEquals("", x.getParent().getName());
+        root.move("x", "y/x");
+        assertTrue(y.hasChild("x"));
+        assertEquals("y", x.getParent().getName());
+    }
+
+    @Test
     public void rename() throws CommitFailedException {
         RootImpl root = new RootImpl(store, "test");
         Tree tree = root.getTree("/");

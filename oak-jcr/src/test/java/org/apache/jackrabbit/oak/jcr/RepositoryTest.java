@@ -27,6 +27,7 @@ import util.NumberStream;
 
 import javax.jcr.Binary;
 import javax.jcr.GuestCredentials;
+import javax.jcr.InvalidItemStateException;
 import javax.jcr.Item;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.NoSuchWorkspaceException;
@@ -71,6 +72,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class RepositoryTest extends AbstractRepositoryTest {
     private static final String TEST_NODE = "test_node";
@@ -950,7 +952,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
             session2.logout();
         }
 
-        Session session3 = createAnonymousSession();;
+        Session session3 = createAnonymousSession();
         try {
             assertFalse(session3.propertyExists(TEST_PATH + "/newProperty"));
         }
@@ -965,7 +967,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         parentNode.setProperty("newProperty", "some value");
         parentNode.getSession().save();
 
-        Session session2 = createAnonymousSession();;
+        Session session2 = createAnonymousSession();
         try {
             session2.getProperty(TEST_PATH + "/newProperty").remove();
             session2.save();
@@ -974,7 +976,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
             session2.logout();
         }
 
-        Session session3 = createAnonymousSession();;
+        Session session3 = createAnonymousSession();
         try {
             assertFalse(session3.propertyExists(TEST_PATH + "/newProperty"));
         }
@@ -989,9 +991,17 @@ public class RepositoryTest extends AbstractRepositoryTest {
         parentNode.addNode("newNode");
         parentNode.getSession().save();
 
-        Session session2 = createAnonymousSession();;
+        Session session2 = createAnonymousSession();
         try {
-            session2.getNode(TEST_PATH + "/newNode").remove();
+            Node removeNode = session2.getNode(TEST_PATH + "/newNode");
+            removeNode.remove();
+
+            try {
+                removeNode.getParent();
+                fail("Cannot retrieve the parent from a transiently removed item.");
+            }
+            catch (InvalidItemStateException expected) {}
+
             assertTrue(session2.getNode(TEST_PATH).isModified());
             session2.save();
         }
@@ -999,7 +1009,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
             session2.logout();
         }
 
-        Session session3 = createAnonymousSession();;
+        Session session3 = createAnonymousSession();
         try {
             assertFalse(session3.nodeExists(TEST_PATH + "/newNode"));
             assertFalse(session3.getNode(TEST_PATH).isModified());
@@ -1011,8 +1021,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
     @Test
     public void sessionSave() throws RepositoryException {
-        Session session1 = createAnonymousSession();;
-        Session session2 = createAnonymousSession();;
+        Session session1 = createAnonymousSession();
+        Session session2 = createAnonymousSession();
         try {
             // Add some items and ensure they are accessible through this session
             session1.getNode("/").addNode("node1");
@@ -1061,7 +1071,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
     @Test
     public void sessionRefresh() throws RepositoryException {
-        Session session = createAnonymousSession();;
+        Session session = createAnonymousSession();
         try {
             // Add some items and ensure they are accessible through this session
             session.getNode("/").addNode("node1");
@@ -1103,8 +1113,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
     @Test
     public void sessionRefreshFalse() throws RepositoryException {
-        Session session1 = createAnonymousSession();;
-        Session session2 = createAnonymousSession();;
+        Session session1 = createAnonymousSession();
+        Session session2 = createAnonymousSession();
         try {
             Node foo = session1.getNode("/foo");
             foo.addNode("added");
@@ -1124,8 +1134,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
     @Test
     public void sessionRefreshTrue() throws RepositoryException {
-        Session session1 = createAnonymousSession();;
-        Session session2 = createAnonymousSession();;
+        Session session1 = createAnonymousSession();
+        Session session2 = createAnonymousSession();
         try {
             Node foo = session1.getNode("/foo");
             foo.addNode("added");
@@ -1145,8 +1155,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
     @Test
     public void sessionIsolation() throws RepositoryException {
-        Session session1 = createAnonymousSession();;
-        Session session2 = createAnonymousSession();;
+        Session session1 = createAnonymousSession();
+        Session session2 = createAnonymousSession();
         try {
             session1.getRootNode().addNode("node1");
             session2.getRootNode().addNode("node2");
@@ -1170,8 +1180,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
     @Test
     public void saveRefreshConflict() throws RepositoryException {
-        Session session1 = createAnonymousSession();;
-        Session session2 = createAnonymousSession();;
+        Session session1 = createAnonymousSession();
+        Session session2 = createAnonymousSession();
         try {
             session1.getRootNode().addNode("node");
             session2.getRootNode().addNode("node");
@@ -1201,8 +1211,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
         getSession().getRootNode().addNode("node");
         getSession().save();
 
-        Session session1 = createAnonymousSession();;
-        Session session2 = createAnonymousSession();;
+        Session session1 = createAnonymousSession();
+        Session session2 = createAnonymousSession();
         try {
             session1.getNode("/node").remove();
             session2.getNode("/node").addNode("2");
@@ -1227,7 +1237,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
     @Test
     public void liveNodes() throws RepositoryException {
-        Session session = createAnonymousSession();;
+        Session session = createAnonymousSession();
         try {
             Node n1 = (Node) session.getItem(TEST_PATH);
             Node n2 = (Node) session.getItem(TEST_PATH);
@@ -1265,7 +1275,9 @@ public class RepositoryTest extends AbstractRepositoryTest {
         node.addNode("target");
         session.save();
 
+        Node sourceNode = session.getNode(TEST_PATH + "/source/node");
         session.move(TEST_PATH + "/source/node", TEST_PATH + "/target/moved");
+        assertEquals("/test_node/target/moved", sourceNode.getPath());
 
         assertFalse(node.hasNode("source/node"));
         assertTrue(node.hasNode("source"));
@@ -1332,7 +1344,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         testNode.setPrimaryType("nt:folder");
         getSession().save();
 
-        Session session2 = createAnonymousSession();;
+        Session session2 = createAnonymousSession();
         try {
             testNode = session2.getNode(TEST_PATH);
             assertEquals("nt:folder", testNode.getPrimaryNodeType().getName());
@@ -1409,7 +1421,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         testNode.addMixin("mix:test");
         testNode.getSession().save();
 
-        Session session2 = createAnonymousSession();;
+        Session session2 = createAnonymousSession();
         try {
             mix = session2.getNode(TEST_PATH).getMixinNodeTypes();
             assertEquals(1, mix.length);
@@ -1422,7 +1434,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         testNode.removeMixin("mix:test");
         testNode.getSession().save();
 
-        session2 = createAnonymousSession();;
+        session2 = createAnonymousSession();
         try {
             mix = session2.getNode(TEST_PATH).getMixinNodeTypes();
             assertEquals(0, mix.length);
@@ -1702,7 +1714,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertTrue(added.isNew());
         getSession().save();
 
-        Session session2 = createAnonymousSession();;
+        Session session2 = createAnonymousSession();
         try {
             assertTrue(session2.propertyExists(propertyPath));
             Value value2 = session2.getProperty(propertyPath).getValue();
