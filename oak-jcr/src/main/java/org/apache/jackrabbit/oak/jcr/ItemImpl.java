@@ -65,7 +65,6 @@ abstract class ItemImpl extends AbstractItem {
         return toJcrPath(dlg.getPath());
     }
 
-
     @Override
     public Session getSession() throws RepositoryException {
         return sessionDelegate.getSession();
@@ -125,6 +124,11 @@ abstract class ItemImpl extends AbstractItem {
     public void refresh(boolean keepChanges) throws RepositoryException {
         log.warn("Item#refresh is no longer supported. Please use Session#refresh");
         getSession().refresh(keepChanges);
+    }
+
+    @Override
+    public String toString() {
+        return (isNode() ? "Node[" : "Property[") + dlg + ']';
     }
 
     //------------------------------------------------------------< internal >---
