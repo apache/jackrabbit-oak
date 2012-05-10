@@ -63,6 +63,28 @@ public class NamePathMapperImplTest {
                 "{http://www.jcp.org/jcr/nt/1.0}unstructured"));
         assertEquals("foobar/oak-jcr:content", npMapper.getOakPath(
                 "foobar/{http://www.jcp.org/jcr/1.0}content"));
+        assertEquals("foobar", npMapper.getOakPath(
+                "foobar/{http://www.jcp.org/jcr/1.0}content/.."));
+        assertEquals("", npMapper.getOakPath(
+                "foobar/{http://www.jcp.org/jcr/1.0}content/../.."));
+        assertEquals("..", npMapper.getOakPath(
+                "foobar/{http://www.jcp.org/jcr/1.0}content/../../.."));
+        assertEquals("../..", npMapper.getOakPath(
+                "foobar/{http://www.jcp.org/jcr/1.0}content/../../../.."));
+        assertEquals("oak-jcr:content", npMapper.getOakPath(
+                "foobar/../{http://www.jcp.org/jcr/1.0}content"));
+        assertEquals("../oak-jcr:content", npMapper.getOakPath(
+                "foobar/../../{http://www.jcp.org/jcr/1.0}content"));
+        assertEquals("..", npMapper.getOakPath(".."));
+        assertEquals("", npMapper.getOakPath("."));
+        assertEquals("foobar/oak-jcr:content", npMapper.getOakPath(
+                "foobar/{http://www.jcp.org/jcr/1.0}content/."));
+        assertEquals("foobar/oak-jcr:content", npMapper.getOakPath(
+                "foobar/{http://www.jcp.org/jcr/1.0}content/./."));
+        assertEquals("foobar/oak-jcr:content", npMapper.getOakPath(
+                "foobar/./{http://www.jcp.org/jcr/1.0}content"));
+        assertEquals("oak-jcr:content", npMapper.getOakPath(
+                "foobar/./../{http://www.jcp.org/jcr/1.0}content"));
     }
 
     @Test
@@ -71,6 +93,7 @@ public class NamePathMapperImplTest {
         assertEquals("/jcr-foo:bar/jcr-quu:qux",
                 npMapper.getJcrPath("/foo:bar/quu:qux"));
         assertEquals("jcr-foo:bar", npMapper.getJcrPath("foo:bar"));
+        assertEquals(".", npMapper.getJcrPath(""));
 
         try {
             npMapper.getJcrPath("{http://www.jcp.org/jcr/nt/1.0}unstructured");

@@ -48,14 +48,14 @@ public class JcrPathParser {
         // check for length
         int len = jcrPath == null ? 0 : jcrPath.length();
 
-        // shortcut
+        // shortcut for root path
         if (len == 1 && jcrPath.charAt(0) == '/') {
             listener.root();
             return;
         }
 
+        // short cut for empty path
         if (len == 0) {
-            listener.error("empty path");
             return;
         }
 
