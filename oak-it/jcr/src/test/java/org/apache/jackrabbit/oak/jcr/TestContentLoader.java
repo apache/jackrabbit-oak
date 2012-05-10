@@ -25,7 +25,6 @@ import javax.jcr.PathNotFoundException;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 
 import org.apache.jackrabbit.commons.JcrUtils;
@@ -41,6 +40,7 @@ public class TestContentLoader {
 
         Node data = getOrAddNode(session.getRootNode(), "testdata");
         addPropertyTestData(getOrAddNode(data, "property"));
+        addQueryTestData(getOrAddNode(data, "query"));
         addNodeTestData(getOrAddNode(data, "node"));
 
         session.save();
@@ -68,6 +68,21 @@ public class TestContentLoader {
         ValueFactory factory = node.getSession().getValueFactory();
         node.setProperty("path", factory.createValue("/", PropertyType.PATH));
         node.setProperty("multi", new String[] { "one", "two", "three" });
+    }
+
+    /**
+     * Creates four nodes under the given node. Each node has a String
+     * property named "prop1" with some content set.
+     */
+    private  void addQueryTestData(Node node) throws RepositoryException {
+        while (node.hasNode("node1")) {
+            node.getNode("node1").remove();
+        }
+        getOrAddNode(node, "node1").setProperty(
+                "prop1", "You can have it good, cheap, or fast. Any two.");
+        getOrAddNode(node, "node1").setProperty("prop1", "foo bar");
+        getOrAddNode(node, "node1").setProperty("prop1", "Hello world!");
+        getOrAddNode(node, "node2").setProperty("prop1", "Apache Jackrabbit");
     }
 
     /**
