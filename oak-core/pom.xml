@@ -43,7 +43,9 @@
               org.apache.jackrabbit.oak.core,
               org.apache.jackrabbit.oak.util,
               org.apache.jackrabbit.oak.namepath,
-              org.apache.jackrabbit.oak.plugins.name
+              org.apache.jackrabbit.oak.plugins.name,
+              org.apache.jackrabbit.oak.security.principal,
+              org.apache.jackrabbit.oak.spi.security.principal
             </Export-Package>
             <Bundle-Activator>
               org.apache.jackrabbit.oak.osgi.Activator
