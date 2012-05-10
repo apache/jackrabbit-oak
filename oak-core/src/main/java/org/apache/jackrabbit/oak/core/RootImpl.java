@@ -134,14 +134,14 @@ public class RootImpl implements Root {
      *          at {@code path} or {@code null} if no such item exits.
      */
     private TreeImpl getChild(String path) {
-        TreeImpl state = root;
+        TreeImpl child = root;
         for (String name : elements(path)) {
-            state = state.getChild(name);
-            if (state == null) {
+            child = child.getChild(name);
+            if (child == null) {
                 return null;
             }
         }
-        return state;
+        return child;
     }
 
     private void rebase(boolean mergeChanges) {
