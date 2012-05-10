@@ -37,7 +37,7 @@ import java.util.Calendar;
 import java.util.TimeZone;
 
 /**
- * ValueImpl...
+ * The implementation of JCR values.
  */
 class ValueImpl implements Value {
 
@@ -48,7 +48,7 @@ class ValueImpl implements Value {
 
     private final CoreValue value;
     private final NamePathMapper namePathMapper;
-    
+
     private InputStream stream = null;
 
     /**
@@ -67,17 +67,12 @@ class ValueImpl implements Value {
     }
 
     //--------------------------------------------------------------< Value >---
-    /**
-     * @see javax.jcr.Value#getType()
-     */
+
     @Override
     public int getType() {
         return value.getType();
     }
 
-    /**
-     * @see javax.jcr.Value#getBoolean()
-     */
     @Override
     public boolean getBoolean() throws RepositoryException {
         if (getType() == PropertyType.STRING || getType() == PropertyType.BINARY || getType() == PropertyType.BOOLEAN) {
@@ -87,9 +82,6 @@ class ValueImpl implements Value {
         }
     }
 
-    /**
-     * @see javax.jcr.Value#getDate()
-     */
     @Override
     public Calendar getDate() throws RepositoryException {
         Calendar cal;
@@ -109,9 +101,6 @@ class ValueImpl implements Value {
         return cal;
     }
 
-    /**
-     * @see javax.jcr.Value#getDecimal()
-     */
     @Override
     public BigDecimal getDecimal() throws RepositoryException {
         try {
@@ -127,9 +116,6 @@ class ValueImpl implements Value {
         }
     }
 
-    /**
-     * @see javax.jcr.Value#getDouble()
-     */
     @Override
     public double getDouble() throws RepositoryException {
         try {
@@ -145,9 +131,6 @@ class ValueImpl implements Value {
         }
     }
 
-    /**
-     * @see javax.jcr.Value#getLong()
-     */
     @Override
     public long getLong() throws RepositoryException {
         try {
@@ -163,9 +146,6 @@ class ValueImpl implements Value {
         }
     }
 
-    /**
-     * @see javax.jcr.Value#getString()
-     */
     @Override
     public String getString() throws RepositoryException {
         switch (getType()) {
@@ -187,10 +167,6 @@ class ValueImpl implements Value {
         }
     }
 
-
-    /**
-     * @see javax.jcr.Value#getStream()
-     */
     @Override
     public InputStream getStream() throws IllegalStateException, RepositoryException {
         if (stream == null) {
@@ -207,22 +183,17 @@ class ValueImpl implements Value {
                     stream = value.getNewStream();
             }
         }
-        
+
         return stream;
     }
 
-    /**
-     * @see javax.jcr.Value#getBinary()
-     */
     @Override
     public Binary getBinary() throws RepositoryException {
         return new BinaryImpl(this);
     }
 
     //-------------------------------------------------------------< Object >---
-    /**
-     * @see Object#equals(Object)
-     */
+
     @Override
     public boolean equals(Object obj) {
         if (obj instanceof ValueImpl) {
@@ -232,11 +203,14 @@ class ValueImpl implements Value {
         }
     }
 
-    /**
-     * @see Object#hashCode()
-     */
-    @Override
+     @Override
     public int hashCode() {
         return value.hashCode();
     }
+
+    @Override
+    public String toString() {
+        return value.toString();
+    }
+
 }
