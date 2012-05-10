@@ -22,7 +22,6 @@ import org.apache.jackrabbit.commons.iterator.PropertyIteratorAdapter;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.jcr.util.LogUtil;
 import org.apache.jackrabbit.oak.jcr.value.ValueConverter;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.util.Function1;
@@ -476,14 +475,14 @@ public class NodeImpl extends ItemImpl implements Node  {
         checkStatus();
         String name = getPrimaryNodeType().getPrimaryItemName();
         if (name == null) {
-            throw new ItemNotFoundException("No primary item present on node " + LogUtil.safeGetJCRPath(this));
+            throw new ItemNotFoundException("No primary item present on node " + this);
         }
         if (hasProperty(name)) {
             return getProperty(name);
         } else if (hasNode(name)) {
             return getNode(name);
         } else {
-            throw new ItemNotFoundException("Primary item " + name + " does not exist on node " + LogUtil.safeGetJCRPath(this));
+            throw new ItemNotFoundException("Primary item " + name + " does not exist on node " + this);
         }
     }
 

@@ -86,6 +86,12 @@ public class NodeDelegate extends ItemDelegate {
         return sessionDelegate;
     }
 
+    @Override
+    public String toString() {
+        // don't disturb the state: avoid calling getTree()
+        return "NodeDelegate[/" + tree.getPath() + ']';
+    }
+
     /**
      * Determine whether this is the root node
      * @return  {@code true} iff this is the root node

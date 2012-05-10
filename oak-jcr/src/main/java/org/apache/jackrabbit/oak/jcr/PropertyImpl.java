@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import org.apache.jackrabbit.oak.api.Tree.Status;
-import org.apache.jackrabbit.oak.jcr.util.LogUtil;
 import org.apache.jackrabbit.oak.jcr.value.ValueConverter;
 import org.apache.jackrabbit.value.ValueHelper;
 import org.slf4j.Logger;
@@ -140,7 +139,7 @@ public class PropertyImpl extends ItemImpl implements Property {
                     valueType = value.getType();
                 }
                 else if (valueType != value.getType()) {
-                    String msg = "Inhomogeneous type of values (" + LogUtil.safeGetJCRPath(this) + ')';
+                    String msg = "Inhomogeneous type of values (" + this + ')';
                     log.debug(msg);
                     throw new ValueFormatException(msg);
                 }
@@ -300,7 +299,7 @@ public class PropertyImpl extends ItemImpl implements Property {
     public Value getValue() throws RepositoryException {
         checkStatus();
         if (isMultiple()) {
-            throw new ValueFormatException(LogUtil.safeGetJCRPath(this) + " is multi-valued.");
+            throw new ValueFormatException(this + " is multi-valued.");
         }
 
         return ValueConverter.toValue(dlg.getValue(), sessionDelegate);
@@ -310,7 +309,7 @@ public class PropertyImpl extends ItemImpl implements Property {
     public Value[] getValues() throws RepositoryException {
         checkStatus();
         if (!isMultiple()) {
-            throw new ValueFormatException(LogUtil.safeGetJCRPath(this) + " is not multi-valued.");
+            throw new ValueFormatException(this + " is not multi-valued.");
         }
 
         return ValueConverter.toValues(dlg.getValues(), sessionDelegate);

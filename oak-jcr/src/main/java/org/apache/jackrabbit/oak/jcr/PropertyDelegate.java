@@ -87,6 +87,12 @@ public class PropertyDelegate extends ItemDelegate {
         return sessionDelegate;
     }
 
+    @Override
+    public String toString() {
+        // don't disturb the state: avoid calling resolve()
+        return "PropertyDelegate[/" + parent.getPath() + '/' + propertyState.getName() + ']';
+    }
+
     /**
      * Get the value of the property
      * @return  value or {@code null} if multi values
