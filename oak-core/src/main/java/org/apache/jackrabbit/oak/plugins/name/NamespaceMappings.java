@@ -16,20 +16,20 @@
 */
 package org.apache.jackrabbit.oak.plugins.name;
 
-import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.Tree;
-
-import javax.jcr.PropertyType;
-import javax.jcr.RepositoryException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+
+import javax.jcr.PropertyType;
+import javax.jcr.RepositoryException;
+
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
 
 /**
  * Prove of concept implementation for OAK-61.
