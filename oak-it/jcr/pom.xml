@@ -44,7 +44,12 @@
             <property>
               <name>known.issues</name>
               <value>
+org.apache.jackrabbit.test.api.NodeReadMethodsTest#testGetPrimaryItem
+org.apache.jackrabbit.test.api.NodeReadMethodsTest#testGetUUID
+org.apache.jackrabbit.test.api.BinaryPropertyTest#testSameStream
+org.apache.jackrabbit.test.api.BinaryPropertyTest#testRandomAccess
 org.apache.jackrabbit.test.api.SessionReadMethodsTest#testGetNodeByUUIDFailure
+org.apache.jackrabbit.test.api.SessionReadMethodsTest#testGetNodeByUUID
 org.apache.jackrabbit.test.api.PathTest#testGetItem
 org.apache.jackrabbit.test.api.PathTest#testCreatePathValue
 org.apache.jackrabbit.test.api.PathTest#testCreateMultiplePathValue
@@ -77,6 +82,7 @@ org.apache.jackrabbit.test.api.SessionRemoveItemTest#testRemoveItem4
 org.apache.jackrabbit.test.api.HasPermissionTest
 org.apache.jackrabbit.test.api.WorkspaceTest
 org.apache.jackrabbit.test.api.ShareableNodeTest
+org.apache.jackrabbit.test.api.nodetype.PropertyDefTest#testIsMandatory
 org.apache.jackrabbit.test.api.nodetype.CanSetPropertyDateTest#testConversions
 org.apache.jackrabbit.test.api.nodetype.CanSetPropertyMultipleTest#testReturnFalseBecauseIsProtected
 org.apache.jackrabbit.test.api.nodetype.CanSetPropertyMultipleTest#testReturnFalseBecauseIsNotMultiple

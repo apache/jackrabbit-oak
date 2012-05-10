@@ -23,6 +23,8 @@ import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
+
+import java.io.IOException;
 import java.security.Principal;
 import java.util.Properties;
 
@@ -35,8 +37,9 @@ public class OakRepositoryStub extends RepositoryStub {
      * 
      * @param settings repository settings
      * @throws javax.jcr.RepositoryException If an error occurs.
+     * @throws IOException 
      */
-    public OakRepositoryStub(Properties settings) throws RepositoryException {
+    public OakRepositoryStub(Properties settings) throws RepositoryException, IOException {
         super(settings);
         repository = new RepositoryImpl();
         Session session = repository.login(superuser);
