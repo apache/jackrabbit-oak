@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
@@ -74,7 +73,7 @@ class ContentSessionImpl implements ContentSession {
             }
         };
     }
-    
+
     @Override
     public Root getCurrentRoot() {
         return new RootImpl(store, workspaceName);
