@@ -55,7 +55,6 @@ public class ContentRepositoryImpl implements ContentRepository {
 
     private static final String APP_NAME = "jackrabbit.oak";
 
-    private final MicroKernel microKernel;
     private final QueryEngine queryEngine;
     private final NodeStore nodeStore;
 
@@ -75,11 +74,10 @@ public class ContentRepositoryImpl implements ContentRepository {
      * Creates an Oak repository instance based on the given, already
      * initialized components.
      *
-     * @param mk underlying kernel instance
+     * @param microKernel underlying kernel instance
      * @param indexProvider index provider
      */
-    public ContentRepositoryImpl(MicroKernel mk, QueryIndexProvider indexProvider) {
-        microKernel = mk;
+    public ContentRepositoryImpl(MicroKernel microKernel, QueryIndexProvider indexProvider) {
         nodeStore = new KernelNodeStore(microKernel, new EmptyCommitHook());
         QueryIndexProvider qip = (indexProvider == null) ? getDefaultIndexProvider(microKernel) : indexProvider;
         queryEngine = new QueryEngineImpl(nodeStore, microKernel, qip);
