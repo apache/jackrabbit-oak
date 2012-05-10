@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.query.ast.AstVisitorBase;
@@ -69,6 +70,7 @@ public class Query {
     private long offset;
     private boolean prepared;
     private final CoreValueFactory valueFactory;
+    private ContentSession session;
 
     Query(SourceImpl source, ConstraintImpl constraint, OrderingImpl[] orderings,
           ColumnImpl[] columns, CoreValueFactory valueFactory) {
@@ -461,12 +463,20 @@ public class Query {
         return new ArrayList<String>(bindVariableMap.keySet());
     }
 
+    public String getWorkspaceName() {
+        return session.getWorkspaceName();
+    }
+
     public void setQueryEngine(QueryEngineImpl queryEngine) {
         this.queryEngine = queryEngine;
     }
 
     public QueryIndex getBestIndex(FilterImpl filter) {
         return queryEngine.getBestIndex(filter);
+    }
+
+    public void setSession(ContentSession session) {
+        this.session = session;
     }
 
 }

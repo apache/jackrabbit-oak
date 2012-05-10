@@ -32,6 +32,7 @@ import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.qom.QueryObjectModelFactory;
+import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Result;
@@ -96,7 +97,8 @@ public class QueryManagerImpl implements QueryManager {
             HashMap<String, Value> bindVariableMap, long limit, long offset) throws RepositoryException {
         try {
             HashMap<String, CoreValue> bindMap = convertMap(bindVariableMap);
-            Result r = queryEngine.executeQuery(statement, language, bindMap);
+            ContentSession s = sessionDelegate.getContentSession();
+            Result r = queryEngine.executeQuery(statement, language, s, bindMap);
             return new QueryResultImpl(sessionDelegate, r);
         } catch (IllegalArgumentException e) {
             throw new InvalidQueryException(e);
