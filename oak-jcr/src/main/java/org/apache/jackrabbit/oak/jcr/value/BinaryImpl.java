@@ -55,8 +55,15 @@ class BinaryImpl implements Binary {
 
     @Override
     public int read(byte[] b, long position) throws IOException, RepositoryException {
-        // TODO
-        throw new UnsupportedOperationException("implementation missing");
+        InputStream stream = value.unwrap().getNewStream();
+        try {
+            if (position != stream.skip(position)) {
+                throw new IOException("Can't skip to position " + position);
+            }
+            return stream.read(b);
+        } finally {
+            stream.close();
+        }
     }
 
     @Override
