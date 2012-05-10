@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.util.Calendar;
 
 import javax.jcr.Node;
@@ -23,14 +25,23 @@ import javax.jcr.PathNotFoundException;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.jcr.Value;
 import javax.jcr.ValueFactory;
+
+import org.apache.jackrabbit.commons.JcrUtils;
 
 public class TestContentLoader {
 
-    public void loadTestContent(Session session) throws RepositoryException {
+    /**
+     * The encoding of the test resources.
+     */
+    private static final String ENCODING = "UTF-8";
+
+    public void loadTestContent(Session session) throws RepositoryException, IOException {
 
         Node data = getOrAddNode(session.getRootNode(), "testdata");
         addPropertyTestData(getOrAddNode(data, "property"));
+        addNodeTestData(getOrAddNode(data, "node"));
 
         session.save();
     }
@@ -57,5 +68,50 @@ public class TestContentLoader {
         ValueFactory factory = node.getSession().getValueFactory();
         node.setProperty("path", factory.createValue("/", PropertyType.PATH));
         node.setProperty("multi", new String[] { "one", "two", "three" });
+    }
+
+    /**
+     * Creates three nodes under the given node: one of type nt:resource
+     * and the other nodes referencing it.
+     */
+    private  void addNodeTestData(Node node) throws RepositoryException, IOException {
+        if (node.hasNode("multiReference")) {
+            node.getNode("multiReference").remove();
+        }
+        if (node.hasNode("resReference")) {
+            node.getNode("resReference").remove();
+        }
+        if (node.hasNode("myResource")) {
+            node.getNode("myResource").remove();
+        }
+
+        Node resource = node.addNode("myResource", "nt:resource");
+        // nt:resource not longer referenceable since JCR 2.0
+        resource.addMixin("mix:referenceable");
+        resource.setProperty("jcr:encoding", ENCODING);
+        resource.setProperty("jcr:mimeType", "text/plain");
+        resource.setProperty(
+                "jcr:data",
+                new ByteArrayInputStream("Hello w\u00F6rld.".getBytes(ENCODING)));
+        resource.setProperty("jcr:lastModified", Calendar.getInstance());
+
+
+        // TODO: re-add once we have referenceable nodes
+//        Node resReference = getOrAddNode(node, "reference");
+//        resReference.setProperty("ref", resource);
+//        // make this node itself referenceable
+//        resReference.addMixin("mix:referenceable");
+//
+//        Node multiReference = node.addNode("multiReference");
+//        ValueFactory factory = node.getSession().getValueFactory();
+//        multiReference.setProperty("ref", new Value[] {
+//                factory.createValue(resource),
+//                factory.createValue(resReference)
+//            });
+
+        // NodeDefTest requires a test node with a mandatory child node
+        JcrUtils.putFile(
+                node, "testFile", "text/plain",
+                new ByteArrayInputStream("Hello, World!".getBytes("UTF-8")));
     }
 }
