@@ -76,7 +76,7 @@ public interface CoreValueFactory {
      * @return a new value instance.
      * @throws IllegalArgumentException if the specified {@code InputStream} is {@code null}.
      * @throws IOException If an error occurs while processing the stream.
-     * @throws //TODO define exceptions (currently impl. throws MikrokernelException)
+     * @throws //TODO define exceptions (currently impl. throws MicrokernelException)
      */
     CoreValue createValue(InputStream value) throws IOException;
 
