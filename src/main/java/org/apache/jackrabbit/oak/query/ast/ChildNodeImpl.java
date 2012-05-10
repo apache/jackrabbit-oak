@@ -61,15 +61,17 @@ public class ChildNodeImpl extends ConstraintImpl {
     @Override
     public boolean evaluate() {
         String p = selector.currentPath();
+        String local = getLocalPath(p);
         // the parent of the root is the root,
         // so we need to special case this
-        return !PathUtils.denotesRoot(p) && PathUtils.getParentPath(p).equals(parentPath);
+        return !PathUtils.denotesRoot(local) && PathUtils.getParentPath(local).equals(parentPath);
     }
 
     @Override
     public void apply(FilterImpl f) {
         if (selector == f.getSelector()) {
-            f.restrictPath(parentPath, Filter.PathRestriction.DIRECT_CHILDREN);
+            String path = getAbsolutePath(parentPath);
+            f.restrictPath(path, Filter.PathRestriction.DIRECT_CHILDREN);
         }
     }
 

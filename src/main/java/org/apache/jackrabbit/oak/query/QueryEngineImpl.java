@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.QueryEngine;
@@ -82,8 +83,9 @@ public class QueryEngineImpl implements QueryEngine {
     }
 
     @Override
-    public ResultImpl executeQuery(String statement, String language, Map<String, CoreValue> bindings) throws ParseException {
+    public ResultImpl executeQuery(String statement, String language, ContentSession session, Map<String, CoreValue> bindings) throws ParseException {
         Query q = parseQuery(statement, language);
+        q.setSession(session);
         q.setMicroKernel(mk);
         if (bindings != null) {
             for (Entry<String, CoreValue> e : bindings.entrySet()) {

@@ -44,7 +44,8 @@ public class DescendantNodeImpl extends ConstraintImpl {
     @Override
     public boolean evaluate() {
         String p = selector.currentPath();
-        return PathUtils.isAncestor(ancestorPath, p);
+        String path = getAbsolutePath(ancestorPath);
+        return PathUtils.isAncestor(path, p);
     }
 
     @Override
@@ -67,7 +68,8 @@ public class DescendantNodeImpl extends ConstraintImpl {
     @Override
     public void apply(FilterImpl f) {
         if (f.getSelector() == selector) {
-            f.restrictPath(ancestorPath, Filter.PathRestriction.ALL_CHILDREN);
+            String path = getAbsolutePath(ancestorPath);
+            f.restrictPath(path, Filter.PathRestriction.ALL_CHILDREN);
         }
     }
 
