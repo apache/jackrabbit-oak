@@ -365,12 +365,7 @@ public class NodeImpl extends ItemImpl implements Node  {
         checkStatus();
 
         String oakPath = sessionDelegate.getOakPathOrThrowNotFound(relPath);
-        
-        // TODO: hack
-        if (".".equals(oakPath)) {
-            return this;
-        }
-        
+
         NodeDelegate nd = dlg.getChild(oakPath);
         if (nd == null) {
             throw new PathNotFoundException(relPath);
