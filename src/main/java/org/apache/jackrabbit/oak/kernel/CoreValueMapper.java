@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.kernel;
 
 import org.apache.jackrabbit.mk.json.JsonBuilder;
 import org.apache.jackrabbit.mk.json.JsopReader;
-import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 
@@ -39,7 +38,7 @@ class CoreValueMapper {
 
     static {
         for (int type = PropertyType.UNDEFINED; type <= PropertyType.DECIMAL; type++) {
-            String hint = PropertyType.nameFromValue(type).substring(0,3).toLowerCase();
+            String hint = PropertyType.nameFromValue(type).substring(0, 3).toLowerCase();
             TYPE2HINT.put(type, hint);
             HINT2TYPE.put(hint, type);
         }
@@ -119,17 +118,17 @@ class CoreValueMapper {
      */
     public static CoreValue fromJsopReader(JsopReader reader, CoreValueFactory valueFactory) {
         CoreValue value;
-        if (reader.matches(JsopTokenizer.NUMBER)) {
+        if (reader.matches(JsopReader.NUMBER)) {
             String number = reader.getToken();
             value = valueFactory.createValue(Long.valueOf(number));
-        } else if (reader.matches(JsopTokenizer.TRUE)) {
+        } else if (reader.matches(JsopReader.TRUE)) {
             value = valueFactory.createValue(true);
-        } else if (reader.matches(JsopTokenizer.FALSE)) {
+        } else if (reader.matches(JsopReader.FALSE)) {
             value = valueFactory.createValue(false);
-        } else if (reader.matches(JsopTokenizer.STRING)) {
+        } else if (reader.matches(JsopReader.STRING)) {
             String jsonString = reader.getToken();
             if (startsWithHint(jsonString)) {
-                int type = HINT2TYPE.get(jsonString.substring(0,3));
+                int type = HINT2TYPE.get(jsonString.substring(0, 3));
                 value = valueFactory.createValue(jsonString.substring(4), type);
             } else {
                 value = valueFactory.createValue(jsonString);
