@@ -48,6 +48,8 @@ class ValueImpl implements Value {
 
     private final CoreValue value;
     private final NamePathMapper namePathMapper;
+    
+    private InputStream stream = null;
 
     /**
      * Constructs a {@code ValueImpl} object based on a {@code CoreValue}
@@ -191,19 +193,21 @@ class ValueImpl implements Value {
      */
     @Override
     public InputStream getStream() throws IllegalStateException, RepositoryException {
-        InputStream stream;
-        switch (getType()) {
-            case PropertyType.NAME:
-            case PropertyType.PATH:
-                try {
-                    stream = new ByteArrayInputStream(getString().getBytes("UTF-8"));
-                } catch (UnsupportedEncodingException ex) {
-                    throw new RepositoryException("UTF-8 is not supported", ex);
-                }
-                break;
-            default:
-                stream = value.getNewStream();
+        if (stream == null) {
+            switch (getType()) {
+                case PropertyType.NAME:
+                case PropertyType.PATH:
+                    try {
+                        stream = new ByteArrayInputStream(getString().getBytes("UTF-8"));
+                    } catch (UnsupportedEncodingException ex) {
+                        throw new RepositoryException("UTF-8 is not supported", ex);
+                    }
+                    break;
+                default:
+                    stream = value.getNewStream();
+            }
         }
+        
         return stream;
     }
 
