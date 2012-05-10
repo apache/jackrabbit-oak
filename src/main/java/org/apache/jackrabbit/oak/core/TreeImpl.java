@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import org.apache.commons.collections.map.ReferenceMap;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -30,10 +31,12 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.util.Function1;
 import org.apache.jackrabbit.oak.util.Iterators;
 
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * Implementation of tree based on {@link NodeStateBuilder}s. Each subtree
@@ -62,8 +65,7 @@ public class TreeImpl implements Tree {
     /** Name of this tree */
     private String name;
 
-    // FIXME: should be synchronized, and weak refs
-    private final Map<String, TreeImpl> children = new HashMap<String, TreeImpl>();
+    private final Children children = new Children();
 
     private TreeImpl(NodeStore store, NodeState baseState, NodeStateBuilder rootBuilder,
             TreeImpl parent, String name, Listener listener) {
@@ -499,6 +501,49 @@ public class TreeImpl implements Tree {
         });
 
         return !isDirty[0];
+    }
+
+    private static class Children {
+        @SuppressWarnings("unchecked")
+        private final Map<String, TreeImpl> children = new ReferenceMap();
+        private final Lock readLock;
+        private final Lock writeLock;
+
+        {
+            ReadWriteLock lock = new ReentrantReadWriteLock();
+            readLock = lock.readLock();
+            writeLock = lock.writeLock();
+        }
+
+        public void put(String name, TreeImpl tree) {
+            writeLock.lock();
+            try {
+                children.put(name, tree);
+            }
+            finally {
+                writeLock.unlock();
+            }
+        }
+
+        public TreeImpl get(String name) {
+            readLock.lock();
+            try {
+                return children.get(name);
+            }
+            finally {
+                readLock.unlock();
+            }
+        }
+
+        public void remove(String name) {
+            writeLock.lock();
+            try {
+                children.remove(name);
+            }
+            finally {
+                writeLock.unlock();
+            }
+        }
     }
 
 }
