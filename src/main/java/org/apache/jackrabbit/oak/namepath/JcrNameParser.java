@@ -83,7 +83,7 @@ public class JcrNameParser {
         }
 
         // parse the name
-        String prefix = "";
+        String prefix;
         int nameStart = 0;
         int state = STATE_PREFIX_START;
         boolean trailingSpaces = false;
