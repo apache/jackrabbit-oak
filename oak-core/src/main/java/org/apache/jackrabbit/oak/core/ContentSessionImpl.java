@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.LoginContext;
+import javax.security.auth.login.LoginException;
 import java.io.IOException;
 import java.util.Set;
 
@@ -81,7 +82,11 @@ class ContentSessionImpl implements ContentSession {
 
     @Override
     public void close() throws IOException {
-        // todo implement close
+        try {
+            loginContext.logout();
+        } catch (LoginException e) {
+            log.error("Error during logout.", e);
+        }
     }
 
     @Override
