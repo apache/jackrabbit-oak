@@ -225,17 +225,4 @@ public class ArrayUtils {
         return new HashSet<T>(java.util.Arrays.asList(elements));
     }
 
-    // TODO duplicate of copyArrayAdd?
-    /**
-     * Create a new array of the same type with an additional element added.
-     * @param array
-     * @param value
-     * @param <T>
-     * @return array of {@code array.length + 1} with {@code value} as its last element.
-     */
-    public static <T> T[] add(T[] array, T value) {
-        T[] copy = java.util.Arrays.copyOf(array, array.length + 1);
-        copy[array.length] = value;
-        return copy;
-    }
 }
