@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.Query;
 
 abstract class AstElement {
@@ -41,6 +42,36 @@ abstract class AstElement {
 
     public void setQuery(Query query) {
         this.query = query;
+    }
+
+    /**
+     * Calculate the absolute path (the path including the workspace name).
+     *
+     * @param path the session local path
+     * @return the absolute path
+     */
+    protected String getAbsolutePath(String path) {
+        String workspaceName = query.getWorkspaceName();
+        if (PathUtils.denotesRoot(workspaceName)) {
+            return path;
+        }
+        String p = PathUtils.relativize("/", path);
+        return PathUtils.concat("/", workspaceName, p);
+    }
+
+    /**
+     * Calculate the session local path (the path excluding the workspace name).
+     *
+     * @param path the absolute path
+     * @return the session local path
+     */
+    protected String getLocalPath(String path) {
+        String workspaceName = query.getWorkspaceName();
+        if (PathUtils.denotesRoot(workspaceName)) {
+            return path;
+        }
+        String prefix = PathUtils.concat("/", workspaceName);
+        return PathUtils.concat("/", PathUtils.relativize(prefix, path));
     }
 
 }

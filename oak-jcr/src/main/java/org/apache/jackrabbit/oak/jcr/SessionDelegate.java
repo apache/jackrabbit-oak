@@ -291,6 +291,10 @@ public class SessionDelegate {
         return workspace.getVersionManager();
     }
 
+    public ContentSession getContentSession() {
+        return contentSession;
+    }
+
     //------------------------------------------------------------< internal >---
 
     Tree getTree(String path) {

@@ -49,12 +49,13 @@ public interface QueryEngine {
      *
      * @param statement the query statement
      * @param language the language
+     * @param session the content session to use
      * @param bindings the bind variable value bindings
      * @return the result
      * @throws ParseException if the statement could not be parsed
      * @throws IllegalArgumentException if there was an error executing the query
      */
-    Result executeQuery(String statement, String language, Map<String, CoreValue> bindings) throws ParseException;
+    Result executeQuery(String statement, String language, ContentSession session, Map<String, CoreValue> bindings) throws ParseException;
 
     // TODO pass namespace mapping
     // TODO pass node type information (select * from [xyz] is supposed to return at least the mandatory columns for xyz)

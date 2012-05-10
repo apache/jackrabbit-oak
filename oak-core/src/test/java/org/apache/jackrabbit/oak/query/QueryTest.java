@@ -16,6 +16,7 @@ package org.apache.jackrabbit.oak.query;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.LineNumberReader;
@@ -27,9 +28,14 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import org.apache.jackrabbit.oak.api.AuthInfo;
+import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.CoreValueFactory;
+import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.QueryIndexProvider;
 import org.junit.Test;
 
@@ -40,6 +46,39 @@ public class QueryTest extends AbstractQueryTest {
 
     private QueryIndexProvider ip = mk.getIndexer();
     private QueryEngineImpl qe = new QueryEngineImpl(store, mk, ip);
+    private ContentSession session = new ContentSession() {
+
+        @Override
+        public AuthInfo getAuthInfo() {
+            return null;
+        }
+
+        @Override
+        public CoreValueFactory getCoreValueFactory() {
+            return null;
+        }
+
+        @Override
+        public Root getCurrentRoot() {
+            return null;
+        }
+
+        @Override
+        public QueryEngine getQueryEngine() {
+            return null;
+        }
+
+        @Override
+        public String getWorkspaceName() {
+            return "/";
+        }
+
+        @Override
+        public void close() throws IOException {
+            // ignore
+        }
+
+    };
 
     @Test
     public void script() throws Exception {
@@ -58,19 +97,19 @@ public class QueryTest extends AbstractQueryTest {
         HashMap<String, CoreValue> sv = new HashMap<String, CoreValue>();
         sv.put("id", vf.createValue("1"));
         Iterator<? extends ResultRow> result;
-        result = qe.executeQuery("select * from [nt:base] where id = $id",
-                QueryEngineImpl.SQL2, sv).getRows().iterator();
+        result = executeQuery("select * from [nt:base] where id = $id",
+                sv).getRows().iterator();
         assertTrue(result.hasNext());
         assertEquals("/test/hello", result.next().getPath());
 
         sv.put("id", vf.createValue("2"));
-        result = qe.executeQuery("select * from [nt:base] where id = $id",
-                QueryEngineImpl.SQL2, sv).getRows().iterator();
+        result = executeQuery("select * from [nt:base] where id = $id",
+                sv).getRows().iterator();
         assertTrue(result.hasNext());
         assertEquals("/test/world", result.next().getPath());
 
-        result = qe.executeQuery("explain select * from [nt:base] where id = 1 order by id",
-                QueryEngineImpl.SQL2, null).getRows().iterator();
+        result = executeQuery("explain select * from [nt:base] where id = 1 order by id",
+                null).getRows().iterator();
         assertTrue(result.hasNext());
         assertEquals("nt:base AS nt:base /* traverse \"//*\" */",
                 result.next().getValue("plan").getString());
@@ -165,7 +204,7 @@ public class QueryTest extends AbstractQueryTest {
 
     private List<String> executeQuery(String query) throws ParseException {
         List<String> lines = new ArrayList<String>();
-        Result result = qe.executeQuery(query, QueryEngineImpl.SQL2, null);
+        Result result = executeQuery(query, null);
         for (ResultRow row : result.getRows()) {
             lines.add(readRow(row));
         }
@@ -186,6 +225,10 @@ public class QueryTest extends AbstractQueryTest {
             buff.append(v == null ? "null" : v.getString());
         }
         return buff.toString();
+    }
+
+    private Result executeQuery(String statement, HashMap<String, CoreValue> sv) throws ParseException {
+        return qe.executeQuery(statement, QueryEngineImpl.SQL2, session, sv);
     }
 
 }
