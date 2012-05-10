@@ -91,9 +91,9 @@ public class NamePathMapperImpl implements NamePathMapper {
 
             @Override
             public boolean parent() {
-                if (elements.isEmpty()) {
-                    parseErrors.append(".. of empty path");
-                    return false;
+                if (elements.isEmpty() || "..".equals(elements.get(elements.size() - 1))) {
+                    elements.add("..");
+                    return true;
                 }
                 elements.remove(elements.size() - 1);
                 return true;
@@ -131,6 +131,11 @@ public class NamePathMapperImpl implements NamePathMapper {
             return null;
         }
 
+        // Empty path maps to ""
+        if (elements.isEmpty()) {
+            return "";
+        }
+
         StringBuilder oakPath = new StringBuilder();
         for (String element : elements) {
             if (element.isEmpty()) {
@@ -143,11 +148,6 @@ public class NamePathMapperImpl implements NamePathMapper {
             }
         }
 
-        // empty path: map to "."
-        if (oakPath.length() == 0) {
-            return ".";
-        }
-        
         // root path is special-cased early on so it does not need to
         // be considered here
         oakPath.deleteCharAt(oakPath.length() - 1);
@@ -191,8 +191,9 @@ public class NamePathMapperImpl implements NamePathMapper {
 
             @Override
             public boolean parent() {
-                if (elements.isEmpty()) {
-                    throw new IllegalArgumentException(".. of empty path");
+                if (elements.isEmpty() || "..".equals(elements.get(elements.size() - 1))) {
+                    elements.add("..");
+                    return true;
                 }
                 elements.remove(elements.size() - 1);
                 return true;
@@ -221,6 +222,11 @@ public class NamePathMapperImpl implements NamePathMapper {
 
         JcrPathParser.parse(oakPath, listener);
 
+        // empty path: map to "."
+        if (elements.isEmpty()) {
+            return ".";
+        }
+
         StringBuilder jcrPath = new StringBuilder();
         for (String element : elements) {
             if (element.isEmpty()) {
@@ -231,11 +237,6 @@ public class NamePathMapperImpl implements NamePathMapper {
                 jcrPath.append(element);
                 jcrPath.append('/');
             }
-        }
-
-        // empty path: map to "."
-        if (jcrPath.length() == 0) {
-            return ".";
         }
 
         jcrPath.deleteCharAt(jcrPath.length() - 1);
