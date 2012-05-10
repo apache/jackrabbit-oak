@@ -48,6 +48,11 @@ org.apache.jackrabbit.test.api.NodeReadMethodsTest#testGetPrimaryItem
 org.apache.jackrabbit.test.api.NodeReadMethodsTest#testGetUUID
 org.apache.jackrabbit.test.api.SessionReadMethodsTest#testGetNodeByUUIDFailure
 org.apache.jackrabbit.test.api.SessionReadMethodsTest#testGetNodeByUUID
+org.apache.jackrabbit.test.api.ExportSysViewTest#testExportSysView_handler_session_saveBinary_recurse
+org.apache.jackrabbit.test.api.ExportSysViewTest#testExportSysView_stream_session_skipBinary_recurse
+org.apache.jackrabbit.test.api.ExportSysViewTest#testExportSysView_stream_session_skipBinary_noRecurse
+org.apache.jackrabbit.test.api.ExportSysViewTest#testExportSysView_stream_session_saveBinary_noRecurse
+org.apache.jackrabbit.test.api.ExportSysViewTest#testExportSysView_stream_session_saveBinary_recurse
 org.apache.jackrabbit.test.api.PathTest#testGetItem
 org.apache.jackrabbit.test.api.PathTest#testCreatePathValue
 org.apache.jackrabbit.test.api.PathTest#testCreateMultiplePathValue
