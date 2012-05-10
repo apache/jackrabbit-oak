@@ -150,8 +150,7 @@ public class RootImpl implements Root {
         if (mergeChanges) {
             oldBase = base;
             oldHead = nodeStateBuilder.getNodeState();
-        }
-        else {
+        } else {
             oldBase = null;
             oldHead = null;
         }

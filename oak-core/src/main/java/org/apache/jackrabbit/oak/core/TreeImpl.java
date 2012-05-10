@@ -182,40 +182,34 @@ public class TreeImpl implements Tree {
             if (hasProperty(name)) {
                 // ...so all children are new
                 return Status.NEW;
-            }
-            else {
+            } else {
                 // ...unless they don't exist.
                 return null;
             }
-        }
-        else {
+        } else {
             if (hasProperty(name)) {
                 // We have the property...
                 if (baseState.getProperty(name) == null) {
                     // ...but didn't have it before. So its NEW.
                     return Status.NEW;
-                }
-                else {
+                } else {
                     // ... and did have it before. So...
                     PropertyState base = baseState.getProperty(name);
                     PropertyState head = getProperty(name);
                     if (base.equals(head)) {
                         // ...it's EXISTING if it hasn't changed
                         return Status.EXISTING;
-                    }
-                    else {
+                    } else {
                         // ...and MODIFIED otherwise.
                         return Status.MODIFIED;
                     }
                 }
-            }
-            else {
+            } else {
                 // We don't have the property
                 if (baseState.getProperty(name) == null) {
                     // ...and didn't have it before. So it doesn't exist.
                     return null;
-                }
-                else {
+                } else {
                     // ...and didn't have it before. So it's REMOVED
                     return Status.REMOVED;
                 }
@@ -265,38 +259,32 @@ public class TreeImpl implements Tree {
             if (hasChild(name)) {
                 // ...so all children are new
                 return Status.NEW;
-            }
-            else {
+            } else {
                 // ...unless they don't exist.
                 return null;
             }
-        }
-        else {
+        } else {
             if (hasChild(name)) {
                 // We have the child...
                 if (baseState.getChildNode(name) == null) {
                     // ...but didn't have it before. So its NEW.
                     return Status.NEW;
-                }
-                else {
+                } else {
                     // ... and did have it before. So...
                     if (isSame(baseState.getChildNode(name), getNodeState().getChildNode(name))) {
                         // ...it's EXISTING if it hasn't changed
                         return Status.EXISTING;
-                    }
-                    else {
+                    } else {
                         // ...and MODIFIED otherwise.
                         return Status.MODIFIED;
                     }
                 }
-            }
-            else {
+            } else {
                 // We don't have the child
                 if (baseState.getChildNode(name) == null) {
                     // ...and didn't have it before. So it doesn't exist.
                     return null;
-                }
-                else {
+                } else {
                     // ...and didn't have it before. So it's REMOVED
                     return Status.REMOVED;
                 }
@@ -519,8 +507,7 @@ public class TreeImpl implements Tree {
             writeLock.lock();
             try {
                 children.put(name, tree);
-            }
-            finally {
+            } finally {
                 writeLock.unlock();
             }
         }
@@ -529,8 +516,7 @@ public class TreeImpl implements Tree {
             readLock.lock();
             try {
                 return children.get(name);
-            }
-            finally {
+            } finally {
                 readLock.unlock();
             }
         }
@@ -539,8 +525,7 @@ public class TreeImpl implements Tree {
             writeLock.lock();
             try {
                 children.remove(name);
-            }
-            finally {
+            } finally {
                 writeLock.unlock();
             }
         }
