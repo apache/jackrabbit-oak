@@ -46,7 +46,6 @@
               <value>
 org.apache.jackrabbit.test.api.NodeReadMethodsTest#testGetPrimaryItem
 org.apache.jackrabbit.test.api.NodeReadMethodsTest#testGetUUID
-org.apache.jackrabbit.test.api.BinaryPropertyTest#testRandomAccess
 org.apache.jackrabbit.test.api.SessionReadMethodsTest#testGetNodeByUUIDFailure
 org.apache.jackrabbit.test.api.SessionReadMethodsTest#testGetNodeByUUID
 org.apache.jackrabbit.test.api.PathTest#testGetItem
