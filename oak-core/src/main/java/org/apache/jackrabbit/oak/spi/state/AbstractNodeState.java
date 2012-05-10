@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.spi.state;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 
-import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -68,9 +67,7 @@ public abstract class AbstractNodeState implements NodeState {
 
     private static long count(Iterable<?> iterable) {
         long n = 0;
-        Iterator<?> iterator = iterable.iterator();
-        while (iterator.hasNext()) {
-            iterator.next();
+        for (Object x : iterable) {
             n++;
         }
         return n;
