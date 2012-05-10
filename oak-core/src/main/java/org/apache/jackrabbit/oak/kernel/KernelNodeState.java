@@ -60,7 +60,8 @@ class KernelNodeState extends AbstractNodeState {
 
     private long childNodeCount = -1;
 
-    private Map<String, NodeState> childNodes; // TODO: WeakReference?
+    // TODO: WeakReference?
+    private Map<String, NodeState> childNodes;
 
     /**
      * Create a new instance of this class representing the node at the
@@ -93,7 +94,7 @@ class KernelNodeState extends AbstractNodeState {
                 reader.read(':');
                 if (":childNodeCount".equals(name)) {
                     childNodeCount =
-                            Long.valueOf(reader.read(JsopTokenizer.NUMBER));
+                            Long.valueOf(reader.read(JsopReader.NUMBER));
                 } else if (reader.matches('{')) {
                     reader.read('}');
                     String childPath = path + '/' + name;
@@ -109,7 +110,7 @@ class KernelNodeState extends AbstractNodeState {
                 }
             } while (reader.matches(','));
             reader.read('}');
-            reader.read(JsopTokenizer.END);
+            reader.read(JsopReader.END);
         }
     }
 
@@ -152,7 +153,7 @@ class KernelNodeState extends AbstractNodeState {
 
     @Override
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
-        return (new Iterable<ChildNodeEntry>() {
+        return new Iterable<ChildNodeEntry>() {
             @Override
             public Iterator<ChildNodeEntry> iterator() {
                 return Iterators.flatten(
@@ -163,7 +164,7 @@ class KernelNodeState extends AbstractNodeState {
                         }
                 });
             }
-        });
+        };
     }
 
     //------------------------------------------------------------< internal >---
@@ -188,8 +189,7 @@ class KernelNodeState extends AbstractNodeState {
             if (childNodeCount > count) {
                 throw new RuntimeException("Too many child nodes");
             }
-        }
-        else {
+        } else {
             all = false;
         }
 
@@ -229,7 +229,7 @@ class KernelNodeState extends AbstractNodeState {
                 }
             } while (reader.matches(','));
             reader.read('}');
-            reader.read(JsopTokenizer.END);
+            reader.read(JsopReader.END);
         }
 
         return entries.iterator();
