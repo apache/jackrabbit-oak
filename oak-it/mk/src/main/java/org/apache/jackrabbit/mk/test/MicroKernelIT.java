@@ -17,12 +17,17 @@
 package org.apache.jackrabbit.mk.test;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
+import org.apache.jackrabbit.mk.test.util.TestInputStream;
+import org.apache.jackrabbit.mk.util.MicroKernelInputStream;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -36,6 +41,10 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+/**
+ * Integration tests for verifying that a {@code MicroKernel} implementation
+ * obeys the contract of the {@code MicroKernel} API.
+ */
 @RunWith(Parameterized.class)
 public class MicroKernelIT extends AbstractMicroKernelIT {
 
@@ -694,5 +703,46 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         assertTrue(mk.nodeExists("/test123", null));
         // make sure /branch/foo does now exist in head
         assertTrue(mk.nodeExists("/branch/foo", null));
+    }
+
+    @Test
+    public void testBlobs() {
+        // size of test data
+        final int BLOB_SIZE = 32 * 1024 * 1024;
+
+        // write data
+        TestInputStream in = new TestInputStream(BLOB_SIZE);
+        String id = mk.write(in);
+        assertNotNull(id);
+        assertTrue(in.isClosed());
+
+        // write identical data
+        in = new TestInputStream(BLOB_SIZE);
+        String id1 = mk.write(in);
+        assertNotNull(id1);
+        assertTrue(in.isClosed());
+        // both id's must be identical since they refer to identical data
+        assertEquals(id, id1);
+
+        // verify length
+        assertEquals(mk.getLength(id), BLOB_SIZE);
+
+        // verify data
+        InputStream in1 = new TestInputStream(BLOB_SIZE);
+        InputStream in2 = new BufferedInputStream(new MicroKernelInputStream(mk, id));
+        try {
+            while (true) {
+                int x = in1.read();
+                int y = in2.read();
+                if (x == -1 || y == -1) {
+                    if (x == y) {
+                        break;
+                    }
+                }
+                assertEquals("data does not match", x, y);
+            }
+        } catch (IOException e) {
+            fail(e.getMessage());
+        }
     }
 }
