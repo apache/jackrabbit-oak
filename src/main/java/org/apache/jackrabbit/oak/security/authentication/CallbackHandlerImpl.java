@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.authentication;
 
+import org.apache.jackrabbit.oak.spi.security.authentication.CredentialsCallback;
+import org.apache.jackrabbit.oak.spi.security.authentication.PrincipalProviderCallback;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,7 +33,16 @@ import javax.security.auth.callback.UnsupportedCallbackException;
 import java.io.IOException;
 
 /**
- * CallbackHandlerImpl...
+ * Default implementation of the {@link CallbackHandler} interface. It currently
+ * supports the following {@code Callback} implementations:
+ *
+ * <ul>
+ *     <li>{@link CredentialsCallback}</li>
+ *     <li>{@link NameCallback}</li>
+ *     <li>{@link PasswordCallback}</li>
+ *     <li>{@link ImpersonationCallback}</li>
+ *     <li>{@link PrincipalProviderCallback}</li>
+ * </ul>
  */
 public class CallbackHandlerImpl implements CallbackHandler {
 
@@ -68,7 +79,7 @@ public class CallbackHandlerImpl implements CallbackHandler {
         }
     }
 
-    //--------------------------------------------------------------------------
+    //------------------------------------------------------------< private >---
 
     private String getName(){
         if (credentials instanceof SimpleCredentials) {
