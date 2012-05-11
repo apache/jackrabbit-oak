@@ -255,15 +255,27 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
     }
 
     @Test
+    public void copy() {
+        mk.commit("/", "*\"test\":\"testCopy\"", null, "");
+
+        assertTrue(mk.nodeExists("/testCopy", null));
+        assertTrue(mk.nodeExists("/test", null));
+
+        JSONObject obj = parseJSONObject(mk.getNodes("/test", null, 99, 0, -1, null));
+        JSONObject obj1 = parseJSONObject(mk.getNodes("/testCopy", null, 99, 0, -1, null));
+        assertEquals(obj, obj1);
+    }
+
+    @Test
     public void addAndCopy() {
         mk.commit("/",
                 "+\"x\":{}\n" +
-                "+\"y\":{}\n",
+                        "+\"y\":{}\n",
                 null, "");
 
         mk.commit("/",
                 "+\"x/a\":{}\n" +
-                "*\"x\":\"y/x1\"\n",
+                        "*\"x\":\"y/x1\"\n",
                 null, "");
 
         assertTrue(mk.nodeExists("/x/a", null));
@@ -593,7 +605,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
     public void moveNode() {
         String head = mk.getHeadRevision();
         String node = "moveNode_" + System.currentTimeMillis();
-        String movedNode = "movedNode_" + System.currentTimeMillis();
+        String movedNode = "movedNode_" + System.currentTimeMillis() + 1;
         head = mk.commit("/", "+\"" + node + "\" : {}", head, "");
 
         head = mk.commit("/", ">\"" + node + "\" : \"" + movedNode + '\"', head, "");
