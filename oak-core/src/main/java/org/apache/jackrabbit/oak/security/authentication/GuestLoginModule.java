@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.authentication;
 
+import org.apache.jackrabbit.oak.spi.security.authentication.CredentialsCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
