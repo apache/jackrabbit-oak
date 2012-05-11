@@ -21,6 +21,7 @@ import org.apache.jackrabbit.mk.test.util.TestInputStream;
 import org.apache.jackrabbit.mk.util.MicroKernelInputStream;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -706,6 +707,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
     }
 
     @Test
+    @Ignore
     public void testBlobs() {
         // size of test data
         final int BLOB_SIZE = 32 * 1024 * 1024;
