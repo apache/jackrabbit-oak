@@ -352,6 +352,7 @@ public class Client implements MicroKernel {
             throw toMicroKernelException(e);
         } finally {
             IOUtils.closeQuietly(request);
+            IOUtils.closeQuietly(in);
         }
     }
     
