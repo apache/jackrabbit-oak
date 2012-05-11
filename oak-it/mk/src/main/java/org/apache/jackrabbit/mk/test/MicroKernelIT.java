@@ -614,6 +614,18 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
     }
 
     @Test
+    public void illegalMove() {
+        mk.commit("", "+\"/test/sub\":{}", null, "");
+        try {
+            // try to move /test to /test/sub/test
+            mk.commit("/", "> \"test\": \"/test/sub/test\"", null, "");
+            fail();
+        } catch (Exception e) {
+            // expected
+        }
+    }
+
+    @Test
     public void overwritingMove() {
         String head = mk.getHeadRevision();
 
