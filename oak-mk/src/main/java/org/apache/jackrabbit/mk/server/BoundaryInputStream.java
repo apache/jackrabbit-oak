@@ -61,8 +61,8 @@ class BoundaryInputStream extends InputStream {
         this.boundary = ("\r\n" + boundary).getBytes();
 
         // Must be able to unread this many bytes
-        if (size < this.boundary.length + 1) {
-            size = this.boundary.length + 1;
+        if (size < this.boundary.length + 2) {
+            size = this.boundary.length + 2;
         }
         buf = new byte[size];
     }
@@ -104,12 +104,13 @@ class BoundaryInputStream extends InputStream {
         if (count < 0) {
             eos = true;
         }
+        count += offset;
     }
 
     private int copy(byte[] b, int off, int len) throws IOException {
         int i = 0, j = 0;
 
-        while (i < count && j < len) {
+        while (offset + i < count && j < len) {
             if (boundary[boundaryIndex] == buf[offset + i]) {
                 boundaryIndex++;
                 i++;
@@ -123,7 +124,6 @@ class BoundaryInputStream extends InputStream {
                     i -= boundaryIndex;
                     if (i < 0) {
                         offset += i;
-                        count += -i;
                         i = 0;
                     }
                     boundaryIndex = 0;
