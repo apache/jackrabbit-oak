@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.mk.concurrent;
 
-import org.h2.util.Profiler;
-
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -49,11 +47,6 @@ public class Concurrent {
         final AtomicReference<Throwable> exception = new AtomicReference<Throwable>();
         ArrayList<Thread> threads = new ArrayList<Thread>();
         final AtomicInteger counter = new AtomicInteger();
-        Profiler p = new Profiler();
-        if (PROFILE) {
-            p.interval = 1;
-            p.startCollecting();
-        }
         for (int i = 0; i < threadCount; i++) {
             Thread t = new Thread("Task " + i) {
                 @Override
@@ -100,10 +93,6 @@ public class Concurrent {
             }
             throw (Error) e;
         }
-        if (PROFILE) {
-            System.out.println(p.getTop(5));
-        }
-
     }
 
     public interface Task {
