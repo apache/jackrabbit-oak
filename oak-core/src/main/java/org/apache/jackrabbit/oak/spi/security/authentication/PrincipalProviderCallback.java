@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authentication;
+package org.apache.jackrabbit.oak.spi.security.authentication;
 
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.slf4j.Logger;
@@ -23,7 +23,8 @@ import org.slf4j.LoggerFactory;
 import javax.security.auth.callback.Callback;
 
 /**
- * PrincipalProviderCallback...
+ * Callback implementation used to pass a {@link PrincipalProvider} to the
+ * login module.
  */
 public class PrincipalProviderCallback implements Callback {
 
@@ -34,10 +35,25 @@ public class PrincipalProviderCallback implements Callback {
 
     private PrincipalProvider principalProvider;
 
+    /**
+     * Returns the principal provider as set using
+     * {@link #setPrincipalProvider(org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider)}
+     * or {@code null}.
+     *
+     * @return an instance of {@code PrincipalProvider} or {@code null} if no
+     * provider has been set before.
+     */
     public PrincipalProvider getPrincipalProvider() {
         return principalProvider;
     }
 
+    /**
+     * Sets the {@code PrincipalProvider} that is being used during the
+     * authentication process.
+     *
+     * @param principalProvider The principal provider to use during the
+     * authentication process.
+     */
     public void setPrincipalProvider(PrincipalProvider principalProvider) {
         this.principalProvider = principalProvider;
     }

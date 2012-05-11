@@ -24,7 +24,7 @@ import javax.security.auth.login.Configuration;
 import java.util.Collections;
 
 /**
- * ConfigurationImpl...
+ * ConfigurationImpl... TODO
  */
 public class ConfigurationImpl extends Configuration {
 
@@ -34,7 +34,7 @@ public class ConfigurationImpl extends Configuration {
     private static final Logger log = LoggerFactory.getLogger(ConfigurationImpl.class);
 
     @Override
-    public AppConfigurationEntry[] getAppConfigurationEntry(String s) {
+    public AppConfigurationEntry[] getAppConfigurationEntry(String name) {
         // TODO
         AppConfigurationEntry entry = new AppConfigurationEntry(LoginModuleImpl.class.getName(), AppConfigurationEntry.LoginModuleControlFlag.REQUIRED, Collections.<String, Object>emptyMap());
         return new AppConfigurationEntry[] {entry};

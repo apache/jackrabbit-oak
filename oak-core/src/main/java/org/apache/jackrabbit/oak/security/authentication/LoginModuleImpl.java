@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.security.authentication;
 
+import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
+import org.apache.jackrabbit.oak.spi.security.authentication.CredentialsCallback;
+import org.apache.jackrabbit.oak.spi.security.authentication.PrincipalProviderCallback;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,7 +67,7 @@ import java.util.Set;
  * <ul>
  *     <li>{@link SimpleCredentials}</li>
  *     <li>{@link GuestCredentials}</li>
- *     <li>// TODO {@link TokenCredentials}</li>
+ *     <li>{@link TokenCredentials}</li>
  * </ul>
  *
  * The {@link Credentials} obtained during the {@link #login()} are added to
@@ -73,8 +76,10 @@ import java.util.Set;
  * <h3>Principals</h3>
  *
  * TODO
+ * - principal lookup -> principal provider
+ * - principal resolution based on credentials
  *
- * <h3>Login vs. Impersonation</h3>
+ * <h3>Impersonation</h3>
  *
  * TODO
  *
@@ -84,9 +89,6 @@ import java.util.Set;
  */
 public class LoginModuleImpl implements LoginModule {
 
-    /**
-     * logger instance
-     */
     private static final Logger log = LoggerFactory.getLogger(LoginModuleImpl.class);
 
     /**
@@ -109,6 +111,7 @@ public class LoginModuleImpl implements LoginModule {
     static {
         SUPPORTED_CREDENTIALS.add(SimpleCredentials.class);
         SUPPORTED_CREDENTIALS.add(GuestCredentials.class);
+        SUPPORTED_CREDENTIALS.add(TokenCredentials.class);
     }
 
     private Subject subject;
@@ -255,6 +258,8 @@ public class LoginModuleImpl implements LoginModule {
                 principal = principalProvider.getPrincipal(userID); // FIXME
             } else if (credentials instanceof GuestCredentials) {
                 principal = principalProvider.getPrincipal("anonymous"); // FIXME
+            } else if (credentials instanceof TokenCredentials) {
+                // TODO
             }
         }
 

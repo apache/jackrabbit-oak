@@ -14,32 +14,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authentication;
+package org.apache.jackrabbit.oak.spi.security.authentication;
 
 import javax.jcr.Credentials;
 import javax.security.auth.callback.Callback;
 import java.io.Serializable;
 
 /**
- * Callback implementation to retrieve {@code Credentials}
+ * Callback implementation to retrieve {@code Credentials}.
  */
 public class CredentialsCallback implements Callback, Serializable {
 
     private Credentials credentials;
 
     /**
-     * Get the retrieved credentials.
+     * Returns the {@link Credentials} that have been set before using
+     * {@link #setCredentials(javax.jcr.Credentials)}.
      *
-     * @return the retrieved credentials (which may be null)
+     * @return The {@link Credentials} to be used for authentication or {@code null}.
      */
     public Credentials getCredentials() {
         return credentials;
     }
 
     /**
-     * Set the retrieved credentials.
+     * Set the credentials.
      *
-     * @param credentials the retrieved credentials (which may be null)
+     * @param credentials The credentials to be used in the authentication
+     * process. They may be null if no credentials have been specified in
+     * {@link org.apache.jackrabbit.oak.api.ContentRepository#login(javax.jcr.Credentials, String)}
      */
     public void setCredentials(Credentials credentials) {
         this.credentials = credentials;

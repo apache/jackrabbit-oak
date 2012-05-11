@@ -20,16 +20,22 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.security.principal.KernelPrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.jcr.Credentials;
+import javax.security.auth.Subject;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginContext;
 import javax.security.auth.login.LoginException;
+import java.security.AccessController;
 
 /**
- * LoginContextProviderImpl...
+ * LoginContextProviderImpl...  TODO
  */
 public class LoginContextProviderImpl implements LoginContextProvider {
+
+    private static final Logger log = LoggerFactory.getLogger(LoginContextProviderImpl.class);
 
     private static final String APP_NAME = "jackrabbit.oak";
 
@@ -47,6 +53,21 @@ public class LoginContextProviderImpl implements LoginContextProvider {
         // TODO: add proper implementation
         // TODO  - authentication against configurable spi-authentication
         // TODO  - validation of workspace name (including access rights for the given 'user')
-        return new LoginContext(APP_NAME, null, new CallbackHandlerImpl(credentials, principalProvider), authConfig);
+        Subject subject = getSubject();
+        return new LoginContext(APP_NAME, subject, new CallbackHandlerImpl(credentials, principalProvider), authConfig);
+    }
+
+    //-------------------------------------------------===--------< private >---
+    private Subject getSubject() {
+        Subject subject = null;
+        try {
+            subject = Subject.getSubject(AccessController.getContext());
+        } catch (SecurityException e) {
+            log.debug("Can't check for pre-authentication. Reason:", e.getMessage());
+        }
+        if (subject == null) {
+            subject = new Subject();
+        }
+        return subject;
     }
 }

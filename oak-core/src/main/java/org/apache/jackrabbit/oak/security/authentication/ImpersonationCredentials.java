@@ -22,7 +22,7 @@ import org.slf4j.LoggerFactory;
 import javax.security.auth.Subject;
 
 /**
- * ImpersonationCredentials...
+ * ImpersonationCredentials...  TODO
  */
 public class ImpersonationCredentials {
 
