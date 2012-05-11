@@ -24,12 +24,10 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
-import org.apache.jackrabbit.oak.security.authentication.CallbackHandlerImpl;
-import org.apache.jackrabbit.oak.security.authentication.ConfigurationImpl;
-import org.apache.jackrabbit.oak.security.principal.KernelPrincipalProvider;
+import org.apache.jackrabbit.oak.security.authentication.LoginContextProviderImpl;
 import org.apache.jackrabbit.oak.spi.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.commit.EmptyCommitHook;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
@@ -37,7 +35,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.jcr.Credentials;
 import javax.jcr.NoSuchWorkspaceException;
-import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginContext;
 import javax.security.auth.login.LoginException;
 
@@ -53,13 +50,10 @@ public class ContentRepositoryImpl implements ContentRepository {
     // TODO: retrieve default wsp-name from configuration
     private static final String DEFAULT_WORKSPACE_NAME = "default";
 
-    private static final String APP_NAME = "jackrabbit.oak";
+    private final LoginContextProvider loginContextProvider;
 
     private final QueryEngine queryEngine;
     private final NodeStore nodeStore;
-
-    private final Configuration authConfig;
-    private final PrincipalProvider principalProvider;
 
     /**
      * Utility constructor that creates a new in-memory repository with default
@@ -82,9 +76,8 @@ public class ContentRepositoryImpl implements ContentRepository {
         QueryIndexProvider qip = (indexProvider == null) ? getDefaultIndexProvider(microKernel) : indexProvider;
         queryEngine = new QueryEngineImpl(nodeStore, microKernel, qip);
 
-        // TODO: use configurable authentication config and principal provider
-        authConfig = new ConfigurationImpl();
-        principalProvider = new KernelPrincipalProvider();
+        // TODO: use configurable context provider
+        loginContextProvider = new LoginContextProviderImpl(this);
 
         // FIXME: workspace setup must be done elsewhere...
         NodeState root = nodeStore.getRoot();
@@ -111,16 +104,13 @@ public class ContentRepositoryImpl implements ContentRepository {
             workspaceName = DEFAULT_WORKSPACE_NAME;
         }
 
-        // TODO: add proper implementation
-        // TODO  - authentication against configurable spi-authentication
-        // TODO  - validation of workspace name (including access rights for the given 'user')
-        LoginContext loginContext = new LoginContext(APP_NAME, null, new CallbackHandlerImpl(credentials, principalProvider), authConfig);
-        loginContext.login();
-
         NodeState wspRoot = nodeStore.getRoot().getChildNode(workspaceName);
         if (wspRoot == null) {
             throw new NoSuchWorkspaceException(workspaceName);
         }
+
+        LoginContext loginContext = loginContextProvider.getLoginContext(credentials, workspaceName);
+        loginContext.login();
 
         return new ContentSessionImpl(loginContext, workspaceName, nodeStore, queryEngine);
     }
