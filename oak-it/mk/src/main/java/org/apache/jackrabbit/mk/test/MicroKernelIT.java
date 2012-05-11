@@ -603,14 +603,14 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
 
     @Test
     public void moveNode() {
-        String head = mk.getHeadRevision();
-        String node = "moveNode_" + System.currentTimeMillis();
-        String movedNode = "movedNode_" + System.currentTimeMillis() + 1;
-        head = mk.commit("/", "+\"" + node + "\" : {}", head, "");
-
-        head = mk.commit("/", ">\"" + node + "\" : \"" + movedNode + '\"', head, "");
-        assertFalse(mk.nodeExists('/' + node, head));
-        assertTrue(mk.nodeExists('/' + movedNode, head));
+        String rev0 = mk.getHeadRevision();
+        JSONObject obj = parseJSONObject(mk.getNodes("/test", null, 99, 0, -1, null));
+        mk.commit("/", ">\"test\" : \"moved\"", null, "");
+        assertTrue(mk.nodeExists("/test", rev0));
+        assertFalse(mk.nodeExists("/test", null));
+        assertTrue(mk.nodeExists("/moved", null));
+        JSONObject obj1 = parseJSONObject(mk.getNodes("/moved", null, 99, 0, -1, null));
+        assertEquals(obj, obj1);
     }
 
     @Test
@@ -719,17 +719,23 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
 
     @Test
     public void testBlobs() {
-        // size of test data
-        final int BLOB_SIZE = 32 * 1024 * 1024;
+        // test with small blobs
+        testBlobs(1234);
+        // test with medium sized blobs
+        testBlobs(1234567);
+        // test with large blobs
+        testBlobs(32 * 1024 * 1024);
+    }
 
+    private void testBlobs(int size) {
         // write data
-        TestInputStream in = new TestInputStream(BLOB_SIZE);
+        TestInputStream in = new TestInputStream(size);
         String id = mk.write(in);
         assertNotNull(id);
         assertTrue(in.isClosed());
 
         // write identical data
-        in = new TestInputStream(BLOB_SIZE);
+        in = new TestInputStream(size);
         String id1 = mk.write(in);
         assertNotNull(id1);
         assertTrue(in.isClosed());
@@ -737,10 +743,10 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         assertEquals(id, id1);
 
         // verify length
-        assertEquals(mk.getLength(id), BLOB_SIZE);
+        assertEquals(mk.getLength(id), size);
 
         // verify data
-        InputStream in1 = new TestInputStream(BLOB_SIZE);
+        InputStream in1 = new TestInputStream(size);
         InputStream in2 = new BufferedInputStream(new MicroKernelInputStream(mk, id));
         try {
             while (true) {
