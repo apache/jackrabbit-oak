@@ -57,7 +57,7 @@ org.apache.jackrabbit.test.api.ReferencesTest#testNonReferenceable
 org.apache.jackrabbit.test.api.SessionTest#testMoveRepositoryException
 org.apache.jackrabbit.test.api.SessionTest#testMoveConstraintViolationExceptionSrc
 org.apache.jackrabbit.test.api.SessionTest#testMoveConstraintViolationExceptionDest
-org.apache.jackrabbit.test.api.SessionTest#testSaveContstraintViolationException
+org.apache.jackrabbit.test.api.SessionTest#testSaveConstraintViolationException
 org.apache.jackrabbit.test.api.SessionTest#testSaveInvalidStateException
 org.apache.jackrabbit.test.api.SessionTest#testHasCapability
 org.apache.jackrabbit.test.api.SessionUUIDTest
