@@ -31,8 +31,11 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 import javax.jcr.ValueFormatException;
+
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.util.Calendar;
 
@@ -146,33 +149,50 @@ public class ValueFactoryImpl implements ValueFactory {
 
     @Override
     public Value createValue(String value, int type) throws ValueFormatException {
-        CoreValue cv;
         try {
-            if (type == PropertyType.NAME) {
-                String oakName = namePathMapper.getOakName(value);
-                if (oakName == null) {
-                    throw new ValueFormatException("Invalid name: " + value);
-                }
-                cv = factory.createValue(oakName, type);
-            } else if (type == PropertyType.PATH) {
-                String oakPath = namePathMapper.getOakPath(value);
-                if (oakPath == null) {
-                    throw new ValueFormatException("Invalid path: " + value);
-                }
-                cv = factory.createValue(oakPath, type);
-            } else if (type == PropertyType.DATE) {
-                if (ISO8601.parse(value) == null) {
-                    throw new ValueFormatException("Invalid date " + value);
-                }
-                cv = factory.createValue(value, type);
-            } else {
-                cv = factory.createValue(value, type);
+            CoreValue cv;
+
+            switch (type) {
+                case PropertyType.NAME:
+                    String oakName = namePathMapper.getOakName(value);
+                    if (oakName == null) {
+                        throw new ValueFormatException("Invalid name: " + value);
+                    }
+                    cv = factory.createValue(oakName, type);
+                    break;
+
+                case PropertyType.PATH:
+                    String oakPath = namePathMapper.getOakPath(value);
+                    if (oakPath == null) {
+                        throw new ValueFormatException("Invalid path: " + value);
+                    }
+                    cv = factory.createValue(oakPath, type);
+                    break;
+
+                case PropertyType.DATE:
+                    if (ISO8601.parse(value) == null) {
+                        throw new ValueFormatException("Invalid date " + value);
+                    }
+                    cv = factory.createValue(value, type);
+                    break;
+
+                case PropertyType.BINARY:
+                    cv = factory.createValue(new ByteArrayInputStream(value.getBytes("UTF-8")));
+                    break;
+
+                default:
+                    cv = factory.createValue(value, type);
+                    break;
             }
+
+            return new ValueImpl(cv, namePathMapper);
+        } catch (UnsupportedEncodingException e) {
+            throw new ValueFormatException("Encoding UTF-8 not supported (this should not happen!)", e);
+        } catch (IOException e) {
+            throw new ValueFormatException(e);
         } catch (NumberFormatException e) {
             throw new ValueFormatException("Invalid value " + value + " for type " + PropertyType.nameFromValue(type));
         }
-
-        return new ValueImpl(cv, namePathMapper);
     }
 
     @Override
