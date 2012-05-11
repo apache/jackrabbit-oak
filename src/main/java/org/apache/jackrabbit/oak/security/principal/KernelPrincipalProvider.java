@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.principal;
 
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
