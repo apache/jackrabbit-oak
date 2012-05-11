@@ -59,7 +59,12 @@ org.apache.jackrabbit.test.api.PathTest#testCreateMultiplePathValue
 org.apache.jackrabbit.test.api.AddNodeTest#testConstraintViolation
 org.apache.jackrabbit.test.api.AddNodeTest#testRepositoryException
 org.apache.jackrabbit.test.api.ReferencesTest#testNonReferenceable
-org.apache.jackrabbit.test.api.SessionTest
+org.apache.jackrabbit.test.api.SessionTest#testMoveRepositoryException
+org.apache.jackrabbit.test.api.SessionTest#testMoveConstraintViolationExceptionSrc
+org.apache.jackrabbit.test.api.SessionTest#testMoveConstraintViolationExceptionDest
+org.apache.jackrabbit.test.api.SessionTest#testSaveContstraintViolationException
+org.apache.jackrabbit.test.api.SessionTest#testSaveInvalidStateException
+org.apache.jackrabbit.test.api.SessionTest#testHasCapability
 org.apache.jackrabbit.test.api.SessionUUIDTest
 org.apache.jackrabbit.test.api.NodeTest
 org.apache.jackrabbit.test.api.NodeUUIDTest
