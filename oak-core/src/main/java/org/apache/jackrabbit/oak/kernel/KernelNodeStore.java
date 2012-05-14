@@ -98,7 +98,7 @@ public class KernelNodeStore extends AbstractNodeStore {
     @Override
     public NodeStateBuilder getBuilder(NodeState base) {
         if (!(base instanceof KernelNodeState)) {
-            throw new IllegalArgumentException("Alien node state");
+            throw new IllegalArgumentException("Alien node state " + base.getClass() + ": " + root);
         }
 
         NodeStateBuilderContext context = new NodeStateBuilderContext((KernelNodeState) base);
@@ -115,7 +115,7 @@ public class KernelNodeStore extends AbstractNodeStore {
             committed = ((NodeStateBuilderContext.NodeDecorator) newRoot).applyChanges();
         }
         else {
-            throw new CommitFailedException("Alien node state: " + newRoot);
+            throw new CommitFailedException("Alien node state " + newRoot.getClass() + ": " + newRoot);
         }
 
         commitHook.afterCommit(this, baseState, committed);
