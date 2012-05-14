@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 import org.xml.sax.ContentHandler;
 
 import javax.jcr.Credentials;
+import javax.jcr.ItemNotFoundException;
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -100,21 +101,18 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     }
 
     @Override
-    public Node getNodeByUUID(String uuid) throws RepositoryException {
-        ensureIsAlive();
-        throw new UnsupportedRepositoryOperationException("TODO: Session.getNodeByUUID");
+    public Node getNodeByUUID(String id) throws RepositoryException {
+        return getNodeByIdentifier(id);
     }
 
     @Override
     public Node getNodeByIdentifier(String id) throws RepositoryException {
         ensureIsAlive();
-        // TODO following line throws IndexOutOfBoundsException if id is empty
-        if (id.charAt(0) == '/') {
-            return getNode(id);
-        } else {
-            // TODO
-            throw new UnsupportedRepositoryOperationException("TODO: Session.getNodeByIdentifier");
+        NodeDelegate d = dlg.getNodeByIdentifier(id);
+        if (d == null) {
+            throw new ItemNotFoundException("Node with id " + id + " does not exist.");
         }
+        return new NodeImpl(d);
     }
 
     @Override
