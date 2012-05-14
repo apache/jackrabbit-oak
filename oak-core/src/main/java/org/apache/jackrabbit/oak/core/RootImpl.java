@@ -116,7 +116,7 @@ public class RootImpl implements Root {
 
     @Override
     public void commit() throws CommitFailedException {
-        store.apply(nodeStateBuilder);
+        store.setRoot(nodeStateBuilder.getNodeState());
         rebase(false);
     }
 

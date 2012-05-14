@@ -25,7 +25,6 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import javax.jcr.PropertyType;
@@ -453,7 +452,6 @@ public class RootImplTest extends AbstractOakTest {
     }
 
     @Test
-    @Ignore("WIP") // TODO: move to oak-bench
     public void largeChildList() throws CommitFailedException {
         RootImpl root = new RootImpl(store, "test");
         Tree tree = root.getTree("/");

@@ -54,10 +54,11 @@ public interface NodeStore {
     CoreValueFactory getValueFactory();
 
     /**
-     * Updates the state of the tree.
-     * @param builder  builder containing the new node state
+     * Updates the state of the content tree.
+     *
+     * @param newRoot new root node state
      */
-    void apply(NodeStateBuilder builder) throws CommitFailedException;
+    void setRoot(NodeState newRoot) throws CommitFailedException;
 
     /**
      * Compares the given two node states. Any found differences are
