@@ -44,9 +44,7 @@
             <property>
               <name>known.issues</name>
               <value>
-org.apache.jackrabbit.test.api.NodeReadMethodsTest#testGetPrimaryItem
 org.apache.jackrabbit.test.api.NodeReadMethodsTest#testGetUUID
-org.apache.jackrabbit.test.api.SessionReadMethodsTest#testGetNodeByUUIDFailure
 org.apache.jackrabbit.test.api.SessionReadMethodsTest#testGetNodeByUUID
 org.apache.jackrabbit.test.api.PathTest#testGetItem
 org.apache.jackrabbit.test.api.PathTest#testCreatePathValue

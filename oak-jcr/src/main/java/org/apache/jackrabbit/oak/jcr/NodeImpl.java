@@ -493,8 +493,8 @@ public class NodeImpl extends ItemImpl implements Node  {
     public String getUUID() throws RepositoryException {
         checkStatus();
 
-        if (hasProperty(Property.JCR_UUID) && isNodeType(NodeType.MIX_REFERENCEABLE)) {
-            return getProperty(Property.JCR_UUID).getString();
+        if (isNodeType(NodeType.MIX_REFERENCEABLE)) {
+            return getIdentifier();
         }
 
         throw new UnsupportedRepositoryOperationException("Node is not referenceable.");
@@ -503,13 +503,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     @Override
     public String getIdentifier() throws RepositoryException {
         checkStatus();
-
-        if (isNodeType(NodeType.MIX_REFERENCEABLE)) {
-            return getProperty(Property.JCR_UUID).getString();
-        } else {
-            // TODO
-            return dlg.getPath();
-        }
+        return dlg.getIdentifier();
     }
 
     @Override

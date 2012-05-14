@@ -92,6 +92,11 @@ public class NodeDelegate extends ItemDelegate {
         return "NodeDelegate[/" + tree.getPath() + ']';
     }
 
+    public String getIdentifier() {
+        // TODO for now the identifier is the OAK path
+        return getPath();
+    }
+
     /**
      * Determine whether this is the root node
      * @return  {@code true} iff this is the root node

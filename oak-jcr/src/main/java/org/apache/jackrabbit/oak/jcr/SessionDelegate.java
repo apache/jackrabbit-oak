@@ -111,6 +111,12 @@ public class SessionDelegate {
         return tree == null ? null : new NodeDelegate(this, tree);
     }
 
+    public NodeDelegate getNodeByIdentifier(String id) {
+        // TODO: for now the OAK path is the identifier
+        Tree tree = getTree(id);
+        return tree == null ? null : new NodeDelegate(this, tree);
+    }
+
     public ValueFactoryImpl getValueFactory() {
         return valueFactory;
     }
