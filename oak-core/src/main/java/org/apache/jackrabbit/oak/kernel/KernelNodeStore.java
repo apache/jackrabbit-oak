@@ -101,19 +101,23 @@ public class KernelNodeStore extends AbstractNodeStore {
             throw new IllegalArgumentException("Alien node state");
         }
 
-        NodeStateBuilderContext context =
-                new NodeStateBuilderContext((KernelNodeState) base);
+        NodeStateBuilderContext context = new NodeStateBuilderContext((KernelNodeState) base);
         return KernelNodeStateBuilder.create(context);
     }
 
     @Override
-    public void apply(NodeStateBuilder builder) throws CommitFailedException {
-        if (!(builder instanceof KernelNodeStateBuilder)) {
-            throw new IllegalArgumentException("Alien builder");
+    public void setRoot(NodeState newRoot) throws CommitFailedException {
+        NodeState toCommit = commitHook.beforeCommit(this, getBaseState(newRoot), newRoot);
+
+        KernelNodeState committed;
+        if (toCommit instanceof NodeStateBuilderContext.NodeDecorator) {
+            committed = ((NodeStateBuilderContext.NodeDecorator) newRoot).applyChanges();
+        }
+        else {
+            throw new CommitFailedException("Alien node state: " + newRoot);
         }
 
-        KernelNodeStateBuilder kernelNodeStateBuilder = (KernelNodeStateBuilder) builder;
-        kernelNodeStateBuilder.getContext().applyPendingChanges();
+        commitHook.afterCommit(this, toCommit, committed);
     }
 
     @Override
@@ -122,6 +126,15 @@ public class KernelNodeStore extends AbstractNodeStore {
     }
 
     //------------------------------------------------------------< internal >---
+
+    private NodeState getBaseState(NodeState newRoot) throws CommitFailedException {
+        if (newRoot instanceof NodeStateBuilderContext.NodeDecorator) {
+            return ((NodeStateBuilderContext.NodeDecorator) newRoot).getBase();
+        }
+        else {
+            throw new CommitFailedException("Could not determine base state for " + newRoot);
+        }
+    }
 
     /**
      * {@code NodeStateBuilderContext} keeps track of all changes to a
@@ -132,11 +145,8 @@ public class KernelNodeStore extends AbstractNodeStore {
      */
     class NodeStateBuilderContext {
 
-        /** Path of the root of the whole subtree */
-        private final String path;
-
         /** Original root of the subtree */
-        private final NodeState base;
+        private final KernelNodeState base;
 
         /** Current root of the subtree */
         private NodeState root;
@@ -149,17 +159,9 @@ public class KernelNodeStore extends AbstractNodeStore {
 
         NodeStateBuilderContext(KernelNodeState base) {
             this.base = base;
-            this.path = base.getPath();
             this.revision = kernel.branch(base.getRevision());
-            this.root = new KernelNodeState(
-                    kernel, valueFactory, path, revision);
-        }
-
-        /**
-         * @return path of the root of the whole subtree
-         */
-        String getPath() {
-            return path;
+            this.root = new RootNodeDecorator(
+                    new KernelNodeState(kernel, valueFactory, base.getPath(), revision));
         }
 
         /**
@@ -293,15 +295,12 @@ public class KernelNodeStore extends AbstractNodeStore {
          * Merge back into trunk
          * @throws CommitFailedException  if merging fails
          */
-        void applyPendingChanges() throws CommitFailedException {
+        KernelNodeState applyPendingChanges() throws CommitFailedException {
             try {
                 purgePendingChanges();
-
-                // TODO handle potential commit changes from the hook
-                commitHook.beforeCommit(KernelNodeStore.this, base, root);
-
-                kernel.merge(revision, null);
+                String newRevision = kernel.merge(revision, null);
                 revision = null;
+                return new KernelNodeState(kernel, valueFactory, base.getPath(), newRevision);
             }
             catch (MicroKernelException e) {
                 throw new CommitFailedException(e);
@@ -330,8 +329,10 @@ public class KernelNodeStore extends AbstractNodeStore {
             }
 
             if (jsop.length() > 0) {
+                String path = base.getPath();
                 revision = kernel.commit(path, jsop.toString(), revision, null);
-                root = new KernelNodeState(kernel, valueFactory, path, revision);
+                root = new RootNodeDecorator(
+                        new KernelNodeState(kernel, valueFactory, path, revision));
                 jsop = new StringBuilder();
             }
         }
@@ -462,11 +463,62 @@ public class KernelNodeStore extends AbstractNodeStore {
             return state;
         }
 
+        private abstract class NodeDecorator extends AbstractNodeState {
+            final NodeState decorate;
+
+            protected NodeDecorator(NodeState decorate) {
+                this.decorate = decorate;
+            }
+
+            @Override
+            public PropertyState getProperty(String name) {
+                return decorate.getProperty(name);
+            }
+
+            @Override
+            public long getPropertyCount() {
+                return decorate.getPropertyCount();
+            }
+
+            @Override
+            public NodeState getChildNode(String name) {
+                return decorate.getChildNode(name);
+            }
+
+            @Override
+            public long getChildNodeCount() {
+                return decorate.getChildNodeCount();
+            }
+
+            @Override
+            public Iterable<? extends PropertyState> getProperties() {
+                return decorate.getProperties();
+            }
+
+            @Override
+            public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
+                return decorate.getChildNodeEntries();
+            }
+
+            KernelNodeState applyChanges() throws CommitFailedException {
+                return applyPendingChanges();
+            }
+
+            NodeState getBase() {
+                return base;
+            }
+        }
+
+        private class RootNodeDecorator extends NodeDecorator {
+            private RootNodeDecorator(NodeState root) {
+                super(root);
+            }
+        }
+
         /**
          * {@code NodeState} decorator adding a new node state.
          */
-        private class AddNodeDecorator extends AbstractNodeState {
-            private final NodeState parent;
+        private class AddNodeDecorator extends NodeDecorator {
             private final String childName;
             private final NodeState node;
 
@@ -479,34 +531,19 @@ public class KernelNodeStore extends AbstractNodeStore {
              * @return
              */
             public AddNodeDecorator(NodeState parent, String childName, NodeState node) {
-                this.parent = parent;
+                super(parent);
                 this.childName = childName;
                 this.node = node;
             }
 
             @Override
-            public PropertyState getProperty(String name) {
-                return parent.getProperty(name);
-            }
-
-            @Override
-            public long getPropertyCount() {
-                return parent.getPropertyCount();
-            }
-
-            @Override
-            public Iterable<? extends PropertyState> getProperties() {
-                return parent.getProperties();
-            }
-
-            @Override
             public NodeState getChildNode(String name) {
-                return childName.equals(name) ? node : parent.getChildNode(name);
+                return childName.equals(name) ? node : super.getChildNode(name);
             }
 
             @Override
             public long getChildNodeCount() {
-                return 1 + parent.getChildNodeCount();
+                return 1 + super.getChildNodeCount();
             }
 
             @Override
@@ -515,8 +552,8 @@ public class KernelNodeStore extends AbstractNodeStore {
                     @Override
                     public Iterator<ChildNodeEntry> iterator() {
                         return Iterators.chain(
-                            parent.getChildNodeEntries().iterator(),
-                            Iterators.singleton(new MemoryChildNodeEntry(childName, node)));
+                                AddNodeDecorator.super.getChildNodeEntries().iterator(),
+                                Iterators.singleton(new MemoryChildNodeEntry(childName, node)));
                     }
                 };
             }
@@ -526,8 +563,7 @@ public class KernelNodeStore extends AbstractNodeStore {
         /**
          * {@code NodeState} decorator modifying an existing node state to a new node state.
          */
-        private class SetNodeDecorator extends AbstractNodeState {
-            private final NodeState parent;
+        private class SetNodeDecorator extends NodeDecorator {
             private final String childName;
             private final NodeState node;
 
@@ -540,34 +576,19 @@ public class KernelNodeStore extends AbstractNodeStore {
              * @return
              */
             public SetNodeDecorator(NodeState parent, String childName, NodeState node) {
-                this.parent = parent;
+                super(parent);
                 this.childName = childName;
                 this.node = node;
             }
 
             @Override
-            public PropertyState getProperty(String name) {
-                return parent.getProperty(name);
-            }
-
-            @Override
-            public long getPropertyCount() {
-                return parent.getPropertyCount();
-            }
-
-            @Override
-            public Iterable<? extends PropertyState> getProperties() {
-                return parent.getProperties();
-            }
-
-            @Override
             public NodeState getChildNode(String name) {
-                return childName.equals(name) ? node : parent.getChildNode(name);
+                return childName.equals(name) ? node : super.getChildNode(name);
             }
 
             @Override
             public long getChildNodeCount() {
-                return parent.getChildNodeCount();
+                return super.getChildNodeCount();
             }
 
             @Override
@@ -575,7 +596,7 @@ public class KernelNodeStore extends AbstractNodeStore {
                 return new Iterable<ChildNodeEntry>() {
                     @Override
                     public Iterator<ChildNodeEntry> iterator() {
-                        return Iterators.map(parent.getChildNodeEntries().iterator(),
+                        return Iterators.map(SetNodeDecorator.super.getChildNodeEntries().iterator(),
                             new Function1<ChildNodeEntry, ChildNodeEntry>() {
                                 @Override
                                 public ChildNodeEntry apply(ChildNodeEntry cne) {
@@ -592,8 +613,7 @@ public class KernelNodeStore extends AbstractNodeStore {
         /**
          * {@code NodeState} decorator removing a node state
          */
-        private class RemoveNodeDecorator extends AbstractNodeState {
-            private final NodeState parent;
+        private class RemoveNodeDecorator extends NodeDecorator {
             private final String childName;
 
             /**
@@ -604,33 +624,18 @@ public class KernelNodeStore extends AbstractNodeStore {
              * @return
              */
             public RemoveNodeDecorator(NodeState parent, String childName) {
-                this.parent = parent;
+                super(parent);
                 this.childName = childName;
             }
 
             @Override
-            public PropertyState getProperty(String name) {
-                return parent.getProperty(name);
-            }
-
-            @Override
-            public long getPropertyCount() {
-                return parent.getPropertyCount();
-            }
-
-            @Override
-            public Iterable<? extends PropertyState> getProperties() {
-                return parent.getProperties();
-            }
-
-            @Override
             public NodeState getChildNode(String name) {
-                return childName.equals(name) ? null : parent.getChildNode(name);
+                return childName.equals(name) ? null : super.getChildNode(name);
             }
 
             @Override
             public long getChildNodeCount() {
-                return parent.getChildNodeCount() - 1;
+                return super.getChildNodeCount() - 1;
             }
 
             @Override
@@ -638,7 +643,7 @@ public class KernelNodeStore extends AbstractNodeStore {
                 return new Iterable<ChildNodeEntry>() {
                     @Override
                     public Iterator<ChildNodeEntry> iterator() {
-                        return Iterators.filter(parent.getChildNodeEntries().iterator(),
+                        return Iterators.filter(RemoveNodeDecorator.super.getChildNodeEntries().iterator(),
                             new Predicate<ChildNodeEntry>() {
                                 @Override
                                 public boolean evaluate(ChildNodeEntry cne) {
@@ -654,9 +659,8 @@ public class KernelNodeStore extends AbstractNodeStore {
         /**
          * {@code NodeState} decorator adding a new property state
          */
-        private class AddPropertyDecorator extends AbstractNodeState {
+        private class AddPropertyDecorator extends NodeDecorator {
             private final PropertyState property;
-            private final NodeState parent;
 
             /**
              * Construct a new {@code NodeState} from {@code parent} with {@code property}
@@ -666,20 +670,20 @@ public class KernelNodeStore extends AbstractNodeStore {
              * @return
              */
             public AddPropertyDecorator(PropertyState property, NodeState parent) {
+                super(parent);
                 this.property = property;
-                this.parent = parent;
             }
 
             @Override
             public PropertyState getProperty(String name) {
                 return property.getName().equals(name)
                     ? property
-                    : parent.getProperty(name);
+                    : super.getProperty(name);
             }
 
             @Override
             public long getPropertyCount() {
-                return parent.getPropertyCount() + 1;
+                return super.getPropertyCount() + 1;
             }
 
             @Override
@@ -688,34 +692,18 @@ public class KernelNodeStore extends AbstractNodeStore {
                     @Override
                     public Iterator<PropertyState> iterator() {
                         return Iterators.chain(
-                                parent.getProperties().iterator(),
+                                AddPropertyDecorator.super.getProperties().iterator(),
                                 Iterators.singleton(property));
                     }
                 };
-            }
-
-            @Override
-            public NodeState getChildNode(String name) {
-                return parent.getChildNode(name);
-            }
-
-            @Override
-            public long getChildNodeCount() {
-                return parent.getChildNodeCount();
-            }
-
-            @Override
-            public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
-                return parent.getChildNodeEntries();
             }
         }
 
         /**
          * {@code NodeState} decorator modifying an existing property state.
          */
-        private class SetPropertyDecorator extends AbstractNodeState {
+        private class SetPropertyDecorator extends NodeDecorator {
             private final PropertyState property;
-            private final NodeState parent;
 
             /**
              * Construct a new {@code NodeState} from {@code parent} with {@code property}
@@ -725,20 +713,20 @@ public class KernelNodeStore extends AbstractNodeStore {
              * @return
              */
             public SetPropertyDecorator(PropertyState property, NodeState parent) {
+                super(parent);
                 this.property = property;
-                this.parent = parent;
             }
 
             @Override
             public PropertyState getProperty(String name) {
                 return property.getName().equals(name)
                         ? property
-                        : parent.getProperty(name);
+                        : super.getProperty(name);
             }
 
             @Override
             public long getPropertyCount() {
-                return parent.getPropertyCount();
+                return super.getPropertyCount();
             }
 
             @Override
@@ -746,7 +734,7 @@ public class KernelNodeStore extends AbstractNodeStore {
                 return new Iterable<PropertyState>() {
                     @Override
                     public Iterator<PropertyState> iterator() {
-                        return Iterators.map(parent.getProperties().iterator(),
+                        return Iterators.map(SetPropertyDecorator.super.getProperties().iterator(),
                             new Function1<PropertyState, PropertyState>() {
                                 @Override
                                 public PropertyState apply(PropertyState state) {
@@ -759,29 +747,13 @@ public class KernelNodeStore extends AbstractNodeStore {
                     }
                 };
             }
-
-            @Override
-            public NodeState getChildNode(String name) {
-                return parent.getChildNode(name);
-            }
-
-            @Override
-            public long getChildNodeCount() {
-                return parent.getChildNodeCount();
-            }
-
-            @Override
-            public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
-                return parent.getChildNodeEntries();
-            }
         }
 
         /**
          * {@code NodeState} decorator removing an existing property state.
          */
-        private class RemovePropertyDecorator extends AbstractNodeState {
+        private class RemovePropertyDecorator extends NodeDecorator {
             private final String propertyName;
-            private final NodeState parent;
 
             /**
              * Construct a new {@code NodeState} from {@code parent} with {@code propertyName}
@@ -791,20 +763,20 @@ public class KernelNodeStore extends AbstractNodeStore {
              * @return
              */
             public RemovePropertyDecorator(String propertyName, NodeState parent) {
+                super(parent);
                 this.propertyName = propertyName;
-                this.parent = parent;
             }
 
             @Override
             public PropertyState getProperty(String name) {
                 return propertyName.equals(name)
                     ? null
-                    : parent.getProperty(name);
+                    : super.getProperty(name);
             }
 
             @Override
             public long getPropertyCount() {
-                return parent.getPropertyCount() - 1;
+                return super.getPropertyCount() - 1;
             }
 
             @Override
@@ -812,7 +784,7 @@ public class KernelNodeStore extends AbstractNodeStore {
                 return new Iterable<PropertyState>() {
                     @Override
                     public Iterator<PropertyState> iterator() {
-                        return Iterators.filter(parent.getProperties().iterator(),
+                        return Iterators.filter(RemovePropertyDecorator.super.getProperties().iterator(),
                             new Predicate<PropertyState>() {
                                 @Override
                                 public boolean evaluate(PropertyState prop) {
@@ -822,21 +794,6 @@ public class KernelNodeStore extends AbstractNodeStore {
                         );
                     }
                 };
-            }
-
-            @Override
-            public NodeState getChildNode(String name) {
-                return parent.getChildNode(name);
-            }
-
-            @Override
-            public long getChildNodeCount() {
-                return parent.getChildNodeCount();
-            }
-
-            @Override
-            public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
-                return parent.getChildNodeEntries();
             }
         }
 
