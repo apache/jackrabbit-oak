@@ -394,10 +394,17 @@ public class PropertyImpl extends ItemImpl implements Property {
             case PropertyType.PATH:
             case PropertyType.NAME:
                 String path = value.getString();
-                try {
-                    return (path.charAt(0) == '/') ? getSession().getNode(path) : getParent().getNode(path);
-                } catch (PathNotFoundException e) {
-                    throw new ItemNotFoundException(path);
+                if (path.startsWith("[") && path.endsWith("]")) {
+                    // TODO OAK-23
+                    // TODO correct for NAME?
+                    return getSession().getNodeByIdentifier(path.substring(1, path.length() - 1));
+                }
+                else {
+                    try {
+                        return (path.charAt(0) == '/') ? getSession().getNode(path) : getParent().getNode(path);
+                    } catch (PathNotFoundException e) {
+                        throw new ItemNotFoundException(path);
+                    }
                 }
 
             case PropertyType.STRING:

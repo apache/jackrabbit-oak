@@ -169,10 +169,16 @@ class ValueImpl implements Value {
     @Override
     public String getString() throws RepositoryException {
         switch (getType()) {
-            case PropertyType.NAME :
+            case PropertyType.NAME:
                 return namePathMapper.getJcrName(value.toString());
             case PropertyType.PATH:
-                return namePathMapper.getJcrPath(value.toString());
+                String s = value.toString();
+                // TODO special handling for identifier paths; should happen in path mapper (OAK-23)
+                if (s.startsWith("[") && s.endsWith("]")) {
+                    return s;
+                } else {
+                    return namePathMapper.getJcrPath(value.toString());
+                }
             case PropertyType.BINARY:
                 InputStream stream = getStream();
                 try {

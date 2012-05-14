@@ -149,6 +149,11 @@ public class ValueFactoryImpl implements ValueFactory {
 
     @Override
     public Value createValue(String value, int type) throws ValueFormatException {
+
+        if (value == null) {
+            throw new ValueFormatException();
+        }
+
         try {
             CoreValue cv;
 
@@ -162,11 +167,19 @@ public class ValueFactoryImpl implements ValueFactory {
                     break;
 
                 case PropertyType.PATH:
-                    String oakPath = namePathMapper.getOakPath(value);
-                    if (oakPath == null) {
-                        throw new ValueFormatException("Invalid path: " + value);
+                    // TODO we special case identifier paths here for now
+                    // eventually this should be done in the path mapper (OAK-23)
+
+                    String oakValue;
+                    if (value.startsWith("[") && value.endsWith("]")) {
+                        oakValue = value;
+                    } else {
+                        oakValue = namePathMapper.getOakPath(value);
+                        if (oakValue == null) {
+                            throw new ValueFormatException("Invalid path: " + value);
+                        }
                     }
-                    cv = factory.createValue(oakPath, type);
+                    cv = factory.createValue(oakValue, type);
                     break;
 
                 case PropertyType.DATE:
