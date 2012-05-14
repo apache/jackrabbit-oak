@@ -20,6 +20,8 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.EmptyCommitHook;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Before;
@@ -45,10 +47,14 @@ public abstract class AbstractOakTest {
     @Before
     public void setUp() {
         MicroKernel microKernel = new MicroKernelImpl();
-        store = new KernelNodeStore(microKernel);
+        store = new KernelNodeStore(microKernel, createCommitHook());
         valueFactory = store.getValueFactory();
 
         state = createInitialState(microKernel);
+    }
+
+    protected CommitHook createCommitHook() {
+        return new EmptyCommitHook();
     }
 
     protected abstract NodeState createInitialState(MicroKernel microKernel);
