@@ -27,7 +27,6 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyCommitHook;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -111,7 +110,6 @@ public class KernelNodeStoreTest extends AbstractOakTest {
     }
 
     @Test
-    @Ignore ("WIP") // TODO OAK-100: NodeStore.getBuilder() only works for KernelNodeState type arguments
     public void beforeCommitHook() throws CommitFailedException {
         NodeState test = store.getRoot().getChildNode("test");
         NodeStateBuilder testBuilder = store.getBuilder(test);
@@ -120,7 +118,6 @@ public class KernelNodeStoreTest extends AbstractOakTest {
         testBuilder.removeNode("a");
         final CoreValue fortyTwo = store.getValueFactory().createValue(42);
         newNodeBuilder.setProperty("n", fortyTwo);
-        final NodeState testState = testBuilder.getNodeState();
 
         commitWithHook(testBuilder.getNodeState(), new EmptyCommitHook() {
             @Override
@@ -131,11 +128,12 @@ public class KernelNodeStoreTest extends AbstractOakTest {
             }
         });
 
-        assertNotNull(testState.getChildNode("newNode"));
-        assertNotNull(testState.getChildNode("fromHook"));
-        assertNull(testState.getChildNode("a"));
-        assertEquals(fortyTwo, testState.getChildNode("newNode").getProperty("n").getValue());
-        assertEquals(testState, store.getRoot().getChildNode("test"));
+        test = store.getRoot().getChildNode("test");
+        assertNotNull(test.getChildNode("newNode"));
+        assertNotNull(test.getChildNode("fromHook"));
+        assertNull(test.getChildNode("a"));
+        assertEquals(fortyTwo, test.getChildNode("newNode").getProperty("n").getValue());
+        assertEquals(test, store.getRoot().getChildNode("test"));
 
     }
 
