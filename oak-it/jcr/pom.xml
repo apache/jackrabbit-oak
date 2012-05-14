@@ -47,8 +47,6 @@
 org.apache.jackrabbit.test.api.NodeReadMethodsTest#testGetUUID
 org.apache.jackrabbit.test.api.SessionReadMethodsTest#testGetNodeByUUID
 org.apache.jackrabbit.test.api.PathTest#testGetItem
-org.apache.jackrabbit.test.api.PathTest#testCreatePathValue
-org.apache.jackrabbit.test.api.PathTest#testCreateMultiplePathValue
 org.apache.jackrabbit.test.api.AddNodeTest#testConstraintViolation
 org.apache.jackrabbit.test.api.AddNodeTest#testRepositoryException
 org.apache.jackrabbit.test.api.ReferencesTest#testNonReferenceable
