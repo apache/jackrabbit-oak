@@ -25,8 +25,10 @@ import org.slf4j.LoggerFactory;
 import org.xml.sax.ContentHandler;
 
 import javax.jcr.Credentials;
+import javax.jcr.Item;
 import javax.jcr.ItemNotFoundException;
 import javax.jcr.Node;
+import javax.jcr.PathNotFoundException;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -75,6 +77,16 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
         return dlg.getAuthInfo().getAttribute(name);
     }
 
+    @Override
+    public Item getItem(String absPath) throws PathNotFoundException, RepositoryException {
+        if (absPath.startsWith("[") && absPath.endsWith("]")) {
+            // TODO OAK-23 - maybe this code should be added in AbstractSession
+            return getNodeByIdentifier(absPath.substring(1, absPath.length() - 1));
+        } else {
+            return super.getItem(absPath);
+        }
+    }
+    
     @Override
     public Workspace getWorkspace() {
         return dlg.getWorkspace();
