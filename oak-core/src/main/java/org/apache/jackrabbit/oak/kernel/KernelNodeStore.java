@@ -97,12 +97,21 @@ public class KernelNodeStore extends AbstractNodeStore {
 
     @Override
     public NodeStateBuilder getBuilder(NodeState base) {
-        if (!(base instanceof KernelNodeState)) {
+        if (base instanceof KernelNodeState) {
+                NodeStateBuilderContext context = new NodeStateBuilderContext((KernelNodeState) base);
+                return KernelNodeStateBuilder.create(context);
+        }
+        else if (base instanceof NodeStateBuilderContext.NodeDecorator) {
+            NodeState root = ((NodeStateBuilderContext.NodeDecorator) base).getRoot();
+            if (root != base) {
+                throw new IllegalArgumentException("Not root:" + base);
+            }
+
+            return KernelNodeStateBuilder.create(((NodeStateBuilderContext.NodeDecorator) base).getContext());
+        }
+        else {
             throw new IllegalArgumentException("Alien node state " + base.getClass() + ": " + root);
         }
-
-        NodeStateBuilderContext context = new NodeStateBuilderContext((KernelNodeState) base);
-        return KernelNodeStateBuilder.create(context);
     }
 
     @Override
@@ -505,8 +514,16 @@ public class KernelNodeStore extends AbstractNodeStore {
                 return applyPendingChanges();
             }
 
-            NodeState getBase() {
+            KernelNodeState getBase() {
                 return base;
+            }
+
+            NodeStateBuilderContext getContext() {
+                return NodeStateBuilderContext.this;
+            }
+
+            NodeState getRoot() {
+                return root;
             }
         }
 
