@@ -107,7 +107,8 @@ public class KernelNodeStore extends AbstractNodeStore {
 
     @Override
     public void setRoot(NodeState newRoot) throws CommitFailedException {
-        NodeState toCommit = commitHook.beforeCommit(this, getBaseState(newRoot), newRoot);
+        NodeState baseState = getBaseState(newRoot);
+        NodeState toCommit = commitHook.beforeCommit(this, baseState, newRoot);
 
         KernelNodeState committed;
         if (toCommit instanceof NodeStateBuilderContext.NodeDecorator) {
@@ -117,7 +118,7 @@ public class KernelNodeStore extends AbstractNodeStore {
             throw new CommitFailedException("Alien node state: " + newRoot);
         }
 
-        commitHook.afterCommit(this, toCommit, committed);
+        commitHook.afterCommit(this, baseState, committed);
     }
 
     @Override
