@@ -20,6 +20,9 @@ package org.apache.jackrabbit.oak.jcr.query;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.ResultRow;
+import org.apache.jackrabbit.oak.jcr.NodeDelegate;
+import org.apache.jackrabbit.oak.jcr.NodeImpl;
+import org.apache.jackrabbit.oak.jcr.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.value.ValueFactoryImpl;
 
 import javax.jcr.Node;
@@ -32,34 +35,47 @@ import javax.jcr.query.Row;
  */
 public class RowImpl implements Row {
 
+    private final SessionDelegate sessionDelegate;
     private final ResultRow row;
     private final ValueFactoryImpl valueFactory;
 
-    public RowImpl(ResultRow row, ValueFactoryImpl valueFactory) {
+    public RowImpl(SessionDelegate sessionDelegate, ResultRow row, ValueFactoryImpl valueFactory) {
+        this.sessionDelegate = sessionDelegate;
         this.row = row;
         this.valueFactory = valueFactory;
     }
 
     @Override
     public Node getNode() throws RepositoryException {
-        // TODO row node
-        return null;
+        return getNodeForPath(getPath());
     }
 
     @Override
     public Node getNode(String selectorName) throws RepositoryException {
-        // TODO row node
-        return null;
+        return getNodeForPath(getPath(selectorName));
+    }
+
+    private Node getNodeForPath(String path) {
+        NodeDelegate d = sessionDelegate.getNode(path);
+        return new NodeImpl(d);
     }
 
     @Override
     public String getPath() throws RepositoryException {
-        return row.getPath();
+        try {
+            return row.getPath();
+        } catch (IllegalArgumentException e) {
+            throw new RepositoryException(e);
+        }
     }
 
     @Override
     public String getPath(String selectorName) throws RepositoryException {
-        return row.getPath(selectorName);
+        try {
+            return row.getPath(selectorName);
+        } catch (IllegalArgumentException e) {
+            throw new RepositoryException(e);
+        }
     }
 
     @Override
@@ -76,7 +92,11 @@ public class RowImpl implements Row {
 
     @Override
     public Value getValue(String columnName) throws RepositoryException {
-        return valueFactory.createValue(row.getValue(columnName));
+        try {
+            return valueFactory.createValue(row.getValue(columnName));
+        } catch (IllegalArgumentException e) {
+            throw new RepositoryException(e);
+        }
     }
 
     @Override

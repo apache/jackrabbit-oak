@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.jcr.query.qom;
 
 import static org.junit.Assert.assertEquals;
-import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.Value;

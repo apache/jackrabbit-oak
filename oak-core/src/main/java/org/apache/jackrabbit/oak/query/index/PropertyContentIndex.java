@@ -121,6 +121,7 @@ public class PropertyContentIndex implements QueryIndex {
         public boolean next() {
             if (it.hasNext()) {
                 currentPath = it.next();
+                currentNode = null;
                 return true;
             }
             return false;

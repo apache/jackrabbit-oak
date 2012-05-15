@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.query.index.FilterImpl;
 public class FullTextSearchScoreImpl extends DynamicOperandImpl {
 
     private final String selectorName;
+    private SelectorImpl selector;
 
     public FullTextSearchScoreImpl(String selectorName) {
         this.selectorName = selectorName;
@@ -47,6 +48,13 @@ public class FullTextSearchScoreImpl extends DynamicOperandImpl {
     public CoreValue currentValue() {
         // TODO support evaluating fulltext conditions (score)
         return null;
+    }
+
+    public void bindSelector(SourceImpl source) {
+        selector = source.getSelector(selectorName);
+        if (selector == null) {
+            throw new IllegalArgumentException("Unknown selector: " + selectorName);
+        }
     }
 
     @Override

@@ -31,7 +31,7 @@ import java.util.Map;
  * CoreValueUtil provides methods to convert {@code CoreValue}s to the JSON
  * representation passed to MicroKernel and vice versa.
  */
-class CoreValueMapper {
+public class CoreValueMapper {
 
     private static final Map<Integer, String> TYPE2HINT = new HashMap<Integer, String>();
     private static final Map<String, Integer> HINT2TYPE = new HashMap<String, Integer>();

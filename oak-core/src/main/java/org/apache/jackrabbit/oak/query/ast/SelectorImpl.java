@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.mk.simple.NodeImpl;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.query.Query;
@@ -31,6 +30,10 @@ public class SelectorImpl extends SourceImpl {
 
     // TODO jcr:path isn't an official feature, support it?
     private static final String PATH = "jcr:path";
+
+    private static final String JCR_PRIMARY_TYPE = "jcr:primaryType";
+
+    private static final String TYPE_BASE = "nt:base";
 
     protected QueryIndex index;
 
@@ -79,6 +82,7 @@ public class SelectorImpl extends SourceImpl {
 
     private FilterImpl createFilter() {
         FilterImpl f = new FilterImpl(this);
+        f.setNodeType(nodeTypeName);
         if (joinCondition != null) {
             joinCondition.apply(f);
         }
@@ -94,7 +98,28 @@ public class SelectorImpl extends SourceImpl {
 
     @Override
     public boolean next() {
-        return cursor == null ? false : cursor.next();
+        if (cursor == null) {
+            return false;
+        }
+        while (true) {
+            boolean result = cursor.next();
+            if (!result) {
+                return false;
+            }
+            if (nodeTypeName.equals(TYPE_BASE)) {
+                return true;
+            }
+            NodeImpl n = cursor.currentNode();
+            String primaryType = n.getProperty(JCR_PRIMARY_TYPE);
+            if (primaryType == null) {
+                return true;
+            }
+            CoreValue v = getCoreValue(primaryType);
+            // TODO node type matching
+            if (nodeTypeName.equals(v.getString())) {
+                return true;
+            }
+        }
     }
 
     @Override
@@ -110,7 +135,15 @@ public class SelectorImpl extends SourceImpl {
     public CoreValue currentProperty(String propertyName) {
         if (propertyName.equals(PATH)) {
             String p = currentPath();
-            return p == null ? null : query.getValueFactory().createValue(p);
+            if (p == null) {
+                return null;
+            }
+            String local = getLocalPath(p);
+            if (local == null) {
+                // not a local path
+                return null;
+            }
+            return query.getValueFactory().createValue(local);
         }
         NodeImpl n = currentNode();
         if (n == null) {
@@ -120,13 +153,11 @@ public class SelectorImpl extends SourceImpl {
         if (value == null) {
             return null;
         }
-        // TODO data type mapping
-        value = JsopTokenizer.decodeQuoted(value);
-        return query.getValueFactory().createValue(value);
+        return getCoreValue(value);
     }
 
     @Override
-    public void init(Query qom) {
+    public void init(Query query) {
         // nothing to do
     }
 

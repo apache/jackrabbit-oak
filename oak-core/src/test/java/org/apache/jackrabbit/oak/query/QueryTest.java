@@ -16,7 +16,6 @@ package org.apache.jackrabbit.oak.query;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.LineNumberReader;
@@ -28,57 +27,15 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import org.apache.jackrabbit.oak.api.AuthInfo;
-import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.CoreValueFactory;
-import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
-import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.spi.QueryIndexProvider;
 import org.junit.Test;
 
 /**
  * Test the query feature.
  */
 public class QueryTest extends AbstractQueryTest {
-
-    private QueryIndexProvider ip = mk.getIndexer();
-    private QueryEngineImpl qe = new QueryEngineImpl(store, mk, ip);
-    private ContentSession session = new ContentSession() {
-
-        @Override
-        public AuthInfo getAuthInfo() {
-            return null;
-        }
-
-        @Override
-        public CoreValueFactory getCoreValueFactory() {
-            return null;
-        }
-
-        @Override
-        public Root getCurrentRoot() {
-            return null;
-        }
-
-        @Override
-        public QueryEngine getQueryEngine() {
-            return null;
-        }
-
-        @Override
-        public String getWorkspaceName() {
-            return "/";
-        }
-
-        @Override
-        public void close() throws IOException {
-            // ignore
-        }
-
-    };
 
     @Test
     public void script() throws Exception {

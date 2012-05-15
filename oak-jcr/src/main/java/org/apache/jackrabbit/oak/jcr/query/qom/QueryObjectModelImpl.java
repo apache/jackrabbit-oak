@@ -64,7 +64,7 @@ public class QueryObjectModelImpl implements QueryObjectModel {
 
     @Override
     public Column[] getColumns() {
-        return columns;
+        return columns == null ? new Column[0] : columns;
     }
 
     @Override
@@ -74,7 +74,7 @@ public class QueryObjectModelImpl implements QueryObjectModel {
 
     @Override
     public Ordering[] getOrderings() {
-        return orderings;
+        return orderings == null ? new Ordering[0] : orderings;
     }
 
     @Override
@@ -155,7 +155,7 @@ public class QueryObjectModelImpl implements QueryObjectModel {
             buff.append(" where ");
             buff.append(constraint);
         }
-        if (orderings != null) {
+        if (orderings != null && orderings.length > 0) {
             buff.append(" order by ");
             i = 0;
             for (Ordering o : orderings) {
@@ -170,18 +170,21 @@ public class QueryObjectModelImpl implements QueryObjectModel {
 
     @Override
     public String getStoredQueryPath() throws RepositoryException {
-        // TODO Auto-generated method stub
+        // TODO not implemented yet
         return null;
     }
 
     @Override
-    public Node storeAsNode(String arg0) throws RepositoryException {
-        // TODO Auto-generated method stub
-        return null;
+    public Node storeAsNode(String absPath) throws RepositoryException {
+        return queryManager.createQuery(getStatement(), Query.JCR_SQL2).storeAsNode(absPath);
     }
 
     public void addBindVariable(BindVariableValueImpl var) {
         this.bindVariableMap.put(var.getBindVariableName(), null);
+    }
+
+    public String toString() {
+        return getStatement();
     }
 
 }
