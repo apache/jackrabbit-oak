@@ -334,24 +334,36 @@ public class SQL2Parser {
     private ConstraintImpl parseConditionFunctionIf(String functionName) throws ParseException {
         ConstraintImpl c;
         if ("CONTAINS".equalsIgnoreCase(functionName)) {
-            String name = readName();
-            if (readIf(".")) {
-                if (readIf("*")) {
-                    read(",");
-                    c = factory.fullTextSearch(
-                            name, null, parseStaticOperand());
-                } else {
-                    String selector = name;
-                    name = readName();
-                    read(",");
-                    c = factory.fullTextSearch(
-                            selector, name, parseStaticOperand());
-                }
-            } else {
+            if (readIf("*")) {
+                // strictly speaking, CONTAINS(*, ...) is not supported
+                // according to the spec:
+                // "If only one selector exists in this query, explicit
+                // specification of the selectorName preceding the
+                // propertyName is optional"
+                // but we anyway support it
                 read(",");
                 c = factory.fullTextSearch(
-                        getOnlySelectorName(), name,
-                        parseStaticOperand());
+                        getOnlySelectorName(), null, parseStaticOperand());
+            } else {
+                String name = readName();
+                if (readIf(".")) {
+                    if (readIf("*")) {
+                        read(",");
+                        c = factory.fullTextSearch(
+                                name, null, parseStaticOperand());
+                    } else {
+                        String selector = name;
+                        name = readName();
+                        read(",");
+                        c = factory.fullTextSearch(
+                                selector, name, parseStaticOperand());
+                    }
+                } else {
+                    read(",");
+                    c = factory.fullTextSearch(
+                            getOnlySelectorName(), name,
+                            parseStaticOperand());
+                }
             }
         } else if ("ISSAMENODE".equalsIgnoreCase(functionName)) {
             String name = readName();
