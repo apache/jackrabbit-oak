@@ -34,8 +34,8 @@ public abstract class MicroKernelWrapperBase implements MicroKernel, MicroKernel
     }
 
     @Override
-    public final String getJournal(String fromRevisionId, String toRevisionId, String filter) {
-        return getJournalStream(fromRevisionId, toRevisionId, filter).toString();
+    public final String getJournal(String fromRevisionId, String toRevisionId, String path) {
+        return getJournalStream(fromRevisionId, toRevisionId, path).toString();
     }
 
     @Override
@@ -60,13 +60,13 @@ public abstract class MicroKernelWrapperBase implements MicroKernel, MicroKernel
     }
 
     @Override
-    public final String diff(String fromRevisionId, String toRevisionId, String filter) {
-        return diffStream(fromRevisionId, toRevisionId, filter).toString();
+    public final String diff(String fromRevisionId, String toRevisionId, String path) {
+        return diffStream(fromRevisionId, toRevisionId, path).toString();
     }
 
     @Override
-    public final String getRevisionHistory(long since, int maxEntries) {
-        return getRevisionsStream(since, maxEntries).toString();
+    public final String getRevisionHistory(long since, int maxEntries, String path) {
+        return getRevisionsStream(since, maxEntries, path).toString();
     }
 
     /**
@@ -90,8 +90,8 @@ public abstract class MicroKernelWrapperBase implements MicroKernel, MicroKernel
             }
 
             @Override
-            public JsopReader getJournalStream(String fromRevisionId, String toRevisionId, String filter) {
-                return new JsopTokenizer(wrapped.getJournal(fromRevisionId, toRevisionId, filter));
+            public JsopReader getJournalStream(String fromRevisionId, String toRevisionId, String path) {
+                return new JsopTokenizer(wrapped.getJournal(fromRevisionId, toRevisionId, path));
             }
 
             @Override
@@ -116,8 +116,8 @@ public abstract class MicroKernelWrapperBase implements MicroKernel, MicroKernel
             }
 
             @Override
-            public JsopReader getRevisionsStream(long since, int maxEntries) {
-                return new JsopTokenizer(wrapped.getRevisionHistory(since, maxEntries));
+            public JsopReader getRevisionsStream(long since, int maxEntries, String path) {
+                return new JsopTokenizer(wrapped.getRevisionHistory(since, maxEntries, path));
             }
 
             @Override
@@ -156,8 +156,8 @@ public abstract class MicroKernelWrapperBase implements MicroKernel, MicroKernel
             }
 
             @Override
-            public String getJournal(String fromRevisionId, String toRevisionId, String filter) {
-                return wrapped.getJournal(fromRevisionId, toRevisionId, filter);
+            public String getJournal(String fromRevisionId, String toRevisionId, String path) {
+                return wrapped.getJournal(fromRevisionId, toRevisionId, path);
             }
 
             @Override
@@ -176,8 +176,8 @@ public abstract class MicroKernelWrapperBase implements MicroKernel, MicroKernel
             }
 
             @Override
-            public String getRevisionHistory(long since, int maxEntries) {
-                return wrapped.getRevisionHistory(since, maxEntries);
+            public String getRevisionHistory(long since, int maxEntries, String path) {
+                return wrapped.getRevisionHistory(since, maxEntries, path);
             }
 
             @Override

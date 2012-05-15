@@ -26,9 +26,9 @@ import org.apache.jackrabbit.mk.json.JsopReader;
  */
 public interface MicroKernelWrapper extends MicroKernel {
 
-    JsopReader getRevisionsStream(long since, int maxEntries) throws MicroKernelException;
+    JsopReader getRevisionsStream(long since, int maxEntries, String path) throws MicroKernelException;
 
-    JsopReader getJournalStream(String fromRevisionId, String toRevisionId, String filter) throws MicroKernelException;
+    JsopReader getJournalStream(String fromRevisionId, String toRevisionId, String path) throws MicroKernelException;
 
     JsopReader getNodesStream(String path, String revisionId) throws MicroKernelException;
 
@@ -36,6 +36,6 @@ public interface MicroKernelWrapper extends MicroKernel {
 
     String commitStream(String path, JsopReader jsonDiff, String revisionId, String message) throws MicroKernelException;
 
-    JsopReader diffStream(String fromRevisionId, String toRevisionId, String filter);
+    JsopReader diffStream(String fromRevisionId, String toRevisionId, String path);
 
 }
