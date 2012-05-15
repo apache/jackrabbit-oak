@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.query.ast.ConstraintImpl;
 import org.apache.jackrabbit.oak.query.ast.DescendantNodeImpl;
 import org.apache.jackrabbit.oak.query.ast.DescendantNodeJoinConditionImpl;
 import org.apache.jackrabbit.oak.query.ast.EquiJoinConditionImpl;
+import org.apache.jackrabbit.oak.query.ast.FullTextSearchImpl;
 import org.apache.jackrabbit.oak.query.ast.FullTextSearchScoreImpl;
 import org.apache.jackrabbit.oak.query.ast.LengthImpl;
 import org.apache.jackrabbit.oak.query.ast.LiteralImpl;
@@ -136,8 +137,16 @@ public class Query {
             }
 
             @Override
+            public boolean visit(FullTextSearchImpl node) {
+                node.setQuery(query);
+                node.bindSelector(source);
+                return true;
+            }
+
+            @Override
             public boolean visit(FullTextSearchScoreImpl node) {
                 node.setQuery(query);
+                node.bindSelector(source);
                 return true;
             }
 
