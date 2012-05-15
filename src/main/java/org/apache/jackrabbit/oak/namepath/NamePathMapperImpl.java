@@ -127,7 +127,7 @@ public class NamePathMapperImpl implements NamePathMapper {
 
         JcrPathParser.parse(jcrPath, listener);
         if (parseErrors.length() != 0) {
-            log.debug("Could not parser path " + jcrPath + ": " + parseErrors.toString());
+            log.debug("Could not parse path " + jcrPath + ": " + parseErrors.toString());
             return null;
         }
 
