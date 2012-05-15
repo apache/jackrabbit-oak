@@ -83,7 +83,6 @@ public class EquiJoinConditionImpl extends JoinConditionImpl {
         if (v1 == null) {
             return false;
         }
-        // TODO data type mapping
         CoreValue v2 = selector2.currentProperty(property2Name);
         return v2 != null && v1.equals(v2);
     }

@@ -49,7 +49,7 @@ public class PropertyIndex implements Index {
             return null;
         }
         int index = nodeName.indexOf(':');
-        String propertyName = nodeName.substring(0, index);
+        String propertyName = nodeName.substring(index + 1);
         return new PropertyIndex(indexer, propertyName, unique);
     }
 

@@ -119,7 +119,7 @@ public class FilterImpl implements Filter {
     public void setAlwaysFalse() {
         propertyRestrictions.clear();
         valuePrefix = "none";
-        nodeType = "none";
+        nodeType = "";
         path = "/";
         pathRestriction = PathRestriction.EXACT;
         alwaysFalse = true;

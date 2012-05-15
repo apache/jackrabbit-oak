@@ -44,7 +44,7 @@ import java.util.Map.Entry;
 public class Indexer implements QueryIndexProvider {
 
     // TODO discuss where to store index config data
-    static final String INDEX_CONFIG_ROOT = "/jcr:system/indexes";
+    public static final String INDEX_CONFIG_ROOT = "/jcr:system/indexes";
 
     private static final boolean DISABLED = Boolean.getBoolean("mk.indexDisabled");
 

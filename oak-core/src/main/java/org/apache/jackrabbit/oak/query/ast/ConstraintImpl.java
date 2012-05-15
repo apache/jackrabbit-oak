@@ -28,7 +28,9 @@ public abstract class ConstraintImpl extends AstElement {
     public abstract boolean evaluate();
 
     /**
-     * Apply the condition to the filter, further restricting the filter if possible.
+     * Apply the condition to the filter, further restricting the filter if
+     * possible. This may also verify the data types are compatible, and that
+     * paths are valid.
      *
      * @param f the filter
      */

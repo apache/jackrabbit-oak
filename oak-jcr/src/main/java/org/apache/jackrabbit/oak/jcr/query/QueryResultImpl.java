@@ -32,6 +32,7 @@ import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.RowIterator;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
@@ -61,7 +62,7 @@ public class QueryResultImpl implements QueryResult {
     }
 
     @Override
-    public String[] getSelectorNames() throws RepositoryException {
+    public String[] getSelectorNames() {
         return result.getSelectorNames();
     }
 
@@ -80,10 +81,12 @@ public class QueryResultImpl implements QueryResult {
                 current = null;
                 while(it.hasNext()) {
                     ResultRow r = it.next();
-                    String path = r.getPath();
-                    if (PathUtils.isAncestor(pathFilter, path)) {
-                        current = new RowImpl(r, valueFactory);
-                        break;
+                    for (String s : getSelectorNames()) {
+                        String path = r.getPath(s);
+                        if (PathUtils.isAncestor(pathFilter, path)) {
+                            current = new RowImpl(sessionDelegate, r, valueFactory);
+                            break;
+                        }
                     }
                 }
             }
@@ -114,6 +117,9 @@ public class QueryResultImpl implements QueryResult {
 
     @Override
     public NodeIterator getNodes() throws RepositoryException {
+        if (getSelectorNames().length > 1) {
+            throw new RepositoryException("Query contains more than one selector: " + Arrays.toString(getSelectorNames()));
+        }
         Iterator<NodeImpl> it = new Iterator<NodeImpl>() {
 
             private final Iterator<? extends ResultRow> it = result.getRows().iterator();

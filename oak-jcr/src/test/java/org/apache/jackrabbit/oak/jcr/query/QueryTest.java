@@ -23,7 +23,6 @@ import static junit.framework.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
-import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.ValueFactory;
@@ -48,7 +47,6 @@ public class QueryTest extends AbstractRepositoryTest {
 
     @Test
     public void simple() throws RepositoryException {
-        Repository repository = getRepository();
         Session session = createAnonymousSession();
         try {
             Node hello = session.getRootNode().addNode("hello");
