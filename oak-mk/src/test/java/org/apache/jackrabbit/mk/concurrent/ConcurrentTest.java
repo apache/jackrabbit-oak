@@ -39,7 +39,7 @@ public class ConcurrentTest {
                 String newRev = mk.commit("/", "+\"" + i + "\":{\"x\": " + i + "}", rev, "");
                 Assert.assertTrue(!newRev.equals(rev));
                 mk.getJournal(rev, newRev, null);
-                mk.getRevisionHistory(start, 100);
+                mk.getRevisionHistory(start, 100, null);
                 mk.getNodes("/" + i, newRev);
                 mk.getNodes("/" + i, newRev, 0, 0, 0, null);
                 Assert.assertFalse(mk.nodeExists("/" + i, rev));

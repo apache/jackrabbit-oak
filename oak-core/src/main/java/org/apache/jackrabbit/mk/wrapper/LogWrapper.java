@@ -76,10 +76,10 @@ public class LogWrapper implements MicroKernel {
     }
 
     @Override
-    public String getJournal(String fromRevisionId, String toRevisionId, String filter) {
+    public String getJournal(String fromRevisionId, String toRevisionId, String path) {
         try {
             logMethod("getJournal", fromRevisionId, toRevisionId);
-            String result = mk.getJournal(fromRevisionId, toRevisionId, filter);
+            String result = mk.getJournal(fromRevisionId, toRevisionId, path);
             logResult(result);
             return result;
         } catch (Exception e) {
@@ -89,10 +89,10 @@ public class LogWrapper implements MicroKernel {
     }
 
     @Override
-    public String diff(String fromRevisionId, String toRevisionId, String filter) {
+    public String diff(String fromRevisionId, String toRevisionId, String path) {
         try {
-            logMethod("diff", fromRevisionId, toRevisionId, filter);
-            String result = mk.diff(fromRevisionId, toRevisionId, filter);
+            logMethod("diff", fromRevisionId, toRevisionId, path);
+            String result = mk.diff(fromRevisionId, toRevisionId, path);
             logResult(result);
             return result;
         } catch (Exception e) {
@@ -141,10 +141,10 @@ public class LogWrapper implements MicroKernel {
     }
 
     @Override
-    public String getRevisionHistory(long since, int maxEntries) {
+    public String getRevisionHistory(long since, int maxEntries, String path) {
         try {
-            logMethod("getRevisionHistory", since, maxEntries);
-            String result = mk.getRevisionHistory(since, maxEntries);
+            logMethod("getRevisionHistory", since, maxEntries, path);
+            String result = mk.getRevisionHistory(since, maxEntries, path);
             logResult(result);
             return result;
         } catch (Exception e) {

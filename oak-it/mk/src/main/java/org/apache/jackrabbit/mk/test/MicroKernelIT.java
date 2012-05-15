@@ -75,12 +75,12 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         long now = System.currentTimeMillis();
 
         // get history since 'now'
-        JSONArray array = parseJSONArray(mk.getRevisionHistory(now, -1));
+        JSONArray array = parseJSONArray(mk.getRevisionHistory(now, -1, null));
         // history should be empty since there was no commit since 'now'
         assertEquals(0, array.size());
 
         // get oldest available revision
-        array = parseJSONArray(mk.getRevisionHistory(0, 1));
+        array = parseJSONArray(mk.getRevisionHistory(0, 1, null));
         // there should be exactly 1 revision
         assertEquals(array.size(), 1);
 
@@ -94,7 +94,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         }
 
         // get oldest available revision
-        array = parseJSONArray(mk.getRevisionHistory(ts0, -1));
+        array = parseJSONArray(mk.getRevisionHistory(ts0, -1, null));
         // there should be exactly NUM_COMMITS revisions
         assertEquals(array.size(), NUM_COMMITS);
         long previousTS = ts0;
@@ -143,6 +143,8 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         array = parseJSONArray(mk.getJournal(toRev, fromRev, ""));
         // there should be exactly 0 entries
         assertEquals(array.size(), 0);
+
+        // TODO test getRevisionHistory/getJournal path filter
     }
 
     @Test
@@ -161,6 +163,8 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
 
         // diff of rev0->rev2 should be empty
         assertEquals(mk.diff(rev0, rev2, null), "");
+
+        // TODO test path filter
     }
 
     @Test
@@ -708,7 +712,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         branchRev = mk.commit("", "+\"/branch/foo\":{}", branchRev, "");
 
         // make sure branchRev doesn't show up in revision history
-        String hist = mk.getRevisionHistory(0, -1);
+        String hist = mk.getRevisionHistory(0, -1, null);
         JSONArray ar = parseJSONArray(hist);
         for (Object entry : ar) {
             assertTrue(entry instanceof JSONObject);

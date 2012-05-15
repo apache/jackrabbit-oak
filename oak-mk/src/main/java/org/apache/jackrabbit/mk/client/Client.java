@@ -112,7 +112,7 @@ public class Client implements MicroKernel {
     }
 
     @Override
-    public String getRevisionHistory(long since, int maxEntries)
+    public String getRevisionHistory(long since, int maxEntries, String path)
             throws MicroKernelException {
 
         Request request = null;
@@ -121,6 +121,7 @@ public class Client implements MicroKernel {
             request = createRequest("getRevisionHistory");
             request.addParameter("since", since);
             request.addParameter("max_entries", maxEntries);
+            request.addParameter("path", path);
             return request.getString();
         } catch (IOException e) {
             throw toMicroKernelException(e);
@@ -148,7 +149,7 @@ public class Client implements MicroKernel {
     }
 
     @Override
-    public String getJournal(String fromRevisionId, String toRevisionId, String filter)
+    public String getJournal(String fromRevisionId, String toRevisionId, String path)
             throws MicroKernelException {
         
         Request request = null;
@@ -157,7 +158,7 @@ public class Client implements MicroKernel {
             request = createRequest("getJournal");
             request.addParameter("from_revision_id", fromRevisionId);
             request.addParameter("to_revision_id", toRevisionId);
-            request.addParameter("filter", filter);
+            request.addParameter("path", path);
             return request.getString();
         } catch (IOException e) {
             throw toMicroKernelException(e);
@@ -167,7 +168,7 @@ public class Client implements MicroKernel {
     }
 
     @Override
-    public String diff(String fromRevisionId, String toRevisionId, String filter)
+    public String diff(String fromRevisionId, String toRevisionId, String path)
             throws MicroKernelException {
         Request request = null;
 
@@ -175,7 +176,7 @@ public class Client implements MicroKernel {
             request = createRequest("diff");
             request.addParameter("from_revision_id", fromRevisionId);
             request.addParameter("to_revision_id", toRevisionId);
-            request.addParameter("filter", filter);
+            request.addParameter("path", path);
             return request.getString();
         } catch (IOException e) {
             throw toMicroKernelException(e);
