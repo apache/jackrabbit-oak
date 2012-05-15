@@ -91,7 +91,7 @@ public class DefaultRevisionStoreTest {
         assertEquals(headRevision, mk.getHeadRevision());
         assertEquals(contents, mk.getNodes("/", headRevision));
         
-        String history = mk.getRevisionHistory(Long.MIN_VALUE, Integer.MIN_VALUE);
+        String history = mk.getRevisionHistory(Long.MIN_VALUE, Integer.MIN_VALUE, null);
         assertEquals(1, ((JsopArray) Jsop.parse(history)).size());
     }
 
@@ -115,7 +115,7 @@ public class DefaultRevisionStoreTest {
 
         rs.gc();
 
-        String history = mk.getRevisionHistory(Long.MIN_VALUE, Integer.MIN_VALUE);
+        String history = mk.getRevisionHistory(Long.MIN_VALUE, Integer.MIN_VALUE, null);
         assertEquals(1, ((JsopArray) Jsop.parse(history)).size());
     }
     

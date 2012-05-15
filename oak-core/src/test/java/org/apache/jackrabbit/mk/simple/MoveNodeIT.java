@@ -260,7 +260,7 @@ public class MoveNodeIT {
 
     private String getJournal() {
         if (journalRevision == null) {
-            String revs = mk.getRevisionHistory(0, 1);
+            String revs = mk.getRevisionHistory(0, 1, null);
             JsopTokenizer t = new JsopTokenizer(revs);
             t.read('[');
             do {

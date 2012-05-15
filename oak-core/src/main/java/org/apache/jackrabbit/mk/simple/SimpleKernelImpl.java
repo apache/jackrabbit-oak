@@ -342,7 +342,7 @@ public class SimpleKernelImpl extends MicroKernelWrapperBase implements MicroKer
     }
 
     @Override
-    public JsopReader getRevisionsStream(long since, int maxEntries) {
+    public JsopReader getRevisionsStream(long since, int maxEntries, String path) {
         NodeImpl node = getRoot();
         long sinceNanos = since * 1000000;
         ArrayList<Revision> revisions = new ArrayList<Revision>();
@@ -386,7 +386,7 @@ public class SimpleKernelImpl extends MicroKernelWrapperBase implements MicroKer
     }
 
     @Override
-    public JsopReader getJournalStream(String fromRevisionId, String toRevisionId, String filter) {
+    public JsopReader getJournalStream(String fromRevisionId, String toRevisionId, String path) {
         fromRevisionId = fromRevisionId == null ? headRevision : fromRevisionId;
         toRevisionId = toRevisionId == null ? headRevision : toRevisionId;
 
@@ -454,7 +454,7 @@ public class SimpleKernelImpl extends MicroKernelWrapperBase implements MicroKer
 
 
     @Override
-    public JsopReader diffStream(String fromRevisionId, String toRevisionId, String filter) {
+    public JsopReader diffStream(String fromRevisionId, String toRevisionId, String path) {
         fromRevisionId = fromRevisionId == null ? headRevision : fromRevisionId;
         toRevisionId = toRevisionId == null ? headRevision : toRevisionId;
         // TODO implement if required

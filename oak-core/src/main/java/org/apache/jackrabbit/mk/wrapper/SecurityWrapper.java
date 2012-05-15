@@ -107,9 +107,9 @@ public class SecurityWrapper extends MicroKernelWrapperBase implements MicroKern
     }
 
     @Override
-    public JsopReader getJournalStream(String fromRevisionId, String toRevisionId, String filter) {
+    public JsopReader getJournalStream(String fromRevisionId, String toRevisionId, String path) {
         rightsRevision = getHeadRevision();
-        JsopReader t = mk.getJournalStream(fromRevisionId, toRevisionId, filter);
+        JsopReader t = mk.getJournalStream(fromRevisionId, toRevisionId, path);
         if (admin) {
             return t;
         }
@@ -315,8 +315,8 @@ public class SecurityWrapper extends MicroKernelWrapperBase implements MicroKern
     }
 
     @Override
-    public JsopReader getRevisionsStream(long since, int maxEntries) {
-        return mk.getRevisionsStream(since, maxEntries);
+    public JsopReader getRevisionsStream(long since, int maxEntries, String path) {
+        return mk.getRevisionsStream(since, maxEntries, path);
     }
 
     @Override

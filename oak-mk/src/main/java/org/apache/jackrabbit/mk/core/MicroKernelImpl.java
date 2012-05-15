@@ -109,10 +109,11 @@ public class MicroKernelImpl implements MicroKernel {
         }
     }
 
-    public String getRevisionHistory(long since, int maxEntries) throws MicroKernelException {
+    public String getRevisionHistory(long since, int maxEntries, String path) throws MicroKernelException {
         if (rep == null) {
             throw new IllegalStateException("this instance has already been disposed");
         }
+        // todo support path filter
         maxEntries = maxEntries < 0 ? Integer.MAX_VALUE : maxEntries;
         List<StoredCommit> history = new ArrayList<StoredCommit>();
         try {
@@ -148,10 +149,12 @@ public class MicroKernelImpl implements MicroKernel {
         return gate.waitForCommit(oldHeadRevisionId, maxWaitMillis);
     }
 
-    public String getJournal(String fromRevision, String toRevision, String filter) throws MicroKernelException {
+    public String getJournal(String fromRevision, String toRevision, String path) throws MicroKernelException {
         if (rep == null) {
             throw new IllegalStateException("this instance has already been disposed");
         }
+
+        // todo support path filter
 
         Id fromRevisionId = Id.fromString(fromRevision);
         Id toRevisionId = toRevision == null ? getHeadRevisionId() : Id.fromString(toRevision);
@@ -218,9 +221,8 @@ public class MicroKernelImpl implements MicroKernel {
         return commitBuff.endArray().toString();
     }
 
-    public String diff(String fromRevision, String toRevision, String filter) throws MicroKernelException {
-        // TODO extract and evaluate filter criteria (such as e.g. 'path') specified in 'filter' parameter
-        String path = "/";
+    public String diff(String fromRevision, String toRevision, String path) throws MicroKernelException {
+        path = (path == null || "".equals(path)) ? "/" : path;
 
         Id fromRevisionId, toRevisionId;
         if (fromRevision == null || toRevision == null) {
@@ -240,7 +242,7 @@ public class MicroKernelImpl implements MicroKernel {
             NodeState before = rep.getNodeState(fromRevisionId, path);
             NodeState after = rep.getNodeState(toRevisionId, path);
 
-            return new DiffBuilder(before, after, path, rep.getRevisionStore(), filter).build();
+            return new DiffBuilder(before, after, path, rep.getRevisionStore(), path).build();
         } catch (Exception e) {
             throw new MicroKernelException(e);
         }
