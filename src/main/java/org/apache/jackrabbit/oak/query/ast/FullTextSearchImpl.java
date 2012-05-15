@@ -18,6 +18,10 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import java.text.ParseException;
+import java.util.ArrayList;
+import org.apache.jackrabbit.mk.simple.NodeImpl;
+import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
 public class FullTextSearchImpl extends ConstraintImpl {
@@ -25,6 +29,8 @@ public class FullTextSearchImpl extends ConstraintImpl {
     private final String selectorName;
     private final String propertyName;
     private final StaticOperandImpl fullTextSearchExpression;
+    private SelectorImpl selector;
+    private FullTextExpression expr;
 
     public FullTextSearchImpl(String selectorName, String propertyName,
             StaticOperandImpl fullTextSearchExpression) {
@@ -68,15 +74,229 @@ public class FullTextSearchImpl extends ConstraintImpl {
         return builder.toString();
     }
 
+    private boolean evaluateContains(CoreValue value) {
+        String v = value.getString();
+        return expr.evaluate(v);
+    }
+
     @Override
     public boolean evaluate() {
-        // TODO support evaluating fulltext conditions
+        if (propertyName != null) {
+            CoreValue v = selector.currentProperty(propertyName);
+            if (v == null) {
+                return false;
+            }
+            return evaluateContains(v);
+        }
+        NodeImpl n = selector.currentNode();
+        for (int i = 0; i < n.getPropertyCount(); i++) {
+            String p = n.getProperty(i);
+            if (p == null) {
+                break;
+            }
+            CoreValue v = selector.currentProperty(p);
+            if (evaluateContains(v)) {
+                return true;
+            }
+        }
         return false;
+    }
+
+    public void bindSelector(SourceImpl source) {
+        selector = source.getSelector(selectorName);
+        if (selector == null) {
+            throw new IllegalArgumentException("Unknown selector: " + selectorName);
+        }
+        CoreValue v = fullTextSearchExpression.currentValue();
+        try {
+            expr = FullTextParser.parse(v.getString());
+        } catch (ParseException e) {
+            throw new IllegalArgumentException("Invalid expression: " + fullTextSearchExpression, e);
+        }
     }
 
     @Override
     public void apply(FilterImpl f) {
+        if (propertyName != null) {
+            if (f.getSelector() == selector) {
+                f.restrictProperty(propertyName, Operator.NOT_EQUAL, (CoreValue) null);
+            }
+        }
         // TODO support fulltext index conditions
+    }
+
+    public static class FullTextParser {
+
+        String text;
+        int parseIndex;
+
+        public static FullTextExpression parse(String text) throws ParseException {
+            FullTextParser p = new FullTextParser();
+            p.text = text;
+            FullTextExpression e = p.parseOr();
+            return e;
+        }
+
+        FullTextExpression parseOr() throws ParseException {
+            FullTextOr or = new FullTextOr();
+            or.list.add(parseAnd());
+            while (parseIndex < text.length()) {
+                if (text.substring(parseIndex).startsWith("OR ")) {
+                    parseIndex += 3;
+                    or.list.add(parseAnd());
+                } else {
+                    break;
+                }
+            }
+            return or.simplify();
+        }
+
+        FullTextExpression parseAnd() throws ParseException {
+            FullTextAnd and = new FullTextAnd();
+            and.list.add(parseTerm());
+            while (parseIndex < text.length()) {
+                if (text.substring(parseIndex).startsWith("OR ")) {
+                    break;
+                }
+                and.list.add(parseTerm());
+            }
+            return and.simplify();
+        }
+
+        FullTextExpression parseTerm() throws ParseException {
+            if (parseIndex >= text.length()) {
+                throw getSyntaxError("term");
+            }
+            FullTextTerm term = new FullTextTerm();
+            StringBuilder buff = new StringBuilder();
+            char c = text.charAt(parseIndex);
+            if (c == '-') {
+                if (++parseIndex >= text.length()) {
+                    throw getSyntaxError("term");
+                }
+                term.not = true;
+            }
+            if (c == '\"') {
+                parseIndex++;
+                while (true) {
+                    if (parseIndex >= text.length()) {
+                        throw getSyntaxError("double quote");
+                    }
+                    c = text.charAt(parseIndex++);
+                    if (c == '\\') {
+                        // escape
+                        if (parseIndex >= text.length()) {
+                            throw getSyntaxError("escaped char");
+                        }
+                        c = text.charAt(parseIndex++);
+                        buff.append(c);
+                    } else if (c == '\"') {
+                        if (parseIndex < text.length() && text.charAt(parseIndex) != ' ') {
+                            throw getSyntaxError("space");
+                        }
+                        parseIndex++;
+                        break;
+                    } else {
+                        buff.append(c);
+                    }
+                }
+            } else {
+                do {
+                    c = text.charAt(parseIndex++);
+                    if (c == '\\') {
+                        // escape
+                        if (parseIndex >= text.length()) {
+                            throw getSyntaxError("escaped char");
+                        }
+                        c = text.charAt(parseIndex++);
+                        buff.append(c);
+                    } else if (c == ' ') {
+                        break;
+                    } else {
+                        buff.append(c);
+                    }
+                } while (parseIndex < text.length());
+            }
+            if (buff.length() == 0) {
+                throw getSyntaxError("term");
+            }
+            term.text = buff.toString();
+            return term.simplify();
+        }
+
+        private ParseException getSyntaxError(String expected) {
+            int index = Math.max(0, Math.min(parseIndex, text.length() - 1));
+            String query = text.substring(0, index) + "(*)" + text.substring(index).trim();
+            if (expected != null) {
+                query += "; expected: " + expected;
+            }
+            return new ParseException("FullText expression: " + query, index);
+        }
+
+    }
+
+    public abstract static class FullTextExpression {
+        public abstract boolean evaluate(String value);
+        abstract FullTextExpression simplify();
+    }
+
+    static class FullTextAnd extends FullTextExpression {
+        ArrayList<FullTextExpression> list = new ArrayList<FullTextExpression>();
+
+        @Override
+        public boolean evaluate(String value) {
+            for (FullTextExpression e : list) {
+                if (!e.evaluate(value)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        @Override
+        FullTextExpression simplify() {
+            return list.size() == 1 ? list.get(0) : this;
+        }
+
+    }
+
+    static class FullTextOr extends FullTextExpression {
+        ArrayList<FullTextExpression> list = new ArrayList<FullTextExpression>();
+
+        @Override
+        public boolean evaluate(String value) {
+            for (FullTextExpression e : list) {
+                if (e.evaluate(value)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        @Override
+        FullTextExpression simplify() {
+            return list.size() == 1 ? list.get(0).simplify() : this;
+        }
+
+    }
+
+    static class FullTextTerm extends FullTextExpression {
+        boolean not;
+        String text;
+
+        @Override
+        public boolean evaluate(String value) {
+            if (not) {
+                return value.indexOf(text) < 0;
+            }
+            return value.indexOf(text) >= 0;
+        }
+
+        @Override
+        FullTextExpression simplify() {
+            return this;
+        }
+
     }
 
 }
