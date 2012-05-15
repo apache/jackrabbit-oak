@@ -62,6 +62,10 @@ public class ChildNodeImpl extends ConstraintImpl {
     public boolean evaluate() {
         String p = selector.currentPath();
         String local = getLocalPath(p);
+        if (local == null) {
+            // not a local path
+            return false;
+        }
         // the parent of the root is the root,
         // so we need to special case this
         return !PathUtils.denotesRoot(local) && PathUtils.getParentPath(local).equals(parentPath);

@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import javax.jcr.PropertyType;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
@@ -49,15 +50,29 @@ public class LengthImpl extends DynamicOperandImpl {
         if (v == null) {
             return null;
         }
-        // TODO LENGTH(..) is the length of the string representation?
-        String value = v.getString();
-        return query.getValueFactory().createValue(value.length());
+        return query.getValueFactory().createValue(v.length());
     }
 
     @Override
     public void apply(FilterImpl f, Operator operator, CoreValue v) {
-        // ignore
-        // TODO LENGTH(x) conditions: can use IS NOT NULL?
+        switch (v.getType()) {
+        case PropertyType.LONG:
+        case PropertyType.DECIMAL:
+        case PropertyType.DOUBLE:
+            // ok - comparison with a number
+            break;
+        case PropertyType.BINARY:
+        case PropertyType.STRING:
+        case PropertyType.DATE:
+            // ok - compare with a string literal
+            break;
+        default:
+            throw new IllegalArgumentException(
+                    "Can not compare the length with a constant of type "
+                            + PropertyType.nameFromValue(v.getType()) +
+                            " and value " + v.toString());
+        }
+        // TODO LENGTH(x) conditions: can use IS NOT NULL as a condition?
     }
 
 }

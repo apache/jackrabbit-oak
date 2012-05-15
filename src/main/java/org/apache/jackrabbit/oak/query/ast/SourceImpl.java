@@ -29,32 +29,90 @@ public abstract class SourceImpl extends AstElement {
     protected boolean join;
     protected boolean outerJoin;
 
+    /**
+     * Set the complete constraint of the query (the WHERE ... condition).
+     *
+     * @param queryConstraint the constraint
+     */
     public void setQueryConstraint(ConstraintImpl queryConstraint) {
         this.queryConstraint = queryConstraint;
     }
 
+    /**
+     * Set the join condition (the ON ... condition).
+     *
+     * @param joinCondition the join condition
+     */
     public void setJoinCondition(JoinConditionImpl joinCondition) {
         this.joinCondition = joinCondition;
     }
 
+    /**
+     * Set whether this source is the right hand side of a left outer join.
+     *
+     * @param outerJoin true if yes
+     */
     public void setOuterJoin(boolean outerJoin) {
         this.outerJoin = outerJoin;
     }
 
-    public abstract void init(Query qom);
+    /**
+     * Initialize the query. This will 'wire' the selectors with the
+     * constraints.
+     *
+     * @param query the query
+     */
+    public abstract void init(Query query);
 
+    /**
+     * Get the selector with the given name, or null if not found.
+     *
+     * @param selectorName the selector name
+     * @return the selector, or null
+     */
     public abstract SelectorImpl getSelector(String selectorName);
 
+    /**
+     * Get the query plan.
+     *
+     * @return the query plan
+     */
     public abstract String getPlan();
 
+    /**
+     * Prepare executing the query. This method will decide which index to use.
+     *
+     * @param mk the MicroKernel
+     */
     public abstract void prepare(MicroKernel mk);
 
+    /**
+     * Execute the query. The current node is set to before the first row.
+     *
+     * @param revisionId the revision to use
+     */
     public abstract void execute(String revisionId);
 
+    /**
+     * Go to the next node for the given source. This will also filter the
+     * result for the right node type if required.
+     *
+     * @return true if there is a next row
+     */
     public abstract boolean next();
 
+    /**
+     * Get the current absolute path (including workspace name)
+     *
+     * @return the path
+     */
     public abstract String currentPath();
 
+    /**
+     * Get the current node.
+     *
+     * @return the node
+     */
     public abstract NodeImpl currentNode();
 
 }

@@ -18,10 +18,9 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.mk.simple.NodeImpl;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
 public class PropertyValueImpl extends DynamicOperandImpl {
@@ -76,11 +75,8 @@ public class PropertyValueImpl extends DynamicOperandImpl {
         if (!n.hasProperty(name)) {
             return null;
         }
-        // TODO data type mapping
         String value = n.getProperty(name);
-        value = JsopTokenizer.decodeQuoted(value);
-        return query.getValueFactory().createValue(value);
-
+        return getCoreValue(value);
     }
 
     public void bindSelector(SourceImpl source) {

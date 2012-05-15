@@ -18,7 +18,12 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import org.apache.jackrabbit.mk.json.JsopReader;
+import org.apache.jackrabbit.mk.json.JsopTokenizer;
+import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.kernel.CoreValueMapper;
 import org.apache.jackrabbit.oak.query.Query;
 
 abstract class AstElement {
@@ -60,10 +65,11 @@ abstract class AstElement {
     }
 
     /**
-     * Calculate the session local path (the path excluding the workspace name).
+     * Calculate the session local path (the path excluding the workspace name)
+     * if possible.
      *
      * @param path the absolute path
-     * @return the session local path
+     * @return the session local path, or null if not within this workspace
      */
     protected String getLocalPath(String path) {
         String workspaceName = query.getWorkspaceName();
@@ -71,7 +77,27 @@ abstract class AstElement {
             return path;
         }
         String prefix = PathUtils.concat("/", workspaceName);
-        return PathUtils.concat("/", PathUtils.relativize(prefix, path));
+        if (path.startsWith(prefix)) {
+            return PathUtils.concat("/", PathUtils.relativize(prefix, path));
+        }
+        return null;
+    }
+
+    /**
+     * Convert the JSON property value to a core value.
+     *
+     * @param propertyValue JSON property value
+     * @return the core value
+     */
+    protected CoreValue getCoreValue(String propertyValue) {
+        // TODO data type mapping
+        CoreValueFactory vf = query.getValueFactory();
+        JsopReader r = new JsopTokenizer(propertyValue);
+        if (r.matches('[')) {
+            // TODO support arrays, but only for comparisons
+            throw new IllegalArgumentException("Arrays are currently not supported: " + propertyValue);
+        }
+        return CoreValueMapper.fromJsopReader(r, vf);
     }
 
 }
