@@ -103,6 +103,7 @@ public class NodeStateBuilder2  {
         void addNode(String path);
         void removeNode(String path);
         void setProperty(String path, PropertyState propertyState);
+        void setNode(String concat);
     }
 
     static void toJsop(String path, NodeState node, Listener listener) {
@@ -259,8 +260,7 @@ public class NodeStateBuilder2  {
         @Override
         public void toJsop(String path, Listener listener) {
             super.toJsop(path, listener);
-            listener.removeNode(PathUtils.concat(path, childName));
-            listener.addNode(PathUtils.concat(path, childName));
+            listener.setNode(PathUtils.concat(path, childName));
             NodeStateBuilder2.toJsop(PathUtils.concat(path, childName), node, listener);
         }
     }
@@ -530,6 +530,11 @@ public class NodeStateBuilder2  {
         NodeState r = removeNode(base, "a");
         r = setNode(r, "b", addNode(b, "a", a));
 
+        // >b:c
+//        NodeState b = base.getChildNode("b");
+//        NodeState r = removeNode(base, "b");
+//        r = addNode(r, "c", b);
+
         System.out.println(r);
 
         final StringBuilder sb = new StringBuilder();
@@ -560,6 +565,11 @@ public class NodeStateBuilder2  {
                    .append(':').append(toJson(propertyState));
             }
 
+            @Override
+            public void setNode(String path) {
+                sb.append("-\"").append(path).append('"');
+                sb.append("+\"").append(path).append("\":");
+            }
         });
 
         System.out.println(sb.toString());
