@@ -135,7 +135,9 @@ public interface MicroKernel {
      * <p/>
      * The {@code path} parameter allows to filter the revisions by path, i.e.
      * only those revisions that affected the subtree rooted at {@code path}
-     * will be included.
+     * will be included. The filter will also be applied to the JSON diff, i.e.
+     * the diff will include only those changes that affected the subtree rooted
+     * at {@code path}.
      * <p/>
      * A {@code MicroKernelException} is thrown if either {@code fromRevisionId}
      * or {@code toRevisionId}  doesn't exist, denotes a <i>private</i> branch
@@ -160,9 +162,9 @@ public interface MicroKernel {
      * covers intermediary revisions. {@code fromRevisionId} and {@code toRevisionId}
      * don't need not be in a specific chronological order.
      * <p/>
-     * The {@code path} parameter allows to filter the revisions by path, i.e.
-     * only those revisions that affected the subtree rooted at {@code path}
-     * will be included.
+     * The {@code path} parameter allows to filter the changes included in the
+     * JSON diff, i.e. only those changes that affected the subtree rooted at
+     * {@code path} will be included.
      *
      * @param fromRevisionId a revision id, if {@code null} the current head revision is assumed
      * @param toRevisionId   another revision id, if {@code null} the current head revision is assumed
