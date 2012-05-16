@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.namepath;
 
+import javax.annotation.CheckForNull;
+
 public interface NameMapper {
 
     /**
@@ -26,6 +28,7 @@ public interface NameMapper {
      * @param jcrName JCR name
      * @return Oak name, or {@code null}
      */
+    @CheckForNull
     String getOakName(String jcrName);
 
     /**
@@ -38,6 +41,6 @@ public interface NameMapper {
      * @param oakName Oak name
      * @return JCR name
      */
+    @CheckForNull
     String getJcrName(String oakName);
-
 }

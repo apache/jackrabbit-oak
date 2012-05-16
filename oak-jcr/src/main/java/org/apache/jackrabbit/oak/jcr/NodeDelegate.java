@@ -27,6 +27,8 @@ import org.apache.jackrabbit.oak.util.Iterators;
 import java.util.Iterator;
 import java.util.List;
 
+import javax.annotation.CheckForNull;
+
 /**
  * {@code NodeDelegate} serve as internal representations of {@code Node}s.
  * The methods of this class do not throw checked exceptions. Instead clients
@@ -119,6 +121,7 @@ public class NodeDelegate extends ItemDelegate {
      * @return  property at the path given by {@code relPath} or {@code null} if
      * no such property exists
      */
+    @CheckForNull
     public PropertyDelegate getProperty(String relPath) {
         Tree parent = getTree(PathUtils.getParentPath(relPath));
         if (parent == null) {
