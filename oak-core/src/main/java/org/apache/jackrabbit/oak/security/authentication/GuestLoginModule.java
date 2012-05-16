@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.security.authentication;
 
 import org.apache.jackrabbit.oak.spi.security.authentication.CredentialsCallback;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,12 +78,16 @@ public class GuestLoginModule implements LoginModule {
 
     private static final Logger log = LoggerFactory.getLogger(GuestLoginModule.class);
 
+    private Subject subject;
     private CallbackHandler callbackHandler;
     private Map sharedState;
+
+    private GuestCredentials guestCredentials;
 
     //--------------------------------------------------------< LoginModule >---
     @Override
     public void initialize(Subject subject, CallbackHandler callbackHandler, Map<String, ?> sharedState, Map<String, ?> options) {
+        this.subject = subject;
         this.callbackHandler = callbackHandler;
         this.sharedState = sharedState;
     }
@@ -102,7 +107,8 @@ public class GuestLoginModule implements LoginModule {
                     } else {
                         sharedCredentials = (Set) sharedObj;
                     }
-                    sharedCredentials.add(new GuestCredentials());
+                    guestCredentials = new GuestCredentials();
+                    sharedCredentials.add(guestCredentials);
                     sharedState.put(LoginModuleImpl.SHARED_KEY_CREDENTIALS, sharedCredentials);
                     return true;
                 }
@@ -119,8 +125,10 @@ public class GuestLoginModule implements LoginModule {
 
     @Override
     public boolean commit() throws LoginException {
-        // not populating the subject as this login module delegates this
-        // responsibility to a subsequent login module.
+        if (guestCredentials != null) {
+            subject.getPublicCredentials().add(guestCredentials);
+            subject.getPrincipals().add(EveryonePrincipal.getInstance());
+        }
         return true;
     }
 

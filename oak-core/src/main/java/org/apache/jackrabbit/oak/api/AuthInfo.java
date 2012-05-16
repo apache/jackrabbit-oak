@@ -23,6 +23,23 @@ package org.apache.jackrabbit.oak.api;
  */
 public interface AuthInfo {
 
+    AuthInfo EMPTY = new AuthInfo() {
+        @Override
+        public String getUserID() {
+            return null;
+        }
+
+        @Override
+        public String[] getAttributeNames() {
+            return new String[0];
+        }
+
+        @Override
+        public Object getAttribute(String attributeName) {
+            return null;
+        }
+    };
+
     /**
      * Return the user ID to be exposed on the JCR Session object. It refers
      * to the ID of the user associated with the Credentials passed to the
@@ -48,5 +65,4 @@ public interface AuthInfo {
      * @return The attribute or {@code null}.
      */
     Object getAttribute(String attributeName);
-
 }
