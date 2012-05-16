@@ -16,20 +16,18 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
+import java.util.Collections;
+import java.util.Map;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.Map;
-
 /**
  * Basic in-memory node state implementation.
  */
-public class MemoryNodeState extends AbstractNodeState
-        implements Iterable<ChildNodeEntry> {
+public class MemoryNodeState extends AbstractNodeState {
 
     /**
      * Singleton instance of an empty node state, i.e. one with neither
@@ -87,27 +85,7 @@ public class MemoryNodeState extends AbstractNodeState
 
     @Override
     public Iterable<ChildNodeEntry> getChildNodeEntries() {
-        return this;
-    }
-
-    @Override
-    public Iterator<ChildNodeEntry> iterator() {
-        final Iterator<Map.Entry<String, NodeState>> iterator =
-                nodes.entrySet().iterator();
-        return new Iterator<ChildNodeEntry>() {
-            @Override
-            public boolean hasNext() {
-                return iterator.hasNext();
-            }
-            @Override
-            public ChildNodeEntry next() {
-                return new MemoryChildNodeEntry(iterator.next());
-            }
-            @Override
-            public void remove() {
-                throw new UnsupportedOperationException();
-            }
-        };
+        return MemoryChildNodeEntry.iterable(nodes);
     }
 
 }
