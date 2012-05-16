@@ -25,7 +25,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.LoginContext;
 import javax.security.auth.login.LoginException;
 import java.io.IOException;
@@ -36,7 +35,6 @@ import java.util.Set;
  */
 class ContentSessionImpl implements ContentSession {
 
-    /** Logger instance */
     private static final Logger log = LoggerFactory.getLogger(ContentSessionImpl.class);
 
     private final LoginContext loginContext;
@@ -54,25 +52,12 @@ class ContentSessionImpl implements ContentSession {
 
     @Override
     public AuthInfo getAuthInfo() {
-        // todo implement properly with extension point or pass it with the constructor...
-        Set<SimpleCredentials> creds = loginContext.getSubject().getPublicCredentials(SimpleCredentials.class);
-        final SimpleCredentials sc = (creds.isEmpty()) ? new SimpleCredentials(null, new char[0]) : creds.iterator().next();
-        return new AuthInfo() {
-            @Override
-            public String  getUserID() {
-                return sc.getUserID();
-            }
-
-            @Override
-            public String[] getAttributeNames() {
-                return sc.getAttributeNames();
-            }
-
-            @Override
-            public Object getAttribute(String attributeName) {
-                return sc.getAttribute(attributeName);
-            }
-        };
+        Set<AuthInfo> infoSet = loginContext.getSubject().getPublicCredentials(AuthInfo.class);
+        if (infoSet.isEmpty()) {
+            return AuthInfo.EMPTY;
+        } else {
+            return infoSet.iterator().next();
+        }
     }
 
     @Override

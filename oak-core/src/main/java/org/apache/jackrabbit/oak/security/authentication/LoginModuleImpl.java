@@ -17,7 +17,9 @@
 package org.apache.jackrabbit.oak.security.authentication;
 
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
+import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.CredentialsCallback;
+import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.spi.security.authentication.PrincipalProviderCallback;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.slf4j.Logger;
@@ -34,6 +36,7 @@ import javax.security.auth.login.LoginException;
 import javax.security.auth.spi.LoginModule;
 import java.io.IOException;
 import java.security.Principal;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -68,6 +71,7 @@ import java.util.Set;
  *     <li>{@link SimpleCredentials}</li>
  *     <li>{@link GuestCredentials}</li>
  *     <li>{@link TokenCredentials}</li>
+ *     <li>{@link ImpersonationCredentials}</li>
  * </ul>
  *
  * The {@link Credentials} obtained during the {@link #login()} are added to
@@ -105,12 +109,11 @@ public class LoginModuleImpl implements LoginModule {
      */
     public static final String SHARED_KEY_CREDENTIALS = "org.apache.jackrabbit.oak.credentials";
 
-    //public static final String SHARED_KEY_LOGIN_NAME = "javax.security.auth.login.name";
-
     protected static final Set<Class> SUPPORTED_CREDENTIALS = new HashSet<Class>(2);
     static {
         SUPPORTED_CREDENTIALS.add(SimpleCredentials.class);
         SUPPORTED_CREDENTIALS.add(GuestCredentials.class);
+        SUPPORTED_CREDENTIALS.add(ImpersonationCredentials.class);
         SUPPORTED_CREDENTIALS.add(TokenCredentials.class);
     }
 
@@ -120,6 +123,7 @@ public class LoginModuleImpl implements LoginModule {
 
     private Set<Credentials> credentials;
     private Set<Principal> principals;
+    private String userID;
 
     //--------------------------------------------------------< LoginModule >---
     @Override
@@ -135,12 +139,15 @@ public class LoginModuleImpl implements LoginModule {
     public boolean login() throws LoginException {
         // TODO
         credentials = getCredentials();
-        if (supportsCredentials()) {
-            principals = getPrincipals();
-            return true;
-        } else {
-            return false;
+        principals = getPrincipals();
+        userID = getUserID();
+
+        Authentication authentication = new AuthenticationImpl(userID);
+        boolean success = authenticate(authentication);
+        if (!success) {
+            success = impersonate(authentication);
         }
+        return success;
     }
 
     @Override
@@ -150,6 +157,7 @@ public class LoginModuleImpl implements LoginModule {
         if (!subject.isReadOnly()) {
             subject.getPrincipals().addAll(principals);
             subject.getPublicCredentials().addAll(credentials);
+            subject.getPublicCredentials().add(getAuthInfo());
         } else {
             log.debug("Could not add information to read only subject {}", subject);
         }
@@ -237,30 +245,23 @@ public class LoginModuleImpl implements LoginModule {
         return sharedCredentials;
     }
 
-    private boolean supportsCredentials() {
-        for (Credentials creds : credentials) {
-            if (isSupportedCredentials(creds)) {
-                return true;
+    private <T extends Credentials> java.util.Set<T> getCredentials(java.lang.Class<T> credentialsClass) {
+        Set<T> cds = new HashSet<T>();
+        for (Credentials c : credentials) {
+            if (credentialsClass.isAssignableFrom(c.getClass())) {
+                cds.add((T) c);
             }
         }
-        return false;
-    }
-
-    private static boolean isSupportedCredentials(Credentials credentials) {
-        return SUPPORTED_CREDENTIALS.contains(credentials.getClass());
+        return cds;
     }
 
     private static Principal getPrincipal(Credentials credentials, PrincipalProvider principalProvider) {
         Principal principal = null;
-        if (isSupportedCredentials(credentials)) {
-            if (credentials instanceof SimpleCredentials) {
-                String userID = ((SimpleCredentials) credentials).getUserID();
-                principal = principalProvider.getPrincipal(userID); // FIXME
-            } else if (credentials instanceof GuestCredentials) {
-                principal = principalProvider.getPrincipal("anonymous"); // FIXME
-            } else if (credentials instanceof TokenCredentials) {
-                // TODO
-            }
+        if (credentials instanceof SimpleCredentials) {
+            String userID = ((SimpleCredentials) credentials).getUserID();
+            principal = principalProvider.getPrincipal(userID); // FIXME
+        } else if (credentials instanceof GuestCredentials) {
+            principal = principalProvider.getPrincipal("anonymous"); // FIXME
         }
 
         return principal;
@@ -300,5 +301,53 @@ public class LoginModuleImpl implements LoginModule {
             }
         }
         return principalProvider;
+    }
+
+    private String getUserID() {
+        // TODO add proper implementation
+        String userID = null;
+        Credentials c = credentials.iterator().next();
+        if (c instanceof SimpleCredentials) {
+            userID = ((SimpleCredentials) c).getUserID();
+        } else if (c instanceof GuestCredentials) {
+            userID = "anonymous";
+        } else if (c instanceof ImpersonationCredentials) {
+            Credentials bc = ((ImpersonationCredentials) c).getBaseCredentials();
+            if (bc instanceof SimpleCredentials) {
+                userID = ((SimpleCredentials) bc).getUserID();
+            }
+        }
+        return userID;
+    }
+
+    private boolean impersonate(Authentication authentication) {
+        for (ImpersonationCredentials ic : getCredentials(ImpersonationCredentials.class)) {
+            AuthInfo info = ic.getImpersonatorInfo();
+            if (info instanceof AuthInfoImpl) {
+                if (authentication.impersonate(((AuthInfoImpl) info).getPrincipals())) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean authenticate(Authentication authentication) {
+        for (Credentials creds : credentials) {
+            if (authentication.authenticate(creds)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private AuthInfo getAuthInfo() {
+        Map<String, Object> attributes = new HashMap<String, Object>();
+        for (SimpleCredentials sc : getCredentials(SimpleCredentials.class)) {
+            for (String attrName : sc.getAttributeNames()) {
+                attributes.put(attrName, sc.getAttribute(attrName));
+            }
+        }
+        return new AuthInfoImpl(userID, attributes, principals);
     }
 }

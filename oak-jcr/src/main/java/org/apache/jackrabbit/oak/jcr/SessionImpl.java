@@ -20,6 +20,7 @@ import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.AbstractSession;
+import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.ContentHandler;
@@ -96,8 +97,8 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     public Session impersonate(Credentials credentials) throws RepositoryException {
         ensureIsAlive();
 
-        // TODO
-        throw new UnsupportedRepositoryOperationException("TODO: Session.impersonate");
+        ImpersonationCredentials impCreds = new ImpersonationCredentials(credentials, dlg.getAuthInfo());
+        return getRepository().login(impCreds, dlg.getWorkspaceName());
     }
 
     @Override

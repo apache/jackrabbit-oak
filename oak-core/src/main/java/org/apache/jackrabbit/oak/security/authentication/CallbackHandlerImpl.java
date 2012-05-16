@@ -24,7 +24,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.jcr.Credentials;
 import javax.jcr.SimpleCredentials;
-import javax.security.auth.Subject;
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.callback.NameCallback;
@@ -40,7 +39,6 @@ import java.io.IOException;
  *     <li>{@link CredentialsCallback}</li>
  *     <li>{@link NameCallback}</li>
  *     <li>{@link PasswordCallback}</li>
- *     <li>{@link ImpersonationCallback}</li>
  *     <li>{@link PrincipalProviderCallback}</li>
  * </ul>
  */
@@ -69,8 +67,6 @@ public class CallbackHandlerImpl implements CallbackHandler {
                 ((NameCallback) callback).setName(getName());
             } else if (callback instanceof PasswordCallback) {
                 ((PasswordCallback) callback).setPassword(getPassword());
-            } else if (callback instanceof ImpersonationCallback) {
-                ((ImpersonationCallback) callback).setImpersonator(getImpersonationSubject());
             } else if (callback instanceof PrincipalProviderCallback) {
                 ((PrincipalProviderCallback) callback).setPrincipalProvider(principalProvider);
             } else {
@@ -95,18 +91,5 @@ public class CallbackHandlerImpl implements CallbackHandler {
         } else {
             return null;
         }
-    }
-
-    private Subject getImpersonationSubject() {
-        if (credentials instanceof ImpersonationCredentials) {
-            return ((ImpersonationCredentials) credentials).getImpersonatingSubject();
-        } else if (credentials instanceof SimpleCredentials) {
-            Object attr = ((SimpleCredentials) credentials).getAttribute(ImpersonationCredentials.IMPERSONATOR_ATTRIBUTE);
-            if (attr instanceof Subject) {
-                return (Subject) attr;
-            }
-        }
-
-        return null;
     }
 }
