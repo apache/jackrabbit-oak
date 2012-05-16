@@ -68,7 +68,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         assertNotNull(head);
 
         try {
-            Thread.sleep(1000);
+            Thread.sleep(100);
         } catch (InterruptedException ignore) {
         }
 
@@ -144,7 +144,36 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         // there should be exactly 0 entries
         assertEquals(array.size(), 0);
 
-        // TODO test getRevisionHistory/getJournal path filter
+        // test getRevisionHistory/getJournal/diff path filter
+        mk.commit("/test", "+\"foo\":{} +\"bar\":{}", null, "");
+
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException ignore) {
+        }
+
+        long ts1 = System.currentTimeMillis();
+
+        String revFoo = mk.commit("/test/foo", "^\"p1\":123", null, "");
+        String revBar = mk.commit("/test/bar", "^\"p2\":456", null, "");
+
+        // get history since ts1 (no filter)
+        array = parseJSONArray(mk.getRevisionHistory(ts1, -1, null));
+        // history should contain 2 commits: revFoo and revBar
+        assertEquals(2, array.size());
+        assertPropertyValue(getObjectArrayEntry(array, 0), "id", revFoo);
+        assertPropertyValue(getObjectArrayEntry(array, 1), "id", revBar);
+
+        // get history since ts1 (non-matching filter)
+        array = parseJSONArray(mk.getRevisionHistory(ts1, -1, "/blah"));
+        // history should contain 0 commits since filter doesn't match
+        assertEquals(0, array.size());
+
+        // get history since ts1 (filter on /test/bar)
+        array = parseJSONArray(mk.getRevisionHistory(ts1, -1, "/test/bar"));
+        // history should contain 1 commits: revFoo and revBar
+        assertEquals(1, array.size());
+        assertPropertyValue(getObjectArrayEntry(array, 0), "id", revBar);
     }
 
     @Test

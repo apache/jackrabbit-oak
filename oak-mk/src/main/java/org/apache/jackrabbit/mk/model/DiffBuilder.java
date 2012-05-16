@@ -51,7 +51,8 @@ public class DiffBuilder {
         final HashMap<NodeState, String> addedNodes = new HashMap<NodeState, String>();
         final HashMap<NodeState, String> removedNodes = new HashMap<NodeState, String>();
 
-        if (!path.startsWith(pathFilter)) {
+        if (!PathUtils.isAncestor(path, pathFilter)
+                && !path.startsWith(pathFilter)) {
             return "";
         }
 
@@ -73,71 +74,67 @@ public class DiffBuilder {
             @Override
             public void propertyAdded(PropertyState after) {
                 String p = PathUtils.concat(getCurrentPath(), after.getName());
-                if (!p.startsWith(pathFilter)) {
-                    return;
+                if (p.startsWith(pathFilter)) {
+                    buff.tag('+').
+                            key(p).
+                            encodedValue(after.getEncodedValue()).
+                            newline();
                 }
-                buff.tag('+').
-                        key(p).
-                        encodedValue(after.getEncodedValue()).
-                        newline();
             }
 
             @Override
             public void propertyChanged(PropertyState before, PropertyState after) {
                 String p = PathUtils.concat(getCurrentPath(), after.getName());
-                if (!p.startsWith(pathFilter)) {
-                    return;
+                if (p.startsWith(pathFilter)) {
+                    buff.tag('^').
+                            key(p).
+                            encodedValue(after.getEncodedValue()).
+                            newline();
                 }
-                buff.tag('^').
-                        key(p).
-                        encodedValue(after.getEncodedValue()).
-                        newline();
             }
 
             @Override
             public void propertyDeleted(PropertyState before) {
                 String p = PathUtils.concat(getCurrentPath(), before.getName());
-                if (!p.startsWith(pathFilter)) {
-                    return;
+                if (p.startsWith(pathFilter)) {
+                    // since property and node deletions can't be distinguished
+                    // using the "- <path>" notation we're representing
+                    // property deletions as "^ <path>:null"
+                    buff.tag('^').
+                            key(p).
+                            value(null).
+                            newline();
                 }
-                // since property and node deletions can't be distinguished
-                // using the "- <path>" notation we're representing
-                // property deletions as "^ <path>:null"
-                buff.tag('^').
-                        key(p).
-                        value(null).
-                        newline();
             }
 
             @Override
             public void childNodeAdded(String name, NodeState after) {
                 String p = PathUtils.concat(getCurrentPath(), name);
-                if (!p.startsWith(pathFilter)) {
-                    return;
+                if (p.startsWith(pathFilter)) {
+                    addedNodes.put(after, p);
+                    buff.tag('+').
+                            key(p).object();
+                    toJson(buff, after);
+                    buff.endObject().newline();
                 }
-                addedNodes.put(after, p);
-                buff.tag('+').
-                        key(p).object();
-                toJson(buff, after);
-                buff.endObject().newline();
             }
 
             @Override
             public void childNodeDeleted(String name, NodeState before) {
                 String p = PathUtils.concat(getCurrentPath(), name);
-                if (!p.startsWith(pathFilter)) {
-                    return;
+                if (p.startsWith(pathFilter)) {
+                    removedNodes.put(before, p);
+                    buff.tag('-');
+                    buff.value(p);
+                    buff.newline();
                 }
-                removedNodes.put(before, p);
-                buff.tag('-');
-                buff.value(p);
-                buff.newline();
             }
 
             @Override
             public void childNodeChanged(String name, NodeState before, NodeState after) {
                 String p = PathUtils.concat(getCurrentPath(), name);
-                if (p.startsWith(pathFilter)) {
+                if (PathUtils.isAncestor(p, pathFilter)
+                        || p.startsWith(pathFilter)) {
                     super.childNodeChanged(name, before, after);
                 }
             }
@@ -161,40 +158,37 @@ public class DiffBuilder {
                 @Override
                 public void propertyAdded(PropertyState after) {
                     String p = PathUtils.concat(getCurrentPath(), after.getName());
-                    if (!p.startsWith(pathFilter)) {
-                        return;
+                    if (p.startsWith(pathFilter)) {
+                        buff.tag('+').
+                                key(p).
+                                encodedValue(after.getEncodedValue()).
+                                newline();
                     }
-                    buff.tag('+').
-                            key(p).
-                            encodedValue(after.getEncodedValue()).
-                            newline();
                 }
 
                 @Override
                 public void propertyChanged(PropertyState before, PropertyState after) {
                     String p = PathUtils.concat(getCurrentPath(), after.getName());
-                    if (!p.startsWith(pathFilter)) {
-                        return;
+                    if (p.startsWith(pathFilter)) {
+                        buff.tag('^').
+                                key(p).
+                                encodedValue(after.getEncodedValue()).
+                                newline();
                     }
-                    buff.tag('^').
-                            key(p).
-                            encodedValue(after.getEncodedValue()).
-                            newline();
                 }
 
                 @Override
                 public void propertyDeleted(PropertyState before) {
                     String p = PathUtils.concat(getCurrentPath(), before.getName());
-                    if (!p.startsWith(pathFilter)) {
-                        return;
+                    if (p.startsWith(pathFilter)) {
+                        // since property and node deletions can't be distinguished
+                        // using the "- <path>" notation we're representing
+                        // property deletions as "^ <path>:null"
+                        buff.tag('^').
+                                key(p).
+                                value(null).
+                                newline();
                     }
-                    // since property and node deletions can't be distinguished
-                    // using the "- <path>" notation we're representing
-                    // property deletions as "^ <path>:null"
-                    buff.tag('^').
-                            key(p).
-                            value(null).
-                            newline();
                 }
 
                 @Override
@@ -204,13 +198,12 @@ public class DiffBuilder {
                         return;
                     }
                     String p = PathUtils.concat(getCurrentPath(), name);
-                    if (!p.startsWith(pathFilter)) {
-                        return;
+                    if (p.startsWith(pathFilter)) {
+                        buff.tag('+').
+                                key(p).object();
+                        toJson(buff, after);
+                        buff.endObject().newline();
                     }
-                    buff.tag('+').
-                            key(p).object();
-                    toJson(buff, after);
-                    buff.endObject().newline();
                 }
 
                 @Override
@@ -220,18 +213,18 @@ public class DiffBuilder {
                         return;
                     }
                     String p = PathUtils.concat(getCurrentPath(), name);
-                    if (!p.startsWith(pathFilter)) {
-                        return;
+                    if (p.startsWith(pathFilter)) {
+                        buff.tag('-');
+                        buff.value(p);
+                        buff.newline();
                     }
-                    buff.tag('-');
-                    buff.value(p);
-                    buff.newline();
                 }
 
                 @Override
                 public void childNodeChanged(String name, NodeState before, NodeState after) {
                     String p = PathUtils.concat(getCurrentPath(), name);
-                    if (p.startsWith(pathFilter)) {
+                    if (PathUtils.isAncestor(p, pathFilter)
+                            || p.startsWith(pathFilter)) {
                         super.childNodeChanged(name, before, after);
                     }
                 }

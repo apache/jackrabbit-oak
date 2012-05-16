@@ -113,7 +113,10 @@ public class MicroKernelImpl implements MicroKernel {
         if (rep == null) {
             throw new IllegalStateException("this instance has already been disposed");
         }
-        // todo support path filter
+
+        path = (path == null || "".equals(path)) ? "/" : path;
+        boolean filtered = !"/".equals(path);
+
         maxEntries = maxEntries < 0 ? Integer.MAX_VALUE : maxEntries;
         List<StoredCommit> history = new ArrayList<StoredCommit>();
         try {
@@ -121,7 +124,21 @@ public class MicroKernelImpl implements MicroKernel {
             while (commit != null
                     && history.size() < maxEntries
                     && commit.getCommitTS() >= since) {
-                history.add(commit);
+                if (filtered) {
+                    try {
+                        String diff = new DiffBuilder(
+                                rep.getNodeState(commit.getParentId(), "/"),
+                                rep.getNodeState(commit.getId(), "/"),
+                                "/", rep.getRevisionStore(), path).build();
+                        if (!diff.isEmpty()) {
+                            history.add(commit);
+                        }
+                    } catch (Exception e) {
+                        throw new MicroKernelException(e);
+                    }
+                } else {
+                    history.add(commit);
+                }
 
                 Id commitId = commit.getParentId();
                 if (commitId == null) {
