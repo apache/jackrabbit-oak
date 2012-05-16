@@ -31,6 +31,7 @@ import org.apache.jackrabbit.value.ValueHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
 import javax.jcr.Binary;
 import javax.jcr.Item;
 import javax.jcr.ItemExistsException;
@@ -415,6 +416,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     }
 
     @Override
+    @Nonnull
     public Property getProperty(String relPath) throws RepositoryException {
         checkStatus();
 

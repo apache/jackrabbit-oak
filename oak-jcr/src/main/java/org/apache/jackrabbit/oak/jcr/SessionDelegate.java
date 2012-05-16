@@ -16,6 +16,21 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import java.io.IOException;
+
+import javax.annotation.CheckForNull;
+import javax.jcr.ItemExistsException;
+import javax.jcr.NamespaceRegistry;
+import javax.jcr.PathNotFoundException;
+import javax.jcr.Repository;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.Workspace;
+import javax.jcr.lock.LockManager;
+import javax.jcr.nodetype.NodeTypeManager;
+import javax.jcr.query.QueryManager;
+import javax.jcr.version.VersionManager;
+
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -31,19 +46,6 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.jcr.ItemExistsException;
-import javax.jcr.NamespaceRegistry;
-import javax.jcr.PathNotFoundException;
-import javax.jcr.Repository;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.Workspace;
-import javax.jcr.lock.LockManager;
-import javax.jcr.nodetype.NodeTypeManager;
-import javax.jcr.query.QueryManager;
-import javax.jcr.version.VersionManager;
-import java.io.IOException;
 
 public class SessionDelegate {
     static final Logger log = LoggerFactory.getLogger(SessionDelegate.class);
@@ -312,6 +314,7 @@ public class SessionDelegate {
     private class SessionNameMapper extends AbstractNameMapper {
 
         @Override
+        @CheckForNull
         protected String getJcrPrefix(String oakPrefix) {
             try {
                 String ns = nsRegistry.getURI(oakPrefix);
@@ -323,6 +326,7 @@ public class SessionDelegate {
         }
 
         @Override
+        @CheckForNull
         protected String getOakPrefix(String jcrPrefix) {
             try {
                 String ns = getSession().getNamespaceURI(jcrPrefix);
@@ -334,6 +338,7 @@ public class SessionDelegate {
         }
 
         @Override
+        @CheckForNull
         protected String getOakPrefixFromURI(String uri) {
             try {
                 return nsRegistry.getPrefix(uri);
