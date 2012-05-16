@@ -143,8 +143,11 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         array = parseJSONArray(mk.getJournal(toRev, fromRev, ""));
         // there should be exactly 0 entries
         assertEquals(array.size(), 0);
+    }
 
-        // test getRevisionHistory/getJournal/diff path filter
+    @Test
+    public void revisionOpsFiltered() {
+        // test getRevisionHistory/getJournal path filter
         mk.commit("/test", "+\"foo\":{} +\"bar\":{}", null, "");
 
         try {
@@ -152,35 +155,59 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         } catch (InterruptedException ignore) {
         }
 
-        long ts1 = System.currentTimeMillis();
+        long ts = System.currentTimeMillis();
 
         String revFoo = mk.commit("/test/foo", "^\"p1\":123", null, "");
         String revBar = mk.commit("/test/bar", "^\"p2\":456", null, "");
+        String rev0 = revFoo;
 
-        // get history since ts1 (no filter)
-        array = parseJSONArray(mk.getRevisionHistory(ts1, -1, null));
+        // get history since ts (no filter)
+        JSONArray array = parseJSONArray(mk.getRevisionHistory(ts, -1, null));
         // history should contain 2 commits: revFoo and revBar
         assertEquals(2, array.size());
         assertPropertyValue(getObjectArrayEntry(array, 0), "id", revFoo);
         assertPropertyValue(getObjectArrayEntry(array, 1), "id", revBar);
 
-        // get history since ts1 (non-matching filter)
-        array = parseJSONArray(mk.getRevisionHistory(ts1, -1, "/blah"));
+        // get history since ts (non-matching filter)
+        array = parseJSONArray(mk.getRevisionHistory(ts, -1, "/blah"));
         // history should contain 0 commits since filter doesn't match
         assertEquals(0, array.size());
 
-        // get history since ts1 (filter on /test/bar)
-        array = parseJSONArray(mk.getRevisionHistory(ts1, -1, "/test/bar"));
-        // history should contain 1 commits: revFoo and revBar
+        // get history since ts (filter on /test/bar)
+        array = parseJSONArray(mk.getRevisionHistory(ts, -1, "/test/bar"));
+        // history should contain 1 commit: revBar
         assertEquals(1, array.size());
         assertPropertyValue(getObjectArrayEntry(array, 0), "id", revBar);
+
+        // get journal (no filter)
+        array = parseJSONArray(mk.getJournal(rev0, null, ""));
+        // journal should contain 2 commits: revFoo and revBar
+        assertEquals(array.size(), 2);
+        assertPropertyValue(getObjectArrayEntry(array, 0), "id", revFoo);
+        assertPropertyValue(getObjectArrayEntry(array, 1), "id", revBar);
+
+        // get journal (non-matching filter)
+        array = parseJSONArray(mk.getJournal(rev0, null, "/blah"));
+        // journal should contain 0 commits since filter doesn't match
+        assertEquals(array.size(), 0);
+
+        // get journal (filter on /test/bar)
+        array = parseJSONArray(mk.getJournal(rev0, null, "/test/bar"));
+        // journal should contain 1 commit: revBar
+        assertEquals(1, array.size());
+        assertPropertyValue(getObjectArrayEntry(array, 0), "id", revBar);
+        String diff = (String) resolveValue(getObjectArrayEntry(array, 0), "changes");
+        assertNotNull(diff);
+        assertTrue(diff.contains("456"));
+        assertFalse(diff.contains("123"));
     }
 
     @Test
     public void diff() {
         String rev0 = mk.getHeadRevision();
 
-        String rev1 = mk.commit("/test", "+\"enemenemuh\":{}", null, null);
+        String rev1 = mk.commit("/test", "+\"target\":{}", null, null);
+        assertTrue(mk.nodeExists("/test/target", null));
 
         // get reverse diff
         String reverseDiff = mk.diff(rev1, rev0, null);
@@ -189,11 +216,40 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
 
         // commit reverse diff
         String rev2 = mk.commit("", reverseDiff, null, null);
+        assertFalse(mk.nodeExists("/test/target", null));
 
         // diff of rev0->rev2 should be empty
         assertEquals(mk.diff(rev0, rev2, null), "");
+    }
 
-        // TODO test path filter
+    @Test
+    public void diffFiltered() {
+        String rev0 = mk.commit("/test", "+\"foo\":{} +\"bar\":{}", null, "");
+
+        String rev1 = mk.commit("/test/foo", "^\"p1\":123", null, "");
+        String rev2 = mk.commit("/test/bar", "^\"p2\":456", null, "");
+
+        // test with path filter
+        String diff = mk.diff(rev0, rev2, "/test");
+        assertNotNull(diff);
+        assertFalse(diff.isEmpty());
+        assertTrue(diff.contains("foo"));
+        assertTrue(diff.contains("bar"));
+        assertTrue(diff.contains("123"));
+        assertTrue(diff.contains("456"));
+
+        diff = mk.diff(rev0, rev2, "/test/foo");
+        assertNotNull(diff);
+        assertFalse(diff.isEmpty());
+        assertTrue(diff.contains("foo"));
+        assertFalse(diff.contains("bar"));
+        assertTrue(diff.contains("123"));
+        assertFalse(diff.contains("456"));
+
+        // non-matching filter
+        diff = mk.diff(rev0, rev2, "/blah");
+        assertNotNull(diff);
+        assertTrue(diff.isEmpty());
     }
 
     @Test

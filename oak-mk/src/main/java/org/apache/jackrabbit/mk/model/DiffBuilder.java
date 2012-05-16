@@ -62,7 +62,8 @@ public class DiffBuilder {
                 toJson(buff, after);
                 return buff.endObject().newline().toString();
             } else {
-                throw new Exception("path doesn't exist in the specified revisions: " + path);
+                // path doesn't exist in the specified revisions
+                return "";
             }
         } else if (after == null) {
             buff.tag('-');
