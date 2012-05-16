@@ -57,14 +57,22 @@ public class MemoryNodeStore extends AbstractNodeStore {
 
     @Override
     public void setRoot(NodeState newRoot) throws CommitFailedException {
-        while (true) {
-            NodeState oldRoot = getRoot();
-            NodeState setRoot = commitHook.beforeCommit(this, oldRoot, newRoot);
-            if (root.compareAndSet(oldRoot, setRoot)) {
-                return;
-            } else {
-                // TODO: try to rebase the changes in newRoot
-            }
+        NodeState oldRoot;
+        do {
+            oldRoot = root.get();
+            newRoot = rebase(newRoot, oldRoot);
+        } while (!root.compareAndSet(
+                oldRoot, commitHook.beforeCommit(this, oldRoot, newRoot)));
+    }
+
+    NodeState rebase(NodeState state, NodeState base)
+            throws CommitFailedException {
+        if (state instanceof ModifiedNodeState) {
+            return ((ModifiedNodeState) state).rebase(this, base);
+        } else if (state.equals(base)) {
+            return state;
+        } else {
+            throw new CommitFailedException("Failed to rebase changes");
         }
     }
 
