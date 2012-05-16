@@ -18,15 +18,47 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
+import java.util.Iterator;
 import java.util.Map;
 
 import org.apache.jackrabbit.oak.spi.state.AbstractChildNodeEntry;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * Basic JavaBean implementation of a child node entry.
  */
 public class MemoryChildNodeEntry extends AbstractChildNodeEntry {
+
+    public static Iterable<ChildNodeEntry> iterable(
+            final Map<String, NodeState> map) {
+        return new Iterable<ChildNodeEntry>() {
+            @Override
+            public Iterator<ChildNodeEntry> iterator() {
+                return MemoryChildNodeEntry.iterator(map);
+            }
+        };
+    }
+
+    public static Iterator<ChildNodeEntry> iterator(
+            Map<String, NodeState> map) {
+        final Iterator<Map.Entry<String, NodeState>> iterator =
+                map.entrySet().iterator();
+        return new Iterator<ChildNodeEntry>() {
+            @Override
+            public boolean hasNext() {
+                return iterator.hasNext();
+            }
+            @Override
+            public ChildNodeEntry next() {
+                return new MemoryChildNodeEntry(iterator.next());
+            }
+            @Override
+            public void remove() {
+                throw new UnsupportedOperationException();
+            }
+        };
+    }
 
     private final String name;
 

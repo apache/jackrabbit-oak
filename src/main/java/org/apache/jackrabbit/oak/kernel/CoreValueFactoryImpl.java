@@ -28,7 +28,7 @@ import java.math.BigDecimal;
  * {@code CoreValueFactoryImpl} is the default implementation of the
  * {@code CoreValueFactory} interface.
  */
-class CoreValueFactoryImpl implements CoreValueFactory {
+public class CoreValueFactoryImpl implements CoreValueFactory {
 
     private final MicroKernel mk;
 
