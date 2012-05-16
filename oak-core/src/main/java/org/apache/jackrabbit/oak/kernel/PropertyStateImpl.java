@@ -25,7 +25,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
-class PropertyStateImpl implements PropertyState {
+public class PropertyStateImpl implements PropertyState {
 
     private final String name;
     private final CoreValue value;
