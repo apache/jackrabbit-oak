@@ -154,7 +154,8 @@ public class MicroKernelImpl implements MicroKernel {
             throw new IllegalStateException("this instance has already been disposed");
         }
 
-        // todo support path filter
+        path = (path == null || "".equals(path)) ? "/" : path;
+        boolean filtered = !"/".equals(path);
 
         Id fromRevisionId = Id.fromString(fromRevision);
         Id toRevisionId = toRevision == null ? getHeadRevisionId() : Id.fromString(toRevision);
@@ -212,11 +213,25 @@ public class MicroKernelImpl implements MicroKernel {
             if (commit.getParentId() == null) {
                 continue;
             }
+            String diff = commit.getChanges();
+            if (filtered) {
+                try {
+                    diff = new DiffBuilder(
+                            rep.getNodeState(commit.getParentId(), "/"),
+                            rep.getNodeState(commit.getId(), "/"),
+                            "/", rep.getRevisionStore(), path).build();
+                    if (diff.isEmpty()) {
+                        continue;
+                    }
+                } catch (Exception e) {
+                    throw new MicroKernelException(e);
+                }
+            }
             commitBuff.object().
                     key("id").value(commit.getId().toString()).
                     key("ts").value(commit.getCommitTS()).
                     key("msg").value(commit.getMsg()).
-                    key("changes").value(commit.getChanges()).endObject();
+                    key("changes").value(diff).endObject();
         }
         return commitBuff.endArray().toString();
     }
