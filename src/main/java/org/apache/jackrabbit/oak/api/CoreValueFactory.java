@@ -20,6 +20,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
 
+import javax.annotation.Nonnull;
+
 /**
  * {@code CoreValueFactory} defines methods to create new instances of
  * {@code CoreValue}.
@@ -92,5 +94,5 @@ public interface CoreValueFactory {
      * conversion to any of the number types and the conversion fails.
      * @throws //TODO define and consolidate exceptions
      */
-    CoreValue createValue(String value, int type);
+    CoreValue createValue(@Nonnull String value, int type);
 }
