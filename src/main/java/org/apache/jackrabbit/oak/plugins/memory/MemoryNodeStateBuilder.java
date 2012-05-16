@@ -46,10 +46,14 @@ public class MemoryNodeStateBuilder implements NodeStateBuilder {
 
     @Override
     public NodeState getNodeState() {
-        return new ModifiedNodeState(
-                base,
-                new HashMap<String, PropertyState>(properties),
-                new HashMap<String, NodeState>(nodes));
+        if (properties.isEmpty() && nodes.isEmpty()) {
+            return base; // shortcut
+        } else {
+            return new ModifiedNodeState(
+                    base,
+                    new HashMap<String, PropertyState>(properties),
+                    new HashMap<String, NodeState>(nodes));
+        }
     }
 
     @Override
