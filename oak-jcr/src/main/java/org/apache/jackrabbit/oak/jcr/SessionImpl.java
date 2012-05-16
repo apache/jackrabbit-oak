@@ -79,16 +79,6 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     }
 
     @Override
-    public Item getItem(String absPath) throws PathNotFoundException, RepositoryException {
-        if (absPath.startsWith("[") && absPath.endsWith("]")) {
-            // TODO OAK-23 - maybe this code should be added in AbstractSession
-            return getNodeByIdentifier(absPath.substring(1, absPath.length() - 1));
-        } else {
-            return super.getItem(absPath);
-        }
-    }
-    
-    @Override
     public Workspace getWorkspace() {
         return dlg.getWorkspace();
     }
