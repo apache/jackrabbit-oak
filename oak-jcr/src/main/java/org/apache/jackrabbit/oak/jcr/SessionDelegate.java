@@ -243,6 +243,10 @@ public class SessionDelegate {
         String srcPath = PathUtils.relativize("/", srcAbsPath);
         String destPath = PathUtils.relativize("/", destAbsPath);
 
+        // FIXME: the following checks should be done against this session
+        // which might contain transient modifications but rather against
+        // the workspace. OAK-105
+
         // check destination
         Tree dest = getTree(destPath);
         if (dest != null) {
