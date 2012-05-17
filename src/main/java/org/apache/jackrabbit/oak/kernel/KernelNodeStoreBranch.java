@@ -120,9 +120,9 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
         purge(buildJsop());
         // TODO rebase, call commitHook (OAK-100)
         MicroKernel kernel = getKernel();
-        String mergedRevision = null;
+        String mergedRevision;
         try {
-            kernel.merge(branchRevision, null);
+            mergedRevision = kernel.merge(branchRevision, null);
             branchRevision = null;
             currentRoot = null;
             committed = null;
