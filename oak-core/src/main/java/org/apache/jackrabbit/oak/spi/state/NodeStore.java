@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.state;
 
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 
 /**
@@ -37,6 +36,13 @@ public interface NodeStore {
     NodeState getRoot();
 
     /**
+     * Creates a new branch of the tree to which transient changes can be applied.
+     *
+     * @return branch
+     */
+    NodeStoreBranch branch();
+
+    /**
      * Returns a builder for constructing a new or modified node state.
      * The builder is initialized with all the properties and child nodes
      * from the given base node state.
@@ -52,13 +58,6 @@ public interface NodeStore {
      * @return value factory
      */
     CoreValueFactory getValueFactory();
-
-    /**
-     * Updates the state of the content tree.
-     *
-     * @param newRoot new root node state
-     */
-    void setRoot(NodeState newRoot) throws CommitFailedException;
 
     /**
      * Compares the given two node states. Any found differences are

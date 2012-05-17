@@ -22,12 +22,10 @@ import org.apache.commons.collections.map.ReferenceMap;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.util.Function1;
 import org.apache.jackrabbit.oak.util.Iterators;
 
@@ -38,26 +36,12 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-/**
- * Implementation of tree based on {@link NodeStateBuilder}s. Each subtree
- * has an associated node state builder which is used for building the new
- * trees resulting from calling mutating methods.
- */
+import static org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState.EMPTY_NODE;
+
 public class TreeImpl implements Tree {
 
-    /** Underlying store */
-    private final NodeStore store;
-
-    private final NodeStateBuilder rootBuilder;
-
-    /**
-     * Underlying persistent state or {@code null} if this instance represents an
-     * added tree
-     */
-    private final NodeState baseState;
-
-    /** Listener for changes on this tree */
-    private final Listener listener;
+    /** Underlying {@code Root} of this {@code Tree} instance */
+    private final RootImpl root;
 
     /** Parent of this tree */
     private TreeImpl parent;
@@ -67,85 +51,29 @@ public class TreeImpl implements Tree {
 
     private final Children children = new Children();
 
-    private TreeImpl(NodeStore store, NodeState baseState, NodeStateBuilder rootBuilder,
-            TreeImpl parent, String name, Listener listener) {
-
-        this.store = store;
-        this.rootBuilder = rootBuilder;
-        this.baseState = baseState;
-        this.listener = listener;
+    private TreeImpl(RootImpl root, TreeImpl parent, String name) {
+        this.root = root;
         this.parent = parent;
         this.name = name;
     }
 
-    /**
-     * Create a new instance which represents the root of a tree.
-     * @param store  underlying store to the tree
-     * @param rootBuilder  builder for the root
-     * @param listener  change listener for the tree. May be {@code null} if
-     *                  listening to changes is not needed.
-     */
-    TreeImpl(NodeStore store, NodeStateBuilder rootBuilder, Listener listener) {
-        this(store, rootBuilder.getNodeState(), rootBuilder, null, "", listener);
-    }
+    static TreeImpl createRoot(final RootImpl root) {
+        return new TreeImpl(root, null, "") {
+            @Override
+            protected NodeState getNodeState() {
+                return root.getWorkspaceRootState();
+            }
 
-    /**
-     * Listener for changes on {@code Tree}s
-     */
-    interface Listener {
+            @Override
+            protected NodeState getBaseState() {
+                return root.getWorkspaceBaseState();
+            }
 
-        /**
-         * The child of the given {@code name} has been added to {@code tree}.
-         * @param parent  parent to which a child was added
-         * @param name  name of the added child
-         */
-        void addChild(TreeImpl parent, String name);
-
-        /**
-         * The child of the given {@code name} has been removed from {@code tree}
-         * @param parent  parent from which a child was removed
-         * @param name  name of the removed child
-         */
-        void removeChild(TreeImpl parent, String name);
-
-        /**
-         * The property of the given {@code name} and {@code value} has been set.
-         * @param parent  parent on which the property was set.
-         * @param name  name of the property
-         * @param value  value of the property
-         */
-        void setProperty(TreeImpl parent, String name, CoreValue value);
-
-        /**
-         * The property of the given {@code name} and {@code values} has been set.
-         * @param parent  parent on which the property was set.
-         * @param name  name of the property
-         * @param values  values of the property
-         */
-        void setProperty(TreeImpl parent, String name, List<CoreValue> values);
-
-        /**
-         * The property of the given {@code name} has been removed.
-         * @param parent  parent on which the property was removed.
-         * @param name  name of the property
-         */
-        void removeProperty(TreeImpl parent, String name);
-
-        /**
-         * The child with the given {@code name} has been moved.
-         * @param sourceParent  parent from which the child was moved
-         * @param sourceName  name of the moved child
-         * @param moved  moved child
-         */
-        void move(TreeImpl sourceParent, String sourceName, TreeImpl moved);
-
-        /**
-         * The child with the given {@code name} been copied.
-         * @param sourceParent  parent from which the child way copied
-         * @param sourceName  name of the copied child
-         * @param copied  copied child
-         */
-        void copy(TreeImpl sourceParent, String sourceName, TreeImpl copied);
+            @Override
+            protected void updateParentState(NodeState childState) {
+                root.setWorkspaceRootState(childState);
+            }
+        };
     }
 
     @Override
@@ -177,6 +105,7 @@ public class TreeImpl implements Tree {
 
     @Override
     public Status getPropertyStatus(String name) {
+        NodeState baseState = getBaseState();
         if (baseState == null) {
             // This instance is NEW...
             if (hasProperty(name)) {
@@ -243,17 +172,14 @@ public class TreeImpl implements Tree {
             return null;
         }
 
-        NodeState childBaseState = baseState == null
-                ? null
-                : baseState.getChildNode(name);
-
-        child = new TreeImpl(store, childBaseState, rootBuilder, this, name, listener);
+        child = new TreeImpl(root, this, name);
         children.put(name, child);
         return child;
     }
 
     @Override
     public Status getChildStatus(String name) {
+        NodeState baseState = getBaseState();
         if (baseState == null) {
             // This instance is NEW...
             if (hasChild(name)) {
@@ -310,21 +236,18 @@ public class TreeImpl implements Tree {
                 final NodeState nodeState = getNodeState();
 
                 Iterator<? extends ChildNodeEntry> childEntries =
-                        nodeState.getChildNodeEntries().iterator();
+                    nodeState.getChildNodeEntries().iterator();
 
                 return Iterators.map(childEntries, new Function1<ChildNodeEntry, Tree>() {
                     @Override
                     public Tree apply(ChildNodeEntry entry) {
                         String childName = entry.getName();
-                        TreeImpl child = children.get(entry.getName());
-                        if (child != null) {
-                            return child;
+                        TreeImpl child = children.get(childName);
+                        if (child == null) {
+                            child = new TreeImpl(root, TreeImpl.this, childName);
+                            children.put(childName, child);
                         }
-
-                        NodeState childNodeState = nodeState.getChildNode(childName);
-                        child = new TreeImpl(store, childNodeState, rootBuilder, TreeImpl.this, childName, listener);
-                        children.put(childName, child);
-                        return child;
+                        return  child;
                     }
                 });
             }
@@ -333,48 +256,50 @@ public class TreeImpl implements Tree {
 
     @Override
     public Tree addChild(String name) {
-        if (getBuilder().addNode(name) != null) {
-            listener.addChild(this, name);
+        if (!hasChild(name)) {
+            NodeStateBuilder builder = getNodeStateBuilder();
+            builder.setNode(name, EMPTY_NODE);
+            updateParentState(builder.getNodeState());
         }
-        TreeImpl child = getChild(name);
-        children.put(name, child);
-        return child;
+
+        return getChild(name);
     }
 
     @Override
     public boolean removeChild(String name) {
-        boolean result = getBuilder().removeNode(name);
-        if (result) {
-            listener.removeChild(this, name);
+        if (hasChild(name)) {
+            NodeStateBuilder builder = getNodeStateBuilder();
+            builder.removeNode(name);
             children.remove(name);
+            updateParentState(builder.getNodeState());
+            return true;
         }
-        return result;
+        else {
+            return false;
+        }
     }
 
     @Override
     public PropertyState setProperty(String name, CoreValue value) {
-        PropertyState property = getBuilder().setProperty(name, value);
-        if (listener != null) {
-            listener.setProperty(this, name, value);
-        }
-        return property;
+        NodeStateBuilder builder = getNodeStateBuilder();
+        builder.setProperty(name, value);
+        updateParentState(builder.getNodeState());
+        return getProperty(name);
     }
 
     @Override
     public PropertyState setProperty(String name, List<CoreValue> values) {
-        PropertyState property = getBuilder().setProperty(name, values);
-        if (listener != null) {
-            listener.setProperty(this, name, values);
-        }
-        return property;
+        NodeStateBuilder builder = getNodeStateBuilder();
+        builder.setProperty(name, values);
+        updateParentState(builder.getNodeState());
+        return getProperty(name);
     }
 
     @Override
     public void removeProperty(String name) {
-        getBuilder().removeProperty(name);
-        if (listener != null) {
-            listener.removeProperty(this, name);
-        }
+        NodeStateBuilder builder = getNodeStateBuilder();
+        builder.removeProperty(name);
+        updateParentState(builder.getNodeState());
     }
 
     /**
@@ -383,47 +308,44 @@ public class TreeImpl implements Tree {
      *
      * @param destParent  new parent for this tree
      * @param destName  new name for this tree
-     * @return  {@code true} if successful, {@code false otherwise}. I.e.
-     * when {@code destName} already exists at {@code destParent}
      */
-    public boolean move(TreeImpl destParent, String destName) {
-        NodeStateBuilder builder = getBuilder();
-        NodeStateBuilder destParentBuilder = destParent.getBuilder();
-        boolean result = builder.moveTo(destParentBuilder, destName);
-        if (result) {
-            parent.children.remove(name);
-            destParent.children.put(destName, this);
-
-            TreeImpl oldParent = parent;
-            String oldName = name;
-
-            name = destName;
-            parent = destParent;
-
-            if (listener != null) {
-                listener.move(oldParent, oldName, this);
-            }
+    public boolean moveTo(TreeImpl destParent, String destName) {
+        if (destParent.hasChild(destName)) {
+            return false;
         }
-        return result;
+
+        parent.children.remove(name);
+        destParent.children.put(destName, this);
+
+        name = destName;
+        parent = destParent;
+        return true;
     }
 
-    /**
-     * Copy this tree to the parent at {@code destParent} with the name {@code destName}.
-     *
-     * @param destParent  parent for the copied tree
-     * @param destName  name for the copied tree
-     * @return  {@code true} if successful, {@code false otherwise}. I.e.
-     * when {@code destName} already exists at {@code destParent}
-     */
-    public boolean copy(TreeImpl destParent, String destName) {
-        boolean result = getBuilder().copyTo(destParent.getBuilder(), destName);
-        if (result) {
-            if (listener != null) {
-                listener.copy(parent, name, destParent.getChild(destName));
-            }
-            return true;
-        }
-        return result;
+    //------------------------------------------------------------< protected >---
+
+    protected NodeState getNodeState() {
+        return parent.getNodeState().getChildNode(name);
+    }
+
+    protected NodeState getBaseState() {
+        return parent.getBaseState().getChildNode(name);
+    }
+
+    protected NodeStateBuilder getNodeStateBuilder() {
+        return root.getBuilder(getNodeState());
+    }
+
+    protected void updateParentState(NodeState childState) {
+        NodeStateBuilder parentBuilder = parent.getNodeStateBuilder();
+        parentBuilder.setNode(name, childState);
+        parent.updateParentState(parentBuilder.getNodeState());
+    }
+
+    //------------------------------------------------------------< internal >---
+
+    void clear() {
+        children.clear();
     }
 
     //------------------------------------------------------------< private >---
@@ -438,25 +360,9 @@ public class TreeImpl implements Tree {
         }
     }
 
-    private NodeStateBuilder getBuilder() {
-        NodeStateBuilder builder = rootBuilder;
-        for (String name : PathUtils.elements(getPath())) {
-            builder = builder.getChildBuilder(name);
-            if (builder == null) {
-                throw new IllegalStateException("Stale NodeStateBuilder for " + getPath());
-            }
-        }
-
-        return builder;
-    }
-
-    private NodeState getNodeState() {
-        return getBuilder().getNodeState();
-    }
-
     private boolean isSame(NodeState state1, NodeState state2) {
         final boolean[] isDirty = {false};
-        store.compare(state1, state2, new NodeStateDiff() {
+        root.compare(state1, state2, new NodeStateDiff() {
             @Override
             public void propertyAdded(PropertyState after) {
                 isDirty[0] = true;
@@ -528,6 +434,13 @@ public class TreeImpl implements Tree {
             } finally {
                 writeLock.unlock();
             }
+        }
+
+        public void clear() {
+            for (TreeImpl child : children.values()) {
+                child.clear();
+            }
+            children.clear();
         }
     }
 

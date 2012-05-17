@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.spi.state;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 /**
  * Proxy node state that delegates all method calls to another instance.
  * Mostly useful as a base class for more complicated decorator functionality.
@@ -65,7 +67,22 @@ public class ProxyNodeState implements NodeState {
 
     @Override
     public String toString() {
-        return delegate.toString();
+        StringBuilder builder = new StringBuilder("{");
+        AtomicBoolean first = new AtomicBoolean(true);
+        for (PropertyState property : getProperties()) {
+            if (!first.getAndSet(false)) {
+                builder.append(',');
+            }
+            builder.append(' ').append(property);
+        }
+        for (ChildNodeEntry entry : getChildNodeEntries()) {
+            if (!first.getAndSet(false)) {
+                builder.append(',');
+            }
+            builder.append(' ').append(entry);
+        }
+        builder.append(" }");
+        return builder.toString();
     }
 
     @Override
