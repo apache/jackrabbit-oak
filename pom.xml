@@ -65,6 +65,7 @@
               <exclude>.git/**</exclude>
               <exclude>.idea/**</exclude>
               <exclude>.gitignore</exclude>
+			  <exclude>oak-js/package.json</exclude>
             </excludes>
           </configuration>
         </plugin>

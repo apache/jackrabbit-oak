@@ -1,0 +1,20 @@
+{
+  "author": "Apache Jackrabbit <oak-dev@jackrabbit.apache.org>",
+  "name": "oak",
+  "description": "JavaScript bindings for Oak",
+  "version": "0.3.0-SNAPSHOT",
+  "repository": {
+    "type": "svn",
+    "url": "https://svn.apache.org/repos/asf/jackrabbit/oak/trunk/oak-js/"
+  },
+  "bugs": {
+    "url" : "https://issues.apache.org/jira/browse/OAK",
+    "email" : "oak-dev@jackrabbit.apache.org"
+  },
+  "dependencies": {},
+  "devDependencies": {},
+  "optionalDependencies": {},
+  "engines": {
+    "node": "*"
+  }
+}
