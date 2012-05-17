@@ -16,15 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.kernel.PropertyStateImpl;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateBuilder;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Basic in-memory node state builder.
@@ -57,58 +57,30 @@ public class MemoryNodeStateBuilder implements NodeStateBuilder {
     }
 
     @Override
-    public NodeStateBuilder getChildBuilder(String name) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public NodeStateBuilder addNode(String name, NodeState nodeState) {
+    public void setNode(String name, NodeState nodeState) {
         nodes.put(name, nodeState);
-        return this;
     }
 
     @Override
-    public NodeStateBuilder addNode(String name) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public boolean removeNode(String name) {
+    public void removeNode(String name) {
         nodes.put(name, null);
-        return false;
     }
 
     @Override
-    public PropertyState setProperty(String name, CoreValue value) {
+    public void setProperty(String name, CoreValue value) {
         PropertyState property = new PropertyStateImpl(name, value);
         properties.put(name, property);
-        return property;
     }
 
     @Override
-    public PropertyState setProperty(String name, List<CoreValue> values) {
+    public void setProperty(String name, List<CoreValue> values) {
         PropertyState property = new PropertyStateImpl(name, values);
         properties.put(name, property);
-        return property;
     }
 
     @Override
     public void removeProperty(String name) {
         properties.put(name, null);
-    }
-
-    @Override
-    public boolean moveTo(NodeStateBuilder destParent, String destName) {
-        // TODO Auto-generated method stub
-        return false;
-    }
-
-    @Override
-    public boolean copyTo(NodeStateBuilder destParent, String destName) {
-        // TODO Auto-generated method stub
-        return false;
     }
 
 }

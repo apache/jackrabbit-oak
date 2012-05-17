@@ -34,7 +34,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
  *     after = hook.preCommit(store, before, after);
  * }
  *
- * after = store.setRoot(after);
+ * after = branch.merge();
  *
  * for (CommitHook hook : hooks) {
  *     hook.afterCommit(store, before, after);

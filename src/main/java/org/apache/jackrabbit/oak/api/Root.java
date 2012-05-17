@@ -64,6 +64,11 @@ public interface Root {
     void rebase();
 
     /**
+     * Clear all changes made to this root
+     */
+    void clear();
+
+    /**
      * Atomically apply all changes made to the tree beneath this root to the
      * underlying store and refreshes this root. After a call to this method,
      * all trees obtained through {@link #getTree(String)} are invalid and fresh
