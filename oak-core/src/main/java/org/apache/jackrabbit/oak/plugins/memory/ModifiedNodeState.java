@@ -16,19 +16,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-
 import org.apache.commons.collections.IteratorUtils;
 import org.apache.commons.collections.Predicate;
 import org.apache.commons.collections.PredicateUtils;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
-import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.ProxyNodeState;
+
+import java.util.Iterator;
+import java.util.Map;
 
 public class ModifiedNodeState extends ProxyNodeState {
 
@@ -47,58 +44,6 @@ public class ModifiedNodeState extends ProxyNodeState {
 
     NodeState getBase() {
         return delegate;
-    }
-
-    ModifiedNodeState rebase(MemoryNodeStore store, NodeState base)
-            throws CommitFailedException {
-        if (delegate.equals(base)) {
-            return this;
-        } else if (nodes.isEmpty()) {
-            return this; // shortcut
-        } else {
-            return new ModifiedNodeState(
-                    base, properties, rebaseChildren(store, base));
-        }
-    }
-
-    private Map<String, NodeState> rebaseChildren(
-            final MemoryNodeStore store, NodeState base)
-            throws CommitFailedException {
-        // TODO: better conflict resolution
-        final Map<String, NodeState> rebasedNodes =
-                new HashMap<String, NodeState>(nodes);
-        final Map<String, CommitFailedException> failures =
-                new HashMap<String, CommitFailedException>();
-        store.compare(delegate, base, new DefaultNodeStateDiff() {
-            @Override
-            public void childNodeAdded(String name, NodeState after) {
-                rebaseChild(name, after);
-            }
-            @Override
-            public void childNodeChanged(
-                    String name, NodeState before, NodeState after) {
-                rebaseChild(name, after);
-            }
-            @Override
-            public void childNodeDeleted(String name, NodeState before) {
-                rebaseChild(name, MemoryNodeState.EMPTY_NODE);
-            }
-            private void rebaseChild(String name, NodeState base) {
-                NodeState child = nodes.get(name);
-                if (child != null) {
-                    try {
-                        rebasedNodes.put(name, store.rebase(child, base));
-                    } catch (CommitFailedException e) {
-                        failures.put(name, e);
-                    }
-                }
-            }
-        });
-        if (failures.isEmpty()) {
-            return rebasedNodes;
-        } else {
-            throw new CommitFailedException("Failed to rebase changes");
-        }
     }
 
     //---------------------------------------------------------< NodeState >--
@@ -163,7 +108,7 @@ public class ModifiedNodeState extends ProxyNodeState {
 
     @Override
     public long getChildNodeCount() {
-        long count = super.getPropertyCount();
+        long count = super.getChildNodeCount();
         for (Map.Entry<String, NodeState> entry : nodes.entrySet()) {
             if (super.getChildNode(entry.getKey()) != null) {
                 if (entry.getValue() == null) {
@@ -229,7 +174,7 @@ public class ModifiedNodeState extends ProxyNodeState {
 
     }
 
-    private class UndeletedChildNodePredicate implements Predicate {
+    private static class UndeletedChildNodePredicate implements Predicate {
 
         @Override
         public boolean evaluate(Object object) {

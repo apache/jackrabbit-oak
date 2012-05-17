@@ -19,16 +19,16 @@
 package org.apache.jackrabbit.oak.core;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.core.TreeImpl.Listener;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,11 +39,6 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 
-/**
- * This {@code Root} implementation listens on the root of the underlying
- * {@link Tree} using a {@link Listener}. All changes are directly applied
- * to the {@link NodeStateBuilder} for the relevant sub-tree.
- */
 public class RootImpl implements Root {
     static final Logger log = LoggerFactory.getLogger(RootImpl.class);
 
@@ -53,17 +48,11 @@ public class RootImpl implements Root {
     /** The name of the workspace we are operating on */
     private final String workspaceName;
 
-    /** Listener for changes on the tree */
-    private TreeListener treeListener = new TreeListener();
+    /** Actual root element of the {@code Tree} */
+    private final TreeImpl root;
 
-    /** Base node state of this tree */
-    private NodeState base;
-
-    /** The builder for this root */
-    private NodeStateBuilder nodeStateBuilder;
-
-    /** Root state of this tree */
-    private TreeImpl root;
+    /** Current branch this root operates on */
+    private NodeStoreBranch branch;
 
     /**
      * New instance bases on a given {@link NodeStore} and a workspace
@@ -73,9 +62,8 @@ public class RootImpl implements Root {
     public RootImpl(NodeStore store, String workspaceName) {
         this.store = store;
         this.workspaceName = workspaceName;
-        this.base = store.getRoot().getChildNode(workspaceName);
-        nodeStateBuilder = store.getBuilder(base);
-        this.root = new TreeImpl(store, nodeStateBuilder, treeListener);
+        branch = store.branch();
+        root = TreeImpl.createRoot(this);
     }
 
     @Override
@@ -84,24 +72,29 @@ public class RootImpl implements Root {
         if (source == null) {
             return false;
         }
-
         TreeImpl destParent = getChild(getParentPath(destPath));
-        String destName = getName(destPath);
-        return destParent != null && source.move(destParent, destName);
+        if (destParent == null) {
+            return false;
+        }
 
+        String destName = getName(destPath);
+        if (source.moveTo(destParent, destName)) {
+            branch.move(
+                PathUtils.concat(workspaceName, sourcePath),
+                PathUtils.concat(workspaceName, destPath));
+
+            return true;
+        }
+        else {
+            return false;
+        }
     }
 
     @Override
     public boolean copy(String sourcePath, String destPath) {
-        TreeImpl sourceNode = getChild(sourcePath);
-        if (sourceNode == null) {
-            return false;
-        }
-
-        TreeImpl destParent = getChild(getParentPath(destPath));
-        String destName = getName(destPath);
-        return destParent != null && sourceNode.copy(destParent, destName);
-
+        return branch.copy(
+            PathUtils.concat(workspaceName, sourcePath),
+            PathUtils.concat(workspaceName, destPath));
     }
 
     @Override
@@ -111,21 +104,89 @@ public class RootImpl implements Root {
 
     @Override
     public void rebase() {
-        rebase(true);
+        root.clear();
+        NodeState base = getWorkspaceBaseState();
+        NodeState head = getWorkspaceRootState();
+        branch = store.branch();
+        merge(base, head, getRoot());
+    }
+
+    @Override
+    public void clear() {
+        root.clear();
+        branch = store.branch();
     }
 
     @Override
     public void commit() throws CommitFailedException {
-        store.setRoot(nodeStateBuilder.getNodeState());
-        rebase(false);
+        branch.merge();
+        root.clear();
+        branch = store.branch();
     }
 
     @Override
     public boolean hasPendingChanges() {
-        return treeListener.hasChanges();
+        return !branch.getBase().equals(branch.getRoot());
+    }
+
+    /**
+     * Returns the current root node state of the workspace
+     * @return root node state
+     */
+    public NodeState getWorkspaceRootState() {
+        return branch.getRoot().getChildNode(workspaceName);
+    }
+
+    /**
+     * Returns the node state of the workspace from which
+     * the current branch was created.
+     * @return base node state
+     */
+    public NodeState getWorkspaceBaseState() {
+        return branch.getBase().getChildNode(workspaceName);
+    }
+
+    /**
+     * Returns a builder for constructing a new or modified node state.
+     * The builder is initialized with all the properties and child nodes
+     * from the given base node state.
+     *
+     * @param nodeState  base node state, or {@code null} for building new nodes
+     * @return  builder instance
+     */
+    public NodeStateBuilder getBuilder(NodeState nodeState) {
+        return store.getBuilder(nodeState);
+    }
+
+    /**
+     * Set the node state of the current workspace
+     *
+     * @param nodeState  node state representing the modified workspace
+     */
+    public void setWorkspaceRootState(NodeState nodeState) {
+        NodeStateBuilder builder = getBuilder(branch.getRoot());
+        builder.setNode(workspaceName, nodeState);
+        branch.setRoot(builder.getNodeState());
+    }
+
+    /**
+     * Compares the given two node states. Any found differences are
+     * reported by calling the relevant added, changed or deleted methods
+     * of the given handler.
+     *
+     * @param before node state before changes
+     * @param after node state after changes
+     * @param diffHandler handler of node state differences
+     */
+    public void compare(NodeState before, NodeState after, NodeStateDiff diffHandler) {
+        store.compare(before, after, diffHandler);
     }
 
     //------------------------------------------------------------< private >---
+
+    private TreeImpl getRoot() {
+        return root;
+    }
 
     /**
      * Get a tree for the child identified by {@code path}
@@ -134,7 +195,7 @@ public class RootImpl implements Root {
      *          at {@code path} or {@code null} if no such item exits.
      */
     private TreeImpl getChild(String path) {
-        TreeImpl child = root;
+        TreeImpl child = getRoot();
         for (String name : elements(path)) {
             child = child.getChild(name);
             if (child == null) {
@@ -142,28 +203,6 @@ public class RootImpl implements Root {
             }
         }
         return child;
-    }
-
-    private void rebase(boolean mergeChanges) {
-        NodeState oldBase;
-        NodeState oldHead;
-        if (mergeChanges) {
-            oldBase = base;
-            oldHead = nodeStateBuilder.getNodeState();
-        } else {
-            oldBase = null;
-            oldHead = null;
-        }
-
-        treeListener = new TreeListener();
-        base = store.getRoot().getChildNode(workspaceName);
-        nodeStateBuilder = store.getBuilder(base);
-        root = new TreeImpl(store, nodeStateBuilder, treeListener);
-
-        if (mergeChanges) {
-            merge(oldBase, oldHead, root);
-        }
-
     }
 
     private void merge(NodeState fromState, NodeState toState, final Tree target) {
@@ -229,50 +268,6 @@ public class RootImpl implements Root {
             l.add(value);
         }
         return l;
-    }
-
-    private static class TreeListener implements Listener {
-        private boolean hasChanges;
-
-        @Override
-        public void addChild(TreeImpl parent, String name) {
-            hasChanges = true;
-        }
-
-        @Override
-        public void removeChild(TreeImpl parent, String name) {
-            hasChanges = true;
-        }
-
-        @Override
-        public void setProperty(TreeImpl parent, String name, CoreValue value) {
-            hasChanges = true;
-        }
-
-        @Override
-        public void setProperty(TreeImpl parent, String name, List<CoreValue> values) {
-            hasChanges = true;
-        }
-
-        @Override
-        public void removeProperty(TreeImpl parent, String name) {
-            hasChanges = true;
-        }
-
-        @Override
-        public void move(TreeImpl sourceParent, String sourceName, TreeImpl moved) {
-            hasChanges = true;
-        }
-
-        @Override
-        public void copy(TreeImpl sourceParent, String sourceName, TreeImpl copied) {
-            hasChanges = true;
-        }
-
-        boolean hasChanges() {
-            return hasChanges;
-        }
-
     }
 
 }

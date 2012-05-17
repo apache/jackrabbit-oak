@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.state;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.PropertyState;
 
 import java.util.List;
 
@@ -35,55 +34,34 @@ public interface NodeStateBuilder {
     NodeState getNodeState();
 
     /**
-     * Get a builder for a child node
-     *
-     * @param name  name of the child node
-     * @return  builder for the {@code name}d child node
-     */
-    NodeStateBuilder getChildBuilder(String name);
-
-    /**
      * Add a sub-tree
      *
      * @param name  name child node containing the sub-tree
      * @param nodeState  sub-tree
-     * @return  builder for the added sub-tree
      */
-    NodeStateBuilder addNode(String name, NodeState nodeState);
-
-    /**
-     * Add the named child node if it doesn't already exist.
-     *
-     * @param name  name of the child node
-     * @return  a builder for the added child or {@code null} if such a child
-     * already exists
-     */
-    NodeStateBuilder addNode(String name);
+    void setNode(String name, NodeState nodeState);
 
     /**
      * Remove a child node
      * @param name  name of the child node
-     * @return  {@code true} iff the child node existed
      */
-    boolean removeNode(String name);
+    void removeNode(String name);
 
     /**
      * Set a property.
      *
      * @param name property name
      * @param value
-     * @return the affected property state
      */
-    PropertyState setProperty(String name, CoreValue value);
+    void setProperty(String name, CoreValue value);
 
     /**
      * Set a property.
      *
      * @param name property name
      * @param values
-     * @return the affected property state
      */
-    PropertyState setProperty(String name, List<CoreValue> values);
+    void setProperty(String name, List<CoreValue> values);
 
     /**
      * Remove the named property
@@ -91,19 +69,4 @@ public interface NodeStateBuilder {
      */
     void removeProperty(String name);
 
-    /**
-     * Move this node
-     * @param destParent  builder for the parent node of the destination
-     * @param destName  name of the moved node
-     * @return  {@code true} iff the move succeeded
-     */
-    boolean moveTo(NodeStateBuilder destParent, String destName);
-
-    /**
-     * Copy this node
-     * @param destParent  builder for the parent node of the destination
-     * @param destName  name of the copied node
-     * @return  {@code true} iff the copy succeeded
-     */
-    boolean copyTo(NodeStateBuilder destParent, String destName);
 }
