@@ -92,6 +92,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see javax.jcr.Item#getParent()
      */
     @Override
+    @Nonnull
     public Node getParent() throws RepositoryException {
         checkStatus();
         NodeDelegate parent = dlg.getParent();
@@ -140,12 +141,14 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see Node#addNode(String)
      */
     @Override
+    @Nonnull
     public Node addNode(String relPath) throws RepositoryException {
         checkStatus();
         return addNode(relPath, null);
     }
 
     @Override
+    @Nonnull
     public Node addNode(String relPath, String primaryNodeTypeName) throws RepositoryException {
         checkStatus();
 
@@ -189,6 +192,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see Node#setProperty(String, javax.jcr.Value)
      */
     @Override
+    @Nonnull
     public Property setProperty(String name, Value value) throws RepositoryException {
         int type = PropertyType.UNDEFINED;
         if (value != null) {
@@ -201,6 +205,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see Node#setProperty(String, javax.jcr.Value, int)
      */
     @Override
+    @Nonnull
     public Property setProperty(String jcrName, Value value, int type)
             throws RepositoryException {
         checkStatus();
@@ -222,6 +227,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see Node#setProperty(String, javax.jcr.Value[])
      */
     @Override
+    @Nonnull
     public Property setProperty(String name, Value[] values) throws RepositoryException {
         int type;
         if (values == null || values.length == 0 || values[0] == null) {
@@ -233,6 +239,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     }
 
     @Override
+    @Nonnull
     public Property setProperty(String jcrName, Value[] values, int type) throws RepositoryException {
         checkStatus();
 
@@ -253,6 +260,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see Node#setProperty(String, String[])
      */
     @Override
+    @Nonnull
     public Property setProperty(String name, String[] values) throws RepositoryException {
         return setProperty(name, values, PropertyType.UNDEFINED);
     }
@@ -261,6 +269,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see Node#setProperty(String, String[], int)
      */
     @Override
+    @Nonnull
     public Property setProperty(String name, String[] values, int type) throws RepositoryException {
         Value[] vs;
         if (type == PropertyType.UNDEFINED) {
@@ -275,6 +284,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see Node#setProperty(String, String)
      */
     @Override
+    @Nonnull
     public Property setProperty(String name, String value) throws RepositoryException {
         Value v = (value == null) ? null : getValueFactory().createValue(value, PropertyType.STRING);
         return setProperty(name, v, PropertyType.UNDEFINED);
@@ -284,6 +294,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see Node#setProperty(String, String, int)
      */
     @Override
+    @Nonnull
     public Property setProperty(String name, String value, int type) throws RepositoryException {
         Value v = (value == null) ? null : getValueFactory().createValue(value, type);
         return setProperty(name, v, type);
@@ -294,6 +305,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      */
     @SuppressWarnings("deprecation")
     @Override
+    @Nonnull
     public Property setProperty(String name, InputStream value) throws RepositoryException {
         Value v = (value == null ? null : getValueFactory().createValue(value));
         return setProperty(name, v, PropertyType.BINARY);
@@ -303,6 +315,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see Node#setProperty(String, Binary)
      */
     @Override
+    @Nonnull
     public Property setProperty(String name, Binary value) throws RepositoryException {
         Value v = (value == null ? null : getValueFactory().createValue(value));
         return setProperty(name, v, PropertyType.BINARY);
@@ -312,15 +325,16 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see Node#setProperty(String, boolean)
      */
     @Override
+    @Nonnull
     public Property setProperty(String name, boolean value) throws RepositoryException {
         return setProperty(name, getValueFactory().createValue(value), PropertyType.BOOLEAN);
-
     }
 
     /**
      * @see Node#setProperty(String, double)
      */
     @Override
+    @Nonnull
     public Property setProperty(String name, double value) throws RepositoryException {
         return setProperty(name, getValueFactory().createValue(value), PropertyType.DOUBLE);
     }
@@ -329,6 +343,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see Node#setProperty(String, BigDecimal)
      */
     @Override
+    @Nonnull
     public Property setProperty(String name, BigDecimal value) throws RepositoryException {
         Value v = (value == null ? null : getValueFactory().createValue(value));
         return setProperty(name, v, PropertyType.DECIMAL);
@@ -338,6 +353,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see Node#setProperty(String, long)
      */
     @Override
+    @Nonnull
     public Property setProperty(String name, long value) throws RepositoryException {
         return setProperty(name, getValueFactory().createValue(value), PropertyType.LONG);
     }
@@ -346,6 +362,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see Node#setProperty(String, Calendar)
      */
     @Override
+    @Nonnull
     public Property setProperty(String name, Calendar value) throws RepositoryException {
         Value v = (value == null ? null : getValueFactory().createValue(value));
         return setProperty(name, v, PropertyType.DATE);
@@ -355,12 +372,14 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see Node#setProperty(String, Node)
      */
     @Override
+    @Nonnull
     public Property setProperty(String name, Node value) throws RepositoryException {
         Value v = (value == null) ? null : getValueFactory().createValue(value);
         return setProperty(name, v, PropertyType.REFERENCE);
     }
 
     @Override
+    @Nonnull
     public Node getNode(String relPath) throws RepositoryException {
         checkStatus();
 
@@ -376,6 +395,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     }
 
     @Override
+    @Nonnull
     public NodeIterator getNodes() throws RepositoryException {
         checkStatus();
 
@@ -384,6 +404,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     }
 
     @Override
+    @Nonnull
     public NodeIterator getNodes(final String namePattern)
             throws RepositoryException {
         checkStatus();
@@ -401,6 +422,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     }
 
     @Override
+    @Nonnull
     public NodeIterator getNodes(final String[] nameGlobs) throws RepositoryException {
         checkStatus();
 
@@ -430,6 +452,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     }
 
     @Override
+    @Nonnull
     public PropertyIterator getProperties() throws RepositoryException {
         checkStatus();
 
@@ -438,6 +461,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     }
 
     @Override
+    @Nonnull
     public PropertyIterator getProperties(final String namePattern) throws RepositoryException {
         checkStatus();
 
@@ -454,6 +478,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     }
 
     @Override
+    @Nonnull
     public PropertyIterator getProperties(final String[] nameGlobs) throws RepositoryException {
         checkStatus();
 
@@ -473,6 +498,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see javax.jcr.Node#getPrimaryItem()
      */
     @Override
+    @Nonnull
     public Item getPrimaryItem() throws RepositoryException {
         checkStatus();
         String name = getPrimaryNodeType().getPrimaryItemName();
@@ -492,6 +518,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see javax.jcr.Node#getUUID()
      */
     @Override
+    @Nonnull
     public String getUUID() throws RepositoryException {
         checkStatus();
 
@@ -503,6 +530,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     }
 
     @Override
+    @Nonnull
     public String getIdentifier() throws RepositoryException {
         checkStatus();
         return dlg.getIdentifier();
@@ -518,11 +546,13 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see javax.jcr.Node#getReferences()
      */
     @Override
+    @Nonnull
     public PropertyIterator getReferences() throws RepositoryException {
         return getReferences(null);
     }
 
     @Override
+    @Nonnull
     public PropertyIterator getReferences(String name) throws RepositoryException {
         checkStatus();
         throw new UnsupportedRepositoryOperationException("TODO: Node.getReferences");
@@ -532,11 +562,13 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see javax.jcr.Node#getWeakReferences()
      */
     @Override
+    @Nonnull
     public PropertyIterator getWeakReferences() throws RepositoryException {
         return getWeakReferences(null);
     }
 
     @Override
+    @Nonnull
     public PropertyIterator getWeakReferences(String name) throws RepositoryException {
         checkStatus();
         throw new UnsupportedRepositoryOperationException("TODO: Node.getWeakReferences");
@@ -576,6 +608,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see javax.jcr.Node#getPrimaryNodeType()
      */
     @Override
+    @Nonnull
     public NodeType getPrimaryNodeType() throws RepositoryException {
         checkStatus();
 
@@ -590,6 +623,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see javax.jcr.Node#getMixinNodeTypes()
      */
     @Override
+    @Nonnull
     public NodeType[] getMixinNodeTypes() throws RepositoryException {
         checkStatus();
 
@@ -686,6 +720,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     }
 
     @Override
+    @Nonnull
     public NodeDefinition getDefinition() throws RepositoryException {
         checkStatus();
 
@@ -754,6 +789,7 @@ public class NodeImpl extends ItemImpl implements Node  {
 
 
     @Override
+    @Nonnull
     public String getCorrespondingNodePath(String workspaceName) throws RepositoryException {
         checkStatus();
         throw new UnsupportedRepositoryOperationException("TODO: Node.getCorrespondingNodePath");
@@ -772,6 +808,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see javax.jcr.Node#checkin()
      */
     @Override
+    @Nonnull
     public Version checkin() throws RepositoryException {
         return sessionDelegate.getVersionManager().checkin(getPath());
     }
@@ -804,6 +841,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see javax.jcr.Node#merge(String, boolean)
      */
     @Override
+    @Nonnull
     public NodeIterator merge(String srcWorkspace, boolean bestEffort) throws RepositoryException {
         return sessionDelegate.getVersionManager().merge(getPath(), srcWorkspace, bestEffort);
     }
@@ -864,6 +902,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see javax.jcr.Node#getVersionHistory()
      */
     @Override
+    @Nonnull
     public VersionHistory getVersionHistory() throws RepositoryException {
         return sessionDelegate.getVersionManager().getVersionHistory(getPath());
     }
@@ -872,6 +911,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see javax.jcr.Node#getBaseVersion()
      */
     @Override
+    @Nonnull
     public Version getBaseVersion() throws RepositoryException {
         return sessionDelegate.getVersionManager().getBaseVersion(getPath());
     }
@@ -880,6 +920,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see javax.jcr.Node#lock(boolean, boolean)
      */
     @Override
+    @Nonnull
     public Lock lock(boolean isDeep, boolean isSessionScoped) throws RepositoryException {
         return sessionDelegate.getLockManager().lock(getPath(), isDeep, isSessionScoped, Long.MAX_VALUE, null);
     }
@@ -888,6 +929,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see javax.jcr.Node#getLock()
      */
     @Override
+    @Nonnull
     public Lock getLock() throws RepositoryException {
         return sessionDelegate.getLockManager().getLock(getPath());
     }
@@ -923,6 +965,7 @@ public class NodeImpl extends ItemImpl implements Node  {
     }
 
     @Override
+    @Nonnull
     public NodeIterator getSharedSet() throws RepositoryException {
         throw new UnsupportedRepositoryOperationException("TODO: Node.getSharedSet");
     }
@@ -949,6 +992,7 @@ public class NodeImpl extends ItemImpl implements Node  {
      * @see javax.jcr.Node#getAllowedLifecycleTransistions()
      */
     @Override
+    @Nonnull
     public String[] getAllowedLifecycleTransistions() throws RepositoryException {
         throw new UnsupportedRepositoryOperationException("Lifecycle Management is not supported");
 

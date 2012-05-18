@@ -22,6 +22,7 @@ import org.apache.jackrabbit.value.ValueHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
 import javax.jcr.Binary;
 import javax.jcr.ItemNotFoundException;
 import javax.jcr.ItemVisitor;
@@ -69,6 +70,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      * @see javax.jcr.Item#getParent()
      */
     @Override
+    @Nonnull
     public Node getParent() throws RepositoryException {
         return new NodeImpl(dlg.getParent());
     }
@@ -296,6 +298,7 @@ public class PropertyImpl extends ItemImpl implements Property {
     }
 
     @Override
+    @Nonnull
     public Value getValue() throws RepositoryException {
         checkStatus();
         if (isMultiple()) {
@@ -306,6 +309,7 @@ public class PropertyImpl extends ItemImpl implements Property {
     }
 
     @Override
+    @Nonnull
     public Value[] getValues() throws RepositoryException {
         checkStatus();
         if (!isMultiple()) {
@@ -319,6 +323,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      * @see Property#getString()
      */
     @Override
+    @Nonnull
     public String getString() throws RepositoryException {
         return getValue().getString();
     }
@@ -328,6 +333,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @SuppressWarnings("deprecation")
     @Override
+    @Nonnull
     public InputStream getStream() throws RepositoryException {
         return getValue().getStream();
     }
@@ -336,6 +342,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      * @see javax.jcr.Property#getBinary()
      */
     @Override
+    @Nonnull
     public Binary getBinary() throws RepositoryException {
         return getValue().getBinary();
     }
@@ -360,6 +367,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      * @see Property#getDecimal()
      */
     @Override
+    @Nonnull
     public BigDecimal getDecimal() throws RepositoryException {
         return getValue().getDecimal();
     }
@@ -368,6 +376,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      * @see Property#getDate()
      */
     @Override
+    @Nonnull
     public Calendar getDate() throws RepositoryException {
         return getValue().getDate();
     }
@@ -384,6 +393,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      * @see javax.jcr.Property#getNode()
      */
     @Override
+    @Nonnull
     public Node getNode() throws RepositoryException {
         Value value = getValue();
         switch (value.getType()) {
@@ -433,6 +443,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      * @see javax.jcr.Property#getProperty()
      */
     @Override
+    @Nonnull
     public Property getProperty() throws RepositoryException {
         Value value = getValue();
         Value pathValue = ValueHelper.convert(value, PropertyType.PATH, getValueFactory());
@@ -456,6 +467,7 @@ public class PropertyImpl extends ItemImpl implements Property {
      * @see javax.jcr.Property#getLengths()
      */
     @Override
+    @Nonnull
     public long[] getLengths() throws RepositoryException {
         Value[] values = getValues();
         long[] lengths = new long[values.length];
@@ -467,6 +479,7 @@ public class PropertyImpl extends ItemImpl implements Property {
     }
 
     @Override
+    @Nonnull
     public PropertyDefinition getDefinition() throws RepositoryException {
         return dlg.getDefinition();
     }

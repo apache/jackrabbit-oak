@@ -16,20 +16,12 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import org.apache.jackrabbit.api.JackrabbitSession;
-import org.apache.jackrabbit.api.security.principal.PrincipalManager;
-import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.commons.AbstractSession;
-import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.xml.sax.ContentHandler;
+import java.security.AccessControlException;
 
+import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
-import javax.jcr.Item;
 import javax.jcr.ItemNotFoundException;
 import javax.jcr.Node;
-import javax.jcr.PathNotFoundException;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -38,7 +30,15 @@ import javax.jcr.ValueFactory;
 import javax.jcr.Workspace;
 import javax.jcr.retention.RetentionManager;
 import javax.jcr.security.AccessControlManager;
-import java.security.AccessControlException;
+
+import org.apache.jackrabbit.api.JackrabbitSession;
+import org.apache.jackrabbit.api.security.principal.PrincipalManager;
+import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.commons.AbstractSession;
+import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.xml.sax.ContentHandler;
 
 /**
  * {@code SessionImpl}...
@@ -59,6 +59,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     //------------------------------------------------------------< Session >---
 
     @Override
+    @Nonnull
     public Repository getRepository() {
         return dlg.getRepository();
     }
@@ -79,11 +80,13 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     }
 
     @Override
+    @Nonnull
     public Workspace getWorkspace() {
         return dlg.getWorkspace();
     }
 
     @Override
+    @Nonnull
     public Session impersonate(Credentials credentials) throws RepositoryException {
         ensureIsAlive();
 
@@ -92,23 +95,27 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     }
 
     @Override
+    @Nonnull
     public ValueFactory getValueFactory() throws RepositoryException {
         ensureIsAlive();
         return dlg.getValueFactory();
     }
 
     @Override
+    @Nonnull
     public Node getRootNode() throws RepositoryException {
         ensureIsAlive();
         return new NodeImpl(dlg.getRoot());
     }
 
     @Override
+    @Nonnull
     public Node getNodeByUUID(String id) throws RepositoryException {
         return getNodeByIdentifier(id);
     }
 
     @Override
+    @Nonnull
     public Node getNodeByIdentifier(String id) throws RepositoryException {
         ensureIsAlive();
         NodeDelegate d = dlg.getNodeByIdentifier(id);
@@ -157,6 +164,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     }
 
     @Override
+    @Nonnull
     public ContentHandler getImportContentHandler(String parentAbsPath, int uuidBehavior) throws RepositoryException {
         ensureIsAlive();
 
@@ -182,6 +190,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
      * @see javax.jcr.Session#getLockTokens()
      */
     @Override
+    @Nonnull
     public String[] getLockTokens() {
         try {
             return dlg.getLockManager().getLockTokens();
@@ -234,6 +243,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     }
 
     @Override
+    @Nonnull
     public AccessControlManager getAccessControlManager() throws RepositoryException {
         ensureIsAlive();
         throw new UnsupportedRepositoryOperationException("TODO: Session.getAccessControlManager");
@@ -243,6 +253,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
      * @see javax.jcr.Session#getRetentionManager()
      */
     @Override
+    @Nonnull
     public RetentionManager getRetentionManager() throws RepositoryException {
         throw new UnsupportedRepositoryOperationException("Retention Management is not supported.");
     }
@@ -250,12 +261,14 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     //--------------------------------------------------< JackrabbitSession >---
 
     @Override
+    @Nonnull
     public PrincipalManager getPrincipalManager() throws RepositoryException {
         // TODO
         throw new UnsupportedOperationException("Implementation missing");
     }
 
     @Override
+    @Nonnull
     public UserManager getUserManager() throws RepositoryException {
         // TODO
         throw new UnsupportedOperationException("Implementation missing");
