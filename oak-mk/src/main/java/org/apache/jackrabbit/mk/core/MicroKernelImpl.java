@@ -35,6 +35,7 @@ import org.apache.jackrabbit.mk.model.NodeState;
 import org.apache.jackrabbit.mk.model.PropertyState;
 import org.apache.jackrabbit.mk.model.StoredCommit;
 import org.apache.jackrabbit.mk.util.CommitGate;
+import org.apache.jackrabbit.mk.util.NameFilter;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
 /**
@@ -324,15 +325,16 @@ public class MicroKernelImpl implements MicroKernel {
 
         Id revId = revisionId == null ? getHeadRevisionId() : Id.fromString(revisionId);
 
-        // TODO extract and evaluate filter criteria (such as e.g. ':hash') specified in 'filter' parameter
-
         try {
             NodeState nodeState = rep.getNodeState(revId, path);
             if (nodeState == null) {
                 return null;
             }
+
+            NodeFilter nodeFilter = filter == null || filter.isEmpty() ? null : NodeFilter.parse(filter);
+
             JsopBuilder buf = new JsopBuilder().object();
-            toJson(buf, nodeState, depth, (int) offset, count, true);
+            toJson(buf, nodeState, depth, (int) offset, count, true, nodeFilter);
             return buf.endObject().toString();
         } catch (Exception e) {
             throw new MicroKernelException(e);
@@ -538,7 +540,11 @@ public class MicroKernelImpl implements MicroKernel {
 
     //-------------------------------------------------------< implementation >
 
-    void toJson(JsopBuilder builder, NodeState node, int depth, int offset, int count, boolean inclVirtualProps) {
+    void toJson(JsopBuilder builder, NodeState node,
+                int depth, int offset, int count,
+                boolean inclVirtualProps, NodeFilter filter) {
+        // TODO apply filter criteria (such as e.g. ':hash')
+
         for (PropertyState property : node.getProperties()) {
             builder.key(property.getName()).encodedValue(property.getEncodedValue());
         }
@@ -550,7 +556,7 @@ public class MicroKernelImpl implements MicroKernel {
             for (ChildNodeEntry entry : node.getChildNodeEntries(offset, count)) {
                 builder.key(entry.getName()).object();
                 if (depth > 0) {
-                    toJson(builder, entry.getNode(), depth - 1, 0, -1, inclVirtualProps);
+                    toJson(builder, entry.getNode(), depth - 1, 0, -1, inclVirtualProps, filter);
                 }
                 builder.endObject();
             }
@@ -572,5 +578,25 @@ public class MicroKernelImpl implements MicroKernel {
             t.read('}');
         }
         return node;
+    }
+
+    //-------------------------------------------------------< inner classes >
+
+    static class NodeFilter {
+        NameFilter nodeFilter;
+        NameFilter propFilter;
+
+        static NodeFilter parse(String json) throws Exception {
+            // TODO parse json format filter
+            return null;
+        }
+
+        boolean includeNode(String name) {
+            return nodeFilter == null ? true : nodeFilter.matches(name);
+        }
+
+        boolean includeProperty(String name) {
+            return propFilter == null ? true : propFilter.matches(name);
+        }
     }
 }
