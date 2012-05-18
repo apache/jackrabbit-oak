@@ -17,6 +17,9 @@
 
 package org.apache.jackrabbit.oak.jcr;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.api.Tree.Status;
 
 /**
@@ -34,18 +37,21 @@ public abstract class ItemDelegate {
      * Get the name of this item
      * @return oak name of this item
      */
+    @Nonnull
     public abstract String getName();
 
     /**
      * Get the path of this item
      * @return oak path of this item
      */
+    @Nonnull
     public abstract String getPath();
 
     /**
      * Get the parent of this item
      * @return  parent of this item or {@code null} for root
      */
+    @CheckForNull
     public abstract NodeDelegate getParent();
 
     /**
@@ -58,11 +64,13 @@ public abstract class ItemDelegate {
      * Get the status of this item
      * @return  {@link Status} of this item
      */
+    @Nonnull
     public abstract Status getStatus();
 
     /**
      * Get the session delegate with which this item is associated
      * @return  {@link SessionDelegate} to which this item belongs
      */
+    @Nonnull
     public abstract SessionDelegate getSessionDelegate();
 }

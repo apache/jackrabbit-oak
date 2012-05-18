@@ -33,6 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.jcr.ItemExistsException;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.PathNotFoundException;
@@ -75,6 +76,7 @@ public class SessionDelegate {
         return isAlive;
     }
 
+    @Nonnull
     public Session getSession() {
         return session;
     }
@@ -83,6 +85,7 @@ public class SessionDelegate {
         return contentSession.getAuthInfo();
     }
 
+    @Nonnull
     public Repository getRepository() {
         return repository;
     }
@@ -103,25 +106,30 @@ public class SessionDelegate {
         }
     }
 
+    @Nonnull
     public NodeDelegate getRoot() {
         return new NodeDelegate(this, getTree(""));
     }
 
+    @CheckForNull
     public NodeDelegate getNode(String path) {
         Tree tree = getTree(path);
         return tree == null ? null : new NodeDelegate(this, tree);
     }
 
+    @CheckForNull
     public NodeDelegate getNodeByIdentifier(String id) {
         // TODO: for now the OAK path is the identifier
         Tree tree = getTree(id);
         return tree == null ? null : new NodeDelegate(this, tree);
     }
 
+    @Nonnull
     public ValueFactoryImpl getValueFactory() {
         return valueFactory;
     }
 
+    @Nonnull
     public NamePathMapper getNamePathMapper() {
         return namePathMapper;
     }
@@ -154,6 +162,7 @@ public class SessionDelegate {
      * @param jcrPath JCR path
      * @return Oak path, or {@code null}
      */
+    @CheckForNull
     public String getOakPathOrNull(String jcrPath) {
         return getNamePathMapper().getOakPath(jcrPath);
     }
@@ -166,6 +175,7 @@ public class SessionDelegate {
      * @return Oak path
      * @throws PathNotFoundException if the path can not be mapped
      */
+    @CheckForNull
     public String getOakPathOrThrowNotFound(String jcrPath)
             throws PathNotFoundException {
         String oakPath = getOakPathOrNull(jcrPath);
@@ -184,6 +194,7 @@ public class SessionDelegate {
      * @return Oak path
      * @throws RepositoryException if the path can not be mapped
      */
+    @Nonnull
     public String getOakPathOrThrow(String jcrPath)
             throws RepositoryException {
         String oakPath = getOakPathOrNull(jcrPath);
@@ -196,10 +207,12 @@ public class SessionDelegate {
 
     //----------------------------------------------------------< Workspace >---
 
+    @Nonnull
     public Workspace getWorkspace() {
         return workspace;
     }
 
+    @Nonnull
     public String getWorkspaceName() {
         return contentSession.getWorkspaceName();
     }
@@ -281,26 +294,32 @@ public class SessionDelegate {
         }
     }
 
+    @Nonnull
     public LockManager getLockManager() throws RepositoryException {
         return workspace.getLockManager();
     }
 
+    @Nonnull
     public QueryEngine getQueryEngine() {
         return contentSession.getQueryEngine();
     }
 
+    @Nonnull
     public QueryManager getQueryManager() throws RepositoryException {
         return workspace.getQueryManager();
     }
 
+    @Nonnull
     public NodeTypeManager getNodeTypeManager() throws RepositoryException {
         return workspace.getNodeTypeManager();
     }
 
+    @Nonnull
     public VersionManager getVersionManager() throws RepositoryException {
         return workspace.getVersionManager();
     }
 
+    @Nonnull
     public ContentSession getContentSession() {
         return contentSession;
     }
