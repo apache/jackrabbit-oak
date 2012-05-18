@@ -543,20 +543,30 @@ public class MicroKernelImpl implements MicroKernel {
     void toJson(JsopBuilder builder, NodeState node,
                 int depth, int offset, int count,
                 boolean inclVirtualProps, NodeFilter filter) {
-        // TODO apply filter criteria (such as e.g. ':hash')
-
         for (PropertyState property : node.getProperties()) {
-            builder.key(property.getName()).encodedValue(property.getEncodedValue());
+            if (filter == null || filter.includeProperty(property.getName())) {
+                builder.key(property.getName()).encodedValue(property.getEncodedValue());
+            }
         }
         long childCount = node.getChildNodeCount();
         if (inclVirtualProps) {
-            builder.key(":childNodeCount").value(childCount);
+            if (filter == null || filter.includeProperty(":childNodeCount")) {
+                // :childNodeCount is by default always included
+                // unless it is explicitly excluded in the filter
+                builder.key(":childNodeCount").value(childCount);
+            }
+            if (filter != null && filter.includeProperty(":hash")) {
+                // :hash must be explicitly included in the filter
+                builder.key(":hash").value(rep.getRevisionStore().getId(node).toString());
+            }
         }
         if (childCount > 0 && depth >= 0) {
             for (ChildNodeEntry entry : node.getChildNodeEntries(offset, count)) {
-                builder.key(entry.getName()).object();
-                if (depth > 0) {
-                    toJson(builder, entry.getNode(), depth - 1, 0, -1, inclVirtualProps, filter);
+                if (filter == null || filter.includeNode(entry.getName())) {
+                    builder.key(entry.getName()).object();
+                    if (depth > 0) {
+                        toJson(builder, entry.getNode(), depth - 1, 0, -1, inclVirtualProps, filter);
+                    }
                 }
                 builder.endObject();
             }
@@ -586,9 +596,43 @@ public class MicroKernelImpl implements MicroKernel {
         NameFilter nodeFilter;
         NameFilter propFilter;
 
+        private NodeFilter(NameFilter nodeFilter, NameFilter propFilter) {
+            this.nodeFilter = nodeFilter;
+            this.propFilter = propFilter;
+        }
+
         static NodeFilter parse(String json) throws Exception {
-            // TODO parse json format filter
-            return null;
+            // parse json format filter
+            JsopTokenizer t = new JsopTokenizer(json);
+            t.read('{');
+
+            NameFilter nodeFilter = null, propFilter = null;
+
+            do {
+                String type = t.readString();
+                t.read(':');
+                String[] globs = parseArray(t);
+                if (type.equals("nodes")) {
+                    nodeFilter = new NameFilter(globs);
+                } else if (type.equals("properties")) {
+                    propFilter = new NameFilter(globs);
+                } else {
+                    throw new IllegalArgumentException("illegal filter format");
+                }
+            } while (t.matches(','));
+            t.read('}');
+
+            return new NodeFilter(nodeFilter, propFilter);
+        }
+
+        private static String[] parseArray(JsopTokenizer t) {
+            List<String> l = new ArrayList<String>();
+            t.read('[');
+            do {
+                l.add(t.readString());
+            } while (t.matches(','));
+            t.read(']');
+            return l.toArray(new String[l.size()]);
         }
 
         boolean includeNode(String name) {
