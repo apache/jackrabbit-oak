@@ -22,6 +22,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
+import javax.annotation.Nonnull;
 import javax.jcr.Value;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.PropertyDefinition;
@@ -68,6 +69,7 @@ public class PropertyDelegate extends ItemDelegate {
     }
 
     @Override
+    @Nonnull
     public NodeDelegate getParent() {
         return new NodeDelegate(sessionDelegate, getParentTree());
     }
