@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.jcr.namespace;
 
 import java.util.Locale;
 
+import javax.annotation.Nonnull;
 import javax.jcr.NamespaceException;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.RepositoryException;
@@ -68,6 +69,7 @@ public class NamespaceRegistryImpl implements NamespaceRegistry {
     }
 
     @Override
+    @Nonnull
     public String[] getPrefixes() throws RepositoryException {
         try {
             return nsMappings.getPrefixes();
@@ -78,6 +80,7 @@ public class NamespaceRegistryImpl implements NamespaceRegistry {
     }
 
     @Override
+    @Nonnull
     public String[] getURIs() throws RepositoryException {
         try {
             return nsMappings.getURIs();
@@ -88,6 +91,7 @@ public class NamespaceRegistryImpl implements NamespaceRegistry {
     }
 
     @Override
+    @Nonnull
     public String getURI(String prefix) throws RepositoryException {
         try {
             String uri = nsMappings.getURI(prefix);
@@ -104,12 +108,13 @@ public class NamespaceRegistryImpl implements NamespaceRegistry {
     }
 
     @Override
+    @Nonnull
     public String getPrefix(String uri) throws RepositoryException {
         try {
             String prefix = nsMappings.getPrefix(uri);
             if (prefix == null) {
                 throw new NamespaceException(
-                        "No namespace registered for prefix " + prefix);
+                        "No namespace registered for uri: " + uri);
             }
             return prefix;
         } catch (RuntimeException e) {
