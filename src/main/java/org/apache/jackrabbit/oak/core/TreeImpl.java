@@ -328,32 +328,6 @@ public class TreeImpl implements Tree, PurgeListener {
         return true;
     }
 
-    //------------------------------------------------------------< internal >---
-
-    /**
-     * Revert all changes to this instance and its child instances.
-     */
-    public void revert() {
-        for (TreeImpl child : children) {
-            // TODO revert changes done to this instance
-            child.revert();
-        }
-        nodeStateBuilder = null;
-        children.clear();
-    }
-
-    /**
-     * Remove revert info for this instance and all its child instances.
-     */
-    public void saved() {
-        for (TreeImpl child : children) {
-            // TODO clear records of changes done to this instance
-            child.saved();
-        }
-        nodeStateBuilder = null;
-        children.clear();
-    }
-
     //------------------------------------------------------------< RootImpl.Listener >---
 
     @Override
