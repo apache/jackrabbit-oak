@@ -42,6 +42,12 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 public class RootImpl implements Root {
     static final Logger log = LoggerFactory.getLogger(RootImpl.class);
 
+    /**
+     * Number of {@link #setWorkspaceRootState(NodeState)} calls for which changes
+     * are kept in memory.
+     */
+    private static final int PURGE_LIMIT = 100;
+
     /** The underlying store to which this root belongs */
     private final NodeStore store;
 
@@ -53,6 +59,35 @@ public class RootImpl implements Root {
 
     /** Current branch this root operates on */
     private NodeStoreBranch branch;
+
+    /** Lazily initialised builder for the root node state of this workspace */
+    private NodeStateBuilder workspaceBuilder;
+
+    /**
+     * Number of {@link #setWorkspaceRootState(NodeState)} occurred so since the lase
+     * purge.
+     */
+    private int modCount;
+
+    /**
+     * Listeners which needs to be modified as soon as {@link #purgePendingChanges()}
+     * is called. Listeners are removed from this list after being called. If further
+     * notifications are required, they need to explicitly re-register.
+     *
+     * The {@link TreeImpl} instances us this mechanism to dispose of its associated
+     * {@link NodeStateBuilder} on purge. Keeping a reference on those {@code TreeImpl}
+     * instances {@code NodeStateBuilder} (i.e. those which are modified) prevents them
+     * from being prematurely garbage collected.
+     */
+    private List<PurgeListener> purgePurgeListeners = new ArrayList<PurgeListener>();
+
+    /**
+     * Purge listener.
+     * @see #purgePurgeListeners
+     */
+    public interface PurgeListener {
+        void purged();
+    }
 
     /**
      * New instance bases on a given {@link NodeStore} and a workspace
@@ -68,6 +103,7 @@ public class RootImpl implements Root {
 
     @Override
     public boolean move(String sourcePath, String destPath) {
+        purgePendingChanges();
         TreeImpl source = getChild(sourcePath);
         if (source == null) {
             return false;
@@ -92,6 +128,7 @@ public class RootImpl implements Root {
 
     @Override
     public boolean copy(String sourcePath, String destPath) {
+        purgePendingChanges();
         return branch.copy(
             PathUtils.concat(workspaceName, sourcePath),
             PathUtils.concat(workspaceName, destPath));
@@ -104,7 +141,7 @@ public class RootImpl implements Root {
 
     @Override
     public void rebase() {
-        root.clear();
+        purgePendingChanges();
         NodeState base = getWorkspaceBaseState();
         NodeState head = getWorkspaceRootState();
         branch = store.branch();
@@ -112,21 +149,35 @@ public class RootImpl implements Root {
     }
 
     @Override
-    public void clear() {
-        root.clear();
-        branch = store.branch();
+    public void revert() {
+        workspaceBuilder = null;
+        root.revert();
     }
 
     @Override
     public void commit() throws CommitFailedException {
+        purgePendingChanges();
+        NodeState base = getWorkspaceRootState();
         branch.merge();
-        root.clear();
         branch = store.branch();
+        root.saved();
+        NodeState head = getWorkspaceRootState();
+        merge(base, head, getRoot());
     }
 
     @Override
     public boolean hasPendingChanges() {
-        return !branch.getBase().equals(branch.getRoot());
+        return !getWorkspaceBaseState().equals(getWorkspaceRootState());
+    }
+
+    /**
+     * Add a {@code PurgeListener} to this instance. Listeners are automatically
+     * unregistered after having been called. If further notifications are required,
+     * they need to explicitly re-register.
+     * @param purgeListener  listener
+     */
+    public void addListener(PurgeListener purgeListener) {
+        purgePurgeListeners.add(purgeListener);
     }
 
     /**
@@ -134,7 +185,9 @@ public class RootImpl implements Root {
      * @return root node state
      */
     public NodeState getWorkspaceRootState() {
-        return branch.getRoot().getChildNode(workspaceName);
+        return workspaceBuilder == null
+            ? branch.getRoot().getChildNode(workspaceName)
+            : workspaceBuilder.getNodeState();
     }
 
     /**
@@ -164,9 +217,23 @@ public class RootImpl implements Root {
      * @param nodeState  node state representing the modified workspace
      */
     public void setWorkspaceRootState(NodeState nodeState) {
-        NodeStateBuilder builder = getBuilder(branch.getRoot());
-        builder.setNode(workspaceName, nodeState);
-        branch.setRoot(builder.getNodeState());
+        getWorkspaceBuilder().setNode(workspaceName, nodeState);
+        modCount++;
+        if (needsPurging()) {
+            purgePendingChanges();
+        }
+    }
+
+    /**
+     * Purge all pending changes to the underlying {@link NodeStoreBranch}.
+     * All registered {@link PurgeListener}s are notified.
+     */
+    public void purgePendingChanges() {
+        if (workspaceBuilder != null) {
+            branch.setRoot(workspaceBuilder.getNodeState());
+            workspaceBuilder = null;
+            notifyListeners();
+        }
     }
 
     /**
@@ -183,6 +250,38 @@ public class RootImpl implements Root {
     }
 
     //------------------------------------------------------------< private >---
+
+    // TODO better way to determine purge limit
+    private boolean needsPurging() {
+        if (modCount > PURGE_LIMIT) {
+            modCount = 0;
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+
+    /**
+     * Lazily initialise the {@code NodeStateBuilder} associated with the
+     * root node of the current workspace.
+     * @return
+     */
+    private synchronized NodeStateBuilder getWorkspaceBuilder() {
+        if (workspaceBuilder == null) {
+            workspaceBuilder = getBuilder(branch.getRoot());
+        }
+        return workspaceBuilder;
+    }
+
+    private void notifyListeners() {
+        List<PurgeListener> purgeListeners = this.purgePurgeListeners;
+        this.purgePurgeListeners = new ArrayList<PurgeListener>();
+
+        for (PurgeListener purgeListener : purgeListeners) {
+            purgeListener.purged();
+        }
+    }
 
     private TreeImpl getRoot() {
         return root;
