@@ -65,7 +65,7 @@ import static org.apache.jackrabbit.oak.util.Iterators.filter;
 /**
  * {@code NodeImpl}...
  */
-public class NodeImpl extends ItemImpl implements Node  {
+public class NodeImpl extends ItemImpl implements Node {
 
     /**
      * logger instance
@@ -177,6 +177,10 @@ public class NodeImpl extends ItemImpl implements Node  {
         // TODO: END
 
         NodeDelegate added = parent.addChild(oakName);
+        if (added == null) {
+            throw new ItemExistsException();
+        }
+
         Node childNode = new NodeImpl(added);
         childNode.setPrimaryType(primaryNodeTypeName);
         return childNode;
