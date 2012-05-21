@@ -149,9 +149,10 @@ public class RootImpl implements Root {
     }
 
     @Override
-    public void revert() {
-        workspaceBuilder = null;
+    public void refresh() {
         root.revert();
+        workspaceBuilder = null;
+        branch = store.branch();
     }
 
     @Override
