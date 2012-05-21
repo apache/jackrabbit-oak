@@ -20,6 +20,8 @@ import org.apache.jackrabbit.commons.AbstractItem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.Item;
 import javax.jcr.Node;
@@ -51,6 +53,7 @@ abstract class ItemImpl extends AbstractItem {
      * @see javax.jcr.Item#getName()
      */
     @Override
+    @Nonnull
     public String getName() throws RepositoryException {
         String oakName = dlg.getName();
         // special case name of root node
@@ -61,11 +64,13 @@ abstract class ItemImpl extends AbstractItem {
      * @see javax.jcr.Property#getPath()
      */
     @Override
+    @Nonnull
     public String getPath() throws RepositoryException {
         return toJcrPath(dlg.getPath());
     }
 
     @Override
+    @Nonnull
     public Session getSession() throws RepositoryException {
         return sessionDelegate.getSession();
     }
@@ -172,10 +177,12 @@ abstract class ItemImpl extends AbstractItem {
      *
      * @return the value factory
      */
+    @Nonnull
     ValueFactory getValueFactory() {
         return sessionDelegate.getValueFactory();
     }
 
+    @Nonnull
     String toJcrPath(String oakPath) {
         return sessionDelegate.getNamePathMapper().getJcrPath(oakPath);
     }

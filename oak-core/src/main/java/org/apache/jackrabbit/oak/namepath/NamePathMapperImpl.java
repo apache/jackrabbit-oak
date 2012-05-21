@@ -22,6 +22,8 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.annotation.Nonnull;
+
 /**
  * NamePathMapperImpl...
  */
@@ -155,6 +157,7 @@ public class NamePathMapperImpl implements NamePathMapper {
     }
 
     @Override
+    @Nonnull
     public String getJcrPath(String oakPath) {
         final List<String> elements = new ArrayList<String>();
 
