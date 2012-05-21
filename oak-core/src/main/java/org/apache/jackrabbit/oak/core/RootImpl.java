@@ -55,7 +55,7 @@ public class RootImpl implements Root {
     private final String workspaceName;
 
     /** Actual root element of the {@code Tree} */
-    private final TreeImpl root;
+    private TreeImpl root;
 
     /** Current branch this root operates on */
     private NodeStoreBranch branch;
@@ -145,25 +145,23 @@ public class RootImpl implements Root {
         NodeState base = getWorkspaceBaseState();
         NodeState head = getWorkspaceRootState();
         branch = store.branch();
+        root = TreeImpl.createRoot(this);
         merge(base, head, getRoot());
     }
 
     @Override
     public void refresh() {
-        root.revert();
         workspaceBuilder = null;
         branch = store.branch();
+        root = TreeImpl.createRoot(this);
     }
 
     @Override
     public void commit() throws CommitFailedException {
         purgePendingChanges();
-        NodeState base = getWorkspaceRootState();
         branch.merge();
         branch = store.branch();
-        root.saved();
-        NodeState head = getWorkspaceRootState();
-        merge(base, head, getRoot());
+        root = TreeImpl.createRoot(this);
     }
 
     @Override
