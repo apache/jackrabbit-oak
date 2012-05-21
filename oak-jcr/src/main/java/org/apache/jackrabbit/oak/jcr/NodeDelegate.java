@@ -24,11 +24,10 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.util.Function1;
 import org.apache.jackrabbit.oak.util.Iterators;
 
-import java.util.Iterator;
-import java.util.List;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import java.util.Iterator;
+import java.util.List;
 
 /**
  * {@code NodeDelegate} serve as internal representations of {@code Node}s.
@@ -234,6 +233,7 @@ public class NodeDelegate extends ItemDelegate {
     }
 
     private synchronized Tree getTree() {
+        // TODO: this should not be necessary anymore once TreeImpl.revert and TreeImpl.saved are implemented
         return tree = sessionDelegate.getTree(tree.getPath());
     }
 
