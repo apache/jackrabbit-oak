@@ -64,9 +64,9 @@ public interface Root {
     void rebase();
 
     /**
-     * Reverts all changes made to this root.
+     * Reverts all changes made to this root and refreshed to the latest trunk
      */
-    void revert();
+    void refresh();
 
     /**
      * Atomically apply all changes made to the tree beneath this root to the

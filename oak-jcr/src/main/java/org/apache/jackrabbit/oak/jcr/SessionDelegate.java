@@ -148,10 +148,12 @@ public class SessionDelegate {
     }
 
     public void refresh(boolean keepChanges) {
-        if (!keepChanges) {
-            root.revert();
+        if (keepChanges) {
+            root.rebase();
         }
-        root.rebase();
+        else {
+            root.refresh();
+        }
     }
 
     /**
