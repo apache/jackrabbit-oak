@@ -59,19 +59,23 @@ public interface Root {
     Tree getTree(String path);
 
     /**
-     * Rebase this root to the latest revision.
+     * Rebase this root to the latest revision.  After a call to this method,
+     * all trees obtained through {@link #getTree(String)} become invalid and fresh
+     * instances must be obtained.
      */
     void rebase();
 
     /**
-     * Reverts all changes made to this root and refreshed to the latest trunk
+     * Reverts all changes made to this root and refreshed to the latest trunk.
+     * After a call to this method, all trees obtained through {@link #getTree(String)}
+     * become invalid and fresh instances must be obtained.
      */
     void refresh();
 
     /**
      * Atomically apply all changes made to the tree beneath this root to the
      * underlying store and refreshes this root. After a call to this method,
-     * all trees obtained through {@link #getTree(String)} are invalid and fresh
+     * all trees obtained through {@link #getTree(String)} become invalid and fresh
      * instances must be obtained.
      *
      * @throws CommitFailedException TODO: add description and clarify how JCR exception can be generated from this generic exception
