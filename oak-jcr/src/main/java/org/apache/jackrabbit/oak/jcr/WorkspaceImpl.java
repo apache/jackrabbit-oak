@@ -102,6 +102,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
         ensureIsAlive();
 
         // TODO -> SPI
+        throw new UnsupportedRepositoryOperationException("Not implemented.");
     }
 
     @SuppressWarnings("deprecation")
@@ -187,6 +188,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
         ensureSupportedOption(Repository.LEVEL_2_SUPPORTED);
 
         // TODO -> SPI
+        throw new UnsupportedRepositoryOperationException("TODO: Workspace.importXML");
     }
 
     @Override
@@ -195,6 +197,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
         ensureSupportedOption(Repository.OPTION_WORKSPACE_MANAGEMENT_SUPPORTED);
 
         // TODO -> SPI
+        throw new UnsupportedRepositoryOperationException("TODO: Workspace.createWorkspace");
     }
 
     @Override
@@ -203,6 +206,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
         ensureSupportedOption(Repository.OPTION_WORKSPACE_MANAGEMENT_SUPPORTED);
 
         // TODO -> SPI
+        throw new UnsupportedRepositoryOperationException("TODO: Workspace.createWorkspace");
     }
 
     @Override
@@ -211,6 +215,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
         ensureSupportedOption(Repository.OPTION_WORKSPACE_MANAGEMENT_SUPPORTED);
 
         // TODO -> SPI
+        throw new UnsupportedRepositoryOperationException("TODO: Workspace.deleteWorkspace");
     }
 
     //------------------------------------------------< JackrabbitWorkspace >---
@@ -221,6 +226,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
         ensureSupportedOption(Repository.OPTION_WORKSPACE_MANAGEMENT_SUPPORTED);
 
         // TODO -> SPI
+        throw new UnsupportedRepositoryOperationException("TODO: Workspace.createWorkspace");
     }
 
     /**
