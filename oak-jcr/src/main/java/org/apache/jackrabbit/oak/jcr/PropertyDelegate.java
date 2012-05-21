@@ -242,6 +242,7 @@ public class PropertyDelegate extends ItemDelegate {
     }
 
     private synchronized void resolve() {
+        // TODO: this should not be necessary anymore once TreeImpl.revert and TreeImpl.saved are implemented
         parent = sessionDelegate.getTree(parent.getPath());
 
         if (parent == null) {

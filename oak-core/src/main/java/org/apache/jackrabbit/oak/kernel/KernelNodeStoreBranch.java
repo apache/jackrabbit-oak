@@ -22,11 +22,6 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
  */
 class KernelNodeStoreBranch implements NodeStoreBranch {
 
-    /**
-     * Number of {@link #setRoot(NodeState)} for which changes are kept in memory.
-     */
-    private static final int PURGE_LIMIT = 100;
-
     /** The underlying store to which this branch belongs */
     private final KernelNodeStore store;
 
@@ -42,9 +37,6 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
 
     /** Last state which was committed to this branch */
     private NodeState committed;
-
-    /** Number of {@link #setRoot(NodeState)} occurred so since the lase purge */
-    private int modCount;
 
     KernelNodeStoreBranch(KernelNodeStore store) {
         this.store = store;
@@ -69,10 +61,7 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
     @Override
     public void setRoot(NodeState newRoot) {
         currentRoot = newRoot;
-        modCount++;
-        if (needsPurging()) {
-            purge(buildJsop());
-        }
+        save(buildJsop());
     }
 
     @Override
@@ -91,7 +80,7 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
             return false;
         }
 
-        purge(buildJsop() + ">\"" + source + "\":\"" + target + '"');
+        save(buildJsop() + ">\"" + source + "\":\"" + target + '"');
         return true;
     }
 
@@ -111,13 +100,13 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
             return false;
         }
 
-        purge(buildJsop() + "*\"" + source + "\":\"" + target + '"');
+        save(buildJsop() + "*\"" + source + "\":\"" + target + '"');
         return true;
     }
 
     @Override
     public KernelNodeState merge() throws CommitFailedException {
-        purge(buildJsop());
+        save(buildJsop());
         // TODO rebase, call commitHook (OAK-100)
         MicroKernel kernel = getKernel();
         String mergedRevision;
@@ -155,7 +144,7 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
         return node;
     }
 
-    private void purge(String jsop) {
+    private void save(String jsop) {
         MicroKernel kernel = getKernel();
         branchRevision = kernel.commit("/", jsop, branchRevision, null);
         currentRoot = new KernelNodeState(kernel, getValueFactory(), "/", branchRevision);
@@ -237,16 +226,5 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
                 jsop.append('}');
             }
         });
-    }
-
-    // TODO better way to determine purge limit
-    private boolean needsPurging() {
-        if (modCount > PURGE_LIMIT) {
-            modCount = 0;
-            return true;
-        }
-        else {
-            return false;
-        }
     }
 }

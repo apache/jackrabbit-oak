@@ -22,6 +22,7 @@ import org.apache.commons.collections.map.ReferenceMap;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.core.RootImpl.PurgeListener;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateBuilder;
@@ -38,7 +39,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import static org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState.EMPTY_NODE;
 
-public class TreeImpl implements Tree {
+public class TreeImpl implements Tree, PurgeListener {
 
     /** Underlying {@code Root} of this {@code Tree} instance */
     private final RootImpl root;
@@ -48,6 +49,9 @@ public class TreeImpl implements Tree {
 
     /** Name of this tree */
     private String name;
+
+    /** Lazily initialised {@code NodeStateBuilder} for the underyling node state */
+    protected NodeStateBuilder nodeStateBuilder;
 
     private final Children children = new Children();
 
@@ -60,13 +64,15 @@ public class TreeImpl implements Tree {
     static TreeImpl createRoot(final RootImpl root) {
         return new TreeImpl(root, null, "") {
             @Override
-            protected NodeState getNodeState() {
-                return root.getWorkspaceRootState();
+            protected NodeState getBaseState() {
+                return root.getWorkspaceBaseState();
             }
 
             @Override
-            protected NodeState getBaseState() {
-                return root.getWorkspaceBaseState();
+            protected NodeState getNodeState() {
+                return nodeStateBuilder == null
+                    ? root.getWorkspaceRootState()
+                    : nodeStateBuilder.getNodeState();
             }
 
             @Override
@@ -322,18 +328,49 @@ public class TreeImpl implements Tree {
         return true;
     }
 
-    //------------------------------------------------------------< protected >---
+    //------------------------------------------------------------< internal >---
 
-    protected NodeState getNodeState() {
-        return parent.getNodeState().getChildNode(name);
+    /**
+     * Revert all changes to this instance and its child instances.
+     */
+    public void revert() {
+        for (TreeImpl child : children) {
+            // TODO revert changes done to this instance
+            child.revert();
+        }
+        nodeStateBuilder = null;
+        children.clear();
     }
+
+    /**
+     * Remove revert info for this instance and all its child instances.
+     */
+    public void saved() {
+        for (TreeImpl child : children) {
+            // TODO clear records of changes done to this instance
+            child.saved();
+        }
+        nodeStateBuilder = null;
+        children.clear();
+    }
+
+    //------------------------------------------------------------< RootImpl.Listener >---
+
+    @Override
+    public void purged() {
+        nodeStateBuilder = null;
+    }
+
+    //------------------------------------------------------------< protected >---
 
     protected NodeState getBaseState() {
         return parent.getBaseState().getChildNode(name);
     }
 
-    protected NodeStateBuilder getNodeStateBuilder() {
-        return root.getBuilder(getNodeState());
+    protected NodeState getNodeState() {
+        return nodeStateBuilder == null
+            ? parent.getNodeState().getChildNode(name)
+            : nodeStateBuilder.getNodeState();
     }
 
     protected void updateParentState(NodeState childState) {
@@ -342,13 +379,15 @@ public class TreeImpl implements Tree {
         parent.updateParentState(parentBuilder.getNodeState());
     }
 
-    //------------------------------------------------------------< internal >---
-
-    void clear() {
-        children.clear();
-    }
-
     //------------------------------------------------------------< private >---
+
+    private synchronized NodeStateBuilder getNodeStateBuilder() {
+        if (nodeStateBuilder == null) {
+            nodeStateBuilder = root.getBuilder(getNodeState());
+            root.addListener(this);
+        }
+        return nodeStateBuilder;
+    }
 
     private void buildPath(StringBuilder sb) {
         if (parent != null) {
@@ -397,7 +436,7 @@ public class TreeImpl implements Tree {
         return !isDirty[0];
     }
 
-    private static class Children {
+    private static class Children implements Iterable<TreeImpl> {
         @SuppressWarnings("unchecked")
         private final Map<String, TreeImpl> children = new ReferenceMap();
         private final Lock readLock;
@@ -437,10 +476,12 @@ public class TreeImpl implements Tree {
         }
 
         public void clear() {
-            for (TreeImpl child : children.values()) {
-                child.clear();
-            }
             children.clear();
+        }
+
+        @Override
+        public Iterator<TreeImpl> iterator() {
+            return children.values().iterator();
         }
     }
 
