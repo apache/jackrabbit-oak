@@ -28,6 +28,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
 /**
  * {@code NodeDelegate} serve as internal representations of {@code Node}s.
@@ -157,6 +158,7 @@ public class NodeDelegate extends ItemDelegate {
      * @return  node at the path given by {@code relPath} or {@code null} if
      * no such node exists
      */
+    @CheckForNull
     public NodeDelegate getChild(String relPath) {
         Tree tree = getTree(relPath);
         return tree == null ? null : new NodeDelegate(sessionDelegate, tree);
@@ -176,6 +178,7 @@ public class NodeDelegate extends ItemDelegate {
      * @param value
      * @return  the set property
      */
+    @Nonnull
     public PropertyDelegate setProperty(String name, CoreValue value) {
         PropertyState propertyState = getTree().setProperty(name, value);
         return new PropertyDelegate(sessionDelegate, getTree(), propertyState);
@@ -187,6 +190,7 @@ public class NodeDelegate extends ItemDelegate {
      * @param value
      * @return  the set property
      */
+    @Nonnull
     public PropertyDelegate setProperty(String name, List<CoreValue> value) {
         PropertyState propertyState = getTree().setProperty(name, value);
         return new PropertyDelegate(sessionDelegate, getTree(), propertyState);
@@ -197,6 +201,7 @@ public class NodeDelegate extends ItemDelegate {
      * @param name  oak name
      * @return  the added node or {@code null} if such a node already exists
      */
+    @CheckForNull
     public NodeDelegate addChild(String name) {
         Tree tree = getTree();
         return tree.hasChild(name)
