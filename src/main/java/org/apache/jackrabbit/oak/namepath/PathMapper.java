@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.namepath;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
 /**
  * TODO
@@ -45,7 +46,7 @@ public interface PathMapper {
      * @param oakPath Oak path
      * @return JCR path
      */
-    @CheckForNull
+    @Nonnull
     String getJcrPath(String oakPath);
 
 }
