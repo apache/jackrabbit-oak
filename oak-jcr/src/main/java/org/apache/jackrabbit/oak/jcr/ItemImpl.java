@@ -20,7 +20,6 @@ import org.apache.jackrabbit.commons.AbstractItem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.Item;
