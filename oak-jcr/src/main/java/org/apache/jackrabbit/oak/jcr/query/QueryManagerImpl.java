@@ -27,6 +27,7 @@ import java.util.Map.Entry;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
+import javax.jcr.nodetype.NodeType;
 import javax.jcr.query.InvalidQueryException;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
@@ -71,8 +72,14 @@ public class QueryManagerImpl implements QueryManager {
 
     @Override
     public Query getQuery(Node node) throws RepositoryException {
-        // TODO getQuery(Node node): is it needed?
-        throw new RepositoryException("Feature not implemented");
+        if (!node.isNodeType(NodeType.NT_QUERY)) {
+            throw new InvalidQueryException("Not an nt:query node: " + node.getPath());
+        }
+        String statement = node.getProperty("statement").getString();
+        String language = node.getProperty("language").getString();
+        QueryImpl query = createQuery(statement, language);
+        query.setStoredQueryPath(node.getPath());
+        return query;
     }
 
     @Override
@@ -94,11 +101,11 @@ public class QueryManagerImpl implements QueryManager {
     }
 
     public QueryResult executeQuery(String statement, String language,
-            HashMap<String, Value> bindVariableMap, long limit, long offset) throws RepositoryException {
+            long limit, long offset, HashMap<String, Value> bindVariableMap) throws RepositoryException {
         try {
             HashMap<String, CoreValue> bindMap = convertMap(bindVariableMap);
             ContentSession s = sessionDelegate.getContentSession();
-            Result r = queryEngine.executeQuery(statement, language, s, bindMap);
+            Result r = queryEngine.executeQuery(statement, language, s, limit, offset, bindMap);
             return new QueryResultImpl(sessionDelegate, r);
         } catch (IllegalArgumentException e) {
             throw new InvalidQueryException(e);

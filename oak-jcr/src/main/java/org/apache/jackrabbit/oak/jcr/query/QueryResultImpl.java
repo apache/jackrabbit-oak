@@ -18,23 +18,23 @@
  */
 package org.apache.jackrabbit.oak.jcr.query;
 
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+import javax.jcr.NodeIterator;
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+import javax.jcr.query.QueryResult;
+import javax.jcr.query.RowIterator;
 import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
 import org.apache.jackrabbit.commons.iterator.RowIteratorAdapter;
+import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.NodeImpl;
 import org.apache.jackrabbit.oak.jcr.SessionDelegate;
-import org.apache.jackrabbit.oak.jcr.value.ValueFactoryImpl;
-
-import javax.jcr.NodeIterator;
-import javax.jcr.RepositoryException;
-import javax.jcr.query.QueryResult;
-import javax.jcr.query.RowIterator;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
 
 /**
  * The implementation of the corresponding JCR interface.
@@ -42,14 +42,12 @@ import java.util.NoSuchElementException;
 public class QueryResultImpl implements QueryResult {
 
     final SessionDelegate sessionDelegate;
-    final ValueFactoryImpl valueFactory;
     final Result result;
     final String pathFilter;
 
     public QueryResultImpl(SessionDelegate sessionDelegate, Result result) {
         this.sessionDelegate = sessionDelegate;
         this.result = result;
-        this.valueFactory = sessionDelegate.getValueFactory();
 
         // TODO the path currently contains the workspace name
         // TODO filter in oak-core once we support workspaces there
@@ -84,8 +82,8 @@ public class QueryResultImpl implements QueryResult {
                     for (String s : getSelectorNames()) {
                         String path = r.getPath(s);
                         if (PathUtils.isAncestor(pathFilter, path)) {
-                            current = new RowImpl(sessionDelegate, r, valueFactory);
-                            break;
+                            current = new RowImpl(QueryResultImpl.this, r);
+                            return;
                         }
                     }
                 }
@@ -115,10 +113,20 @@ public class QueryResultImpl implements QueryResult {
         return new RowIteratorAdapter(it);
     }
 
+    NodeImpl getNode(String path) {
+        NodeDelegate d = sessionDelegate.getNode(path);
+        return new NodeImpl(d);
+    }
+
+    String getLocalPath(String path) {
+        return PathUtils.concat("/", PathUtils.relativize(pathFilter, path));
+    }
+
     @Override
     public NodeIterator getNodes() throws RepositoryException {
         if (getSelectorNames().length > 1) {
-            throw new RepositoryException("Query contains more than one selector: " + Arrays.toString(getSelectorNames()));
+            throw new RepositoryException("Query contains more than one selector: " +
+                    Arrays.toString(getSelectorNames()));
         }
         Iterator<NodeImpl> it = new Iterator<NodeImpl>() {
 
@@ -135,9 +143,7 @@ public class QueryResultImpl implements QueryResult {
                     ResultRow r = it.next();
                     String path = r.getPath();
                     if (PathUtils.isAncestor(pathFilter, path)) {
-                        path = PathUtils.relativize(pathFilter, path);
-                        NodeDelegate d = sessionDelegate.getNode(path);
-                        current = new NodeImpl(d);
+                        current = getNode(getLocalPath(path));
                         break;
                     }
                 }
@@ -165,6 +171,10 @@ public class QueryResultImpl implements QueryResult {
 
         };
         return new NodeIteratorAdapter(it);
+    }
+
+    Value createValue(CoreValue value) {
+        return sessionDelegate.getValueFactory().createValue(value);
     }
 
 }

@@ -18,8 +18,8 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
 public class NodeNameImpl extends DynamicOperandImpl {
@@ -60,6 +60,17 @@ public class NodeNameImpl extends DynamicOperandImpl {
 
     @Override
     public void apply(FilterImpl f, Operator operator, CoreValue v) {
+        if (!isName(v)) {
+            throw new IllegalArgumentException("Invalid name value: " + v.toString());
+        }
+        String path = v.getString();
+        if (PathUtils.isAbsolute(path)) {
+            throw new IllegalArgumentException("NAME() comparison with absolute path are not allowed: " + path);
+        }
+        // TODO normalize paths (./name > name)
+        if (PathUtils.getDepth(path) > 1) {
+            throw new IllegalArgumentException("NAME() comparison with relative path are not allowed: " + path);
+        }
         // TODO support NAME(..) index conditions
     }
 

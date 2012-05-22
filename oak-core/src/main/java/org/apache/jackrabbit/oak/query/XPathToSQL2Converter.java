@@ -64,14 +64,18 @@ public class XPathToSQL2Converter {
         expected = new ArrayList<String>();
         read();
         String path = "";
+        String nodeName = null;
         Expression condition = null;
         String from = "nt:base";
         ArrayList<Expression> columnList = new ArrayList<Expression>();
-        boolean children = true;
-        boolean descendants = true;
+        boolean children = false;
+        boolean descendants = false;
         while (true) {
             String nodeType;
             if (readIf("/")) {
+                if (nodeName != null) {
+                    throw getSyntaxError("non-path condition");
+                }
                 if (readIf("/")) {
                     descendants = true;
                 } else if (readIf("jcr:root")) {
@@ -81,6 +85,7 @@ public class XPathToSQL2Converter {
                             descendants = true;
                         }
                     } else {
+                        descendants = true;
                         // expected end of statement
                         break;
                     }
@@ -90,11 +95,15 @@ public class XPathToSQL2Converter {
                 if (readIf("*")) {
                     nodeType = "nt:base";
                     from = nodeType;
+                    children = true;
                 } else if (readIf("text")) {
-                    // TODO support text() and jcr:xmltext?
                     read("(");
                     read(")");
-                    path = PathUtils.concat(path, "jcr:xmltext");
+                    if (descendants) {
+                        nodeName = "jcr:xmltext";
+                    } else {
+                        path = PathUtils.concat(path, "jcr:xmltext");
+                    }
                 } else if (readIf("element")) {
                     read("(");
                     if (readIf(")")) {
@@ -119,19 +128,22 @@ public class XPathToSQL2Converter {
                         read(")");
                     }
                 } else if (readIf("@")) {
-                    Property p = new Property(readIdentifier());
+                    Property p = readProperty();
                     columnList.add(p);
                 } else if (readIf("(")) {
                     do {
                         read("@");
-                        Property p = new Property(readIdentifier());
+                        Property p = readProperty();
                         columnList.add(p);
                     } while (readIf("|"));
                     read(")");
                 } else {
-                    String name = readIdentifier();
-                    path = PathUtils.concat(path, name);
-                    continue;
+                    if (descendants) {
+                        nodeName = readIdentifier();
+                    } else {
+                        String name = readIdentifier();
+                        path = PathUtils.concat(path, name);
+                    }
                 }
                 if (readIf("[")) {
                     Expression c = parseConstraint();
@@ -145,6 +157,9 @@ public class XPathToSQL2Converter {
         if (path.isEmpty()) {
             // no condition
         } else {
+            if (!PathUtils.isAbsolute(path)) {
+                path = PathUtils.concat("/", path);
+            }
             if (descendants) {
                 Function c = new Function("isdescendantnode");
                 c.params.add(Literal.newString(path));
@@ -156,6 +171,11 @@ public class XPathToSQL2Converter {
             } else {
                 // TODO jcr:path is only a pseudo-property
                 Condition c = new Condition(new Property("jcr:path"), "=", Literal.newString(path));
+                condition = add(condition, c);
+            }
+            if (nodeName != null) {
+                Function f = new Function("name");
+                Condition c = new Condition(f, "=", Literal.newString(nodeName));
                 condition = add(condition, c);
             }
         }
@@ -177,7 +197,7 @@ public class XPathToSQL2Converter {
             throw getSyntaxError("<end>");
         }
         StringBuilder buff = new StringBuilder("select ");
-        buff.append("[jcr:path], ");
+        buff.append("[jcr:path], [jcr:score], ");
         if (columnList.isEmpty()) {
             buff.append('*');
         } else {
@@ -279,7 +299,7 @@ public class XPathToSQL2Converter {
 
     private Expression parseExpression() throws ParseException {
         if (readIf("@")) {
-            return new Property(readIdentifier());
+            return readProperty();
         } else if (readIf("true")) {
             return Literal.newBoolean(true);
         } else if (readIf("false")) {
@@ -382,6 +402,13 @@ public class XPathToSQL2Converter {
             throw getSyntaxError(expected);
         }
         read();
+    }
+
+    private Property readProperty() throws ParseException {
+        if (readIf("*")) {
+            return new Property("*");
+        }
+        return new Property(readIdentifier());
     }
 
     private String readIdentifier() throws ParseException {

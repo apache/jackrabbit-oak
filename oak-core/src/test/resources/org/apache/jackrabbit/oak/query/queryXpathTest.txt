@@ -18,160 +18,175 @@
 # * lines starting with "xpath" are xpath queries, followed by expected sql2 query
 # * use ascii character only
 
-xpath /jcr:root
-select [jcr:path], * from [nt:base] where isdescendantnode('/')
+xpath /jcr:root/testdata/node[@jcr:primaryType]
+select [jcr:path], [jcr:score], * from [nt:base] where ([jcr:primaryType] is not null) and ([jcr:path] = '/testdata/node')
 
-xpath /jcr:root/test/text()
-select [jcr:path], * from [nt:base] where ischildnode('/test/jcr:xmltext')
+xpath //testroot/*[@jcr:primaryType='nt:unstructured'] order by @prop2, @prop1
+invalid: Query: //testroot/*(*)[@jcr:primaryType='nt:unstructured'] order by @prop2, @prop1; expected: non-path condition
+
+xpath /jcr:root/test//jcr:xmltext
+select [jcr:path], [jcr:score], * from [nt:base] where isdescendantnode('/test') and (name() = 'jcr:xmltext')
+
+xpath /jcr:root/test//text()
+select [jcr:path], [jcr:score], * from [nt:base] where isdescendantnode('/test') and (name() = 'jcr:xmltext')
 
 xpath /jcr:root/test/jcr:xmltext
-select [jcr:path], * from [nt:base] where ischildnode('/test/jcr:xmltext')
+select [jcr:path], [jcr:score], * from [nt:base] where [jcr:path] = '/test/jcr:xmltext'
+
+xpath /jcr:root/test/text()
+select [jcr:path], [jcr:score], * from [nt:base] where [jcr:path] = '/test/jcr:xmltext'
+
+xpath //*[@*='x']
+select [jcr:path], [jcr:score], * from [nt:base] where [*] = 'x'
+
+xpath /jcr:root
+select [jcr:path], [jcr:score], * from [nt:base] where isdescendantnode('/')
 
 xpath //*[@name='Hello']
-select [jcr:path], * from [nt:base] where [name] = 'Hello'
+select [jcr:path], [jcr:score], * from [nt:base] where [name] = 'Hello'
 
 xpath /jcr:root//*[@name='Hello']
-select [jcr:path], * from [nt:base] where ([name] = 'Hello') and isdescendantnode('/')
+select [jcr:path], [jcr:score], * from [nt:base] where ([name] = 'Hello') and isdescendantnode('/')
 
 xpath content/*
-select [jcr:path], * from [nt:base] where ischildnode('/content')
+select [jcr:path], [jcr:score], * from [nt:base] where ischildnode('/content')
 
 xpath content//*
-select [jcr:path], * from [nt:base] where isdescendantnode('/content')
+select [jcr:path], [jcr:score], * from [nt:base] where isdescendantnode('/content')
 
 xpath content//*[@name='Hello']
-select [jcr:path], * from [nt:base] where ([name] = 'Hello') and isdescendantnode('/content')
+select [jcr:path], [jcr:score], * from [nt:base] where ([name] = 'Hello') and isdescendantnode('/content')
 
 xpath /jcr:root/content//*[@name='Hello']
-select [jcr:path], * from [nt:base] where ([name] = 'Hello') and isdescendantnode('/content')
+select [jcr:path], [jcr:score], * from [nt:base] where ([name] = 'Hello') and isdescendantnode('/content')
 
 xpath //*[jcr:contains(., 'test')] order by @jcr:score
-select [jcr:path], * from [nt:base] where contains(*, 'test') order by [jcr:score]
+select [jcr:path], [jcr:score], * from [nt:base] where contains(*, 'test') order by [jcr:score]
 
 xpath /jcr:root//*[jcr:contains(., 'test')] order by @jcr:score
-select [jcr:path], * from [nt:base] where contains(*, 'test') and isdescendantnode('/') order by [jcr:score]
+select [jcr:path], [jcr:score], * from [nt:base] where contains(*, 'test') and isdescendantnode('/') order by [jcr:score]
 
 xpath /jcr:root//element(*, test)
-select [jcr:path], * from [test] where isdescendantnode('/')
+select [jcr:path], [jcr:score], * from [test] where isdescendantnode('/')
 
 xpath /jcr:root//element(*, user)[test/@jcr:primaryType]
-select [jcr:path], * from [user] where ([test/jcr:primaryType] is not null) and isdescendantnode('/')
+select [jcr:path], [jcr:score], * from [user] where ([test/jcr:primaryType] is not null) and isdescendantnode('/')
 
 xpath /jcr:root/content//*[(@sling:resourceType = 'start')]
-select [jcr:path], * from [nt:base] where ([sling:resourceType] = 'start') and isdescendantnode('/content')
+select [jcr:path], [jcr:score], * from [nt:base] where ([sling:resourceType] = 'start') and isdescendantnode('/content')
 
 xpath /jcr:root/content//*[(@sling:resourceType = 'page')]
-select [jcr:path], * from [nt:base] where ([sling:resourceType] = 'page') and isdescendantnode('/content')
+select [jcr:path], [jcr:score], * from [nt:base] where ([sling:resourceType] = 'page') and isdescendantnode('/content')
 
 xpath /jcr:root/content//*[@offTime > xs:dateTime('2012-03-28T15:56:18.327+02:00') or @onTime > xs:dateTime('2012-03-28T15:56:18.327+02:00')]
-select [jcr:path], * from [nt:base] where (([offTime] > cast('2012-03-28T15:56:18.327+02:00' as date)) or ([onTime] > cast('2012-03-28T15:56:18.327+02:00' as date))) and isdescendantnode('/content')
+select [jcr:path], [jcr:score], * from [nt:base] where (([offTime] > cast('2012-03-28T15:56:18.327+02:00' as date)) or ([onTime] > cast('2012-03-28T15:56:18.327+02:00' as date))) and isdescendantnode('/content')
 
 xpath /jcr:root/content/campaigns//*[@jcr:primaryType='Page'] order by jcr:content/@lastModified descending
-select [jcr:path], * from [nt:base] where ([jcr:primaryType] = 'Page') and isdescendantnode('/content/campaigns') order by [jcr:content/lastModified] desc
+select [jcr:path], [jcr:score], * from [nt:base] where ([jcr:primaryType] = 'Page') and isdescendantnode('/content/campaigns') order by [jcr:content/lastModified] desc
 
 xpath /jcr:root/content/campaigns//element(*, PageContent)[(@sling:resourceType = 'teaser' or @sling:resourceType = 'newsletter' or @teaserPageType = 'newsletter' or @teaserPageType = 'tweet') and ((@onTime < xs:dateTime('2012-04-01T00:00:00.000+02:00')) or not(@onTime)) and ((@offTime >= xs:dateTime('2012-02-26T00:00:00.000+01:00')) or not(@offTime))] order by @onTime
-select [jcr:path], * from [PageContent] where (((((([sling:resourceType] = 'teaser') or ([sling:resourceType] = 'newsletter')) or ([teaserPageType] = 'newsletter')) or ([teaserPageType] = 'tweet')) and (([onTime] < cast('2012-04-01T00:00:00.000+02:00' as date)) or ([onTime] is null))) and (([offTime] >= cast('2012-02-26T00:00:00.000+01:00' as date)) or ([offTime] is null))) and isdescendantnode('/content/campaigns') order by [onTime]
+select [jcr:path], [jcr:score], * from [PageContent] where (((((([sling:resourceType] = 'teaser') or ([sling:resourceType] = 'newsletter')) or ([teaserPageType] = 'newsletter')) or ([teaserPageType] = 'tweet')) and (([onTime] < cast('2012-04-01T00:00:00.000+02:00' as date)) or ([onTime] is null))) and (([offTime] >= cast('2012-02-26T00:00:00.000+01:00' as date)) or ([offTime] is null))) and isdescendantnode('/content/campaigns') order by [onTime]
 
 xpath /jcr:root/content/dam//element(*, asset)[jcr:content/metadata/@dam:scene]
-select [jcr:path], * from [asset] where ([jcr:content/metadata/dam:scene] is not null) and isdescendantnode('/content/dam')
+select [jcr:path], [jcr:score], * from [asset] where ([jcr:content/metadata/dam:scene] is not null) and isdescendantnode('/content/dam')
 
 xpath /jcr:root/etc/cloud//*[(@sling:resourceType = 'framework')]
-select [jcr:path], * from [nt:base] where ([sling:resourceType] = 'framework') and isdescendantnode('/etc/cloud')
+select [jcr:path], [jcr:score], * from [nt:base] where ([sling:resourceType] = 'framework') and isdescendantnode('/etc/cloud')
 
 xpath /jcr:root/etc/cloud//*[(@sling:resourceType = 'analytics')]
-select [jcr:path], * from [nt:base] where ([sling:resourceType] = 'analytics') and isdescendantnode('/etc/cloud')
+select [jcr:path], [jcr:score], * from [nt:base] where ([sling:resourceType] = 'analytics') and isdescendantnode('/etc/cloud')
 
 xpath /jcr:root/etc/reports//*[@jcr:primaryType='Page'] order by jcr:content/@lastModified descending
-select [jcr:path], * from [nt:base] where ([jcr:primaryType] = 'Page') and isdescendantnode('/etc/reports') order by [jcr:content/lastModified] desc
+select [jcr:path], [jcr:score], * from [nt:base] where ([jcr:primaryType] = 'Page') and isdescendantnode('/etc/reports') order by [jcr:content/lastModified] desc
 
 xpath /jcr:root/etc/segment//*[@jcr:primaryType='Page'] order by jcr:content/@lastModified descending
-select [jcr:path], * from [nt:base] where ([jcr:primaryType] = 'Page') and isdescendantnode('/etc/segment') order by [jcr:content/lastModified] desc
+select [jcr:path], [jcr:score], * from [nt:base] where ([jcr:primaryType] = 'Page') and isdescendantnode('/etc/segment') order by [jcr:content/lastModified] desc
 
 xpath /jcr:root/etc/workflow//element(*,Item)[not(meta/@archived) and not(meta/@archived = true)]
-select [jcr:path], * from [Item] where (([meta/archived] is null) and not([meta/archived] = true)) and isdescendantnode('/etc/workflow')
+select [jcr:path], [jcr:score], * from [Item] where (([meta/archived] is null) and not([meta/archived] = true)) and isdescendantnode('/etc/workflow')
 
 xpath /jcr:root/home//element()
-select [jcr:path], * from [nt:base] where isdescendantnode('/home')
+select [jcr:path], [jcr:score], * from [nt:base] where isdescendantnode('/home')
 
 xpath /jcr:root/home//element(*)
-select [jcr:path], * from [nt:base] where isdescendantnode('/home')
+select [jcr:path], [jcr:score], * from [nt:base] where isdescendantnode('/home')
 
 # other queries
 
 xpath //*
-select [jcr:path], * from [nt:base]
+select [jcr:path], [jcr:score], * from [nt:base]
 
 xpath //element(*, my:type)
-select [jcr:path], * from [my:type]
+select [jcr:path], [jcr:score], * from [my:type]
 
 xpath //element(*, my:type)/@my:title
-select [jcr:path], [my:title] from [my:type]
+select [jcr:path], [jcr:score], [my:title] from [my:type]
 
 xpath //element(*, my:type)/(@my:title | @my:text)
-select [jcr:path], [my:title], [my:text] from [my:type]
+select [jcr:path], [jcr:score], [my:title], [my:text] from [my:type]
 
 xpath /jcr:root/nodes//element(*, my:type)
-select [jcr:path], * from [my:type] where isdescendantnode('/nodes')
+select [jcr:path], [jcr:score], * from [my:type] where isdescendantnode('/nodes')
 
 xpath /jcr:root/some/element(nodes, my:type)
-select [jcr:path], * from [my:type] where [jcr:path] = '/some/nodes'
+select [jcr:path], [jcr:score], * from [my:type] where [jcr:path] = '/some/nodes'
 
 xpath /jcr:root/some/nodes/element(*, my:type)
-select [jcr:path], * from [my:type] where ischildnode('/some/nodes')
+select [jcr:path], [jcr:score], * from [my:type] where ischildnode('/some/nodes')
 
 xpath /jcr:root/some/nodes//element(*, my:type)
-select [jcr:path], * from [my:type] where isdescendantnode('/some/nodes')
+select [jcr:path], [jcr:score], * from [my:type] where isdescendantnode('/some/nodes')
 
 xpath //element(*, my:type)[@my:title = 'JSR 170']
-select [jcr:path], * from [my:type] where [my:title] = 'JSR 170'
+select [jcr:path], [jcr:score], * from [my:type] where [my:title] = 'JSR 170'
 
 xpath //element(*, my:type)[jcr:like(@title,'%Java%')]
-select [jcr:path], * from [my:type] where [title] like '%Java%'
+select [jcr:path], [jcr:score], * from [my:type] where [title] like '%Java%'
 
 xpath //element(*, my:type)[jcr:contains(., 'JSR 170')]
-select [jcr:path], * from [my:type] where contains(*, 'JSR 170')
+select [jcr:path], [jcr:score], * from [my:type] where contains(*, 'JSR 170')
 
 xpath //element(*, my:type)[@my:title]
-select [jcr:path], * from [my:type] where [my:title] is not null
+select [jcr:path], [jcr:score], * from [my:type] where [my:title] is not null
 
 xpath //element(*, my:type)[not(@my:title)]
-select [jcr:path], * from [my:type] where [my:title] is null
+select [jcr:path], [jcr:score], * from [my:type] where [my:title] is null
 
 xpath //element(*, my:type)[@my:value < -1.0]
-select [jcr:path], * from [my:type] where [my:value] < -1.0
+select [jcr:path], [jcr:score], * from [my:type] where [my:value] < -1.0
 
 xpath //element(*, my:type)[@my:value > +10123123123]
-select [jcr:path], * from [my:type] where [my:value] > 10123123123
+select [jcr:path], [jcr:score], * from [my:type] where [my:value] > 10123123123
 
 xpath //element(*, my:type)[@my:value <= 10.3e-3]
-select [jcr:path], * from [my:type] where [my:value] <= 10.3e-3
+select [jcr:path], [jcr:score], * from [my:type] where [my:value] <= 10.3e-3
 
 xpath //element(*, my:type)[@my:value >= 0e3]
-select [jcr:path], * from [my:type] where [my:value] >= 0e3
+select [jcr:path], [jcr:score], * from [my:type] where [my:value] >= 0e3
 
 xpath //element(*, my:type)[@my:value <> 'Joe''s Caffee']
-select [jcr:path], * from [my:type] where [my:value] <> 'Joe''s Caffee'
+select [jcr:path], [jcr:score], * from [my:type] where [my:value] <> 'Joe''s Caffee'
 
 xpath //element(*, my:type)[(not(@my:title) and @my:subject)]
-select [jcr:path], * from [my:type] where ([my:title] is null) and ([my:subject] is not null)
+select [jcr:path], [jcr:score], * from [my:type] where ([my:title] is null) and ([my:subject] is not null)
 
 xpath //element(*, my:type)[not(@my:title) or @my:subject]
-select [jcr:path], * from [my:type] where ([my:title] is null) or ([my:subject] is not null)
+select [jcr:path], [jcr:score], * from [my:type] where ([my:title] is null) or ([my:subject] is not null)
 
 xpath //element(*, my:type)[not(@my:value > 0 and @my:value < 100)]
-select [jcr:path], * from [my:type] where not(([my:value] > 0) and ([my:value] < 100))
+select [jcr:path], [jcr:score], * from [my:type] where not(([my:value] > 0) and ([my:value] < 100))
 
 xpath //element(*, my:type) order by @jcr:lastModified
-select [jcr:path], * from [my:type] order by [jcr:lastModified]
+select [jcr:path], [jcr:score], * from [my:type] order by [jcr:lastModified]
 
 xpath //element(*, my:type) order by @my:date descending, @my:title ascending
-select [jcr:path], * from [my:type] order by [my:date] desc, [my:title]
+select [jcr:path], [jcr:score], * from [my:type] order by [my:date] desc, [my:title]
 
 xpath //element(*, my:type)[jcr:contains(., 'jcr')] order by jcr:score() descending
-select [jcr:path], * from [my:type] where contains(*, 'jcr') order by score() desc
+select [jcr:path], [jcr:score], * from [my:type] where contains(*, 'jcr') order by score() desc
 
 xpath //element(*, my:type)[jcr:contains(@my:title, 'jcr')] order by jcr:score() descending
-select [jcr:path], * from [my:type] where contains([my:title], 'jcr') order by score() desc
+select [jcr:path], [jcr:score], * from [my:type] where contains([my:title], 'jcr') order by score() desc
 
 xpath [invalid/query
 invalid: Query: /jcr:root/[(*)invalid/query; expected: identifier

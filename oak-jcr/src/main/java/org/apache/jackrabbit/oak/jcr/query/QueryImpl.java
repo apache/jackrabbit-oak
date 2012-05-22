@@ -20,14 +20,21 @@ package org.apache.jackrabbit.oak.jcr.query;
 
 import java.util.HashMap;
 import java.util.List;
+import javax.jcr.ItemExistsException;
+import javax.jcr.ItemNotFoundException;
 import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
-import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Value;
+import javax.jcr.nodetype.NodeType;
 import javax.jcr.query.InvalidQueryException;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryResult;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.jcr.NodeDelegate;
+import org.apache.jackrabbit.oak.jcr.NodeImpl;
+import org.apache.jackrabbit.oak.jcr.SessionDelegate;
+import org.apache.jackrabbit.oak.jcr.value.ValueFactoryImpl;
 
 /**
  * The implementation of the corresponding JCR interface.
@@ -38,13 +45,19 @@ public class QueryImpl implements Query {
     private final HashMap<String, Value> bindVariableMap = new HashMap<String, Value>();
     private final String language;
     private final String statement;
-    private long limit, offset;
+    private long limit = Long.MAX_VALUE;
+    private long offset;
     private boolean parsed;
+    private String storedQueryPath;
 
     QueryImpl(QueryManagerImpl manager, String statement, String language) {
         this.manager = manager;
         this.statement = statement;
         this.language = language;
+    }
+
+    void setStoredQueryPath(String storedQueryPath) {
+        this.storedQueryPath = storedQueryPath;
     }
 
     @Override
@@ -64,11 +77,12 @@ public class QueryImpl implements Query {
         for (String n : names) {
             bindVariableMap.put(n, null);
         }
+        parsed = true;
     }
 
     @Override
     public QueryResult execute() throws RepositoryException {
-        return manager.executeQuery(statement, language, bindVariableMap, limit, offset);
+        return manager.executeQuery(statement, language, limit, offset, bindVariableMap);
     }
 
     @Override
@@ -91,8 +105,10 @@ public class QueryImpl implements Query {
 
     @Override
     public String getStoredQueryPath() throws RepositoryException {
-        // TODO not implemented yet
-        return null;
+        if (storedQueryPath == null) {
+            throw new ItemNotFoundException("Not a stored query");
+        }
+        return storedQueryPath;
     }
 
     @Override
@@ -108,11 +124,26 @@ public class QueryImpl implements Query {
     @Override
     public Node storeAsNode(String absPath) throws RepositoryException {
         manager.ensureIsAlive();
-        if (manager.getSessionDelegate().getNode(absPath) == null) {
-            throw new PathNotFoundException("The specified path does not exist: " + absPath);
+        SessionDelegate sessionDelegate = manager.getSessionDelegate();
+        String oakPath = sessionDelegate.getOakPathOrThrow(absPath);
+        // TODO query nodes should be of type nt:query
+        String parent = PathUtils.getParentPath(oakPath);
+        String nodeName = PathUtils.getName(oakPath);
+        NodeDelegate parentNode = sessionDelegate.getNode(parent);
+        ValueFactoryImpl vf = sessionDelegate.getValueFactory();
+        if (parentNode == null) {
+            throw new PathNotFoundException("The specified path does not exist: " + parent);
         }
-        // TODO not implemented yet
-        throw new UnsupportedRepositoryOperationException("This feature is not supported");
+        NodeDelegate node = parentNode.addChild(nodeName);
+        if (node == null) {
+            throw new ItemExistsException("Node already exists: " + absPath);
+        }
+        node.setProperty("statement", vf.getCoreValue(vf.createValue(statement)));
+        node.setProperty("language", vf.getCoreValue(vf.createValue(language)));
+        NodeImpl n = new NodeImpl(node);
+        n.setPrimaryType(NodeType.NT_QUERY);
+        storedQueryPath = oakPath;
+        return n;
     }
 
 }
