@@ -18,18 +18,16 @@ package org.apache.jackrabbit.oak.kernel;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStateBuilder;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyCommitHook;
-import org.apache.jackrabbit.oak.spi.state.AbstractNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStateBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 
 /**
  * {@code NodeStore} implementations against {@link MicroKernel}.
  */
-public class KernelNodeStore extends AbstractNodeStore {
+public class KernelNodeStore extends MemoryNodeStore {
 
     /**
      * The {@link MicroKernel} instance used to store the content tree.
@@ -76,11 +74,6 @@ public class KernelNodeStore extends AbstractNodeStore {
     @Override
     public NodeStoreBranch branch() {
         return new KernelNodeStoreBranch(this);
-    }
-
-    @Override
-    public NodeStateBuilder getBuilder(NodeState base) {
-        return new MemoryNodeStateBuilder(base);
     }
 
     @Override
