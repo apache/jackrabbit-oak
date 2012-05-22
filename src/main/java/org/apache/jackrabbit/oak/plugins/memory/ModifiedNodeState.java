@@ -22,6 +22,7 @@ import org.apache.commons.collections.PredicateUtils;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.ProxyNodeState;
 
 import java.util.Iterator;
@@ -44,6 +45,33 @@ public class ModifiedNodeState extends ProxyNodeState {
 
     NodeState getBase() {
         return delegate;
+    }
+
+    void diffAgainstBase(NodeStateDiff diff) {
+        for (Map.Entry<String, PropertyState> entry : properties.entrySet()) {
+            PropertyState before = super.getProperty(entry.getKey());
+            PropertyState after = entry.getValue();
+            if (before == null) {
+                diff.propertyAdded(after);
+            } else if (after == null) {
+                diff.propertyDeleted(before);
+            } else {
+                diff.propertyChanged(before, after);
+            }
+        }
+
+        for (Map.Entry<String, NodeState> entry : nodes.entrySet()) {
+            String name = entry.getKey();
+            NodeState before = super.getChildNode(name);
+            NodeState after = entry.getValue();
+            if (before == null) {
+                diff.childNodeAdded(name, after);
+            } else if (after == null) {
+                diff.childNodeDeleted(name, before);
+            } else {
+                diff.childNodeChanged(name, before, after);
+            }
+        }
     }
 
     //---------------------------------------------------------< NodeState >--
