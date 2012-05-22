@@ -21,6 +21,7 @@ import org.apache.jackrabbit.mk.test.util.TestInputStream;
 import org.apache.jackrabbit.mk.util.MicroKernelInputStream;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -406,6 +407,21 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         assertPropertyValue(obj, "test/floatProp", 42.2);
         assertPropertyValue(obj, "test/booleanProp", true);
         assertPropertyValue(obj, "test/multiIntProp", new Object[]{1, 2, 3});
+    }
+
+    @Test
+    @Ignore
+    public void getNodesFiltered() {
+        String head = mk.getHeadRevision();
+
+        // verify initial content using filter
+        String filter = "{ properties : { \"\\\\*ntProp\" } ";
+        JSONObject obj = parseJSONObject(mk.getNodes("/", head, 1, 0, -1, null));
+        assertPropertyExists(obj, "test/intProp");
+        assertPropertyExists(obj, "test/multiIntProp");
+        assertPropertyNotExists(obj, "test/stringProp");
+        assertPropertyNotExists(obj, "test/floatProp");
+        assertPropertyNotExists(obj, "test/booleanProp");
     }
 
     @Test
