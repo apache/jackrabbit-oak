@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import javax.jcr.PropertyType;
 import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.api.CoreValue;
@@ -98,6 +99,29 @@ abstract class AstElement {
             throw new IllegalArgumentException("Arrays are currently not supported: " + propertyValue);
         }
         return CoreValueMapper.fromJsopReader(r, vf);
+    }
+
+    /**
+     * Validate that the givne value can be converted to a JCR name.
+     *
+     * @param v the value
+     * @return true if it can be converted
+     */
+    protected boolean isName(CoreValue v) {
+        // TODO correctly validate JCR names - see JCR 2.0 spec 3.2.4 Naming Restrictions
+        switch (v.getType()) {
+        case PropertyType.DATE:
+        case PropertyType.DECIMAL:
+        case PropertyType.DOUBLE:
+        case PropertyType.LONG:
+        case PropertyType.BOOLEAN:
+            return false;
+        }
+        String n = v.getString();
+        if (n.startsWith("[") && !n.endsWith("]")) {
+            return false;
+        }
+        return true;
     }
 
 }

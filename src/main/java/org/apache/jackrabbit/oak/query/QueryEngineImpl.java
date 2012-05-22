@@ -83,9 +83,12 @@ public class QueryEngineImpl implements QueryEngine {
     }
 
     @Override
-    public ResultImpl executeQuery(String statement, String language, ContentSession session, Map<String, CoreValue> bindings) throws ParseException {
+    public ResultImpl executeQuery(String statement, String language, ContentSession session,
+            long limit, long offset, Map<String, CoreValue> bindings) throws ParseException {
         Query q = parseQuery(statement, language);
         q.setSession(session);
+        q.setLimit(limit);
+        q.setOffset(offset);
         q.setMicroKernel(mk);
         if (bindings != null) {
             for (Entry<String, CoreValue> e : bindings.entrySet()) {

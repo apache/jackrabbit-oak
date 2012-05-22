@@ -60,6 +60,7 @@ public class Query {
     final SourceImpl source;
     final ConstraintImpl constraint;
     final HashMap<String, CoreValue> bindVariableMap = new HashMap<String, CoreValue>();
+    final HashMap<String, Integer> selectorIndexes = new HashMap<String, Integer>();
     final ArrayList<SelectorImpl> selectors = new ArrayList<SelectorImpl>();
 
     private MicroKernel mk;
@@ -67,7 +68,7 @@ public class Query {
     private final OrderingImpl[] orderings;
     private ColumnImpl[] columns;
     private boolean explain;
-    private long limit;
+    private long limit = Long.MAX_VALUE;
     private long offset;
     private boolean prepared;
     private final CoreValueFactory valueFactory;
@@ -200,6 +201,10 @@ public class Query {
 
             @Override
             public boolean visit(SelectorImpl node) {
+                String name = node.getSelectorName();
+                if (selectorIndexes.put(name, selectors.size()) != null) {
+                    throw new IllegalArgumentException("Two selectors with the same name: " + name);
+                }
                 selectors.add(node);
                 node.setQuery(query);
                 return true;
@@ -290,7 +295,7 @@ public class Query {
             ResultRowImpl r = new ResultRowImpl(this, new String[0], new CoreValue[] { getValueFactory().createValue(plan) }, null);
             it = Arrays.asList(r).iterator();
         } else {
-            it = new RowIterator(revisionId);
+            it = new RowIterator(revisionId, limit, offset);
             if (orderings != null) {
                 // TODO "order by" is not necessary if the used index returns
                 // rows in the same order
@@ -345,13 +350,20 @@ public class Query {
         private final String revisionId;
         private ResultRowImpl current;
         private boolean started, end;
+        private long limit, offset, rowIndex;
 
-        RowIterator(String revisionId) {
+        RowIterator(String revisionId, long limit, long offset) {
             this.revisionId = revisionId;
+            this.limit = limit;
+            this.offset = offset;
         }
 
         private void fetchNext() {
             if (end) {
+                return;
+            }
+            if (rowIndex >= limit) {
+                end = true;
                 return;
             }
             if (!started) {
@@ -361,7 +373,12 @@ public class Query {
             while (true) {
                 if (source.next()) {
                     if (constraint == null || constraint.evaluate()) {
+                        if (offset > 0) {
+                            offset--;
+                            continue;
+                        }
                         current = currentRow();
+                        rowIndex++;
                         break;
                     }
                 } else {
@@ -430,12 +447,11 @@ public class Query {
     }
 
     public int getSelectorIndex(String selectorName) {
-        for (int i = 0, size = selectors.size(); i < size; i++) {
-            if (selectors.get(i).getSelectorName().equals(selectorName)) {
-                return i;
-            }
+        Integer index = selectorIndexes.get(selectorName);
+        if (index == null) {
+            throw new IllegalArgumentException("Unknown selector: " + selectorName);
         }
-        throw new IllegalArgumentException("Unknown selector: " + selectorName);
+        return index;
     }
 
     public int getColumnIndex(String columnName) {
@@ -446,14 +462,6 @@ public class Query {
             }
         }
         throw new IllegalArgumentException("Column not found: " + columnName);
-    }
-
-    public long getLimit() {
-        return limit;
-    }
-
-    public long getOffset() {
-        return offset;
     }
 
     public CoreValue getBindVariableValue(String bindVariableName) {
