@@ -180,9 +180,13 @@ class ValueImpl implements Value {
                     return namePathMapper.getJcrPath(value.toString());
                 }
             case PropertyType.BINARY:
-                InputStream stream = getStream();
+                if (stream != null) {
+                    throw new IllegalStateException("getStream has previously been called on this Value instance. " +
+                            "In this case a new Value instance must be acquired in order to successfully call this method.");
+                }
+                InputStream in = getNewStream();
                 try {
-                    return IOUtils.toString(stream, "UTF-8");
+                    return IOUtils.toString(in, "UTF-8");
                 } catch (IOException e) {
                     throw new RepositoryException("conversion from stream to string failed", e);
                 } finally {
@@ -199,21 +203,22 @@ class ValueImpl implements Value {
     @Override
     public InputStream getStream() throws IllegalStateException, RepositoryException {
         if (stream == null) {
-            switch (getType()) {
-                case PropertyType.NAME:
-                case PropertyType.PATH:
-                    try {
-                        stream = new ByteArrayInputStream(getString().getBytes("UTF-8"));
-                    } catch (UnsupportedEncodingException ex) {
-                        throw new RepositoryException("UTF-8 is not supported", ex);
-                    }
-                    break;
-                default:
-                    stream = value.getNewStream();
+            stream = getNewStream();
+        }
+        return stream;
+    }
+
+    private InputStream getNewStream() throws RepositoryException {
+        switch (getType()) {
+        case PropertyType.NAME:
+        case PropertyType.PATH:
+            try {
+                return new ByteArrayInputStream(getString().getBytes("UTF-8"));
+            } catch (UnsupportedEncodingException ex) {
+                throw new RepositoryException("UTF-8 is not supported", ex);
             }
         }
-
-        return stream;
+        return value.getNewStream();
     }
 
     /**
