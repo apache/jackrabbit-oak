@@ -414,7 +414,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         String head = mk.getHeadRevision();
 
         // verify initial content using filter
-        String filter = "{ properties : [ \"\\\\*ntProp\", \"\\\\-mult\\\\*\" ] } ";
+        String filter = "{ properties : [ \"*ntProp\", \"-mult*\" ] } ";
         JSONObject obj = parseJSONObject(mk.getNodes("/", head, 1, 0, -1, filter));
         assertPropertyExists(obj, "test/intProp");
         assertPropertyNotExists(obj, "test/multiIntProp");
