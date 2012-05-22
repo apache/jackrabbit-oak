@@ -28,12 +28,20 @@ public class NameFilterTest {
 
     @Test
     public void test() {
-        NameFilter filter = new NameFilter(new String[]{"foo\\*", "\\-foo99"});
+        NameFilter filter = new NameFilter(new String[]{"foo*", "-foo99"});
         assertTrue(filter.matches("foo1"));
         assertTrue(filter.matches("foo*"));
         assertTrue(filter.matches("foo bar"));
         assertTrue(filter.matches("foo 99"));
         assertFalse(filter.matches("foo99"));
+
+        filter = new NameFilter(new String[]{"*foo"});
+        assertTrue(filter.matches("foo"));
+        assertFalse(filter.matches("bar"));
+
+        filter = new NameFilter(new String[]{"foo\\*bar"});
+        assertFalse(filter.matches("foo bar"));
+        assertTrue(filter.matches("foo*bar"));
     }
 
 }

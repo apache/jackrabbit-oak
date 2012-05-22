@@ -22,22 +22,23 @@ import java.util.List;
 /**
  * Simple name filter utility class.
  * <ul>
- *     <li>a filter consists of one or more <i>globs</i></li>
- *     <li>a <i>glob</i> prefixed by {@code "\-"} is treated as an exclusion pattern;
- *     all others are considered inclusion patterns</li>
- *     <li>{@code "\*"} serves as a <i>wild card</i>, i.e. it matches any substring in the target name</li>
- *     <li>a filter matches a target name if any of the inclusion patterns match but
- *     none of the exclusion patterns</li>
+ * <li>a filter consists of one or more <i>globs</i></li>
+ * <li>a <i>glob</i> prefixed by {@code -} (dash) is treated as an exclusion pattern;
+ * all others are considered inclusion patterns</li>
+ * <li>{@code *} (asterisk) serves as a <i>wildcard</i>, i.e. it matches any substring in the target name</li>
+ * <li>a filter matches a target name if any of the inclusion patterns match but
+ * none of the exclusion patterns</li>
  * </ul>
  * Example:
  * <p/>
- * {@code ["foo\*", "\-foo99"]} matches {@code "foo"} and {@code "foo bar"}
+ * {@code ["foo*", "-foo99"]} matches {@code "foo"} and {@code "foo bar"}
  * but not {@code "foo99"}.
  */
 public class NameFilter {
 
-    public static String WILDCARD = "\\*";
-    public static String EXCLUDE_PREFIX = "\\-";
+    public static final char WILDCARD = '*';
+    public static final char EXCLUDE_PREFIX = '-';
+    public static final char ESCAPE = '\\';
 
     // list of ORed inclusion patterns
     private final List<String> inclPatterns = new ArrayList<String>();
@@ -46,8 +47,10 @@ public class NameFilter {
 
     public NameFilter(String[] patterns) {
         for (String pattern : patterns) {
-            if (pattern.startsWith(EXCLUDE_PREFIX)) {
-                exclPatterns.add(pattern.substring(EXCLUDE_PREFIX.length()));
+            if (pattern.isEmpty()) {
+                continue;
+            } else if (pattern.charAt(0) == EXCLUDE_PREFIX) {
+                exclPatterns.add(pattern.substring(1));
             } else {
                 inclPatterns.add(pattern);
             }
@@ -93,15 +96,15 @@ public class NameFilter {
             if (pOff >= pLen) {
                 return sOff >= sLen ? true : false;
             }
-            if (sOff >= sLen && pattern.indexOf(WILDCARD, pOff) != pOff) {
+            if (sOff >= sLen && pattern.charAt(pOff) != WILDCARD) {
                 return false;
             }
 
-            // check for a wildcard '\*' as the next pattern;
+            // check for a WILDCARD as the next pattern;
             // this is handled by a recursive call for
             // each postfix of the name.
-            if (pattern.indexOf(WILDCARD, pOff) == pOff) {
-                pOff += WILDCARD.length();
+            if (pattern.charAt(pOff) == WILDCARD) {
+                ++pOff;
                 if (pOff >= pLen) {
                     return true;
                 }
@@ -118,6 +121,14 @@ public class NameFilter {
             }
 
             if (pOff < pLen && sOff < sLen) {
+                // check for ESCAPE character
+                if (pattern.charAt(pOff) == ESCAPE) {
+                    if (pOff < pLen - 1
+                            && (pattern.charAt(pOff + 1) == WILDCARD
+                                || pattern.charAt(pOff + 1) == EXCLUDE_PREFIX)) {
+                        ++pOff;
+                    }
+                }
                 if (pattern.charAt(pOff) != s.charAt(sOff)) {
                     return false;
                 }
