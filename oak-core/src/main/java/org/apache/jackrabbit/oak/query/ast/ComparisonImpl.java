@@ -105,9 +105,12 @@ public class ComparisonImpl extends ConstraintImpl {
                     // except if UTF-8 isn't supported
                     throw new IllegalArgumentException(v.getString(), e);
                 }
-            case PropertyType.DATE:
-
             }
+            return vf.createValue(v.getString(), targetType);
+        }
+        switch (targetType) {
+        case PropertyType.STRING:
+            return vf.createValue(v.getString());
         case PropertyType.BOOLEAN:
             return vf.createValue(v.getBoolean());
         case PropertyType.DATE:

@@ -159,14 +159,20 @@ public class QueryTest extends AbstractQueryTest {
         }
     }
 
-    private List<String> executeQuery(String query) throws ParseException {
+    private List<String> executeQuery(String query) {
         List<String> lines = new ArrayList<String>();
-        Result result = executeQuery(query, null);
-        for (ResultRow row : result.getRows()) {
-            lines.add(readRow(row));
-        }
-        if (!query.contains("order by")) {
-            Collections.sort(lines);
+        try {
+            Result result = executeQuery(query, null);
+            for (ResultRow row : result.getRows()) {
+                lines.add(readRow(row));
+            }
+            if (!query.contains("order by")) {
+                Collections.sort(lines);
+            }
+        } catch (ParseException e) {
+            lines.add(e.toString());
+        } catch (IllegalArgumentException e) {
+            lines.add(e.toString());
         }
         return lines;
     }
@@ -185,7 +191,7 @@ public class QueryTest extends AbstractQueryTest {
     }
 
     private Result executeQuery(String statement, HashMap<String, CoreValue> sv) throws ParseException {
-        return qe.executeQuery(statement, QueryEngineImpl.SQL2, session, sv);
+        return qe.executeQuery(statement, QueryEngineImpl.SQL2, session, Long.MAX_VALUE, 0, sv);
     }
 
 }

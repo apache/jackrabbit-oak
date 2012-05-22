@@ -15,6 +15,7 @@ package org.apache.jackrabbit.oak.jcr.query.qom;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import javax.jcr.ItemNotFoundException;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
@@ -42,12 +43,14 @@ public class QueryObjectModelImpl implements QueryObjectModel {
     final ArrayList<Selector> selectors = new ArrayList<Selector>();
     private final Ordering[] orderings;
     private final Column[] columns;
-    private long limit;
+    private long limit = Long.MAX_VALUE;
     private long offset;
     private boolean parsed;
+    private String storedQueryPath;
 
-    public QueryObjectModelImpl(QueryManagerImpl queryManager, ValueFactory valueFactory, Source source, Constraint constraint, Ordering[] orderings,
-            Column[] columns) {
+    public QueryObjectModelImpl(QueryManagerImpl queryManager,
+            ValueFactory valueFactory, Source source, Constraint constraint,
+            Ordering[] orderings, Column[] columns) {
         this.queryManager = queryManager;
         this.valueFactory = valueFactory;
         this.source = source;
@@ -108,7 +111,8 @@ public class QueryObjectModelImpl implements QueryObjectModel {
     public void bindValue(String varName, Value value) throws RepositoryException {
         parse();
         if (!bindVariableMap.containsKey(varName)) {
-            throw new IllegalArgumentException("Variable name " + varName + " is not a valid variable in this query");
+            throw new IllegalArgumentException("Variable name " + varName +
+                    " is not a valid variable in this query");
         }
         bindVariableMap.put(varName, value);
     }
@@ -117,15 +121,18 @@ public class QueryObjectModelImpl implements QueryObjectModel {
         if (parsed) {
             return;
         }
-        String[] names = queryManager.createQuery(getStatement(), Query.JCR_SQL2).getBindVariableNames();
+        String[] names = queryManager.createQuery(getStatement(), Query.JCR_SQL2).
+                getBindVariableNames();
         for (String n : names) {
             bindVariableMap.put(n, null);
         }
+        parsed = true;
     }
 
     @Override
     public QueryResult execute() throws RepositoryException {
-        return queryManager.executeQuery(getStatement(), Query.JCR_SQL2, bindVariableMap, limit, offset);
+        return queryManager.executeQuery(getStatement(), Query.JCR_SQL2,
+                limit, offset, bindVariableMap);
     }
 
     @Override
@@ -138,7 +145,7 @@ public class QueryObjectModelImpl implements QueryObjectModel {
         StringBuilder buff = new StringBuilder();
         buff.append("select ");
         int i;
-        if (columns != null) {
+        if (columns != null && columns.length > 0) {
             i = 0;
             for (Column c : columns) {
                 if (i++ > 0) {
@@ -170,13 +177,18 @@ public class QueryObjectModelImpl implements QueryObjectModel {
 
     @Override
     public String getStoredQueryPath() throws RepositoryException {
-        // TODO not implemented yet
-        return null;
+        if (storedQueryPath == null) {
+            throw new ItemNotFoundException("Not a stored query");
+        }
+        return storedQueryPath;
     }
 
     @Override
     public Node storeAsNode(String absPath) throws RepositoryException {
-        return queryManager.createQuery(getStatement(), Query.JCR_SQL2).storeAsNode(absPath);
+        Node n = queryManager.createQuery(getStatement(), Query.JCR_SQL2).
+                storeAsNode(absPath);
+        storedQueryPath = n.getPath();
+        return n;
     }
 
     public void addBindVariable(BindVariableValueImpl var) {

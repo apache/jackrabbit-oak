@@ -18,52 +18,40 @@
  */
 package org.apache.jackrabbit.oak.jcr.query;
 
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.ResultRow;
-import org.apache.jackrabbit.oak.jcr.NodeDelegate;
-import org.apache.jackrabbit.oak.jcr.NodeImpl;
-import org.apache.jackrabbit.oak.jcr.SessionDelegate;
-import org.apache.jackrabbit.oak.jcr.value.ValueFactoryImpl;
-
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.query.Row;
+import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.ResultRow;
 
 /**
  * The implementation of the corresponding JCR interface.
  */
 public class RowImpl implements Row {
 
-    private final SessionDelegate sessionDelegate;
+    private final QueryResultImpl result;
     private final ResultRow row;
-    private final ValueFactoryImpl valueFactory;
 
-    public RowImpl(SessionDelegate sessionDelegate, ResultRow row, ValueFactoryImpl valueFactory) {
-        this.sessionDelegate = sessionDelegate;
+    public RowImpl(QueryResultImpl result, ResultRow row) {
+        this.result = result;
         this.row = row;
-        this.valueFactory = valueFactory;
     }
 
     @Override
     public Node getNode() throws RepositoryException {
-        return getNodeForPath(getPath());
+        return result.getNode(getPath());
     }
 
     @Override
     public Node getNode(String selectorName) throws RepositoryException {
-        return getNodeForPath(getPath(selectorName));
-    }
-
-    private Node getNodeForPath(String path) {
-        NodeDelegate d = sessionDelegate.getNode(path);
-        return new NodeImpl(d);
+        return result.getNode(getPath(selectorName));
     }
 
     @Override
     public String getPath() throws RepositoryException {
         try {
-            return row.getPath();
+            return result.getLocalPath(row.getPath());
         } catch (IllegalArgumentException e) {
             throw new RepositoryException(e);
         }
@@ -72,7 +60,7 @@ public class RowImpl implements Row {
     @Override
     public String getPath(String selectorName) throws RepositoryException {
         try {
-            return row.getPath(selectorName);
+            return result.getLocalPath(row.getPath(selectorName));
         } catch (IllegalArgumentException e) {
             throw new RepositoryException(e);
         }
@@ -93,7 +81,7 @@ public class RowImpl implements Row {
     @Override
     public Value getValue(String columnName) throws RepositoryException {
         try {
-            return valueFactory.createValue(row.getValue(columnName));
+            return result.createValue(row.getValue(columnName));
         } catch (IllegalArgumentException e) {
             throw new RepositoryException(e);
         }
@@ -105,7 +93,7 @@ public class RowImpl implements Row {
         int len = values.length;
         Value[] v2 = new Value[values.length];
         for (int i = 0; i < len; i++) {
-            v2[i] = valueFactory.createValue(values[i]);
+            v2[i] = result.createValue(values[i]);
         }
         return v2;
     }

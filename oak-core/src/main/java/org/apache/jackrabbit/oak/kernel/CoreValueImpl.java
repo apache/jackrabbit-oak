@@ -17,12 +17,14 @@
 package org.apache.jackrabbit.oak.kernel;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.util.ISO8601;
 
 import javax.jcr.PropertyType;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
+import java.util.Calendar;
 
 /**
  * {@code CoreValueImpl} is the default implementation of the {@code CoreValue}
@@ -304,6 +306,10 @@ class CoreValueImpl implements CoreValue {
                 return ((BigDecimal) value).compareTo(o.getDecimal());
             case PropertyType.BOOLEAN:
                 return ((Boolean) value).compareTo(o.getBoolean());
+            case PropertyType.DATE:
+                Calendar d1 = ISO8601.parse(getString());
+                Calendar d2 = ISO8601.parse(o.getString());
+                return d1.compareTo(d2);
             default:
                 return value.toString().compareTo(o.toString());
         }
