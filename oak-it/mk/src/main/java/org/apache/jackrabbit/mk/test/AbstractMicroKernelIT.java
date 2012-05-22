@@ -210,6 +210,12 @@ public abstract class AbstractMicroKernelIT {
         assertNotNull("not found: " + relPath, val);
     }
 
+    protected void assertPropertyNotExists(JSONObject obj, String relPath)
+            throws AssertionError {
+        Object val = resolveValue(obj, relPath);
+        assertNotNull("not found: " + relPath, val);
+    }
+
     protected void assertPropertyExists(JSONObject obj, String relPath, Class type)
             throws AssertionError {
         Object val = resolveValue(obj, relPath);
