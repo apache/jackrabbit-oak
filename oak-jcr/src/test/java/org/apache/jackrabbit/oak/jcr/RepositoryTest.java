@@ -1719,8 +1719,11 @@ public class RepositoryTest extends AbstractRepositoryTest {
             assertTrue(session2.propertyExists(propertyPath));
             Value value2 = session2.getProperty(propertyPath).getValue();
             assertEquals(value.getType(), value2.getType());
-            assertEqualStream(value.getStream(), value2.getStream());
-            assertEquals(value.getString(), value2.getString());
+            if (value.getType() == PropertyType.BINARY) {
+                assertEqualStream(value.getStream(), value2.getStream());
+            } else {
+                assertEquals(value.getString(), value2.getString());
+            }
 
             if (value2.getType() == PropertyType.REFERENCE || value2.getType() == PropertyType.WEAKREFERENCE) {
                 String ref = value2.getString();
