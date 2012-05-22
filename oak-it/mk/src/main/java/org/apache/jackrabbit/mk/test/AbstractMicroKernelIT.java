@@ -34,6 +34,7 @@ import org.junit.runners.Parameterized.Parameters;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -213,7 +214,7 @@ public abstract class AbstractMicroKernelIT {
     protected void assertPropertyNotExists(JSONObject obj, String relPath)
             throws AssertionError {
         Object val = resolveValue(obj, relPath);
-        assertNotNull("not found: " + relPath, val);
+        assertNull(val);
     }
 
     protected void assertPropertyExists(JSONObject obj, String relPath, Class type)
