@@ -52,7 +52,9 @@ public class ModifiedNodeState extends ProxyNodeState {
             PropertyState before = super.getProperty(entry.getKey());
             PropertyState after = entry.getValue();
             if (before == null) {
-                diff.propertyAdded(after);
+                if (after != null) {
+                    diff.propertyAdded(after);
+                }
             } else if (after == null) {
                 diff.propertyDeleted(before);
             } else {
@@ -65,7 +67,9 @@ public class ModifiedNodeState extends ProxyNodeState {
             NodeState before = super.getChildNode(name);
             NodeState after = entry.getValue();
             if (before == null) {
-                diff.childNodeAdded(name, after);
+                if (after != null) {
+                    diff.childNodeAdded(name, after);
+                }
             } else if (after == null) {
                 diff.childNodeDeleted(name, before);
             } else {
