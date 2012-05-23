@@ -267,17 +267,36 @@ public interface MicroKernel {
      * The {@code offset} and {@code count} parameters are only applied to the
      * direct child nodes of the root of the returned node tree.
      * <p/>
-     * The {@code filter} parameter allows to specify the names of properties
-     * to be included or excluded.
+     * The optional {@code filter} parameter allows to specify glob patterns for names of
+     * nodes and properties to be included or excluded.
      * <p/>
-     * Format:
+     * Example:
      * <pre>
      * {
-     *   incl: [ "foo", "foo1" ],
-     *   excl: [ "bar", "tmp" ]
+     *   nodes: [ "foo*", "-foo1" ],
+     *   properties: [ "*", "-:childNodeCount" ]
      * }
      * </pre>
-     * TODO clarify (globbing) syntax, semantics and implicit default filter (OAK-75)
+     * In the above example all child nodes with names starting with "foo" will
+     * included, except for nodes named "foo1"; similarly, all properties will
+     * be included except for the ":childNodeCount" meta data property.
+     * <p/>
+     * Glob Syntax:
+     * <ul>
+     * <li>a {@code nodes} or {@code properties} filter consists of one or more <i>globs</i>.</li>
+     * <li>a <i>glob</i> prefixed by {@code -} (dash) is treated as an exclusion pattern;
+     * all others are considered inclusion patterns.</li>
+     * <li>a leading {@code -} (dash) must be escaped by prepending {@code \} (backslash)
+     * if it should be interpreted as a literal.</li>
+     * <li>{@code *} (asterisk) serves as a <i>wildcard</i>, i.e. it matches any
+     * substring in the target name.</li>
+     * <li>{@code *} (asterisk) occurrences within the glob to be interpreted as
+     * literals must be escaped by prepending {@code \} (backslash).</li>
+     * <li>a filter matches a target name if any of the inclusion patterns match but
+     * none of the exclusion patterns.</li>
+     * </ul>
+     * If no filter is specified the implicit default filter is assumed:
+     * {@code {nodes:["*"],properties:["*"]}}
      * <p/>
      * For more information see {@link #getNodes(String, String)}.
      *
