@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import javax.jcr.PropertyType;
 import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.api.CoreValue;
@@ -26,6 +25,8 @@ import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.kernel.CoreValueMapper;
 import org.apache.jackrabbit.oak.query.Query;
+
+import javax.jcr.PropertyType;
 
 abstract class AstElement {
 
@@ -102,7 +103,7 @@ abstract class AstElement {
     }
 
     /**
-     * Validate that the givne value can be converted to a JCR name.
+     * Validate that the given value can be converted to a JCR name.
      *
      * @param v the value
      * @return true if it can be converted
