@@ -6,6 +6,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
@@ -28,7 +29,6 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
     /** Base state of this branch */
     private final NodeState base;
 
-
     /** Revision of this branch in the Microkernel */
     private String branchRevision;
 
@@ -41,7 +41,7 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
     KernelNodeStoreBranch(KernelNodeStore store) {
         this.store = store;
 
-        MicroKernel kernel = getKernel();
+        MicroKernel kernel = store.getKernel();
         this.branchRevision = kernel.branch(null);
         this.currentRoot = new KernelNodeState(kernel, getValueFactory(), "/", branchRevision);
         this.base = currentRoot;
@@ -61,7 +61,7 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
     @Override
     public void setRoot(NodeState newRoot) {
         currentRoot = newRoot;
-        save(buildJsop());
+        commit(buildJsop());
     }
 
     @Override
@@ -80,7 +80,7 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
             return false;
         }
 
-        save(buildJsop() + ">\"" + source + "\":\"" + target + '"');
+        commit(">\"" + source + "\":\"" + target + '"');
         return true;
     }
 
@@ -100,33 +100,39 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
             return false;
         }
 
-        save(buildJsop() + "*\"" + source + "\":\"" + target + '"');
+        commit("*\"" + source + "\":\"" + target + '"');
         return true;
     }
 
     @Override
     public KernelNodeState merge() throws CommitFailedException {
-        save(buildJsop());
-        // TODO rebase, call commitHook (OAK-100)
-        MicroKernel kernel = getKernel();
-        String mergedRevision;
+        // TODO rebase to current trunk?
+        MicroKernel kernel = store.getKernel();
+        CommitHook commitHook = store.getCommitHook();
+
+        NodeState oldRoot = store.getRoot();
+        NodeState toCommit = commitHook.beforeCommit(store, oldRoot, currentRoot);
+        while (!currentRoot.equals(toCommit)) {
+            setRoot(toCommit);
+            oldRoot = store.getRoot();
+            toCommit = commitHook.beforeCommit(store, oldRoot, currentRoot);
+        }
+
         try {
-            mergedRevision = kernel.merge(branchRevision, null);
+            String mergedRevision = kernel.merge(branchRevision, null);
             branchRevision = null;
             currentRoot = null;
             committed = null;
+            KernelNodeState committed = new KernelNodeState(kernel, getValueFactory(), "/", mergedRevision);
+            commitHook.afterCommit(store, oldRoot, committed);
+            return committed;
         }
         catch (MicroKernelException e) {
             throw new CommitFailedException(e);
         }
-        return new KernelNodeState(kernel, getValueFactory(), "/", mergedRevision);
     }
 
     //------------------------------------------------------------< private >---
-
-    private MicroKernel getKernel() {
-        return store.getKernel();
-    }
 
     private CoreValueFactory getValueFactory() {
         return store.getValueFactory();
@@ -144,8 +150,8 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
         return node;
     }
 
-    private void save(String jsop) {
-        MicroKernel kernel = getKernel();
+    private void commit(String jsop) {
+        MicroKernel kernel = store.getKernel();
         branchRevision = kernel.commit("/", jsop, branchRevision, null);
         currentRoot = new KernelNodeState(kernel, getValueFactory(), "/", branchRevision);
         committed = currentRoot;
