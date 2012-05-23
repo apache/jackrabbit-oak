@@ -37,11 +37,44 @@ public class NameFilterTest {
 
         filter = new NameFilter(new String[]{"*foo"});
         assertTrue(filter.matches("foo"));
+        assertTrue(filter.matches("-123foo"));
         assertFalse(filter.matches("bar"));
 
         filter = new NameFilter(new String[]{"foo\\*bar"});
         assertFalse(filter.matches("foo bar"));
         assertTrue(filter.matches("foo*bar"));
-    }
 
+        filter = new NameFilter(new String[]{"foo\\bar"});
+        assertTrue(filter.matches("foo\\bar"));
+
+        filter = new NameFilter(new String[]{"foo\\"});
+        assertTrue(filter.matches("foo\\"));
+
+        filter = new NameFilter(new String[]{"*"});
+        assertTrue(filter.matches("*"));
+        assertTrue(filter.matches("\\*"));
+        assertTrue(filter.matches("blah"));
+
+        filter = new NameFilter(new String[]{"\\*"});
+        assertTrue(filter.matches("*"));
+        assertFalse(filter.matches("\\*"));
+        assertFalse(filter.matches("blah"));
+
+        filter = new NameFilter(new String[]{"\\- topic"});
+        assertTrue(filter.matches("- topic"));
+
+        filter = new NameFilter(new String[]{"*", "- topic"});
+        assertFalse(filter.matches(" topic"));
+        assertTrue(filter.matches("- topic"));
+        assertTrue(filter.matches("blah"));
+
+        filter = new NameFilter(new String[]{"foo\\-bar"});
+        assertFalse(filter.matches("foo-bar"));
+        assertTrue(filter.matches("foo\\-bar"));
+
+        filter = new NameFilter(new String[]{"foo\\\\*bar"});
+        assertTrue(filter.matches("foo\\*bar"));
+        assertFalse(filter.matches("foo\\ blah bar"));
+        assertFalse(filter.matches("foo*bar"));
+    }
 }
