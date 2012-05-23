@@ -121,68 +121,87 @@ public class KernelNodeStoreTest extends AbstractOakTest {
         assertEquals(fortyTwo, testState.getChildNode("newNode").getProperty("n").getValue());
     }
 
-    @Test  // TODO add afterCommitHook test (OAK-100)
+    @Test
     public void afterCommitHook() throws CommitFailedException {
-//        NodeState test = store.getRoot().getChildNode("test");
-//        NodeStateBuilder testBuilder = store.getBuilder(test);
-//
-//        NodeStateBuilder newNodeBuilder = testBuilder.addNode("newNode");
-//        testBuilder.removeNode("a");
-//        final CoreValue fortyTwo = store.getValueFactory().createValue(42);
-//        newNodeBuilder.setProperty("n", fortyTwo);
-//        final NodeState testState = testBuilder.getNodeState();
-//
-//        commitWithHook(testBuilder.getNodeState(), new EmptyCommitHook() {
-//            @Override
-//            public void afterCommit(NodeStore store, NodeState before, NodeState after) {
-//                assertNull(before.getChildNode("newNode"));
-//                assertNotNull(after.getChildNode("newNode"));
-//                assertNull(after.getChildNode("a"));
-//                assertEquals(fortyTwo, after.getChildNode("newNode").getProperty("n").getValue());
-//                assertEquals(testState, after);
-//            }
-//        });
+        NodeState root = store.getRoot();
+        NodeStateBuilder rootBuilder= store.getBuilder(root);
+
+        NodeState test = root.getChildNode("test");
+        NodeStateBuilder testBuilder = store.getBuilder(test);
+
+        NodeStateBuilder newNodeBuilder = store.getBuilder(MemoryNodeState.EMPTY_NODE);
+        final CoreValue fortyTwo = store.getValueFactory().createValue(42);
+        newNodeBuilder.setProperty("n", fortyTwo);
+
+        testBuilder.setNode("newNode", newNodeBuilder.getNodeState());
+        testBuilder.removeNode("a");
+
+        rootBuilder.setNode("test", testBuilder.getNodeState());
+        final NodeState newRoot = rootBuilder.getNodeState();
+
+        commitWithHook(newRoot, new EmptyCommitHook() {
+            @Override
+            public void afterCommit(NodeStore store, NodeState before, NodeState after) {
+                assertNull(before.getChildNode("test").getChildNode("newNode"));
+                assertNotNull(after.getChildNode("test").getChildNode("newNode"));
+                assertNull(after.getChildNode("test").getChildNode("a"));
+                assertEquals(fortyTwo, after.getChildNode("test").getChildNode("newNode").getProperty("n").getValue());
+                assertEquals(newRoot, after);
+            }
+        });
     }
 
-    @Test // TODO add beforeCommitHook test (OAK-100)
+    @Test
     public void beforeCommitHook() throws CommitFailedException {
-//        NodeState test = store.getRoot().getChildNode("test");
-//        NodeStateBuilder testBuilder = store.getBuilder(test);
-//
-//        NodeStateBuilder newNodeBuilder = testBuilder.addNode("newNode");
-//        testBuilder.removeNode("a");
-//        final CoreValue fortyTwo = store.getValueFactory().createValue(42);
-//        newNodeBuilder.setProperty("n", fortyTwo);
-//
-//        commitWithHook(testBuilder.getNodeState(), new EmptyCommitHook() {
-//            @Override
-//            public NodeState beforeCommit(NodeStore store, NodeState before, NodeState after) {
-//                NodeStateBuilder afterBuilder = store.getBuilder(after);
-//                afterBuilder.addNode("fromHook");
-//                return afterBuilder.getNodeState();
-//            }
-//        });
-//
-//        test = store.getRoot().getChildNode("test");
-//        assertNotNull(test.getChildNode("newNode"));
-//        assertNotNull(test.getChildNode("fromHook"));
-//        assertNull(test.getChildNode("a"));
-//        assertEquals(fortyTwo, test.getChildNode("newNode").getProperty("n").getValue());
-//        assertEquals(test, store.getRoot().getChildNode("test"));
+        NodeState root = store.getRoot();
+        NodeStateBuilder rootBuilder = store.getBuilder(root);
+
+        NodeState test = root.getChildNode("test");
+        NodeStateBuilder testBuilder = store.getBuilder(test);
+
+        NodeStateBuilder newNodeBuilder = store.getBuilder(MemoryNodeState.EMPTY_NODE);
+        final CoreValue fortyTwo = store.getValueFactory().createValue(42);
+        newNodeBuilder.setProperty("n", fortyTwo);
+
+        testBuilder.setNode("newNode", newNodeBuilder.getNodeState());
+        testBuilder.removeNode("a");
+
+        rootBuilder.setNode("test", testBuilder.getNodeState());
+        final NodeState newRoot = rootBuilder.getNodeState();
+
+        commitWithHook(newRoot, new EmptyCommitHook() {
+            @Override
+            public NodeState beforeCommit(NodeStore store, NodeState before, NodeState after) {
+                NodeStateBuilder rootBuilder = store.getBuilder(after);
+                NodeStateBuilder testBuilder = store.getBuilder(after.getChildNode("test"));
+                testBuilder.setNode("fromHook", MemoryNodeState.EMPTY_NODE);
+                rootBuilder.setNode("test", testBuilder.getNodeState());
+                return rootBuilder.getNodeState();
+            }
+        });
+
+        test = store.getRoot().getChildNode("test");
+        assertNotNull(test.getChildNode("newNode"));
+        assertNotNull(test.getChildNode("fromHook"));
+        assertNull(test.getChildNode("a"));
+        assertEquals(fortyTwo, test.getChildNode("newNode").getProperty("n").getValue());
+        assertEquals(test, store.getRoot().getChildNode("test"));
     }
 
     //------------------------------------------------------------< private >---
 
     private void commitWithHook(NodeState nodeState, CommitHook commitHook)
             throws CommitFailedException {
-//
-//        commitHookDelegate.set(commitHook);
-//        try {
-//            store.branch(nodeState);
-//        }
-//        finally {
-//            commitHookDelegate.set(new EmptyCommitHook());
-//        }
+
+        commitHookDelegate.set(commitHook);
+        try {
+            NodeStoreBranch branch = store.branch();
+            branch.setRoot(nodeState);
+            branch.merge();
+        }
+        finally {
+            commitHookDelegate.set(new EmptyCommitHook());
+        }
     }
 
     private static class CommitHookDelegate implements CommitHook {
