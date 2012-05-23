@@ -65,7 +65,7 @@ public class CoreValueFactoryImpl implements CoreValueFactory {
 
     @Override
     public CoreValue createValue(InputStream value) {
-        // TODO: mk.write throws MikrokernelException ... deal with this here.
+        // TODO: mk.write throws MicrokernelException ... deal with this here.
         String binaryID = mk.write(value);
         return new CoreValueImpl(new BinaryValue(binaryID, mk));
     }

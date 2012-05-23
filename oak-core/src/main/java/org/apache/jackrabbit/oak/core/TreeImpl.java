@@ -50,7 +50,7 @@ public class TreeImpl implements Tree, PurgeListener {
     /** Name of this tree */
     private String name;
 
-    /** Lazily initialised {@code NodeStateBuilder} for the underyling node state */
+    /** Lazily initialised {@code NodeStateBuilder} for the underlying node state */
     protected NodeStateBuilder nodeStateBuilder;
 
     private final Children children = new Children();
