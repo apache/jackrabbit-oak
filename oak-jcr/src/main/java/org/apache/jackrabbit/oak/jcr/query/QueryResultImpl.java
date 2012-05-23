@@ -21,6 +21,8 @@ package org.apache.jackrabbit.oak.jcr.query;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+
+import javax.annotation.CheckForNull;
 import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
@@ -113,9 +115,10 @@ public class QueryResultImpl implements QueryResult {
         return new RowIteratorAdapter(it);
     }
 
+    @CheckForNull
     NodeImpl getNode(String path) {
         NodeDelegate d = sessionDelegate.getNode(path);
-        return new NodeImpl(d);
+        return d == null ? null : new NodeImpl(d);
     }
 
     String getLocalPath(String path) {
