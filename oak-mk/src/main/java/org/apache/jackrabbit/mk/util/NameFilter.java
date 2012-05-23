@@ -25,14 +25,23 @@ import java.util.List;
  * <li>a filter consists of one or more <i>globs</i></li>
  * <li>a <i>glob</i> prefixed by {@code -} (dash) is treated as an exclusion pattern;
  * all others are considered inclusion patterns</li>
- * <li>{@code *} (asterisk) serves as a <i>wildcard</i>, i.e. it matches any substring in the target name</li>
+ * <li>a leading {@code -} (dash) must be escaped by prepending {@code \} (backslash)
+ * if it should be interpreted as a literal</li>
+ * <li>{@code *} (asterisk) serves as a <i>wildcard</i>, i.e. it matches any
+ * substring in the target name</li>
+ * <li>{@code *} (asterisk) occurrences within the glob to be interpreted as
+ * literals must be escaped by prepending {@code \} (backslash)</li>
  * <li>a filter matches a target name if any of the inclusion patterns match but
  * none of the exclusion patterns</li>
  * </ul>
- * Example:
+ * Examples:
  * <p/>
  * {@code ["foo*", "-foo99"]} matches {@code "foo"} and {@code "foo bar"}
  * but not {@code "foo99"}.
+ * <p/>
+ * {@code ["foo\*"]} matches {@code "foo*"} but not {@code "foo99"}.
+ * <p/>
+ * {@code ["\-blah"]} matches {@code "-blah"}.
  */
 public class NameFilter {
 
@@ -121,11 +130,16 @@ public class NameFilter {
             }
 
             if (pOff < pLen && sOff < sLen) {
-                // check for ESCAPE character
+                // check for escape sequences
                 if (pattern.charAt(pOff) == ESCAPE) {
+                    // * to be interpreted as literal
                     if (pOff < pLen - 1
-                            && (pattern.charAt(pOff + 1) == WILDCARD
-                                || pattern.charAt(pOff + 1) == EXCLUDE_PREFIX)) {
+                            && pattern.charAt(pOff + 1) == WILDCARD) {
+                        ++pOff;
+                    }
+                    // leading - to be interpreted as literal
+                    if (pOff == 0 && pLen > 1
+                            && pattern.charAt(pOff + 1) == EXCLUDE_PREFIX) {
                         ++pOff;
                     }
                 }
