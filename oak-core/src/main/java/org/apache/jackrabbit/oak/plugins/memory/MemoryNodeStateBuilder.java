@@ -22,6 +22,7 @@ import org.apache.jackrabbit.oak.kernel.PropertyStateImpl;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateBuilder;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,9 +34,15 @@ class MemoryNodeStateBuilder implements NodeStateBuilder {
 
     private final NodeState base;
 
+    /**
+     * Set of added, modified or removed ({@code null} value) property states.
+     */
     private final Map<String, PropertyState> properties =
             new HashMap<String, PropertyState>();
 
+    /**
+     * Set of added, modified or removed ({@code null} value) child node states.
+     */
     private final Map<String, NodeState> nodes =
             new HashMap<String, NodeState>();
 
@@ -50,9 +57,24 @@ class MemoryNodeStateBuilder implements NodeStateBuilder {
             return base; // shortcut
         } else {
             return new ModifiedNodeState(
-                    base,
-                    new HashMap<String, PropertyState>(properties),
-                    new HashMap<String, NodeState>(nodes));
+                    base, snapshot(properties), snapshot(nodes));
+        }
+    }
+
+    /**
+     * Returns an optimized snapshot of the current state of the given map.
+     *
+     * @param map mutable map
+     * @return optimized snapshot
+     */
+    private static <T> Map<String, T> snapshot(Map<String, T> map) {
+        if (map.isEmpty()) {
+            return Collections.emptyMap();
+        } else if (map.size() == 1) {
+            Map.Entry<String, T> entry = map.entrySet().iterator().next();
+            return Collections.singletonMap(entry.getKey(), entry.getValue());
+        } else {
+            return new HashMap<String, T>(map);
         }
     }
 
@@ -63,7 +85,11 @@ class MemoryNodeStateBuilder implements NodeStateBuilder {
 
     @Override
     public void removeNode(String name) {
-        nodes.put(name, null);
+        if (base.getChildNode(name) != null) {
+            nodes.put(name, null);
+        } else {
+            nodes.remove(name);
+        }
     }
 
     @Override
@@ -80,7 +106,11 @@ class MemoryNodeStateBuilder implements NodeStateBuilder {
 
     @Override
     public void removeProperty(String name) {
-        properties.put(name, null);
+        if (base.getProperty(name) != null) {
+            properties.put(name, null);
+        } else {
+            properties.remove(name);
+        }
     }
 
 }
