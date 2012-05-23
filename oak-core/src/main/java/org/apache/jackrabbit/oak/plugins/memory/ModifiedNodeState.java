@@ -51,12 +51,11 @@ public class ModifiedNodeState extends ProxyNodeState {
         for (Map.Entry<String, PropertyState> entry : properties.entrySet()) {
             PropertyState before = super.getProperty(entry.getKey());
             PropertyState after = entry.getValue();
-            if (before == null) {
-                if (after != null) {
-                    diff.propertyAdded(after);
-                }
-            } else if (after == null) {
+            if (after == null) {
+                assert before != null;
                 diff.propertyDeleted(before);
+            } else if (before == null) {
+                diff.propertyAdded(after);
             } else {
                 diff.propertyChanged(before, after);
             }
@@ -66,12 +65,11 @@ public class ModifiedNodeState extends ProxyNodeState {
             String name = entry.getKey();
             NodeState before = super.getChildNode(name);
             NodeState after = entry.getValue();
-            if (before == null) {
-                if (after != null) {
-                    diff.childNodeAdded(name, after);
-                }
-            } else if (after == null) {
+            if (after == null) {
+                assert before != null;
                 diff.childNodeDeleted(name, before);
+            } else if (before == null) {
+                diff.childNodeAdded(name, after);
             } else {
                 diff.childNodeChanged(name, before, after);
             }
