@@ -131,7 +131,7 @@ public class TreeImpl implements Tree, PurgeListener {
                     // ... and did have it before. So...
                     PropertyState base = baseState.getProperty(name);
                     PropertyState head = getProperty(name);
-                    if (base.equals(head)) {
+                    if (base == null ? head == null : base.equals(head)) {
                         // ...it's EXISTING if it hasn't changed
                         return Status.EXISTING;
                     } else {
