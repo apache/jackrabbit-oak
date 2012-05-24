@@ -214,13 +214,13 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
 
     private class NodeTypeDefinitionDelegateBuilder extends AbstractNodeTypeDefinitionBuilder<NodeTypeDelegate> {
 
-        private List<PropertyDefinitionDelegateBuilder> propertyDefinitions = new ArrayList<PropertyDefinitionDelegateBuilder>();
-        private List<NodeDefinitionDelegateBuilder> childNodeDefinitions = new ArrayList<NodeDefinitionDelegateBuilder>();
+        private final List<PropertyDefinitionDelegateBuilder> propertyDefinitions = new ArrayList<PropertyDefinitionDelegateBuilder>();
+        private final List<NodeDefinitionDelegateBuilder> childNodeDefinitions = new ArrayList<NodeDefinitionDelegateBuilder>();
 
         private final ValueFactoryImpl vf;
 
         private String primaryItemName;
-        private List<String> declaredSuperTypes = new ArrayList<String>();
+        private final List<String> declaredSuperTypes = new ArrayList<String>();
 
         public NodeTypeDefinitionDelegateBuilder(ValueFactoryImpl vf) {
             this.vf = vf;
@@ -276,7 +276,7 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
 
         private String declaringNodeType;
         private String defaultPrimaryType;
-        private List<String> requiredPrimaryTypes = new ArrayList<String>();
+        private final List<String> requiredPrimaryTypes = new ArrayList<String>();
 
         private final NodeTypeDefinitionDelegateBuilder ndtb;
 
@@ -287,7 +287,7 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
         public NodeDefinitionDelegate getNodeDefinitionDelegate() {
             return new NodeDefinitionDelegate(name, autocreate, isMandatory, onParent, isProtected,
                     requiredPrimaryTypes.toArray(new String[requiredPrimaryTypes.size()]), defaultPrimaryType, allowSns);
-        };
+        }
 
         @Override
         public void setDefaultPrimaryType(String defaultPrimaryType) throws RepositoryException {
@@ -313,8 +313,8 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
     private class PropertyDefinitionDelegateBuilder extends AbstractPropertyDefinitionBuilder<NodeTypeDelegate> {
 
         private String declaringNodeType;
-        private List<String> defaultValues = new ArrayList<String>();
-        private List<String> valueConstraints = new ArrayList<String>();
+        private final List<String> defaultValues = new ArrayList<String>();
+        private final List<String> valueConstraints = new ArrayList<String>();
 
         private final NodeTypeDefinitionDelegateBuilder ndtb;
 
