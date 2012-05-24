@@ -29,15 +29,6 @@ import java.util.NoSuchElementException;
  * the the result of this method is undefined.
  */
 public class PathUtils {
-
-    /**
-     * Controls whether paths passed into methods of this class are validated or
-     * not. By default, paths are validated for each method call, which
-     * potentially slows down processing. To disable validation, set the system
-     * property org.apache.jackrabbit.mk.util.PathUtils.SKIP_VALIDATION.
-     */
-    private static final boolean SKIP_VALIDATION = Boolean.getBoolean(PathUtils.class.getName() + ".SKIP_VALIDATION");
-
     private static final String[] EMPTY_ARRAY = new String[0];
 
     private PathUtils() {
@@ -50,7 +41,7 @@ public class PathUtils {
      * @return whether this is the root
      */
     public static boolean denotesRoot(String path) {
-        assertValid(path);
+        assert isValid(path);
 
         return denotesRootPath(path);
     }
@@ -66,7 +57,7 @@ public class PathUtils {
      * @return true if it starts with a slash
      */
     public static boolean isAbsolute(String path) {
-        assertValid(path);
+        assert isValid(path);
 
         return isAbsolutePath(path);
     }
@@ -96,7 +87,7 @@ public class PathUtils {
      * @return the ancestor path
      */
     public static String getAncestorPath(String path, int nth) {
-        assertValid(path);
+        assert isValid(path);
 
         if (path.isEmpty() || denotesRootPath(path)
                 || nth <= 0) {
@@ -127,7 +118,7 @@ public class PathUtils {
      * @return the last element
      */
     public static String getName(String path) {
-        assertValid(path);
+        assert isValid(path);
 
         if (path.isEmpty() || denotesRootPath(path)) {
             return "";
@@ -148,7 +139,7 @@ public class PathUtils {
      * @return the number of elements
      */
     public static int getDepth(String path) {
-        assertValid(path);
+        assert isValid(path);
 
         int count = 1, i = 0;
         if (isAbsolutePath(path)) {
@@ -174,7 +165,7 @@ public class PathUtils {
      * @return the path elements
      */
     public static String[] split(String path) {
-        assertValid(path);
+        assert isValid(path);
 
         if (path.isEmpty()) {
             return EMPTY_ARRAY;
@@ -208,7 +199,7 @@ public class PathUtils {
      * @return an Iterable for the path elements
      */
     public static Iterable<String> elements(final String path) {
-        assertValid(path);
+        assert isValid(path);
 
         final Iterator<String> it = new Iterator<String>() {
             int pos = PathUtils.isAbsolute(path) ? 1 : 0;
@@ -272,14 +263,14 @@ public class PathUtils {
      * @return the concatenated path
      */
     public static String concat(String parentPath, String... relativePaths) {
-        assertValid(parentPath);
+        assert isValid(parentPath);
         int parentLen = parentPath.length();
         int size = relativePaths.length;
         StringBuilder buff = new StringBuilder(parentLen + size * 5);
         buff.append(parentPath);
         boolean needSlash = parentLen > 0 && !denotesRootPath(parentPath);
         for (String s : relativePaths) {
-            assertValid(s);
+            assert isValid(s);
             if (isAbsolutePath(s)) {
                 throw new IllegalArgumentException("Cannot append absolute path " + s);
             }
@@ -302,8 +293,8 @@ public class PathUtils {
      * @return the concatenated path
      */
     public static String concat(String parentPath, String subPath) {
-        assertValid(parentPath);
-        assertValid(subPath);
+        assert isValid(parentPath);
+        assert isValid(subPath);
         // special cases
         if (parentPath.isEmpty()) {
             return subPath;
@@ -328,8 +319,8 @@ public class PathUtils {
      * @return true if the path is an offspring of the ancestor
      */
     public static boolean isAncestor(String ancestor, String path) {
-        assertValid(ancestor);
-        assertValid(path);
+        assert isValid(ancestor);
+        assert isValid(path);
         if (ancestor.isEmpty() || path.isEmpty()) {
             return false;
         }
@@ -349,8 +340,8 @@ public class PathUtils {
      * @return relativized path
      */
     public static String relativize(String parentPath, String path) {
-        assertValid(parentPath);
-        assertValid(path);
+        assert isValid(parentPath);
+        assert isValid(path);
 
         if (parentPath.equals(path)) {
             return "";
@@ -375,7 +366,7 @@ public class PathUtils {
      *         if not found
      */
     public static int getNextSlash(String path, int index) {
-        assertValid(path);
+        assert isValid(path);
 
         return path.indexOf('/', index);
     }
@@ -407,12 +398,32 @@ public class PathUtils {
         }
     }
 
-    //------------------------------------------< private >---
-
-    private static void assertValid(String path) {
-        if (!SKIP_VALIDATION) {
-            validate(path);
+    /**
+     * Check if the path is valid. A valid path is absolute (starts with a '/')
+     * or relative (doesn't start with '/'), and contains none or more elements.
+     * A path may not end with '/', except for the root path. Elements itself must
+     * be at least one character long.
+     *
+     * @param path the path
+     * @return {@code true} iff the path is valid.
+     */
+    public static boolean isValid(String path) {
+        if (path.isEmpty() || denotesRootPath(path)) {
+            return true;
+        } else if (path.charAt(path.length() - 1) == '/') {
+            return false;
         }
+        char last = 0;
+        for (int index = 0, len = path.length(); index < len; index++) {
+            char c = path.charAt(index);
+            if (c == '/') {
+                if (last == '/') {
+                    return false;
+                }
+            }
+            last = c;
+        }
+        return true;
     }
 
 }

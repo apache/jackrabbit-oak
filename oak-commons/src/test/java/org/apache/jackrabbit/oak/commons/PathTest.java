@@ -16,25 +16,39 @@
  */
 package org.apache.jackrabbit.oak.commons;
 
+import junit.framework.AssertionFailedError;
 import junit.framework.TestCase;
 
 import java.util.Iterator;
 
 public class PathTest extends TestCase {
+    static boolean assertsEnabled;
+
+    static {
+        assert assertsEnabled = true;
+    }
 
     public void test() {
 
         try {
             PathUtils.getParentPath("invalid/path/");
-            fail();
-        } catch (IllegalArgumentException e) {
+            if (assertsEnabled) {
+                fail();
+            }
+        } catch (AssertionFailedError e) {
+            throw e;
+        } catch (AssertionError e) {
             // expected
         }
 
         try {
             PathUtils.getName("invalid/path/");
-            fail();
-        } catch (IllegalArgumentException e) {
+            if (assertsEnabled) {
+                fail();
+            }
+        } catch (AssertionFailedError e) {
+            throw e;
+        } catch (AssertionError e) {
             // expected
         }
 
@@ -62,9 +76,19 @@ public class PathTest extends TestCase {
         assertEquals(parent + "/" + child, PathUtils.concat(parent, child));
         try {
             assertEquals(parent + "/" + child, PathUtils.concat(parent + "/", "/" + child));
-            fail();
+            if (assertsEnabled) {
+                fail();
+            }
+        } catch (AssertionFailedError e) {
+            throw e;
         } catch (IllegalArgumentException e) {
-            // expected
+            if (assertsEnabled) {
+                throw e;
+            }
+        } catch (AssertionError e) {
+            if (!assertsEnabled) {
+                throw e;
+            }
         }
         try {
             assertEquals(parent + "/" + child, PathUtils.concat(parent, "/" + child));
@@ -90,13 +114,21 @@ public class PathTest extends TestCase {
         }
         try {
             PathUtils.concat("", "//");
-            fail();
-        } catch (IllegalArgumentException e) {
+            if (assertsEnabled) {
+                fail();
+            }
+        } catch (AssertionFailedError e) {
+            throw e;
+        } catch (AssertionError e) {
             // expected
         }
         try {
             PathUtils.concat("/", "/");
-            fail();
+            if (assertsEnabled) {
+                fail();
+            }
+        } catch (AssertionFailedError e) {
+            throw e;
         } catch (IllegalArgumentException e) {
             // expected
         }
@@ -252,80 +284,144 @@ public class PathTest extends TestCase {
         String invalid = "/test/test//test/test";
         try {
             PathUtils.denotesRoot(invalid);
-            fail();
-        } catch (IllegalArgumentException e) {
+            if (assertsEnabled) {
+                fail();
+            }
+        } catch (AssertionFailedError e) {
+            throw e;
+        } catch (AssertionError e) {
             // expected
         }
         try {
             PathUtils.concat(invalid, "x");
-            fail();
-        } catch (IllegalArgumentException e) {
+            if (assertsEnabled) {
+                fail();
+            }
+        } catch (AssertionFailedError e) {
+            throw e;
+        } catch (AssertionError e) {
             // expected
         }
         try {
             PathUtils.concat("/x", invalid);
-            fail();
+            if (assertsEnabled) {
+                fail();
+            }
+        } catch (AssertionFailedError e) {
+            throw e;
         } catch (IllegalArgumentException e) {
-            // expected
+            if (assertsEnabled) {
+                throw e;
+            }
+        } catch (AssertionError e) {
+            if (!assertsEnabled) {
+                throw e;
+            }
         }
         try {
             PathUtils.concat("/x", "y", invalid);
-            fail();
+            if (assertsEnabled) {
+                fail();
+            }
+        } catch (AssertionFailedError e) {
+            throw e;
         } catch (IllegalArgumentException e) {
-            // expected
+            if (assertsEnabled) {
+                throw e;
+            }
+        } catch (AssertionError e) {
+            if (!assertsEnabled) {
+                throw e;
+            }
         }
         try {
             PathUtils.concat(invalid, "y", "z");
-            fail();
-        } catch (IllegalArgumentException e) {
+            if (assertsEnabled) {
+                fail();
+            }
+        } catch (AssertionFailedError e) {
+            throw e;
+        } catch (AssertionError e) {
             // expected
         }
         try {
             PathUtils.getDepth(invalid);
-            fail();
-        } catch (IllegalArgumentException e) {
+            if (assertsEnabled) {
+                fail();
+            }
+        } catch (AssertionFailedError e) {
+            throw e;
+        } catch (AssertionError e) {
             // expected
         }
         try {
             PathUtils.getName(invalid);
-            fail();
-        } catch (IllegalArgumentException e) {
+            if (assertsEnabled) {
+                fail();
+            }
+        } catch (AssertionFailedError e) {
+            throw e;
+        } catch (AssertionError e) {
             // expected
         }
         try {
             PathUtils.getNextSlash(invalid, 0);
-            fail();
-        } catch (IllegalArgumentException e) {
+            if (assertsEnabled) {
+                fail();
+            }
+        } catch (AssertionFailedError e) {
+            throw e;
+        } catch (AssertionError e) {
             // expected
         }
         try {
             PathUtils.getParentPath(invalid);
-            fail();
-        } catch (IllegalArgumentException e) {
+            if (assertsEnabled) {
+                fail();
+            }
+        } catch (AssertionFailedError e) {
+            throw e;
+        } catch (AssertionError e) {
             // expected
         }
         try {
             PathUtils.isAbsolute(invalid);
-            fail();
-        } catch (IllegalArgumentException e) {
+            if (assertsEnabled) {
+                fail();
+            }
+        } catch (AssertionFailedError e) {
+            throw e;
+        } catch (AssertionError e) {
             // expected
         }
         try {
             PathUtils.relativize(invalid, invalid);
-            fail();
-        } catch (IllegalArgumentException e) {
+            if (assertsEnabled) {
+                fail();
+            }
+        } catch (AssertionFailedError e) {
+            throw e;
+        } catch (AssertionError e) {
             // expected
         }
         try {
             PathUtils.relativize("/test", invalid);
-            fail();
-        } catch (IllegalArgumentException e) {
+            if (assertsEnabled) {
+                fail();
+            }
+        } catch (AssertionFailedError e) {
+            throw e;
+        } catch (AssertionError e) {
             // expected
         }
         try {
             PathUtils.split(invalid);
-            fail();
-        } catch (IllegalArgumentException e) {
+            if (assertsEnabled) {
+                fail();
+            }
+        } catch (AssertionFailedError e) {
+            throw e;
+        } catch (AssertionError e) {
             // expected
         }
     }
@@ -347,7 +443,7 @@ public class PathTest extends TestCase {
             try {
                 PathUtils.elements(path);
                 fail();
-            } catch (IllegalArgumentException e) {
+            } catch (AssertionError e) {
                 // expected
             }
         }
