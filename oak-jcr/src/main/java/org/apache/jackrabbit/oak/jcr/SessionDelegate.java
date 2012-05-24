@@ -19,13 +19,11 @@ package org.apache.jackrabbit.oak.jcr;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.namespace.NamespaceRegistryImpl;
-import org.apache.jackrabbit.oak.jcr.query.QueryImpl;
 import org.apache.jackrabbit.oak.jcr.query.QueryManagerImpl;
 import org.apache.jackrabbit.oak.jcr.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.namepath.AbstractNameMapper;
@@ -115,7 +113,12 @@ public class SessionDelegate {
 
     @Nonnull
     public NodeDelegate getRoot() {
-        return new NodeDelegate(this, getTree(""));
+        Tree root = getTree("");
+        if (root == null) {
+            throw new IllegalStateException("No root node");
+        }
+
+        return new NodeDelegate(this, root);
     }
 
     @CheckForNull
@@ -385,6 +388,7 @@ public class SessionDelegate {
 
     //------------------------------------------------------------< internal >---
 
+    @CheckForNull
     Tree getTree(String path) {
         return root.getTree(path);
     }
