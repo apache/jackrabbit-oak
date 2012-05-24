@@ -79,7 +79,11 @@ public class NodeDelegate extends ItemDelegate {
             return Status.EXISTING;  // FIXME: return correct status for root
         }
         else {
-            return parent.getChildStatus(getName());
+            Status childStatus = parent.getChildStatus(getName());
+            if (childStatus == null) {
+                throw new InvalidItemStateException("Node is stale");
+            }
+            return childStatus;
         }
     }
 
@@ -209,10 +213,13 @@ public class NodeDelegate extends ItemDelegate {
     }
 
     /**
-     * Remove the node
+     * Remove the node if not root. Does nothing otherwise
      */
     public void remove() throws InvalidItemStateException {
-        getParentTree().removeChild(getName());
+        Tree parentTree = getParentTree();
+        if (parentTree != null) {
+            parentTree.removeChild(getName());
+        }
     }
 
     // -----------------------------------------------------------< private >---
@@ -228,6 +235,7 @@ public class NodeDelegate extends ItemDelegate {
         return tree;
     }
 
+    @CheckForNull
     private Tree getParentTree() throws InvalidItemStateException {
         return getTree().getParent();
     }

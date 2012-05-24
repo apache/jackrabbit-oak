@@ -138,6 +138,10 @@ public class NodeImpl extends ItemImpl implements Node {
     @Override
     public void remove() throws RepositoryException {
         checkStatus();
+        if (dlg.isRoot()) {
+                throw new RepositoryException("Cannot remove the root node");
+        }
+
         dlg.remove();
     }
 

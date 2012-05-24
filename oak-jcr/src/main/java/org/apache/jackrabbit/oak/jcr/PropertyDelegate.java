@@ -81,7 +81,12 @@ public class PropertyDelegate extends ItemDelegate {
 
     @Override
     public Status getStatus() throws InvalidItemStateException {
-        return getParentTree().getPropertyStatus(getName());
+        Status propertyStatus = getParentTree().getPropertyStatus(getName());
+        if (propertyStatus == null) {
+            throw new InvalidItemStateException("Property is stale");
+        }
+
+        return propertyStatus;
     }
 
     @Override

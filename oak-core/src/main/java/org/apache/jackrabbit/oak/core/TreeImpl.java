@@ -56,6 +56,9 @@ public class TreeImpl implements Tree, PurgeListener {
     private final Children children = new Children();
 
     private TreeImpl(RootImpl root, TreeImpl parent, String name) {
+        assert root != null;
+        assert name != null;
+
         this.root = root;
         this.parent = parent;
         this.name = name;
@@ -268,7 +271,9 @@ public class TreeImpl implements Tree, PurgeListener {
             updateParentState(builder.getNodeState());
         }
 
-        return getChild(name);
+        TreeImpl child = getChild(name);
+        assert child != null;
+        return child;
     }
 
     @Override
@@ -290,7 +295,9 @@ public class TreeImpl implements Tree, PurgeListener {
         NodeStateBuilder builder = getNodeStateBuilder();
         builder.setProperty(name, value);
         updateParentState(builder.getNodeState());
-        return getProperty(name);
+        PropertyState property = getProperty(name);
+        assert property != null;
+        return property;
     }
 
     @Override
@@ -298,7 +305,9 @@ public class TreeImpl implements Tree, PurgeListener {
         NodeStateBuilder builder = getNodeStateBuilder();
         builder.setProperty(name, values);
         updateParentState(builder.getNodeState());
-        return getProperty(name);
+        PropertyState property = getProperty(name);
+        assert property != null;
+        return property;
     }
 
     @Override
