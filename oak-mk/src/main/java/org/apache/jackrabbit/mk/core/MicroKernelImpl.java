@@ -561,14 +561,42 @@ public class MicroKernelImpl implements MicroKernel {
             }
         }
         if (childCount > 0 && depth >= 0) {
+            if (filter != null) {
+                NameFilter childFilter = filter.getChildNodeFilter();
+                if (childFilter != null && !childFilter.containsWildcard()) {
+                    // optimization for large child node lists:
+                    // no need to iterate over the entire child node list if the filter
+                    // does not include wildcards
+                    for (String name : childFilter.getInclusionPatterns()) {
+                        NodeState child = node.getChildNode(name);
+                        if (child != null) {
+                            boolean incl = true;
+                            for (String exclName : childFilter.getExclusionPatterns()) {
+                                if (name.equals(exclName)) {
+                                    incl = false;
+                                    break;
+                                }
+                            }
+                            if (incl) {
+                                builder.key(name).object();
+                                if (depth > 0) {
+                                    toJson(builder, child, depth - 1, 0, -1, inclVirtualProps, filter);
+                                }
+                                builder.endObject();
+                            }
+                        }
+                    }
+                    return;
+                }
+            }
             for (ChildNodeEntry entry : node.getChildNodeEntries(offset, count)) {
                 if (filter == null || filter.includeNode(entry.getName())) {
                     builder.key(entry.getName()).object();
                     if (depth > 0) {
                         toJson(builder, entry.getNode(), depth - 1, 0, -1, inclVirtualProps, filter);
                     }
+                    builder.endObject();
                 }
-                builder.endObject();
             }
         }
     }
@@ -593,6 +621,7 @@ public class MicroKernelImpl implements MicroKernel {
     //-------------------------------------------------------< inner classes >
 
     static class NodeFilter {
+
         NameFilter nodeFilter;
         NameFilter propFilter;
 
@@ -633,6 +662,14 @@ public class MicroKernelImpl implements MicroKernel {
             } while (t.matches(','));
             t.read(']');
             return l.toArray(new String[l.size()]);
+        }
+
+        NameFilter getChildNodeFilter() {
+            return nodeFilter;
+        }
+
+        NameFilter getPropertyFilter() {
+            return propFilter;
         }
 
         boolean includeNode(String name) {
