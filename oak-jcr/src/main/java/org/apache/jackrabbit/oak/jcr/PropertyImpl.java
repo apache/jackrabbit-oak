@@ -545,8 +545,7 @@ public class PropertyImpl extends ItemImpl implements Property {
     */
     private int getRequiredType(int defaultType) throws RepositoryException {
         // check type according to definition of this property
-        PropertyDefinition def = getDefinition();
-        int reqType = (def == null) ? PropertyType.UNDEFINED : getDefinition().getRequiredType();
+        int reqType = getDefinition().getRequiredType();
         if (reqType == PropertyType.UNDEFINED) {
             if (defaultType == PropertyType.UNDEFINED) {
                 reqType = PropertyType.STRING;
