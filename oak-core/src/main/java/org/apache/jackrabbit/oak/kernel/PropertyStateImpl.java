@@ -59,11 +59,17 @@ public class PropertyStateImpl implements PropertyState {
     
     @Override
     public CoreValue getValue() {
+        if (value == null) {
+            throw new IllegalStateException("Not a single valued property");
+        }
         return value;
     }
 
     @Override
     public Iterable<CoreValue> getValues() {
+        if (values == null) {
+            throw new IllegalStateException("Not a multi valued property");
+        }
         return values;
     }
 
