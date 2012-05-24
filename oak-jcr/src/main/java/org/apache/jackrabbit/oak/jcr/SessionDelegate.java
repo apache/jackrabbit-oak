@@ -25,6 +25,8 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.namespace.NamespaceRegistryImpl;
+import org.apache.jackrabbit.oak.jcr.query.QueryImpl;
+import org.apache.jackrabbit.oak.jcr.query.QueryManagerImpl;
 import org.apache.jackrabbit.oak.jcr.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.namepath.AbstractNameMapper;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
@@ -44,7 +46,11 @@ import javax.jcr.Session;
 import javax.jcr.Workspace;
 import javax.jcr.lock.LockManager;
 import javax.jcr.nodetype.NodeTypeManager;
+import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
+import javax.jcr.query.QueryResult;
+import javax.jcr.query.Row;
+import javax.jcr.query.RowIterator;
 import javax.jcr.version.VersionManager;
 import java.io.IOException;
 
@@ -132,21 +138,49 @@ public class SessionDelegate {
 
     // TODO replace by query-based implementation
     private NodeDelegate findByJcrUuid(Tree tree, String id) {
-
-       PropertyState p = tree.getProperty("jcr:uuid");
-        if (p != null && id.equals(p.getValue().getString())) {
-            return new NodeDelegate(this, tree);
-        }
-        else {
-            for (Tree c : tree.getChildren()) {
-                NodeDelegate found = findByJcrUuid(c, id);
-                if (found != null) {
-                    return found;
-                }
-            }
-        }
-
-        return null;
+        
+       try {
+           QueryManagerImpl qm = new QueryManagerImpl(this);
+           Query q = qm.createQuery("SELECT * FROM [nt:base] WHERE [jcr:uuid] = $id", Query.JCR_SQL2);
+           q.bindValue("id", getValueFactory().createValue(id));
+           
+           QueryResult result = q.execute();
+           RowIterator ri = result.getRows();
+           if (!ri.hasNext()) {
+               // not found
+               return null;
+           }
+                   
+           Row r = ri.nextRow();
+           
+           if (ri.hasNext()) {
+               log.error("multiple results for query " + q.getStatement());
+               return null;
+           }
+           
+           String path = r.getNode().getPath();
+           String oakPath = namePathMapper.getOakPath(path);
+           return getNode(oakPath);
+       }
+       catch (RepositoryException ex) {
+           log.error("query failed", ex);
+           return null;
+       }
+        
+//       PropertyState p = tree.getProperty("jcr:uuid");
+//        if (p != null && id.equals(p.getValue().getString())) {
+//            return new NodeDelegate(this, tree);
+//        }
+//        else {
+//            for (Tree c : tree.getChildren()) {
+//                NodeDelegate found = findByJcrUuid(c, id);
+//                if (found != null) {
+//                    return found;
+//                }
+//            }
+//        }
+//
+//        return null;
     }
 
     @Nonnull
