@@ -16,14 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import org.apache.commons.collections.IteratorUtils;
-import org.apache.commons.collections.Predicate;
-import org.apache.commons.collections.PredicateUtils;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+import org.apache.jackrabbit.oak.util.Iterators;
+import org.apache.jackrabbit.oak.util.Predicate;
+import org.apache.jackrabbit.oak.util.Predicates;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -112,20 +112,19 @@ public class ModifiedNodeState extends AbstractNodeState {
         if (properties.isEmpty()) {
             return base.getProperties(); // shortcut
         }
-        final Iterable<? extends PropertyState> unmodified =
-                base.getProperties();
-        final Iterable<? extends PropertyState> modified =
-                properties.values();
+        final Iterable<? extends PropertyState> unmodified = base.getProperties();
+        final Iterable<? extends PropertyState> modified = properties.values();
+
         return new Iterable<PropertyState>() {
-            @Override @SuppressWarnings("unchecked")
+            @Override
             public Iterator<PropertyState> iterator() {
-                Iterator<PropertyState> a = IteratorUtils.filteredIterator(
-                        unmodified.iterator(),
-                        new UnmodifiedPropertyPredicate());
-                Iterator<PropertyState> b = IteratorUtils.filteredIterator(
-                        modified.iterator(),
-                        PredicateUtils.notNullPredicate());
-                return IteratorUtils.chainedIterator(a, b);
+                Iterator<PropertyState> a = Iterators.filter(
+                        unmodified.iterator(), new UnmodifiedPropertyPredicate());
+
+                Iterator<PropertyState> b = Iterators.filter(
+                        modified.iterator(), Predicates.nonNull());
+
+                return Iterators.chain(a, b);
             }
         };
     }
@@ -161,63 +160,42 @@ public class ModifiedNodeState extends AbstractNodeState {
         if (nodes.isEmpty()) {
             return base.getChildNodeEntries(); // shortcut
         }
-        final Iterable<? extends ChildNodeEntry> unmodified =
-                base.getChildNodeEntries();
+        final Iterable<? extends ChildNodeEntry> unmodified = base.getChildNodeEntries();
         final Iterator<Entry<String, NodeState>> modified = nodes.entrySet().iterator();
+
         return new Iterable<ChildNodeEntry>() {
-            @Override @SuppressWarnings("unchecked")
+            @Override
             public Iterator<ChildNodeEntry> iterator() {
-                Iterator<ChildNodeEntry> a = IteratorUtils.filteredIterator(
-                        unmodified.iterator(),
-                        new UnmodifiedChildNodePredicate());
-                Iterator<Entry<String, NodeState>> b = IteratorUtils.filteredIterator(
-                        modified,
-                        new UndeletedChildNodePredicate());
-                return IteratorUtils.chainedIterator(a, MemoryChildNodeEntry.iterator(b));
+                Iterator<ChildNodeEntry> a = Iterators.filter(
+                        unmodified.iterator(), new UnmodifiedChildNodePredicate());
+
+                Iterator<Entry<String, NodeState>> b = Iterators.filter(
+                        modified, new UndeletedChildNodePredicate());
+
+                return Iterators.chain(a, MemoryChildNodeEntry.iterator(b));
             }
         };
     }
 
-    private class UnmodifiedPropertyPredicate implements Predicate {
-
+    private class UnmodifiedPropertyPredicate implements Predicate<PropertyState> {
         @Override
-        public boolean evaluate(Object object) {
-            if (object instanceof PropertyState) {
-                PropertyState property = ((PropertyState) object);
-                return !properties.containsKey(property.getName());
-            } else {
-                return false;
-            }
+        public boolean evaluate(PropertyState property) {
+            return !properties.containsKey(property.getName());
         }
-
     }
 
-    private class UnmodifiedChildNodePredicate implements Predicate {
-
+    private class UnmodifiedChildNodePredicate implements Predicate<ChildNodeEntry> {
         @Override
-        public boolean evaluate(Object object) {
-            if (object instanceof ChildNodeEntry) {
-                ChildNodeEntry entry = ((ChildNodeEntry) object);
-                return !nodes.containsKey(entry.getName());
-            } else {
-                return false;
-            }
+        public boolean evaluate(ChildNodeEntry entry) {
+            return !nodes.containsKey(entry.getName());
         }
-
     }
 
-    private static class UndeletedChildNodePredicate implements Predicate {
-
+    private static class UndeletedChildNodePredicate implements Predicate<Entry<?, ?>> {
         @Override
-        public boolean evaluate(Object object) {
-            if (object instanceof Entry) {
-                Entry<?, ?> entry = ((Entry<?, ?>) object);
-                return entry.getValue() != null;
-            } else {
-                return false;
-            }
+        public boolean evaluate(Entry<?, ?> entry) {
+            return entry.getValue() != null;
         }
-
     }
 
 }
