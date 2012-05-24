@@ -18,9 +18,9 @@
  */
 package org.apache.jackrabbit.oak.api;
 
-import java.util.List;
-
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+import java.util.List;
 
 /**
  * A tree instance represents a snapshot of the {@code ContentRepository}
@@ -73,16 +73,19 @@ public interface Tree {
     /**
      * @return  the name of this {@code Tree} instance.
      */
+    @Nonnull
     String getName();
 
     /**
      * @return  path of this {@code Tree} instance relative to its {@link Root}.
      */
+    @Nonnull
     String getPath();
 
     /**
-     * @return  the parent of this {@code Tree} instance.
+     * @return  the parent of this {@code Tree} instance or {@code null} for the root.
      */
+    @CheckForNull
     Tree getParent();
 
     /**
@@ -100,6 +103,7 @@ public interface Tree {
      * @return  the status of the property state with the given {@code name}
      *          or {@code null} in no such property state exists.
      */
+    @CheckForNull
     Status getPropertyStatus(String name);
 
     /**
@@ -123,6 +127,7 @@ public interface Tree {
      * the returned iterable.
      * @return  An {@code Iterable} for all property states
      */
+    @Nonnull
     Iterable<? extends PropertyState> getProperties();
 
     /**
@@ -131,6 +136,7 @@ public interface Tree {
      * @return  the child with the given {@code name} or {@code null} if no such child
      * exists.
      */
+    @CheckForNull
     Tree getChild(String name);
 
     /**
@@ -139,6 +145,7 @@ public interface Tree {
      * @return  the status of the child with the given {@code name} or {@code null} in
      *          no such child exists.
      */
+    @CheckForNull
     Status getChildStatus(String name);
 
     /**
@@ -162,6 +169,7 @@ public interface Tree {
      * visible to iterators obtained from the returned iterable.
      * @return  An {@code Iterable} for all children
      */
+    @Nonnull
     Iterable<Tree> getChildren();
 
     /**
@@ -171,6 +179,7 @@ public interface Tree {
      * @param name name of the child
      * @return the {@code Tree} instance of the child with the given {@code name}.
      */
+    @Nonnull
     Tree addChild(String name);
 
     /**
@@ -187,6 +196,7 @@ public interface Tree {
      * @param value The value of this property
      * @return the affected property state
      */
+    @Nonnull
     PropertyState setProperty(String name, CoreValue value);
 
     /**
@@ -196,6 +206,7 @@ public interface Tree {
      * @param values The value of this property
      * @return the affected property state
      */
+    @Nonnull
     PropertyState setProperty(String name, List<CoreValue> values);
 
     /**
