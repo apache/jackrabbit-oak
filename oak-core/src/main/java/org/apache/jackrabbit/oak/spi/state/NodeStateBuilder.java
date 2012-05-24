@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.spi.state;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
 
+import javax.annotation.Nonnull;
 import java.util.List;
 
 /**
@@ -31,6 +32,7 @@ public interface NodeStateBuilder {
      *
      * @return immutable node state
      */
+    @Nonnull
     NodeState getNodeState();
 
     /**
