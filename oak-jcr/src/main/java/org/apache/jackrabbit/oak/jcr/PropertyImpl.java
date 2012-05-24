@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.jcr.Binary;
+import javax.jcr.InvalidItemStateException;
 import javax.jcr.ItemNotFoundException;
 import javax.jcr.ItemVisitor;
 import javax.jcr.Node;
@@ -80,7 +81,12 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @Override
     public boolean isNew() {
-        return dlg.getStatus() == Status.NEW;
+        try {
+            return dlg.getStatus() == Status.NEW;
+        }
+        catch (InvalidItemStateException e) {
+            return false;
+        }
     }
 
     /**
@@ -88,7 +94,12 @@ public class PropertyImpl extends ItemImpl implements Property {
      */
     @Override
     public boolean isModified() {
-        return dlg.getStatus() == Status.MODIFIED;
+        try {
+            return dlg.getStatus() == Status.MODIFIED;
+        }
+        catch (InvalidItemStateException e) {
+            return false;
+        }
     }
 
     /**

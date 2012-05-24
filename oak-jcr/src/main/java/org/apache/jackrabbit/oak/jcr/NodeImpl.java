@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.jcr.Binary;
+import javax.jcr.InvalidItemStateException;
 import javax.jcr.Item;
 import javax.jcr.ItemExistsException;
 import javax.jcr.ItemNotFoundException;
@@ -110,7 +111,12 @@ public class NodeImpl extends ItemImpl implements Node {
      */
     @Override
     public boolean isNew() {
-        return !dlg.isStale() && dlg.getStatus() == Status.NEW;
+        try {
+            return !dlg.isStale() && dlg.getStatus() == Status.NEW;
+        }
+        catch (InvalidItemStateException e) {
+            return false;
+        }
     }
 
     /**
@@ -118,7 +124,12 @@ public class NodeImpl extends ItemImpl implements Node {
      */
     @Override
     public boolean isModified() {
-        return !dlg.isStale() && dlg.getStatus() == Status.MODIFIED;
+        try {
+            return !dlg.isStale() && dlg.getStatus() == Status.MODIFIED;
+        }
+        catch (InvalidItemStateException e) {
+            return false;
+        }
     }
 
     /**
@@ -420,8 +431,13 @@ public class NodeImpl extends ItemImpl implements Node {
                 new Predicate<NodeDelegate>() {
                     @Override
                     public boolean evaluate(NodeDelegate state) {
-                        return ItemNameMatcher.matches(
-                                toJcrPath(state.getName()), namePattern);
+                        try {
+                            return ItemNameMatcher.matches(
+                                    toJcrPath(state.getName()), namePattern);
+                        }
+                        catch (InvalidItemStateException e) {
+                            return false;
+                        }
                     }
                 });
 
@@ -437,7 +453,12 @@ public class NodeImpl extends ItemImpl implements Node {
                 new Predicate<NodeDelegate>() {
                     @Override
                     public boolean evaluate(NodeDelegate state) {
-                        return ItemNameMatcher.matches(toJcrPath(state.getName()), nameGlobs);
+                        try {
+                            return ItemNameMatcher.matches(toJcrPath(state.getName()), nameGlobs);
+                        }
+                        catch (InvalidItemStateException e) {
+                            return false;
+                        }
                     }
                 });
 
@@ -476,8 +497,13 @@ public class NodeImpl extends ItemImpl implements Node {
                 new Predicate<PropertyDelegate>() {
                     @Override
                     public boolean evaluate(PropertyDelegate entry) {
-                        return ItemNameMatcher.matches(
-                                toJcrPath(entry.getName()), namePattern);
+                        try {
+                            return ItemNameMatcher.matches(
+                                    toJcrPath(entry.getName()), namePattern);
+                        }
+                        catch (InvalidItemStateException e) {
+                            return false;
+                        }
                     }
                 });
 
@@ -493,8 +519,13 @@ public class NodeImpl extends ItemImpl implements Node {
                 new Predicate<PropertyDelegate>() {
                     @Override
                     public boolean evaluate(PropertyDelegate entry) {
-                        return ItemNameMatcher.matches(
-                                toJcrPath(entry.getName()), nameGlobs);
+                        try {
+                            return ItemNameMatcher.matches(
+                                    toJcrPath(entry.getName()), nameGlobs);
+                        }
+                        catch (InvalidItemStateException e) {
+                            return false;
+                        }
                     }
                 });
 

@@ -17,10 +17,11 @@
 
 package org.apache.jackrabbit.oak.jcr;
 
+import org.apache.jackrabbit.oak.api.Tree.Status;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-
-import org.apache.jackrabbit.oak.api.Tree.Status;
+import javax.jcr.InvalidItemStateException;
 
 /**
  * Abstract base class for {@link NodeDelegate} and {@link PropertyDelegate}
@@ -30,6 +31,8 @@ public abstract class ItemDelegate {
     protected final SessionDelegate sessionDelegate;
 
     protected ItemDelegate(SessionDelegate sessionDelegate) {
+        assert sessionDelegate != null;
+
         this.sessionDelegate = sessionDelegate;
     }
 
@@ -38,21 +41,21 @@ public abstract class ItemDelegate {
      * @return oak name of this item
      */
     @Nonnull
-    public abstract String getName();
+    public abstract String getName() throws InvalidItemStateException;
 
     /**
      * Get the path of this item
      * @return oak path of this item
      */
     @Nonnull
-    public abstract String getPath();
+    public abstract String getPath() throws InvalidItemStateException;
 
     /**
      * Get the parent of this item
      * @return  parent of this item or {@code null} for root
      */
     @CheckForNull
-    public abstract NodeDelegate getParent();
+    public abstract NodeDelegate getParent() throws InvalidItemStateException;
 
     /**
      * Determine whether this item is stale
@@ -65,12 +68,14 @@ public abstract class ItemDelegate {
      * @return  {@link Status} of this item
      */
     @Nonnull
-    public abstract Status getStatus();
+    public abstract Status getStatus() throws InvalidItemStateException;
 
     /**
      * Get the session delegate with which this item is associated
      * @return  {@link SessionDelegate} to which this item belongs
      */
     @Nonnull
-    public abstract SessionDelegate getSessionDelegate();
+    public SessionDelegate getSessionDelegate() {
+        return sessionDelegate;
+    }
 }

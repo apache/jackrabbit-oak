@@ -23,6 +23,7 @@ import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
 import javax.annotation.Nonnull;
+import javax.jcr.InvalidItemStateException;
 import javax.jcr.Value;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.PropertyDefinition;
@@ -30,11 +31,9 @@ import java.util.List;
 
 /**
  * {@code PropertyDelegate} serve as internal representations of {@code Property}s.
- * The methods of this class do not throw checked exceptions. Instead clients
- * are expected to inspect the return value and ensure that all preconditions
- * hold before a method is invoked. Specifically the behaviour of all methods
- * of this class but {@link #isStale()} is undefined if the instance is stale.
- * An item is stale if the underlying items does not exist anymore.
+ * Most methods of this class throw an {@code InvalidItemStateException}
+ * exception if the instance is stale. An instance is stale if the underlying
+ * items does not exist anymore.
  */
 public class PropertyDelegate extends ItemDelegate {
 
@@ -59,34 +58,30 @@ public class PropertyDelegate extends ItemDelegate {
     }
 
     @Override
-    public String getName() {
+    public String getName() throws InvalidItemStateException {
         return getPropertyState().getName();
     }
 
     @Override
-    public String getPath() {
+    public String getPath() throws InvalidItemStateException {
         return getParent().getPath() + '/' + getName();
     }
 
     @Override
     @Nonnull
-    public NodeDelegate getParent() {
+    public NodeDelegate getParent() throws InvalidItemStateException {
         return new NodeDelegate(sessionDelegate, getParentTree());
     }
 
     @Override
     public boolean isStale() {
-        return getPropertyState() == null;
+        resolve();
+        return parent == null;
     }
 
     @Override
-    public Status getStatus() {
+    public Status getStatus() throws InvalidItemStateException {
         return getParentTree().getPropertyStatus(getName());
-    }
-
-    @Override
-    public SessionDelegate getSessionDelegate() {
-        return sessionDelegate;
     }
 
     @Override
@@ -99,7 +94,7 @@ public class PropertyDelegate extends ItemDelegate {
      * Get the value of the property
      * @return  value or {@code null} if multi values
      */
-    public CoreValue getValue() {
+    public CoreValue getValue() throws InvalidItemStateException {
         PropertyState state = getPropertyState();
         return state.isArray() ? null : state.getValue();
     }
@@ -108,7 +103,7 @@ public class PropertyDelegate extends ItemDelegate {
      * Get the value of the property
      * @return  value or {@code null} if single valued
      */
-    public Iterable<CoreValue> getValues() {
+    public Iterable<CoreValue> getValues() throws InvalidItemStateException {
         PropertyState state = getPropertyState();
         return state == null ? null : state.getValues();
     }
@@ -117,7 +112,7 @@ public class PropertyDelegate extends ItemDelegate {
      * Determine whether the property is multi valued
      * @return  {@code true} if multi valued
      */
-    public boolean isMultivalue() {
+    public boolean isMultivalue() throws InvalidItemStateException {
         return getPropertyState().isArray();
     }
 
@@ -149,7 +144,12 @@ public class PropertyDelegate extends ItemDelegate {
             @Override
             public boolean isMultiple() {
                 // TODO
-                return getPropertyState().isArray();
+                try {
+                    return getPropertyState().isArray();
+                }
+                catch (InvalidItemStateException e) {
+                    return false;  // todo implement catch e
+                }
             }
 
             @Override
@@ -179,7 +179,12 @@ public class PropertyDelegate extends ItemDelegate {
             @Override
             public String getName() {
                 // TODO
-                return getPropertyState().getName();
+                try {
+                    return getPropertyState().getName();
+                }
+                catch (InvalidItemStateException e) {
+                    return null;  // todo implement catch e
+                }
             }
 
             @Override
@@ -212,7 +217,7 @@ public class PropertyDelegate extends ItemDelegate {
      * Set the value of the property
      * @param value
      */
-    public void setValue(CoreValue value) {
+    public void setValue(CoreValue value) throws InvalidItemStateException {
         getParentTree().setProperty(getName(), value);
     }
 
@@ -220,38 +225,47 @@ public class PropertyDelegate extends ItemDelegate {
      * Set the values of the property
      * @param values
      */
-    public void setValues(List<CoreValue> values) {
+    public void setValues(List<CoreValue> values) throws InvalidItemStateException {
         getParentTree().setProperty(getName(), values);
     }
 
     /**
      * Remove the property
      */
-    public void remove() {
+    public void remove() throws InvalidItemStateException {
         getParentTree().removeProperty(getName());
     }
 
     //------------------------------------------------------------< private >---
 
-    private PropertyState getPropertyState() {
+    private PropertyState getPropertyState() throws InvalidItemStateException {
         resolve();
+        if (parent == null) {
+            throw new InvalidItemStateException("Property is stale");
+        }
+
         return propertyState;
     }
 
-    private Tree getParentTree() {
+    private Tree getParentTree() throws InvalidItemStateException {
         resolve();
+        if (parent == null) {
+            throw new InvalidItemStateException("Property is stale");
+        }
+
         return parent;
     }
 
     private synchronized void resolve() {
-        // TODO: this should not be necessary anymore once TreeImpl.revert and TreeImpl.saved are implemented
-        parent = sessionDelegate.getTree(parent.getPath());
+        if (parent != null) {
+            parent = sessionDelegate.getTree(parent.getPath());
 
-        if (parent == null) {
-            propertyState = null;
-        } else {
-            String path = PathUtils.concat(parent.getPath(), propertyState.getName());
-            propertyState = parent.getProperty(PathUtils.getName(path));
+            if (parent == null) {
+                propertyState = null;
+            } else {
+                String path = PathUtils.concat(parent.getPath(), propertyState.getName());
+                propertyState = parent.getProperty(PathUtils.getName(path));
+            }
         }
     }
 
