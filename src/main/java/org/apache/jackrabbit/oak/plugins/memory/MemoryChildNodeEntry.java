@@ -21,6 +21,8 @@ package org.apache.jackrabbit.oak.plugins.memory;
 import org.apache.jackrabbit.oak.spi.state.AbstractChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.util.Function1;
+import org.apache.jackrabbit.oak.util.Iterators;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -31,55 +33,17 @@ import java.util.Map.Entry;
  */
 public class MemoryChildNodeEntry extends AbstractChildNodeEntry {
 
-    public static Iterable<ChildNodeEntry> iterable(
-            final Map<String, NodeState> map) {
-        return new Iterable<ChildNodeEntry>() {
-            @Override
-            public Iterator<ChildNodeEntry> iterator() {
-                return MemoryChildNodeEntry.iterator(map);
-            }
-        };
-    }
-
-    public static Iterator<ChildNodeEntry> iterator(
-            Map<String, NodeState> map) {
-        final Iterator<Map.Entry<String, NodeState>> iterator =
-                map.entrySet().iterator();
-        return new Iterator<ChildNodeEntry>() {
-            @Override
-            public boolean hasNext() {
-                return iterator.hasNext();
-            }
-            @Override
-            public ChildNodeEntry next() {
-                return new MemoryChildNodeEntry(iterator.next());
-            }
-            @Override
-            public void remove() {
-                throw new UnsupportedOperationException();
-            }
-        };
-    }
-
     public static Iterator<ChildNodeEntry> iterator(
             final Iterator<Entry<String, NodeState>> iterator) {
 
-        return new Iterator<ChildNodeEntry>() {
-            @Override
-            public boolean hasNext() {
-                return iterator.hasNext();
-            }
+        return Iterators.map(iterator,
 
+                new Function1<Entry<String, NodeState>, ChildNodeEntry>() {
             @Override
-            public ChildNodeEntry next() {
-                return new MemoryChildNodeEntry(iterator.next());
+            public ChildNodeEntry apply(Entry<String, NodeState> entry) {
+                return new MemoryChildNodeEntry(entry);
             }
-
-            @Override
-            public void remove() {
-                throw new UnsupportedOperationException();
-            }
-        };
+        });
     }
 
     private final String name;
