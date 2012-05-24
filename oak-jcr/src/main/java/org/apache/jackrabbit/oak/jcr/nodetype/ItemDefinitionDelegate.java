@@ -18,11 +18,11 @@ package org.apache.jackrabbit.oak.jcr.nodetype;
 
 public class ItemDefinitionDelegate {
 
-    private String name;
-    private boolean autoCreated;
-    private boolean mandatory;
-    private int onParentVersion;
-    private boolean isProtected;
+    private final String name;
+    private final boolean autoCreated;
+    private final boolean mandatory;
+    private final int onParentVersion;
+    private final boolean isProtected;
 
     protected ItemDefinitionDelegate(String name, boolean autoCreated, boolean mandatory, int onParentVersion, boolean isProtected) {
         this.name = name;

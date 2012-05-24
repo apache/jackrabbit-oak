@@ -16,16 +16,15 @@
  */
 package org.apache.jackrabbit.oak.jcr.namespace;
 
-import java.util.Locale;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.plugins.name.NamespaceMappings;
 
 import javax.annotation.Nonnull;
 import javax.jcr.NamespaceException;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.RepositoryException;
-
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.plugins.name.NamespaceMappings;
+import java.util.Locale;
 
 /**
  * Implementation of {@link NamespaceRegistry} based on {@link NamespaceMappings}.
@@ -124,17 +123,17 @@ public class NamespaceRegistryImpl implements NamespaceRegistry {
         }
     }
 
-    private void checkMutablePrefix(String prefix) throws NamespaceException {
+    private static void checkMutablePrefix(String prefix) throws NamespaceException {
         if ("jcr".equals(prefix) || "nt".equals(prefix) || "mix".equals(prefix) || "sv".equals(prefix)
                 || prefix.toLowerCase(Locale.ENGLISH).startsWith("xml")) {
-            throw new NamespaceException("Can not map or remap prefix '" + prefix + "'");
+            throw new NamespaceException("Can not map or remap prefix '" + prefix + '\'');
         }
     }
 
-    private void checkMutableURI(String uri) throws NamespaceException {
+    private static void checkMutableURI(String uri) throws NamespaceException {
         if ("http://www.jcp.org/jcr/1.0".equals(uri) || "http://www.jcp.org/jcr/nt/1.0".equals(uri)
                 || "http://www.jcp.org/jcr/mix/1.0".equals(uri) || "http://www.jcp.org/jcr/sv/1.0".equals(uri)) {
-            throw new NamespaceException("Can not map or remap uri '" + uri + "'");
+            throw new NamespaceException("Can not map or remap uri '" + uri + '\'');
         }
     }
 }
