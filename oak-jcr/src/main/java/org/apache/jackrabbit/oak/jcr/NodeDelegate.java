@@ -26,16 +26,15 @@ import org.apache.jackrabbit.oak.util.Iterators;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.jcr.InvalidItemStateException;
 import java.util.Iterator;
 import java.util.List;
 
 /**
  * {@code NodeDelegate} serve as internal representations of {@code Node}s.
- * The methods of this class do not throw checked exceptions. Instead clients
- * are expected to inspect the return value and ensure that all preconditions
- * hold before a method is invoked. Specifically the behaviour of all methods
- * of this class but {@link #isStale()} is undefined if the instance is stale.
- * An item is stale if the underlying items does not exist anymore.
+ * Most methods of this class throw an {@code InvalidItemStateException}
+ * exception if the instance is stale. An instance is stale if the underlying
+ * items does not exist anymore.
  */
 public class NodeDelegate extends ItemDelegate {
 
@@ -52,28 +51,29 @@ public class NodeDelegate extends ItemDelegate {
     }
 
     @Override
-    public String getName() {
+    public String getName() throws InvalidItemStateException {
         return getTree().getName();
     }
 
     @Override
-    public String getPath() {
+    public String getPath() throws InvalidItemStateException {
         return '/' + getTree().getPath();
     }
 
     @Override
-    public NodeDelegate getParent() {
+    public NodeDelegate getParent() throws InvalidItemStateException {
         Tree parent = getParentTree();
         return parent == null ? null : new NodeDelegate(sessionDelegate, parent);
     }
 
     @Override
     public boolean isStale() {
-        return getTree() == null;
+        resolve();
+        return tree == null;
     }
 
     @Override
-    public Status getStatus() {
+    public Status getStatus() throws InvalidItemStateException {
         Tree parent = getParentTree();
         if (parent == null) {
             return Status.EXISTING;  // FIXME: return correct status for root
@@ -84,17 +84,12 @@ public class NodeDelegate extends ItemDelegate {
     }
 
     @Override
-    public SessionDelegate getSessionDelegate() {
-        return sessionDelegate;
-    }
-
-    @Override
     public String toString() {
         // don't disturb the state: avoid calling getTree()
         return "NodeDelegate[/" + tree.getPath() + ']';
     }
 
-    public String getIdentifier() {
+    public String getIdentifier() throws InvalidItemStateException {
         PropertyDelegate pd = getProperty("jcr:uuid");
         if (pd == null) {
             return getPath();
@@ -108,7 +103,7 @@ public class NodeDelegate extends ItemDelegate {
      * Determine whether this is the root node
      * @return  {@code true} iff this is the root node
      */
-    public boolean isRoot() {
+    public boolean isRoot() throws InvalidItemStateException {
         return getParentTree() == null;
     }
 
@@ -116,7 +111,7 @@ public class NodeDelegate extends ItemDelegate {
      * Get the number of properties of the node
      * @return  number of properties of the node
      */
-    public long getPropertyCount() {
+    public long getPropertyCount() throws InvalidItemStateException {
         return getTree().getPropertyCount();
     }
 
@@ -127,7 +122,7 @@ public class NodeDelegate extends ItemDelegate {
      * no such property exists
      */
     @CheckForNull
-    public PropertyDelegate getProperty(String relPath) {
+    public PropertyDelegate getProperty(String relPath) throws InvalidItemStateException {
         Tree parent = getTree(PathUtils.getParentPath(relPath));
         if (parent == null) {
             return null;
@@ -144,7 +139,7 @@ public class NodeDelegate extends ItemDelegate {
      * Get the properties of the node
      * @return  properties of the node
      */
-    public Iterator<PropertyDelegate> getProperties() {
+    public Iterator<PropertyDelegate> getProperties() throws InvalidItemStateException {
         return propertyDelegateIterator(getTree().getProperties().iterator());
     }
 
@@ -152,7 +147,7 @@ public class NodeDelegate extends ItemDelegate {
      * Get the number of child nodes
      * @return  number of child nodes of the node
      */
-    public long getChildCount() {
+    public long getChildCount() throws InvalidItemStateException {
         return getTree().getChildrenCount();
     }
 
@@ -163,7 +158,7 @@ public class NodeDelegate extends ItemDelegate {
      * no such node exists
      */
     @CheckForNull
-    public NodeDelegate getChild(String relPath) {
+    public NodeDelegate getChild(String relPath) throws InvalidItemStateException {
         Tree tree = getTree(relPath);
         return tree == null ? null : new NodeDelegate(sessionDelegate, tree);
     }
@@ -172,7 +167,7 @@ public class NodeDelegate extends ItemDelegate {
      * Get child nodes
      * @return  child nodes of the node
      */
-    public Iterator<NodeDelegate> getChildren() {
+    public Iterator<NodeDelegate> getChildren() throws InvalidItemStateException {
         return nodeDelegateIterator(getTree().getChildren().iterator());
     }
 
@@ -183,7 +178,7 @@ public class NodeDelegate extends ItemDelegate {
      * @return  the set property
      */
     @Nonnull
-    public PropertyDelegate setProperty(String name, CoreValue value) {
+    public PropertyDelegate setProperty(String name, CoreValue value) throws InvalidItemStateException {
         PropertyState propertyState = getTree().setProperty(name, value);
         return new PropertyDelegate(sessionDelegate, getTree(), propertyState);
     }
@@ -195,7 +190,7 @@ public class NodeDelegate extends ItemDelegate {
      * @return  the set property
      */
     @Nonnull
-    public PropertyDelegate setProperty(String name, List<CoreValue> value) {
+    public PropertyDelegate setProperty(String name, List<CoreValue> value) throws InvalidItemStateException {
         PropertyState propertyState = getTree().setProperty(name, value);
         return new PropertyDelegate(sessionDelegate, getTree(), propertyState);
     }
@@ -206,7 +201,7 @@ public class NodeDelegate extends ItemDelegate {
      * @return  the added node or {@code null} if such a node already exists
      */
     @CheckForNull
-    public NodeDelegate addChild(String name) {
+    public NodeDelegate addChild(String name) throws InvalidItemStateException {
         Tree tree = getTree();
         return tree.hasChild(name)
             ? null
@@ -216,13 +211,13 @@ public class NodeDelegate extends ItemDelegate {
     /**
      * Remove the node
      */
-    public void remove() {
+    public void remove() throws InvalidItemStateException {
         getParentTree().removeChild(getName());
     }
 
     // -----------------------------------------------------------< private >---
 
-    private Tree getTree(String relPath) {
+    private Tree getTree(String relPath) throws InvalidItemStateException {
         Tree tree = getTree();
         for (String name : PathUtils.elements(relPath)) {
             if (tree == null) {
@@ -233,13 +228,23 @@ public class NodeDelegate extends ItemDelegate {
         return tree;
     }
 
-    private Tree getParentTree() {
+    private Tree getParentTree() throws InvalidItemStateException {
         return getTree().getParent();
     }
 
-    private synchronized Tree getTree() {
-        // TODO: this should not be necessary anymore once TreeImpl.revert and TreeImpl.saved are implemented
-        return tree = sessionDelegate.getTree(tree.getPath());
+    private synchronized Tree getTree() throws InvalidItemStateException {
+        resolve();
+        if (tree == null) {
+            throw new InvalidItemStateException("Node is stale");
+        }
+
+        return tree;
+    }
+
+    private synchronized void resolve() {
+        if (tree != null) {
+            tree = sessionDelegate.getTree(tree.getPath());
+        }
     }
 
     private Iterator<NodeDelegate> nodeDelegateIterator(
