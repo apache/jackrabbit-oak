@@ -51,17 +51,25 @@ public class NameFilter {
 
     // list of ORed inclusion patterns
     private final List<String> inclPatterns = new ArrayList<String>();
+
     // list of ORed exclusion patterns
     private final List<String> exclPatterns = new ArrayList<String>();
 
+    private boolean containsWildcard;
+
     public NameFilter(String[] patterns) {
+        containsWildcard = false;
         for (String pattern : patterns) {
             if (pattern.isEmpty()) {
                 continue;
             } else if (pattern.charAt(0) == EXCLUDE_PREFIX) {
-                exclPatterns.add(pattern.substring(1));
+                pattern = pattern.substring(1);
+                exclPatterns.add(pattern);
             } else {
                 inclPatterns.add(pattern);
+            }
+            if (!containsWildcard) {
+                containsWildcard = containsWildCard(pattern);
             }
         }
     }
@@ -85,6 +93,36 @@ public class NameFilter {
             }
         }
         return matched;
+    }
+
+    public boolean containsWildcard() {
+        return containsWildcard;
+    }
+
+    public List<String> getExclusionPatterns() {
+        return exclPatterns;
+    }
+
+    public List<String> getInclusionPatterns() {
+        return inclPatterns;
+    }
+
+    private static boolean containsWildCard(String pattern) {
+        int len = pattern.length();
+        int pos = 0;
+        while (pos < len) {
+            if (pattern.charAt(pos) == ESCAPE
+                    && pos < (len - 1)
+                    && pattern.charAt(pos + 1) == WILDCARD) {
+                pos += 2;
+                continue;
+            }
+            if (pattern.charAt(pos) == WILDCARD) {
+                return true;
+            }
+            pos++;
+        }
+        return false;
     }
 
     /**

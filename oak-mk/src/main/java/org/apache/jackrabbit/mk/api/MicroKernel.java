@@ -43,11 +43,14 @@ import java.io.InputStream;
  * <li>supported property types: string, number, boolean, array</li>
  * <li>a property value is stored and used as an opaque, unparsed character sequence</li>
  * </ul>
+ * TODO specify retention policy for old revisions (i.e. minimal guaranteed retention period)
  */
 public interface MicroKernel {
 
     /**
      * Dispose this instance.
+     *
+     * TODO remove lifecycle method from MicroKernel API (OAK-32)
      */
     void dispose();
 
@@ -212,16 +215,16 @@ public interface MicroKernel {
      * {@code :childNodeCount}). Example:
      * <pre>
      * {
-     *     "someprop": "someval",
-     *     ":childNodeCount": 2,
-     *     "child1" : {
-     *          "prop1": "foo",
-     *          ":childNodeCount": 2
-     *      },
-     *      "child2": {
-     *          "prop1": "bar"
-     *          ":childNodeCount": 0
-     *      }
+     *   "someprop" : "someval",
+     *   ":childNodeCount" : 2,
+     *   "child1" : {
+     *      "prop1" : 123,
+     *      ":childNodeCount" : 2
+     *    },
+     *    "child2" : {
+     *      "prop1" : "bar",
+     *      ":childNodeCount" : 0
+     *    }
      * }
      * </pre>
      * Remarks:
@@ -240,6 +243,7 @@ public interface MicroKernel {
      * @param revisionId revision id, if {@code null} the current head revision is assumed
      * @return node tree in JSON format or {@code null} if the specified node does not exist
      * @throws MicroKernelException if the specified revision does not exist or if another error occurs
+     * @see #getNodes(String, String, int, long, int, String)
      */
     String /* jsonTree */ getNodes(String path, String revisionId) throws MicroKernelException;
 
@@ -264,11 +268,35 @@ public interface MicroKernel {
      * </tr>
      * </table>
      * <p/>
+     * Example (depth=1):
+     * <pre>
+     * {
+     *   "someprop" : "someval",
+     *   ":childNodeCount" : 2,
+     *   "child1" : {
+     *      "prop1" : 123,
+     *      ":childNodeCount" : 2
+     *    },
+     *    "child2" : {
+     *      "prop1" : "bar",
+     *      ":childNodeCount" : 0
+     *    }
+     * }
+     * </pre>
+     * Remarks:
+     * <ul>
+     * <li>If the property {@code :childNodeCount} equals 0, then the
+     * node does not have any child nodes.
+     * <li>If the value of {@code :childNodeCount} is larger than the number
+     * of returned child nodes, then the node has more child nodes than those
+     * included in the tree. Large number of child nodes can be retrieved in
+     * chunks using {@link #getNodes(String, String, int, long, int, String)}</li>
+     * </ul>
      * The {@code offset} and {@code count} parameters are only applied to the
      * direct child nodes of the root of the returned node tree.
      * <p/>
      * The optional {@code filter} parameter allows to specify glob patterns for names of
-     * nodes and properties to be included or excluded.
+     * nodes and/or properties to be included or excluded.
      * <p/>
      * Example:
      * <pre>
@@ -278,8 +306,8 @@ public interface MicroKernel {
      * }
      * </pre>
      * In the above example all child nodes with names starting with "foo" will
-     * included, except for nodes named "foo1"; similarly, all properties will
-     * be included except for the ":childNodeCount" meta data property.
+     * be included, except for nodes named "foo1"; similarly, all properties will
+     * be included except for the ":childNodeCount" metadata property (see below).
      * <p/>
      * Glob Syntax:
      * <ul>
@@ -298,7 +326,19 @@ public interface MicroKernel {
      * If no filter is specified the implicit default filter is assumed:
      * {@code {nodes:["*"],properties:["*"]}}
      * <p/>
-     * For more information see {@link #getNodes(String, String)}.
+     * System-generated metadata properties:
+     * <ul>
+     *     <li>{@code :childNodeCount} provides the actual number of direct child nodes; this property
+     *     is included by the implicit default filter. it can be excluded by specifying a filter such
+     *     as {@code {properties:["*", "-:childNodeCount"]}}</li>
+     *     <li>{@code :hash} provides a content-based identifier for the subtree
+     *     rooted at the {@code :hash} property's parent node. {@code :hash} values
+     *     are similar to fingerprints. they can be compared to quickly determine
+     *     if two subtrees are identical. if the {@code :hash} values are different
+     *     the respective subtrees are different with regard to structure and/or properties.
+     *     {@code :hash} is <i>not</i> included by the implicit default filter.
+     *     it can be included by specifying a filter such as {@code {properties:["*", ":hash"]}}</li>
+     * </ul>
      *
      * @param path       path denoting root of node tree to be retrieved
      * @param revisionId revision id, if {@code null} the current head revision is assumed
@@ -306,11 +346,10 @@ public interface MicroKernel {
      * @param offset     start position in the iteration order of child nodes (0 to start at the
      *                   beginning)
      * @param count      maximum number of child nodes to retrieve (-1 for all)
-     * @param filter     optional filter on property names; if {@code null} or
+     * @param filter     optional filter on property and/or node names; if {@code null} or
      *                   {@code ""} the default filter will be assumed
      * @return node tree in JSON format or {@code null} if the specified node does not exist
      * @throws MicroKernelException if the specified revision does not exist or if another error occurs
-     * @see #getNodes(String, String)
      */
     String /* jsonTree */ getNodes(String path, String revisionId, int depth,
                                    long offset, int count, String filter)

@@ -34,47 +34,58 @@ public class NameFilterTest {
         assertTrue(filter.matches("foo bar"));
         assertTrue(filter.matches("foo 99"));
         assertFalse(filter.matches("foo99"));
+        assertTrue(filter.containsWildcard());
 
         filter = new NameFilter(new String[]{"*foo"});
         assertTrue(filter.matches("foo"));
         assertTrue(filter.matches("-123foo"));
         assertFalse(filter.matches("bar"));
+        assertTrue(filter.containsWildcard());
 
         filter = new NameFilter(new String[]{"foo\\*bar"});
         assertFalse(filter.matches("foo bar"));
         assertTrue(filter.matches("foo*bar"));
+        assertFalse(filter.containsWildcard());
 
         filter = new NameFilter(new String[]{"foo\\bar"});
         assertTrue(filter.matches("foo\\bar"));
+        assertFalse(filter.containsWildcard());
 
         filter = new NameFilter(new String[]{"foo\\"});
         assertTrue(filter.matches("foo\\"));
+        assertFalse(filter.containsWildcard());
 
         filter = new NameFilter(new String[]{"*"});
         assertTrue(filter.matches("*"));
         assertTrue(filter.matches("\\*"));
         assertTrue(filter.matches("blah"));
+        assertTrue(filter.containsWildcard());
 
         filter = new NameFilter(new String[]{"\\*"});
         assertTrue(filter.matches("*"));
         assertFalse(filter.matches("\\*"));
         assertFalse(filter.matches("blah"));
+        assertFalse(filter.containsWildcard());
 
         filter = new NameFilter(new String[]{"\\- topic"});
         assertTrue(filter.matches("- topic"));
+        assertFalse(filter.containsWildcard());
 
         filter = new NameFilter(new String[]{"*", "- topic"});
         assertFalse(filter.matches(" topic"));
         assertTrue(filter.matches("- topic"));
         assertTrue(filter.matches("blah"));
+        assertTrue(filter.containsWildcard());
 
         filter = new NameFilter(new String[]{"foo\\-bar"});
         assertFalse(filter.matches("foo-bar"));
         assertTrue(filter.matches("foo\\-bar"));
+        assertFalse(filter.containsWildcard());
 
         filter = new NameFilter(new String[]{"foo\\\\*bar"});
         assertTrue(filter.matches("foo\\*bar"));
         assertFalse(filter.matches("foo\\ blah bar"));
         assertFalse(filter.matches("foo*bar"));
+        assertFalse(filter.containsWildcard());
     }
 }
