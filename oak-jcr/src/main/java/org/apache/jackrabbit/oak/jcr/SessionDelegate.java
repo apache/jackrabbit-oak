@@ -16,22 +16,10 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import org.apache.jackrabbit.oak.api.AuthInfo;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.QueryEngine;
-import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.jcr.namespace.NamespaceRegistryImpl;
-import org.apache.jackrabbit.oak.jcr.query.QueryManagerImpl;
-import org.apache.jackrabbit.oak.jcr.value.ValueFactoryImpl;
-import org.apache.jackrabbit.oak.namepath.AbstractNameMapper;
-import org.apache.jackrabbit.oak.namepath.NameMapper;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.io.IOException;
+import java.text.ParseException;
+import java.util.Collections;
+import java.util.Map;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -46,11 +34,26 @@ import javax.jcr.lock.LockManager;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
-import javax.jcr.query.QueryResult;
-import javax.jcr.query.Row;
-import javax.jcr.query.RowIterator;
 import javax.jcr.version.VersionManager;
-import java.io.IOException;
+
+import org.apache.jackrabbit.oak.api.AuthInfo;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.QueryEngine;
+import org.apache.jackrabbit.oak.api.Result;
+import org.apache.jackrabbit.oak.api.ResultRow;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.jcr.namespace.NamespaceRegistryImpl;
+import org.apache.jackrabbit.oak.jcr.value.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.namepath.AbstractNameMapper;
+import org.apache.jackrabbit.oak.namepath.NameMapper;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SessionDelegate {
     static final Logger log = LoggerFactory.getLogger(SessionDelegate.class);
@@ -137,53 +140,6 @@ public class SessionDelegate {
             // referenceable
             return findByJcrUuid(getTree(""), id);
         }
-    }
-
-    // TODO replace by query-based implementation
-    private NodeDelegate findByJcrUuid(Tree tree, String id) {
-        
-       try {
-           QueryManagerImpl qm = new QueryManagerImpl(this);
-           Query q = qm.createQuery("SELECT * FROM [nt:base] WHERE [jcr:uuid] = $id", Query.JCR_SQL2);
-           q.bindValue("id", getValueFactory().createValue(id));
-           
-           QueryResult result = q.execute();
-           RowIterator ri = result.getRows();
-           if (!ri.hasNext()) {
-               // not found
-               return null;
-           }
-                   
-           Row r = ri.nextRow();
-           
-           if (ri.hasNext()) {
-               log.error("multiple results for query " + q.getStatement());
-               return null;
-           }
-           
-           String path = r.getNode().getPath();
-           String oakPath = namePathMapper.getOakPath(path);
-           return getNode(oakPath);
-       }
-       catch (RepositoryException ex) {
-           log.error("query failed", ex);
-           return null;
-       }
-        
-//       PropertyState p = tree.getProperty("jcr:uuid");
-//        if (p != null && id.equals(p.getValue().getString())) {
-//            return new NodeDelegate(this, tree);
-//        }
-//        else {
-//            for (Tree c : tree.getChildren()) {
-//                NodeDelegate found = findByJcrUuid(c, id);
-//                if (found != null) {
-//                    return found;
-//                }
-//            }
-//        }
-//
-//        return null;
     }
 
     @Nonnull
@@ -391,6 +347,52 @@ public class SessionDelegate {
     @CheckForNull
     Tree getTree(String path) {
         return root.getTree(path);
+    }
+
+    @CheckForNull
+    NodeDelegate findByJcrUuid(Tree tree, String id) {
+
+        try {
+            Map<String, CoreValue> bindings = Collections.singletonMap("id", getValueFactory().getCoreValueFactory()
+                    .createValue(id));
+
+            Result result = getQueryEngine().executeQuery("SELECT * FROM [nt:base] WHERE [jcr:uuid] = $id", Query.JCR_SQL2,
+                    getContentSession(), Long.MAX_VALUE, 0, bindings);
+
+            String path = null;
+
+            for (ResultRow rr : result.getRows()) {
+                String tmppath = PathUtils.concat("/", PathUtils.relativize("/" + getWorkspaceName(), rr.getPath()));
+
+                if (path != null) {
+                    log.error("multiple results for identifier lookup: " + path + " vs. " + tmppath);
+                    return null;
+                } else {
+                    path = tmppath;
+                }
+            }
+
+            return path == null ? null : getNode(path);
+        } catch (ParseException ex) {
+            log.error("query failed", ex);
+            return null;
+        }
+
+        // Tree-walking implementation...
+        // PropertyState p = tree.getProperty("jcr:uuid");
+        // if (p != null && id.equals(p.getValue().getString())) {
+        // return new NodeDelegate(this, tree);
+        // }
+        // else {
+        // for (Tree c : tree.getChildren()) {
+        // NodeDelegate found = findByJcrUuid(c, id);
+        // if (found != null) {
+        // return found;
+        // }
+        // }
+        // }
+        //
+        // return null;
     }
 
     //--------------------------------------------------< SessionNameMapper >---
