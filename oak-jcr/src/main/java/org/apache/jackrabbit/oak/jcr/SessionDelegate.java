@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.jcr;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -119,9 +120,33 @@ public class SessionDelegate {
 
     @CheckForNull
     public NodeDelegate getNodeByIdentifier(String id) {
-        // TODO: for now the OAK path is the identifier
-        Tree tree = getTree(id);
-        return tree == null ? null : new NodeDelegate(this, tree);
+        if (id.startsWith("/")) {
+            Tree tree = getTree(id);
+            return tree == null ? null : new NodeDelegate(this, tree);
+        }
+        else {
+            // referenceable
+            return findByJcrUuid(getTree(""), id);
+        }
+    }
+
+    // TODO replace by query-based implementation
+    private NodeDelegate findByJcrUuid(Tree tree, String id) {
+
+       PropertyState p = tree.getProperty("jcr:uuid");
+        if (p != null && id.equals(p.getValue().getString())) {
+            return new NodeDelegate(this, tree);
+        }
+        else {
+            for (Tree c : tree.getChildren()) {
+                NodeDelegate found = findByJcrUuid(c, id);
+                if (found != null) {
+                    return found;
+                }
+            }
+        }
+
+        return null;
     }
 
     @Nonnull

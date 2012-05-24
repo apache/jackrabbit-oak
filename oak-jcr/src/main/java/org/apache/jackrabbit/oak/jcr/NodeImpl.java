@@ -56,9 +56,12 @@ import javax.jcr.version.Version;
 import javax.jcr.version.VersionHistory;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.UUID;
 
 import static org.apache.jackrabbit.oak.util.Iterators.filter;
 
@@ -700,10 +703,30 @@ public class NodeImpl extends ItemImpl implements Node {
         checkStatus();
         // TODO: figure out the right place for this check
         NodeTypeManager ntm = sessionDelegate.getNodeTypeManager();
-        ntm.getNodeType(mixinName); // throws on not found
+        NodeType nt = ntm.getNodeType(mixinName); // throws on not found
+        
+        if (nt.isNodeType("mix:referenceable")) {
+            this.setProperty(Property.JCR_UUID, UUID.randomUUID().toString());
+        }
         // TODO: END
 
-        // todo implement addMixin
+        String jcrMixinTypes =
+                sessionDelegate.getOakPathOrThrow(Property.JCR_MIXIN_TYPES);
+        PropertyDelegate mixins = dlg.getProperty(jcrMixinTypes);
+
+        CoreValue cv = ValueConverter.toCoreValue(mixinName, PropertyType.NAME, sessionDelegate);
+        if (mixins == null) {
+            dlg.setProperty(jcrMixinTypes, Collections.singletonList(cv));
+        } else {
+            List<CoreValue> values = new ArrayList<CoreValue>();
+            values.add(cv);
+            for (CoreValue existingValue : mixins.getValues()) {
+                if (!values.contains(existingValue)) {
+                    values.add(existingValue);
+                }
+            }
+            dlg.setProperty(jcrMixinTypes, values);
+        }
     }
 
     @Override
