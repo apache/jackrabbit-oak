@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 
 public class ModifiedNodeState extends AbstractNodeState {
 
@@ -162,18 +163,17 @@ public class ModifiedNodeState extends AbstractNodeState {
         }
         final Iterable<? extends ChildNodeEntry> unmodified =
                 base.getChildNodeEntries();
-        final Iterable<? extends ChildNodeEntry> modified =
-                MemoryChildNodeEntry.iterable(nodes);
+        final Iterator<Entry<String, NodeState>> modified = nodes.entrySet().iterator();
         return new Iterable<ChildNodeEntry>() {
             @Override @SuppressWarnings("unchecked")
             public Iterator<ChildNodeEntry> iterator() {
                 Iterator<ChildNodeEntry> a = IteratorUtils.filteredIterator(
                         unmodified.iterator(),
                         new UnmodifiedChildNodePredicate());
-                Iterator<ChildNodeEntry> b = IteratorUtils.filteredIterator(
-                        modified.iterator(),
+                Iterator<Entry<String, NodeState>> b = IteratorUtils.filteredIterator(
+                        modified,
                         new UndeletedChildNodePredicate());
-                return IteratorUtils.chainedIterator(a, b);
+                return IteratorUtils.chainedIterator(a, MemoryChildNodeEntry.iterator(b));
             }
         };
     }
@@ -210,9 +210,9 @@ public class ModifiedNodeState extends AbstractNodeState {
 
         @Override
         public boolean evaluate(Object object) {
-            if (object instanceof ChildNodeEntry) {
-                ChildNodeEntry entry = ((ChildNodeEntry) object);
-                return entry.getNodeState() != null;
+            if (object instanceof Entry) {
+                Entry<?, ?> entry = ((Entry<?, ?>) object);
+                return entry.getValue() != null;
             } else {
                 return false;
             }

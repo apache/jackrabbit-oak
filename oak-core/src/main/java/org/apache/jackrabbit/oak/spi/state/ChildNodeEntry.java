@@ -17,6 +17,8 @@
 package org.apache.jackrabbit.oak.spi.state;
 
 
+import javax.annotation.Nonnull;
+
 /**
  * TODO: document OR replace by mk.model ChildNodeEntry interface
  *
@@ -34,11 +36,13 @@ public interface ChildNodeEntry {
     /**
      * TODO: document
      */
+    @Nonnull
     String getName();
 
     /**
      * TODO: document
      */
+    @Nonnull
     NodeState getNodeState();
 
 }
