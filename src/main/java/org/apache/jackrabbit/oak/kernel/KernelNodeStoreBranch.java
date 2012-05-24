@@ -214,10 +214,7 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
                 jsop.append('{');
                 String comma = "";
                 for (PropertyState property : nodeState.getProperties()) {
-                    String value = property.isArray()
-                            ? CoreValueMapper.toJsonArray(property.getValues())
-                            : CoreValueMapper.toJsonValue(property.getValue());
-
+                    String value = toJson(property);
                     jsop.append(comma);
                     comma = ",";
                     jsop.append('"').append(property.getName()).append("\":").append(value);

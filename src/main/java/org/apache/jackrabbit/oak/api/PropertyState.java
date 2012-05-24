@@ -46,15 +46,19 @@ public interface PropertyState {
     boolean isArray();
 
     /**
-     * @return  the single value of this property or {@code null} if this is a multi
-     * valued property.
+     * Value of this property.
+     * @return  the single value of this property.
+     * @throws IllegalStateException  if {@code isArray()} is {@code true}.
      */
+    @Nonnull
     CoreValue getValue();
 
     /**
-     * @return  an iterable of the values of this multi valued property or
-     * {@code null} if this is not a multi valued property.
+     * Values of this property.
+     * @return  an iterable of the values of this multi valued property.
+     * @throws IllegalStateException  if {@code isArray()} is {@code false}.
      */
+    @Nonnull
     Iterable<CoreValue> getValues();
 
 }
