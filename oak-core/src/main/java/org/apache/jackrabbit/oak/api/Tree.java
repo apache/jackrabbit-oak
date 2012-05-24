@@ -20,6 +20,8 @@ package org.apache.jackrabbit.oak.api;
 
 import java.util.List;
 
+import javax.annotation.CheckForNull;
+
 /**
  * A tree instance represents a snapshot of the {@code ContentRepository}
  * tree at the time the instance was acquired. Tree instances may
@@ -89,6 +91,7 @@ public interface Tree {
      * @return  the property state with the given {@code name} or {@code null}
      *          if no such property state exists.
      */
+    @CheckForNull
     PropertyState getProperty(String name);
 
     /**
