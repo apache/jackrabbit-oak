@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.api;
 
+import javax.annotation.Nonnull;
+
 /**
  * Immutable property state. A property consists of a name and
  * a JSON-encoded value.
@@ -34,6 +36,7 @@ public interface PropertyState {
     /**
      * @return the name of this property state
      */
+    @Nonnull
     String getName();
 
     /**

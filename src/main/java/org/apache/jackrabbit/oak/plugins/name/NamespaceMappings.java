@@ -16,20 +16,19 @@
 */
 package org.apache.jackrabbit.oak.plugins.name;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-
-import javax.jcr.PropertyType;
-import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+
+import javax.jcr.PropertyType;
+import javax.jcr.RepositoryException;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Prove of concept implementation for OAK-61.
@@ -103,6 +102,7 @@ public class NamespaceMappings {
         Tree namespaces = getNamespaces(session.getCurrentRoot(), false);
         if (namespaces != null) {
             for (PropertyState property : namespaces.getProperties()) {
+                // TODO: check property.isArray and log internal error if so
                 uris.add(property.getValue().getString());
             }
         }
@@ -129,6 +129,7 @@ public class NamespaceMappings {
         if (namespaces != null) {
             PropertyState property = namespaces.getProperty(prefix);
             if (property != null) {
+                // TODO: check property.isArray and log internal error if so
                 return property.getValue().getString();
             }
         }
@@ -154,6 +155,7 @@ public class NamespaceMappings {
         if (namespaces != null) {
             for (PropertyState property : namespaces.getProperties()) {
                 if (uri.equals(property.getValue().getString())) {
+                    // TODO: check property.isArray and log internal error if so
                     return property.getName();
                 }
             }
