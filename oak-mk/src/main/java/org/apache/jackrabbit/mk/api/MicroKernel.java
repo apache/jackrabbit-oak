@@ -43,7 +43,7 @@ import java.io.InputStream;
  * <li>supported property types: string, number, boolean, array</li>
  * <li>a property value is stored and used as an opaque, unparsed character sequence</li>
  * </ul>
- * TODO specify retention policy for old revisions (i.e. minimal guaranteed retention period)
+ * TODO specify retention policy for old revisions, i.e. minimal guaranteed retention period (OAK-114)
  */
 public interface MicroKernel {
 
@@ -260,7 +260,8 @@ public interface MicroKernel {
      * <tr>
      * <td>depth = 1</td>
      * <td>properties, child nodes and their properties (including
-     * {@code :childNodeCount})</td>
+     * {@code :childNodeCount}) and their child node names
+     * (i.e. empty child node objects)</td>
      * </tr>
      * <tr>
      * <td>depth = 2</td>
@@ -268,19 +269,30 @@ public interface MicroKernel {
      * </tr>
      * </table>
      * <p/>
+     * Example (depth=0):
+     * <pre>
+     * {
+     *   "someprop" : "someval",
+     *   ":childNodeCount" : 2,
+     *   "child1" : {},
+     *   "child2" : {}
+     * }
+     * </pre>
      * Example (depth=1):
      * <pre>
      * {
      *   "someprop" : "someval",
      *   ":childNodeCount" : 2,
      *   "child1" : {
-     *      "prop1" : 123,
-     *      ":childNodeCount" : 2
-     *    },
-     *    "child2" : {
-     *      "prop1" : "bar",
-     *      ":childNodeCount" : 0
-     *    }
+     *     "prop1" : 123,
+     *     ":childNodeCount" : 2,
+     *     "grandchild1" : {},
+     *     "grandchild2" : {}
+     *   },
+     *   "child2" : {
+     *     "prop1" : "bar",
+     *     ":childNodeCount" : 0
+     *   }
      * }
      * </pre>
      * Remarks:

@@ -470,7 +470,8 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         assertNotNull(child);
         assertEquals(child.size(), 0);
 
-        // depth = 1: properties, child nodes and their properties (including :childNodeCount)
+        // depth = 1: properties, child nodes, their properties (including :childNodeCount)
+        // and their empty child node objects
         obj = parseJSONObject(mk.getNodes("/testRoot", null, 1, 0, -1, null));
         assertPropertyValue(obj, "depth", 0l);
         assertPropertyValue(obj, ":childNodeCount", 1l);
