@@ -76,8 +76,6 @@ org.apache.jackrabbit.test.api.DocumentViewImportTest
 org.apache.jackrabbit.test.api.SerializationTest
 org.apache.jackrabbit.test.api.SessionRemoveItemTest#testRemoveItem4
 org.apache.jackrabbit.test.api.HasPermissionTest
-org.apache.jackrabbit.test.api.WorkspaceTest
-org.apache.jackrabbit.test.api.ShareableNodeTest
 org.apache.jackrabbit.test.api.nodetype.PropertyDefTest#testIsMandatory
 org.apache.jackrabbit.test.api.nodetype.CanSetPropertyDateTest#testConversions
 org.apache.jackrabbit.test.api.nodetype.CanSetPropertyMultipleTest#testReturnFalseBecauseIsProtected
