@@ -21,7 +21,6 @@ import org.apache.jackrabbit.mk.test.util.TestInputStream;
 import org.apache.jackrabbit.mk.util.MicroKernelInputStream;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -604,7 +603,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
             String path = "/test/";
             mk.getNodes(path, head);
             fail("Success with invalid path: " + path);
-        } catch (IllegalArgumentException e) {
+        } catch (AssertionError e) {
             // expected
         } catch (MicroKernelException e) {
             // expected
