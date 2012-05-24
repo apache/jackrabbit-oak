@@ -95,8 +95,13 @@ public class NodeDelegate extends ItemDelegate {
     }
 
     public String getIdentifier() {
-        // TODO for now the identifier is the OAK path
-        return getPath();
+        PropertyDelegate pd = getProperty("jcr:uuid");
+        if (pd == null) {
+            return getPath();
+        }
+        else {
+            return pd.getValue().toString();
+        }
     }
 
     /**
