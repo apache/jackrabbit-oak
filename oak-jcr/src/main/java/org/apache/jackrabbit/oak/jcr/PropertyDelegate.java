@@ -100,7 +100,8 @@ public class PropertyDelegate extends ItemDelegate {
      * @return  value or {@code null} if multi values
      */
     public CoreValue getValue() {
-        return getPropertyState().getValue();
+        PropertyState state = getPropertyState();
+        return state.isArray() ? null : state.getValue();
     }
 
     /**
@@ -108,7 +109,8 @@ public class PropertyDelegate extends ItemDelegate {
      * @return  value or {@code null} if single valued
      */
     public Iterable<CoreValue> getValues() {
-        return getPropertyState().getValues();
+        PropertyState state = getPropertyState();
+        return state == null ? null : state.getValues();
     }
 
     /**
