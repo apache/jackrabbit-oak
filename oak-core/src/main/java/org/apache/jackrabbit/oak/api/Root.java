@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.api;
 
+import javax.annotation.CheckForNull;
+
 /**
  * The root of a {@link Tree}.
  */
@@ -56,6 +58,7 @@ public interface Root {
      * @param path  path to the tree
      * @return  tree at the given path or {@code null} if no such tree exists
      */
+    @CheckForNull
     Tree getTree(String path);
 
     /**

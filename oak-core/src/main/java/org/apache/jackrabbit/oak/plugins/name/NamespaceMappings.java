@@ -196,6 +196,10 @@ public class NamespaceMappings {
 
     private Tree getNamespaces(Root root, boolean create) {
         Tree tree = root.getTree("/");
+        if (tree == null) {
+            throw new IllegalStateException("No root node");
+        }
+
         Tree system = tree.getChild("jcr:system");
         if (system == null) {
             if (create) {
