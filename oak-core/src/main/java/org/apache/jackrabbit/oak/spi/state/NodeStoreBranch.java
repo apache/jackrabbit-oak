@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.spi.state;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 
+import javax.annotation.Nonnull;
+
 public interface NodeStoreBranch {
 
     /**
@@ -25,6 +27,7 @@ public interface NodeStoreBranch {
      *
      * @return root node state
      */
+    @Nonnull
     NodeState getRoot();
 
     /**
@@ -32,6 +35,7 @@ public interface NodeStoreBranch {
      *
      * @return base node state
      */
+    @Nonnull
     NodeState getBase();
 
     /**
@@ -65,6 +69,7 @@ public interface NodeStoreBranch {
      *
      * @throws CommitFailedException if the merge failed
      */
+    @Nonnull
     NodeState merge() throws CommitFailedException;
 
 }
