@@ -31,16 +31,20 @@ public class PropertyStateImpl implements PropertyState {
     private final CoreValue value;
     private final List<CoreValue> values;
 
-    public PropertyStateImpl(String name, CoreValue value) {
+    private PropertyStateImpl(String name, CoreValue value, List<CoreValue> values) {
+        assert name != null;
+
         this.name = name;
         this.value = value;
-        this.values = null;
+        this.values = values;
+    }
+
+    public PropertyStateImpl(String name, CoreValue value) {
+        this(name, value, null);
     }
 
     public PropertyStateImpl(String name, List<CoreValue> values) {
-        this.name = name;
-        this.value = null;
-        this.values = Collections.unmodifiableList(values);
+        this(name, null, Collections.unmodifiableList(values));
     }
 
     @Override

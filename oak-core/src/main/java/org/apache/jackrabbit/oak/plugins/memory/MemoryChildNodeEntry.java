@@ -32,12 +32,13 @@ import java.util.Map.Entry;
  * Basic JavaBean implementation of a child node entry.
  */
 public class MemoryChildNodeEntry extends AbstractChildNodeEntry {
+    private final String name;
+    private final NodeState node;
 
     public static Iterator<ChildNodeEntry> iterator(
             final Iterator<Entry<String, NodeState>> iterator) {
 
         return Iterators.map(iterator,
-
                 new Function1<Entry<String, NodeState>, ChildNodeEntry>() {
             @Override
             public ChildNodeEntry apply(Entry<String, NodeState> entry) {
@@ -45,10 +46,6 @@ public class MemoryChildNodeEntry extends AbstractChildNodeEntry {
             }
         });
     }
-
-    private final String name;
-
-    private final NodeState node;
 
     /**
      * Creates a child node entry with the given name and referenced
@@ -58,12 +55,8 @@ public class MemoryChildNodeEntry extends AbstractChildNodeEntry {
      * @param node child node state
      */
     public MemoryChildNodeEntry(String name, NodeState node) {
-        if (name == null) {
-            throw new IllegalArgumentException("Name must not be null");
-        }
-        if (node == null) {
-            throw new IllegalArgumentException("Node must not be null");
-        }
+        assert name != null;
+        assert node != null;
 
         this.name = name;
         this.node = node;
