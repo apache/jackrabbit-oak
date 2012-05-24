@@ -18,6 +18,9 @@ package org.apache.jackrabbit.oak.spi.state;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+
 /**
  * A node in a content tree consists of child nodes and properties, each
  * of which evolves through different states during its lifecycle. This
@@ -103,6 +106,7 @@ public interface NodeState {
      * @param name name of the property to return
      * @return named property, or {@code null} if not found
      */
+    @CheckForNull
     PropertyState getProperty(String name);
 
     /**
@@ -120,6 +124,7 @@ public interface NodeState {
      *
      * @return properties in some stable order
      */
+    @Nonnull
     Iterable<? extends PropertyState> getProperties();
 
     /**
@@ -134,6 +139,7 @@ public interface NodeState {
      * @param name name of the child node to return
      * @return named child node, or {@code null} if not found
      */
+    @CheckForNull
     NodeState getChildNode(String name);
 
     /**
@@ -150,6 +156,7 @@ public interface NodeState {
      * dependent and may change across different states of the same node.
      * @return  child node entries in some stable order
      */
+    @Nonnull
     Iterable<? extends ChildNodeEntry> getChildNodeEntries();
 
 }
