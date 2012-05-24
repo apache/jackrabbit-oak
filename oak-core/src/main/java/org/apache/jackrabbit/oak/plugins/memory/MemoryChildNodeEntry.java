@@ -18,12 +18,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import java.util.Iterator;
-import java.util.Map;
-
 import org.apache.jackrabbit.oak.spi.state.AbstractChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Map.Entry;
 
 /**
  * Basic JavaBean implementation of a child node entry.
@@ -60,6 +61,27 @@ public class MemoryChildNodeEntry extends AbstractChildNodeEntry {
         };
     }
 
+    public static Iterator<ChildNodeEntry> iterator(
+            final Iterator<Entry<String, NodeState>> iterator) {
+
+        return new Iterator<ChildNodeEntry>() {
+            @Override
+            public boolean hasNext() {
+                return iterator.hasNext();
+            }
+
+            @Override
+            public ChildNodeEntry next() {
+                return new MemoryChildNodeEntry(iterator.next());
+            }
+
+            @Override
+            public void remove() {
+                throw new UnsupportedOperationException();
+            }
+        };
+    }
+
     private final String name;
 
     private final NodeState node;
@@ -72,6 +94,13 @@ public class MemoryChildNodeEntry extends AbstractChildNodeEntry {
      * @param node child node state
      */
     public MemoryChildNodeEntry(String name, NodeState node) {
+        if (name == null) {
+            throw new IllegalArgumentException("Name must not be null");
+        }
+        if (node == null) {
+            throw new IllegalArgumentException("Node must not be null");
+        }
+
         this.name = name;
         this.node = node;
     }
