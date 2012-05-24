@@ -16,13 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import java.util.Collections;
-import java.util.Map;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.Map;
 
 /**
  * Basic in-memory node state implementation.
@@ -85,7 +86,12 @@ public class MemoryNodeState extends AbstractNodeState {
 
     @Override
     public Iterable<ChildNodeEntry> getChildNodeEntries() {
-        return MemoryChildNodeEntry.iterable(nodes);
+        return new Iterable<ChildNodeEntry>() {
+            @Override
+            public Iterator<ChildNodeEntry> iterator() {
+                return MemoryChildNodeEntry.iterator(nodes.entrySet().iterator());
+            }
+        };
     }
 
 }
