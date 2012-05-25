@@ -331,12 +331,12 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         String head = mk.getHeadRevision();
         head = mk.commit("",
                 "+\"/root\":{}\n" +
-                "+\"/root/a\":{}\n",
+                        "+\"/root/a\":{}\n",
                 head, "");
 
         head = mk.commit("",
                 "+\"/root/a/b\":{}\n" +
-                ">\"/root/a\":\"/root/c\"\n",
+                        ">\"/root/a\":\"/root/c\"\n",
                 head, "");
 
         assertFalse(mk.nodeExists("/root/a", head));
@@ -375,7 +375,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
     public void copyToDescendant() {
         mk.commit("/",
                 "+\"test/child\":{}\n" +
-                "*\"test\":\"test/copy\"\n",
+                        "*\"test\":\"test/copy\"\n",
                 null, "");
 
         assertTrue(mk.nodeExists("/test/child", null));
@@ -435,7 +435,8 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
 
         assertFalse(hash0.equals(hash1));
 
-        // undo property modification and verify that the hash of the root node changed
+        // undo property modification and verify that the hash
+        // of the root node is now the same as before the modification
         mk.commit("/test", "^\"booleanProp\":true", null, null);
         obj = parseJSONObject(mk.getNodes("/", null, 1, 0, -1, "{properties:[\"*\",\":hash\"]}"));
         assertPropertyValue(obj, "test/booleanProp", true);
@@ -599,6 +600,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         // get all siblings in one call
         JSONObject obj = parseJSONObject(mk.getNodes("/testRoot", head, 0, 0, -1, null));
         assertPropertyValue(obj, ":childNodeCount", (long) NUM_SIBLINGS);
+        assertEquals(mk.getChildNodeCount("/testRoot", head), (long) NUM_SIBLINGS);
         assertEquals(siblingNames, getNodeNames(obj));
 
         // list of sibling names in iteration order
@@ -630,6 +632,80 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
             names.removeAll(subList);
             assertTrue(names.isEmpty());
         }
+
+        // test offset with filter
+        try {
+            parseJSONObject(mk.getNodes("/testRoot", head, 0, 10, NUM_SIBLINGS / 10, "{nodes:[\"n0*\"]}"));
+            fail();
+        } catch (Throwable e) {
+            // expected
+        }
+    }
+
+    @Test
+    public void getNodesMaxNodeCount() {
+        // number of siblings
+        final int NUM_SIBLINGS = 100;
+
+        // populate siblings
+        StringBuffer sb = new StringBuffer("+\"/testRoot\":{");
+        for (int i = 0; i < NUM_SIBLINGS; i++) {
+            String name = "n" + i;
+            sb.append("\n\"");
+            sb.append(name);
+            sb.append("\":{");
+
+            for (int n = 0; n < NUM_SIBLINGS; n++) {
+                String childName = "n" + n;
+                sb.append("\n\"");
+                sb.append(childName);
+                sb.append("\":{}");
+                if (n < NUM_SIBLINGS - 1) {
+                    sb.append(',');
+                }
+            }
+            sb.append("}");
+            if (i < NUM_SIBLINGS - 1) {
+                sb.append(',');
+            }
+        }
+        sb.append("\n}");
+        String head = mk.commit("", sb.toString(), null, "");
+
+        // get all siblings
+        JSONObject obj = parseJSONObject(mk.getNodes("/testRoot", head, 1, 0, -1, null));
+        assertPropertyValue(obj, ":childNodeCount", (long) NUM_SIBLINGS);
+        assertEquals(mk.getChildNodeCount("/testRoot", head), (long) NUM_SIBLINGS);
+        Set<String> names = getNodeNames(obj);
+        assertTrue(names.size() == NUM_SIBLINGS);
+        String childName = names.iterator().next();
+        JSONObject childObj = resolveObjectValue(obj, childName);
+        assertPropertyValue(childObj, ":childNodeCount", (long) NUM_SIBLINGS);
+        assertTrue(getNodeNames(childObj).size() == NUM_SIBLINGS);
+
+        // get max 10 siblings
+        int maxSiblings = 10;
+        obj = parseJSONObject(mk.getNodes("/testRoot", head, 1, 0, maxSiblings, null));
+        assertPropertyValue(obj, ":childNodeCount", (long) NUM_SIBLINGS);
+        assertEquals(mk.getChildNodeCount("/testRoot", head), (long) NUM_SIBLINGS);
+        names = getNodeNames(obj);
+        assertTrue(names.size() == maxSiblings);
+        childName = names.iterator().next();
+        childObj = resolveObjectValue(obj, childName);
+        assertPropertyValue(childObj, ":childNodeCount", (long) NUM_SIBLINGS);
+        assertTrue(getNodeNames(childObj).size() == maxSiblings);
+
+        // get max 5 siblings using filter
+        maxSiblings = 5;
+        obj = parseJSONObject(mk.getNodes("/testRoot", head, 1, 0, maxSiblings, "{nodes:[\"n1*\"]}"));
+        assertPropertyValue(obj, ":childNodeCount", (long) NUM_SIBLINGS);
+        assertEquals(mk.getChildNodeCount("/testRoot", head), (long) NUM_SIBLINGS);
+        names = getNodeNames(obj);
+        assertTrue(names.size() == maxSiblings);
+        childName = names.iterator().next();
+        childObj = resolveObjectValue(obj, childName);
+        assertPropertyValue(childObj, ":childNodeCount", (long) NUM_SIBLINGS);
+        assertTrue(getNodeNames(childObj).size() == maxSiblings);
     }
 
     @Test
