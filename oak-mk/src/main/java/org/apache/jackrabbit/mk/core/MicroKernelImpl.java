@@ -599,16 +599,17 @@ public class MicroKernelImpl implements MicroKernel {
                 }
             }
 
-            int count = maxChildNodes == -1 ? Integer.MAX_VALUE : maxChildNodes;
-            if (maxChildNodes != -1
+            int count = maxChildNodes;
+            if (count != -1
                     && filter != null
                     && filter.getChildNodeFilter() != null) {
                 // specific maxChildNodes limit and child node filter
-                maxChildNodes = -1;
+                count = -1;
             }
-            for (ChildNodeEntry entry : node.getChildNodeEntries(offset, maxChildNodes)) {
+            int numSiblings = 0;
+            for (ChildNodeEntry entry : node.getChildNodeEntries(offset, count)) {
                 if (filter == null || filter.includeNode(entry.getName())) {
-                    if (count-- <= 0) {
+                    if (maxChildNodes != -1 && ++numSiblings > maxChildNodes) {
                         break;
                     }
                     builder.key(entry.getName()).object();
