@@ -321,16 +321,16 @@ public class MicroKernelImpl implements MicroKernel {
 
         Id revId = revisionId == null ? getHeadRevisionId() : Id.fromString(revisionId);
 
+        NodeFilter nodeFilter = filter == null || filter.isEmpty() ? null : NodeFilter.parse(filter);
+        if (offset > 0 && nodeFilter != null && nodeFilter.getChildNodeFilter() != null) {
+            // both an offset > 0 and a filter on node names have been specified...
+            throw new IllegalArgumentException("offset > 0 with child node filter");
+        }
+
         try {
             NodeState nodeState = rep.getNodeState(revId, path);
             if (nodeState == null) {
                 return null;
-            }
-
-            NodeFilter nodeFilter = filter == null || filter.isEmpty() ? null : NodeFilter.parse(filter);
-            if (offset > 0 && nodeFilter != null && nodeFilter.getChildNodeFilter() != null) {
-                // both an offset > 0 and a filter on node names have been specified...
-                throw new IllegalArgumentException("offset > 0 with child node filter");
             }
 
             JsopBuilder buf = new JsopBuilder().object();
@@ -650,7 +650,7 @@ public class MicroKernelImpl implements MicroKernel {
             this.propFilter = propFilter;
         }
 
-        static NodeFilter parse(String json) throws Exception {
+        static NodeFilter parse(String json) {
             // parse json format filter
             JsopTokenizer t = new JsopTokenizer(json);
             t.read('{');
