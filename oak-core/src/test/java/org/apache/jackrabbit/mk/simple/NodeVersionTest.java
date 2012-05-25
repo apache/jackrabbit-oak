@@ -37,7 +37,7 @@ public class NodeVersionTest {
         head = mk.commit("/", "+ \"test1\": { \"id\": 1 }", head, "");
         head = mk.commit("/", "+ \"test2\": { \"id\": 1 }", head, "");
 
-        NodeImpl n = NodeImpl.parse(mk.getNodes("/", head));
+        NodeImpl n = NodeImpl.parse(mk.getNodes("/", head, 1, 0, -1, null));
         String vra = n.getNodeVersion();
         String v1a = n.getNode("test1").getNodeVersion();
         String v2a = n.getNode("test2").getNodeVersion();
@@ -45,7 +45,7 @@ public class NodeVersionTest {
         // changes the node version
         head = mk.commit("/", "^ \"test2/id\": 2", head, "");
 
-        n = NodeImpl.parse(mk.getNodes("/", head));
+        n = NodeImpl.parse(mk.getNodes("/", head, 1, 0, -1, null));
         String vrb = n.getNodeVersion();
         String v1b = n.getNode("test1").getNodeVersion();
         String v2b = n.getNode("test2").getNodeVersion();

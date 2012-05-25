@@ -58,7 +58,7 @@ public class ManyRevisionsTest extends MultiMkTestBase {
         int i = 0;
         String last = first;
         for (String rev : revs) {
-            String n = mk.getNodes("/test", rev);
+            String n = mk.getNodes("/test", rev, 1, 0, -1, null);
             NodeImpl node = NodeImpl.parse(n);
             assertEquals(i, Integer.parseInt(node.getProperty("id")));
             String journal = mk.getJournal(last, rev, null);

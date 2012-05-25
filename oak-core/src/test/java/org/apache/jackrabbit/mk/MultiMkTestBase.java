@@ -58,7 +58,7 @@ public class MultiMkTestBase {
         mk = MicroKernelFactory.getInstance(url + ";clean");
         cleanRepository(mk);
 
-        String root = mk.getNodes("/", mk.getHeadRevision());
+        String root = mk.getNodes("/", mk.getHeadRevision(), 1, 0, -1, null);
         NodeImpl rootNode = NodeImpl.parse(root);
         if (rootNode.getPropertyCount() > 0) {
             System.out.println("Last mk not disposed: " + root);

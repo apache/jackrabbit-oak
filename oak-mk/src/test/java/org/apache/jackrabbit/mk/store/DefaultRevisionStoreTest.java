@@ -84,12 +84,12 @@ public class DefaultRevisionStoreTest {
         mk.commit("/a/c", "+\"f\" : {}", mk.getHeadRevision(), null);
         
         String headRevision = mk.getHeadRevision();
-        String contents = mk.getNodes("/", headRevision);
+        String contents = mk.getNodes("/", headRevision, 1, 0, -1, null);
 
         rs.gc();
         
         assertEquals(headRevision, mk.getHeadRevision());
-        assertEquals(contents, mk.getNodes("/", headRevision));
+        assertEquals(contents, mk.getNodes("/", headRevision, 1, 0, -1, null));
         
         String history = mk.getRevisionHistory(Long.MIN_VALUE, Integer.MIN_VALUE, null);
         assertEquals(1, ((JsopArray) Jsop.parse(history)).size());

@@ -197,9 +197,8 @@ public interface MicroKernel {
      * Returns the number of child nodes of the specified node.
      * <p/>
      * This is a convenience method since this information could gathered by
-     * calling {@code getNodes(path, revisionId, 0, 0, 0)} and evaluating
+     * calling {@code getNodes(path, revisionId, 0, 0, 0, null)} and evaluating
      * the {@code :childNodeCount} property.
-     *
      *
      * @param path       path denoting node
      * @param revisionId revision id, if {@code null} the current head revision is assumed
@@ -207,45 +206,6 @@ public interface MicroKernel {
      * @throws MicroKernelException if the specified node does not exist or if an error occurs
      */
     long getChildNodeCount(String path, String revisionId) throws MicroKernelException;
-
-    /**
-     * Returns the node tree rooted at the specified parent node with depth 1.
-     * Depth 1 means all properties of the node are returned, including the direct
-     * child nodes and their properties (including
-     * {@code :childNodeCount}). Example:
-     * <pre>
-     * {
-     *   "someprop" : "someval",
-     *   ":childNodeCount" : 2,
-     *   "child1" : {
-     *      "prop1" : 123,
-     *      ":childNodeCount" : 2
-     *    },
-     *    "child2" : {
-     *      "prop1" : "bar",
-     *      ":childNodeCount" : 0
-     *    }
-     * }
-     * </pre>
-     * Remarks:
-     * <ul>
-     * <li>If the property {@code :childNodeCount} equals 0, then the
-     * node does not have any child nodes.
-     * <li>If the value of {@code :childNodeCount} is larger than the number
-     * of returned child nodes, then the node has more child nodes than those
-     * included in the tree. Large number of child nodes can be retrieved in
-     * chunks using {@link #getNodes(String, String, int, long, int, String)}</li>
-     * </ul>
-     * This method is a convenience method for
-     * {@code getNodes(path, revisionId, 1, 0, -1, null)}
-     *
-     * @param path       path denoting root of node tree to be retrieved
-     * @param revisionId revision id, if {@code null} the current head revision is assumed
-     * @return node tree in JSON format or {@code null} if the specified node does not exist
-     * @throws MicroKernelException if the specified revision does not exist or if another error occurs
-     * @see #getNodes(String, String, int, long, int, String)
-     */
-    String /* jsonTree */ getNodes(String path, String revisionId) throws MicroKernelException;
 
     /**
      * Returns the node tree rooted at the specified parent node with the
@@ -301,8 +261,7 @@ public interface MicroKernel {
      * node does not have any child nodes.
      * <li>If the value of {@code :childNodeCount} is larger than the number
      * of returned child nodes, then the node has more child nodes than those
-     * included in the tree. Large number of child nodes can be retrieved in
-     * chunks using {@link #getNodes(String, String, int, long, int, String)}</li>
+     * included in the tree.</li>
      * </ul>
      * The {@code offset} and {@code count} parameters are only applied to the
      * direct child nodes of the root of the returned node tree.

@@ -115,19 +115,6 @@ public class LogWrapper implements MicroKernel {
     }
 
     @Override
-    public String getNodes(String path, String revisionId) {
-        try {
-            logMethod("getNodes", path, revisionId);
-            String result = mk.getNodes(path, revisionId);
-            logResult(result);
-            return result;
-        } catch (Exception e) {
-            logException(e);
-            throw convert(e);
-        }
-    }
-
-    @Override
     public String getNodes(String path, String revisionId, int depth, long offset, int count, String filter) {
         try {
             logMethod("getNodes", path, revisionId, depth, offset, count, filter);

@@ -36,8 +36,8 @@ public class IndexWrapperTest {
 
     @Test
     public void getNodes() {
-        assertNull(mk.getNodes("/jcr:system/indexes/unknown", head));
-        assertNull(mk.getNodes("/unknown", head));
+        assertNull(mk.getNodes("/jcr:system/indexes/unknown", head, 1, 0, -1, null));
+        assertNull(mk.getNodes("/unknown", head, 1, 0, -1, null));
     }
 
     @Test
@@ -47,11 +47,11 @@ public class IndexWrapperTest {
         head = mk.commit("/", "+ \"n2\": { \"value\":\"x:yes\" }", head, "");
         head = mk.commit("/", "+ \"n3\": { \"value\":\"x:a\" }", head, "");
         head = mk.commit("/", "+ \"n4\": { \"value\":\"x:a\" }", head, "");
-        String empty = mk.getNodes("/jcr:system/indexes/prefix:x?x:no", head);
+        String empty = mk.getNodes("/jcr:system/indexes/prefix:x?x:no", head, 1, 0, -1, null);
         assertEquals("[]", empty);
-        String yes = mk.getNodes("/jcr:system/indexes/prefix:x?x:yes", head);
+        String yes = mk.getNodes("/jcr:system/indexes/prefix:x?x:yes", head, 1, 0, -1, null);
         assertEquals("[\"/n2/value\"]", yes);
-        String a = mk.getNodes("/jcr:system/indexes/prefix:x?x:a", head);
+        String a = mk.getNodes("/jcr:system/indexes/prefix:x?x:a", head, 1, 0, -1, null);
         assertEquals("[\"/n3/value\",\"/n4/value\"]", a);
     }
 
@@ -60,9 +60,9 @@ public class IndexWrapperTest {
         head = mk.commit("/jcr:system/indexes", "+ \"property:id,unique\": {}", head, "");
         head = mk.commit("/", "+ \"n1\": { \"value\":\"empty\" }", head, "");
         head = mk.commit("/", "+ \"n2\": { \"id\":\"1\" }", head, "");
-        String empty = mk.getNodes("/jcr:system/indexes/property:id,unique?0", head);
+        String empty = mk.getNodes("/jcr:system/indexes/property:id,unique?0", head, 1, 0, -1, null);
         assertEquals("[]", empty);
-        String one = mk.getNodes("/jcr:system/indexes/property:id,unique?1", head);
+        String one = mk.getNodes("/jcr:system/indexes/property:id,unique?1", head, 1, 0, -1, null);
         assertEquals("[\"/n2\"]", one);
     }
 
@@ -72,11 +72,11 @@ public class IndexWrapperTest {
         head = mk.commit("/", "+ \"n1\": { \"ref\":\"a\" }", head, "");
         head = mk.commit("/", "+ \"n2\": { \"ref\":\"b\" }", head, "");
         head = mk.commit("/", "+ \"n3\": { \"ref\":\"b\" }", head, "");
-        String empty = mk.getNodes("/jcr:system/indexes/property:ref?no", head);
+        String empty = mk.getNodes("/jcr:system/indexes/property:ref?no", head, 1, 0, -1, null);
         assertEquals("[]", empty);
-        String one = mk.getNodes("/jcr:system/indexes/property:ref?a", head);
+        String one = mk.getNodes("/jcr:system/indexes/property:ref?a", head, 1, 0, -1, null);
         assertEquals("[\"/n1\"]", one);
-        String two = mk.getNodes("/jcr:system/indexes/property:ref?b", head);
+        String two = mk.getNodes("/jcr:system/indexes/property:ref?b", head, 1, 0, -1, null);
         assertEquals("[\"/n2\",\"/n3\"]", two);
     }
 

@@ -507,7 +507,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         assertEquals(child.size(), 0);
 
         // getNodes(path, revId) must return same result as getNodes(path, revId, 1, 0, -1, null)
-        obj = parseJSONObject(mk.getNodes("/testRoot", null));
+        obj = parseJSONObject(mk.getNodes("/testRoot", null, 1, 0, -1, null));
         JSONObject obj1 = parseJSONObject(mk.getNodes("/testRoot", null, 1, 0, -1, null));
         assertEquals(obj, obj1);
     }
@@ -601,7 +601,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         assertTrue(mk.nodeExists("/test", head));
         try {
             String path = "/test/";
-            mk.getNodes(path, head);
+            mk.getNodes(path, head, 1, 0, -1, null);
             fail("Success with invalid path: " + path);
         } catch (AssertionError e) {
             // expected
@@ -634,7 +634,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         head = mk.commit("/",
                 "+\"fuu\" : {} \n" +
                         "^\"fuu/bar\" : 42", head, "");
-        JSONObject obj = parseJSONObject(mk.getNodes("/fuu", head));
+        JSONObject obj = parseJSONObject(mk.getNodes("/fuu", head, 1, 0, -1, null));
         assertPropertyValue(obj, "bar", 42L);
     }
 
@@ -701,7 +701,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         head = mk.commit("/", "+\"" + node + "\" : {\"child\":{}}", head, "");
 
         head = mk.commit('/' + node, "-\"child\"", head, "");
-        JSONObject obj = parseJSONObject(mk.getNodes('/' + node, head));
+        JSONObject obj = parseJSONObject(mk.getNodes('/' + node, head, 1, 0, -1, null));
         assertPropertyValue(obj, ":childNodeCount", 0L);
     }
 
@@ -789,7 +789,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         head = mk.commit("/", "+\"" + node + "\" : {\"prop\":\"value\"}", head, "");
 
         head = mk.commit("/", "^\"" + node + "/prop\" : null", head, "");
-        JSONObject obj = parseJSONObject(mk.getNodes('/' + node, head));
+        JSONObject obj = parseJSONObject(mk.getNodes('/' + node, head, 1, 0, -1, null));
         assertPropertyValue(obj, ":childNodeCount", 0L);
     }
 

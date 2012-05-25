@@ -61,10 +61,10 @@ public class HashTest extends MultiMkTestBase {
 
         head = mk.commit("/", "+ \"test1\": { \"id\": 1 }", mk.getHeadRevision(), "");
         head = mk.commit("/", "+ \"test2\": { \"id\": 1 }", mk.getHeadRevision(), "");
-        NodeImpl r = NodeImpl.parse(mk.getNodes("/", head));
+        NodeImpl r = NodeImpl.parse(mk.getNodes("/", head, 1, 0, -1, null));
         assertTrue(r.getHash() != null);
-        NodeImpl t1 = NodeImpl.parse(mk.getNodes("/test1", head));
-        NodeImpl t2 = NodeImpl.parse(mk.getNodes("/test2", head));
+        NodeImpl t1 = NodeImpl.parse(mk.getNodes("/test1", head, 1, 0, -1, null));
+        NodeImpl t2 = NodeImpl.parse(mk.getNodes("/test2", head, 1, 0, -1, null));
         assertTrue(Arrays.equals(t1.getHash(), t2.getHash()));
         assertFalse(Arrays.equals(t1.getHash(), r.getHash()));
     }

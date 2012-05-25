@@ -314,10 +314,6 @@ public class MicroKernelImpl implements MicroKernel {
         }
     }
 
-    public String getNodes(String path, String revisionId) throws MicroKernelException {
-        return getNodes(path, revisionId, 1, 0, -1, null);
-    }
-
     public String getNodes(String path, String revisionId, int depth, long offset, int count, String filter) throws MicroKernelException {
         if (rep == null) {
             throw new IllegalStateException("this instance has already been disposed");
