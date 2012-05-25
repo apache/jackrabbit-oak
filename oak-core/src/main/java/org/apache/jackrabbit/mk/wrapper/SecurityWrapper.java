@@ -62,7 +62,7 @@ public class SecurityWrapper extends MicroKernelWrapperBase implements MicroKern
         this.mk = MicroKernelWrapperBase.wrap(mk);
         // TODO security for the index mechanism
 
-        String role = mk.getNodes("/:user/" + user, mk.getHeadRevision());
+        String role = mk.getNodes("/:user/" + user, mk.getHeadRevision(), 1, 0, -1, null);
         NodeMap map = new NodeMap();
         JsopReader t = new JsopTokenizer(role);
         t.read('{');

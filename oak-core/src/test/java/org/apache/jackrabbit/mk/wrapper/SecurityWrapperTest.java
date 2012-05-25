@@ -104,16 +104,16 @@ public class SecurityWrapperTest {
         head = mk.getHeadRevision();
         assertTrue(mkAdmin.nodeExists("/:user", head));
         assertFalse(mkGuest.nodeExists("/:user", head));
-        assertNull(mkGuest.getNodes("/:user", head));
+        assertNull(mkGuest.getNodes("/:user", head, 1, 0, -1, null));
         head = mkAdmin.commit("/", "^ \":rights\": \"read\"", head, "");
         head = mkAdmin.commit("/", "+ \"test\": { \"data\": \"Hello\" }", head, "");
         assertTrue(mkAdmin.nodeExists("/", head));
-        assertNull(mkGuest.getNodes("/unknown", head));
-        assertNull(mkGuest.getNodes("/unknown/node", head));
+        assertNull(mkGuest.getNodes("/unknown", head, 1, 0, -1, null));
+        assertNull(mkGuest.getNodes("/unknown/node", head, 1, 0, -1, null));
         assertTrue(mkGuest.nodeExists("/", head));
-        assertNull(mkGuest.getNodes("/unknown", head));
-        assertEquals("{\":rights\":\"read\",\":childNodeCount\":2,\":user\":{\":rights\":\"admin\",\":childNodeCount\":2,\"guest\":{},\"sa\":{}},\"test\":{\"data\":\"Hello\",\":childNodeCount\":0}}", mkAdmin.getNodes("/", head));
-        assertEquals("{\":childNodeCount\":1,\"test\":{\"data\":\"Hello\",\":childNodeCount\":0}}", mkGuest.getNodes("/", head));
+        assertNull(mkGuest.getNodes("/unknown", head, 1, 0, -1, null));
+        assertEquals("{\":rights\":\"read\",\":childNodeCount\":2,\":user\":{\":rights\":\"admin\",\":childNodeCount\":2,\"guest\":{},\"sa\":{}},\"test\":{\"data\":\"Hello\",\":childNodeCount\":0}}", mkAdmin.getNodes("/", head, 1, 0, -1, null));
+        assertEquals("{\":childNodeCount\":1,\"test\":{\"data\":\"Hello\",\":childNodeCount\":0}}", mkGuest.getNodes("/", head, 1, 0, -1, null));
     }
 
     private String filterJournal(String journal) {

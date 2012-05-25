@@ -246,7 +246,7 @@ public class MoveNodeIT {
     }
 
     private String getNode(String node) {
-        String s = mk.getNodes(node, mk.getHeadRevision());
+        String s = mk.getNodes(node, mk.getHeadRevision(), 1, 0, -1, null);
         s = s.replaceAll("\"", "").replaceAll(":childNodeCount:.", "");
         s = s.replaceAll("\\{\\,", "\\{").replaceAll("\\,\\}", "\\}");
         s = s.replaceAll("\\:\\{\\}", "");

@@ -222,13 +222,6 @@ public class Client implements MicroKernel {
     }
 
     @Override
-    public String getNodes(String path, String revisionId)
-            throws MicroKernelException {
-
-        return getNodes(path, revisionId, 1, 0, -1, null);
-    }
-
-    @Override
     public String getNodes(String path, String revisionId, int depth,
             long offset, int count, String filter) throws MicroKernelException {
         

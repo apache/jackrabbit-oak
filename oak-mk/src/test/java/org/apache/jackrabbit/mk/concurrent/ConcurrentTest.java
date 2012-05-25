@@ -40,7 +40,7 @@ public class ConcurrentTest {
                 Assert.assertTrue(!newRev.equals(rev));
                 mk.getJournal(rev, newRev, null);
                 mk.getRevisionHistory(start, 100, null);
-                mk.getNodes("/" + i, newRev);
+                mk.getNodes("/" + i, newRev, 1, 0, -1, null);
                 mk.getNodes("/" + i, newRev, 0, 0, 0, null);
                 Assert.assertFalse(mk.nodeExists("/" + i, rev));
                 Assert.assertTrue(mk.nodeExists("/" + i, newRev));

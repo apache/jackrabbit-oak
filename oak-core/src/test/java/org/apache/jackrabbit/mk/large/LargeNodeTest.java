@@ -57,7 +57,7 @@ public class LargeNodeTest extends MultiMkTestBase {
     @Test
     public void getNodes() {
         head = mk.commit("/", "+\"x0\" : {\"x\": 0, \"x1\":{\"x\":1, \"x2\": {\"x\": -3}}}", head, null);
-        String s = mk.getNodes("/x0", head);
+        String s = mk.getNodes("/x0", head, 1, 0, -1, null);
         Assert.assertEquals("{\"x\":0,\":childNodeCount\":1,\"x1\":{\"x\":1,\":childNodeCount\":1,\"x2\":{}}}", s);
         s = mk.getNodes("/x0", head, 1, 0, -1, null);
         Assert.assertEquals("{\"x\":0,\":childNodeCount\":1,\"x1\":{\"x\":1,\":childNodeCount\":1,\"x2\":{}}}", s);
@@ -75,13 +75,13 @@ public class LargeNodeTest extends MultiMkTestBase {
         }
         int max = 90;
         head = mk.commit("/:root/head/config", "^ \"maxMemoryChildren\":" + max, head, "");
-        Assert.assertEquals("{\"maxMemoryChildren\":"+max+",\":childNodeCount\":0}", mk.getNodes("/:root/head/config", head));
+        Assert.assertEquals("{\"maxMemoryChildren\":"+max+",\":childNodeCount\":0}", mk.getNodes("/:root/head/config", head, 1, 0, -1, null));
         head = mk.commit("/", "+ \"test\": {}", head, "");
         for (int i = 0; i < 100; i++) {
             head = mk.commit("/", "+ \"test/" + i + "\": {\"x\":" + i + "}\n", head, "");
         }
         Assert.assertTrue(mk.nodeExists("/test", head));
-        mk.getNodes("/test", head);
+        mk.getNodes("/test", head, 1, 0, -1, null);
     }
 
     @Test
@@ -89,7 +89,7 @@ public class LargeNodeTest extends MultiMkTestBase {
         if (isSimpleKernel(mk)) {
             int max = 2000;
             head = mk.commit("/:root/head/config", "^ \"maxMemoryChildren\":" + max, head, "");
-            Assert.assertEquals("{\"maxMemoryChildren\":"+max+",\":childNodeCount\":0}", mk.getNodes("/:root/head/config", head));
+            Assert.assertEquals("{\"maxMemoryChildren\":"+max+",\":childNodeCount\":0}", mk.getNodes("/:root/head/config", head, 1, 0, -1, null));
         }
         head = mk.commit("/", "+ \"test\": {}", head, "");
 
@@ -126,7 +126,7 @@ public class LargeNodeTest extends MultiMkTestBase {
         }
 
         head = mk.commit("/:root/head/config", "^ \"maxMemoryChildren\": 10", head, "");
-        Assert.assertEquals("{\"maxMemoryChildren\":10,\":childNodeCount\":0}", mk.getNodes("/:root/head/config", head));
+        Assert.assertEquals("{\"maxMemoryChildren\":10,\":childNodeCount\":0}", mk.getNodes("/:root/head/config", head, 1, 0, -1, null));
         for (int i = 0; i < 100; i++) {
             head = mk.commit("/", "+ \"t" + i + "\": {\"x\":" + i + "}", head, "");
         }

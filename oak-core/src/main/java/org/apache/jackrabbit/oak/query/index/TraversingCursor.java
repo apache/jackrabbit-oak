@@ -59,7 +59,7 @@ public class TraversingCursor implements Cursor {
             if (currentPath == null) {
                 return null;
             }
-            String s = mk.getNodes(currentPath, revisionId);
+            String s = mk.getNodes(currentPath, revisionId, 1, 0, -1, null);
             if (s == null) {
                 return null;
             }
