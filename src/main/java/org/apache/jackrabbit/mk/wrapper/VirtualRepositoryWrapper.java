@@ -78,7 +78,7 @@ public class VirtualRepositoryWrapper extends MicroKernelWrapperBase implements 
 
         String head = mk.getHeadRevision();
         if (mk.nodeExists(MOUNT, head)) {
-            String mounts = mk.getNodes(MOUNT, head);
+            String mounts = mk.getNodes(MOUNT, head, 1, 0, -1, null);
             NodeMap map = new NodeMap();
             JsopReader t = new JsopTokenizer(mounts);
             t.read('{');

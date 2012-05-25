@@ -106,7 +106,7 @@ public class PropertyContentIndex implements QueryIndex {
                 if (currentPath == null) {
                     return null;
                 }
-                currentNode = NodeImpl.parse(mk.getNodes(currentPath, revisionId));
+                currentNode = NodeImpl.parse(mk.getNodes(currentPath, revisionId, 1, 0, -1, null));
                 currentNode.setPath(currentPath);
             }
             return currentNode;

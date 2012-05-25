@@ -109,7 +109,7 @@ public class NodeCreator {
             if (!mk.nodeExists("/" + p, head)) {
                 break;
             }
-            mk.getNodes("/" + p, head);
+            mk.getNodes("/" + p, head, 1, 0, -1, null);
             count++;
             if (depth > 0) {
                 traverse(p, depth - 1);
