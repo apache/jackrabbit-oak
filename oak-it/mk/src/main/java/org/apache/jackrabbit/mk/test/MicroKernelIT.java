@@ -37,7 +37,6 @@ import java.util.Set;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -447,6 +446,27 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
 
         assertFalse(hash1.equals(hash2));
         assertTrue(hash0.equals(hash2));
+    }
+
+    @Test
+    public void getNodesChildNodeCount() {
+        // :childNodeCount is included per default
+        JSONObject obj = parseJSONObject(mk.getNodes("/", null, 1, 0, -1, null));
+        assertPropertyExists(obj, ":childNodeCount", Long.class);
+        assertPropertyExists(obj, "test/:childNodeCount", Long.class);
+        long count = (Long) resolveValue(obj, ":childNodeCount") ;
+        assertEquals(count, mk.getChildNodeCount("/", null));
+
+        obj = parseJSONObject(mk.getNodes("/", null, 1, 0, -1, "{properties:[\"*\"]}"));
+        assertPropertyExists(obj, ":childNodeCount", Long.class);
+        assertPropertyExists(obj, "test/:childNodeCount", Long.class);
+        count = (Long) resolveValue(obj, ":childNodeCount") ;
+        assertEquals(count, mk.getChildNodeCount("/", null));
+
+        // explicitly exclude :childNodeCount
+        obj = parseJSONObject(mk.getNodes("/", null, 1, 0, -1, "{properties:[\"*\",\"-:childNodeCount\"]}"));
+        assertPropertyNotExists(obj, ":childNodeCount");
+        assertPropertyNotExists(obj, "test/:childNodeCount");
     }
 
     @Test
