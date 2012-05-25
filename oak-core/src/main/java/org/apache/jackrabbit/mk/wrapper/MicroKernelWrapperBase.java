@@ -39,9 +39,9 @@ public abstract class MicroKernelWrapperBase implements MicroKernel, MicroKernel
     }
 
     @Override
-    public final String getNodes(String path, String revisionId, int depth, long offset, int count, String filter) {
+    public final String getNodes(String path, String revisionId, int depth, long offset, int maxChildNodes, String filter) {
         JsopReader reader =
-                getNodesStream(path, revisionId, depth, offset, count, filter);
+                getNodesStream(path, revisionId, depth, offset, maxChildNodes, filter);
         if (reader != null) {
             return reader.toString();
         } else {
@@ -156,8 +156,8 @@ public abstract class MicroKernelWrapperBase implements MicroKernel, MicroKernel
             }
 
             @Override
-            public String getNodes(String path, String revisionId, int depth, long offset, int count, String filter) {
-                return wrapped.getNodes(path, revisionId, depth, offset, count, filter);
+            public String getNodes(String path, String revisionId, int depth, long offset, int maxChildNodes, String filter) {
+                return wrapped.getNodes(path, revisionId, depth, offset, maxChildNodes, filter);
             }
 
             @Override

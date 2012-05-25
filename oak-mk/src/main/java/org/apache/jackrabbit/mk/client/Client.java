@@ -223,7 +223,7 @@ public class Client implements MicroKernel {
 
     @Override
     public String getNodes(String path, String revisionId, int depth,
-            long offset, int count, String filter) throws MicroKernelException {
+            long offset, int maxChildNodes, String filter) throws MicroKernelException {
         
         Request request = null;
 
@@ -233,7 +233,7 @@ public class Client implements MicroKernel {
             request.addParameter("revision_id", revisionId);
             request.addParameter("depth", depth);
             request.addParameter("offset", offset);
-            request.addParameter("count", count);
+            request.addParameter("maxChildNodes", maxChildNodes);
             request.addParameter("filter", filter);
             // OAK-48: MicroKernel.getNodes() should return null for not existing nodes instead of throwing an exception
             String result = request.getString();

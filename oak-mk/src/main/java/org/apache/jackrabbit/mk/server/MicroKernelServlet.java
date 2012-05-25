@@ -229,11 +229,11 @@ class MicroKernelServlet {
             String revisionId = request.getParameter("revision_id", headRevision);
             int depth = request.getParameter("depth", 1);
             long offset = request.getParameter("offset", 0L);
-            int count = request.getParameter("count", -1);
+            int maxChildNodes = request.getParameter("maxChildNodes", -1);
             String filter = request.getParameter("filter", "");
 
             response.setContentType("application/json");
-            String json = mk.getNodes(path, revisionId, depth, offset, count, filter);
+            String json = mk.getNodes(path, revisionId, depth, offset, maxChildNodes, filter);
             // OAK-48: MicroKernel.getNodes() should return null for not existing nodes instead of throwing an exception
             if (json == null) {
                 json = "null";
