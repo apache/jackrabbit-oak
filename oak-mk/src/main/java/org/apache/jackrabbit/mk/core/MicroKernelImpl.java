@@ -555,10 +555,14 @@ public class MicroKernelImpl implements MicroKernel {
                 // unless it is explicitly excluded in the filter
                 builder.key(":childNodeCount").value(childCount);
             }
-            // TODO check whether :hash has been explicitly included
-            if (filter != null && filter.includeProperty(":hash")) {
-                // :hash must be explicitly included in the filter
-                builder.key(":hash").value(rep.getRevisionStore().getId(node).toString());
+            // check whether :hash has been explicitly included
+            if (filter != null) {
+                NameFilter nf = filter.getPropertyFilter();
+                if (nf != null
+                        && nf.getInclusionPatterns().contains(":hash")
+                        && !nf.getExclusionPatterns().contains(":hash")) {
+                    builder.key(":hash").value(rep.getRevisionStore().getId(node).toString());
+                }
             }
         }
         if (childCount > 0 && depth >= 0) {
