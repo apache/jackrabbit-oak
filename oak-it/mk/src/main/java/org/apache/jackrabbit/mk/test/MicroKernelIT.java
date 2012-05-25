@@ -37,6 +37,7 @@ import java.util.Set;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -406,6 +407,46 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         assertPropertyValue(obj, "test/floatProp", 42.2);
         assertPropertyValue(obj, "test/booleanProp", true);
         assertPropertyValue(obj, "test/multiIntProp", new Object[]{1, 2, 3});
+    }
+
+    @Test
+    public void getNodesHash() {
+        // :hash must be explicitly specified in the filter
+        JSONObject obj = parseJSONObject(mk.getNodes("/", null, 1, 0, -1, null));
+        assertPropertyNotExists(obj, ":hash");
+        obj = parseJSONObject(mk.getNodes("/", null, 1, 0, -1, "{properties:[\"*\"]}"));
+        assertPropertyNotExists(obj, ":hash");
+
+        // verify initial content with :hash property
+        obj = parseJSONObject(mk.getNodes("/", null, 1, 0, -1, "{properties:[\"*\",\":hash\"]}"));
+        assertPropertyValue(obj, "test/booleanProp", true);
+
+        assertPropertyExists(obj, ":hash", String.class);
+        assertPropertyExists(obj, "test/:hash", String.class);
+        String hash0 = (String) resolveValue(obj, ":hash");
+
+        // modify a property and verify that the hash of the root node changed
+        mk.commit("/test", "^\"booleanProp\":false", null, null);
+        obj = parseJSONObject(mk.getNodes("/", null, 1, 0, -1, "{properties:[\"*\",\":hash\"]}"));
+        assertPropertyValue(obj, "test/booleanProp", false);
+
+        assertPropertyExists(obj, ":hash", String.class);
+        assertPropertyExists(obj, "test/:hash", String.class);
+        String hash1 = (String) resolveValue(obj, ":hash");
+
+        assertFalse(hash0.equals(hash1));
+
+        // undo property modification and verify that the hash of the root node changed
+        mk.commit("/test", "^\"booleanProp\":true", null, null);
+        obj = parseJSONObject(mk.getNodes("/", null, 1, 0, -1, "{properties:[\"*\",\":hash\"]}"));
+        assertPropertyValue(obj, "test/booleanProp", true);
+
+        assertPropertyExists(obj, ":hash", String.class);
+        assertPropertyExists(obj, "test/:hash", String.class);
+        String hash2 = (String) resolveValue(obj, ":hash");
+
+        assertFalse(hash1.equals(hash2));
+        assertTrue(hash0.equals(hash2));
     }
 
     @Test
