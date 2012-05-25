@@ -314,7 +314,7 @@ public class MicroKernelImpl implements MicroKernel {
         }
     }
 
-    public String getNodes(String path, String revisionId, int depth, long offset, int count, String filter) throws MicroKernelException {
+    public String getNodes(String path, String revisionId, int depth, long offset, int maxChildNodes, String filter) throws MicroKernelException {
         if (rep == null) {
             throw new IllegalStateException("this instance has already been disposed");
         }
@@ -328,9 +328,13 @@ public class MicroKernelImpl implements MicroKernel {
             }
 
             NodeFilter nodeFilter = filter == null || filter.isEmpty() ? null : NodeFilter.parse(filter);
+            if (offset > 0 && nodeFilter != null && nodeFilter.getChildNodeFilter() != null) {
+                // both an offset > 0 and a filter on node names have been specified...
+                throw new IllegalArgumentException("offset > 0 with child node filter");
+            }
 
             JsopBuilder buf = new JsopBuilder().object();
-            toJson(buf, nodeState, depth, (int) offset, count, true, nodeFilter);
+            toJson(buf, nodeState, depth, (int) offset, maxChildNodes, true, nodeFilter);
             return buf.endObject().toString();
         } catch (Exception e) {
             throw new MicroKernelException(e);
@@ -537,7 +541,7 @@ public class MicroKernelImpl implements MicroKernel {
     //-------------------------------------------------------< implementation >
 
     void toJson(JsopBuilder builder, NodeState node,
-                int depth, int offset, int count,
+                int depth, int offset, int maxChildNodes,
                 boolean inclVirtualProps, NodeFilter filter) {
         for (PropertyState property : node.getProperties()) {
             if (filter == null || filter.includeProperty(property.getName())) {
@@ -551,6 +555,7 @@ public class MicroKernelImpl implements MicroKernel {
                 // unless it is explicitly excluded in the filter
                 builder.key(":childNodeCount").value(childCount);
             }
+            // TODO check whether :hash has been explicitly included
             if (filter != null && filter.includeProperty(":hash")) {
                 // :hash must be explicitly included in the filter
                 builder.key(":hash").value(rep.getRevisionStore().getId(node).toString());
@@ -563,6 +568,7 @@ public class MicroKernelImpl implements MicroKernel {
                     // optimization for large child node lists:
                     // no need to iterate over the entire child node list if the filter
                     // does not include wildcards
+                    int count = maxChildNodes == -1 ? Integer.MAX_VALUE : maxChildNodes;
                     for (String name : childFilter.getInclusionPatterns()) {
                         NodeState child = node.getChildNode(name);
                         if (child != null) {
@@ -574,9 +580,12 @@ public class MicroKernelImpl implements MicroKernel {
                                 }
                             }
                             if (incl) {
+                                if (count-- <= 0) {
+                                    break;
+                                }
                                 builder.key(name).object();
                                 if (depth > 0) {
-                                    toJson(builder, child, depth - 1, 0, -1, inclVirtualProps, filter);
+                                    toJson(builder, child, depth - 1, 0, maxChildNodes, inclVirtualProps, filter);
                                 }
                                 builder.endObject();
                             }
@@ -585,11 +594,22 @@ public class MicroKernelImpl implements MicroKernel {
                     return;
                 }
             }
-            for (ChildNodeEntry entry : node.getChildNodeEntries(offset, count)) {
+
+            int count = maxChildNodes == -1 ? Integer.MAX_VALUE : maxChildNodes;
+            if (maxChildNodes != -1
+                    && filter != null
+                    && filter.getChildNodeFilter() != null) {
+                // specific maxChildNodes limit and child node filter
+                maxChildNodes = -1;
+            }
+            for (ChildNodeEntry entry : node.getChildNodeEntries(offset, maxChildNodes)) {
                 if (filter == null || filter.includeNode(entry.getName())) {
+                    if (count-- <= 0) {
+                        break;
+                    }
                     builder.key(entry.getName()).object();
                     if (depth > 0) {
-                        toJson(builder, entry.getNode(), depth - 1, 0, -1, inclVirtualProps, filter);
+                        toJson(builder, entry.getNode(), depth - 1, 0, maxChildNodes, inclVirtualProps, filter);
                     }
                     builder.endObject();
                 }

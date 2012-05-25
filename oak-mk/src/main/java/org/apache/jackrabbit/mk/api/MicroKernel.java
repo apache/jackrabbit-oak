@@ -209,7 +209,7 @@ public interface MicroKernel {
 
     /**
      * Returns the node tree rooted at the specified parent node with the
-     * specified depth, maximum child node count and offset. The depth of the
+     * specified depth, maximum child node maxChildNodes and offset. The depth of the
      * returned tree is governed by the {@code depth} parameter:
      * <table>
      * <tr>
@@ -263,8 +263,13 @@ public interface MicroKernel {
      * of returned child nodes, then the node has more child nodes than those
      * included in the tree.</li>
      * </ul>
-     * The {@code offset} and {@code count} parameters are only applied to the
-     * direct child nodes of the root of the returned node tree.
+     * The {@code offset} parameter is only applied to the direct child nodes
+     * of the root of the returned node tree. {@code maxChildNodes} however
+     * is applied on all hierarchy levels.
+     * <p/>
+     * An {@code IllegalArgumentException} is thrown if both an {@code offset}
+     * greater than zero and a {@code filter} on node names (see below) have been
+     * specified.
      * <p/>
      * The optional {@code filter} parameter allows to specify glob patterns for names of
      * nodes and/or properties to be included or excluded.
@@ -311,19 +316,20 @@ public interface MicroKernel {
      *     it can be included by specifying a filter such as {@code {properties:["*", ":hash"]}}</li>
      * </ul>
      *
-     * @param path       path denoting root of node tree to be retrieved
-     * @param revisionId revision id, if {@code null} the current head revision is assumed
-     * @param depth      maximum depth of returned tree
-     * @param offset     start position in the iteration order of child nodes (0 to start at the
-     *                   beginning)
-     * @param count      maximum number of child nodes to retrieve (-1 for all)
-     * @param filter     optional filter on property and/or node names; if {@code null} or
-     *                   {@code ""} the default filter will be assumed
+     * @param path          path denoting root of node tree to be retrieved
+     * @param revisionId    revision id, if {@code null} the current head revision is assumed
+     * @param depth         maximum depth of returned tree
+     * @param offset        start position in the iteration order of child nodes (0 to start at the
+     *                      beginning)
+     * @param maxChildNodes maximum number of sibling child nodes to retrieve (-1 for all)
+     * @param filter        optional filter on property and/or node names; if {@code null} or
+     *                      {@code ""} the default filter will be assumed
      * @return node tree in JSON format or {@code null} if the specified node does not exist
      * @throws MicroKernelException if the specified revision does not exist or if another error occurs
+     * @throws IllegalArgumentException if both an {@code offset > 0} and a {@code filter} on node names have been specified
      */
     String /* jsonTree */ getNodes(String path, String revisionId, int depth,
-                                   long offset, int count, String filter)
+                                   long offset, int maxChildNodes, String filter)
             throws MicroKernelException;
 
     //------------------------------------------------------------< WRITE ops >
