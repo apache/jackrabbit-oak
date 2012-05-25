@@ -96,6 +96,7 @@ public class NodeDelegate extends ItemDelegate {
     public String getIdentifier() throws InvalidItemStateException {
         PropertyDelegate pd = getProperty("jcr:uuid");
         if (pd == null) {
+            // TODO should find the closest referenceable parent, and build an identifier based on that and the relative path
             return getPath();
         }
         else {
