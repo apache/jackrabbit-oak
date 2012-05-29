@@ -96,7 +96,6 @@ public class SecurityWrapper extends MicroKernelWrapperBase implements MicroKern
         return mk.commitStream(rootPath, jsonDiff, revisionId, message);
     }
 
-    @Override
     public void dispose() {
         // do nothing
     }
