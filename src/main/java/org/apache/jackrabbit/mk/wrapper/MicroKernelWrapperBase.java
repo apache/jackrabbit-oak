@@ -136,6 +136,11 @@ public abstract class MicroKernelWrapperBase implements MicroKernel, MicroKernel
             }
 
             @Override
+            public void dispose() {
+                wrapped.dispose();
+            }
+
+            @Override
             public String getHeadRevision() throws MicroKernelException {
                 return wrapped.getHeadRevision();
             }

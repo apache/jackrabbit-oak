@@ -226,10 +226,12 @@ public class VirtualRepositoryWrapper extends MicroKernelWrapperBase implements 
         return builder;
     }
 
+    @Override
     public void dispose() {
         for (MicroKernel m : mounts.values()) {
-            MicroKernelFactory.disposeInstance(m);
+            m.dispose();
         }
+        mk.dispose();
     }
 
     @Override
