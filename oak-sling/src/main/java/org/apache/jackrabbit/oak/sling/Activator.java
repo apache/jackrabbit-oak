@@ -67,9 +67,11 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
             SlingRepository repository =
                     new SlingRepositoryImpl((ContentRepository) service);
             jcrRepositories.put(reference, context.registerService(
-                    Repository.class.getName(), repository, new Properties()));
+                    Repository.class.getName(),
+                    repository, new Properties()));
             slingRepositories.put(reference, context.registerService(
-                    Repository.class.getName(), repository, new Properties()));
+                    SlingRepository.class.getName(),
+                    repository, new Properties()));
             return service;
         } else {
             context.ungetService(reference);
