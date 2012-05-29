@@ -576,7 +576,6 @@ public class SimpleKernelImpl extends MicroKernelWrapperBase implements MicroKer
         return ds.writeBlob(in);
     }
 
-    @Override
     public synchronized void dispose() {
         if (!disposed) {
             disposed = true;

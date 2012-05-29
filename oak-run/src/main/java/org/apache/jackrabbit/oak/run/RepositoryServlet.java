@@ -28,7 +28,7 @@ class RepositoryServlet extends JCRWebdavServerServlet {
 
     private final String path;
 
-    private MicroKernel kernel;
+    private MicroKernelImpl kernel;
 
     private Repository repository;
 
