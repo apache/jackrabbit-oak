@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.api;
 
+import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.security.auth.login.LoginException;
@@ -76,6 +77,7 @@ public interface ContentRepository {
      * @throws LoginException if authentication failed
      * @throws NoSuchWorkspaceException
      */
+    @Nonnull
     ContentSession login(Credentials credentials, String workspaceName)
             throws LoginException, NoSuchWorkspaceException;
 

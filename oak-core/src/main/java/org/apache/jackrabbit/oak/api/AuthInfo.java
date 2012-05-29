@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.api;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+
 /**
  * {@code AuthInfo} instances provide access to information related
  * to authentication and authorization of a given content session.
@@ -47,6 +50,7 @@ public interface AuthInfo {
      *
      * @return the user ID such as exposed on the JCR Session object.
      */
+    @CheckForNull
     String getUserID();
 
     /**
@@ -55,6 +59,7 @@ public interface AuthInfo {
      * @return The attribute names with that instance or an empty array if
      * no attributes are present.
      */
+    @Nonnull
     String[] getAttributeNames();
 
     /**
@@ -64,5 +69,6 @@ public interface AuthInfo {
      * @param attributeName The attribute name.
      * @return The attribute or {@code null}.
      */
+    @CheckForNull
     Object getAttribute(String attributeName);
 }

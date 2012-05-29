@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.api;
 
+import javax.annotation.Nonnull;
 import java.io.InputStream;
 import java.math.BigDecimal;
 
@@ -58,6 +59,7 @@ public interface CoreValue extends Comparable<CoreValue> {
      *
      * @return The string representation of this value.
      */
+    @Nonnull
     String getString();
 
     /**
@@ -96,6 +98,7 @@ public interface CoreValue extends Comparable<CoreValue> {
      * @throws {@code NumberFormatException} If the value cannot be converted
      * a {@code BigDecimal}.
      */
+    @Nonnull
     BigDecimal getDecimal();
 
     /**
@@ -104,6 +107,7 @@ public interface CoreValue extends Comparable<CoreValue> {
      * @return a new stream for this value based on an internal conversion.
      * @throws //TODO define exceptions
      */
+    @Nonnull
     InputStream getNewStream();
 
     /**

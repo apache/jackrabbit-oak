@@ -20,6 +20,8 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
+import javax.annotation.Nonnull;
+
 /**
  * Content change validator. An instance of this interface is used to
  * validate changes against a specific {@link NodeState}.
@@ -35,13 +37,16 @@ public interface Validator {
     void propertyDeleted(PropertyState before)
             throws CommitFailedException;
 
+    @Nonnull
     Validator childNodeAdded(String name, NodeState after)
             throws CommitFailedException;
 
+    @Nonnull
     Validator childNodeChanged(
             String name, NodeState before, NodeState after)
             throws CommitFailedException;
 
+    @Nonnull
     Validator childNodeDeleted(String name, NodeState before)
             throws CommitFailedException;
 
