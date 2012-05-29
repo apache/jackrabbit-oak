@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.Iterators;
 import org.apache.jackrabbit.oak.util.PagedIterator;
 
+import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -74,6 +75,11 @@ class KernelNodeState extends AbstractNodeState {
      * @param revision
      */
     public KernelNodeState(MicroKernel kernel, CoreValueFactory valueFactory, String path, String revision) {
+        assert kernel != null;
+        assert valueFactory != null;
+        assert path != null;
+        assert revision != null;
+
         this.kernel = kernel;
         this.valueFactory = valueFactory;
         this.path = path;
@@ -169,10 +175,12 @@ class KernelNodeState extends AbstractNodeState {
 
     //------------------------------------------------------------< internal >---
 
+    @Nonnull
     String getRevision() {
         return revision;
     }
 
+    @Nonnull
     String getPath() {
         return path;
     }

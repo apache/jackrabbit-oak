@@ -16,15 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.type;
 
-import java.util.Collections;
-import java.util.Set;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+
+import java.util.Collections;
+import java.util.Set;
 
 class TypeValidator implements Validator {
 
@@ -93,7 +93,7 @@ class TypeValidator implements Validator {
     @Override
     public Validator childNodeDeleted(String name, NodeState before) {
         // TODO: validate removed child node
-        return null;
+        return this;
     }
 
 }

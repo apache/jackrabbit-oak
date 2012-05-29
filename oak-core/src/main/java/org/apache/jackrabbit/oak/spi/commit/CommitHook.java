@@ -20,6 +20,8 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
+import javax.annotation.Nonnull;
+
 /**
  * Extension point for custom functionality to be performed before and
  * after content changes are committed. The repository core will call
@@ -65,6 +67,7 @@ public interface CommitHook {
      * @return content tree to be committed
      * @throws CommitFailedException if the commit should be rejected
      */
+    @Nonnull
     NodeState beforeCommit(NodeStore store, NodeState before, NodeState after)
         throws CommitFailedException;
 

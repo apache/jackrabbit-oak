@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.spi.commit;
 
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
+import javax.annotation.Nonnull;
+
 /**
  * Extension point for plugging in different kinds of validation rules
  * for content changes.
@@ -32,6 +34,7 @@ public interface ValidatorProvider {
      * @param after  modified root state
      * @return validator for checking the modifications
      */
+    @Nonnull
     Validator getRootValidator(NodeState before, NodeState after);
 
 }

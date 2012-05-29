@@ -30,6 +30,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.util.Function1;
 import org.apache.jackrabbit.oak.util.Iterators;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -64,6 +66,7 @@ public class TreeImpl implements Tree, PurgeListener {
         this.name = name;
     }
 
+    @Nonnull
     static TreeImpl createRoot(final RootImpl root) {
         return new TreeImpl(root, null, "") {
             @Override
@@ -346,14 +349,25 @@ public class TreeImpl implements Tree, PurgeListener {
 
     //------------------------------------------------------------< protected >---
 
+    @CheckForNull
     protected NodeState getBaseState() {
-        return parent.getBaseState().getChildNode(name);
+        NodeState parentBaseState = parent.getBaseState();
+        return parentBaseState == null
+            ? null
+            : parentBaseState.getChildNode(name);
     }
 
+    @Nonnull
     protected NodeState getNodeState() {
-        return nodeStateBuilder == null
-            ? parent.getNodeState().getChildNode(name)
-            : nodeStateBuilder.getNodeState();
+        if (nodeStateBuilder == null) {
+            parent.getNodeState().getChildNode(name);
+            NodeState nodeState = parent.getNodeState().getChildNode(name);
+            assert nodeState != null;
+            return nodeState;
+        }
+        else {
+            return nodeStateBuilder.getNodeState();
+        }
     }
 
     protected void updateParentState(NodeState childState) {
