@@ -253,8 +253,9 @@ public class IndexWrapper extends MicroKernelWrapperBase implements MicroKernel 
         return mk.getRevisionsStream(since, maxEntries, path);
     }
 
+    @Override
     public void dispose() {
-        // do nothing
+        mk.dispose();
     }
 
 }

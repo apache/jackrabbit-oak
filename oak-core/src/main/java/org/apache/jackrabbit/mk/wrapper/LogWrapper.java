@@ -50,8 +50,16 @@ public class LogWrapper implements MicroKernel {
         }
     }
 
+    @Override
     public void dispose() {
-        // do nothing
+        try {
+            logMethod("dispose");
+            mk.dispose();
+            logResult();
+        } catch (Exception e) {
+            logException(e);
+            throw convert(e);
+        }
     }
 
     @Override

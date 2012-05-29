@@ -68,13 +68,13 @@ public class VirtualRepositoryWrapperTest extends MultiMkTestBase {
             mkRep1.commit("/", "- \":mount\"", mkRep1.getHeadRevision(), "");
             mkRep2.commit("/", "- \":mount\"", mkRep2.getHeadRevision(), "");
             if (mkVirtual != null) {
-                MicroKernelFactory.disposeInstance(mkVirtual);
+                mkVirtual.dispose();
             }
             if (mkRep1 != null) {
-                MicroKernelFactory.disposeInstance(mkRep1);
+                mkRep1.dispose();
             }
             if (mkRep2 != null) {
-                MicroKernelFactory.disposeInstance(mkRep2);
+                mkRep2.dispose();
             }
             super.tearDown();
         } catch (Throwable e) {
