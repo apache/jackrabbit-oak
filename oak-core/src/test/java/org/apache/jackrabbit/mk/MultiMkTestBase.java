@@ -79,7 +79,7 @@ public class MultiMkTestBase {
         if (prof != null) {
             System.out.println(prof.getTop(5));
         }
-        mk.dispose();
+        MicroKernelFactory.disposeInstance(mk);
     }
 
     protected void reconnect() {
@@ -87,7 +87,7 @@ public class MultiMkTestBase {
             if (url.equals("simple:")) {
                 return;
             }
-            mk.dispose();
+            MicroKernelFactory.disposeInstance(mk);
         }
         mk = MicroKernelFactory.getInstance(url);
     }

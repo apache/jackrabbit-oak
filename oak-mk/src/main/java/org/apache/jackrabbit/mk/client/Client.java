@@ -19,7 +19,6 @@ package org.apache.jackrabbit.mk.client;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
-import java.net.Socket;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -36,8 +35,8 @@ import org.apache.jackrabbit.mk.util.IOUtils;
  */
 public class Client implements MicroKernel {
     
-    private static final String MK_EXCEPTION_PREFIX = MicroKernelException.class.getName() + ":";  
-    
+    private static final String MK_EXCEPTION_PREFIX = MicroKernelException.class.getName() + ":";
+
     private final InetSocketAddress addr;
     
     private final SocketFactory socketFactory;
@@ -89,14 +88,13 @@ public class Client implements MicroKernel {
         this.addr = addr;
         this.socketFactory = socketFactory;
     }
-    
-    //-------------------------------------------------- implements MicroKernel
-    
-    @Override
+
     public void dispose() {
-	// do nothing
+        // do nothing
     }
 
+    //-------------------------------------------------- implements MicroKernel
+    
     @Override
     public String getHeadRevision() throws MicroKernelException {
         Request request = null;
@@ -223,7 +221,7 @@ public class Client implements MicroKernel {
 
     @Override
     public String getNodes(String path, String revisionId, int depth,
-            long offset, int maxChildNodes, String filter) throws MicroKernelException {
+            long offset, int count, String filter) throws MicroKernelException {
         
         Request request = null;
 
@@ -233,7 +231,7 @@ public class Client implements MicroKernel {
             request.addParameter("revision_id", revisionId);
             request.addParameter("depth", depth);
             request.addParameter("offset", offset);
-            request.addParameter("maxChildNodes", maxChildNodes);
+            request.addParameter("count", count);
             request.addParameter("filter", filter);
             // OAK-48: MicroKernel.getNodes() should return null for not existing nodes instead of throwing an exception
             String result = request.getString();

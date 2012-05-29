@@ -130,27 +130,43 @@ public class MicroKernelFactory {
                     @Override
                     public void dispose() {
                         super.dispose();
-                        mk.dispose();
+                        MicroKernelFactory.disposeInstance(mk);
                     }
                 };
             } catch (MicroKernelException e) {
-                mk.dispose();
+                MicroKernelFactory.disposeInstance(mk);
                 throw e;
             }
         } else if (head.equals("virtual")) {
-            MicroKernel mk = getInstance(tail);
+            final MicroKernel mk = getInstance(tail);
             try {
-                return new VirtualRepositoryWrapper(mk);
+                return new VirtualRepositoryWrapper(mk) {
+                    @Override
+                    public void dispose() {
+                        super.dispose();
+                        MicroKernelFactory.disposeInstance(mk);
+                    }
+                };
             } catch (MicroKernelException e) {
-                mk.dispose();
+                MicroKernelFactory.disposeInstance(mk);
                 throw e;
             }
         } else if (head.equals("index")) {
-            return new IndexWrapper(getInstance(tail));
+            final MicroKernel mk = getInstance(tail);
+            try {
+                return new IndexWrapper(mk) {
+                    public void dispose() {
+                        MicroKernelFactory.disposeInstance(mk);
+                    }
+                };
+            } catch (MicroKernelException e) {
+                MicroKernelFactory.disposeInstance(mk);
+                throw e;
+            }
         } else if (head.equals("http")) {
             return new Client(url);
         } else if (head.equals("http-bridge")) {
-            MicroKernel mk = getInstance(tail);
+            final MicroKernel mk = getInstance(tail);
 
             final Server server = new Server(mk);
             try {
@@ -164,6 +180,7 @@ public class MicroKernelFactory {
                 public synchronized void dispose() {
                     super.dispose();
                     server.stop();
+                    MicroKernelFactory.disposeInstance(mk);
                 }
             };
         } else {
@@ -172,10 +189,32 @@ public class MicroKernelFactory {
     }
 
     /**
-     * Delete a directory or file and all subdirectories and files inside it.
-     *
-     * @param file the file denoting the directory to delete
+     * Disposes an instance that was created by this factory.
+     * @param mk MicroKernel instance
      */
+    public static void disposeInstance(MicroKernel mk) {
+        if (mk instanceof MicroKernelImpl) {
+            ((MicroKernelImpl) mk).dispose();
+        } else if (mk instanceof SimpleKernelImpl) {
+            ((SimpleKernelImpl) mk).dispose();
+        } else if (mk instanceof LogWrapper) {
+            ((LogWrapper) mk).dispose();
+        } else if (mk instanceof SecurityWrapper) {
+            ((SecurityWrapper) mk).dispose();
+        } else if (mk instanceof VirtualRepositoryWrapper) {
+            ((VirtualRepositoryWrapper) mk).dispose();
+        } else if (mk instanceof IndexWrapper) {
+            ((IndexWrapper) mk).dispose();
+        } else {
+            throw new IllegalArgumentException("instance was not created by this factory");
+        }
+    }
+
+    /**
+    * Delete a directory or file and all subdirectories and files inside it.
+    *
+    * @param file the file denoting the directory to delete
+    */
     private static void deleteRecursive(File file) {
         File[] files = file.listFiles();
         for (int i = 0; files != null && i < files.length; i++) {
@@ -183,5 +222,4 @@ public class MicroKernelFactory {
         }
         file.delete();
     }
-
 }
