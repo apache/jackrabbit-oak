@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.api;
 
+import com.sun.istack.internal.NotNull;
+
+import javax.annotation.Nonnull;
 import java.io.Closeable;
 
 /**
@@ -49,9 +52,11 @@ public interface ContentSession extends Closeable {
      *
      * @return  immutable {@link AuthInfo} instance
      */
+    @Nonnull
     AuthInfo getAuthInfo();
 
     /**
+     * TODO clarify workspace handling
      * The name of the workspace this {@code ContentSession} instance has
      * been created for. If no workspace name has been specified during
      * repository login this method will return the name of the default
@@ -68,6 +73,7 @@ public interface ContentSession extends Closeable {
      *
      * @return  the current root
      */
+    @NotNull
     Root getCurrentRoot();
 
     /**
@@ -75,6 +81,7 @@ public interface ContentSession extends Closeable {
      *
      * @return the query engine
      */
+    @NotNull
     QueryEngine getQueryEngine();
 
     /**
@@ -82,6 +89,7 @@ public interface ContentSession extends Closeable {
      *
      * @return the internal value factory.
      */
+    @Nonnull
     CoreValueFactory getCoreValueFactory();
 
     // TODO : add versioning operations

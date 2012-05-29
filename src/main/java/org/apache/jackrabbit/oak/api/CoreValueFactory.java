@@ -16,11 +16,10 @@
  */
 package org.apache.jackrabbit.oak.api;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
-
-import javax.annotation.Nonnull;
 
 /**
  * {@code CoreValueFactory} defines methods to create new instances of
@@ -36,6 +35,7 @@ public interface CoreValueFactory {
      * @throws IllegalArgumentException if the specified {@code String}
      * is {@code null}.
      */
+    @Nonnull
     CoreValue createValue(String value);
 
     /**
@@ -44,6 +44,7 @@ public interface CoreValueFactory {
      * @param value The {@code double} that defines the new value.
      * @return a new value instance.
      */
+    @Nonnull
     CoreValue createValue(double value);
 
     /**
@@ -52,6 +53,7 @@ public interface CoreValueFactory {
      * @param value The {@code double} that defines the new value.
      * @return a new value instance.
      */
+    @Nonnull
     CoreValue createValue(long value);
 
     /**
@@ -60,6 +62,7 @@ public interface CoreValueFactory {
      * @param value The {@code boolean} that defines the new value.
      * @return a new value instance.
      */
+    @Nonnull
     CoreValue createValue(boolean value);
 
     /**
@@ -69,6 +72,7 @@ public interface CoreValueFactory {
      * @return a new value instance.
      * @throws IllegalArgumentException if the specified {@code BigDecimal} is {@code null}.
      */
+    @Nonnull
     CoreValue createValue(BigDecimal value);
 
     /**
@@ -80,6 +84,7 @@ public interface CoreValueFactory {
      * @throws IOException If an error occurs while processing the stream.
      * @throws //TODO define exceptions (currently impl. throws MicrokernelException)
      */
+    @Nonnull
     CoreValue createValue(InputStream value) throws IOException;
 
     /**
@@ -94,5 +99,6 @@ public interface CoreValueFactory {
      * conversion to any of the number types and the conversion fails.
      * @throws //TODO define and consolidate exceptions
      */
+    @Nonnull
     CoreValue createValue(@Nonnull String value, int type);
 }

@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -183,10 +184,16 @@ public class RootImpl implements Root {
      * Returns the current root node state of the workspace
      * @return root node state
      */
+    @Nonnull
     public NodeState getWorkspaceRootState() {
-        return workspaceBuilder == null
-            ? branch.getRoot().getChildNode(workspaceName)
-            : workspaceBuilder.getNodeState();
+        if (workspaceBuilder == null) {
+            NodeState workspaceRootState = branch.getRoot().getChildNode(workspaceName);
+            assert workspaceRootState != null;
+            return workspaceRootState;
+        }
+        else {
+            return workspaceBuilder.getNodeState();
+        }
     }
 
     /**
@@ -194,8 +201,11 @@ public class RootImpl implements Root {
      * the current branch was created.
      * @return base node state
      */
+    @Nonnull
     public NodeState getWorkspaceBaseState() {
-        return branch.getBase().getChildNode(workspaceName);
+        NodeState workspaceBaseState = branch.getBase().getChildNode(workspaceName);
+        assert workspaceBaseState != null;
+        return workspaceBaseState;
     }
 
     /**
@@ -206,6 +216,7 @@ public class RootImpl implements Root {
      * @param nodeState  base node state, or {@code null} for building new nodes
      * @return  builder instance
      */
+    @Nonnull
     public NodeStateBuilder getBuilder(NodeState nodeState) {
         return store.getBuilder(nodeState);
     }

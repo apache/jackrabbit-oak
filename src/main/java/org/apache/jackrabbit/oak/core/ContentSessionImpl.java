@@ -44,6 +44,9 @@ class ContentSessionImpl implements ContentSession {
 
     public ContentSessionImpl(LoginContext loginContext, String workspaceName,
                               NodeStore store, QueryEngine queryEngine) {
+
+        assert queryEngine != null;
+
         this.loginContext = loginContext;
         this.workspaceName = workspaceName;
         this.store = store;
