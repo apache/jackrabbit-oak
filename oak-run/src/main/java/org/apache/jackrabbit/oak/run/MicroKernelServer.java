@@ -31,7 +31,7 @@ public class MicroKernelServer {
             return;
         }
 
-        final MicroKernel mk = MicroKernelFactory.getInstance(args[0]);
+        MicroKernel mk = MicroKernelFactory.getInstance(args[0]);
 
         final Server server = new Server(mk);
         if (args.length >= 2) {
@@ -48,7 +48,6 @@ public class MicroKernelServer {
             @Override
             public void run() {
                 server.stop();
-                MicroKernelFactory.disposeInstance(mk);
             }
         }, "ShutdownHook"));
     }
