@@ -16,26 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import java.io.IOException;
-import java.text.ParseException;
-import java.util.Collections;
-import java.util.Map;
-
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.jcr.ItemExistsException;
-import javax.jcr.NamespaceRegistry;
-import javax.jcr.PathNotFoundException;
-import javax.jcr.Repository;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.Workspace;
-import javax.jcr.lock.LockManager;
-import javax.jcr.nodetype.NodeTypeManager;
-import javax.jcr.query.Query;
-import javax.jcr.query.QueryManager;
-import javax.jcr.version.VersionManager;
-
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -54,6 +34,25 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+import javax.jcr.ItemExistsException;
+import javax.jcr.NamespaceRegistry;
+import javax.jcr.PathNotFoundException;
+import javax.jcr.Repository;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.Workspace;
+import javax.jcr.lock.LockManager;
+import javax.jcr.nodetype.NodeTypeManager;
+import javax.jcr.query.Query;
+import javax.jcr.query.QueryManager;
+import javax.jcr.version.VersionManager;
+import java.io.IOException;
+import java.text.ParseException;
+import java.util.Collections;
+import java.util.Map;
 
 public class SessionDelegate {
     static final Logger log = LoggerFactory.getLogger(SessionDelegate.class);
@@ -273,38 +272,31 @@ public class SessionDelegate {
 
         String srcPath = PathUtils.relativize("/", srcAbsPath);
         String destPath = PathUtils.relativize("/", destAbsPath);
-
-        // FIXME: the following checks should be done against this session
-        // which might contain transient modifications but rather against
-        // the workspace. OAK-105
+        Root moveRoot = transientOp ? root : contentSession.getCurrentRoot();
 
         // check destination
-        Tree dest = getTree(destPath);
+        Tree dest = moveRoot.getTree(destPath);
         if (dest != null) {
             throw new ItemExistsException(destAbsPath);
         }
 
         // check parent of destination
         String destParentPath = PathUtils.getParentPath(destPath);
-        Tree destParent = getTree(destParentPath);
+        Tree destParent = moveRoot.getTree(destParentPath);
         if (destParent == null) {
             throw new PathNotFoundException(PathUtils.getParentPath(destAbsPath));
         }
 
         // check source exists
-        Tree src = getTree(srcPath);
+        Tree src = moveRoot.getTree(srcPath);
         if (src == null) {
             throw new PathNotFoundException(srcAbsPath);
         }
 
         try {
-            if (transientOp) {
-                root.move(srcPath, destPath);
-            }
-            else {
-                Root currentRoot = contentSession.getCurrentRoot();
-                currentRoot.move(srcPath, destPath);
-                currentRoot.commit();
+            moveRoot.move(srcPath, destPath);
+            if (!transientOp) {
+                moveRoot.commit();
             }
         }
         catch (CommitFailedException e) {
@@ -362,7 +354,7 @@ public class SessionDelegate {
             String path = null;
 
             for (ResultRow rr : result.getRows()) {
-                String tmppath = PathUtils.concat("/", PathUtils.relativize("/" + getWorkspaceName(), rr.getPath()));
+                String tmppath = PathUtils.concat("/", PathUtils.relativize('/' + getWorkspaceName(), rr.getPath()));
 
                 if (path != null) {
                     log.error("multiple results for identifier lookup: " + path + " vs. " + tmppath);
