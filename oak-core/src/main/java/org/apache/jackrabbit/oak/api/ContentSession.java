@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.api;
 
-import com.sun.istack.internal.NotNull;
-
 import javax.annotation.Nonnull;
 import java.io.Closeable;
 
@@ -73,7 +71,7 @@ public interface ContentSession extends Closeable {
      *
      * @return  the current root
      */
-    @NotNull
+    @Nonnull
     Root getCurrentRoot();
 
     /**
@@ -81,7 +79,7 @@ public interface ContentSession extends Closeable {
      *
      * @return the query engine
      */
-    @NotNull
+    @Nonnull
     QueryEngine getQueryEngine();
 
     /**
