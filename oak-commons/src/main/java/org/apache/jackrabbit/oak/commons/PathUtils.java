@@ -22,7 +22,7 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 /**
- * Utility methods to parse a JCR path.
+ * Utility methods to parse a path.
  * <p/>
  * Each method validates the input, except if the system property
  * {packageName}.SKIP_VALIDATION is set, in which case only minimal validation
@@ -163,43 +163,8 @@ public class PathUtils {
     }
 
     /**
-     * Split a path into elements. The root path ("/") and the empty path ("")
-     * is zero elements.
-     *
-     * @param path the path
-     * @return the path elements
-     */
-    @Nonnull
-    public static String[] split(String path) {
-        assert isValid(path);
-
-        if (path.isEmpty()) {
-            return EMPTY_ARRAY;
-        } else if (isAbsolutePath(path)) {
-            if (path.length() == 1) {
-                return EMPTY_ARRAY;
-            }
-            path = path.substring(1);
-        }
-        ArrayList<String> list = new ArrayList<String>();
-        while (true) {
-            int index = path.indexOf('/');
-            if (index < 0) {
-                list.add(path);
-                break;
-            }
-            String s = path.substring(0, index);
-            list.add(s);
-            path = path.substring(index + 1);
-        }
-        String[] array = new String[list.size()];
-        list.toArray(array);
-        return array;
-    }
-
-    /**
-     * Split a path into elements. The root path ("/") and the empty path ("")
-     * is zero elements.
+     * Returns an {@code Iterable} for the path elements. The root path ("/") and the
+     * empty path ("") have zero elements.
      *
      * @param path the path
      * @return an Iterable for the path elements
