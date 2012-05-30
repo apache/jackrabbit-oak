@@ -22,6 +22,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.Value;
@@ -99,6 +100,7 @@ public class PropertyDelegate extends ItemDelegate {
      * Get the value of the property
      * @return  value or {@code null} if multi values
      */
+    @CheckForNull
     public CoreValue getValue() throws InvalidItemStateException {
         PropertyState state = getPropertyState();
         return state.isArray() ? null : state.getValue();
@@ -108,6 +110,7 @@ public class PropertyDelegate extends ItemDelegate {
      * Get the value of the property
      * @return  value or {@code null} if single valued
      */
+    @CheckForNull
     public Iterable<CoreValue> getValues() throws InvalidItemStateException {
         PropertyState state = getPropertyState();
         return state == null ? null : state.getValues();
@@ -125,6 +128,7 @@ public class PropertyDelegate extends ItemDelegate {
      * Get the property definition of the property
      * @return
      */
+    @Nonnull
     public PropertyDefinition getDefinition() {
         // TODO
         return new PropertyDefinition() {

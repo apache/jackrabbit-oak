@@ -755,7 +755,9 @@ public class NodeImpl extends ItemImpl implements Node {
         } else {
             List<CoreValue> values = new ArrayList<CoreValue>();
             values.add(cv);
-            for (CoreValue existingValue : mixins.getValues()) {
+            Iterable<CoreValue> existingValues = mixins.getValues();
+            assert existingValues != null; // since jcr:mixinTypes is a multi valued property
+            for (CoreValue existingValue : existingValues) {
                 if (!values.contains(existingValue)) {
                     values.add(existingValue);
                 }

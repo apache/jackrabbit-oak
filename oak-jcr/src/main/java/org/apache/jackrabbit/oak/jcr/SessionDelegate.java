@@ -70,6 +70,9 @@ public class SessionDelegate {
     private boolean isAlive = true;
 
     SessionDelegate(Repository repository, ContentSession contentSession) throws RepositoryException {
+        assert repository != null;
+        assert contentSession != null;
+
         this.repository = repository;
         this.contentSession = contentSession;
         this.valueFactory = new ValueFactoryImpl(contentSession.getCoreValueFactory(), namePathMapper);
@@ -88,6 +91,7 @@ public class SessionDelegate {
         return session;
     }
 
+    @Nonnull
     public AuthInfo getAuthInfo() {
         return contentSession.getAuthInfo();
     }
