@@ -306,15 +306,17 @@ public class LoginModuleImpl implements LoginModule {
     private String getUserID() {
         // TODO add proper implementation
         String userID = null;
-        Credentials c = credentials.iterator().next();
-        if (c instanceof SimpleCredentials) {
-            userID = ((SimpleCredentials) c).getUserID();
-        } else if (c instanceof GuestCredentials) {
-            userID = "anonymous";
-        } else if (c instanceof ImpersonationCredentials) {
-            Credentials bc = ((ImpersonationCredentials) c).getBaseCredentials();
-            if (bc instanceof SimpleCredentials) {
-                userID = ((SimpleCredentials) bc).getUserID();
+        if (!credentials.isEmpty()) {
+            Credentials c = credentials.iterator().next();
+            if (c instanceof SimpleCredentials) {
+                userID = ((SimpleCredentials) c).getUserID();
+            } else if (c instanceof GuestCredentials) {
+                userID = "anonymous";
+            } else if (c instanceof ImpersonationCredentials) {
+                Credentials bc = ((ImpersonationCredentials) c).getBaseCredentials();
+                if (bc instanceof SimpleCredentials) {
+                    userID = ((SimpleCredentials) bc).getUserID();
+                }
             }
         }
         return userID;
