@@ -46,8 +46,7 @@ public interface Validator {
             String name, NodeState before, NodeState after)
             throws CommitFailedException;
 
-    @Nonnull
-    Validator childNodeDeleted(String name, NodeState before)
+    void childNodeDeleted(String name, NodeState before)
             throws CommitFailedException;
 
 }
