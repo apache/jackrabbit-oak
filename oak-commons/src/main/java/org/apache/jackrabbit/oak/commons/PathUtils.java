@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.commons;
 
+import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -73,6 +74,7 @@ public class PathUtils {
      * @param path the path
      * @return the parent path
      */
+    @Nonnull
     public static String getParentPath(String path) {
         return getAncestorPath(path, 1);
     }
@@ -86,6 +88,7 @@ public class PathUtils {
      * @param path the path
      * @return the ancestor path
      */
+    @Nonnull
     public static String getAncestorPath(String path, int nth) {
         assert isValid(path);
 
@@ -117,6 +120,7 @@ public class PathUtils {
      * @param path the complete path
      * @return the last element
      */
+    @Nonnull
     public static String getName(String path) {
         assert isValid(path);
 
@@ -164,6 +168,7 @@ public class PathUtils {
      * @param path the path
      * @return the path elements
      */
+    @Nonnull
     public static String[] split(String path) {
         assert isValid(path);
 
@@ -198,6 +203,7 @@ public class PathUtils {
      * @param path the path
      * @return an Iterable for the path elements
      */
+    @Nonnull
     public static Iterable<String> elements(final String path) {
         assert isValid(path);
 
@@ -262,6 +268,7 @@ public class PathUtils {
      * @param relativePaths the relative path elements to add
      * @return the concatenated path
      */
+    @Nonnull
     public static String concat(String parentPath, String... relativePaths) {
         assert isValid(parentPath);
         int parentLen = parentPath.length();
@@ -292,6 +299,7 @@ public class PathUtils {
      * @param subPath the subPath path to add
      * @return the concatenated path
      */
+    @Nonnull
     public static String concat(String parentPath, String subPath) {
         assert isValid(parentPath);
         assert isValid(subPath);
@@ -339,6 +347,7 @@ public class PathUtils {
      * @param path path to relativize
      * @return relativized path
      */
+    @Nonnull
     public static String relativize(String parentPath, String path) {
         assert isValid(parentPath);
         assert isValid(path);
