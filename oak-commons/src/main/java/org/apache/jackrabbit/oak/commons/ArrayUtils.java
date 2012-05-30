@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.commons;
 
+import javax.annotation.Nonnull;
 import java.lang.reflect.Array;
 import java.util.HashSet;
 import java.util.Set;
@@ -40,6 +41,7 @@ public class ArrayUtils {
      * @param x the value to add
      * @return the new array
      */
+    @Nonnull
     public static <T> T[] arrayReplace(T[] values, int index, T x) {
         int size = values.length;
         @SuppressWarnings("unchecked")
@@ -89,6 +91,7 @@ public class ArrayUtils {
      * @param x the value to add
      * @return the new array
      */
+    @Nonnull
     public static <T> T[] arrayInsert(T[] values, int index, T x) {
         int size = values.length;
         @SuppressWarnings("unchecked")
@@ -106,6 +109,7 @@ public class ArrayUtils {
      * @param x the value to add
      * @return the new array
      */
+    @Nonnull
     public static String[] arrayInsert(String[] values, int index, String x) {
         int size = values.length;
         String[] v2 = new String[size + 1];
@@ -138,6 +142,7 @@ public class ArrayUtils {
      * @param index the index
      * @return the new array
      */
+    @Nonnull
     public static <T> T[] arrayRemove(T[] values, int index) {
         int size = values.length;
         @SuppressWarnings("unchecked")
@@ -171,6 +176,7 @@ public class ArrayUtils {
      * @param index the index
      * @return the new array
      */
+    @Nonnull
     public static String[] arrayRemove(String[] values, int index) {
         int size = values.length;
         if (size == 1) {
@@ -221,6 +227,7 @@ public class ArrayUtils {
      * @param <T>
      * @return
      */
+    @Nonnull
     public static <T> Set<T> toSet(T... elements) {
         return new HashSet<T>(java.util.Arrays.asList(elements));
     }
