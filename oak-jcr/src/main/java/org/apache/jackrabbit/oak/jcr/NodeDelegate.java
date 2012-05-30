@@ -93,6 +93,7 @@ public class NodeDelegate extends ItemDelegate {
         return "NodeDelegate[/" + tree.getPath() + ']';
     }
 
+    @Nonnull
     public String getIdentifier() throws InvalidItemStateException {
         PropertyDelegate pd = getProperty("jcr:uuid");
         if (pd == null) {
@@ -100,7 +101,9 @@ public class NodeDelegate extends ItemDelegate {
             return getPath();
         }
         else {
-            return pd.getValue().toString();
+            CoreValue value = pd.getValue();
+            assert value != null; // since jcr:uuid is a single valued property
+            return value.toString();
         }
     }
 
@@ -144,6 +147,7 @@ public class NodeDelegate extends ItemDelegate {
      * Get the properties of the node
      * @return  properties of the node
      */
+    @Nonnull
     public Iterator<PropertyDelegate> getProperties() throws InvalidItemStateException {
         return propertyDelegateIterator(getTree().getProperties().iterator());
     }
@@ -172,6 +176,7 @@ public class NodeDelegate extends ItemDelegate {
      * Get child nodes
      * @return  child nodes of the node
      */
+    @Nonnull
     public Iterator<NodeDelegate> getChildren() throws InvalidItemStateException {
         return nodeDelegateIterator(getTree().getChildren().iterator());
     }
