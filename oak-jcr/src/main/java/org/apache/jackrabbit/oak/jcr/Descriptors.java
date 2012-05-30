@@ -89,7 +89,7 @@ public class Descriptors {
 
         put(new Descriptor(
                 IDENTIFIER_STABILITY,
-                valueFactory.createValue(Repository.IDENTIFIER_STABILITY_INDEFINITE_DURATION), true, true));
+                valueFactory.createValue(Repository.IDENTIFIER_STABILITY_METHOD_DURATION), true, true));
         put(new Descriptor(
                 LEVEL_1_SUPPORTED,
                 trueValue, true, true));
