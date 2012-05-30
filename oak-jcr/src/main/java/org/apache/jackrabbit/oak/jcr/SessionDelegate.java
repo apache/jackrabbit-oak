@@ -375,29 +375,6 @@ public class SessionDelegate {
         }
     }
 
-//    @CheckForNull
-//    NodeDelegate slowFindByJcrUuid(String id) {
-//        return slowFindByJcrUuid(getTree(""), id);
-//    }
-//
-//    @CheckForNull
-//    NodeDelegate slowFindByJcrUuid(Tree tree, String id) {
-//        // Tree-walking implementation...
-//        PropertyState p = tree.getProperty("jcr:uuid");
-//        if (p != null && id.equals(p.getValue().getString())) {
-//            return new NodeDelegate(this, tree);
-//        } else {
-//            for (Tree c : tree.getChildren()) {
-//                NodeDelegate found = slowFindByJcrUuid(c, id);
-//                if (found != null) {
-//                    return found;
-//                }
-//            }
-//        }
-//
-//        return null;
-//    }
-
     //--------------------------------------------------< SessionNameMapper >---
 
     private class SessionNameMapper extends AbstractNameMapper {
