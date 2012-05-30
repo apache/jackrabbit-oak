@@ -22,7 +22,6 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
-import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.Value;
@@ -98,22 +97,23 @@ public class PropertyDelegate extends ItemDelegate {
 
     /**
      * Get the value of the property
-     * @return  value or {@code null} if multi values
+     * @return  the value of the property
+     * @throws IllegalStateException  if {@code isMultivalue()} is {@code true}.
+     *
      */
-    @CheckForNull
+    @Nonnull
     public CoreValue getValue() throws InvalidItemStateException {
-        PropertyState state = getPropertyState();
-        return state.isArray() ? null : state.getValue();
+        return getPropertyState().getValue();
     }
 
     /**
      * Get the value of the property
-     * @return  value or {@code null} if single valued
+     * @return  the values of the property
+     * @throws IllegalStateException  if {@code isMultivalue()} is {@code false}.
      */
-    @CheckForNull
+    @Nonnull
     public Iterable<CoreValue> getValues() throws InvalidItemStateException {
-        PropertyState state = getPropertyState();
-        return state == null ? null : state.getValues();
+        return getPropertyState().getValues();
     }
 
     /**
@@ -247,6 +247,7 @@ public class PropertyDelegate extends ItemDelegate {
 
     //------------------------------------------------------------< private >---
 
+    @Nonnull
     private PropertyState getPropertyState() throws InvalidItemStateException {
         resolve();
         if (parent == null) {
@@ -256,6 +257,7 @@ public class PropertyDelegate extends ItemDelegate {
         return propertyState;
     }
 
+    @Nonnull
     private Tree getParentTree() throws InvalidItemStateException {
         resolve();
         if (parent == null) {

@@ -101,9 +101,7 @@ public class NodeDelegate extends ItemDelegate {
             return getPath();
         }
         else {
-            CoreValue value = pd.getValue();
-            assert value != null; // since jcr:uuid is a single valued property
-            return value.toString();
+            return pd.getValue().toString();
         }
     }
 
