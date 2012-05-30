@@ -20,7 +20,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import javax.annotation.Nonnull;
+import javax.annotation.CheckForNull;
 
 /**
  * Content change validator. An instance of this interface is used to
@@ -28,24 +28,62 @@ import javax.annotation.Nonnull;
  */
 public interface Validator {
 
+    /**
+     * Validate an added property
+     * @param after  the added property
+     * @throws CommitFailedException  if validation fails.
+     */
     void propertyAdded(PropertyState after)
             throws CommitFailedException;
 
+    /**
+     * Validate a changed property
+     * @param before the original property
+     * @param after  the changed property
+     * @throws CommitFailedException  if validation fails.
+     */
     void propertyChanged(PropertyState before, PropertyState after)
             throws CommitFailedException;
 
+    /**
+     * Validate a deleted property
+     * @param before the original property
+     * @throws CommitFailedException  if validation fails.
+     */
     void propertyDeleted(PropertyState before)
             throws CommitFailedException;
 
-    @Nonnull
+    /**
+     * Validate an added node
+     * @param name the name of the added node
+     * @param after  the added node
+     * @return a {@code Validator} for {@code after} or {@code null} if validation
+     * should not decent into the subtree rooted at {@code after}.
+     * @throws CommitFailedException  if validation fails.
+     */
+    @CheckForNull
     Validator childNodeAdded(String name, NodeState after)
             throws CommitFailedException;
 
-    @Nonnull
+    /**
+     * Validate a changed node
+     * @param name the name of the changed node
+     * @param before the original node
+     * @param after  the changed node
+     * @return a {@code Validator} for {@code after} or {@code null} if validation
+     * should not decent into the subtree rooted at {@code after}.
+     * @throws CommitFailedException  if validation fails.
+     */
+    @CheckForNull
     Validator childNodeChanged(
             String name, NodeState before, NodeState after)
             throws CommitFailedException;
 
+    /**
+     * Validate a deleted node
+     * @param before the original node
+     * @throws CommitFailedException  if validation fails.
+     */
     void childNodeDeleted(String name, NodeState before)
             throws CommitFailedException;
 
