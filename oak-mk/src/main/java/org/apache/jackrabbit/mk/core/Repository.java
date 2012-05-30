@@ -167,7 +167,7 @@ public class Repository {
         }
 
         NodeState node = rs.getNodeState(rs.getRootNode(revId));
-        for (String name : PathUtils.split(path)) {
+        for (String name : PathUtils.elements(path)) {
             node = node.getChildNode(name);
             if (node == null) {
                 break;
@@ -184,7 +184,7 @@ public class Repository {
         }
 
         NodeState node = rs.getNodeState(rs.getRootNode(revId));
-        for (String name : PathUtils.split(path)) {
+        for (String name : PathUtils.elements(path)) {
             node = node.getChildNode(name);
             if (node == null) {
                 return false;

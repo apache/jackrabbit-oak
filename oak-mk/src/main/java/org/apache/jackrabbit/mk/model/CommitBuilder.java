@@ -252,14 +252,15 @@ public class CommitBuilder {
                 staged.put("/", parent);
             }
             node = parent;
-            String names[] = PathUtils.split(nodePath);
-            for (int i = names.length - 1; i >= 0; i--) {
-                String path = PathUtils.getAncestorPath(nodePath, i);
+
+            int nth = PathUtils.getDepth(nodePath) - 1;
+            for (String name : PathUtils.elements(nodePath)) {
+                String path = PathUtils.getAncestorPath(nodePath, nth--);
                 node = staged.get(path);
                 if (node == null) {
                     // not yet staged, resolve id using staged parent
                     // to allow for staged move operations
-                    ChildNode cne = parent.getChildNodeEntry(names[names.length - i - 1]);
+                    ChildNode cne = parent.getChildNodeEntry(name);
                     if (cne == null) {
                         throw new NotFoundException(nodePath);
                     }
