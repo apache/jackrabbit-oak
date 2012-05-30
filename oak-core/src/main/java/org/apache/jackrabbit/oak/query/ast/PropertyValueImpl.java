@@ -60,12 +60,10 @@ public class PropertyValueImpl extends DynamicOperandImpl {
         }
         // TODO really support relative properties?
         NodeImpl n = selector.currentNode();
-        String[] elements = PathUtils.split(propertyName);
-        for (int i = 0; i < elements.length - 1; i++) {
+        for (String p : PathUtils.elements(PathUtils.getParentPath(propertyName))) {
             if (n == null) {
                 return null;
             }
-            String p = elements[i];
             if (!n.exists(p)) {
                 return null;
             }
