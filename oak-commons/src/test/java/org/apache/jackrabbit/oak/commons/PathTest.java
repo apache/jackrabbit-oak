@@ -19,8 +19,6 @@ package org.apache.jackrabbit.oak.commons;
 import junit.framework.AssertionFailedError;
 import junit.framework.TestCase;
 
-import java.util.Iterator;
-
 public class PathTest extends TestCase {
     static boolean assertsEnabled;
 
@@ -56,21 +54,41 @@ public class PathTest extends TestCase {
         test("x", "y");
     }
 
+    private int getElementCount(String path) {
+        int count = 0;
+        for (String p : PathUtils.elements(path)) {
+            assertFalse(PathUtils.isAbsolute(p));
+            count++;
+        }
+        return count;
+    }
+
+    private String getElement(String path, int index) {
+        int count = 0;
+        for (String p : PathUtils.elements(path)) {
+            if (index == count++) {
+                return p;
+            }
+        }
+        fail();
+        return "";
+    }
+
     private void test(String parent, String child) {
 
         // split
-        assertEquals(0, PathUtils.split("").length);
-        assertEquals(0, PathUtils.split("/").length);
-        assertEquals(1, PathUtils.split(parent).length);
-        assertEquals(2, PathUtils.split(parent + "/" + child).length);
-        assertEquals(1, PathUtils.split("/" + parent).length);
-        assertEquals(2, PathUtils.split("/" + parent + "/" + child).length);
-        assertEquals(3, PathUtils.split("/" + parent + "/" + child + "/" + child).length);
-        assertEquals(parent, PathUtils.split(parent)[0]);
-        assertEquals(parent, PathUtils.split(parent + "/" + child)[0]);
-        assertEquals(child, PathUtils.split(parent + "/" + child)[1]);
-        assertEquals(child, PathUtils.split(parent + "/" + child + "/" + child + "1")[1]);
-        assertEquals(child + "1", PathUtils.split(parent + "/" + child + "/" + child + "1")[2]);
+        assertEquals(0, getElementCount(""));
+        assertEquals(0, getElementCount("/"));
+        assertEquals(1, getElementCount(parent));
+        assertEquals(2, getElementCount(parent + "/" + child));
+        assertEquals(1, getElementCount("/" + parent));
+        assertEquals(2, getElementCount("/" + parent + "/" + child));
+        assertEquals(3, getElementCount("/" + parent + "/" + child + "/" + child));
+        assertEquals(parent, getElement(parent, 0));
+        assertEquals(parent, getElement(parent + "/" + child, 0));
+        assertEquals(child, getElement(parent + "/" + child, 1));
+        assertEquals(child, getElement(parent + "/" + child + "/" + child + "1", 1));
+        assertEquals(child + "1", getElement(parent + "/" + child + "/" + child + "1", 2));
 
         // concat
         assertEquals(parent + "/" + child, PathUtils.concat(parent, child));
@@ -414,30 +432,9 @@ public class PathTest extends TestCase {
         } catch (AssertionError e) {
             // expected
         }
-        try {
-            PathUtils.split(invalid);
-            if (assertsEnabled) {
-                fail();
-            }
-        } catch (AssertionFailedError e) {
-            throw e;
-        } catch (AssertionError e) {
-            // expected
-        }
     }
 
     public void testPathElements() {
-        String[] paths = new String[]{"", "/", "/a", "a", "/abc/def/ghj", "abc/def/ghj"};
-        for (String path : paths) {
-            String[] elements = PathUtils.split(path);
-            Iterator<String> it = PathUtils.elements(path).iterator();
-            for (String element : elements) {
-                assertTrue(it.hasNext());
-                assertEquals(element, it.next());
-            }
-            assertFalse(it.hasNext());
-        }
-
         String[] invalidPaths = new String[]{"//", "/a/", "a/", "/a//", "a//b"};
         for (String path: invalidPaths) {
             try {
