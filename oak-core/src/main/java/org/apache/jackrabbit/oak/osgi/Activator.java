@@ -16,10 +16,6 @@
  */
 package org.apache.jackrabbit.oak.osgi;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
-
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
@@ -30,6 +26,10 @@ import org.osgi.framework.ServiceRegistration;
 import org.osgi.util.tracker.ServiceTracker;
 import org.osgi.util.tracker.ServiceTrackerCustomizer;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
+
 public class Activator implements BundleActivator, ServiceTrackerCustomizer {
 
     private BundleContext context;
@@ -37,6 +37,8 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
     private ServiceTracker tracker;
 
     private final OsgiIndexProvider indexProvider = new OsgiIndexProvider();
+
+    private final OsgiValidatorProvider validatorProvider = new OsgiValidatorProvider();
 
     private final Map<ServiceReference, ServiceRegistration> services =
             new HashMap<ServiceReference, ServiceRegistration>();
@@ -48,6 +50,7 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
         context = bundleContext;
 
         indexProvider.start(bundleContext);
+        validatorProvider.start(bundleContext);
 
         tracker = new ServiceTracker(
                 context, MicroKernel.class.getName(), this);
@@ -59,6 +62,7 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
         tracker.close();
 
         indexProvider.stop();
+        validatorProvider.stop();
     }
 
     //-------------------------------------------< ServiceTrackerCustomizer >---
@@ -70,7 +74,7 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
             MicroKernel kernel = (MicroKernel) service;
             services.put(reference, context.registerService(
                     ContentRepository.class.getName(),
-                    new ContentRepositoryImpl(kernel, indexProvider),
+                    new ContentRepositoryImpl(kernel, indexProvider, validatorProvider),
                     new Properties()));
             return service;
         } else {
