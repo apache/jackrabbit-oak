@@ -413,5 +413,12 @@ public class SessionDelegate {
                 return null;
             }
         }
+
+        @Override
+        public boolean hasSessionLocalMappings() {
+            // TODO OAK-61
+            // TODO right now we would have to check whether AbstractSession.namespaces is empty
+            return true;
+        }
     }
 }
