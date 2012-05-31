@@ -63,8 +63,16 @@ public class JsopTest extends TestCase {
     }
 
     public void testNull() {
-        JsopTokenizer t = new JsopTokenizer("null");
+        JsopTokenizer t = new JsopTokenizer("null, 1, null, true, false");
         assertEquals(null, t.read(JsopReader.NULL));
+        assertEquals(",", t.read(','));
+        assertEquals("1", t.read(JsopReader.NUMBER));
+        assertEquals(",", t.read(','));
+        assertEquals(null, t.read(JsopReader.NULL));
+        assertEquals(",", t.read(','));
+        assertEquals("true", t.read(JsopReader.TRUE));
+        assertEquals(",", t.read(','));
+        assertEquals("false", t.read(JsopReader.FALSE));
     }
 
     public void testLineLength() {

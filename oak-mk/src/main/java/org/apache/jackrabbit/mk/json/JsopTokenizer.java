@@ -262,10 +262,13 @@ public class JsopTokenizer implements JsopReader {
                     }
                     String s = jsop.substring(start, pos);
                     if ("null".equals(s)) {
+                        currentToken = null;
                         return NULL;
                     } else if ("true".equals(s)) {
+                        currentToken = s;
                         return TRUE;
                     } else if ("false".equals(s)) {
+                        currentToken = s;
                         return FALSE;
                     } else {
                         currentToken = s;
