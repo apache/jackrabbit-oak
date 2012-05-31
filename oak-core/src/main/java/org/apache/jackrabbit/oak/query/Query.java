@@ -23,6 +23,7 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.query.ast.AstVisitorBase;
 import org.apache.jackrabbit.oak.query.ast.BindVariableValueImpl;
 import org.apache.jackrabbit.oak.query.ast.ChildNodeImpl;
@@ -73,6 +74,7 @@ public class Query {
     private boolean prepared;
     private final CoreValueFactory valueFactory;
     private ContentSession session;
+    private NamePathMapper namePathMapper;
 
     Query(SourceImpl source, ConstraintImpl constraint, OrderingImpl[] orderings,
           ColumnImpl[] columns, CoreValueFactory valueFactory) {
@@ -494,6 +496,14 @@ public class Query {
 
     public void setSession(ContentSession session) {
         this.session = session;
+    }
+
+    public void setNamePathMapper(NamePathMapper namePathMapper) {
+        this.namePathMapper = namePathMapper;
+    }
+
+    public NamePathMapper getNamePathMapper() {
+        return namePathMapper;
     }
 
 }

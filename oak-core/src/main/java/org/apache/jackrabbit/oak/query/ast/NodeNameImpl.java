@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import javax.jcr.PropertyType;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
@@ -55,7 +56,11 @@ public class NodeNameImpl extends DynamicOperandImpl {
     @Override
     public CoreValue currentValue() {
         String name = PathUtils.getName(selector.currentPath());
-        return query.getValueFactory().createValue(name);
+        CoreValue v = query.getValueFactory().createValue(name);
+        String path = v.getString();
+        // normalize paths (./name > name)
+        path = getOakPath(path);
+        return query.getValueFactory().createValue(path, PropertyType.NAME);
     }
 
     @Override
@@ -64,10 +69,11 @@ public class NodeNameImpl extends DynamicOperandImpl {
             throw new IllegalArgumentException("Invalid name value: " + v.toString());
         }
         String path = v.getString();
+        // normalize paths (./name > name)
+        path = getOakPath(path);
         if (PathUtils.isAbsolute(path)) {
             throw new IllegalArgumentException("NAME() comparison with absolute path are not allowed: " + path);
         }
-        // TODO normalize paths (./name > name)
         if (PathUtils.getDepth(path) > 1) {
             throw new IllegalArgumentException("NAME() comparison with relative path are not allowed: " + path);
         }
