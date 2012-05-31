@@ -362,7 +362,7 @@ public class SessionDelegate {
                     .createValue(id));
 
             Result result = getQueryEngine().executeQuery("SELECT * FROM [nt:base] WHERE [jcr:uuid] = $id", Query.JCR_SQL2,
-                    getContentSession(), Long.MAX_VALUE, 0, bindings);
+                    getContentSession(), Long.MAX_VALUE, 0, bindings, namePathMapper);
 
             String path = null;
 

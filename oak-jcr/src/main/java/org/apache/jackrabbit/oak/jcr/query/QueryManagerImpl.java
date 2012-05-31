@@ -39,6 +39,7 @@ import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.jcr.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.query.qom.QueryObjectModelFactoryImpl;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 
 /**
  * The implementation of the corresponding JCR interface.
@@ -105,7 +106,8 @@ public class QueryManagerImpl implements QueryManager {
         try {
             HashMap<String, CoreValue> bindMap = convertMap(bindVariableMap);
             ContentSession s = sessionDelegate.getContentSession();
-            Result r = queryEngine.executeQuery(statement, language, s, limit, offset, bindMap);
+            NamePathMapper namePathMapper = sessionDelegate.getNamePathMapper();
+            Result r = queryEngine.executeQuery(statement, language, s, limit, offset, bindMap, namePathMapper);
             return new QueryResultImpl(sessionDelegate, r);
         } catch (IllegalArgumentException e) {
             throw new InvalidQueryException(e);
