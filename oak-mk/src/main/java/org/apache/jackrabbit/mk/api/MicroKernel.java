@@ -19,7 +19,7 @@ package org.apache.jackrabbit.mk.api;
 import java.io.InputStream;
 
 /**
- * The MicroKernel <b>design goals/principles</b>:
+ * The MicroKernel <b>Design Goals and Principles</b>:
  * <ul>
  * <li>manage huge trees of nodes and properties efficiently</li>
  * <li>MVCC-based concurrency control
@@ -32,8 +32,9 @@ import java.io.InputStream;
  * <li>integrated API for efficiently storing/retrieving large binaries</li>
  * <li>human-readable data serialization (JSON)</li>
  * </ul>
- * <p/>
+ * <p>
  * The MicroKernel <b>Data Model</b>:
+ * </p>
  * <ul>
  * <li>simple JSON-inspired data model: just nodes and properties</li>
  * <li>a node consists of an unordered set of name -&gt; item mappings. each
@@ -43,7 +44,27 @@ import java.io.InputStream;
  * <li>supported property types: string, number, boolean, array</li>
  * <li>a property value is stored and used as an opaque, unparsed character sequence</li>
  * </ul>
+ * <p>
+ * The <b>Retention Policy for Revisions</b>:
+ * <p>
  * TODO specify retention policy for old revisions, i.e. minimal guaranteed retention period (OAK-114)
+ * </p>
+ * <p>
+ * The <b>Retention Policy for Binaries</b>:
+ * </p>
+ * <p>
+ * The MicroKernel implementation is free to remove binaries if both of the
+ * following conditions are met:
+ * </p>
+ * <ul>
+ * <li>If the binary is not references as a property value of the
+ * format ":blobId:&lt;blobId&gt;" where &lt;blobId&gt; is the id returned by
+ * {@link write(InputStream in)}. This includes simple property values such as
+ * {"bin": ":blobId:1234"} as well as array property values such as
+ * {"array": [":blobId:1234", ":blobId:5678"]}.</li>
+ * <li>If the binary was stored before the last retained revision (this is to
+ * keep temporary binaries, and binaries that are not yet referenced).</li>
+ * </ul>
  */
 public interface MicroKernel {
 
