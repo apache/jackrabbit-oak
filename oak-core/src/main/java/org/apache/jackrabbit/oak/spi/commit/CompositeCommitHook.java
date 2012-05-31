@@ -22,6 +22,10 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 import java.util.List;
 
+/**
+ * This {@code CommitHook} aggregates a list of commit hooks into
+ * a single commit hook.
+ */
 public class CompositeCommitHook implements CommitHook {
     private final List<CommitHook> hooks;
 
