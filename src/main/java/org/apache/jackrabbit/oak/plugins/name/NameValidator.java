@@ -17,11 +17,14 @@
 package org.apache.jackrabbit.oak.plugins.name;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import java.util.Set;
+
+import javax.jcr.PropertyType;
 
 class NameValidator implements Validator {
 
@@ -32,36 +35,37 @@ class NameValidator implements Validator {
     }
 
     protected void checkValidName(String name) throws CommitFailedException {
-        String prefix = null;
-        String local = name;
-
         int colon = name.indexOf(':');
-        if (colon == name.length() - 1) {
-            throw new CommitFailedException("Local name most not be empty");
-        }
         if (colon != -1) {
-            prefix = name.substring(0, colon);
-            local = name.substring(colon + 1);
+            String prefix = name.substring(0, colon);
+            if (prefix.length() == 0 || !prefixes.contains(prefix)) {
+                throw new CommitFailedException(
+                        "Invalid namespace prefix: " + name);
+            }
         }
 
-        if ((prefix != null && !prefixes.contains(prefix)) || !isValidLocalName(local)) {
+        String local = name.substring(colon + 1);
+        if (!Namespaces.isValidLocalName(local)) {
             throw new CommitFailedException("Invalid name: " + name);
         }
     }
 
-    private static boolean isValidLocalName(String local) {
-        if (".".equals(local) || "..".equals(local)) {
-            return false;
-        }
-
-        for (int i = 0; i < local.length(); i++) {
-            char ch = local.charAt(i);
-            if ("/:[]|*".indexOf(ch) != -1) { // TODO: XMLChar check
-                return false;
+    protected void checkValidValue(PropertyState property)
+            throws CommitFailedException {
+        if (property.isArray()) {
+            for (CoreValue value : property.getValues()) {
+                checkValidValue(value);
             }
+        } else {
+            checkValidValue(property.getValue());
         }
+    }
 
-        return true;
+    protected void checkValidValue(CoreValue value)
+            throws CommitFailedException {
+        if (value.getType() == PropertyType.NAME) {
+            checkValidName(value.getString());
+        }
     }
 
     //-------------------------------------------------------< NodeValidator >
@@ -70,11 +74,13 @@ class NameValidator implements Validator {
     public void propertyAdded(PropertyState after)
             throws CommitFailedException {
         checkValidName(after.getName());
+        checkValidValue(after);
     }
 
     @Override
-    public void propertyChanged(PropertyState before, PropertyState after) {
-        // do nothing
+    public void propertyChanged(PropertyState before, PropertyState after)
+            throws CommitFailedException {
+        checkValidValue(after);
     }
 
     @Override
@@ -91,8 +97,7 @@ class NameValidator implements Validator {
 
     @Override
     public Validator childNodeChanged(
-            String name, NodeState before, NodeState after)
-            throws CommitFailedException {
+            String name, NodeState before, NodeState after) {
         return this;
     }
 

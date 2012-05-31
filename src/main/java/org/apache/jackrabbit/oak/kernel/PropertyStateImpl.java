@@ -25,6 +25,8 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
+import javax.jcr.PropertyType;
+
 public class PropertyStateImpl implements PropertyState {
 
     private final String name;
@@ -45,6 +47,10 @@ public class PropertyStateImpl implements PropertyState {
 
     public PropertyStateImpl(String name, List<CoreValue> values) {
         this(name, null, Collections.unmodifiableList(values));
+    }
+
+    public PropertyStateImpl(String name, String value) {
+        this(name, new CoreValueImpl(value, PropertyType.STRING));
     }
 
     @Override
