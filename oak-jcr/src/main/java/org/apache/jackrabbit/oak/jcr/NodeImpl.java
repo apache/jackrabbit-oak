@@ -16,21 +16,14 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import org.apache.jackrabbit.commons.ItemNameMatcher;
-import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
-import org.apache.jackrabbit.commons.iterator.PropertyIteratorAdapter;
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.Tree.Status;
-import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.jcr.value.ValueConverter;
-import org.apache.jackrabbit.oak.namepath.NameMapper;
-import org.apache.jackrabbit.oak.util.Function1;
-import org.apache.jackrabbit.oak.util.Iterators;
-import org.apache.jackrabbit.oak.util.Predicate;
-import org.apache.jackrabbit.value.ValueHelper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import java.io.InputStream;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.UUID;
 import javax.annotation.Nonnull;
 import javax.jcr.Binary;
 import javax.jcr.InvalidItemStateException;
@@ -55,14 +48,22 @@ import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.version.OnParentVersionAction;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionHistory;
-import java.io.InputStream;
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.UUID;
+
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.commons.ItemNameMatcher;
+import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
+import org.apache.jackrabbit.commons.iterator.PropertyIteratorAdapter;
+import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.Tree.Status;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.jcr.value.ValueConverter;
+import org.apache.jackrabbit.oak.namepath.NameMapper;
+import org.apache.jackrabbit.oak.util.Function1;
+import org.apache.jackrabbit.oak.util.Iterators;
+import org.apache.jackrabbit.oak.util.Predicate;
+import org.apache.jackrabbit.value.ValueHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.util.Iterators.filter;
 
@@ -84,6 +85,7 @@ public class NodeImpl extends ItemImpl implements Node {
     }
 
     //---------------------------------------------------------------< Item >---
+
     /**
      * @see javax.jcr.Item#isNode()
      */
@@ -113,8 +115,7 @@ public class NodeImpl extends ItemImpl implements Node {
     public boolean isNew() {
         try {
             return !dlg.isStale() && dlg.getStatus() == Status.NEW;
-        }
-        catch (InvalidItemStateException e) {
+        } catch (InvalidItemStateException e) {
             return false;
         }
     }
@@ -126,8 +127,7 @@ public class NodeImpl extends ItemImpl implements Node {
     public boolean isModified() {
         try {
             return !dlg.isStale() && dlg.getStatus() == Status.MODIFIED;
-        }
-        catch (InvalidItemStateException e) {
+        } catch (InvalidItemStateException e) {
             return false;
         }
     }
@@ -139,7 +139,7 @@ public class NodeImpl extends ItemImpl implements Node {
     public void remove() throws RepositoryException {
         checkStatus();
         if (dlg.isRoot()) {
-                throw new RepositoryException("Cannot remove the root node");
+            throw new RepositoryException("Cannot remove the root node");
         }
 
         dlg.remove();
@@ -410,8 +410,7 @@ public class NodeImpl extends ItemImpl implements Node {
         NodeDelegate nd = dlg.getChild(oakPath);
         if (nd == null) {
             throw new PathNotFoundException(relPath);
-        }
-        else {
+        } else {
             return new NodeImpl(nd);
         }
     }
@@ -438,8 +437,7 @@ public class NodeImpl extends ItemImpl implements Node {
                         try {
                             return ItemNameMatcher.matches(
                                     toJcrPath(state.getName()), namePattern);
-                        }
-                        catch (InvalidItemStateException e) {
+                        } catch (InvalidItemStateException e) {
                             return false;
                         }
                     }
@@ -459,8 +457,7 @@ public class NodeImpl extends ItemImpl implements Node {
                     public boolean evaluate(NodeDelegate state) {
                         try {
                             return ItemNameMatcher.matches(toJcrPath(state.getName()), nameGlobs);
-                        }
-                        catch (InvalidItemStateException e) {
+                        } catch (InvalidItemStateException e) {
                             return false;
                         }
                     }
@@ -504,8 +501,7 @@ public class NodeImpl extends ItemImpl implements Node {
                         try {
                             return ItemNameMatcher.matches(
                                     toJcrPath(entry.getName()), namePattern);
-                        }
-                        catch (InvalidItemStateException e) {
+                        } catch (InvalidItemStateException e) {
                             return false;
                         }
                     }
@@ -526,8 +522,7 @@ public class NodeImpl extends ItemImpl implements Node {
                         try {
                             return ItemNameMatcher.matches(
                                     toJcrPath(entry.getName()), nameGlobs);
-                        }
-                        catch (InvalidItemStateException e) {
+                        } catch (InvalidItemStateException e) {
                             return false;
                         }
                     }
@@ -597,7 +592,12 @@ public class NodeImpl extends ItemImpl implements Node {
     @Nonnull
     public PropertyIterator getReferences(String name) throws RepositoryException {
         checkStatus();
-        throw new UnsupportedRepositoryOperationException("TODO: Node.getReferences");
+
+        if (!isNodeType(JcrConstants.MIX_REFERENCEABLE)) {
+            return PropertyIteratorAdapter.EMPTY;
+        } else {
+            throw new UnsupportedRepositoryOperationException("TODO: Node.getReferences");
+        }
     }
 
     /**
@@ -613,7 +613,12 @@ public class NodeImpl extends ItemImpl implements Node {
     @Nonnull
     public PropertyIterator getWeakReferences(String name) throws RepositoryException {
         checkStatus();
-        throw new UnsupportedRepositoryOperationException("TODO: Node.getWeakReferences");
+
+        if (!isNodeType(JcrConstants.MIX_REFERENCEABLE)) {
+            return PropertyIteratorAdapter.EMPTY;
+        } else {
+            throw new UnsupportedRepositoryOperationException("TODO: Node.getWeakReferences");
+        }
     }
 
     @Override
@@ -739,7 +744,7 @@ public class NodeImpl extends ItemImpl implements Node {
         // TODO: figure out the right place for this check
         NodeTypeManager ntm = sessionDelegate.getNodeTypeManager();
         NodeType nt = ntm.getNodeType(mixinName); // throws on not found
-        
+
         if (nt.isNodeType("mix:referenceable")) {
             this.setProperty(Property.JCR_UUID, UUID.randomUUID().toString());
         }
@@ -1060,6 +1065,11 @@ public class NodeImpl extends ItemImpl implements Node {
 
     }
 
+    //-----------------------------------------------------------< internal >---
+    NodeDelegate getNodeDelegate() {
+        return dlg;
+    }
+
     //------------------------------------------------------------< private >---
 
     private static Iterator<Node> nodeIterator(Iterator<NodeDelegate> childNodes) {
@@ -1073,18 +1083,18 @@ public class NodeImpl extends ItemImpl implements Node {
 
     private static Iterator<Property> propertyIterator(Iterator<PropertyDelegate> properties) {
         return Iterators.map(properties,
-            new Function1<PropertyDelegate, Property>() {
-                @Override
-                public Property apply(PropertyDelegate propertyDelegate) {
-                    return new PropertyImpl(propertyDelegate);
-                }
-            });
+                new Function1<PropertyDelegate, Property>() {
+                    @Override
+                    public Property apply(PropertyDelegate propertyDelegate) {
+                        return new PropertyImpl(propertyDelegate);
+                    }
+                });
     }
 
     private static int getTargetType(Value value, int type) {
         if (value == null) {
             return PropertyType.STRING; // TODO: review again. rather use
-                                        // property definition
+            // property definition
         } else {
             return value.getType();
         }
@@ -1092,11 +1102,9 @@ public class NodeImpl extends ItemImpl implements Node {
 
     private static int getTargetType(Value[] values, int type) {
         if (values == null || values.length == 0) {
-            return PropertyType.STRING; // TODO: review again. rather use
-                                        // property definition
+            return PropertyType.STRING; // TODO: review again. rather use property definition
         } else {
-            // TODO deal with values array containing a null value in the first
-            // position
+            // TODO deal with values array containing a null value in the first position
             return getTargetType(values[0], type);
         }
     }
