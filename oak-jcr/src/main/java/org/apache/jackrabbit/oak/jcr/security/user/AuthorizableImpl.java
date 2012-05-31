@@ -28,7 +28,6 @@ import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.PropertyIterator;
 import javax.jcr.RepositoryException;
-import javax.jcr.Session;
 import javax.jcr.Value;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.PropertyDefinition;
@@ -38,24 +37,14 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- * AuthorizableImpl...
+ * AuthorizableImpl... TODO
  */
-abstract class AuthorizableImpl implements Authorizable {
+abstract class AuthorizableImpl implements Authorizable, UserConstants {
 
     /**
      * logger instance
      */
     private static final Logger log = LoggerFactory.getLogger(AuthorizableImpl.class);
-
-    static final String NT_REP_AUTHORIZABLE = "rep:Authorizable";
-    static final String NT_REP_USER = "rep:User";
-    static final String NT_REP_GROUP = "rep:Group";
-    static final String NT_REP_MEMBERS = "rep:Members";
-    static final String REP_PRINCIPAL_NAME = "rep:principalName";
-    static final String REP_PASSWORD = "rep:password";
-    static final String REP_DISABLED = "rep:disabled";
-    static final String REP_MEMBERS = "rep:members";
-    static final String REP_IMPERSONATORS = "rep:impersonators";
 
     private final Node node;
     private final UserManagerImpl userManager;
@@ -63,9 +52,9 @@ abstract class AuthorizableImpl implements Authorizable {
     private int hashCode;
 
     AuthorizableImpl(Node node, UserManagerImpl userManager) throws RepositoryException {
-        checkValidNode(node);
-        this.node = node;
         this.userManager = userManager;
+        this.node = node;
+        checkValidNode(node);
     }
 
     abstract void checkValidNode(Node node) throws RepositoryException;
@@ -109,7 +98,6 @@ abstract class AuthorizableImpl implements Authorizable {
         if (!isGroup() && ((User) this).isAdmin()) {
             throw new RepositoryException("The administrator cannot be removed.");
         }
-        Session s = node.getSession();
         userManager.onRemove(this);
         node.remove();
     }
@@ -216,8 +204,6 @@ abstract class AuthorizableImpl implements Authorizable {
      */
     @Override
     public boolean removeProperty(String relPath) throws RepositoryException {
-        String name = Text.getName(relPath);
-
         if (node.hasProperty(relPath)) {
             Property p = node.getProperty(relPath);
             if (isAuthorizableProperty(p, true)) {
@@ -294,6 +280,10 @@ abstract class AuthorizableImpl implements Authorizable {
         return node;
     }
 
+    String getJcrName(String oakName) {
+        return userManager.getJcrName(oakName);
+    }
+
     /**
      * @return The user manager associated with this authorizable.
      */
@@ -307,8 +297,9 @@ abstract class AuthorizableImpl implements Authorizable {
      */
     String getPrincipalName() throws RepositoryException {
         String principalName;
-        if (node.hasProperty(REP_PRINCIPAL_NAME)) {
-            principalName = node.getProperty(REP_PRINCIPAL_NAME).getString();
+        String propName = getJcrName(REP_PRINCIPAL_NAME);
+        if (node.hasProperty(propName)) {
+            principalName = node.getProperty(propName).getString();
         } else {
             log.debug("Authorizable without principal name -> using ID as fallback.");
             principalName = getID();
@@ -352,7 +343,7 @@ abstract class AuthorizableImpl implements Authorizable {
             return false;
         } else if (node.isSame(prop.getParent())) {
             NodeType declaringNt = prop.getDefinition().getDeclaringNodeType();
-            return declaringNt.isNodeType(NT_REP_AUTHORIZABLE);
+            return declaringNt.isNodeType(getJcrName(NT_REP_AUTHORIZABLE));
         } else {
             // another non-protected property somewhere in the subtree of this
             // authorizable node -> is a property that can be set using #setProperty.

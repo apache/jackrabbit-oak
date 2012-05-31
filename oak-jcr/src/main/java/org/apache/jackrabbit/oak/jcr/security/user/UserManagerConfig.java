@@ -20,7 +20,9 @@ import org.apache.jackrabbit.oak.jcr.security.user.action.AuthorizableAction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * UserManagerConfig...
@@ -30,42 +32,86 @@ public class UserManagerConfig {
     private static final Logger log = LoggerFactory.getLogger(UserManagerImpl.class);
 
     /**
+     * Configuration option to define the path underneath which user nodes
+     * are being created.
+     */
+    public static final String PARAM_USER_PATH = "usersPath";
+
+    /**
+     * Configuration option to define the path underneath which group nodes
+     * are being created.
+     */
+    public static final String PARAM_GROUP_PATH = "groupsPath";
+
+    /**
+     * Parameter used to change the number of levels that are used by default
+     * store authorizable nodes.<br>The default number of levels is 2.
+     * <p/>
+     * <strong>NOTE:</strong> Changing the default depth once users and groups
+     * have been created in the repository will cause inconsistencies, due to
+     * the fact that the resolution of ID to an authorizable relies on the
+     * structure defined by the default depth.<br>
+     * It is recommended to remove all authorizable nodes that will not be
+     * reachable any more, before this config option is changed.
+     * <ul>
+     * <li>If default depth is increased:<br>
+     * All authorizables on levels &lt; default depth are not reachable any more.</li>
+     * <li>If default depth is decreased:<br>
+     * All authorizables on levels &gt; default depth aren't reachable any more
+     * unless the {@link #PARAM_AUTO_EXPAND_TREE} flag is set to {@code true}.</li>
+     * </ul>
+     */
+    public static final String PARAM_DEFAULT_DEPTH = "defaultDepth";
+
+    /**
+     * If this parameter is present and its value is {@code true}, the trees
+     * containing user and group nodes will automatically created additional
+     * hierarchy levels if the number of nodes on a given level exceeds the
+     * maximal allowed {@link #PARAM_AUTO_EXPAND_SIZE size}.
+     */
+    public static final String PARAM_AUTO_EXPAND_TREE = "autoExpandTree";
+
+    /**
+     * This parameter only takes effect if {@link #PARAM_AUTO_EXPAND_TREE} is
+     * enabled.
+     */
+    public static final String PARAM_AUTO_EXPAND_SIZE = "autoExpandSize";
+
+    /**
      * If this parameter is present group members are collected in a node
      * structure below a {@link AuthorizableImpl#REP_MEMBERS} node instead of the
      * default multi valued property {@link AuthorizableImpl#REP_MEMBERS}.
      * Its value determines the maximum number of member properties until
-     * additional intermediate nodes are inserted. Valid values are integers
-     * &gt; 4. The default value is 0 and indicates that the
-     * {@link AuthorizableImpl#REP_MEMBERS} property is used to record group members.
+     * additional intermediate nodes are inserted.
      */
     public static final String PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE = "groupMembershipSplitSize";
 
     /**
      * Configuration parameter to change the default algorithm used to generate
-     * password hashes. The default value is {@link PasswordUtility#DEFAULT_ALGORITHM}.
+     * password hashes.
      */
     public static final String PARAM_PASSWORD_HASH_ALGORITHM = "passwordHashAlgorithm";
 
     /**
      * Configuration parameter to change the number of iterations used for
-     * password hash generation. The default value is {@link PasswordUtility#DEFAULT_ITERATIONS}.
+     * password hash generation.
      */
     public static final String PARAM_PASSWORD_HASH_ITERATIONS = "passwordHashIterations";
 
     /**
      * Configuration parameter to change the number of iterations used for
-     * password hash generation. The default value is {@link PasswordUtility#DEFAULT_ITERATIONS}.
+     * password hash generation.
      */
     public static final String PARAM_PASSWORD_SALT_SIZE = "passwordSaltSize";
 
     private final Map<String, Object> config;
     private final String adminId;
-    private final AuthorizableAction[] actions;
+    private final Set<AuthorizableAction> actions;
 
-    UserManagerConfig(Map<String, Object> config, String adminId, AuthorizableAction[] actions) {
+    public UserManagerConfig(Map<String, Object> config, String adminId, Set<AuthorizableAction> actions) {
         this.config = config;
         this.adminId = adminId;
-        this.actions = (actions == null) ? new AuthorizableAction[0] : actions;
+        this.actions = (actions == null) ? Collections.<AuthorizableAction>emptySet() : Collections.unmodifiableSet(actions);
     }
 
     public <T> T getConfigValue(String key, T defaultValue) {
@@ -81,7 +127,7 @@ public class UserManagerConfig {
     }
 
     public AuthorizableAction[] getAuthorizableActions() {
-        return actions;
+        return actions.toArray(new AuthorizableAction[actions.size()]);
     }
 
     //--------------------------------------------------------< private >---

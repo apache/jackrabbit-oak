@@ -18,20 +18,24 @@ package org.apache.jackrabbit.oak.jcr.security.user;
 
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.Query;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.jcr.NodeImpl;
+import org.apache.jackrabbit.oak.jcr.PropertyDelegate;
 import org.apache.jackrabbit.oak.jcr.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.security.user.action.AuthorizableAction;
 import org.apache.jackrabbit.oak.jcr.value.ValueConverter;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.user.PasswordUtility;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.jcr.ItemNotFoundException;
 import javax.jcr.Node;
+import javax.jcr.PathNotFoundException;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -59,7 +63,7 @@ public class UserManagerImpl implements UserManager {
     public UserManagerImpl(SessionDelegate sessionDelegate, UserManagerConfig config) {
         this.sessionDelegate = sessionDelegate;
         this.config = config;
-        nodeCreator = new AuthorizableNodeCreator(sessionDelegate);
+        nodeCreator = new AuthorizableNodeCreator(sessionDelegate, this.config);
     }
 
     //--------------------------------------------------------< UserManager >---
@@ -70,7 +74,7 @@ public class UserManagerImpl implements UserManager {
     public Authorizable getAuthorizable(String id) throws RepositoryException {
         Authorizable authorizable = null;
         try {
-            Node node = getSession().getNodeByIdentifier(buildIdentifier(id));
+            Node node = getSession().getNodeByIdentifier(nodeCreator.getNodeID(id));
             authorizable = getAuthorizable(node);
         } catch (ItemNotFoundException e) {
             log.debug("No authorizable with ID " + id);
@@ -88,7 +92,7 @@ public class UserManagerImpl implements UserManager {
         if (principal instanceof ItemBasedPrincipal) {
             String authPath = ((ItemBasedPrincipal) principal).getPath();
             if (session.nodeExists(authPath)) {
-                NodeImpl n = (NodeImpl) session.getNode(authPath);
+                Node n = session.getNode(authPath);
                 authorizable = getAuthorizable(n);
             }
         } else {
@@ -98,7 +102,8 @@ public class UserManagerImpl implements UserManager {
             if (a != null && name.equals(a.getPrincipal().getName())) {
                 authorizable = a;
             } else {
-                Iterator<Authorizable> result = findAuthorizables(AuthorizableImpl.REP_PRINCIPAL_NAME, name, SEARCH_TYPE_AUTHORIZABLE);
+                String propName = getJcrName(UserConstants.REP_PRINCIPAL_NAME);
+                Iterator<Authorizable> result = findAuthorizables(propName, name, SEARCH_TYPE_AUTHORIZABLE);
                 if (result.hasNext()) {
                     authorizable = result.next();
                 }
@@ -124,19 +129,19 @@ public class UserManagerImpl implements UserManager {
     @Override
     public Iterator<Authorizable> findAuthorizables(String relPath, String value) throws RepositoryException {
         // TODO : create and execute a query
-        return null;
+        throw new UnsupportedOperationException("Not Implemented");
     }
 
     @Override
     public Iterator<Authorizable> findAuthorizables(String relPath, String value, int searchType) throws RepositoryException {
         // TODO : create and execute a query
-        return null;
+        throw new UnsupportedOperationException("Not Implemented");
     }
 
     @Override
     public Iterator<Authorizable> findAuthorizables(Query query) throws RepositoryException {
         // TODO : execute the specified query
-        return null;
+        throw new UnsupportedOperationException("Not Implemented");
     }
 
     @Override
@@ -153,8 +158,9 @@ public class UserManagerImpl implements UserManager {
     @Override
     public User createUser(String userID, String password, Principal principal, String intermediatePath) throws RepositoryException {
         checkValidID(userID);
+        checkValidPrincipal(principal, false);
 
-        NodeImpl userNode = nodeCreator.createUserNode(userID, intermediatePath);
+        Node userNode = nodeCreator.createUserNode(userID, intermediatePath);
         setPrincipal(userNode, principal);
         setPassword(userNode, password, true);
 
@@ -189,8 +195,9 @@ public class UserManagerImpl implements UserManager {
     @Override
     public Group createGroup(String groupID, Principal principal, String intermediatePath) throws RepositoryException {
         checkValidID(groupID);
+        checkValidPrincipal(principal, true);
 
-        NodeImpl groupNode = nodeCreator.createGroupNode(groupID, intermediatePath);
+        Node groupNode = nodeCreator.createGroupNode(groupID, intermediatePath);
         setPrincipal(groupNode, principal);
 
         Group group = new GroupImpl(groupNode, this);
@@ -301,7 +308,7 @@ public class UserManagerImpl implements UserManager {
      * @throws javax.jcr.RepositoryException If an error occurs
      */
     void setPassword(Node userNode, String password, boolean forceHash) throws RepositoryException {
-        if (password != null) {
+        if (password == null) {
             log.debug("Password is null.");
             return;
         }
@@ -320,36 +327,38 @@ public class UserManagerImpl implements UserManager {
         } else {
             pwHash = password;
         }
-        setInternalProperty(userNode, AuthorizableImpl.REP_PASSWORD, pwHash, PropertyType.STRING);
-
+        setInternalProperty(userNode, UserConstants.REP_PASSWORD, pwHash, PropertyType.STRING);
     }
 
-    void setPrincipal(NodeImpl userNode, Principal principal) throws RepositoryException {
-        // TODO: validate the principal
-
-        if (!userNode.isNew() || userNode.hasProperty(AuthorizableImpl.REP_PRINCIPAL_NAME)) {
+    void setPrincipal(Node userNode, Principal principal) throws RepositoryException {
+        if (!userNode.isNew() || userNode.hasProperty(getJcrName(UserConstants.REP_PRINCIPAL_NAME))) {
             throw new RepositoryException("rep:principalName can only be set once on a new node.");
         }
-        setInternalProperty(userNode, AuthorizableImpl.REP_PRINCIPAL_NAME, principal.getName(), PropertyType.STRING);
+        setInternalProperty(userNode, UserConstants.REP_PRINCIPAL_NAME, principal.getName(), PropertyType.STRING);
     }
 
-    void setInternalProperty(Node userNode, String name, String value, int type) throws RepositoryException {
+    void setInternalProperty(Node userNode, String oakName, String value, int type) throws RepositoryException {
         CoreValue cv = ValueConverter.toCoreValue(value, type, sessionDelegate);
-        sessionDelegate.getNode(getInternalPath(userNode)).setProperty(name, cv);
+        sessionDelegate.getNode(userNode).setProperty(oakName, cv);
     }
 
-    void setInternalProperty(Node userNode, String name, String[] values, int type) throws RepositoryException {
+    void setInternalProperty(Node userNode, String oakName, String[] values, int type) throws RepositoryException {
         List<CoreValue> cvs = ValueConverter.toCoreValues(values, type, sessionDelegate);
-        sessionDelegate.getNode(getInternalPath(userNode)).setProperty(name, cvs);
+        sessionDelegate.getNode(userNode).setProperty(oakName, cvs);
     }
 
-    void setInternalProperty(Node userNode, String name, Value[] values) throws RepositoryException {
+    void setInternalProperty(Node userNode, String oakName, Value[] values) throws RepositoryException {
         List<CoreValue> cvs = ValueConverter.toCoreValues(values, sessionDelegate);
-        sessionDelegate.getNode(getInternalPath(userNode)).setProperty(name, cvs);
+        sessionDelegate.getNode(userNode).setProperty(oakName, cvs);
     }
 
-    void removeInternalProperty(Node userNode, String name) throws RepositoryException {
-        sessionDelegate.getNode(getInternalPath(userNode)).getProperty(name).remove();
+    void removeInternalProperty(Node userNode, String oakName) throws RepositoryException {
+        PropertyDelegate pd = sessionDelegate.getNode(userNode).getProperty(oakName);
+        if (pd == null) {
+            throw new PathNotFoundException("Missing authorizable property " + oakName);
+        } else {
+            pd.remove();
+        }
     }
 
     Session getSession() {
@@ -369,26 +378,33 @@ public class UserManagerImpl implements UserManager {
     }
 
     Authorizable getAuthorizable(Node node) throws RepositoryException {
-        if (node.isNodeType(AuthorizableImpl.NT_REP_USER)) {
+        if (node.isNodeType(getJcrName(UserConstants.NT_REP_USER))) {
             return new UserImpl(node, this);
-        } else if (node.isNodeType(AuthorizableImpl.NT_REP_GROUP)) {
+        } else if (node.isNodeType(getJcrName(UserConstants.NT_REP_GROUP))) {
             return new GroupImpl(node, this);
         } else {
             throw new RepositoryException("Unexpected node type " + node.getPrimaryNodeType().getName() + ". Expected rep:User or rep:Group.");
         }
     }
 
-    private String buildIdentifier(String authorizableID) {
-        // TODO
-        return null;
+    String getJcrName(String oakName) {
+        return sessionDelegate.getNamePathMapper().getJcrName(oakName);
     }
 
-    private void checkValidID(String authorizableID) {
-        // TODO
+    private void checkValidID(String ID) throws RepositoryException {
+        if (ID == null || ID.length() == 0) {
+            throw new IllegalArgumentException("Invalid ID " + ID);
+        } else if (getAuthorizable(ID) != null) {
+            throw new AuthorizableExistsException("Authorizable with ID " + ID + " already exists");
+        }
     }
 
-    private String getInternalPath(Node node) throws RepositoryException {
-        return sessionDelegate.getOakPathOrThrow(node.getPath());
+    private void checkValidPrincipal(Principal principal, boolean isGroup) {
+        if (principal == null || principal.getName() == null || "".equals(principal.getName())) {
+            throw new IllegalArgumentException("Principal may not be null and must have a valid name.");
+        }
+        if (!isGroup && EveryonePrincipal.NAME.equals(principal.getName())) {
+            throw new IllegalArgumentException("'everyone' is a reserved group principal name.");
+        }
     }
-
 }

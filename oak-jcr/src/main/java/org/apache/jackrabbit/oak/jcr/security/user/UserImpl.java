@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.jcr.security.user;
 
 import org.apache.jackrabbit.api.security.user.Impersonation;
 import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.oak.spi.security.user.PasswordUtility;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,7 +44,7 @@ class UserImpl extends AuthorizableImpl implements User {
     }
 
     void checkValidNode(Node node) throws RepositoryException {
-        if (node == null || !node.isNodeType(AuthorizableImpl.NT_REP_USER)) {
+        if (node == null || !node.isNodeType(getJcrName(NT_REP_USER))) {
             throw new IllegalArgumentException("Invalid user node: node type rep:User expected.");
         }
     }
@@ -117,8 +118,9 @@ class UserImpl extends AuthorizableImpl implements User {
     public void changePassword(String password, String oldPassword) throws RepositoryException {
         // make sure the old password matches.
         String pwHash = null;
-        if (getNode().hasProperty(REP_PASSWORD)) {
-            pwHash = getNode().getProperty(REP_PASSWORD).getString();
+        String pwPropName = getJcrName(REP_PASSWORD);
+        if (getNode().hasProperty(pwPropName)) {
+            pwHash = getNode().getProperty(pwPropName).getString();
         }
         if (!PasswordUtility.isSame(pwHash, oldPassword)) {
             throw new RepositoryException("Failed to change password: Old password does not match.");
@@ -149,7 +151,7 @@ class UserImpl extends AuthorizableImpl implements User {
      */
     @Override
     public boolean isDisabled() throws RepositoryException {
-        return getNode().hasProperty(REP_DISABLED);
+        return getNode().hasProperty(getJcrName(REP_DISABLED));
     }
 
     /**
@@ -158,7 +160,7 @@ class UserImpl extends AuthorizableImpl implements User {
     @Override
     public String getDisabledReason() throws RepositoryException {
         if (isDisabled()) {
-            return getNode().getProperty(REP_DISABLED).getString();
+            return getNode().getProperty(getJcrName(REP_DISABLED)).getString();
         } else {
             return null;
         }

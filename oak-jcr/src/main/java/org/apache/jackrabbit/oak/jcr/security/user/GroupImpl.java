@@ -45,7 +45,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
 
     @Override
     void checkValidNode(Node node) throws RepositoryException {
-        if (node == null || !node.isNodeType(AuthorizableImpl.NT_REP_GROUP)) {
+        if (node == null || !node.isNodeType(getJcrName(NT_REP_GROUP))) {
             throw new IllegalArgumentException("Invalid group node: node type rep:Group expected.");
         }
     }
@@ -162,7 +162,8 @@ class GroupImpl extends AuthorizableImpl implements Group {
      */
     private Iterator<Authorizable> getMembers(boolean includeInherited) throws RepositoryException {
         if (isEveryone()) {
-            return getUserManager().findAuthorizables(AuthorizableImpl.REP_PRINCIPAL_NAME, null, UserManager.SEARCH_TYPE_AUTHORIZABLE);
+            String propName = getJcrName(REP_PRINCIPAL_NAME);
+            return getUserManager().findAuthorizables(propName, null, UserManager.SEARCH_TYPE_AUTHORIZABLE);
         } else {
             MembershipManager mMgr = getUserManager().getMembershipManager();
             return mMgr.getMembers(this, UserManager.SEARCH_TYPE_AUTHORIZABLE, includeInherited);
