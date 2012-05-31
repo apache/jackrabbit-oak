@@ -43,6 +43,7 @@ public class DbBlobStore extends AbstractBlobStore {
                 "(id varchar primary key, level int, lastMod bigint)");
         stat.execute("create table if not exists datastore_data" +
                 "(id varchar primary key, data binary)");
+        stat.close();
         conn.close();
     }
 
@@ -154,6 +155,7 @@ public class DbBlobStore extends AbstractBlobStore {
             prep.setString(2, id);
             prep.setLong(3, minLastModified);
             prep.executeUpdate();
+            prep.close();
         } finally {
             conn.close();
         }
@@ -183,6 +185,8 @@ public class DbBlobStore extends AbstractBlobStore {
                 prepData.execute();
                 count++;
             }
+            prepData.close();
+            prep.close();
         } finally {
             conn.close();
         }
