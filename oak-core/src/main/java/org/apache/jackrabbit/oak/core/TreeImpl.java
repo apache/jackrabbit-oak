@@ -326,6 +326,7 @@ public class TreeImpl implements Tree, PurgeListener {
      *
      * @param destParent  new parent for this tree
      * @param destName  new name for this tree
+     * @return {@code true} if this tree was moved.
      */
     public boolean moveTo(TreeImpl destParent, String destName) {
         if (destParent.hasChild(destName)) {
@@ -340,14 +341,14 @@ public class TreeImpl implements Tree, PurgeListener {
         return true;
     }
 
-    //------------------------------------------------------------< RootImpl.Listener >---
+    //--------------------------------------------------< RootImpl.Listener >---
 
     @Override
     public void purged() {
         nodeStateBuilder = null;
     }
 
-    //------------------------------------------------------------< protected >---
+    //----------------------------------------------------------< protected >---
 
     @CheckForNull
     protected NodeState getBaseState() {
