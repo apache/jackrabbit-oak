@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.mk.server;
 
+import org.apache.jackrabbit.mk.util.IOUtils;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
@@ -23,14 +25,12 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 
-import org.apache.jackrabbit.mk.util.IOUtils;
-
 /**
  * Process all HTTP requests on a single socket.
  */
 class HttpProcessor {
 
-    private static final int INITIAL_SO_TIMEOUT = 1000;
+    private static final int INITIAL_SO_TIMEOUT = 10000;
 
     private static final int DEFAULT_SO_TIMEOUT = 30000;
 
