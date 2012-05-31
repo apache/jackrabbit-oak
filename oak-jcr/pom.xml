@@ -54,10 +54,7 @@
           <groupId>org.apache.rat</groupId>
           <artifactId>apache-rat-plugin</artifactId>
           <configuration>
-            <excludes>
-              <exclude>src/main/java/org/apache/jackrabbit/oak/jcr/security/user/diff.txt</exclude>
-              <exclude>src/main/java/org/apache/jackrabbit/oak/jcr/security/privileges/diff.txt</exclude>
-            </excludes>
+            <excludes/>
           </configuration>
         </plugin>
       </plugins>
@@ -141,6 +138,12 @@
         <artifactId>logback-classic</artifactId>
         <version>1.0.1</version>
         <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>jackrabbit-jcr-tests</artifactId>
+      <version>${jackrabbit.version}</version>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 </project>
