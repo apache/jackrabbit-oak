@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.query;
 
-import javax.jcr.GuestCredentials;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.mk.index.IndexWrapper;
@@ -25,6 +24,8 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
+
+import javax.jcr.GuestCredentials;
 
 /**
  * AbstractQueryTest...
@@ -41,7 +42,7 @@ public abstract class AbstractQueryTest {
         MicroKernel rawMk = new MicroKernelImpl();
         mk = new IndexWrapper(rawMk);
         Indexer indexer = new Indexer(mk, rawMk, Indexer.INDEX_CONFIG_ROOT);
-        rep = new ContentRepositoryImpl(mk, indexer);
+        rep = new ContentRepositoryImpl(mk, indexer, null);
         try {
             session = rep.login(new GuestCredentials(), "default");
             vf = session.getCoreValueFactory();
