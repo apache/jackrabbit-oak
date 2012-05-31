@@ -40,6 +40,8 @@ public class FileBlobStore extends AbstractBlobStore {
     private final byte[] buffer = new byte[16 * 1024];
     private boolean mark;
 
+    // TODO file operations are not secure (return values not checked, no retry,...)
+
     public FileBlobStore(String dir) throws IOException {
         baseDir = new File(dir);
         baseDir.mkdirs();

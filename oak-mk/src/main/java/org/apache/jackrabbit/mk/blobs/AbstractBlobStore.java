@@ -392,6 +392,9 @@ public abstract class AbstractBlobStore implements Closeable, BlobStore, Cache.B
             if (this == other) {
                 return true;
             }
+            if (other == null || !(other instanceof BlockId)) {
+                return false;
+            }
             BlockId o = (BlockId) other;
             return Arrays.equals(digest, o.digest) &&
                     pos == o.pos;
