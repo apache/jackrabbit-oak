@@ -61,7 +61,7 @@ class MembershipManager {
         this.sessionDelegate = sessionDelegate;
         this.memberSplitSize = memberSplitSize;
 
-        repMembers = sessionDelegate.getNamePathMapper().getJcrName(AuthorizableImpl.REP_MEMBERS);
+        repMembers = userManager.getJcrName(UserConstants.REP_MEMBERS);
     }
 
     Iterator<Group> getMembership(AuthorizableImpl authorizable, boolean includeInherited) throws RepositoryException {

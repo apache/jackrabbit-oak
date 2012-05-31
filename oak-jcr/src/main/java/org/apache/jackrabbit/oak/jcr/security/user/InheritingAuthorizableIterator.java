@@ -43,7 +43,8 @@ public class InheritingAuthorizableIterator<T extends Authorizable> extends Filt
     }
 
     /**
-     *
+     * Predicate to keep track of the IDs of those groups that have already
+     * been processed.
      */
     private static final class ProcessedIdPredicate implements Predicate {
 
@@ -55,7 +56,7 @@ public class InheritingAuthorizableIterator<T extends Authorizable> extends Filt
                 try {
                     return processedIds.add(((Group) object).getID());
                 } catch (RepositoryException e) {
-                    // TODO
+                    log.warn(e.getMessage());
                 }
             }
             return false;

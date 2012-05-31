@@ -39,14 +39,12 @@ import java.util.Set;
 /**
  * ImpersonationImpl...
  */
-class ImpersonationImpl implements Impersonation {
+class ImpersonationImpl implements Impersonation, UserConstants {
 
     /**
      * logger instance
      */
     private static final Logger log = LoggerFactory.getLogger(ImpersonationImpl.class);
-
-    private static final String P_IMPERSONATORS = "rep:impersonators";
 
     private final UserImpl user;
 
@@ -115,13 +113,13 @@ class ImpersonationImpl implements Impersonation {
             return false;
         }
 
-        boolean granted = false;
         Set<String> impersonators = getImpersonatorNames();
         if (impersonators.add(principalName)) {
             updateImpersonatorNames(impersonators);
-            granted = true;
+            return true;
+        } else {
+            return false;
         }
-        return granted;
     }
 
     /**
@@ -129,15 +127,15 @@ class ImpersonationImpl implements Impersonation {
      */
     @Override
     public synchronized boolean revokeImpersonation(Principal principal) throws RepositoryException {
-        boolean revoked = false;
         String pName = principal.getName();
 
         Set<String> impersonators = getImpersonatorNames();
         if (impersonators.remove(pName)) {
             updateImpersonatorNames(impersonators);
-            revoked = true;
+            return true;
+        } else {
+            return false;
         }
-        return revoked;
     }
 
     /**
@@ -179,8 +177,9 @@ class ImpersonationImpl implements Impersonation {
 
     private Set<String> getImpersonatorNames() throws RepositoryException {
         Set<String> princNames = new HashSet<String>();
-        if (user.getNode().hasProperty(P_IMPERSONATORS)) {
-            Value[] vs = user.getNode().getProperty(P_IMPERSONATORS).getValues();
+        String propName = user.getJcrName(REP_IMPERSONATORS);
+        if (user.getNode().hasProperty(propName)) {
+            Value[] vs = user.getNode().getProperty(propName).getValues();
             for (Value v : vs) {
                 princNames.add(v.getString());
             }
@@ -191,9 +190,9 @@ class ImpersonationImpl implements Impersonation {
     private void updateImpersonatorNames(Set<String> principalNames) throws RepositoryException {
         String[] pNames = principalNames.toArray(new String[principalNames.size()]);
         if (pNames.length == 0) {
-            user.getUserManager().removeInternalProperty(user.getNode(), P_IMPERSONATORS);
+            user.getUserManager().removeInternalProperty(user.getNode(), REP_IMPERSONATORS);
         } else {
-            user.getUserManager().setInternalProperty(user.getNode(), P_IMPERSONATORS, pNames, PropertyType.STRING);
+            user.getUserManager().setInternalProperty(user.getNode(), REP_IMPERSONATORS, pNames, PropertyType.STRING);
         }
     }
 
