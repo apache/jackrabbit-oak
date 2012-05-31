@@ -563,17 +563,29 @@ public class SimpleKernelImpl extends MicroKernelWrapperBase implements MicroKer
 
     @Override
     public long getLength(String blobId) {
-        return ds.getBlobLength(blobId);
+        try {
+            return ds.getBlobLength(blobId);
+        } catch (Exception e) {
+            throw ExceptionFactory.convert(e);
+        }
     }
 
     @Override
     public int read(String blobId, long pos, byte[] buff, int off, int length) {
-        return ds.readBlob(blobId, pos, buff, off, length);
+        try {
+            return ds.readBlob(blobId, pos, buff, off, length);
+        } catch (Exception e) {
+            throw ExceptionFactory.convert(e);
+        }
     }
 
     @Override
     public String write(InputStream in) {
-        return ds.writeBlob(in);
+        try {
+            return ds.writeBlob(in);
+        } catch (Exception e) {
+            throw ExceptionFactory.convert(e);
+        }
     }
 
     @Override
