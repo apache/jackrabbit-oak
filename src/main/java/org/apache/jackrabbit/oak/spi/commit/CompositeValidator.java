@@ -23,6 +23,10 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * This {@code Validator} aggregates a list of validators into
+ * a single validator.
+ */
 public class CompositeValidator implements Validator {
     private final List<Validator> validators;
 
