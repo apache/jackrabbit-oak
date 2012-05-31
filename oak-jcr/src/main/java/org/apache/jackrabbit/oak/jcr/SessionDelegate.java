@@ -39,6 +39,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.ItemExistsException;
 import javax.jcr.NamespaceRegistry;
+import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -131,6 +132,14 @@ public class SessionDelegate {
     public NodeDelegate getNode(String path) {
         Tree tree = getTree(path);
         return tree == null ? null : new NodeDelegate(this, tree);
+    }
+
+    public NodeDelegate getNode(Node jcrNode) {
+        if (jcrNode instanceof NodeImpl) {
+            return ((NodeImpl) jcrNode).getNodeDelegate();
+        } else {
+            throw new IllegalArgumentException("NodeImpl expected");
+        }
     }
 
     @CheckForNull
@@ -338,7 +347,7 @@ public class SessionDelegate {
         return contentSession;
     }
 
-    //------------------------------------------------------------< internal >---
+    //-----------------------------------------------------------< internal >---
 
     @CheckForNull
     Tree getTree(String path) {
