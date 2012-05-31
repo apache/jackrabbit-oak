@@ -56,58 +56,56 @@ public class ValidatingCommitHook implements CommitHook {
 
     //------------------------------------------------------------< private >---
 
-    /**
-     * Checked exceptions don't compose. So we need to hack around. See
-     * <ul>
-     * <li>http://markmail.org/message/ak67n5k7mr3vqylm</li>
-     * <li>http://markmail.org/message/7l26cofhyr3sk5pr</li>
-     * <li>http://markmail.org/message/nw7mg4cmgpeqq4i5</li>
-     * <li>http://markmail.org/message/bhocbruikljpuhu6</li>
-     * </ul>
-     */
-    private static class BreakOutException extends RuntimeException {
-        public BreakOutException(CommitFailedException cause) {
-            super(cause);
-        }
-    }
-
     private static void validate(final NodeStore store, NodeState before, NodeState after,
             final Validator validator) throws CommitFailedException {
 
-        try {
-            store.compare(before, after, new NodeStateDiff() {
-                @Override
-                public void propertyAdded(PropertyState after) {
+        /*
+         * Checked exceptions don't compose. So we need to hack around.
+         * See http://markmail.org/message/ak67n5k7mr3vqylm and
+         * http://markmail.org/message/bhocbruikljpuhu6
+         */
+        final CommitFailedException[] exception = {null};
+
+        store.compare(before, after, new NodeStateDiff() {
+            @Override
+            public void propertyAdded(PropertyState after) {
+                if (exception[0] == null) {
                     try {
                         validator.propertyAdded(after);
                     }
                     catch (CommitFailedException e) {
-                        throw new BreakOutException(e);
+                        exception[0] = e;
                     }
                 }
+            }
 
-                @Override
-                public void propertyChanged(PropertyState before, PropertyState after) {
+            @Override
+            public void propertyChanged(PropertyState before, PropertyState after) {
+                if (exception[0] == null) {
                     try {
                         validator.propertyChanged(before, after);
                     }
                     catch (CommitFailedException e) {
-                        throw new BreakOutException(e);
+                        exception[0] = e;
                     }
                 }
+            }
 
-                @Override
-                public void propertyDeleted(PropertyState before) {
+            @Override
+            public void propertyDeleted(PropertyState before) {
+                if (exception[0] == null) {
                     try {
                         validator.propertyDeleted(before);
                     }
                     catch (CommitFailedException e) {
-                        throw new BreakOutException(e);
+                        exception[0] = e;
                     }
                 }
+            }
 
-                @Override
-                public void childNodeAdded(String name, NodeState after) {
+            @Override
+            public void childNodeAdded(String name, NodeState after) {
+                if (exception[0] == null) {
                     try {
                         Validator childValidator = validator.childNodeAdded(name, after);
                         if (childValidator != null) {
@@ -115,12 +113,14 @@ public class ValidatingCommitHook implements CommitHook {
                         }
                     }
                     catch (CommitFailedException e) {
-                        throw new BreakOutException(e);
+                        exception[0] = e;
                     }
                 }
+            }
 
-                @Override
-                public void childNodeChanged(String name, NodeState before, NodeState after) {
+            @Override
+            public void childNodeChanged(String name, NodeState before, NodeState after) {
+                if (exception[0] == null) {
                     try {
                         Validator childValidator = validator.childNodeChanged(name, before, after);
                         if (childValidator != null) {
@@ -128,23 +128,26 @@ public class ValidatingCommitHook implements CommitHook {
                         }
                     }
                     catch (CommitFailedException e) {
-                        throw new BreakOutException(e);
+                        exception[0] = e;
                     }
                 }
+            }
 
-                @Override
-                public void childNodeDeleted(String name, NodeState before) {
+            @Override
+            public void childNodeDeleted(String name, NodeState before) {
+                if (exception[0] == null) {
                     try {
                         validator.childNodeDeleted(name, before);
                     }
                     catch (CommitFailedException e) {
-                        throw new BreakOutException(e);
+                        exception[0] = e;
                     }
                 }
-            });
-        }
-        catch (BreakOutException e) {
-            throw new CommitFailedException(e);
+            }
+        });
+
+        if (exception[0] != null) {
+            throw new CommitFailedException(exception[0]);
         }
     }
 
