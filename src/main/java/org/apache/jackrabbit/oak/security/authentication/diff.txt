@@ -1,7 +1,0 @@
-differences regarding jackrabbit 2.x implementation
-================================================================================
-
-- null credential login is no longer treated equivalent to GuestCredentials
-  -> GuestLoginModule for those cases that backwards compatibility
-
-- impersonation no longer uses simple credentials to transport the subject
