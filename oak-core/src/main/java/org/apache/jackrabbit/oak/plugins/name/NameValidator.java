@@ -44,8 +44,7 @@ class NameValidator implements Validator {
             local = name.substring(colon + 1);
         }
 
-        if (!(prefix == null || !prefixes.contains(prefix))
-                || !isValidLocalName(local)) {
+        if ((prefix != null && !prefixes.contains(prefix)) || !isValidLocalName(local)) {
             throw new CommitFailedException("Invalid name: " + name);
         }
     }

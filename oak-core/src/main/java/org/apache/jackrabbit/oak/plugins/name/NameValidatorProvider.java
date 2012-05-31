@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.name;
 
-import java.util.HashSet;
-import java.util.Set;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+
+import java.util.HashSet;
+import java.util.Set;
 
 public class NameValidatorProvider implements ValidatorProvider {
 
@@ -30,6 +30,7 @@ public class NameValidatorProvider implements ValidatorProvider {
     public Validator getRootValidator(NodeState before, NodeState after) {
         Set<String> prefixes = new HashSet<String>();
 
+        // FIXME don't hardcode these here but fetch them from the ns registry
         // Default JCR prefixes are always available
         prefixes.add("jcr");
         prefixes.add("nt");
@@ -38,6 +39,9 @@ public class NameValidatorProvider implements ValidatorProvider {
 
         // Jackrabbit 2.x prefixes are always available
         prefixes.add("rep");
+
+        prefixes.add("tst");
+        prefixes.add("test");
 
         // Find any extra prefixes from /jcr:system/jcr:namespaces
         NodeState system = after.getChildNode("jcr:system");
