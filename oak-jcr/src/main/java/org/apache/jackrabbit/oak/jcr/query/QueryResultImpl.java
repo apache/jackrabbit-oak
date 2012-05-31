@@ -18,16 +18,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.query;
 
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
-
-import javax.annotation.CheckForNull;
-import javax.jcr.NodeIterator;
-import javax.jcr.RepositoryException;
-import javax.jcr.Value;
-import javax.jcr.query.QueryResult;
-import javax.jcr.query.RowIterator;
 import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
 import org.apache.jackrabbit.commons.iterator.RowIteratorAdapter;
 import org.apache.jackrabbit.oak.api.CoreValue;
@@ -37,6 +27,16 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.NodeImpl;
 import org.apache.jackrabbit.oak.jcr.SessionDelegate;
+
+import javax.annotation.CheckForNull;
+import javax.jcr.NodeIterator;
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+import javax.jcr.query.QueryResult;
+import javax.jcr.query.RowIterator;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
 
 /**
  * The implementation of the corresponding JCR interface.
@@ -53,7 +53,7 @@ public class QueryResultImpl implements QueryResult {
 
         // TODO the path currently contains the workspace name
         // TODO filter in oak-core once we support workspaces there
-        pathFilter = "/" + sessionDelegate.getWorkspaceName();
+        pathFilter = "/";
     }
 
     @Override

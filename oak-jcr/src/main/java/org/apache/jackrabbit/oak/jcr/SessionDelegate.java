@@ -356,7 +356,6 @@ public class SessionDelegate {
 
     @CheckForNull
     NodeDelegate findByJcrUuid(String id) {
-
         try {
             Map<String, CoreValue> bindings = Collections.singletonMap("id", getValueFactory().getCoreValueFactory()
                     .createValue(id));
@@ -367,13 +366,11 @@ public class SessionDelegate {
             String path = null;
 
             for (ResultRow rr : result.getRows()) {
-                String tmppath = PathUtils.concat("/", PathUtils.relativize('/' + getWorkspaceName(), rr.getPath()));
-
                 if (path != null) {
-                    log.error("multiple results for identifier lookup: " + path + " vs. " + tmppath);
+                    log.error("multiple results for identifier lookup: " + path + " vs. " + rr.getPath());
                     return null;
                 } else {
-                    path = tmppath;
+                    path = rr.getPath();
                 }
             }
 
