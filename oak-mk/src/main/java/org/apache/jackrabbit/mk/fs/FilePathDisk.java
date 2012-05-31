@@ -299,24 +299,6 @@ public class FilePathDisk extends FilePath {
         return in;
     }
 
-    /**
-     * Call the garbage collection and run finalization. This close all files that
-     * were not closed, and are no longer referenced.
-     */
-    static void freeMemoryAndFinalize() {
-        Runtime rt = Runtime.getRuntime();
-        long mem = rt.freeMemory();
-        for (int i = 0; i < 16; i++) {
-            rt.gc();
-            long now = rt.freeMemory();
-            rt.runFinalization();
-            if (now == mem) {
-                break;
-            }
-            mem = now;
-        }
-    }
-
     @Override
     public FileChannel open(String mode) throws IOException {
         return new FileDisk(name, mode);
