@@ -282,7 +282,7 @@ public abstract class AbstractBlobStore implements Closeable, BlobStore, Cache.B
 
     protected abstract byte[] readBlockFromBackend(BlockId id) throws Exception;
 
-    public long getBlobLength(String blobId) throws Exception {
+    public long getBlobLength(String blobId) throws IOException {
         if (isMarkEnabled()) {
             mark(blobId);
         }

@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.mk.blobs;
 
 import junit.framework.TestCase;
-import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.mk.util.IOUtilsTest;
@@ -130,13 +129,13 @@ public abstract class AbstractBlobStoreTest extends TestCase {
         try {
             store.readBlob("ff", 0, data, 0, 1);
             fail();
-        } catch (MicroKernelException e) {
+        } catch (Exception e) {
             // expected
         }
         try {
             store.getBlobLength("ff");
             fail();
-        } catch (MicroKernelException e) {
+        } catch (Exception e) {
             // expected
         }
         try {
