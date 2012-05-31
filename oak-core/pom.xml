@@ -64,9 +64,6 @@
           <groupId>org.apache.rat</groupId>
           <artifactId>apache-rat-plugin</artifactId>
           <configuration>
-            <excludes>
-              <exclude>src/main/java/org/apache/jackrabbit/oak/security/authentication/diff.txt</exclude>
-            </excludes>
           </configuration>
         </plugin>
       </plugins>
