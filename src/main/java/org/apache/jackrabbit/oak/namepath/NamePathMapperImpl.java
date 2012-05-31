@@ -80,17 +80,6 @@ public class NamePathMapperImpl implements NamePathMapper {
             }
 
             @Override
-            public boolean identifier(String identifier) {
-                if (!elements.isEmpty()) {
-                    parseErrors.append("[identifier] on non-empty path");
-                    return false;
-                }
-                elements.add(identifier);  // todo resolve identifier
-                // todo seal elements
-                return true;
-            }
-
-            @Override
             public boolean current() {
                 // nothing to do here
                 return true;
@@ -178,16 +167,6 @@ public class NamePathMapperImpl implements NamePathMapper {
                     throw new IllegalArgumentException("/ on non-empty path");
                 }
                 elements.add("");
-                return true;
-            }
-
-            @Override
-            public boolean identifier(String identifier) {
-                if (!elements.isEmpty()) {
-                    throw new IllegalArgumentException("[identifier] on non-empty path");
-                }
-                elements.add(identifier);  // todo resolve identifier
-                // todo seal elements
                 return true;
             }
 
