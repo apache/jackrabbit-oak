@@ -68,7 +68,7 @@ public class ContentRepositoryImpl implements ContentRepository {
      * test cases only.
      */
     public ContentRepositoryImpl() {
-        this(new MicroKernelImpl(), null);
+        this(new MicroKernelImpl(), null, null);
     }
 
     /**
@@ -78,14 +78,18 @@ public class ContentRepositoryImpl implements ContentRepository {
      * @param microKernel underlying kernel instance
      * @param indexProvider index provider
      */
-    public ContentRepositoryImpl(MicroKernel microKernel, QueryIndexProvider indexProvider) {
-        List<ValidatorProvider> providers = new ArrayList<ValidatorProvider>();
-        providers.add(new NameValidatorProvider());
-        providers.add(new TypeValidatorProvider());
-        CompositeValidatorProvider compositeProvider = new CompositeValidatorProvider(providers);
+    public ContentRepositoryImpl(MicroKernel microKernel, QueryIndexProvider indexProvider,
+            ValidatorProvider validatorProvider) {
+
+        if (validatorProvider == null) {
+            List<ValidatorProvider> providers = new ArrayList<ValidatorProvider>();
+            providers.add(new NameValidatorProvider());
+            providers.add(new TypeValidatorProvider());
+            validatorProvider = new CompositeValidatorProvider(providers);
+        }
 
         List<CommitHook> hooks = new ArrayList<CommitHook>();
-        hooks.add(new ValidatingCommitHook(compositeProvider));
+        hooks.add(new ValidatingCommitHook(validatorProvider));
         CompositeCommitHook compositeHook = new CompositeCommitHook(hooks);
 
         nodeStore = new KernelNodeStore(microKernel, compositeHook);
