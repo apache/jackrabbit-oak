@@ -35,7 +35,6 @@ import org.apache.jackrabbit.mk.store.BinaryBinding;
 import org.apache.jackrabbit.mk.store.Binding;
 import org.apache.jackrabbit.mk.store.IdFactory;
 import org.apache.jackrabbit.mk.store.NotFoundException;
-import org.apache.jackrabbit.mk.util.ExceptionFactory;
 import org.apache.jackrabbit.mk.util.IOUtils;
 import org.apache.jackrabbit.mk.util.StringUtils;
 import org.bson.types.ObjectId;
@@ -254,17 +253,13 @@ public class MongoPersistence implements Persistence, BlobStore {
     //------------------------------------------------------------< BlobStore >
 
     public String addBlob(String tempFilePath) throws Exception {
+        File file = new File(tempFilePath);
+        InputStream in = null;
         try {
-            File file = new File(tempFilePath);
-            InputStream in = null;
-            try {
-                in = new BufferedInputStream(new FileInputStream(file));
-                return writeBlob(in);
-            } finally {
-                file.delete();
-            }
-        } catch (Exception e) {
-            throw ExceptionFactory.convert(e);
+            in = new BufferedInputStream(new FileInputStream(file));
+            return writeBlob(in);
+        } finally {
+            file.delete();
         }
     }
 

@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.mk.blobs;
 
-import org.apache.jackrabbit.mk.util.ExceptionFactory;
 import org.apache.jackrabbit.mk.util.IOUtils;
 import org.apache.jackrabbit.mk.util.Cache;
 import org.apache.jackrabbit.mk.util.StringUtils;
@@ -105,25 +104,21 @@ public abstract class AbstractBlobStore implements Closeable, BlobStore, Cache.B
         return blockSize;
     }
 
-    public String addBlob(String tempFilePath) {
+    public String addBlob(String tempFilePath) throws Exception {
+        File file = new File(tempFilePath);
+        InputStream in = null;
         try {
-            File file = new File(tempFilePath);
-            InputStream in = null;
-            try {
-                in = new FileInputStream(file);
-                return writeBlob(in);
-            } finally {
-                if (in != null) {
-                    in.close();
-                }
-                file.delete();
+            in = new FileInputStream(file);
+            return writeBlob(in);
+        } finally {
+            if (in != null) {
+                in.close();
             }
-        } catch (Exception e) {
-            throw ExceptionFactory.convert(e);
+            file.delete();
         }
     }
 
-    public String writeBlob(InputStream in) {
+    public String writeBlob(InputStream in) throws Exception {
         try {
             ByteArrayOutputStream idStream = new ByteArrayOutputStream();
             convertBlobToId(in, idStream, 0, 0);
@@ -132,13 +127,12 @@ public abstract class AbstractBlobStore implements Closeable, BlobStore, Cache.B
             String blobId = StringUtils.convertBytesToHex(id);
             usesBlobId(blobId);
             return blobId;
-        } catch (Exception e) {
+        } finally {
             try {
                 in.close();
-            } catch (IOException e1) {
+            } catch (IOException e) {
                 // ignore
             }
-            throw ExceptionFactory.convert(e);
         }
     }
 
@@ -221,59 +215,55 @@ public abstract class AbstractBlobStore implements Closeable, BlobStore, Cache.B
         }
     }
 
-    public int readBlob(String blobId, long pos, byte[] buff, int off, int length) {
-        try {
-            if (isMarkEnabled()) {
-                mark(blobId);
-            }
-            byte[] id = StringUtils.convertHexToBytes(blobId);
-            ByteArrayInputStream idStream = new ByteArrayInputStream(id);
-            while (true) {
-                int type = idStream.read();
-                if (type == -1) {
-                    return -1;
-                } else if (type == TYPE_DATA) {
-                    int len = IOUtils.readVarInt(idStream);
-                    if (pos < len) {
-                        IOUtils.skipFully(idStream, (int) pos);
-                        len -= pos;
-                        if (length < len) {
-                            len = length;
-                        }
-                        IOUtils.readFully(idStream, buff, off, len);
-                        return len;
+    public int readBlob(String blobId, long pos, byte[] buff, int off, int length) throws Exception {
+        if (isMarkEnabled()) {
+            mark(blobId);
+        }
+        byte[] id = StringUtils.convertHexToBytes(blobId);
+        ByteArrayInputStream idStream = new ByteArrayInputStream(id);
+        while (true) {
+            int type = idStream.read();
+            if (type == -1) {
+                return -1;
+            } else if (type == TYPE_DATA) {
+                int len = IOUtils.readVarInt(idStream);
+                if (pos < len) {
+                    IOUtils.skipFully(idStream, (int) pos);
+                    len -= pos;
+                    if (length < len) {
+                        len = length;
                     }
-                    IOUtils.skipFully(idStream, len);
-                    pos -= len;
-                } else if (type == TYPE_HASH) {
-                    int level = IOUtils.readVarInt(idStream);
-                    long totalLength = IOUtils.readVarLong(idStream);
-                    if (level > 0) {
-                        // block length (ignored)
-                        IOUtils.readVarLong(idStream);
-                    }
-                    byte[] digest = new byte[IOUtils.readVarInt(idStream)];
-                    IOUtils.readFully(idStream, digest, 0, digest.length);
-                    if (pos >= totalLength) {
-                        pos -= totalLength;
-                    } else {
-                        if (level > 0) {
-                            byte[] block = readBlock(digest, 0);
-                            idStream = new ByteArrayInputStream(block);
-                        } else {
-                            long readPos = pos - pos % blockSize;
-                            byte[] block = readBlock(digest, readPos);
-                            ByteArrayInputStream in = new ByteArrayInputStream(block);
-                            IOUtils.skipFully(in, pos - readPos);
-                            return IOUtils.readFully(in, buff, off, length);
-                        }
-                    }
-                } else {
-                    throw new IOException("Unknown blobs id type " + type + " for blob " + blobId);
+                    IOUtils.readFully(idStream, buff, off, len);
+                    return len;
                 }
+                IOUtils.skipFully(idStream, len);
+                pos -= len;
+            } else if (type == TYPE_HASH) {
+                int level = IOUtils.readVarInt(idStream);
+                long totalLength = IOUtils.readVarLong(idStream);
+                if (level > 0) {
+                    // block length (ignored)
+                    IOUtils.readVarLong(idStream);
+                }
+                byte[] digest = new byte[IOUtils.readVarInt(idStream)];
+                IOUtils.readFully(idStream, digest, 0, digest.length);
+                if (pos >= totalLength) {
+                    pos -= totalLength;
+                } else {
+                    if (level > 0) {
+                        byte[] block = readBlock(digest, 0);
+                        idStream = new ByteArrayInputStream(block);
+                    } else {
+                        long readPos = pos - pos % blockSize;
+                        byte[] block = readBlock(digest, readPos);
+                        ByteArrayInputStream in = new ByteArrayInputStream(block);
+                        IOUtils.skipFully(in, pos - readPos);
+                        return IOUtils.readFully(in, buff, off, length);
+                    }
+                }
+            } else {
+                throw new IOException("Unknown blobs id type " + type + " for blob " + blobId);
             }
-        } catch (Exception e) {
-            throw ExceptionFactory.convert(e);
         }
     }
 
@@ -286,46 +276,42 @@ public abstract class AbstractBlobStore implements Closeable, BlobStore, Cache.B
         try {
             return new Data(readBlockFromBackend(id));
         } catch (Exception e) {
-            throw ExceptionFactory.convert(e);
+            throw new RuntimeException("failed to read block from backend", e);
         }
     }
 
     protected abstract byte[] readBlockFromBackend(BlockId id) throws Exception;
 
-    public long getBlobLength(String blobId) {
-        try {
-            if (isMarkEnabled()) {
-                mark(blobId);
-            }
-            byte[] id = StringUtils.convertHexToBytes(blobId);
-            ByteArrayInputStream idStream = new ByteArrayInputStream(id);
-            long totalLength = 0;
-            while (true) {
-                int type = idStream.read();
-                if (type == -1) {
-                    break;
-                }
-                if (type == TYPE_DATA) {
-                    int len = IOUtils.readVarInt(idStream);
-                    IOUtils.skipFully(idStream, len);
-                    totalLength += len;
-                } else if (type == TYPE_HASH) {
-                    int level = IOUtils.readVarInt(idStream);
-                    totalLength += IOUtils.readVarLong(idStream);
-                    if (level > 0) {
-                        // block length (ignored)
-                        IOUtils.readVarLong(idStream);
-                    }
-                    int digestLength = IOUtils.readVarInt(idStream);
-                    IOUtils.skipFully(idStream, digestLength);
-                } else {
-                    throw new IOException("Datastore id type " + type + " for blob " + blobId);
-                }
-            }
-            return totalLength;
-        } catch (IOException e) {
-            throw ExceptionFactory.convert(e);
+    public long getBlobLength(String blobId) throws Exception {
+        if (isMarkEnabled()) {
+            mark(blobId);
         }
+        byte[] id = StringUtils.convertHexToBytes(blobId);
+        ByteArrayInputStream idStream = new ByteArrayInputStream(id);
+        long totalLength = 0;
+        while (true) {
+            int type = idStream.read();
+            if (type == -1) {
+                break;
+            }
+            if (type == TYPE_DATA) {
+                int len = IOUtils.readVarInt(idStream);
+                IOUtils.skipFully(idStream, len);
+                totalLength += len;
+            } else if (type == TYPE_HASH) {
+                int level = IOUtils.readVarInt(idStream);
+                totalLength += IOUtils.readVarLong(idStream);
+                if (level > 0) {
+                    // block length (ignored)
+                    IOUtils.readVarLong(idStream);
+                }
+                int digestLength = IOUtils.readVarInt(idStream);
+                IOUtils.skipFully(idStream, digestLength);
+            } else {
+                throw new IOException("Datastore id type " + type + " for blob " + blobId);
+            }
+        }
+        return totalLength;
     }
 
     protected void mark(String blobId) throws IOException {
