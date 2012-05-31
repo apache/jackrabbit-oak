@@ -51,6 +51,11 @@ public class NamePathMapperImpl implements NamePathMapper {
         return nameMapper.getJcrName(oakName);
     }
 
+    @Override
+    public boolean hasSessionLocalMappings() {
+        return nameMapper.hasSessionLocalMappings();
+    }
+
     //---------------------------------------------------------< PathMapper >---
     @Override
     public String getOakPath(String jcrPath) {

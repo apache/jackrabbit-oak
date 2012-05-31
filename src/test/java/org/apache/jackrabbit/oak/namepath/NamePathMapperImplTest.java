@@ -143,5 +143,10 @@ public class NamePathMapperImplTest {
             return "oak-" + uri2oakprefix.get(uri);
         }
 
+        @Override
+        public boolean hasSessionLocalMappings() {
+            return true;
+        }
+
     }
 }

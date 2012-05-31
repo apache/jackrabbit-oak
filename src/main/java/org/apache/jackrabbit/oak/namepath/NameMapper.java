@@ -32,6 +32,14 @@ public interface NameMapper {
     String getOakName(String jcrName);
 
     /**
+     * Returns whether the mapper has prefix remappings; when there aren't
+     * any, prefixed names do not need to be converted at all
+     * 
+     * @return {@code true} if prefixes have been remapped
+     */
+    boolean hasSessionLocalMappings();
+
+    /**
      * Returns the JCR name for the given Oak name. The given name is
      * expected to have come from a valid Oak repository that contains
      * only valid names with proper namespace mappings. If that's not
