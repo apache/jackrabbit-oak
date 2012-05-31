@@ -27,9 +27,8 @@ public class JcrPathParser {
     private static final int STATE_INDEX_END = 5;
     private static final int STATE_DOT = 6;
     private static final int STATE_DOTDOT = 7;
-    private static final int STATE_IDENTIFIER = 8;
-    private static final int STATE_URI = 9;
-    private static final int STATE_URI_END = 10;
+    private static final int STATE_URI = 8;
+    private static final int STATE_URI_END = 9;
 
     private static final char EOF = (char) -1;
 
@@ -38,7 +37,6 @@ public class JcrPathParser {
 
     interface Listener extends JcrNameParser.Listener {
         boolean root();
-        boolean identifier(String identifier);
         boolean current();
         boolean parent();
         boolean index(int index);
@@ -69,13 +67,7 @@ public class JcrPathParser {
         }
 
         // parse the path
-        int state;
-        if (jcrPath.charAt(0) == '[') {
-            state = STATE_IDENTIFIER;
-            pos++;
-        } else {
-            state = STATE_PREFIX_START;
-        }
+        int state = STATE_PREFIX_START;
 
         int lastPos = pos;
         String name = null;
@@ -122,21 +114,6 @@ public class JcrPathParser {
                         lastPos = pos;
                         name = null;
                         index = 0;
-                    } else if (state == STATE_IDENTIFIER) {
-                        if (c == EOF) {
-                            // eof identifier reached                            
-                            if (jcrPath.charAt(pos - 2) != ']') {
-                                listener.error('\'' + jcrPath + "' is not a valid path: " +
-                                        "Unterminated identifier segment.");
-                                return;
-                            }
-                            String identifier = jcrPath.substring(lastPos, pos - 2);
-                            if (!listener.identifier(identifier)) {
-                                return;
-                            }
-                            state = STATE_PREFIX_START;
-                            lastPos = pos;
-                        }
                     } else if (state == STATE_DOT) {
                         if (!listener.current()) {
                             return;
@@ -184,7 +161,7 @@ public class JcrPathParser {
                         }
                         state = STATE_NAME_START;
                         // don't reset the lastPos/pos since prefix+name are passed together to the NameResolver
-                    } else if (state != STATE_IDENTIFIER && state != STATE_URI) {
+                    } else if (state != STATE_URI) {
                         listener.error('\'' + jcrPath + "' is not a valid path. '" + c +
                                 "' not valid name character");
                         return;
@@ -201,10 +178,6 @@ public class JcrPathParser {
                         state = STATE_INDEX;
                         name = jcrPath.substring(lastPos, pos - 1);
                         lastPos = pos;
-                    } else if (state != STATE_IDENTIFIER) {
-                        listener.error('\'' + jcrPath + "' is not a valid path. '" + c +
-                                "' not a valid name character.");
-                        return;
                     }
                     break;
 
@@ -224,7 +197,7 @@ public class JcrPathParser {
                             return;
                         }
                         state = STATE_INDEX_END;
-                    } else if (state != STATE_IDENTIFIER) {
+                    } else {
                         listener.error('\'' + jcrPath + "' is not a valid path. '" + c +
                                 "' not a valid name character.");
                         return;
@@ -246,20 +219,14 @@ public class JcrPathParser {
                     break;
 
                 case '\t':
-                    if (state != STATE_IDENTIFIER) {
-                        listener.error('\'' + jcrPath + "' is not a valid path. " +
-                                "Whitespace not a allowed in name.");
-                        return;
-                    }
-                    break;
+                    listener.error('\'' + jcrPath + "' is not a valid path. " +
+                            "Whitespace not a allowed in name.");
+                    return;
                 case '*':
                 case '|':
-                    if (state != STATE_IDENTIFIER) {
-                        listener.error('\'' + jcrPath + "' is not a valid path. '" + c +
-                                "' not a valid name character.");
-                        return;
-                    }
-                    break;
+                    listener.error('\'' + jcrPath + "' is not a valid path. '" + c +
+                            "' not a valid name character.");
+                    return;
                 case '{':
                     if (state == STATE_PREFIX_START && lastPos == pos-1) {
                         // '{' marks the start of a uri enclosed in an expanded name

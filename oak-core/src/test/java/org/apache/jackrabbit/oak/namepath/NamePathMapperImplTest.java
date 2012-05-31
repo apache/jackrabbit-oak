@@ -35,12 +35,6 @@ public class NamePathMapperImplTest {
     private NamePathMapper npMapper = new NamePathMapperImpl(mapper);
 
     @Test
-    public void testValidIdentifierPath() {
-        String idPath = '[' + UUID.randomUUID().toString()+ ']';
-        assertNotNull(npMapper.getOakPath(idPath));
-    }
-
-    @Test
     public void testInvalidIdentifierPath() {
         List<String> invalid = new ArrayList<String>();
         invalid.add('[' + UUID.randomUUID().toString()+ "]abc");
