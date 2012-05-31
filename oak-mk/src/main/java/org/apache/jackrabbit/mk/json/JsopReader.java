@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.mk.json;
 
+import javax.annotation.CheckForNull;
+
 /**
  * A reader for Json and Jsop strings.
  */
@@ -24,7 +26,7 @@ public interface JsopReader {
     /**
      * The token type that signals the end of the stream.
      */
-    public static final int END = 0;
+    static final int END = 0;
 
     /**
      * The token type of a string value.
@@ -70,7 +72,7 @@ public interface JsopReader {
      * Read a token which must match a given token type.
      *
      * @param type the token type
-     * @return the token (a null object when reading a null value)
+     * @return the token (null when reading a null value)
      * @throws IllegalStateException if the token type doesn't match
      */
     String read(int type);
@@ -78,9 +80,10 @@ public interface JsopReader {
     /**
      * Read a string.
      *
-     * @return the de-escaped string
+     * @return the de-escaped string (null when reading a null value)
      * @throws IllegalStateException if the token type doesn't match
      */
+    @CheckForNull
     String readString();
 
     /**
@@ -98,6 +101,12 @@ public interface JsopReader {
      */
     boolean matches(int type);
 
+    /**
+     * Return the row (escaped) token.
+     *
+     * @return the escaped string (null when reading a null value)
+     */
+    @CheckForNull
     String readRawValue();
 
     /**
@@ -107,6 +116,7 @@ public interface JsopReader {
      *
      * @return the token
      */
+    @CheckForNull
     String getToken();
 
     /**
