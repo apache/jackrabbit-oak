@@ -77,8 +77,7 @@ public class NodeDelegate extends ItemDelegate {
         Tree parent = getParentTree();
         if (parent == null) {
             return Status.EXISTING;  // FIXME: return correct status for root
-        }
-        else {
+        } else {
             Status childStatus = parent.getChildStatus(getName());
             if (childStatus == null) {
                 throw new InvalidItemStateException("Node is stale");
