@@ -16,45 +16,24 @@
  */
 package org.apache.jackrabbit.oak.plugins.name;
 
-import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import java.util.HashSet;
-import java.util.Set;
-
+/**
+ * Validator service that checks that all node and property names as well
+ * as any name values are syntactically valid and that any namespace prefixes
+ * are properly registered.
+ */
+@Component
+@Service(ValidatorProvider.class)
 public class NameValidatorProvider implements ValidatorProvider {
 
     @Override
     public Validator getRootValidator(NodeState before, NodeState after) {
-        Set<String> prefixes = new HashSet<String>();
-
-        // FIXME don't hardcode these here but fetch them from the ns registry
-        // Default JCR prefixes are always available
-        prefixes.add("jcr");
-        prefixes.add("nt");
-        prefixes.add("mix");
-        prefixes.add("sv");
-
-        // Jackrabbit 2.x prefixes are always available
-        prefixes.add("rep");
-
-        prefixes.add("tst");
-        prefixes.add("test");
-
-        // Find any extra prefixes from /jcr:system/jcr:namespaces
-        NodeState system = after.getChildNode("jcr:system");
-        if (system != null) {
-            NodeState registry = system.getChildNode("jcr:namespaces");
-            if (registry != null) {
-                for (PropertyState property : registry.getProperties()) {
-                    prefixes.add(property.getName());
-                }
-            }
-        }
-
-        return new NameValidator(prefixes);
+        return new NameValidator(Namespaces.getNamespaceMap(after).keySet());
     }
 
 }
