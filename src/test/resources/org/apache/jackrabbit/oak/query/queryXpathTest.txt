@@ -19,7 +19,7 @@
 # * use ascii character only
 
 xpath /jcr:root/testdata/node[@jcr:primaryType]
-select [jcr:path], [jcr:score], * from [nt:base] where ([jcr:primaryType] is not null) and ([jcr:path] = '/testdata/node')
+select [jcr:path], [jcr:score], * from [nt:base] where ([jcr:primaryType] is not null) and issamenode('/testdata/node')
 
 xpath //testroot/*[@jcr:primaryType='nt:unstructured'] order by @prop2, @prop1
 invalid: Query: //testroot/*(*)[@jcr:primaryType='nt:unstructured'] order by @prop2, @prop1; expected: non-path condition
@@ -31,10 +31,10 @@ xpath /jcr:root/test//text()
 select [jcr:path], [jcr:score], * from [nt:base] where isdescendantnode('/test') and (name() = 'jcr:xmltext')
 
 xpath /jcr:root/test/jcr:xmltext
-select [jcr:path], [jcr:score], * from [nt:base] where [jcr:path] = '/test/jcr:xmltext'
+select [jcr:path], [jcr:score], * from [nt:base] where issamenode('/test/jcr:xmltext')
 
 xpath /jcr:root/test/text()
-select [jcr:path], [jcr:score], * from [nt:base] where [jcr:path] = '/test/jcr:xmltext'
+select [jcr:path], [jcr:score], * from [nt:base] where issamenode('/test/jcr:xmltext')
 
 xpath //*[@*='x']
 select [jcr:path], [jcr:score], * from [nt:base] where [*] = 'x'
@@ -87,6 +87,9 @@ select [jcr:path], [jcr:score], * from [nt:base] where ([jcr:primaryType] = 'Pag
 xpath /jcr:root/content/campaigns//element(*, PageContent)[(@sling:resourceType = 'teaser' or @sling:resourceType = 'newsletter' or @teaserPageType = 'newsletter' or @teaserPageType = 'tweet') and ((@onTime < xs:dateTime('2012-04-01T00:00:00.000+02:00')) or not(@onTime)) and ((@offTime >= xs:dateTime('2012-02-26T00:00:00.000+01:00')) or not(@offTime))] order by @onTime
 select [jcr:path], [jcr:score], * from [PageContent] where (((((([sling:resourceType] = 'teaser') or ([sling:resourceType] = 'newsletter')) or ([teaserPageType] = 'newsletter')) or ([teaserPageType] = 'tweet')) and (([onTime] < cast('2012-04-01T00:00:00.000+02:00' as date)) or ([onTime] is null))) and (([offTime] >= cast('2012-02-26T00:00:00.000+01:00' as date)) or ([offTime] is null))) and isdescendantnode('/content/campaigns') order by [onTime]
 
+xpath /jcr:root/content/dam//element(*, asset)
+select [jcr:path], [jcr:score], * from [asset] where isdescendantnode('/content/dam')
+
 xpath /jcr:root/content/dam//element(*, asset)[jcr:content/metadata/@dam:scene]
 select [jcr:path], [jcr:score], * from [asset] where ([jcr:content/metadata/dam:scene] is not null) and isdescendantnode('/content/dam')
 
@@ -129,7 +132,7 @@ xpath /jcr:root/nodes//element(*, my:type)
 select [jcr:path], [jcr:score], * from [my:type] where isdescendantnode('/nodes')
 
 xpath /jcr:root/some/element(nodes, my:type)
-select [jcr:path], [jcr:score], * from [my:type] where [jcr:path] = '/some/nodes'
+select [jcr:path], [jcr:score], * from [my:type] where issamenode('/some/nodes')
 
 xpath /jcr:root/some/nodes/element(*, my:type)
 select [jcr:path], [jcr:score], * from [my:type] where ischildnode('/some/nodes')

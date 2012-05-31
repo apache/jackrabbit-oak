@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.QueryEngine;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.query.index.TraversingIndex;
 import org.apache.jackrabbit.oak.spi.QueryIndex;
@@ -36,6 +37,7 @@ public class QueryEngineImpl implements QueryEngine {
 
     static final String SQL2 = "JCR-SQL2";
     private static final String XPATH = "xpath";
+    private static final String JQOM = "JCR-JQOM";
 
     private final MicroKernel mk;
     private final CoreValueFactory vf;
@@ -51,7 +53,7 @@ public class QueryEngineImpl implements QueryEngine {
 
     @Override
     public List<String> getSupportedQueryLanguages() {
-        return Arrays.asList(SQL2, XPATH);
+        return Arrays.asList(SQL2, XPATH, JQOM);
     }
 
     /**
@@ -70,7 +72,7 @@ public class QueryEngineImpl implements QueryEngine {
 
     private Query parseQuery(String statement, String language) throws ParseException {
         Query q;
-        if (SQL2.equals(language)) {
+        if (SQL2.equals(language) || JQOM.equals(language)) {
             q = parserSQL2.parse(statement);
         } else if (XPATH.equals(language)) {
             XPathToSQL2Converter converter = new XPathToSQL2Converter();
@@ -84,9 +86,11 @@ public class QueryEngineImpl implements QueryEngine {
 
     @Override
     public ResultImpl executeQuery(String statement, String language, ContentSession session,
-            long limit, long offset, Map<String, CoreValue> bindings) throws ParseException {
+            long limit, long offset, Map<String, CoreValue> bindings,
+            NamePathMapper namePathMapper) throws ParseException {
         Query q = parseQuery(statement, language);
         q.setSession(session);
+        q.setNamePathMapper(namePathMapper);
         q.setLimit(limit);
         q.setOffset(offset);
         q.setMicroKernel(mk);

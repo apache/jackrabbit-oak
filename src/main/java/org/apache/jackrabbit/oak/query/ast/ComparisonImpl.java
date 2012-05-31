@@ -64,7 +64,7 @@ public class ComparisonImpl extends ConstraintImpl {
         if (v1.getType() != v2.getType()) {
             // "the value of operand2 is converted to the
             // property type of the value of operand1"
-            v2 = convert(query.getValueFactory(), v2, v1.getType());
+            v2 = convert(v2, v1.getType());
         }
         switch (operator) {
         case EQUAL:
@@ -85,7 +85,7 @@ public class ComparisonImpl extends ConstraintImpl {
         throw new IllegalArgumentException("Unknown operator: " + operator);
     }
 
-    private static CoreValue convert(CoreValueFactory vf, CoreValue v, int targetType) {
+    private CoreValue convert(CoreValue v, int targetType) {
         // TODO support full set of conversion features defined in the JCR spec
         // at 3.6.4 Property Type Conversion
         // re-use existing code if possible
@@ -93,6 +93,7 @@ public class ComparisonImpl extends ConstraintImpl {
         if (sourceType == targetType) {
             return v;
         }
+        CoreValueFactory vf = query.getValueFactory();
         switch (sourceType) {
         case PropertyType.STRING:
             switch(targetType) {
@@ -122,7 +123,7 @@ public class ComparisonImpl extends ConstraintImpl {
         case PropertyType.DECIMAL:
             return vf.createValue(v.getString(), PropertyType.DECIMAL);
         case PropertyType.NAME:
-            return vf.createValue(v.getString(), PropertyType.NAME);
+            return vf.createValue(getOakPath(v.getString()), PropertyType.NAME);
         case PropertyType.PATH:
             return vf.createValue(v.getString(), PropertyType.PATH);
         case PropertyType.REFERENCE:

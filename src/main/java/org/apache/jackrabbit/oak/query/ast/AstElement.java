@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.kernel.CoreValueMapper;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.query.Query;
 
 import javax.jcr.PropertyType;
@@ -123,6 +124,19 @@ abstract class AstElement {
             return false;
         }
         return true;
+    }
+
+    protected String getOakPath(String jcrPath) {
+        NamePathMapper m = query.getNamePathMapper();
+        if (m == null) {
+            // to simplify testing, a getNamePathMapper isn't required
+            return jcrPath;
+        }
+        String p = m.getOakPath(jcrPath);
+        if (p == null) {
+            throw new IllegalArgumentException("Not a valid JCR path: " + jcrPath);
+        }
+        return p;
     }
 
 }

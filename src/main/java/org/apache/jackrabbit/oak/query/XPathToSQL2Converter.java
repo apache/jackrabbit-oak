@@ -169,8 +169,8 @@ public class XPathToSQL2Converter {
                 f.params.add(Literal.newString(path));
                 condition = add(condition, f);
             } else {
-                // TODO jcr:path is only a pseudo-property
-                Condition c = new Condition(new Property("jcr:path"), "=", Literal.newString(path));
+                Function c = new Function("issamenode");
+                c.params.add(Literal.newString(path));
                 condition = add(condition, c);
             }
             if (nodeName != null) {
