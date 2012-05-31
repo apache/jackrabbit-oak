@@ -23,10 +23,16 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
+import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
+import org.apache.jackrabbit.oak.plugins.type.TypeValidatorProvider;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
 import org.apache.jackrabbit.oak.security.authentication.LoginContextProviderImpl;
 import org.apache.jackrabbit.oak.spi.QueryIndexProvider;
-import org.apache.jackrabbit.oak.spi.commit.EmptyCommitHook;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.CompositeCommitHook;
+import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
+import org.apache.jackrabbit.oak.spi.commit.ValidatingCommitHook;
+import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -37,6 +43,8 @@ import javax.jcr.Credentials;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.security.auth.login.LoginContext;
 import javax.security.auth.login.LoginException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * {@link MicroKernel}-based implementation of
@@ -72,7 +80,16 @@ public class ContentRepositoryImpl implements ContentRepository {
      * @param indexProvider index provider
      */
     public ContentRepositoryImpl(MicroKernel microKernel, QueryIndexProvider indexProvider) {
-        nodeStore = new KernelNodeStore(microKernel, new EmptyCommitHook());
+        List<ValidatorProvider> providers = new ArrayList<ValidatorProvider>();
+        providers.add(new NameValidatorProvider());
+        providers.add(new TypeValidatorProvider());
+        CompositeValidatorProvider compositeProvider = new CompositeValidatorProvider(providers);
+
+        List<CommitHook> hooks = new ArrayList<CommitHook>();
+        hooks.add(new ValidatingCommitHook(compositeProvider));
+        CompositeCommitHook compositeHook = new CompositeCommitHook(hooks);
+
+        nodeStore = new KernelNodeStore(microKernel, compositeHook);
         QueryIndexProvider qip = (indexProvider == null) ? getDefaultIndexProvider(microKernel) : indexProvider;
         queryEngine = new QueryEngineImpl(nodeStore, microKernel, qip);
 
