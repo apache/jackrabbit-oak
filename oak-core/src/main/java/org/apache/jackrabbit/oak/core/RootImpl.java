@@ -22,7 +22,6 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateBuilder;
@@ -44,7 +43,7 @@ public class RootImpl implements Root {
     static final Logger log = LoggerFactory.getLogger(RootImpl.class);
 
     /**
-     * Number of {@link #setWorkspaceRootState(NodeState)} calls for which changes
+     * Number of {@link #setCurrentRootState} calls for which changes
      * are kept in memory.
      */
     private static final int PURGE_LIMIT = 100;
@@ -52,20 +51,17 @@ public class RootImpl implements Root {
     /** The underlying store to which this root belongs */
     private final NodeStore store;
 
-    /** The name of the workspace we are operating on */
-    private final String workspaceName;
+    /** Current branch this root operates on */
+    private NodeStoreBranch branch;
 
     /** Actual root element of the {@code Tree} */
     private TreeImpl root;
 
-    /** Current branch this root operates on */
-    private NodeStoreBranch branch;
-
-    /** Lazily initialised builder for the root node state of this workspace */
-    private NodeStateBuilder workspaceBuilder;
+    /** Current root node state if changed */
+    private NodeState currentRootState;
 
     /**
-     * Number of {@link #setWorkspaceRootState(NodeState)} occurred so since the lase
+     * Number of {@link #setCurrentRootState} occurred so since the lase
      * purge.
      */
     private int modCount;
@@ -94,10 +90,11 @@ public class RootImpl implements Root {
      * New instance bases on a given {@link NodeStore} and a workspace
      * @param store  node store
      * @param workspaceName  name of the workspace
+     * TODO: add support for multiple workspaces. See OAK-118
      */
+    @SuppressWarnings("UnusedParameters")
     public RootImpl(NodeStore store, String workspaceName) {
         this.store = store;
-        this.workspaceName = workspaceName;
         branch = store.branch();
         root = TreeImpl.createRoot(this);
     }
@@ -116,13 +113,11 @@ public class RootImpl implements Root {
 
         String destName = getName(destPath);
         if (source.moveTo(destParent, destName)) {
-            branch.move(
-                PathUtils.concat(workspaceName, sourcePath),
-                PathUtils.concat(workspaceName, destPath));
-
-            return true;
+            currentRootState = null;
+            return branch.move(sourcePath, destPath);
         }
         else {
+            currentRootState = null;
             return false;
         }
     }
@@ -130,9 +125,7 @@ public class RootImpl implements Root {
     @Override
     public boolean copy(String sourcePath, String destPath) {
         purgePendingChanges();
-        return branch.copy(
-            PathUtils.concat(workspaceName, sourcePath),
-            PathUtils.concat(workspaceName, destPath));
+        return branch.copy(sourcePath, destPath);
     }
 
     @Override
@@ -143,8 +136,9 @@ public class RootImpl implements Root {
     @Override
     public void rebase() {
         purgePendingChanges();
-        NodeState base = getWorkspaceBaseState();
-        NodeState head = getWorkspaceRootState();
+        NodeState base = getBaseState();
+        NodeState head = getCurrentRootState();
+        currentRootState = null;
         branch = store.branch();
         root = TreeImpl.createRoot(this);
         merge(base, head, getRoot());
@@ -152,7 +146,7 @@ public class RootImpl implements Root {
 
     @Override
     public void refresh() {
-        workspaceBuilder = null;
+        currentRootState = null;
         branch = store.branch();
         root = TreeImpl.createRoot(this);
     }
@@ -167,7 +161,7 @@ public class RootImpl implements Root {
 
     @Override
     public boolean hasPendingChanges() {
-        return !getWorkspaceBaseState().equals(getWorkspaceRootState());
+        return !getBaseState().equals(getCurrentRootState());
     }
 
     /**
@@ -181,31 +175,24 @@ public class RootImpl implements Root {
     }
 
     /**
-     * Returns the current root node state of the workspace
+     * Returns the current root node state
      * @return root node state
      */
     @Nonnull
-    public NodeState getWorkspaceRootState() {
-        if (workspaceBuilder == null) {
-            NodeState workspaceRootState = branch.getRoot().getChildNode(workspaceName);
-            assert workspaceRootState != null;
-            return workspaceRootState;
+    public NodeState getCurrentRootState() {
+        if (currentRootState == null) {
+            currentRootState = branch.getRoot();
         }
-        else {
-            return workspaceBuilder.getNodeState();
-        }
+        return currentRootState;
     }
 
     /**
-     * Returns the node state of the workspace from which
-     * the current branch was created.
+     * Returns the node state from which the current branch was created.
      * @return base node state
      */
     @Nonnull
-    public NodeState getWorkspaceBaseState() {
-        NodeState workspaceBaseState = branch.getBase().getChildNode(workspaceName);
-        assert workspaceBaseState != null;
-        return workspaceBaseState;
+    public NodeState getBaseState() {
+        return branch.getBase();
     }
 
     /**
@@ -222,12 +209,12 @@ public class RootImpl implements Root {
     }
 
     /**
-     * Set the node state of the current workspace
+     * Set the current root node state
      *
-     * @param nodeState  node state representing the modified workspace
+     * @param nodeState  node state representing the modified root state
      */
-    public void setWorkspaceRootState(NodeState nodeState) {
-        getWorkspaceBuilder().setNode(workspaceName, nodeState);
+    public void setCurrentRootState(NodeState nodeState) {
+        currentRootState = nodeState;
         modCount++;
         if (needsPurging()) {
             purgePendingChanges();
@@ -239,9 +226,9 @@ public class RootImpl implements Root {
      * All registered {@link PurgeListener}s are notified.
      */
     public void purgePendingChanges() {
-        if (workspaceBuilder != null) {
-            branch.setRoot(workspaceBuilder.getNodeState());
-            workspaceBuilder = null;
+        if (currentRootState != null) {
+            branch.setRoot(currentRootState);
+            currentRootState = null;
             notifyListeners();
         }
     }
@@ -259,6 +246,13 @@ public class RootImpl implements Root {
         store.compare(before, after, diffHandler);
     }
 
+    //------------------------------------------------------------< internal >---
+
+    // FIXME remove
+    NodeStore getNodeStore() {
+        return store;
+    }
+
     //------------------------------------------------------------< private >---
 
     // TODO better way to determine purge limit
@@ -270,18 +264,6 @@ public class RootImpl implements Root {
         else {
             return false;
         }
-    }
-
-    /**
-     * Lazily initialise the {@code NodeStateBuilder} associated with the
-     * root node of the current workspace.
-     * @return
-     */
-    private synchronized NodeStateBuilder getWorkspaceBuilder() {
-        if (workspaceBuilder == null) {
-            workspaceBuilder = getBuilder(branch.getRoot());
-        }
-        return workspaceBuilder;
     }
 
     private void notifyListeners() {

@@ -22,7 +22,6 @@ import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.kernel.CoreValueMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.query.Query;
@@ -59,12 +58,7 @@ abstract class AstElement {
      * @return the absolute path
      */
     protected String getAbsolutePath(String path) {
-        String workspaceName = query.getWorkspaceName();
-        if (PathUtils.denotesRoot(workspaceName)) {
-            return path;
-        }
-        String p = PathUtils.relativize("/", path);
-        return PathUtils.concat("/", workspaceName, p);
+        return path;
     }
 
     /**
@@ -75,15 +69,7 @@ abstract class AstElement {
      * @return the session local path, or null if not within this workspace
      */
     protected String getLocalPath(String path) {
-        String workspaceName = query.getWorkspaceName();
-        if (PathUtils.denotesRoot(workspaceName)) {
-            return path;
-        }
-        String prefix = PathUtils.concat("/", workspaceName);
-        if (path.startsWith(prefix)) {
-            return PathUtils.concat("/", PathUtils.relativize(prefix, path));
-        }
-        return null;
+        return path;
     }
 
     /**

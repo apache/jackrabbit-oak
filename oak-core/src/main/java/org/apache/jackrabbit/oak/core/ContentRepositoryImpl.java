@@ -34,7 +34,6 @@ import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
 import org.apache.jackrabbit.oak.spi.commit.ValidatingCommitHook;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -96,18 +95,13 @@ public class ContentRepositoryImpl implements ContentRepository {
         // TODO: use configurable context provider
         loginContextProvider = new LoginContextProviderImpl(this);
 
-        // FIXME: workspace setup must be done elsewhere...
-        NodeState root = nodeStore.getRoot();
-
-        NodeState wspNode = root.getChildNode(DEFAULT_WORKSPACE_NAME);
-
         // FIXME: depends on CoreValue's name mangling
         String ntUnstructured = "nam:nt:unstructured";
 
-        if (wspNode == null) {
-            microKernel.commit("/", "+\"" + DEFAULT_WORKSPACE_NAME + "\":{}" + "^\"" + DEFAULT_WORKSPACE_NAME
-                    + "/jcr:primaryType\":\"" + ntUnstructured + "\" ", null, null);
-        }
+        // FIXME: workspace setup must be done elsewhere...
+        microKernel.commit("/",
+                "^\"jcr:primaryType\":\"" + ntUnstructured + "\" ",
+                null, null);
     }
 
     private static QueryIndexProvider getDefaultIndexProvider(MicroKernel mk) {
@@ -121,8 +115,8 @@ public class ContentRepositoryImpl implements ContentRepository {
             workspaceName = DEFAULT_WORKSPACE_NAME;
         }
 
-        NodeState wspRoot = nodeStore.getRoot().getChildNode(workspaceName);
-        if (wspRoot == null) {
+        // TODO: support multiple workspaces. See OAK-118
+        if (!DEFAULT_WORKSPACE_NAME.equals(workspaceName)) {
             throw new NoSuchWorkspaceException(workspaceName);
         }
 

@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.util.Iterators;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.jcr.PropertyType;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -71,19 +72,19 @@ public class TreeImpl implements Tree, PurgeListener {
         return new TreeImpl(root, null, "") {
             @Override
             protected NodeState getBaseState() {
-                return root.getWorkspaceBaseState();
+                return root.getBaseState();
             }
 
             @Override
             protected NodeState getNodeState() {
                 return nodeStateBuilder == null
-                    ? root.getWorkspaceRootState()
+                    ? root.getCurrentRootState()
                     : nodeStateBuilder.getNodeState();
             }
 
             @Override
             protected void updateParentState(NodeState childState) {
-                root.setWorkspaceRootState(childState);
+                root.setCurrentRootState(childState);
             }
         };
     }
@@ -112,7 +113,35 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public PropertyState getProperty(String name) {
-        return getNodeState().getProperty(name);
+        PropertyState propertyState = getNodeState().getProperty(name);
+        // FIXME find a better way to default jcr:primaryType
+        if (propertyState == null && "jcr:primaryType".equals(name)) {
+            propertyState = new PropertyState() {
+                @Override
+                public String getName() {
+                    return "jcr:primaryType";
+                }
+
+                @Override
+                public boolean isArray() {
+                    return false;
+                }
+
+                @Nonnull
+                @Override
+                public CoreValue getValue() {
+                    return root.getNodeStore().getValueFactory().createValue("nt:unstructured", PropertyType.NAME);
+                }
+
+                @Nonnull
+                @Override
+                public Iterable<CoreValue> getValues() {
+                    throw new IllegalStateException();
+                }
+            };
+        }
+
+        return propertyState;
     }
 
     @Override
@@ -361,7 +390,6 @@ public class TreeImpl implements Tree, PurgeListener {
     @Nonnull
     protected NodeState getNodeState() {
         if (nodeStateBuilder == null) {
-            parent.getNodeState().getChildNode(name);
             NodeState nodeState = parent.getNodeState().getChildNode(name);
             assert nodeState != null;
             return nodeState;

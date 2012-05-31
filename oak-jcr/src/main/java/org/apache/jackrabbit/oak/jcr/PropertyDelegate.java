@@ -53,6 +53,9 @@ public class PropertyDelegate extends ItemDelegate {
 
     PropertyDelegate(SessionDelegate sessionDelegate, Tree parent, PropertyState propertyState) {
         super(sessionDelegate);
+
+        assert parent != null;
+        assert propertyState != null;
         this.parent = parent;
         this.propertyState = propertyState;
     }

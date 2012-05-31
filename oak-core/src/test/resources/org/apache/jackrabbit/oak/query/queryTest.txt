@@ -26,14 +26,14 @@
 select * from [nt:base] as p inner join [nt:base] as p on ischildnode(p, p) where p.[jcr:path] = '/'
 java.lang.IllegalArgumentException: Two selectors with the same name: p
 
-commit /default + "test": { "a": { "id": "10" }, "b": { "id" : "20" }}
+commit / + "test": { "a": { "id": "10" }, "b": { "id" : "20" }}
 commit /jcr:system/indexes + "property:id": {}
 
 explain select * from [nt:base] where id = '10'
 nt:base AS nt:base /* propertyIndex "id [10..10]" */
 
 select * from [nt:base] where id = '10'
-/default/test/a
+/test/a
 
 select [jcr:path], * from [nt:base] where id = '10'
 /test/a, null
@@ -41,64 +41,68 @@ select [jcr:path], * from [nt:base] where id = '10'
 explain select * from [nt:base] where id > '10'
 nt:base AS nt:base /* traverse "//*" */
 
-commit /default - "test"
+commit / - "test"
 commit /jcr:system/indexes - "property:id"
 
 # other tests
 
-commit /default + "test": { "jcr:resource": {}, "resource": { "x" : {}}}
+commit / + "test": { "jcr:resource": {}, "resource": { "x" : {}}}
 
 select * from [nt:base] where id = -1
 
 explain select * from [nt:base] as b where ischildnode(b, '/test')
-nt:base AS b /* traverse "/default/test/*" */
+nt:base AS b /* traverse "/test/*" */
 
 explain select * from [nt:base] as b where isdescendantnode(b, '/test')
-nt:base AS b /* traverse "/default/test//*" */
+nt:base AS b /* traverse "/test//*" */
 
 select * from [nt:base] as b where ischildnode(b, '/test')
-/default/test/jcr:resource
-/default/test/resource
+/test/jcr:resource
+/test/resource
 
 select * from [nt:base] as b where issamenode(b, '/test')
-/default/test
+/test
 
 select * from [nt:base] where name() = 'resource'
-/default/test/resource
+/test/resource
 
 select * from [nt:base] as b where localname(b) = 'resource'
-/default/test/jcr:resource
-/default/test/resource
+/test/jcr:resource
+/test/resource
 
 select * from [nt:base] as x where isdescendantnode(x, '/')
-/default/test
-/default/test/jcr:resource
-/default/test/resource
-/default/test/resource/x
+/
+/jcr:system
+/jcr:system/indexes
+/test
+/test/jcr:resource
+/test/resource
+/test/resource/x
 
-commit /default - "test"
+commit / - "test"
 
-commit /default + "parents": { "p0": {"id": "0"}, "p1": {"id": "1"}, "p2": {"id": "2"}}
-commit /default + "children": { "c1": {"p": "1"}, "c2": {"p": "1"}, "c3": {"p": "2"}, "c4": {"p": "3"}}
+commit / + "parents": { "p0": {"id": "0"}, "p1": {"id": "1"}, "p2": {"id": "2"}}
+commit / + "children": { "c1": {"p": "1"}, "c2": {"p": "1"}, "c3": {"p": "2"}, "c4": {"p": "3"}}
 
 # relative property
 select * from [nt:base] where [c1/p] = '1'
-/default/children
+/children
 
 select * from [nt:base] as p where p.[jcr:path] = '/parents'
-/default/parents
+/parents
 
 select * from [nt:base] as p inner join [nt:base] as p2 on ischildnode(p2, p) where p.[jcr:path] = '/'
-/default, /default/children
-/default, /default/parents
+/, /children
+/, /jcr:system
+/, /parents
 
 select * from [nt:base] as p inner join [nt:base] as p2 on isdescendantnode(p2, p) where p.[jcr:path] = '/parents'
-/default/parents, /default/parents/p0
-/default/parents, /default/parents/p1
-/default/parents, /default/parents/p2
+/parents, /parents/p0
+/parents, /parents/p1
+/parents, /parents/p2
 
 select * from [nt:base] as p inner join [nt:base] as p2 on issamenode(p2, p) where p.[jcr:path] = '/parents'
-/default/parents, /default/parents
+/parents, /parents
 
 select id from [nt:base] where id is not null
 0
@@ -111,82 +115,79 @@ select id from [nt:base] where id is not null order by id desc
 0
 
 select * from [nt:base] as c right outer join [nt:base] as p on p.id = c.p where p.id is not null
-/default/children/c1, /default/parents/p1
-/default/children/c2, /default/parents/p1
-/default/children/c3, /default/parents/p2
-null, /default/parents/p0
+/children/c1, /parents/p1
+/children/c2, /parents/p1
+/children/c3, /parents/p2
+null, /parents/p0
 
 select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null
-/default/parents/p0, null
-/default/parents/p1, /default/children/c1
-/default/parents/p1, /default/children/c2
-/default/parents/p2, /default/children/c3
+/parents/p0, null
+/parents/p1, /children/c1
+/parents/p1, /children/c2
+/parents/p2, /children/c3
 
 select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null and c.p is null
-/default/parents/p0, null
+/parents/p0, null
 
 select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null and c.p is not null
-/default/parents/p1, /default/children/c1
-/default/parents/p1, /default/children/c2
-/default/parents/p2, /default/children/c3
+/parents/p1, /children/c1
+/parents/p1, /children/c2
+/parents/p2, /children/c3
 
 select * from [nt:base] as p inner join [nt:base] as c on p.id = c.p
-/default/parents/p1, /default/children/c1
-/default/parents/p1, /default/children/c2
-/default/parents/p2, /default/children/c3
+/parents/p1, /children/c1
+/parents/p1, /children/c2
+/parents/p2, /children/c3
 
 explain select * from [nt:base] as p inner join [nt:base] as c on p.id = c.p
 nt:base AS p /* traverse "//*" */ INNER JOIN nt:base AS c /* traverse "//*" */
 
-commit /default - "parents"
-commit /default - "children"
+commit / - "parents"
+commit / - "children"
 
-commit /default + "test": { "hello": { "x": "1" }, "world": { "x": "2" } }
-commit /default + "test2": { "id":"1", "x": "2" }
+commit / + "test": { "hello": { "x": "1" }, "world": { "x": "2" } }
+commit / + "test2": { "id":"1", "x": "2" }
 
 select * from [nt:base]
 /
-/default
-/default/test
-/default/test/hello
-/default/test/world
-/default/test2
 /jcr:system
 /jcr:system/indexes
+/test
+/test/hello
+/test/world
+/test2
 
 select * from [nt:base] where id = '1'
-/default/test2
+/test2
 
 select * from [nt:base] where id = '1' and x = '2'
-/default/test2
+/test2
 
 select * from [nt:base] where id = '1' or x = '2'
-/default/test/world
-/default/test2
+/test/world
+/test2
 
 select * from [nt:base] where not (id = '1' or x = '2')
 /
-/default
-/default/test
-/default/test/hello
 /jcr:system
 /jcr:system/indexes
+/test
+/test/hello
 
 select * from [nt:base] where x is null
 /
-/default
-/default/test
 /jcr:system
 /jcr:system/indexes
+/test
 
-commit /default - "test"
-commit /default - "test2"
+commit / - "test"
+commit / - "test2"
 
-commit /default + "test": { "name": "hello" }
-commit /default + "test2": { "name": "World!" }
-commit /default + "test3": { "name": "Hallo" }
-commit /default + "test4": { "name": "10%" }
-commit /default + "test5": { "name": "10 percent" }
+commit / + "test": { "name": "hello" }
+commit / + "test2": { "name": "World!" }
+commit / + "test3": { "name": "Hallo" }
+commit / + "test4": { "name": "10%" }
+commit / + "test5": { "name": "10 percent" }
 
 select name from [nt:base] order by upper(name)
 10 percent
@@ -197,38 +198,37 @@ World!
 null
 null
 null
-null
 
 select * from [nt:base] where length(name) = 5
-/default/test
-/default/test3
+/test
+/test3
 
 select * from [nt:base] where upper(name) = 'HELLO'
-/default/test
+/test
 
 select * from [nt:base] where lower(name) = 'world!'
-/default/test2
+/test2
 
 select * from [nt:base] where name like 'W%'
-/default/test2
+/test2
 
 select * from [nt:base] where name like '%o_%'
-/default/test2
+/test2
 
 select * from [nt:base] where name like '__llo'
-/default/test
-/default/test3
+/test
+/test3
 
 select * from [nt:base] where upper(name) like 'H_LLO'
-/default/test
-/default/test3
+/test
+/test3
 
 select * from [nt:base] where upper(name) like 'H\_LLO'
 
 select * from [nt:base] where upper(name) like '10%'
-/default/test4
-/default/test5
+/test4
+/test5
 
 select * from [nt:base] where upper(name) like '10\%'
-/default/test4
+/test4
 
