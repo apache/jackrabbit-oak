@@ -185,7 +185,7 @@ public class QueryObjectModelImpl implements QueryObjectModel {
 
     @Override
     public Node storeAsNode(String absPath) throws RepositoryException {
-        Node n = queryManager.createQuery(getStatement(), Query.JCR_SQL2).
+        Node n = queryManager.createQuery(getStatement(), Query.JCR_JQOM).
                 storeAsNode(absPath);
         storedQueryPath = n.getPath();
         return n;
