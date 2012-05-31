@@ -246,13 +246,6 @@ public class RootImpl implements Root {
         store.compare(before, after, diffHandler);
     }
 
-    //------------------------------------------------------------< internal >---
-
-    // FIXME remove
-    NodeStore getNodeStore() {
-        return store;
-    }
-
     //------------------------------------------------------------< private >---
 
     // TODO better way to determine purge limit
