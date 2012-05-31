@@ -46,7 +46,6 @@
               <value>
 org.apache.jackrabbit.test.api.AddNodeTest#testConstraintViolation
 org.apache.jackrabbit.test.api.AddNodeTest#testRepositoryException
-org.apache.jackrabbit.test.api.ReferencesTest#testNonReferenceable
 org.apache.jackrabbit.test.api.SessionTest#testMoveRepositoryException
 org.apache.jackrabbit.test.api.SessionTest#testMoveConstraintViolationExceptionSrc
 org.apache.jackrabbit.test.api.SessionTest#testMoveConstraintViolationExceptionDest
