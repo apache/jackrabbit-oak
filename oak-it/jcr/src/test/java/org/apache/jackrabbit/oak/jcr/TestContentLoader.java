@@ -38,6 +38,8 @@ public class TestContentLoader {
     private static final String ENCODING = "UTF-8";
 
     public void loadTestContent(Session session) throws RepositoryException, IOException {
+        session.getWorkspace().getNamespaceRegistry().registerNamespace(
+                "test", "http://www.apache.org/jackrabbit/test");
 
         Node data = getOrAddNode(session.getRootNode(), "testdata");
         addPropertyTestData(getOrAddNode(data, "property"));

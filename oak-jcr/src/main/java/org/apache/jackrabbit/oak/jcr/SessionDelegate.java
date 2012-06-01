@@ -26,7 +26,6 @@ import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.jcr.namespace.NamespaceRegistryImpl;
 import org.apache.jackrabbit.oak.jcr.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.namepath.AbstractNameMapper;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
@@ -63,7 +62,6 @@ public class SessionDelegate {
     private final Repository repository;
     private final ContentSession contentSession;
     private final ValueFactoryImpl valueFactory;
-    private final NamespaceRegistry nsRegistry;
     private final Workspace workspace;
     private final Session session;
     private final Root root;
@@ -77,8 +75,7 @@ public class SessionDelegate {
         this.repository = repository;
         this.contentSession = contentSession;
         this.valueFactory = new ValueFactoryImpl(contentSession.getCoreValueFactory(), namePathMapper);
-        this.nsRegistry = new NamespaceRegistryImpl(contentSession);
-        this.workspace = new WorkspaceImpl(this, nsRegistry);
+        this.workspace = new WorkspaceImpl(this);
         this.session = new SessionImpl(this);
         this.root = contentSession.getCurrentRoot();
     }
@@ -389,7 +386,7 @@ public class SessionDelegate {
         @CheckForNull
         protected String getJcrPrefix(String oakPrefix) {
             try {
-                String ns = nsRegistry.getURI(oakPrefix);
+                String ns = getWorkspace().getNamespaceRegistry().getURI(oakPrefix);
                 return session.getNamespacePrefix(ns);
             } catch (RepositoryException e) {
                 log.debug("Could not get JCR prefix for OAK prefix " + oakPrefix);
@@ -402,7 +399,7 @@ public class SessionDelegate {
         protected String getOakPrefix(String jcrPrefix) {
             try {
                 String ns = getSession().getNamespaceURI(jcrPrefix);
-                return nsRegistry.getPrefix(ns);
+                return getWorkspace().getNamespaceRegistry().getPrefix(ns);
             } catch (RepositoryException e) {
                 log.debug("Could not get OAK prefix for JCR prefix " + jcrPrefix);
                 return null;
@@ -413,7 +410,7 @@ public class SessionDelegate {
         @CheckForNull
         protected String getOakPrefixFromURI(String uri) {
             try {
-                return nsRegistry.getPrefix(uri);
+                return getWorkspace().getNamespaceRegistry().getPrefix(uri);
             } catch (RepositoryException e) {
                 log.debug("Could not get OAK prefix for URI " + uri);
                 return null;

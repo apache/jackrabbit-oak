@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.name;
 
+import java.util.Locale;
 import java.util.Map;
 
 import javax.jcr.PropertyType;
@@ -39,15 +40,17 @@ class NamespaceValidator extends DefaultValidator {
             throws CommitFailedException {
         String prefix = after.getName();
         if (map.containsKey(prefix)) {
-            throw new CommitFailedException(
-                    "Namespace mapping already registered: " + prefix);
+            throw new NamespaceValidatorException(
+                    "Namespace mapping already registered", prefix);
         } else if (Namespaces.isValidPrefix(prefix)) {
             if (after.isArray()
                     || after.getValue().getType() != PropertyType.STRING) {
-                throw new CommitFailedException(
-                        "Invalid namespace mapping: " + prefix);
+                throw new NamespaceValidatorException(
+                        "Invalid namespace mapping", prefix);
+            } else if (prefix.toLowerCase(Locale.ENGLISH).startsWith("xml")) {
+                throw new NamespaceValidatorException(
+                        "XML prefixes are reserved", prefix);
             }
-            
         }
     }
 
@@ -55,8 +58,8 @@ class NamespaceValidator extends DefaultValidator {
     public void propertyChanged(PropertyState before, PropertyState after)
             throws CommitFailedException {
         if (map.containsKey(after.getName())) {
-            throw new CommitFailedException(
-                    "Namespace modification not allowed: " + after.getName());
+            throw new NamespaceValidatorException(
+                    "Namespace modification not allowed", after.getName());
         }
     }
 
@@ -64,8 +67,7 @@ class NamespaceValidator extends DefaultValidator {
     public void propertyDeleted(PropertyState before)
             throws CommitFailedException {
         if (map.containsKey(before.getName())) {
-            throw new CommitFailedException(
-                    "Namespace removal not allowed: " + before.getName());
+            // TODO: Check whether this namespace is still used in content
         }
     }
 

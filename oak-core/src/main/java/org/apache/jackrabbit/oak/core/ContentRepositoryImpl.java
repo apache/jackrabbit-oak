@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
+import org.apache.jackrabbit.oak.plugins.name.NamespaceValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.type.TypeValidatorProvider;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
 import org.apache.jackrabbit.oak.security.authentication.LoginContextProviderImpl;
@@ -84,6 +85,7 @@ public class ContentRepositoryImpl implements ContentRepository {
         if (validatorProvider == null) {
             List<ValidatorProvider> providers = new ArrayList<ValidatorProvider>();
             providers.add(new NameValidatorProvider());
+            providers.add(new NamespaceValidatorProvider());
             providers.add(new TypeValidatorProvider());
             validatorProvider = new CompositeValidatorProvider(providers);
         }
