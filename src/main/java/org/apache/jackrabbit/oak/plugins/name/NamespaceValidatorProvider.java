@@ -16,10 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.name;
 
-import java.util.Map;
-
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
+import org.apache.jackrabbit.oak.core.ReadOnlyTree;
 import org.apache.jackrabbit.oak.spi.commit.SubtreeValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
@@ -36,9 +35,8 @@ public class NamespaceValidatorProvider implements ValidatorProvider {
 
     @Override
     public Validator getRootValidator(NodeState before, NodeState after) {
-        Map<String, String> map = Namespaces.getNamespaceMap(before);
-        Validator validator =
-                new NamespaceValidator(map);
+        Validator validator = new NamespaceValidator(
+                Namespaces.getNamespaceMap(new ReadOnlyTree(before)));
         return new SubtreeValidator(validator, "jcr:system", "jcr:namespaces");
     }
 

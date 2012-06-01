@@ -23,7 +23,7 @@ import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.api.Tree;
 
 /**
  * Internal static utility class for managing the persisted namespace registry.
@@ -46,17 +46,14 @@ class Namespaces {
 
         // TODO: see OAK-74
         defaults.put("rep", "internal");
-
-        // test prefix TODO: remove again.
-        defaults.put("test", "http://apache.jackrabbit.org/oak/0.1");
     }
 
-    public static Map<String, String> getNamespaceMap(NodeState root) {
+    public static Map<String, String> getNamespaceMap(Tree root) {
         Map<String, String> map = new HashMap<String, String>(defaults);
 
-        NodeState system = root.getChildNode("jcr:system");
+        Tree system = root.getChild("jcr:system");
         if (system != null) {
-            NodeState namespaces = system.getChildNode("jcr:namespaces");
+            Tree namespaces = system.getChild("jcr:namespaces");
             if (namespaces != null) {
                 for (PropertyState property : namespaces.getProperties()) {
                     String prefix = property.getName();
