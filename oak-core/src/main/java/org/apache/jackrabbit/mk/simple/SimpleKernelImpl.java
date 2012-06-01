@@ -588,7 +588,6 @@ public class SimpleKernelImpl extends MicroKernelWrapperBase implements MicroKer
         }
     }
 
-    @Override
     public synchronized void dispose() {
         if (!disposed) {
             disposed = true;

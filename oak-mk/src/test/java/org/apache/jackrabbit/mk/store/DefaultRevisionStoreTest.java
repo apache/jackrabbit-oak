@@ -42,7 +42,7 @@ import org.junit.Test;
 public class DefaultRevisionStoreTest {
 
     /* avoid synthetic accessor */  DefaultRevisionStore rs;
-    private MicroKernel mk;
+    private MicroKernelImpl mk;
     
     @Before
     public void setup() throws Exception {

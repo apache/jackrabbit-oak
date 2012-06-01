@@ -225,10 +225,6 @@ public class Server {
         if (!stopped.compareAndSet(false, true)) {
             return;
         }
-        MicroKernel mk = mkref.getAndSet(null);
-        if (mk != null) {
-            mk.dispose();
-        }
         if (es != null) {
             es.shutdown();
         }
