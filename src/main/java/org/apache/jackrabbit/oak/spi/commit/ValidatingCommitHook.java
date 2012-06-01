@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
-import static org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState.EMPTY_NODE;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+
+import static org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState.EMPTY_NODE;
 
 /**
  * This commit hook implementation validates the changes to be committed
@@ -47,7 +47,7 @@ public class ValidatingCommitHook implements CommitHook {
             NodeStore store, NodeState before, NodeState after)
             throws CommitFailedException {
         Validator validator = validatorProvider.getRootValidator(before, after);
-        new ValidatorDiff(validator, store).validate(validator, before, after);
+        ValidatorDiff.validate(validator, store, before, after);
         return after;
     }
 
@@ -69,26 +69,30 @@ public class ValidatingCommitHook implements CommitHook {
          * See http://markmail.org/message/ak67n5k7mr3vqylm and
          * http://markmail.org/message/bhocbruikljpuhu6
          */
-        private CommitFailedException exception = null;
+        private CommitFailedException exception;
+
+        /**
+         * Validates the given subtree by diffing and recursing through it.
+         *
+         * @param validator validator for the root of the subtree
+         * @param store store to where the subtree lives
+         * @param before state of the original subtree
+         * @param after state of the modified subtree
+         * @throws CommitFailedException if validation failed
+         */
+        public static void validate(Validator validator, NodeStore store,
+                NodeState before, NodeState after) throws CommitFailedException {
+            new ValidatorDiff(validator, store).validate(before, after);
+        }
 
         private ValidatorDiff(Validator validator, NodeStore store) {
             this.validator = validator;
             this.store = store;
         }
 
-        /**
-         * Validates the given subtree by diffing and recursing through it.
-         *
-         * @param validator validator for the root of the subtree
-         * @param before state of the original subtree
-         * @param after state of the modified subtree
-         * @throws CommitFailedException if validation failed
-         */
-        public void validate(
-                Validator validator, NodeState before, NodeState after)
+        private void validate(NodeState before, NodeState after)
                 throws CommitFailedException {
-            ValidatorDiff diff = new ValidatorDiff(validator, store);
-            store.compare(before, after, diff);
+            store.compare(before, after, this);
             if (exception != null) {
                 throw exception;
             }
@@ -135,7 +139,7 @@ public class ValidatingCommitHook implements CommitHook {
                 try {
                     Validator v = validator.childNodeAdded(name, after);
                     if (v != null) {
-                        validate(v, EMPTY_NODE, after);
+                        validate(v, store, EMPTY_NODE, after);
                     }
                 } catch (CommitFailedException e) {
                     exception = e;
@@ -151,7 +155,7 @@ public class ValidatingCommitHook implements CommitHook {
                     Validator v =
                             validator.childNodeChanged(name, before, after);
                     if (v != null) {
-                        validate(v, before, after);
+                        validate(v, store, before, after);
                     }
                 } catch (CommitFailedException e) {
                     exception = e;
@@ -165,7 +169,7 @@ public class ValidatingCommitHook implements CommitHook {
                 try {
                     Validator v = validator.childNodeDeleted(name, before);
                     if (v != null) {
-                        validate(v, before, EMPTY_NODE);
+                        validate(v, store, before, EMPTY_NODE);
                     }
                 } catch (CommitFailedException e) {
                     exception = e;
