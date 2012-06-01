@@ -138,37 +138,32 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
 
     @Override
     public NodeTypeTemplate createNodeTypeTemplate() throws RepositoryException {
-        throw new UnsupportedRepositoryOperationException();
+        return new NodeTypeTemplateImpl();
     }
 
     @Override
     public NodeTypeTemplate createNodeTypeTemplate(NodeTypeDefinition ntd) throws RepositoryException {
-
-        throw new UnsupportedRepositoryOperationException();
+        return new NodeTypeTemplateImpl(ntd);
     }
 
     @Override
-    public NodeDefinitionTemplate createNodeDefinitionTemplate() throws RepositoryException {
-
-        throw new UnsupportedRepositoryOperationException();
+    public NodeDefinitionTemplate createNodeDefinitionTemplate() {
+        return new NodeDefinitionTemplateImpl();
     }
 
     @Override
-    public PropertyDefinitionTemplate createPropertyDefinitionTemplate() throws RepositoryException {
-
-        throw new UnsupportedRepositoryOperationException();
+    public PropertyDefinitionTemplate createPropertyDefinitionTemplate() {
+        return new PropertyDefinitionTemplateImpl();
     }
 
     @Override
     public NodeType registerNodeType(NodeTypeDefinition ntd, boolean allowUpdate) throws RepositoryException {
-
-        throw new UnsupportedRepositoryOperationException();
+        return getNodeType("nt:base"); // FIXME OAK-66
     }
 
     @Override
     public NodeTypeIterator registerNodeTypes(NodeTypeDefinition[] ntds, boolean allowUpdate) throws RepositoryException {
-
-        throw new UnsupportedRepositoryOperationException();
+        return NodeTypeIteratorAdapter.EMPTY; // FIXME OAK-66
     }
 
     @Override
