@@ -44,7 +44,6 @@ public class CompositeValidator implements Validator {
     @Override
     public void propertyChanged(PropertyState before, PropertyState after)
             throws CommitFailedException {
-
         for (Validator validator : validators) {
             validator.propertyChanged(before, after);
         }
@@ -61,26 +60,48 @@ public class CompositeValidator implements Validator {
     public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
         List<Validator> childValidators = new ArrayList<Validator>(validators.size());
         for (Validator validator : validators) {
-            childValidators.add(
-                    validator.childNodeAdded(name, after));
+            Validator child = validator.childNodeAdded(name, after);
+            if (child != null) {
+                childValidators.add(child);
+            }
         }
-        return new CompositeValidator(childValidators);
+        if (!childValidators.isEmpty()) {
+            return new CompositeValidator(childValidators);
+        } else {
+            return null;
+        }
     }
 
     @Override
     public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
         List<Validator> childValidators = new ArrayList<Validator>(validators.size());
         for (Validator validator : validators) {
-            childValidators.add(
-                    validator.childNodeChanged(name, before, after));
+            Validator child = validator.childNodeChanged(name, before, after);
+            if (child != null) {
+                childValidators.add(child);
+            }
         }
-        return new CompositeValidator(childValidators);
+        if (!childValidators.isEmpty()) {
+            return new CompositeValidator(childValidators);
+        } else {
+            return null;
+        }
     }
 
     @Override
-    public void childNodeDeleted(String name, NodeState before) throws CommitFailedException {
+    public Validator childNodeDeleted(String name, NodeState before) throws CommitFailedException {
+        List<Validator> childValidators = new ArrayList<Validator>(validators.size());
         for (Validator validator : validators) {
-            validator.childNodeDeleted(name, before);
+            Validator child = validator.childNodeDeleted(name, before);
+            if (child != null) {
+                childValidators.add(child);
+            }
+        }
+        if (!childValidators.isEmpty()) {
+            return new CompositeValidator(childValidators);
+        } else {
+            return null;
         }
     }
+
 }

@@ -16,9 +16,10 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
+import static org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState.EMPTY_NODE;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -29,6 +30,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
  * passed to the class' constructor.
  */
 public class ValidatingCommitHook implements CommitHook {
+
     private final ValidatorProvider validatorProvider;
 
     /**
@@ -41,11 +43,11 @@ public class ValidatingCommitHook implements CommitHook {
     }
 
     @Override
-    public NodeState beforeCommit(NodeStore store, NodeState before, NodeState after)
+    public NodeState beforeCommit(
+            NodeStore store, NodeState before, NodeState after)
             throws CommitFailedException {
-
-        Validator rootValidator = validatorProvider.getRootValidator(before, after);
-        validate(store, before, after, rootValidator);
+        Validator validator = validatorProvider.getRootValidator(before, after);
+        new ValidatorDiff(validator, store).validate(validator, before, after);
         return after;
     }
 
@@ -56,112 +58,121 @@ public class ValidatingCommitHook implements CommitHook {
 
     //------------------------------------------------------------< private >---
 
-    private static void validate(final NodeStore store, NodeState before, NodeState after,
-            final Validator validator) throws CommitFailedException {
+    private static class ValidatorDiff implements NodeStateDiff {
 
-        /*
+        private final Validator validator;
+
+        private final NodeStore store;
+
+        /**
          * Checked exceptions don't compose. So we need to hack around.
          * See http://markmail.org/message/ak67n5k7mr3vqylm and
          * http://markmail.org/message/bhocbruikljpuhu6
          */
-        final CommitFailedException[] exception = {null};
+        private CommitFailedException exception = null;
 
-        store.compare(before, after, new NodeStateDiff() {
-            @Override
-            public void propertyAdded(PropertyState after) {
-                if (exception[0] == null) {
-                    try {
-                        validator.propertyAdded(after);
-                    }
-                    catch (CommitFailedException e) {
-                        exception[0] = e;
-                    }
-                }
-            }
-
-            @Override
-            public void propertyChanged(PropertyState before, PropertyState after) {
-                if (exception[0] == null) {
-                    try {
-                        validator.propertyChanged(before, after);
-                    }
-                    catch (CommitFailedException e) {
-                        exception[0] = e;
-                    }
-                }
-            }
-
-            @Override
-            public void propertyDeleted(PropertyState before) {
-                if (exception[0] == null) {
-                    try {
-                        validator.propertyDeleted(before);
-                    }
-                    catch (CommitFailedException e) {
-                        exception[0] = e;
-                    }
-                }
-            }
-
-            @Override
-            public void childNodeAdded(String name, NodeState after) {
-                if (exception[0] == null) {
-                    try {
-                        Validator childValidator = validator.childNodeAdded(name, after);
-                        if (childValidator != null) {
-                            validate(after, validator);
-                        }
-                    }
-                    catch (CommitFailedException e) {
-                        exception[0] = e;
-                    }
-                }
-            }
-
-            @Override
-            public void childNodeChanged(String name, NodeState before, NodeState after) {
-                if (exception[0] == null) {
-                    try {
-                        Validator childValidator = validator.childNodeChanged(name, before, after);
-                        if (childValidator != null) {
-                            validate(store, before, after, childValidator);
-                        }
-                    }
-                    catch (CommitFailedException e) {
-                        exception[0] = e;
-                    }
-                }
-            }
-
-            @Override
-            public void childNodeDeleted(String name, NodeState before) {
-                if (exception[0] == null) {
-                    try {
-                        validator.childNodeDeleted(name, before);
-                    }
-                    catch (CommitFailedException e) {
-                        exception[0] = e;
-                    }
-                }
-            }
-        });
-
-        if (exception[0] != null) {
-            throw new CommitFailedException(exception[0]);
+        private ValidatorDiff(Validator validator, NodeStore store) {
+            this.validator = validator;
+            this.store = store;
         }
+
+        /**
+         * Validates the given subtree by diffing and recursing through it.
+         *
+         * @param validator validator for the root of the subtree
+         * @param before state of the original subtree
+         * @param after state of the modified subtree
+         * @throws CommitFailedException if validation failed
+         */
+        public void validate(
+                Validator validator, NodeState before, NodeState after)
+                throws CommitFailedException {
+            ValidatorDiff diff = new ValidatorDiff(validator, store);
+            store.compare(before, after, diff);
+            if (exception != null) {
+                throw exception;
+            }
+        }
+
+        //-------------------------------------------------< NodeStateDiff >--
+
+        @Override
+        public void propertyAdded(PropertyState after) {
+            if (exception == null) {
+                try {
+                    validator.propertyAdded(after);
+                } catch (CommitFailedException e) {
+                    exception = e;
+                }
+            }
+        }
+
+        @Override
+        public void propertyChanged(PropertyState before, PropertyState after) {
+            if (exception == null) {
+                try {
+                    validator.propertyChanged(before, after);
+                } catch (CommitFailedException e) {
+                    exception = e;
+                }
+            }
+        }
+
+        @Override
+        public void propertyDeleted(PropertyState before) {
+            if (exception == null) {
+                try {
+                    validator.propertyDeleted(before);
+                } catch (CommitFailedException e) {
+                    exception = e;
+                }
+            }
+        }
+
+        @Override
+        public void childNodeAdded(String name, NodeState after) {
+            if (exception == null) {
+                try {
+                    Validator v = validator.childNodeAdded(name, after);
+                    if (v != null) {
+                        validate(v, EMPTY_NODE, after);
+                    }
+                } catch (CommitFailedException e) {
+                    exception = e;
+                }
+            }
+        }
+
+        @Override
+        public void childNodeChanged(
+                String name, NodeState before, NodeState after) {
+            if (exception == null) {
+                try {
+                    Validator v =
+                            validator.childNodeChanged(name, before, after);
+                    if (v != null) {
+                        validate(v, before, after);
+                    }
+                } catch (CommitFailedException e) {
+                    exception = e;
+                }
+            }
+        }
+
+        @Override
+        public void childNodeDeleted(String name, NodeState before) {
+            if (exception == null) {
+                try {
+                    Validator v = validator.childNodeDeleted(name, before);
+                    if (v != null) {
+                        validate(v, before, EMPTY_NODE);
+                    }
+                } catch (CommitFailedException e) {
+                    exception = e;
+                }
+            }
+        }
+
     }
 
-    private static void validate(NodeState nodeState, Validator validator)
-            throws CommitFailedException {
-
-        for (PropertyState property : nodeState.getProperties()) {
-            validator.propertyAdded(property);
-        }
-
-        for (ChildNodeEntry child : nodeState.getChildNodeEntries()) {
-            Validator childValidator = validator.childNodeAdded(
-                    child.getName(), child.getNodeState());
-            validate(child.getNodeState(), childValidator);
-        }
-    }
 }
