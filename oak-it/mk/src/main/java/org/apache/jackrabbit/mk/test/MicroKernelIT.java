@@ -82,7 +82,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         // get oldest available revision
         array = parseJSONArray(mk.getRevisionHistory(0, 1, null));
         // there should be exactly 1 revision
-        assertEquals(array.size(), 1);
+        assertEquals(1, array.size());
 
         long ts0 = System.currentTimeMillis();
 
@@ -96,7 +96,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         // get oldest available revision
         array = parseJSONArray(mk.getRevisionHistory(ts0, -1, null));
         // there should be exactly NUM_COMMITS revisions
-        assertEquals(array.size(), NUM_COMMITS);
+        assertEquals(NUM_COMMITS, array.size());
         long previousTS = ts0;
         for (int i = 0; i < NUM_COMMITS; i++) {
             JSONObject rev = getObjectArrayEntry(array, i);
@@ -119,7 +119,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         // verify journal
         array = parseJSONArray(mk.getJournal(fromRev, toRev, ""));
         // there should be exactly NUM_COMMITS entries
-        assertEquals(array.size(), NUM_COMMITS);
+        assertEquals(NUM_COMMITS, array.size());
         // verify that 1st and last rev match fromRev and toRev
         assertPropertyValue(getObjectArrayEntry(array, 0), "id", fromRev);
         assertPropertyValue(getObjectArrayEntry(array, array.size() - 1), "id", toRev);
@@ -142,7 +142,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         // test with 'negative' range (from and to swapped)
         array = parseJSONArray(mk.getJournal(toRev, fromRev, ""));
         // there should be exactly 0 entries
-        assertEquals(array.size(), 0);
+        assertEquals(0, array.size());
     }
 
     @Test
@@ -182,14 +182,14 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         // get journal (no filter)
         array = parseJSONArray(mk.getJournal(rev0, null, ""));
         // journal should contain 2 commits: revFoo and revBar
-        assertEquals(array.size(), 2);
+        assertEquals(2, array.size());
         assertPropertyValue(getObjectArrayEntry(array, 0), "id", revFoo);
         assertPropertyValue(getObjectArrayEntry(array, 1), "id", revBar);
 
         // get journal (non-matching filter)
         array = parseJSONArray(mk.getJournal(rev0, null, "/blah"));
         // journal should contain 0 commits since filter doesn't match
-        assertEquals(array.size(), 0);
+        assertEquals(0, array.size());
 
         // get journal (filter on /test/bar)
         array = parseJSONArray(mk.getJournal(rev0, null, "/test/bar"));
@@ -219,7 +219,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         assertFalse(mk.nodeExists("/test/target", null));
 
         // diff of rev0->rev2 should be empty
-        assertEquals(mk.diff(rev0, rev2, null), "");
+        assertEquals("", mk.diff(rev0, rev2, null));
     }
 
     @Test
@@ -529,7 +529,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         assertPropertyValue(obj, ":childNodeCount", 1l);
         JSONObject child = resolveObjectValue(obj, "a");
         assertNotNull(child);
-        assertEquals(child.size(), 0);
+        assertEquals(0, child.size());
 
         // depth = 1: properties, child nodes, their properties (including :childNodeCount)
         // and their empty child node objects
@@ -540,7 +540,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         assertPropertyValue(obj, "a/:childNodeCount", 1l);
         child = resolveObjectValue(obj, "a/b");
         assertNotNull(child);
-        assertEquals(child.size(), 0);
+        assertEquals(0, child.size());
 
         // depth = 2: [and so on...]
         obj = parseJSONObject(mk.getNodes("/testRoot", null, 2, 0, -1, null));
@@ -552,7 +552,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         assertPropertyValue(obj, "a/b/:childNodeCount", 1l);
         child = resolveObjectValue(obj, "a/b/c");
         assertNotNull(child);
-        assertEquals(child.size(), 0);
+        assertEquals(0, child.size());
 
         // depth = 3: [and so on...]
         obj = parseJSONObject(mk.getNodes("/testRoot", null, 3, 0, -1, null));
@@ -566,7 +566,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         assertPropertyValue(obj, "a/b/c/:childNodeCount", 1l);
         child = resolveObjectValue(obj, "a/b/c/d");
         assertNotNull(child);
-        assertEquals(child.size(), 0);
+        assertEquals(0, child.size());
 
         // getNodes(path, revId) must return same result as getNodes(path, revId, 1, 0, -1, null)
         obj = parseJSONObject(mk.getNodes("/testRoot", null, 1, 0, -1, null));
@@ -600,7 +600,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         // get all siblings in one call
         JSONObject obj = parseJSONObject(mk.getNodes("/testRoot", head, 0, 0, -1, null));
         assertPropertyValue(obj, ":childNodeCount", (long) NUM_SIBLINGS);
-        assertEquals(mk.getChildNodeCount("/testRoot", head), (long) NUM_SIBLINGS);
+        assertEquals((long) NUM_SIBLINGS, mk.getChildNodeCount("/testRoot", head));
         assertEquals(siblingNames, getNodeNames(obj));
 
         // list of sibling names in iteration order
@@ -611,7 +611,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
             obj = parseJSONObject(mk.getNodes("/testRoot", head, 0, i, 1, null));
             assertPropertyValue(obj, ":childNodeCount", (long) NUM_SIBLINGS);
             Set<String> set = getNodeNames(obj);
-            assertEquals(set.size(), 1);
+            assertEquals(1, set.size());
             orderedSiblingNames.add(set.iterator().next());
         }
 
@@ -627,7 +627,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
             obj = parseJSONObject(mk.getNodes("/testRoot", head, 0, i * 10, NUM_SIBLINGS / 10, null));
             assertPropertyValue(obj, ":childNodeCount", (long) NUM_SIBLINGS);
             names = getNodeNames(obj);
-            assertEquals(names.size(), NUM_SIBLINGS / 10);
+            assertEquals(NUM_SIBLINGS / 10, names.size());
             List<String> subList = orderedSiblingNames.subList(i * 10, (i * 10) + (NUM_SIBLINGS / 10));
             names.removeAll(subList);
             assertTrue(names.isEmpty());
@@ -675,7 +675,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         // get all siblings
         JSONObject obj = parseJSONObject(mk.getNodes("/testRoot", head, 1, 0, -1, null));
         assertPropertyValue(obj, ":childNodeCount", (long) NUM_SIBLINGS);
-        assertEquals(mk.getChildNodeCount("/testRoot", head), (long) NUM_SIBLINGS);
+        assertEquals((long) NUM_SIBLINGS, mk.getChildNodeCount("/testRoot", head));
         Set<String> names = getNodeNames(obj);
         assertTrue(names.size() == NUM_SIBLINGS);
         String childName = names.iterator().next();
@@ -687,9 +687,9 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         int maxSiblings = 10;
         obj = parseJSONObject(mk.getNodes("/testRoot", head, 1, 0, maxSiblings, null));
         assertPropertyValue(obj, ":childNodeCount", (long) NUM_SIBLINGS);
-        assertEquals(mk.getChildNodeCount("/testRoot", head), (long) NUM_SIBLINGS);
+        assertEquals((long) NUM_SIBLINGS, mk.getChildNodeCount("/testRoot", head));
         names = getNodeNames(obj);
-        assertTrue(names.size() == maxSiblings);
+        assertEquals(maxSiblings, names.size());
         childName = names.iterator().next();
         childObj = resolveObjectValue(obj, childName);
         assertPropertyValue(childObj, ":childNodeCount", (long) NUM_SIBLINGS);
@@ -699,7 +699,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         maxSiblings = 5;
         obj = parseJSONObject(mk.getNodes("/testRoot", head, 1, 0, maxSiblings, "{nodes:[\"n1*\"]}"));
         assertPropertyValue(obj, ":childNodeCount", (long) NUM_SIBLINGS);
-        assertEquals(mk.getChildNodeCount("/testRoot", head), (long) NUM_SIBLINGS);
+        assertEquals((long) NUM_SIBLINGS, mk.getChildNodeCount("/testRoot", head));
         names = getNodeNames(obj);
         assertTrue(names.size() == maxSiblings);
         childName = names.iterator().next();

@@ -231,7 +231,7 @@ public class Client implements MicroKernel {
             request.addParameter("revision_id", revisionId);
             request.addParameter("depth", depth);
             request.addParameter("offset", offset);
-            request.addParameter("count", count);
+            request.addParameter("max_child_nodes", count);
             request.addParameter("filter", filter);
             // OAK-48: MicroKernel.getNodes() should return null for not existing nodes instead of throwing an exception
             String result = request.getString();

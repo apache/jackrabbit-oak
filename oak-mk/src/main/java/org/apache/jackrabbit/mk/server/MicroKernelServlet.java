@@ -229,7 +229,7 @@ class MicroKernelServlet {
             String revisionId = request.getParameter("revision_id", headRevision);
             int depth = request.getParameter("depth", 1);
             long offset = request.getParameter("offset", 0L);
-            int maxChildNodes = request.getParameter("maxChildNodes", -1);
+            int maxChildNodes = request.getParameter("max_child_nodes", -1);
             String filter = request.getParameter("filter", "");
 
             response.setContentType("application/json");
