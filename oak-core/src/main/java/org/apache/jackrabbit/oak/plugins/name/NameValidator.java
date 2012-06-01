@@ -102,8 +102,8 @@ class NameValidator implements Validator {
     }
 
     @Override
-    public void childNodeDeleted(String name, NodeState before) {
-        // do nothing
+    public Validator childNodeDeleted(String name, NodeState before) {
+        return null;
     }
 
 }

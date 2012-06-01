@@ -82,9 +82,12 @@ public interface Validator {
     /**
      * Validate a deleted node
      * @param before the original node
+     * @return a {@code Validator} for the removed subtree or
+     * {@code null} if validation should not decent into the subtree
      * @throws CommitFailedException  if validation fails.
      */
-    void childNodeDeleted(String name, NodeState before)
+    @CheckForNull
+    Validator childNodeDeleted(String name, NodeState before)
             throws CommitFailedException;
 
 }

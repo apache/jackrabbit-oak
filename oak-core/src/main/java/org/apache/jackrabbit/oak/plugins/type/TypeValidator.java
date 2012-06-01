@@ -91,8 +91,9 @@ class TypeValidator implements Validator {
     }
 
     @Override
-    public void childNodeDeleted(String name, NodeState before) {
+    public Validator childNodeDeleted(String name, NodeState before) {
         // TODO: validate removed child node
+        return null;
     }
 
 }
