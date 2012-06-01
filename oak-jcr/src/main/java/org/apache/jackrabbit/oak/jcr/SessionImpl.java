@@ -35,6 +35,7 @@ import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.AbstractSession;
+import org.apache.jackrabbit.oak.jcr.xml.XmlImportHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -165,13 +166,10 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
 
     @Override
     @Nonnull
-    public ContentHandler getImportContentHandler(String parentAbsPath, int uuidBehavior) throws RepositoryException {
-        ensureIsAlive();
-
-        @SuppressWarnings("unused")
-        String oakPath = dlg.getOakPathOrThrowNotFound(parentAbsPath);
-
-        throw new UnsupportedRepositoryOperationException("TODO: Session.getImportContentHandler");
+    public ContentHandler getImportContentHandler(
+            String parentAbsPath, int uuidBehavior) throws RepositoryException {
+        final Node parent = getNode(parentAbsPath);
+        return new XmlImportHandler(parent, uuidBehavior);
     }
 
     /**
