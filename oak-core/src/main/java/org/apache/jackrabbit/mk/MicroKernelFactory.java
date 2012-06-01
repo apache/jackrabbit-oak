@@ -206,7 +206,8 @@ public class MicroKernelFactory {
         } else if (mk instanceof IndexWrapper) {
             ((IndexWrapper) mk).dispose();
         } else {
-            throw new IllegalArgumentException("instance was not created by this factory");
+            // FIXME ignore for now
+            //throw new IllegalArgumentException("instance was not created by this factory");
         }
     }
 
