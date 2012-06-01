@@ -68,13 +68,6 @@ import java.io.InputStream;
  */
 public interface MicroKernel {
 
-    /**
-     * Dispose this instance.
-     *
-     * TODO remove lifecycle method from MicroKernel API (OAK-32)
-     */
-    void dispose();
-
     //---------------------------------------------------------< REVISION ops >
 
     /**

@@ -27,10 +27,13 @@ import org.apache.jackrabbit.mk.test.MicroKernelFixture;
 
 public class ClientServerFixture implements MicroKernelFixture {
 
+    private MicroKernelImpl mk;
+    private Server server;
+
     @Override
     public void setUpCluster(MicroKernel[] cluster) {
-        MicroKernel mk = new MicroKernelImpl();
-        final Server server = new Server(mk);
+        mk = new MicroKernelImpl();
+        server = new Server(mk);
         try {
             server.start();
         } catch (IOException e) {
@@ -38,13 +41,7 @@ public class ClientServerFixture implements MicroKernelFixture {
         }
 
         InetSocketAddress address = server.getAddress();
-        cluster[0] = new Client(address) {
-            @Override
-            public synchronized void dispose() {
-                super.dispose();
-                server.stop();
-            }
-        };
+        cluster[0] = new Client(address);
         for (int i = 1; i < cluster.length; i++) {
             cluster[i] = new Client(address);
         }
@@ -56,9 +53,7 @@ public class ClientServerFixture implements MicroKernelFixture {
 
     @Override
     public void tearDownCluster(MicroKernel[] cluster) {
-        for (int i = 0; i < cluster.length; i++) {
-            ((Client) cluster[i]).dispose();
-        }
+        server.stop();
+        mk.dispose();
     }
-
 }
