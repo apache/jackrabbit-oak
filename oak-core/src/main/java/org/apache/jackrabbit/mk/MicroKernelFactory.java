@@ -197,6 +197,8 @@ public class MicroKernelFactory {
             ((MicroKernelImpl) mk).dispose();
         } else if (mk instanceof SimpleKernelImpl) {
             ((SimpleKernelImpl) mk).dispose();
+        } else if (mk instanceof Client) {
+            ((Client) mk).dispose();
         } else if (mk instanceof LogWrapper) {
             ((LogWrapper) mk).dispose();
         } else if (mk instanceof SecurityWrapper) {
@@ -206,8 +208,7 @@ public class MicroKernelFactory {
         } else if (mk instanceof IndexWrapper) {
             ((IndexWrapper) mk).dispose();
         } else {
-            // FIXME ignore for now
-            //throw new IllegalArgumentException("instance was not created by this factory");
+            throw new IllegalArgumentException("instance was not created by this factory");
         }
     }
 
