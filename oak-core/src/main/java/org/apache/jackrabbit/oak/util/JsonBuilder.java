@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.mk.json;
+package org.apache.jackrabbit.oak.util;
 
 import java.io.IOException;
 

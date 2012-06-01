@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.mk.json;
+package org.apache.jackrabbit.oak.util;
 
 import junit.framework.Assert;
-import org.apache.jackrabbit.mk.json.JsonBuilder.JsonArrayBuilder;
-import org.apache.jackrabbit.mk.json.JsonBuilder.JsonObjectBuilder;
+import org.apache.jackrabbit.oak.util.JsonBuilder.JsonArrayBuilder;
+import org.apache.jackrabbit.oak.util.JsonBuilder.JsonObjectBuilder;
 import org.json.simple.parser.ContentHandler;
 import org.json.simple.parser.JSONParser;
 import org.junit.Test;
