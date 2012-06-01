@@ -21,6 +21,7 @@ import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.jcr.nodetype.NodeTypeManagerImpl;
 import org.apache.jackrabbit.oak.jcr.query.QueryManagerImpl;
 import org.apache.jackrabbit.oak.jcr.security.privileges.PrivilegeManagerImpl;
+import org.apache.jackrabbit.oak.plugins.name.NamespaceRegistryImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.ContentHandler;
@@ -51,15 +52,13 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     private static final Logger log = LoggerFactory.getLogger(WorkspaceImpl.class);
 
     private final SessionDelegate sessionDelegate;
-    private final NamespaceRegistry nsRegistry;
     private final NodeTypeManager nodeTypeManager;
     private final QueryManagerImpl queryManager;
 
-    public WorkspaceImpl(SessionDelegate sessionDelegate, NamespaceRegistry nsRegistry)
+    public WorkspaceImpl(SessionDelegate sessionDelegate)
             throws RepositoryException {
 
         this.sessionDelegate = sessionDelegate;
-        this.nsRegistry = nsRegistry;
         this.nodeTypeManager = new NodeTypeManagerImpl(sessionDelegate.getValueFactory(), sessionDelegate.getNamePathMapper());
         this.queryManager = new QueryManagerImpl(sessionDelegate);
     }
@@ -137,7 +136,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
 
     @Override
     public NamespaceRegistry getNamespaceRegistry() {
-        return nsRegistry;
+        return new NamespaceRegistryImpl(sessionDelegate.getContentSession());
     }
 
     @Override

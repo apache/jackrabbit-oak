@@ -16,26 +16,18 @@
  */
 package org.apache.jackrabbit.oak.plugins.name;
 
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Service;
-import org.apache.jackrabbit.oak.core.ReadOnlyTree;
-import org.apache.jackrabbit.oak.spi.commit.Validator;
-import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
+import javax.jcr.NamespaceException;
 
-/**
- * Validator service that checks that all node and property names as well
- * as any name values are syntactically valid and that any namespace prefixes
- * are properly registered.
- */
-@Component
-@Service(ValidatorProvider.class)
-public class NameValidatorProvider implements ValidatorProvider {
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 
-    @Override
-    public Validator getRootValidator(NodeState before, NodeState after) {
-        return new NameValidator(
-                Namespaces.getNamespaceMap(new ReadOnlyTree(after)).keySet());
+class NamespaceValidatorException extends CommitFailedException {
+
+    public NamespaceValidatorException(String message, String prefix) {
+        super(message + ": " + prefix);
+    }
+
+    public NamespaceException getNamespaceException() {
+        return new NamespaceException(getMessage(), this);
     }
 
 }
