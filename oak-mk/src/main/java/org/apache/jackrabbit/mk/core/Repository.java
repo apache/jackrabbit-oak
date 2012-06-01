@@ -91,7 +91,6 @@ public class Repository {
         }
 
         H2Persistence pm = new H2Persistence();
-        //org.apache.jackrabbit.mk.persistence.MongoPersistence pm = new org.apache.jackrabbit.mk.persistence.MongoPersistence();
         pm.initialize(homeDir);
         
         DefaultRevisionStore rs = new DefaultRevisionStore(pm);
