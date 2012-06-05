@@ -36,6 +36,9 @@ select [jcr:path], [jcr:score], * from [nt:base] where issamenode('/test/jcr:xml
 xpath /jcr:root/test/text()
 select [jcr:path], [jcr:score], * from [nt:base] where issamenode('/test/jcr:xmltext')
 
+xpath explain //*[@*='x']
+explain select [jcr:path], [jcr:score], * from [nt:base] where [*] = 'x'
+
 xpath //*[@*='x']
 select [jcr:path], [jcr:score], * from [nt:base] where [*] = 'x'
 

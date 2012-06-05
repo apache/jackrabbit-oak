@@ -57,6 +57,10 @@ public class XPathToSQL2Converter {
      */
     public String convert(String query) throws ParseException {
         // TODO verify this is correct
+        boolean explain = query.startsWith("explain ");
+        if (explain) {
+            query = query.substring("explain ".length());
+        }
         if (!query.startsWith("/")) {
             query = "/jcr:root/" + query;
         }
@@ -196,7 +200,11 @@ public class XPathToSQL2Converter {
         if (!currentToken.isEmpty()) {
             throw getSyntaxError("<end>");
         }
-        StringBuilder buff = new StringBuilder("select ");
+        StringBuilder buff = new StringBuilder();
+        if (explain) {
+            buff.append("explain ");
+        }
+        buff.append("select ");
         buff.append("[jcr:path], [jcr:score], ");
         if (columnList.isEmpty()) {
             buff.append('*');
