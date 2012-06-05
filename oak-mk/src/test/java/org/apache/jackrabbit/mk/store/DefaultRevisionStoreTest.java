@@ -17,21 +17,21 @@
 package org.apache.jackrabbit.mk.store;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.blobs.MemoryBlobStore;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.mk.core.Repository;
-import org.apache.jackrabbit.mk.json.fast.Jsop;
-import org.apache.jackrabbit.mk.json.fast.JsopArray;
 import org.apache.jackrabbit.mk.model.Id;
 import org.apache.jackrabbit.mk.model.StoredCommit;
 import org.apache.jackrabbit.mk.persistence.GCPersistence;
 import org.apache.jackrabbit.mk.persistence.InMemPersistence;
+import org.json.simple.JSONArray;
+import org.json.simple.parser.JSONParser;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -92,7 +92,7 @@ public class DefaultRevisionStoreTest {
         assertEquals(contents, mk.getNodes("/", headRevision, 1, 0, -1, null));
         
         String history = mk.getRevisionHistory(Long.MIN_VALUE, Integer.MIN_VALUE, null);
-        assertEquals(1, ((JsopArray) Jsop.parse(history)).size());
+        assertEquals(1, parseJSONArray(history).size());
     }
 
     /**
@@ -116,7 +116,7 @@ public class DefaultRevisionStoreTest {
         rs.gc();
 
         String history = mk.getRevisionHistory(Long.MIN_VALUE, Integer.MIN_VALUE, null);
-        assertEquals(1, ((JsopArray) Jsop.parse(history)).size());
+        assertEquals(1, parseJSONArray(history).size());
     }
     
     /**
@@ -185,6 +185,24 @@ public class DefaultRevisionStoreTest {
             }
         } finally {
             gcExecutor.shutdown();
+        }
+    }
+
+    /**
+     * Parses the provided string into a {@code JSONArray}.
+     *
+     * @param json string to be parsed
+     * @return a {@code JSONArray}
+     * @throws {@code AssertionError} if the string cannot be parsed into a {@code JSONArray}
+     */
+    private JSONArray parseJSONArray(String json) throws AssertionError {
+        JSONParser parser = new JSONParser();
+        try {
+            Object obj = parser.parse(json);
+            assertTrue(obj instanceof JSONArray);
+            return (JSONArray) obj;
+        } catch (Exception e) {
+            throw new AssertionError("not a valid JSON array: " + e.getMessage());
         }
     }
 }

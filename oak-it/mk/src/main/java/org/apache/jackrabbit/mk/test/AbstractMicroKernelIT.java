@@ -166,7 +166,7 @@ public abstract class AbstractMicroKernelIT {
     }
 
     /**
-     * Parses the provided string into a {@code JSONObject}.
+     * Parses the provided string into a {@code JSONArray}.
      *
      * @param json string to be parsed
      * @return a {@code JSONArray}
