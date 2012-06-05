@@ -66,6 +66,17 @@ public class QueryResultImpl implements QueryResult {
         return result.getSelectorNames();
     }
 
+    boolean includeRow(String path) {
+        if (path == null) {
+            // a row without path (explain,...)
+            return true;
+        } else if (PathUtils.isAncestor(pathFilter, path)) {
+            // a row within this workspace
+            return true;
+        }
+        return false;
+    }
+
     @Override
     public RowIterator getRows() throws RepositoryException {
         Iterator<RowImpl> it = new Iterator<RowImpl>() {
@@ -83,7 +94,7 @@ public class QueryResultImpl implements QueryResult {
                     ResultRow r = it.next();
                     for (String s : getSelectorNames()) {
                         String path = r.getPath(s);
-                        if (PathUtils.isAncestor(pathFilter, path)) {
+                        if (includeRow(path)) {
                             current = new RowImpl(QueryResultImpl.this, r);
                             return;
                         }
@@ -145,7 +156,7 @@ public class QueryResultImpl implements QueryResult {
                 while(it.hasNext()) {
                     ResultRow r = it.next();
                     String path = r.getPath();
-                    if (PathUtils.isAncestor(pathFilter, path)) {
+                    if (includeRow(path)) {
                         current = getNode(getLocalPath(path));
                         break;
                     }
