@@ -25,20 +25,19 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 public class NamePathMapperImplTest {
 
-    private TestNameMapper mapper = new TestNameMapper();
-    private NamePathMapper npMapper = new NamePathMapperImpl(mapper);
-
     @Test
     public void testInvalidIdentifierPath() {
+        TestNameMapper mapper = new TestNameMapper(true);
+        NamePathMapper npMapper = new NamePathMapperImpl(mapper);
+
         List<String> invalid = new ArrayList<String>();
-        invalid.add('[' + UUID.randomUUID().toString()+ "]abc");
-        invalid.add('[' + UUID.randomUUID().toString()+ "]/a/b/c");
+        invalid.add('[' + UUID.randomUUID().toString() + "]abc");
+        invalid.add('[' + UUID.randomUUID().toString() + "]/a/b/c");
 
         for (String jcrPath : invalid) {
             assertNull(npMapper.getOakPath(jcrPath));
@@ -47,45 +46,96 @@ public class NamePathMapperImplTest {
 
     @Test
     public void testJcrToOak() {
+        TestNameMapper mapper = new TestNameMapper(true);
+        NamePathMapper npMapper = new NamePathMapperImpl(mapper);
+
         assertEquals("/", npMapper.getOakPath("/"));
         assertEquals("foo", npMapper.getOakPath("{}foo"));
         assertEquals("/oak-foo:bar", npMapper.getOakPath("/foo:bar"));
-        assertEquals("/oak-foo:bar/oak-quu:qux",
-                npMapper.getOakPath("/foo:bar/quu:qux"));
+        assertEquals("/oak-foo:bar/oak-quu:qux", npMapper.getOakPath("/foo:bar/quu:qux"));
         assertEquals("oak-foo:bar", npMapper.getOakPath("foo:bar"));
-        assertEquals("oak-nt:unstructured", npMapper.getOakPath(
-                "{http://www.jcp.org/jcr/nt/1.0}unstructured"));
-        assertEquals("foobar/oak-jcr:content", npMapper.getOakPath(
-                "foobar/{http://www.jcp.org/jcr/1.0}content"));
-        assertEquals("foobar", npMapper.getOakPath(
-                "foobar/{http://www.jcp.org/jcr/1.0}content/.."));
-        assertEquals("", npMapper.getOakPath(
-                "foobar/{http://www.jcp.org/jcr/1.0}content/../.."));
-        assertEquals("..", npMapper.getOakPath(
-                "foobar/{http://www.jcp.org/jcr/1.0}content/../../.."));
-        assertEquals("../..", npMapper.getOakPath(
-                "foobar/{http://www.jcp.org/jcr/1.0}content/../../../.."));
-        assertEquals("oak-jcr:content", npMapper.getOakPath(
-                "foobar/../{http://www.jcp.org/jcr/1.0}content"));
-        assertEquals("../oak-jcr:content", npMapper.getOakPath(
-                "foobar/../../{http://www.jcp.org/jcr/1.0}content"));
+        assertEquals("oak-nt:unstructured", npMapper.getOakPath("{http://www.jcp.org/jcr/nt/1.0}unstructured"));
+        assertEquals("foobar/oak-jcr:content", npMapper.getOakPath("foobar/{http://www.jcp.org/jcr/1.0}content"));
+        assertEquals("foobar", npMapper.getOakPath("foobar/{http://www.jcp.org/jcr/1.0}content/.."));
+        assertEquals("", npMapper.getOakPath("foobar/{http://www.jcp.org/jcr/1.0}content/../.."));
+        assertEquals("..", npMapper.getOakPath("foobar/{http://www.jcp.org/jcr/1.0}content/../../.."));
+        assertEquals("../..", npMapper.getOakPath("foobar/{http://www.jcp.org/jcr/1.0}content/../../../.."));
+        assertEquals("oak-jcr:content", npMapper.getOakPath("foobar/../{http://www.jcp.org/jcr/1.0}content"));
+        assertEquals("../oak-jcr:content", npMapper.getOakPath("foobar/../../{http://www.jcp.org/jcr/1.0}content"));
         assertEquals("..", npMapper.getOakPath(".."));
         assertEquals("", npMapper.getOakPath("."));
-        assertEquals("foobar/oak-jcr:content", npMapper.getOakPath(
-                "foobar/{http://www.jcp.org/jcr/1.0}content/."));
-        assertEquals("foobar/oak-jcr:content", npMapper.getOakPath(
-                "foobar/{http://www.jcp.org/jcr/1.0}content/./."));
-        assertEquals("foobar/oak-jcr:content", npMapper.getOakPath(
-                "foobar/./{http://www.jcp.org/jcr/1.0}content"));
-        assertEquals("oak-jcr:content", npMapper.getOakPath(
-                "foobar/./../{http://www.jcp.org/jcr/1.0}content"));
+        assertEquals("foobar/oak-jcr:content", npMapper.getOakPath("foobar/{http://www.jcp.org/jcr/1.0}content/."));
+        assertEquals("foobar/oak-jcr:content", npMapper.getOakPath("foobar/{http://www.jcp.org/jcr/1.0}content/./."));
+        assertEquals("foobar/oak-jcr:content", npMapper.getOakPath("foobar/./{http://www.jcp.org/jcr/1.0}content"));
+        assertEquals("oak-jcr:content", npMapper.getOakPath("foobar/./../{http://www.jcp.org/jcr/1.0}content"));
+    }
+
+    @Test
+    public void testMapJcrToOakNamespaces() {
+        TestNameMapper mapper = new TestNameMapper(true);
+        NamePathMapper npMapper = new NamePathMapperImpl(mapper);
+
+        assertEquals("/", npMapper.mapJcrToOakNamespaces("/"));
+        assertEquals("foo", npMapper.mapJcrToOakNamespaces("{}foo"));
+        assertEquals("/oak-foo:bar", npMapper.mapJcrToOakNamespaces("/foo:bar"));
+        assertEquals("/oak-foo:bar/oak-quu:qux", npMapper.mapJcrToOakNamespaces("/foo:bar/quu:qux"));
+        assertEquals("oak-foo:bar", npMapper.mapJcrToOakNamespaces("foo:bar"));
+        assertEquals("oak-nt:unstructured", npMapper.mapJcrToOakNamespaces("{http://www.jcp.org/jcr/nt/1.0}unstructured"));
+        assertEquals("foobar/oak-jcr:content", npMapper.mapJcrToOakNamespaces("foobar/{http://www.jcp.org/jcr/1.0}content"));
+        assertEquals("foobar/oak-jcr:content/..", npMapper.mapJcrToOakNamespaces("foobar/{http://www.jcp.org/jcr/1.0}content/.."));
+        assertEquals("foobar/oak-jcr:content/../..",
+                npMapper.mapJcrToOakNamespaces("foobar/{http://www.jcp.org/jcr/1.0}content/../.."));
+        assertEquals("foobar/oak-jcr:content/../../..",
+                npMapper.mapJcrToOakNamespaces("foobar/{http://www.jcp.org/jcr/1.0}content/../../.."));
+        assertEquals("foobar/oak-jcr:content/../../../..",
+                npMapper.mapJcrToOakNamespaces("foobar/{http://www.jcp.org/jcr/1.0}content/../../../.."));
+        assertEquals("foobar/../oak-jcr:content", npMapper.mapJcrToOakNamespaces("foobar/../{http://www.jcp.org/jcr/1.0}content"));
+        assertEquals("foobar/../../oak-jcr:content",
+                npMapper.mapJcrToOakNamespaces("foobar/../../{http://www.jcp.org/jcr/1.0}content"));
+        assertEquals("..", npMapper.mapJcrToOakNamespaces(".."));
+        assertEquals(".", npMapper.mapJcrToOakNamespaces("."));
+        assertEquals("foobar/oak-jcr:content/.", npMapper.mapJcrToOakNamespaces("foobar/{http://www.jcp.org/jcr/1.0}content/."));
+        assertEquals("foobar/oak-jcr:content/./.", npMapper.mapJcrToOakNamespaces("foobar/{http://www.jcp.org/jcr/1.0}content/./."));
+        assertEquals("foobar/./oak-jcr:content", npMapper.mapJcrToOakNamespaces("foobar/./{http://www.jcp.org/jcr/1.0}content"));
+        assertEquals("foobar/./../oak-jcr:content",
+                npMapper.mapJcrToOakNamespaces("foobar/./../{http://www.jcp.org/jcr/1.0}content"));
+    }
+
+    @Test
+    public void testMapJcrToOakNamespacesNoRemap() {
+        TestNameMapper mapper = new TestNameMapper(false); // a mapper with no prefix remappings present
+        NamePathMapper npMapper = new NamePathMapperImpl(mapper);
+
+        checkIdentical(npMapper, "/");
+        assertEquals("foo", npMapper.mapJcrToOakNamespaces("{}foo"));
+        checkIdentical(npMapper, "/foo:bar");
+        checkIdentical(npMapper, "/foo:bar/quu:qux");
+        checkIdentical(npMapper, "foo:bar");
+        assertEquals("nt:unstructured", npMapper.mapJcrToOakNamespaces("{http://www.jcp.org/jcr/nt/1.0}unstructured"));
+        assertEquals("foobar/jcr:content", npMapper.mapJcrToOakNamespaces("foobar/{http://www.jcp.org/jcr/1.0}content"));
+        assertEquals("foobar/jcr:content/..", npMapper.mapJcrToOakNamespaces("foobar/{http://www.jcp.org/jcr/1.0}content/.."));
+        assertEquals("foobar/jcr:content/../..", npMapper.mapJcrToOakNamespaces("foobar/{http://www.jcp.org/jcr/1.0}content/../.."));
+        assertEquals("foobar/jcr:content/../../..",
+                npMapper.mapJcrToOakNamespaces("foobar/{http://www.jcp.org/jcr/1.0}content/../../.."));
+        assertEquals("foobar/jcr:content/../../../..",
+                npMapper.mapJcrToOakNamespaces("foobar/{http://www.jcp.org/jcr/1.0}content/../../../.."));
+        assertEquals("foobar/../jcr:content", npMapper.mapJcrToOakNamespaces("foobar/../{http://www.jcp.org/jcr/1.0}content"));
+        assertEquals("foobar/../../jcr:content", npMapper.mapJcrToOakNamespaces("foobar/../../{http://www.jcp.org/jcr/1.0}content"));
+        assertEquals("..", npMapper.mapJcrToOakNamespaces(".."));
+        assertEquals(".", npMapper.mapJcrToOakNamespaces("."));
+        assertEquals("foobar/jcr:content/.", npMapper.mapJcrToOakNamespaces("foobar/{http://www.jcp.org/jcr/1.0}content/."));
+        assertEquals("foobar/jcr:content/./.", npMapper.mapJcrToOakNamespaces("foobar/{http://www.jcp.org/jcr/1.0}content/./."));
+        assertEquals("foobar/./jcr:content", npMapper.mapJcrToOakNamespaces("foobar/./{http://www.jcp.org/jcr/1.0}content"));
+        assertEquals("foobar/./../jcr:content", npMapper.mapJcrToOakNamespaces("foobar/./../{http://www.jcp.org/jcr/1.0}content"));
     }
 
     @Test
     public void testOakToJcr() {
+        TestNameMapper mapper = new TestNameMapper(true);
+        NamePathMapper npMapper = new NamePathMapperImpl(mapper);
+
         assertEquals("/jcr-foo:bar", npMapper.getJcrPath("/foo:bar"));
-        assertEquals("/jcr-foo:bar/jcr-quu:qux",
-                npMapper.getJcrPath("/foo:bar/quu:qux"));
+        assertEquals("/jcr-foo:bar/jcr-quu:qux", npMapper.getJcrPath("/foo:bar/quu:qux"));
         assertEquals("jcr-foo:bar", npMapper.getJcrPath("foo:bar"));
         assertEquals(".", npMapper.getJcrPath(""));
 
@@ -102,11 +152,31 @@ public class NamePathMapperImplTest {
         }
     }
 
+    private void checkEquals(NamePathMapper npMapper, String jcrPath) {
+        String oakPath = npMapper.mapJcrToOakNamespaces(jcrPath);
+        assertEquals(jcrPath, oakPath);
+    }
+    
+    private void checkIdentical(NamePathMapper npMapper, String jcrPath) {
+        String oakPath = npMapper.mapJcrToOakNamespaces(jcrPath);
+        checkIdentical(jcrPath, oakPath);
+    }
+
+    private static void checkIdentical(String expected, String actual) {
+        assertEquals(expected, actual);
+        if (expected != actual) {
+            fail("Expected the strings to be the same");
+        }
+    }
+    
     private class TestNameMapper extends AbstractNameMapper {
 
+        private boolean withRemappings;
         private Map<String, String> uri2oakprefix = new HashMap<String, String>();
 
-        public TestNameMapper() {
+        public TestNameMapper(boolean withRemappings) {
+            this.withRemappings = withRemappings;
+
             uri2oakprefix.put("", "");
             uri2oakprefix.put("http://www.jcp.org/jcr/1.0", "jcr");
             uri2oakprefix.put("http://www.jcp.org/jcr/nt/1.0", "nt");
@@ -116,7 +186,7 @@ public class NamePathMapperImplTest {
 
         @Override
         protected String getJcrPrefix(String oakPrefix) {
-            if (oakPrefix.isEmpty()) {
+            if (oakPrefix.isEmpty() || !withRemappings) {
                 return oakPrefix;
             } else {
                 return "jcr-" + oakPrefix;
@@ -125,7 +195,7 @@ public class NamePathMapperImplTest {
 
         @Override
         protected String getOakPrefix(String jcrPrefix) {
-            if (jcrPrefix.isEmpty()) {
+            if (jcrPrefix.isEmpty() || !withRemappings) {
                 return jcrPrefix;
             } else {
                 return "oak-" + jcrPrefix;
@@ -134,12 +204,12 @@ public class NamePathMapperImplTest {
 
         @Override
         protected String getOakPrefixFromURI(String uri) {
-            return "oak-" + uri2oakprefix.get(uri);
+            return (withRemappings ? "oak-" : "") + uri2oakprefix.get(uri);
         }
 
         @Override
         public boolean hasSessionLocalMappings() {
-            return true;
+            return withRemappings;
         }
 
     }

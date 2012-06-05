@@ -146,10 +146,112 @@ public class NamePathMapperImpl implements NamePathMapper {
     }
 
     @Override
+    public String mapJcrToOakNamespaces(String jcrPath) {
+        final List<String> elements = new ArrayList<String>();
+        final StringBuilder parseErrors = new StringBuilder();
+
+        if ("/".equals(jcrPath)) {
+            return jcrPath;
+        }
+
+        boolean hasClarkBrackets = false;
+        boolean hasColon = false;
+
+        for (int i = 0; i < jcrPath.length(); i++) {
+            char c = jcrPath.charAt(i);
+            
+            if (c == '{' || c=='}') {
+                hasClarkBrackets = true;
+            }
+            else if (c == ':') {
+                hasColon = true;
+            }
+        }
+
+        // no expanded names and no prefixes, or
+        // no expanded names and no prefix remappings
+        if (!hasClarkBrackets && (!hasColon || !hasSessionLocalMappings())) {
+            return removeTrailingSlash(jcrPath);
+        }
+
+        JcrPathParser.Listener listener = new JcrPathParser.Listener() {
+
+            @Override
+            public boolean root() {
+                if (!elements.isEmpty()) {
+                    parseErrors.append("/ on non-empty path");
+                    return false;
+                }
+                elements.add("");
+                return true;
+            }
+
+            @Override
+            public boolean current() {
+                elements.add(".");
+                return true;
+            }
+
+            @Override
+            public boolean parent() {
+                elements.add("..");
+                return true;
+            }
+
+            @Override
+            public void error(String message) {
+                parseErrors.append(message);
+            }
+
+            @Override
+            public boolean name(String name, int index) {
+                String p = nameMapper.getOakName(name);
+                if (p == null) {
+                    parseErrors.append("Invalid name: ").append(name);
+                    return false;
+                }
+                if (index != 0) {
+                    p += "[" + index + "]";
+                }
+                elements.add(p);
+                return true;
+            }
+        };
+
+        JcrPathParser.parse(jcrPath, listener);
+        if (parseErrors.length() != 0) {
+            log.debug("Could not parse path " + jcrPath + ": " + parseErrors.toString());
+            return null;
+        }
+
+        // Empty path maps to ""
+        if (elements.isEmpty()) {
+            return "";
+        }
+
+        StringBuilder oakPath = new StringBuilder();
+        for (String element : elements) {
+            if (element.isEmpty()) {
+                // root
+                oakPath.append('/');
+            }
+            else {
+                oakPath.append(element);
+                oakPath.append('/');
+            }
+        }
+
+        // root path is special-cased early on so it does not need to
+        // be considered here
+        oakPath.deleteCharAt(oakPath.length() - 1);
+        return oakPath.toString();
+    }
+
+    @Override
     @Nonnull
     public String getJcrPath(String oakPath) {
         final List<String> elements = new ArrayList<String>();
-
+        
         if ("/".equals(oakPath)) {
             // avoid the need to special case the root path later on
             return "/";
@@ -218,5 +320,15 @@ public class NamePathMapperImpl implements NamePathMapper {
 
         jcrPath.deleteCharAt(jcrPath.length() - 1);
         return jcrPath.toString();
+    }
+
+    private String removeTrailingSlash(String path) {
+        if ("/".equals(path) || path.isEmpty()) {
+            return path;
+        } else if (path.endsWith("/")) {
+            return path.substring(0, path.length() - 1);
+        } else {
+            return path;
+        }
     }
 }
