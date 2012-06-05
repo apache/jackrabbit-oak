@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.commons;
 
 import javax.annotation.Nonnull;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
@@ -30,7 +29,6 @@ import java.util.NoSuchElementException;
  * the the result of this method is undefined.
  */
 public class PathUtils {
-    private static final String[] EMPTY_ARRAY = new String[0];
 
     private PathUtils() {
         // utility class

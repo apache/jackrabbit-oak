@@ -31,6 +31,7 @@ public class ArrayUtils {
     public static final int[] EMPTY_INTEGER_ARRAY = new int[0];
 
     private ArrayUtils() {
+        // utility class
     }
 
     /**
