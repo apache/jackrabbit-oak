@@ -39,7 +39,6 @@ public class JcrPathParser {
         boolean root();
         boolean current();
         boolean parent();
-        boolean index(int index);
     }
 
     public static void parse(String jcrPath, Listener listener) {
@@ -106,8 +105,7 @@ public class JcrPathParser {
                             name = jcrPath.substring(lastPos, pos - 1);
                         }
 
-                        JcrNameParser.parse(name, listener);
-                        if (!listener.index(index)) {
+                        if (!JcrNameParser.parse(name, listener, index)) {
                             return;
                         }
                         state = STATE_PREFIX_START;
