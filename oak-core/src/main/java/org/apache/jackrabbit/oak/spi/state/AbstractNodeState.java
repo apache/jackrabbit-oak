@@ -128,6 +128,7 @@ public abstract class AbstractNodeState implements NodeState {
             }
         }
 
+        // TODO inefficient unless there are very few child nodes
         for (ChildNodeEntry entry : getChildNodeEntries()) {
             if (!entry.getNodeState().equals(
                     other.getChildNode(entry.getName()))) {
