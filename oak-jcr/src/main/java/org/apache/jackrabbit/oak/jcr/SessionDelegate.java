@@ -37,7 +37,6 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.ItemExistsException;
-import javax.jcr.NamespaceRegistry;
 import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.Repository;
@@ -195,6 +194,23 @@ public class SessionDelegate {
     }
 
     /**
+     * Shortcut for {@code SessionDelegate.getOakPathKeepIndex(jcrPath)}.
+     *
+     * @param jcrPath JCR path
+     * @return Oak path, or {@code null}, with indexes left intact
+     * @throws PathNotFoundException 
+     */
+    @Nonnull
+    public String getOakPathKeepIndexOrThrowNotFound(String jcrPath) throws PathNotFoundException {
+        String oakPath = getNamePathMapper().getOakPathKeepIndex(jcrPath);
+        if (oakPath != null) {
+            return oakPath;
+        } else {
+            throw new PathNotFoundException(jcrPath);
+        }
+    }
+
+    /**
      * Returns the Oak path for the given JCR path, or throws a
      * {@link PathNotFoundException} if the path can not be mapped.
      *
@@ -202,9 +218,8 @@ public class SessionDelegate {
      * @return Oak path
      * @throws PathNotFoundException if the path can not be mapped
      */
-    @CheckForNull
-    public String getOakPathOrThrowNotFound(String jcrPath)
-            throws PathNotFoundException {
+    @Nonnull
+    public String getOakPathOrThrowNotFound(String jcrPath) throws PathNotFoundException {
         String oakPath = getOakPathOrNull(jcrPath);
         if (oakPath != null) {
             return oakPath;

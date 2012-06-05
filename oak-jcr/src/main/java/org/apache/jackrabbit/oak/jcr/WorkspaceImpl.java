@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.jcr;
 
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.nodetype.NodeTypeManagerImpl;
 import org.apache.jackrabbit.oak.jcr.query.QueryManagerImpl;
 import org.apache.jackrabbit.oak.jcr.security.privileges.PrivilegeManagerImpl;
@@ -89,9 +90,16 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
             throw new UnsupportedRepositoryOperationException("Not implemented.");
         }
 
+        String oakPath = sessionDelegate.getOakPathKeepIndexOrThrowNotFound(destAbsPath);
+        String oakName = PathUtils.getName(oakPath);
+        // handle index
+        if (oakName.contains("[")) {
+            throw new RepositoryException("Cannot create a new node using a name including an index");
+        }
+
         sessionDelegate.copy(
                 sessionDelegate.getOakPathOrThrowNotFound(srcAbsPath),
-                sessionDelegate.getOakPathOrThrowNotFound(destAbsPath));
+                sessionDelegate.getOakPathOrThrowNotFound(oakPath));
     }
 
     @SuppressWarnings("deprecation")
@@ -110,9 +118,16 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
         ensureSupportedOption(Repository.LEVEL_2_SUPPORTED);
         ensureIsAlive();
 
+        String oakPath = sessionDelegate.getOakPathKeepIndexOrThrowNotFound(destAbsPath);
+        String oakName = PathUtils.getName(oakPath);
+        // handle index
+        if (oakName.contains("[")) {
+            throw new RepositoryException("Cannot create a new node using a name including an index");
+        }
+
         sessionDelegate.move(
                 sessionDelegate.getOakPathOrThrowNotFound(srcAbsPath),
-                sessionDelegate.getOakPathOrThrowNotFound(destAbsPath),
+                sessionDelegate.getOakPathOrThrowNotFound(oakPath),
                 false);
     }
 

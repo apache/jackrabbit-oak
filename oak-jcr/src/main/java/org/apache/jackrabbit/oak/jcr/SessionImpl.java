@@ -35,6 +35,7 @@ import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.AbstractSession;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.xml.XmlImportHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.slf4j.Logger;
@@ -129,9 +130,17 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     @Override
     public void move(String srcAbsPath, String destAbsPath) throws RepositoryException {
         ensureIsAlive();
+
+        String oakPath = dlg.getOakPathKeepIndexOrThrowNotFound(destAbsPath);
+        String oakName = PathUtils.getName(oakPath);
+        // handle index
+        if (oakName.contains("[")) {
+            throw new RepositoryException("Cannot create a new node using a name including an index");
+        }
+
         dlg.move(
                 dlg.getOakPathOrThrowNotFound(srcAbsPath),
-                dlg.getOakPathOrThrowNotFound(destAbsPath),
+                dlg.getOakPathOrThrowNotFound(oakPath),
                 true);
     }
 

@@ -170,9 +170,16 @@ public class NodeImpl extends ItemImpl implements Node {
     public Node addNode(String relPath, String primaryNodeTypeName) throws RepositoryException {
         checkStatus();
 
-        String oakPath = sessionDelegate.getOakPathOrThrow(relPath);
+        String oakPath = sessionDelegate.getOakPathKeepIndexOrThrowNotFound(relPath);
         String oakName = PathUtils.getName(oakPath);
-        NodeDelegate parent = dlg.getChild(PathUtils.getParentPath(oakPath));
+        String parentPath = sessionDelegate.getOakPathOrThrow(PathUtils.getParentPath(oakPath));
+
+        // handle index
+        if (oakName.contains("[")) {
+            throw new RepositoryException("Cannot create a new node using a name including an index");
+        }
+
+        NodeDelegate parent = dlg.getChild(parentPath);
         if (parent == null) {
             throw new PathNotFoundException(relPath);
         }

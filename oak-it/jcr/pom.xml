@@ -45,8 +45,6 @@
               <name>known.issues</name>
               <value>
 org.apache.jackrabbit.test.api.AddNodeTest#testConstraintViolation
-org.apache.jackrabbit.test.api.AddNodeTest#testRepositoryException
-org.apache.jackrabbit.test.api.SessionTest#testMoveRepositoryException
 org.apache.jackrabbit.test.api.SessionTest#testMoveConstraintViolationExceptionSrc
 org.apache.jackrabbit.test.api.SessionTest#testMoveConstraintViolationExceptionDest
 org.apache.jackrabbit.test.api.SessionTest#testSaveConstraintViolationException
@@ -66,9 +64,11 @@ org.apache.jackrabbit.test.api.SetPropertyValueTest#testSetSingleValueArrayValue
 org.apache.jackrabbit.test.api.SetPropertyAssumeTypeTest
 org.apache.jackrabbit.test.api.NodeAddMixinTest#testAddInheritedMixin
 org.apache.jackrabbit.test.api.WorkspaceCopySameNameSibsTest
-org.apache.jackrabbit.test.api.WorkspaceCopyTest
+org.apache.jackrabbit.test.api.WorkspaceCopyTest#testCopyNodesConstraintViolationException
+org.apache.jackrabbit.test.api.WorkspaceCopyTest#testCopyNodesAccessDenied
 org.apache.jackrabbit.test.api.WorkspaceMoveSameNameSibsTest
-org.apache.jackrabbit.test.api.WorkspaceMoveTest
+org.apache.jackrabbit.test.api.WorkspaceMoveTest#testMoveNodesConstraintViolationException
+org.apache.jackrabbit.test.api.WorkspaceMoveTest#testMoveNodesAccessDenied
 org.apache.jackrabbit.test.api.ImpersonateTest
 org.apache.jackrabbit.test.api.CheckPermissionTest
 org.apache.jackrabbit.test.api.DocumentViewImportTest
