@@ -96,21 +96,16 @@ public class NamePathMapperImpl implements NamePathMapper {
             }
 
             @Override
-            public boolean index(int index) {
-                if (index > 1) {
-                    parseErrors.append("index > 1");
-                    return false;
-                }
-                return true;
-            }
-
-            @Override
             public void error(String message) {
                 parseErrors.append(message);
             }
 
             @Override
-            public boolean name(String name) {
+            public boolean name(String name, int index) {
+                if (index > 1) {
+                    parseErrors.append("index > 1");
+                    return false;
+                }
                 String p = nameMapper.getOakName(name);
                 if (p == null) {
                     parseErrors.append("Invalid name: ").append(name);
@@ -187,20 +182,15 @@ public class NamePathMapperImpl implements NamePathMapper {
             }
 
             @Override
-            public boolean index(int index) {
-                if (index > 1) {
-                    throw new IllegalArgumentException("index > 1");
-                }
-                return true;
-            }
-
-            @Override
             public void error(String message) {
                 throw new IllegalArgumentException(message);
             }
 
             @Override
-            public boolean name(String name) {
+            public boolean name(String name, int index) {
+                if (index > 1) {
+                    throw new IllegalArgumentException("index > 1");
+                }
                 String p = nameMapper.getJcrName(name);
                 elements.add(p);
                 return true;
