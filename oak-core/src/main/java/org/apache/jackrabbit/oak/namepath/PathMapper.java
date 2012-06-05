@@ -36,17 +36,13 @@ public interface PathMapper {
     String getOakPath(String jcrPath);
 
     /**
-     * Maps a JCR path to an Oak path, substituting JCR prefixes with
-     * Oak prefixes, and converting expanded names to Oak qualified form.
-     * Returns the converted path for the given JCR path, or {@code null} if no
-     * such mapping exists because the given JCR path contains a name element
-     * with an unknown namespace URI or prefix, or is otherwise invalid.
+     * As {@link #getOakPath(String)}, but preserving the index information
      *
      * @param jcrPath JCR path
      * @return mapped path, or {@code null}
      */
     @CheckForNull
-    String mapJcrToOakNamespaces(String jcrPath);
+    String getOakPathKeepIndex(String jcrPath);
 
     /**
      * Returns the JCR path for the given Oak path. The given path is

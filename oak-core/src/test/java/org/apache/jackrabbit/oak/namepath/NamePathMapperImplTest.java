@@ -68,65 +68,45 @@ public class NamePathMapperImplTest {
         assertEquals("foobar/oak-jcr:content", npMapper.getOakPath("foobar/{http://www.jcp.org/jcr/1.0}content/./."));
         assertEquals("foobar/oak-jcr:content", npMapper.getOakPath("foobar/./{http://www.jcp.org/jcr/1.0}content"));
         assertEquals("oak-jcr:content", npMapper.getOakPath("foobar/./../{http://www.jcp.org/jcr/1.0}content"));
+        assertEquals("/a/b/c", npMapper.getOakPath("/a/b[1]/c[01]"));
     }
 
     @Test
-    public void testMapJcrToOakNamespaces() {
+    public void testJcrToOakKeepIndex() {
         TestNameMapper mapper = new TestNameMapper(true);
         NamePathMapper npMapper = new NamePathMapperImpl(mapper);
 
-        assertEquals("/", npMapper.mapJcrToOakNamespaces("/"));
-        assertEquals("foo", npMapper.mapJcrToOakNamespaces("{}foo"));
-        assertEquals("/oak-foo:bar", npMapper.mapJcrToOakNamespaces("/foo:bar"));
-        assertEquals("/oak-foo:bar/oak-quu:qux", npMapper.mapJcrToOakNamespaces("/foo:bar/quu:qux"));
-        assertEquals("oak-foo:bar", npMapper.mapJcrToOakNamespaces("foo:bar"));
-        assertEquals("oak-nt:unstructured", npMapper.mapJcrToOakNamespaces("{http://www.jcp.org/jcr/nt/1.0}unstructured"));
-        assertEquals("foobar/oak-jcr:content", npMapper.mapJcrToOakNamespaces("foobar/{http://www.jcp.org/jcr/1.0}content"));
-        assertEquals("foobar/oak-jcr:content/..", npMapper.mapJcrToOakNamespaces("foobar/{http://www.jcp.org/jcr/1.0}content/.."));
-        assertEquals("foobar/oak-jcr:content/../..",
-                npMapper.mapJcrToOakNamespaces("foobar/{http://www.jcp.org/jcr/1.0}content/../.."));
-        assertEquals("foobar/oak-jcr:content/../../..",
-                npMapper.mapJcrToOakNamespaces("foobar/{http://www.jcp.org/jcr/1.0}content/../../.."));
-        assertEquals("foobar/oak-jcr:content/../../../..",
-                npMapper.mapJcrToOakNamespaces("foobar/{http://www.jcp.org/jcr/1.0}content/../../../.."));
-        assertEquals("foobar/../oak-jcr:content", npMapper.mapJcrToOakNamespaces("foobar/../{http://www.jcp.org/jcr/1.0}content"));
-        assertEquals("foobar/../../oak-jcr:content",
-                npMapper.mapJcrToOakNamespaces("foobar/../../{http://www.jcp.org/jcr/1.0}content"));
-        assertEquals("..", npMapper.mapJcrToOakNamespaces(".."));
-        assertEquals(".", npMapper.mapJcrToOakNamespaces("."));
-        assertEquals("foobar/oak-jcr:content/.", npMapper.mapJcrToOakNamespaces("foobar/{http://www.jcp.org/jcr/1.0}content/."));
-        assertEquals("foobar/oak-jcr:content/./.", npMapper.mapJcrToOakNamespaces("foobar/{http://www.jcp.org/jcr/1.0}content/./."));
-        assertEquals("foobar/./oak-jcr:content", npMapper.mapJcrToOakNamespaces("foobar/./{http://www.jcp.org/jcr/1.0}content"));
-        assertEquals("foobar/./../oak-jcr:content",
-                npMapper.mapJcrToOakNamespaces("foobar/./../{http://www.jcp.org/jcr/1.0}content"));
+        assertEquals("/", npMapper.getOakPathKeepIndex("/"));
+        assertEquals("foo", npMapper.getOakPathKeepIndex("{}foo"));
+        assertEquals("/oak-foo:bar", npMapper.getOakPathKeepIndex("/foo:bar"));
+        assertEquals("/oak-foo:bar/oak-quu:qux", npMapper.getOakPathKeepIndex("/foo:bar/quu:qux"));
+        assertEquals("oak-foo:bar", npMapper.getOakPathKeepIndex("foo:bar"));
+        assertEquals("oak-nt:unstructured", npMapper.getOakPathKeepIndex("{http://www.jcp.org/jcr/nt/1.0}unstructured"));
+        assertEquals("foobar/oak-jcr:content", npMapper.getOakPathKeepIndex("foobar/{http://www.jcp.org/jcr/1.0}content"));
+        assertEquals("foobar", npMapper.getOakPathKeepIndex("foobar/{http://www.jcp.org/jcr/1.0}content/.."));
+        assertEquals("", npMapper.getOakPathKeepIndex("foobar/{http://www.jcp.org/jcr/1.0}content/../.."));
+        assertEquals("..", npMapper.getOakPathKeepIndex("foobar/{http://www.jcp.org/jcr/1.0}content/../../.."));
+        assertEquals("../..", npMapper.getOakPathKeepIndex("foobar/{http://www.jcp.org/jcr/1.0}content/../../../.."));
+        assertEquals("oak-jcr:content", npMapper.getOakPathKeepIndex("foobar/../{http://www.jcp.org/jcr/1.0}content"));
+        assertEquals("../oak-jcr:content", npMapper.getOakPathKeepIndex("foobar/../../{http://www.jcp.org/jcr/1.0}content"));
+        assertEquals("..", npMapper.getOakPathKeepIndex(".."));
+        assertEquals("", npMapper.getOakPathKeepIndex("."));
+        assertEquals("foobar/oak-jcr:content", npMapper.getOakPathKeepIndex("foobar/{http://www.jcp.org/jcr/1.0}content/."));
+        assertEquals("foobar/oak-jcr:content", npMapper.getOakPathKeepIndex("foobar/{http://www.jcp.org/jcr/1.0}content/./."));
+        assertEquals("foobar/oak-jcr:content", npMapper.getOakPathKeepIndex("foobar/./{http://www.jcp.org/jcr/1.0}content"));
+        assertEquals("oak-jcr:content", npMapper.getOakPathKeepIndex("foobar/./../{http://www.jcp.org/jcr/1.0}content"));
+        assertEquals("/a/b[1]/c[1]", npMapper.getOakPathKeepIndex("/a/b[1]/c[01]"));
     }
 
     @Test
-    public void testMapJcrToOakNamespacesNoRemap() {
+    public void testJcrToOakKeepIndexNoRemap() {
         TestNameMapper mapper = new TestNameMapper(false); // a mapper with no prefix remappings present
         NamePathMapper npMapper = new NamePathMapperImpl(mapper);
 
         checkIdentical(npMapper, "/");
-        assertEquals("foo", npMapper.mapJcrToOakNamespaces("{}foo"));
         checkIdentical(npMapper, "/foo:bar");
         checkIdentical(npMapper, "/foo:bar/quu:qux");
         checkIdentical(npMapper, "foo:bar");
-        assertEquals("nt:unstructured", npMapper.mapJcrToOakNamespaces("{http://www.jcp.org/jcr/nt/1.0}unstructured"));
-        assertEquals("foobar/jcr:content", npMapper.mapJcrToOakNamespaces("foobar/{http://www.jcp.org/jcr/1.0}content"));
-        assertEquals("foobar/jcr:content/..", npMapper.mapJcrToOakNamespaces("foobar/{http://www.jcp.org/jcr/1.0}content/.."));
-        assertEquals("foobar/jcr:content/../..", npMapper.mapJcrToOakNamespaces("foobar/{http://www.jcp.org/jcr/1.0}content/../.."));
-        assertEquals("foobar/jcr:content/../../..",
-                npMapper.mapJcrToOakNamespaces("foobar/{http://www.jcp.org/jcr/1.0}content/../../.."));
-        assertEquals("foobar/jcr:content/../../../..",
-                npMapper.mapJcrToOakNamespaces("foobar/{http://www.jcp.org/jcr/1.0}content/../../../.."));
-        assertEquals("foobar/../jcr:content", npMapper.mapJcrToOakNamespaces("foobar/../{http://www.jcp.org/jcr/1.0}content"));
-        assertEquals("foobar/../../jcr:content", npMapper.mapJcrToOakNamespaces("foobar/../../{http://www.jcp.org/jcr/1.0}content"));
-        assertEquals("..", npMapper.mapJcrToOakNamespaces(".."));
-        assertEquals(".", npMapper.mapJcrToOakNamespaces("."));
-        assertEquals("foobar/jcr:content/.", npMapper.mapJcrToOakNamespaces("foobar/{http://www.jcp.org/jcr/1.0}content/."));
-        assertEquals("foobar/jcr:content/./.", npMapper.mapJcrToOakNamespaces("foobar/{http://www.jcp.org/jcr/1.0}content/./."));
-        assertEquals("foobar/./jcr:content", npMapper.mapJcrToOakNamespaces("foobar/./{http://www.jcp.org/jcr/1.0}content"));
-        assertEquals("foobar/./../jcr:content", npMapper.mapJcrToOakNamespaces("foobar/./../{http://www.jcp.org/jcr/1.0}content"));
     }
 
     @Test
@@ -153,12 +133,12 @@ public class NamePathMapperImplTest {
     }
 
     private void checkEquals(NamePathMapper npMapper, String jcrPath) {
-        String oakPath = npMapper.mapJcrToOakNamespaces(jcrPath);
+        String oakPath = npMapper.getOakPathKeepIndex(jcrPath);
         assertEquals(jcrPath, oakPath);
     }
     
     private void checkIdentical(NamePathMapper npMapper, String jcrPath) {
-        String oakPath = npMapper.mapJcrToOakNamespaces(jcrPath);
+        String oakPath = npMapper.getOakPathKeepIndex(jcrPath);
         checkIdentical(jcrPath, oakPath);
     }
 
