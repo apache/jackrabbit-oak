@@ -16,14 +16,12 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import org.junit.After;
-import org.junit.Test;
-
-import javax.jcr.GuestCredentials;
 import javax.jcr.Node;
-import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+
+import org.junit.After;
+import org.junit.Test;
 
 import static org.junit.Assert.fail;
 
@@ -51,8 +49,6 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
      */
     @Test
     public void sessionIsolation() throws RepositoryException {
-        Repository repository = getRepository();
-
         Session session0 = createAnonymousSession();
         Node testNode = session0.getNode("/").addNode("testNode");
         testNode.setProperty("p1", 1);
