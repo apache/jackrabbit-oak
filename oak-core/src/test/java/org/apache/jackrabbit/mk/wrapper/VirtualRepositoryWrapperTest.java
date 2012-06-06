@@ -70,12 +70,8 @@ public class VirtualRepositoryWrapperTest extends MultiMkTestBase {
             if (mkVirtual != null) {
                 MicroKernelFactory.disposeInstance(mkVirtual);
             }
-            if (mkRep1 != null) {
-                MicroKernelFactory.disposeInstance(mkRep1);
-            }
-            if (mkRep2 != null) {
-                MicroKernelFactory.disposeInstance(mkRep2);
-            }
+            MicroKernelFactory.disposeInstance(mkRep1);
+            MicroKernelFactory.disposeInstance(mkRep2);
             super.tearDown();
         } catch (Throwable e) {
             e.printStackTrace();
