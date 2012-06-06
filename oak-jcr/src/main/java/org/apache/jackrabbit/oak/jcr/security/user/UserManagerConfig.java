@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
+import javax.annotation.Nonnull;
 
 /**
  * UserManagerConfig...
@@ -104,28 +105,32 @@ public class UserManagerConfig {
      */
     public static final String PARAM_PASSWORD_SALT_SIZE = "passwordSaltSize";
 
-    private final Map<String, Object> config;
     private final String adminId;
+    private final Map<String, Object> options;
     private final Set<AuthorizableAction> actions;
 
-    public UserManagerConfig(Map<String, Object> config, String adminId, Set<AuthorizableAction> actions) {
-        this.config = config;
+    public UserManagerConfig(String adminId, Map<String, Object> options, Set<AuthorizableAction> actions) {
+        assert adminId != null;
+
         this.adminId = adminId;
+        this.options = (options == null) ? Collections.<String, Object>emptyMap() : Collections.unmodifiableMap(options);
         this.actions = (actions == null) ? Collections.<AuthorizableAction>emptySet() : Collections.unmodifiableSet(actions);
     }
 
+    @Nonnull
+    public String getAdminId() {
+        return adminId;
+    }
+
     public <T> T getConfigValue(String key, T defaultValue) {
-        if (config != null && config.containsKey(key)) {
-            return convert(config.get(key), defaultValue);
+        if (options != null && options.containsKey(key)) {
+            return convert(options.get(key), defaultValue);
         } else {
             return defaultValue;
         }
     }
 
-    public String getAdminId() {
-        return adminId;
-    }
-
+    @Nonnull
     public AuthorizableAction[] getAuthorizableActions() {
         return actions.toArray(new AuthorizableAction[actions.size()]);
     }

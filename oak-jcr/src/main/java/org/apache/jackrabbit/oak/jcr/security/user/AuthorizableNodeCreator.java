@@ -309,15 +309,15 @@ class AuthorizableNodeCreator {
             sb.append(intermediatePath);
         } else {
             int idLength = authorizableId.length();
+            StringBuilder segment = new StringBuilder();
             for (int i = 0; i < defaultDepth; i++) {
-                char c;
                 if (idLength > i) {
-                    c = authorizableId.charAt(i);
+                    segment.append(authorizableId.charAt(i));
                 } else {
                     // escapedID is too short -> append the last char again
-                    c = authorizableId.charAt(idLength-1);
+                    segment.append(authorizableId.charAt(idLength-1));
                 }
-                sb.append(DELIMITER).append(Text.escapeIllegalJcrChars(String.valueOf(c)));
+                sb.append(DELIMITER).append(Text.escapeIllegalJcrChars(segment.toString()));
             }
         }
         return sb.toString();
@@ -369,7 +369,7 @@ class AuthorizableNodeCreator {
                 }
             } else {
                 // folder doesn't exist nor does another colliding child node.
-                folder = folder.addNode(folderName, ntAuthorizable);
+                folder = folder.addNode(folderName, ntAuthorizableFolder);
             }
             segmLength++;
         }
