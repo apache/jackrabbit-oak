@@ -227,8 +227,8 @@ public class VirtualRepositoryWrapper extends MicroKernelWrapperBase implements 
     }
 
     public void dispose() {
-        for (MicroKernel m : mounts.values()) {
-            MicroKernelFactory.disposeInstance(m);
+        for (MicroKernelWrapper wrapper : mounts.values()) {
+            MicroKernelFactory.disposeInstance(MicroKernelWrapperBase.unwrap(wrapper));
         }
     }
 
