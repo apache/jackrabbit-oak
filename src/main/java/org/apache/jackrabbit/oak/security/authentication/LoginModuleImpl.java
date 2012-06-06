@@ -139,8 +139,8 @@ public class LoginModuleImpl implements LoginModule {
     public boolean login() throws LoginException {
         // TODO
         credentials = getCredentials();
-        principals = getPrincipals();
         userID = getUserID();
+        principals = getPrincipals(userID);
 
         Authentication authentication = new AuthenticationImpl(userID);
         boolean success = authenticate(authentication);
@@ -255,24 +255,12 @@ public class LoginModuleImpl implements LoginModule {
         return cds;
     }
 
-    private static Principal getPrincipal(Credentials credentials, PrincipalProvider principalProvider) {
-        Principal principal = null;
-        if (credentials instanceof SimpleCredentials) {
-            String userID = ((SimpleCredentials) credentials).getUserID();
-            principal = principalProvider.getPrincipal(userID); // FIXME
-        } else if (credentials instanceof GuestCredentials) {
-            principal = principalProvider.getPrincipal("anonymous"); // FIXME
-        }
-
-        return principal;
-    }
-
-    private Set<Principal> getPrincipals() {
+    private Set<Principal> getPrincipals(String userID) {
         Set<Principal> principals = new HashSet<Principal>();
         PrincipalProvider principalProvider = getPrincipalProvider();
         if (principalProvider != null) {
             for (Credentials creds : credentials) {
-                Principal p = getPrincipal(creds, principalProvider);
+                Principal p = principalProvider.getPrincipal(userID); // TODO FIXME
                 if (p != null) {
                     principals.add(p);
                     principals.addAll(principalProvider.getGroupMembership(p));
