@@ -29,12 +29,11 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 public class NamePathMapperImplTest {
+    private TestNameMapper mapper = new TestNameMapper(true);
+    private NamePathMapper npMapper = new NamePathMapperImpl(mapper);
 
     @Test
     public void testInvalidIdentifierPath() {
-        TestNameMapper mapper = new TestNameMapper(true);
-        NamePathMapper npMapper = new NamePathMapperImpl(mapper);
-
         List<String> invalid = new ArrayList<String>();
         invalid.add('[' + UUID.randomUUID().toString() + "]abc");
         invalid.add('[' + UUID.randomUUID().toString() + "]/a/b/c");
@@ -45,10 +44,19 @@ public class NamePathMapperImplTest {
     }
 
     @Test
-    public void testJcrToOak() {
-        TestNameMapper mapper = new TestNameMapper(true);
-        NamePathMapper npMapper = new NamePathMapperImpl(mapper);
+    public void testNullName() {
+        assertNull(npMapper.getJcrName(null));
+        assertNull(npMapper.getOakName(null));
+    }
 
+    @Test
+    public void testEmptyName() {
+        assertEquals("", npMapper.getJcrName(""));
+        assertEquals("", npMapper.getOakName(""));
+    }
+
+    @Test
+    public void testJcrToOak() {
         assertEquals("/", npMapper.getOakPath("/"));
         assertEquals("foo", npMapper.getOakPath("{}foo"));
         assertEquals("/oak-foo:bar", npMapper.getOakPath("/foo:bar"));
@@ -73,9 +81,6 @@ public class NamePathMapperImplTest {
 
     @Test
     public void testJcrToOakKeepIndex() {
-        TestNameMapper mapper = new TestNameMapper(true);
-        NamePathMapper npMapper = new NamePathMapperImpl(mapper);
-
         assertEquals("/", npMapper.getOakPathKeepIndex("/"));
         assertEquals("foo", npMapper.getOakPathKeepIndex("{}foo"));
         assertEquals("/oak-foo:bar", npMapper.getOakPathKeepIndex("/foo:bar"));
@@ -111,9 +116,6 @@ public class NamePathMapperImplTest {
 
     @Test
     public void testOakToJcr() {
-        TestNameMapper mapper = new TestNameMapper(true);
-        NamePathMapper npMapper = new NamePathMapperImpl(mapper);
-
         assertEquals("/jcr-foo:bar", npMapper.getJcrPath("/foo:bar"));
         assertEquals("/jcr-foo:bar/jcr-quu:qux", npMapper.getJcrPath("/foo:bar/quu:qux"));
         assertEquals("jcr-foo:bar", npMapper.getJcrPath("foo:bar"));
