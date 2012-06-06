@@ -43,6 +43,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -158,12 +159,24 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
 
     @Override
     public NodeType registerNodeType(NodeTypeDefinition ntd, boolean allowUpdate) throws RepositoryException {
-        return getNodeType("nt:base"); // FIXME OAK-66
+        // TODO proper node type registration... (OAK-66)
+        NodeTypeDelegate delegate = new NodeTypeDelegate(
+                ntd.getName(),
+                ntd.getDeclaredSupertypeNames(), ntd.getPrimaryItemName(),
+                ntd.isMixin(), ntd.isAbstract(), ntd.hasOrderableChildNodes());
+        NodeType type = new NodeTypeImpl(this, vf, mapper, delegate);
+        typemap.put(ntd.getName(), type);
+        return type;
     }
 
     @Override
     public NodeTypeIterator registerNodeTypes(NodeTypeDefinition[] ntds, boolean allowUpdate) throws RepositoryException {
-        return NodeTypeIteratorAdapter.EMPTY; // FIXME OAK-66
+        // TODO handle inter-type dependencies (OAK-66)
+        NodeType[] types = new NodeType[ntds.length];
+        for (int i = 0; i < ntds.length; i++) {
+            types[i] = registerNodeType(ntds[i], allowUpdate);
+        }
+        return new NodeTypeIteratorAdapter(Arrays.asList(types));
     }
 
     @Override
