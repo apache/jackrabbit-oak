@@ -34,6 +34,7 @@ import javax.jcr.Item;
 import javax.jcr.ItemExistsException;
 import javax.jcr.ItemNotFoundException;
 import javax.jcr.ItemVisitor;
+import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.PathNotFoundException;
@@ -891,6 +892,7 @@ public class NodeImpl extends ItemImpl implements Node {
     @Nonnull
     public String getCorrespondingNodePath(String workspaceName) throws RepositoryException {
         checkStatus();
+        checkValidWorkspace(workspaceName);
         throw new UnsupportedRepositoryOperationException("TODO: Node.getCorrespondingNodePath");
     }
 
@@ -898,6 +900,7 @@ public class NodeImpl extends ItemImpl implements Node {
     @Override
     public void update(String srcWorkspace) throws RepositoryException {
         checkStatus();
+        checkValidWorkspace(srcWorkspace);
         ensureNoPendingSessionChanges();
 
         // TODO
@@ -1147,5 +1150,14 @@ public class NodeImpl extends ItemImpl implements Node {
     private boolean isSupportedMixinName(String mixinName) throws RepositoryException {
         String oakName = sessionDelegate.getOakPathOrThrow(mixinName);
         return "mix:title".equals(oakName);
+    }
+
+    private void checkValidWorkspace(String workspaceName) throws RepositoryException {
+        for (String wn : sessionDelegate.getWorkspace().getAccessibleWorkspaceNames()) {
+            if (wn.equals(workspaceName)) {
+                return;
+            }
+        }
+        throw new NoSuchWorkspaceException(workspaceName + " does not exist.");
     }
 }

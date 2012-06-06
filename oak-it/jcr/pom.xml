@@ -52,8 +52,6 @@ org.apache.jackrabbit.test.api.SessionTest#testHasCapability
 org.apache.jackrabbit.test.api.SessionUUIDTest
 org.apache.jackrabbit.test.api.NodeTest#testSaveConstraintViolationException
 org.apache.jackrabbit.test.api.NodeTest#testSaveInvalidStateException<!--OAK-131-->
-org.apache.jackrabbit.test.api.NodeTest#testGetCorrespondingNodePathNoSuchWorkspaceException
-org.apache.jackrabbit.test.api.NodeTest#testUpdateNoSuchWorkspaceException
 org.apache.jackrabbit.test.api.NodeTest#testAddNodeConstraintViolationExceptionUndefinedNodeType
 org.apache.jackrabbit.test.api.NodeTest#testRemoveMandatoryNode
 org.apache.jackrabbit.test.api.NodeTest#testRemoveInvalidItemStateException<!--OAK-131-->
