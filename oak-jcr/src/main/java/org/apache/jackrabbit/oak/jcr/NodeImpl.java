@@ -442,8 +442,7 @@ public class NodeImpl extends ItemImpl implements Node {
                     @Override
                     public boolean evaluate(NodeDelegate state) {
                         try {
-                            return ItemNameMatcher.matches(
-                                    toJcrPath(state.getName()), namePattern);
+                            return ItemNameMatcher.matches(toJcrPath(state.getName()), namePattern);
                         } catch (InvalidItemStateException e) {
                             return false;
                         }
@@ -506,8 +505,7 @@ public class NodeImpl extends ItemImpl implements Node {
                     @Override
                     public boolean evaluate(PropertyDelegate entry) {
                         try {
-                            return ItemNameMatcher.matches(
-                                    toJcrPath(entry.getName()), namePattern);
+                            return ItemNameMatcher.matches(toJcrPath(entry.getName()), namePattern);
                         } catch (InvalidItemStateException e) {
                             return false;
                         }
@@ -527,8 +525,7 @@ public class NodeImpl extends ItemImpl implements Node {
                     @Override
                     public boolean evaluate(PropertyDelegate entry) {
                         try {
-                            return ItemNameMatcher.matches(
-                                    toJcrPath(entry.getName()), nameGlobs);
+                            return ItemNameMatcher.matches(toJcrPath(entry.getName()), nameGlobs);
                         } catch (InvalidItemStateException e) {
                             return false;
                         }
@@ -671,7 +668,7 @@ public class NodeImpl extends ItemImpl implements Node {
         String primaryNtName;
         primaryNtName = hasProperty(Property.JCR_PRIMARY_TYPE)
             ? getProperty(Property.JCR_PRIMARY_TYPE).getString()
-            : "nt:unstructured";
+            : NodeType.NT_UNSTRUCTURED;
 
         return ntMgr.getNodeType(primaryNtName);
     }
@@ -742,8 +739,7 @@ public class NodeImpl extends ItemImpl implements Node {
         }
         // TODO: END
 
-        String jcrPrimaryType =
-                sessionDelegate.getOakPathOrThrow(Property.JCR_PRIMARY_TYPE);
+        String jcrPrimaryType = sessionDelegate.getOakPathOrThrow(Property.JCR_PRIMARY_TYPE);
         CoreValue cv = ValueConverter.toCoreValue(nodeTypeName, PropertyType.NAME, sessionDelegate);
         dlg.setProperty(jcrPrimaryType, cv);
     }
@@ -755,13 +751,12 @@ public class NodeImpl extends ItemImpl implements Node {
         NodeTypeManager ntm = sessionDelegate.getNodeTypeManager();
         NodeType nt = ntm.getNodeType(mixinName); // throws on not found
 
-        if (nt.isNodeType("mix:referenceable")) {
-            this.setProperty(Property.JCR_UUID, UUID.randomUUID().toString());
+        if (nt.isNodeType(NodeType.MIX_REFERENCEABLE)) {
+            setProperty(Property.JCR_UUID, UUID.randomUUID().toString());
         }
         // TODO: END
 
-        String jcrMixinTypes =
-                sessionDelegate.getOakPathOrThrow(Property.JCR_MIXIN_TYPES);
+        String jcrMixinTypes = sessionDelegate.getOakPathOrThrow(Property.JCR_MIXIN_TYPES);
         PropertyDelegate mixins = dlg.getProperty(jcrMixinTypes);
 
         CoreValue cv = ValueConverter.toCoreValue(mixinName, PropertyType.NAME, sessionDelegate);
