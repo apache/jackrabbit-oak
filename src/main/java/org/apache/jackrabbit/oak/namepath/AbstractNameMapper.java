@@ -26,9 +26,10 @@ public abstract class AbstractNameMapper implements NameMapper {
 
     @Override
     public String getOakName(String jcrName) {
-
+        if (jcrName == null || jcrName.isEmpty()) {
+            return jcrName;
+        }
         int pos = jcrName.indexOf(':');
-        
         if (pos < 0) {
             // no colon
             return jcrName.startsWith("{}") ? jcrName.substring(2) : jcrName;
@@ -66,6 +67,10 @@ public abstract class AbstractNameMapper implements NameMapper {
 
     @Override
     public String getJcrName(String oakName) {
+        if (oakName == null || oakName.isEmpty()) {
+            return oakName;
+        }
+
         int pos = oakName.indexOf(':');
         if (pos < 0) {
             // non-prefixed
@@ -88,5 +93,4 @@ public abstract class AbstractNameMapper implements NameMapper {
             }
         }
     }
-
 }
