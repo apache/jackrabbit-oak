@@ -16,21 +16,16 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.commons.ItemNameMatcher;
-import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
-import org.apache.jackrabbit.commons.iterator.PropertyIteratorAdapter;
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.Tree.Status;
-import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.jcr.value.ValueConverter;
-import org.apache.jackrabbit.oak.namepath.NameMapper;
-import org.apache.jackrabbit.oak.util.Function1;
-import org.apache.jackrabbit.oak.util.Iterators;
-import org.apache.jackrabbit.oak.util.Predicate;
-import org.apache.jackrabbit.value.ValueHelper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static org.apache.jackrabbit.oak.util.Iterators.filter;
+
+import java.io.InputStream;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.UUID;
 
 import javax.annotation.Nonnull;
 import javax.jcr.Binary;
@@ -50,22 +45,29 @@ import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Value;
 import javax.jcr.lock.Lock;
 import javax.jcr.nodetype.ConstraintViolationException;
+import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.version.OnParentVersionAction;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionHistory;
-import java.io.InputStream;
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.UUID;
 
-import static org.apache.jackrabbit.oak.util.Iterators.filter;
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.commons.ItemNameMatcher;
+import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
+import org.apache.jackrabbit.commons.iterator.PropertyIteratorAdapter;
+import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.Tree.Status;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.jcr.value.ValueConverter;
+import org.apache.jackrabbit.oak.namepath.NameMapper;
+import org.apache.jackrabbit.oak.util.Function1;
+import org.apache.jackrabbit.oak.util.Iterators;
+import org.apache.jackrabbit.oak.util.Predicate;
+import org.apache.jackrabbit.value.ValueHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * {@code NodeImpl}...
@@ -760,27 +762,36 @@ public class NodeImpl extends ItemImpl implements Node {
         // TODO: figure out the right place for this check
         NodeTypeManager ntm = sessionDelegate.getNodeTypeManager();
         NodeType nt = ntm.getNodeType(mixinName); // throws on not found
-
-        if (nt.isNodeType(NodeType.MIX_REFERENCEABLE)) {
-            setProperty(Property.JCR_UUID, UUID.randomUUID().toString());
-        }
         // TODO: END
 
         String jcrMixinTypes = sessionDelegate.getOakPathOrThrow(Property.JCR_MIXIN_TYPES);
         PropertyDelegate mixins = dlg.getProperty(jcrMixinTypes);
 
         CoreValue cv = ValueConverter.toCoreValue(mixinName, PropertyType.NAME, sessionDelegate);
+
+        boolean nodeModified = false;
+
         if (mixins == null) {
+            nodeModified = true;
             dlg.setProperty(jcrMixinTypes, Collections.singletonList(cv));
         } else {
             List<CoreValue> values = new ArrayList<CoreValue>();
-            values.add(cv);
             for (CoreValue existingValue : mixins.getValues()) {
                 if (!values.contains(existingValue)) {
                     values.add(existingValue);
                 }
             }
-            dlg.setProperty(jcrMixinTypes, values);
+            if (!values.contains(cv)) {
+                values.add(cv);
+                nodeModified = true;
+                dlg.setProperty(jcrMixinTypes, values);
+            }
+        }
+
+        // TODO: hack -- make sure we assign a UUID
+        if (nodeModified && nt.isNodeType(NodeType.MIX_REFERENCEABLE)) {
+            String jcrUuid = sessionDelegate.getOakPathOrThrow(Property.JCR_UUID);
+            dlg.setProperty(jcrUuid, ValueConverter.toCoreValue(UUID.randomUUID().toString(), PropertyType.STRING, sessionDelegate));
         }
     }
 
@@ -788,17 +799,23 @@ public class NodeImpl extends ItemImpl implements Node {
     public void removeMixin(String mixinName) throws RepositoryException {
         checkStatus();
 
-        // todo implement removeMixin
+        if (!isNodeType(mixinName)) {
+            throw new NoSuchNodeTypeException();
+        }
+
+        throw new ConstraintViolationException();
     }
 
     @Override
     public boolean canAddMixin(String mixinName) throws RepositoryException {
+        checkStatus();
+
         // TODO: figure out the right place for this check
         NodeTypeManager ntm = sessionDelegate.getNodeTypeManager();
         ntm.getNodeType(mixinName); // throws on not found
         // TODO: END
 
-        return false;
+        return isSupportedMixinName(mixinName);
     }
 
     @Override
@@ -1122,5 +1139,13 @@ public class NodeImpl extends ItemImpl implements Node {
             // TODO deal with values array containing a null value in the first position
             return getTargetType(values[0], type);
         }
+    }
+
+    // TODO: hack to filter for a subset of supported mixins for now
+    // this allows exactly one (harmless) mixin type so that other code like
+    // addMixin gets test coverage
+    private boolean isSupportedMixinName(String mixinName) throws RepositoryException {
+        String oakName = sessionDelegate.getOakPathOrThrow(mixinName);
+        return "mix:title".equals(oakName);
     }
 }
