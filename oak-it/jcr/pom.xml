@@ -50,7 +50,16 @@ org.apache.jackrabbit.test.api.SessionTest#testSaveConstraintViolationException
 org.apache.jackrabbit.test.api.SessionTest#testSaveInvalidStateException<!--OAK-131-->
 org.apache.jackrabbit.test.api.SessionTest#testHasCapability
 org.apache.jackrabbit.test.api.SessionUUIDTest
-org.apache.jackrabbit.test.api.NodeTest
+org.apache.jackrabbit.test.api.NodeTest#testSaveConstraintViolationException
+org.apache.jackrabbit.test.api.NodeTest#testSaveInvalidStateException
+org.apache.jackrabbit.test.api.NodeTest#testGetCorrespondingNodePathNoSuchWorkspaceException
+org.apache.jackrabbit.test.api.NodeTest#testUpdateNoSuchWorkspaceException
+org.apache.jackrabbit.test.api.NodeTest#testAddNodeConstraintViolationExceptionUndefinedNodeType
+org.apache.jackrabbit.test.api.NodeTest#testRemoveMandatoryNode
+org.apache.jackrabbit.test.api.NodeTest#testRemoveInvalidItemStateException
+org.apache.jackrabbit.test.api.NodeTest#testRefreshInvalidItemStateException
+org.apache.jackrabbit.test.api.NodeTest#testPrimaryTypeProtected
+org.apache.jackrabbit.test.api.NodeTest#testMixinTypesProtected
 org.apache.jackrabbit.test.api.NodeUUIDTest
 org.apache.jackrabbit.test.api.NodeOrderableChildNodesTest
 org.apache.jackrabbit.test.api.SetValueValueFormatExceptionTest
