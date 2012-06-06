@@ -215,11 +215,12 @@ class NodeTypeImpl implements NodeType {
 
     @Override
     public boolean isNodeType(String nodeTypeName) {
-        if (nodeTypeName.equals(getName())) {
+        String oakName = mapper.getOakName(nodeTypeName);
+        if (dlg.getName().equals(oakName)) {
             return true;
         }
         for (NodeType type : getSupertypes()) {
-            if (nodeTypeName.equals(type.getName())) {
+            if (((NodeTypeImpl) type).dlg.getName().equals(oakName)) {
                 return true;
             }
         }
