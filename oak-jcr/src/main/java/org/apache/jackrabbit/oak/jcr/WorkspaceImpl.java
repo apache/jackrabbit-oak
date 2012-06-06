@@ -21,7 +21,7 @@ import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.nodetype.NodeTypeManagerImpl;
 import org.apache.jackrabbit.oak.jcr.query.QueryManagerImpl;
-import org.apache.jackrabbit.oak.jcr.security.privileges.PrivilegeManagerImpl;
+import org.apache.jackrabbit.oak.jcr.security.privilege.PrivilegeManagerImpl;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceRegistryImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
