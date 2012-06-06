@@ -39,6 +39,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.security.auth.login.LoginContext;
@@ -114,6 +115,7 @@ public class ContentRepositoryImpl implements ContentRepository {
         return new Indexer(mk);
     }
 
+    @Nonnull
     @Override
     public ContentSession login(Credentials credentials, String workspaceName)
             throws LoginException, NoSuchWorkspaceException {
