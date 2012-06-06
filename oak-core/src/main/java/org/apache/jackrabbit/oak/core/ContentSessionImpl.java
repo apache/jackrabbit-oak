@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
 import javax.security.auth.login.LoginContext;
 import javax.security.auth.login.LoginException;
 import java.io.IOException;
@@ -53,6 +54,7 @@ class ContentSessionImpl implements ContentSession {
         this.queryEngine = queryEngine;
     }
 
+    @Nonnull
     @Override
     public AuthInfo getAuthInfo() {
         Set<AuthInfo> infoSet = loginContext.getSubject().getPublicCredentials(AuthInfo.class);
@@ -63,6 +65,7 @@ class ContentSessionImpl implements ContentSession {
         }
     }
 
+    @Nonnull
     @Override
     public Root getCurrentRoot() {
         return new RootImpl(store, workspaceName);
@@ -82,11 +85,13 @@ class ContentSessionImpl implements ContentSession {
         return workspaceName;
     }
 
+    @Nonnull
     @Override
     public QueryEngine getQueryEngine() {
         return queryEngine;
     }
 
+    @Nonnull
     @Override
     public CoreValueFactory getCoreValueFactory() {
         return store.getValueFactory();
