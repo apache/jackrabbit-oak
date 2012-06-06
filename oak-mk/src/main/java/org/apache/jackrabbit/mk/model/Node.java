@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.mk.model;
 
 import org.apache.jackrabbit.mk.store.Binding;
-import org.apache.jackrabbit.mk.store.NotFoundException;
 
 import java.util.Iterator;
 import java.util.Map;
