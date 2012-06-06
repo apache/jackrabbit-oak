@@ -44,7 +44,6 @@
             <property>
               <name>known.issues</name>
               <value>
-org.apache.jackrabbit.test.api.AddNodeTest#testConstraintViolation
 org.apache.jackrabbit.test.api.SessionTest#testMoveConstraintViolationExceptionSrc
 org.apache.jackrabbit.test.api.SessionTest#testMoveConstraintViolationExceptionDest
 org.apache.jackrabbit.test.api.SessionTest#testSaveConstraintViolationException

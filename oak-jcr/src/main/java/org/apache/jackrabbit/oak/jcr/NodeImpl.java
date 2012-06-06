@@ -181,6 +181,16 @@ public class NodeImpl extends ItemImpl implements Node {
 
         NodeDelegate parent = dlg.getChild(parentPath);
         if (parent == null) {
+            // is it a property?
+            String grandParentPath = PathUtils.getParentPath(parentPath);
+            NodeDelegate grandParent = dlg.getChild(grandParentPath);
+            if (grandParent != null) {
+                String propname = PathUtils.getName(parentPath);
+                if (grandParent.getProperty(propname) != null) {
+                    throw new ConstraintViolationException("Can't add new node to property.");
+                }
+            }
+
             throw new PathNotFoundException(relPath);
         }
 
