@@ -47,7 +47,7 @@
 org.apache.jackrabbit.test.api.SessionTest#testMoveConstraintViolationExceptionSrc<!--OAK-132-->
 org.apache.jackrabbit.test.api.SessionTest#testMoveConstraintViolationExceptionDest<!--OAK-132-->
 org.apache.jackrabbit.test.api.SessionTest#testSaveConstraintViolationException
-org.apache.jackrabbit.test.api.SessionTest#testSaveInvalidStateException
+org.apache.jackrabbit.test.api.SessionTest#testSaveInvalidStateException<!--OAK-131-->
 org.apache.jackrabbit.test.api.SessionTest#testHasCapability
 org.apache.jackrabbit.test.api.SessionUUIDTest
 org.apache.jackrabbit.test.api.NodeTest
