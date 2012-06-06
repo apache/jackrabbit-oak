@@ -44,8 +44,8 @@
             <property>
               <name>known.issues</name>
               <value>
-org.apache.jackrabbit.test.api.SessionTest#testMoveConstraintViolationExceptionSrc
-org.apache.jackrabbit.test.api.SessionTest#testMoveConstraintViolationExceptionDest
+org.apache.jackrabbit.test.api.SessionTest#testMoveConstraintViolationExceptionSrc<!--OAK-132-->
+org.apache.jackrabbit.test.api.SessionTest#testMoveConstraintViolationExceptionDest<!--OAK-132-->
 org.apache.jackrabbit.test.api.SessionTest#testSaveConstraintViolationException
 org.apache.jackrabbit.test.api.SessionTest#testSaveInvalidStateException
 org.apache.jackrabbit.test.api.SessionTest#testHasCapability
