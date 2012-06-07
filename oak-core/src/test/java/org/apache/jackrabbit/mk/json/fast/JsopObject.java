@@ -136,6 +136,7 @@ public class JsopObject extends Jsop implements Map<String, Object> {
         jsop = null;
     }
 
+    @Override
     public String toString() {
         if (jsop == null) {
             JsopBuilder w = new JsopBuilder();

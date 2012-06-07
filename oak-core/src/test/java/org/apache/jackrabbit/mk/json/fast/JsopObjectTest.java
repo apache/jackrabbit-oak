@@ -103,7 +103,7 @@ public class JsopObjectTest extends TestCase {
             // expected
         }
         String s = "";
-        for(Object o : a) {
+        for (Object o : a) {
             s += o + ";";
         }
         assertEquals("1;null;Hello;[];{};", s);
