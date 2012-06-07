@@ -18,12 +18,21 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import org.apache.jackrabbit.JcrConstants;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
-import util.NumberStream;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import javax.jcr.Binary;
 import javax.jcr.GuestCredentials;
@@ -49,21 +58,13 @@ import javax.jcr.observation.Event;
 import javax.jcr.observation.EventIterator;
 import javax.jcr.observation.EventListener;
 import javax.jcr.observation.ObservationManager;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.FutureTask;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+
+import org.apache.jackrabbit.JcrConstants;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Ignore;
+import org.junit.Test;
+import util.NumberStream;
 
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.oak.commons.ArrayUtils.contains;
@@ -221,6 +222,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         root.getNode("bar").remove();  // transiently removed and...
         root.addNode("bar");           // ... added again
         NodeIterator nodes = root.getNodes();
+        assertEquals(3, nodes.getSize());
         while (nodes.hasNext()) {
             assertTrue(nodeNames.remove(nodes.nextNode().getName()));
         }
@@ -250,6 +252,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         node.getProperty("intProp").remove();      // transiently removed...
         node.setProperty("intProp", 42);           // ...and added again
         PropertyIterator properties = node.getProperties();
+        assertEquals(4, properties.getSize());
         while (properties.hasNext()) {
             Property p = properties.nextProperty();
             if (JcrConstants.JCR_PRIMARYTYPE.equals(p.getName())) {

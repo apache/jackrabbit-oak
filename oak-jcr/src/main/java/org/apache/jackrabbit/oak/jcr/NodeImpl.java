@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import static org.apache.jackrabbit.oak.util.Iterators.filter;
-
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -69,6 +67,8 @@ import org.apache.jackrabbit.oak.util.Predicate;
 import org.apache.jackrabbit.value.ValueHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.jackrabbit.oak.util.Iterators.filter;
 
 /**
  * {@code NodeImpl}...
@@ -441,7 +441,8 @@ public class NodeImpl extends ItemImpl implements Node {
         checkStatus();
 
         Iterator<NodeDelegate> children = dlg.getChildren();
-        return new NodeIteratorAdapter(nodeIterator(children));
+        long size = dlg.getChildCount();
+        return new NodeIteratorAdapter(nodeIterator(children), size);
     }
 
     @Override
@@ -505,7 +506,8 @@ public class NodeImpl extends ItemImpl implements Node {
         checkStatus();
 
         Iterator<PropertyDelegate> properties = dlg.getProperties();
-        return new PropertyIteratorAdapter(propertyIterator(properties));
+        long size = dlg.getPropertyCount();
+        return new PropertyIteratorAdapter(propertyIterator(properties), size);
     }
 
     @Override
