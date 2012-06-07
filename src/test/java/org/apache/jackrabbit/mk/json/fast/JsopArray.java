@@ -100,6 +100,7 @@ public class JsopArray extends Jsop implements List<Object> {
         return list.size();
     }
 
+    @Override
     public String toString() {
         if (jsop == null) {
             JsopBuilder w = new JsopBuilder();
