@@ -1103,6 +1103,8 @@ public class NodeImpl extends ItemImpl implements Node {
     }
 
     //-----------------------------------------------------------< internal >---
+
+    // FIXME: remove again. See OAK-136
     NodeDelegate getNodeDelegate() {
         return dlg;
     }
