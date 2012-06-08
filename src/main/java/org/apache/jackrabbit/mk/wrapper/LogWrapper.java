@@ -264,10 +264,6 @@ public class LogWrapper implements MicroKernel {
         log("// " + quote(result));
     }
 
-    private void logResult() {
-        // ignored
-    }
-
     private void log(String message) {
         if (DEBUG) {
             System.out.println(message);
