@@ -35,22 +35,22 @@ public class PropertyIndex implements Index {
     public PropertyIndex(Indexer indexer, String propertyName, boolean unique) {
         this.indexer = indexer;
         this.propertyName = propertyName;
-        this.tree = new BTree(indexer, (unique ? "id:" : "property:") + propertyName, unique);
+        this.tree = new BTree(indexer, Indexer.TYPE_PROPERTY + propertyName +
+                (unique ? "," + Indexer.UNIQUE : ""), unique);
         tree.setMinSize(10);
     }
 
     public static PropertyIndex fromNodeName(Indexer indexer, String nodeName) {
-        boolean unique;
-        if (nodeName.startsWith("property:")) {
-            unique = false;
-        } else if (nodeName.startsWith("id:")) {
-            unique = true;
-        } else {
+        if (!nodeName.startsWith(Indexer.TYPE_PROPERTY)) {
             return null;
         }
-        int index = nodeName.indexOf(':');
-        String propertyName = nodeName.substring(index + 1);
-        return new PropertyIndex(indexer, propertyName, unique);
+        boolean unique = false;
+        if (nodeName.endsWith(Indexer.UNIQUE)) {
+            unique = true;
+            nodeName = nodeName.substring(0, nodeName.length() - Indexer.UNIQUE.length() - 1);
+        }
+        String property = nodeName.substring(Indexer.TYPE_PROPERTY.length());
+        return new PropertyIndex(indexer, property, unique);
     }
 
     public String getPropertyName() {
@@ -58,7 +58,7 @@ public class PropertyIndex implements Index {
     }
 
     @Override
-    public String getName() {
+    public String getIndexNodeName() {
         return tree.getName();
     }
 

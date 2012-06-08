@@ -37,7 +37,7 @@ public class PropertyIndexTest {
 
         // meta data
         String meta = mk.getNodes("/index", head, 1, 0, -1, null);
-        Assert.assertEquals("{\":childNodeCount\":1,\"id:id\":{\":childNodeCount\":0}}", meta);
+        Assert.assertEquals("{\":childNodeCount\":1,\"property@id,unique\":{\":childNodeCount\":0}}", meta);
 
         String oldHead = head;
 

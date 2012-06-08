@@ -38,7 +38,7 @@ public class PrefixIndexTest {
 
         // meta data
         String meta = mk.getNodes("/index", head, 1, 0, -1, null);
-        Assert.assertEquals("{\":childNodeCount\":1,\"prefix:d:\":{\":childNodeCount\":0}}", meta);
+        Assert.assertEquals("{\":childNodeCount\":1,\"prefix@d:\":{\":childNodeCount\":0}}", meta);
 
         Assert.assertEquals("", getPathList(index, "d:1", head));
 

@@ -29,6 +29,7 @@ class BTreeLeaf extends BTreePage {
 
     BTreeLeaf(BTree tree, BTreeNode parent, String name, String[] data, String[] paths) {
         super(tree, parent, name, data, paths);
+        verify();
     }
 
     BTreeLeaf nextLeaf() {
@@ -56,22 +57,27 @@ class BTreeLeaf extends BTreePage {
         tree.modified(this);
         keys = ArrayUtils.arrayInsert(keys, pos, key);
         values = ArrayUtils.arrayInsert(values, pos, value);
+        verify();
     }
 
     void delete(int pos) {
         tree.modified(this);
         keys = ArrayUtils.arrayRemove(keys, pos);
         values = ArrayUtils.arrayRemove(values, pos);
+        verify();
     }
 
     void writeData() {
+        verify();
         tree.modified(this);
+        tree.bufferSetArray(getPath(), "children", null);
         tree.bufferSetArray(getPath(), "keys", keys);
         tree.bufferSetArray(getPath(), "values", values);
     }
 
     @Override
     void writeCreate() {
+        verify();
         tree.modified(this);
         JsopBuilder jsop = new JsopBuilder();
         jsop.tag('+').key(PathUtils.concat(tree.getName(), getPath())).object();
@@ -88,6 +94,14 @@ class BTreeLeaf extends BTreePage {
         jsop.endObject();
         jsop.newline();
         tree.buffer(jsop.toString());
+    }
+
+    void verify() {
+        if (values.length != keys.length) {
+            throw new IllegalArgumentException(
+                    "Number of values doesn't match number of keys: " +
+                    Arrays.toString(values) + " " + Arrays.toString(keys));
+        }
     }
 
 }
