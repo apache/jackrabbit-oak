@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.mk.index;
 
-import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.mk.json.JsopReader;
@@ -46,23 +45,57 @@ public class Indexer implements QueryIndexProvider {
     // TODO discuss where to store index config data
     public static final String INDEX_CONFIG_ROOT = "/jcr:system/indexes";
 
+    /**
+     * The node name prefix of a prefix index.
+     */
+    static final String TYPE_PREFIX = "prefix@";
+
+    /**
+     * The node name prefix of a property index.
+     */
+    static final String TYPE_PROPERTY = "property@";
+
+    /**
+     * Marks a unique index.
+     */
+    static final String UNIQUE = "unique";
+
     private static final boolean DISABLED = Boolean.getBoolean("mk.indexDisabled");
 
     private MicroKernel mk;
     private MicroKernel mkWrapper;
     private String revision;
     private String indexRootNode;
+    private int indexRootNodeDepth;
     private StringBuilder buffer;
-    private HashMap<String, Index> indexes = new HashMap<String, Index>();
     private ArrayList<QueryIndex> queryIndexList;
     private HashMap<String, BTreePage> modified = new HashMap<String, BTreePage>();
     private SimpleLRUCache<String, BTreePage> cache = SimpleLRUCache.newInstance(100);
     private String readRevision;
     private boolean init;
 
+    /**
+     * An index node name to index map.
+     */
+    private HashMap<String, Index> indexes = new HashMap<String, Index>();
+
+    /**
+     * A prefix to prefix index map.
+     */
+    private final HashMap<String, PrefixIndex> prefixIndexes = new HashMap<String, PrefixIndex>();
+
+    /**
+     * A property name to property index map.
+     */
+    private final HashMap<String, PropertyIndex> propertyIndexes = new HashMap<String, PropertyIndex>();
+
     public Indexer(MicroKernel mkWrapper, MicroKernel mk, String indexRootNode) {
         this.mkWrapper = mkWrapper;
-        this.mk = mk;
+        if (mkWrapper instanceof IndexWrapper) {
+            this.mk = ((IndexWrapper) mkWrapper).getBaseKernel();
+        } else {
+            this.mk = mk;
+        }
         this.indexRootNode = indexRootNode;
     }
 
@@ -82,6 +115,7 @@ public class Indexer implements QueryIndexProvider {
         if (!PathUtils.isAbsolute(indexRootNode)) {
             indexRootNode = "/" + indexRootNode;
         }
+        indexRootNodeDepth = PathUtils.getDepth(indexRootNode);
         revision = mk.getHeadRevision();
         readRevision = revision;
         if (!mk.nodeExists(indexRootNode, revision)) {
@@ -111,12 +145,16 @@ public class Indexer implements QueryIndexProvider {
                 readRevision = rev;
             }
             for (String k : map.keySet()) {
-                Index p = PropertyIndex.fromNodeName(this, k);
-                if (p == null) {
-                    p = PrefixIndex.fromNodeName(this, k);
+                PropertyIndex prop = PropertyIndex.fromNodeName(this, k);
+                if (prop != null) {
+                    indexes.put(prop.getIndexNodeName(), prop);
+                    propertyIndexes.put(prop.getPropertyName(), prop);
+                    queryIndexList = null;
                 }
-                if (p != null) {
-                    indexes.put(p.getName(), p);
+                PrefixIndex pref = PrefixIndex.fromNodeName(this, k);
+                if (pref != null) {
+                    indexes.put(pref.getIndexNodeName(), pref);
+                    prefixIndexes.put(pref.getPrefix(), pref);
                     queryIndexList = null;
                 }
             }
@@ -124,34 +162,40 @@ public class Indexer implements QueryIndexProvider {
     }
 
     public void removePropertyIndex(String property, boolean unique) {
-        PropertyIndex index = new PropertyIndex(this, property, unique);
-        indexes.remove(index.getName());
+        PropertyIndex index = propertyIndexes.remove(property);
+        indexes.remove(index.getIndexNodeName());
         queryIndexList = null;
     }
 
     public PropertyIndex createPropertyIndex(String property, boolean unique) {
-        PropertyIndex index = new PropertyIndex(this, property, unique);
-        PropertyIndex existing = (PropertyIndex) indexes.get(index.getName());
+        PropertyIndex existing = propertyIndexes.get(property);
         if (existing != null) {
             return existing;
         }
-        buildAndAddIndex(index);
+        PropertyIndex index = new PropertyIndex(this, property, unique);
+        buildIndex(index);
+        indexes.put(index.getIndexNodeName(), index);
+        propertyIndexes.put(index.getPropertyName(), index);
+        queryIndexList = null;
         return index;
     }
 
     public void removePrefixIndex(String prefix) {
-        PrefixIndex index = new PrefixIndex(this, prefix);
-        indexes.remove(index.getName());
-        queryIndexList = null;
+         PrefixIndex index = prefixIndexes.remove(prefix);
+         indexes.remove(index.getIndexNodeName());
+         queryIndexList = null;
     }
 
     public PrefixIndex createPrefixIndex(String prefix) {
-        PrefixIndex index = new PrefixIndex(this, prefix);
-        PrefixIndex existing = (PrefixIndex) indexes.get(index.getName());
+        PrefixIndex existing = prefixIndexes.get(prefix);
         if (existing != null) {
             return existing;
         }
-        buildAndAddIndex(index);
+        PrefixIndex index = new PrefixIndex(this, prefix);
+        buildIndex(index);
+        indexes.put(index.getIndexNodeName(), index);
+        prefixIndexes.put(index.getPrefix(), index);
+        queryIndexList = null;
         return index;
     }
 
@@ -230,16 +274,9 @@ public class Indexer implements QueryIndexProvider {
 
     void buffer(String diff) {
         if (buffer == null) {
-            buffer = new StringBuilder(diff.length());
-        }
-        buffer.append(diff);
-    }
-
-    void commit() {
-        // TODO remove this method once MicroKernelImpl supports
-        // move + add node
-        if (mk instanceof MicroKernelImpl) {
-            commitChanges();
+            buffer = new StringBuilder(diff);
+        } else {
+            buffer.append(diff);
         }
     }
 
@@ -428,7 +465,13 @@ public class Indexer implements QueryIndexProvider {
     }
 
     private void addOrRemoveRecursive(NodeImpl n, boolean remove, boolean add) {
-        if (isInIndex(n.getPath())) {
+        String path = n.getPath();
+        if (isInIndex(path)) {
+            if (n.getPropertyCount() == 0) {
+                // add or remove the index itself - otherwise it's
+                // changing the root page of the index
+                addOrRemoveIndex(path, remove, add);
+            }
             // don't index the index
             return;
         }
@@ -445,8 +488,43 @@ public class Indexer implements QueryIndexProvider {
         }
     }
 
+    private void addOrRemoveIndex(String path, boolean remove, boolean add) {
+        // check the depth first for speed
+        if (PathUtils.getDepth(path) == indexRootNodeDepth + 1) {
+            // actually not required, just to make sure
+            if (PathUtils.getParentPath(path).equals(indexRootNode)) {
+                String name = PathUtils.getName(path);
+                if (name.startsWith(Indexer.TYPE_PREFIX)) {
+                    String prefix = name.substring(Indexer.TYPE_PREFIX.length());
+                    if (remove) {
+                        removePrefixIndex(prefix);
+                    }
+                    if (add) {
+                        createPrefixIndex(prefix);
+                    }
+                } else if (name.startsWith(Indexer.TYPE_PROPERTY)) {
+                    String property = name.substring(Indexer.TYPE_PROPERTY.length());
+                    boolean unique = false;
+                    if (property.endsWith("," + Indexer.UNIQUE)) {
+                        unique = true;
+                        property = property.substring(0, property.length() - Indexer.UNIQUE.length() - 1);
+                    }
+                    if (remove) {
+                        removePropertyIndex(property, unique);
+                    }
+                    if (add) {
+                        createPropertyIndex(property, unique);
+                    }
+                }
+            }
+        }
+    }
+
     private boolean isInIndex(String path) {
-        return PathUtils.isAncestor(indexRootNode, path) || indexRootNode.equals(path);
+        if (PathUtils.isAncestor(indexRootNode, path) || indexRootNode.equals(path)) {
+            return true;
+        }
+        return false;
     }
 
     private void removeProperty(String path, String lastRevision) {
@@ -487,6 +565,12 @@ public class Indexer implements QueryIndexProvider {
 
     private void moveOrCopyNode(String sourcePath, boolean remove, String targetPath, String lastRevision) {
         if (isInIndex(sourcePath)) {
+            if (remove) {
+                addOrRemoveIndex(sourcePath, true, false);
+            }
+            if (targetPath != null) {
+                addOrRemoveIndex(targetPath, false, true);
+            }
             // don't index the index
             return;
         }
@@ -511,10 +595,9 @@ public class Indexer implements QueryIndexProvider {
         }
     }
 
-    private void buildAndAddIndex(Index index) {
+    private void buildIndex(Index index) {
+        // TODO index: add ability to start / stop / restart indexing; log the progress
         addRecursive(index, "/");
-        indexes.put(index.getName(), index);
-        queryIndexList = null;
     }
 
     private void addRecursive(Index index, String path) {
@@ -552,6 +635,14 @@ public class Indexer implements QueryIndexProvider {
             }
         }
         return queryIndexList;
+    }
+
+    PrefixIndex getPrefixIndex(String prefix) {
+        return prefixIndexes.get(prefix);
+    }
+
+    PropertyIndex getPropertyIndex(String property) {
+        return propertyIndexes.get(property);
     }
 
 }

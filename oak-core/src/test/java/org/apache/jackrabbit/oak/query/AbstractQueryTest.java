@@ -41,7 +41,7 @@ public abstract class AbstractQueryTest {
     {
         MicroKernel rawMk = new MicroKernelImpl();
         mk = new IndexWrapper(rawMk);
-        Indexer indexer = new Indexer(mk, rawMk, Indexer.INDEX_CONFIG_ROOT);
+        Indexer indexer = mk.getIndexer();
         rep = new ContentRepositoryImpl(mk, indexer, null);
         try {
             session = rep.login(new GuestCredentials(), "default");

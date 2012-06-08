@@ -33,20 +33,24 @@ public class PrefixIndex implements Index {
     public PrefixIndex(Indexer indexer, String prefix) {
         this.indexer = indexer;
         this.prefix = prefix;
-        this.tree = new BTree(indexer, "prefix:" + prefix, false);
+        this.tree = new BTree(indexer, Indexer.TYPE_PREFIX + prefix, false);
         tree.setMinSize(10);
     }
 
     public static PrefixIndex fromNodeName(Indexer indexer, String nodeName) {
-        if (!nodeName.startsWith("prefix:")) {
+        if (!nodeName.startsWith(Indexer.TYPE_PREFIX)) {
             return null;
         }
-        String prefix = nodeName.substring("prefix:".length());
+        String prefix = nodeName.substring(Indexer.TYPE_PREFIX.length());
         return new PrefixIndex(indexer, prefix);
     }
 
+    public String getPrefix() {
+        return prefix;
+    }
+
     @Override
-    public String getName() {
+    public String getIndexNodeName() {
         return tree.getName();
     }
 
