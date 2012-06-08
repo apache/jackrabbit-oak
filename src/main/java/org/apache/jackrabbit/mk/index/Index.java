@@ -31,7 +31,7 @@ public interface Index {
      *
      * @return the index name
      */
-    String getName();
+    String getIndexNodeName();
 
     /**
      * The given node was added or removed.

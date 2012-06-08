@@ -57,7 +57,6 @@ abstract class BTreePage {
             name = newName;
             tree.moveCache(oldPath);
             tree.modified(this);
-            tree.commit();
         }
     }
 

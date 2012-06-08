@@ -17,34 +17,25 @@
 package org.apache.jackrabbit.mk.index;
 
 import java.io.InputStream;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopStream;
-import org.apache.jackrabbit.mk.simple.NodeImpl;
-import org.apache.jackrabbit.mk.simple.NodeMap;
 import org.apache.jackrabbit.mk.util.ExceptionFactory;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.mk.wrapper.MicroKernelWrapper;
 import org.apache.jackrabbit.mk.wrapper.MicroKernelWrapperBase;
-import org.apache.jackrabbit.oak.spi.QueryIndexProvider;
 
 /**
  * The index mechanism, as a wrapper.
  */
 public class IndexWrapper extends MicroKernelWrapperBase implements MicroKernel {
 
-    private static final String TYPE_PREFIX = "prefix:";
-    private static final String TYPE_PROPERTY = "property:";
-    private static final String UNIQUE = "unique";
-
     private final MicroKernelWrapper mk;
     private final Indexer indexer;
-    private final NodeMap map = new NodeMap();
-    private final HashMap<String, PrefixIndex> prefixIndexes = new HashMap<String, PrefixIndex>();
-    private final HashMap<String, PropertyIndex> propertyIndexes = new HashMap<String, PropertyIndex>();
+    private final HashSet<String> branchRevisions = new HashSet<String>();
 
     public IndexWrapper(MicroKernel mk) {
         this.mk = MicroKernelWrapperBase.wrap(mk);
@@ -52,7 +43,7 @@ public class IndexWrapper extends MicroKernelWrapperBase implements MicroKernel 
         indexer.init();
     }
 
-    public QueryIndexProvider getIndexer() {
+    public Indexer getIndexer() {
         return indexer;
     }
 
@@ -97,81 +88,33 @@ public class IndexWrapper extends MicroKernelWrapperBase implements MicroKernel 
 
     @Override
     public String branch(String trunkRevisionId) {
-        return mk.branch(trunkRevisionId);
+        String branchRevision = mk.branch(trunkRevisionId);
+        branchRevisions.add(branchRevision);
+        return branchRevision;
     }
 
     @Override
     public String merge(String branchRevisionId, String message) {
-        return mk.merge(branchRevisionId, message);
+        String headRevision = mk.merge(branchRevisionId, message);
+        branchRevisions.remove(branchRevisionId);
+        indexer.updateUntil(headRevision);
+        return mk.getHeadRevision();
     }
 
     @Override
     public String commitStream(String rootPath, JsopReader jsonDiff, String revisionId, String message) {
-        String indexRoot = indexer.getIndexRootNode();
-        if (!rootPath.startsWith(indexRoot)) {
+        if (branchRevisions.remove(revisionId)) {
+            // TODO update the index in the branch as well, if required
             String rev = mk.commitStream(rootPath, jsonDiff, revisionId, message);
-            jsonDiff.resetReader();
-            indexer.updateIndex(rootPath, jsonDiff, rev);
-            rev = mk.getHeadRevision();
-            rev = indexer.updateEnd(rev);
+            branchRevisions.add(rev);
             return rev;
         }
-        JsopReader t = jsonDiff;
-        while (true) {
-            int r = t.read();
-            if (r == JsopReader.END) {
-                break;
-            }
-            String path;
-            if (rootPath == null) {
-                path = t.readString();
-            } else {
-                path = PathUtils.concat(rootPath, t.readString());
-            }
-            switch (r) {
-            case '+':
-                t.read(':');
-                t.read('{');
-                // parse but ignore
-                NodeImpl.parse(map, t, 0);
-                path = PathUtils.relativize(indexRoot, path);
-                if (path.startsWith(TYPE_PREFIX)) {
-                    String prefix = path.substring(TYPE_PREFIX.length());
-                    PrefixIndex idx = indexer.createPrefixIndex(prefix);
-                    prefixIndexes.put(path, idx);
-                } else if (path.startsWith(TYPE_PROPERTY)) {
-                    String property = path.substring(TYPE_PROPERTY.length());
-                    boolean unique = false;
-                    if (property.endsWith("," + UNIQUE)) {
-                        unique = true;
-                        property = property.substring(0, property.length() - UNIQUE.length() - 1);
-                    }
-                    PropertyIndex idx = indexer.createPropertyIndex(property, unique);
-                    propertyIndexes.put(path, idx);
-                } else {
-                    throw ExceptionFactory.get("Unknown index type: " + path);
-                }
-                break;
-            case '-':
-                path = PathUtils.relativize(indexRoot, path);
-                if (path.startsWith(TYPE_PREFIX)) {
-                    String prefix = path.substring(TYPE_PREFIX.length());
-                    indexer.removePrefixIndex(prefix);
-                } else if (path.startsWith(TYPE_PROPERTY)) {
-                    String property = path.substring(TYPE_PROPERTY.length());
-                    boolean unique = false;
-                    if (property.endsWith("," + UNIQUE)) {
-                        unique = true;
-                        property = property.substring(0, property.length() - UNIQUE.length() - 1);
-                    }
-                    indexer.removePropertyIndex(property, unique);
-                }
-                break;
-            default:
-                throw ExceptionFactory.get("token: " + (char) t.getTokenType());
-            }
-        }
-        return null;
+        String rev = mk.commitStream(rootPath, jsonDiff, revisionId, message);
+        jsonDiff.resetReader();
+        indexer.updateIndex(rootPath, jsonDiff, rev);
+        rev = mk.getHeadRevision();
+        rev = indexer.updateEnd(rev);
+        return rev;
     }
 
     @Override
@@ -183,39 +126,33 @@ public class IndexWrapper extends MicroKernelWrapperBase implements MicroKernel 
         String index = PathUtils.relativize(indexRoot, path);
         int idx = index.indexOf('?');
         if (idx < 0) {
-            // invalid query - expected: /index/prefix:x?y
-            return null;
+            // not a query (expected: /index/prefix:x?y) - treat as regular node lookup
+            return mk.getNodesStream(path, revisionId, depth, offset, count, filter);
         }
         String data = index.substring(idx + 1);
         index = index.substring(0, idx);
         JsopStream s = new JsopStream();
         s.array();
-        if (index.startsWith(TYPE_PREFIX)) {
-            PrefixIndex prefixIndex = prefixIndexes.get(index);
+        if (index.startsWith(Indexer.TYPE_PREFIX)) {
+            String prefix = index.substring(Indexer.TYPE_PREFIX.length());
+            PrefixIndex prefixIndex = indexer.getPrefixIndex(prefix);
             if (prefixIndex == null) {
-                if (mk.nodeExists(path, mk.getHeadRevision())) {
-                    prefixIndex = indexer.createPrefixIndex(index);
-                } else {
-                    throw ExceptionFactory.get("Unknown index: " + index);
-                }
+                throw ExceptionFactory.get("Unknown index: " + index);
             }
             Iterator<String> it = prefixIndex.getPaths(data, revisionId);
             while (it.hasNext()) {
                 s.value(it.next());
             }
-        } else if (index.startsWith(TYPE_PROPERTY)) {
-            PropertyIndex propertyIndex = propertyIndexes.get(index);
-            boolean unique = index.endsWith("," + UNIQUE);
+        } else if (index.startsWith(Indexer.TYPE_PROPERTY)) {
+            String property = index.substring(Indexer.TYPE_PROPERTY.length());
+            boolean unique = false;
+            if (property.endsWith("," + Indexer.UNIQUE)) {
+                unique = true;
+                property = property.substring(0, property.length() - Indexer.UNIQUE.length() - 1);
+            }
+            PropertyIndex propertyIndex = indexer.getPropertyIndex(property);
             if (propertyIndex == null) {
-                if (mk.nodeExists(path, mk.getHeadRevision())) {
-                    String indexName = index;
-                    if (unique) {
-                        indexName = index.substring(0, index.length() - UNIQUE.length() - 1);
-                    }
-                    propertyIndex = indexer.createPropertyIndex(indexName, unique);
-                } else {
-                    throw ExceptionFactory.get("Unknown index: " + index);
-                }
+                throw ExceptionFactory.get("Unknown index: " + index);
             }
             if (unique) {
                 String value = propertyIndex.getPath(data, revisionId);
@@ -255,6 +192,10 @@ public class IndexWrapper extends MicroKernelWrapperBase implements MicroKernel 
 
     public void dispose() {
         // do nothing
+    }
+
+    public MicroKernel getBaseKernel() {
+        return mk;
     }
 
 }

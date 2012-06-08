@@ -78,7 +78,7 @@ public class PropertyContentIndex implements QueryIndex {
 
     @Override
     public String getIndexName() {
-        return index.getName();
+        return index.getIndexNodeName();
     }
 
     /**

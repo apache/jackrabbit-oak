@@ -129,7 +129,7 @@ public class BTree {
         JsopBuilder jsop = new JsopBuilder();
         path = PathUtils.concat(name, path);
         jsop.tag('^').key(PathUtils.concat(path, propertyName));
-        if (data.length == 0) {
+        if (data == null) {
             jsop.value(null);
         } else {
             jsop.array();
@@ -208,7 +208,6 @@ public class BTree {
                 break;
             }
         }
-        commit();
         return true;
     }
 
@@ -240,8 +239,6 @@ public class BTree {
                     // other node now)
                     n = parent;
                 }
-                // subsequent operations are based on the new structure
-                commit();
             }
             if (n instanceof BTreeNode) {
                 BTreeNode page = (BTreeNode) n;
@@ -269,11 +266,6 @@ public class BTree {
                 break;
             }
         }
-        commit();
-    }
-
-    void commit() {
-        indexer.commit();
     }
 
     String getName() {
