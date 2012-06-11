@@ -33,6 +33,9 @@ class Namespaces {
     private static final Map<String, String> defaults =
             new HashMap<String, String>();
 
+    // TODO: this should not use the "jcr" prefix
+    public final static String NSMAPNODENAME = "jcr:namespaces";
+
     static {
         // Standard namespace specified by JCR (default one not included)
         defaults.put("", "");
@@ -53,7 +56,7 @@ class Namespaces {
 
         Tree system = root.getChild("jcr:system");
         if (system != null) {
-            Tree namespaces = system.getChild("jcr:namespaces");
+            Tree namespaces = system.getChild(NSMAPNODENAME);
             if (namespaces != null) {
                 for (PropertyState property : namespaces.getProperties()) {
                     String prefix = property.getName();
