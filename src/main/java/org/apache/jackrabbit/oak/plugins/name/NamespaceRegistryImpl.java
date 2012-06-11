@@ -47,7 +47,7 @@ public class NamespaceRegistryImpl implements NamespaceRegistry {
             throws RepositoryException {
         try {
             Root root = session.getCurrentRoot();
-            Tree namespaces = getOrCreate(root, "jcr:system", "jcr:namespaces");
+            Tree namespaces = getOrCreate(root, "jcr:system", Namespaces.NSMAPNODENAME);
             namespaces.setProperty(
                     prefix, session.getCoreValueFactory().createValue(uri));
             root.commit();
@@ -64,7 +64,7 @@ public class NamespaceRegistryImpl implements NamespaceRegistry {
     public void unregisterNamespace(String prefix) throws RepositoryException {
         try {
             Root root = session.getCurrentRoot();
-            Tree namespaces = getOrCreate(root, "jcr:system", "jcr:namespaces");
+            Tree namespaces = getOrCreate(root, "jcr:system", Namespaces.NSMAPNODENAME);
             if (namespaces.hasProperty(prefix)) {
                 namespaces.removeProperty(prefix);
             } else {
