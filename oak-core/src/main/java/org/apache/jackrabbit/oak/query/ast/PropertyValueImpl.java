@@ -18,8 +18,8 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import org.apache.jackrabbit.mk.simple.NodeImpl;
 import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
@@ -59,22 +59,21 @@ public class PropertyValueImpl extends DynamicOperandImpl {
             return selector.currentProperty(propertyName);
         }
         // TODO really support relative properties?
-        NodeImpl n = selector.currentNode();
+        Tree tree = getTree(selector.currentPath());
         for (String p : PathUtils.elements(PathUtils.getParentPath(propertyName))) {
-            if (n == null) {
+            if (tree == null) {
                 return null;
             }
-            if (!n.exists(p)) {
+            if (!tree.hasChild(p)) {
                 return null;
             }
-            n = n.getNode(p);
+            tree = tree.getChild(p);
         }
         String name = PathUtils.getName(propertyName);
-        if (!n.hasProperty(name)) {
+        if (!tree.hasProperty(name)) {
             return null;
         }
-        String value = n.getProperty(name);
-        return getCoreValue(value);
+        return tree.getProperty(name).getValue();
     }
 
     public void bindSelector(SourceImpl source) {

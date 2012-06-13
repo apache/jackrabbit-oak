@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.simple.NodeImpl;
 import org.apache.jackrabbit.oak.query.Query;
 
 public abstract class SourceImpl extends AstElement {
@@ -107,12 +106,5 @@ public abstract class SourceImpl extends AstElement {
      * @return the path
      */
     public abstract String currentPath();
-
-    /**
-     * Get the current node.
-     *
-     * @return the node
-     */
-    public abstract NodeImpl currentNode();
 
 }

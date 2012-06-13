@@ -18,8 +18,6 @@
  */
 package org.apache.jackrabbit.oak.spi;
 
-import org.apache.jackrabbit.mk.simple.NodeImpl;
-
 /**
  * A cursor to read a number of nodes sequentially.
  */
@@ -38,12 +36,5 @@ public interface Cursor {
      * @return the path
      */
     String currentPath();
-
-    /**
-     * The current node.
-     *
-     * @return the node
-     */
-    NodeImpl currentNode();
 
 }

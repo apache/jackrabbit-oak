@@ -19,8 +19,9 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.simple.NodeImpl;
 import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.query.Query;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.Cursor;
@@ -109,12 +110,12 @@ public class SelectorImpl extends SourceImpl {
             if (nodeTypeName.equals(TYPE_BASE)) {
                 return true;
             }
-            NodeImpl n = cursor.currentNode();
-            String primaryType = n.getProperty(JCR_PRIMARY_TYPE);
-            if (primaryType == null) {
+            Tree tree = getTree(cursor.currentPath());
+            PropertyState p = tree.getProperty(JCR_PRIMARY_TYPE);
+            if (p == null) {
                 return true;
             }
-            CoreValue v = getCoreValue(primaryType);
+            CoreValue v = p.getValue();
             // TODO node type matching
             if (nodeTypeName.equals(v.getString())) {
                 return true;
@@ -125,11 +126,6 @@ public class SelectorImpl extends SourceImpl {
     @Override
     public String currentPath() {
         return cursor == null ? null : cursor.currentPath();
-    }
-
-    @Override
-    public NodeImpl currentNode() {
-        return cursor == null ? null : cursor.currentNode();
     }
 
     public CoreValue currentProperty(String propertyName) {
@@ -145,15 +141,15 @@ public class SelectorImpl extends SourceImpl {
             }
             return query.getValueFactory().createValue(local);
         }
-        NodeImpl n = currentNode();
-        if (n == null) {
+        String path = currentPath();
+        if (path == null) {
             return null;
         }
-        String value = n.getProperty(propertyName);
-        if (value == null) {
+        PropertyState p = getTree(path).getProperty(propertyName);
+        if (p == null) {
             return null;
         }
-        return getCoreValue(value);
+        return p.getValue();
     }
 
     @Override

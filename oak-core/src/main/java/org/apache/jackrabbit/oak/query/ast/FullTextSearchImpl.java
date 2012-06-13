@@ -20,8 +20,9 @@ package org.apache.jackrabbit.oak.query.ast;
 
 import java.text.ParseException;
 import java.util.ArrayList;
-import org.apache.jackrabbit.mk.simple.NodeImpl;
 import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
 public class FullTextSearchImpl extends ConstraintImpl {
@@ -88,13 +89,9 @@ public class FullTextSearchImpl extends ConstraintImpl {
             }
             return evaluateContains(v);
         }
-        NodeImpl n = selector.currentNode();
-        for (int i = 0; i < n.getPropertyCount(); i++) {
-            String p = n.getProperty(i);
-            if (p == null) {
-                break;
-            }
-            CoreValue v = selector.currentProperty(p);
+        Tree tree = getTree(selector.currentPath());
+        for (PropertyState p : tree.getProperties()) {
+            CoreValue v = selector.currentProperty(p.getName());
             if (evaluateContains(v)) {
                 return true;
             }
