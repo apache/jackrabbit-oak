@@ -29,14 +29,14 @@ public class PropertyIndexTest {
     @Test
     public void test() {
         MicroKernel mk = new MicroKernelImpl();
-        Indexer indexer = new Indexer(mk, mk, "index");
+        Indexer indexer = Indexer.getInstance(mk);
         indexer.init();
         PropertyIndex index = indexer.createPropertyIndex("id", true);
 
         String head = mk.getHeadRevision();
 
         // meta data
-        String meta = mk.getNodes("/index", head, 1, 0, -1, null);
+        String meta = mk.getNodes(Indexer.INDEX_CONFIG_ROOT, head, 1, 0, -1, null);
         Assert.assertEquals("{\":childNodeCount\":1,\"property@id,unique\":{\":childNodeCount\":0}}", meta);
 
         String oldHead = head;
@@ -61,7 +61,7 @@ public class PropertyIndexTest {
         Assert.assertEquals("/test/test", index.getPath("3", head));
 
         // Recreate the indexer
-        indexer = new Indexer(mk);
+        indexer = Indexer.getInstance(mk);
         indexer.init();
         index = indexer.createPropertyIndex("id", true);
         head = mk.getHeadRevision();

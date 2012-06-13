@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.mk.index;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
@@ -30,7 +31,6 @@ import org.apache.jackrabbit.oak.spi.QueryIndex;
 import org.apache.jackrabbit.oak.spi.QueryIndexProvider;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -63,9 +63,8 @@ public class Indexer implements QueryIndexProvider {
     private static final boolean DISABLED = Boolean.getBoolean("mk.indexDisabled");
 
     private MicroKernel mk;
-    private MicroKernel mkWrapper;
     private String revision;
-    private String indexRootNode;
+    private String indexRootNode = INDEX_CONFIG_ROOT;
     private int indexRootNodeDepth;
     private StringBuilder buffer;
     private ArrayList<QueryIndex> queryIndexList;
@@ -89,18 +88,25 @@ public class Indexer implements QueryIndexProvider {
      */
     private final HashMap<String, PropertyIndex> propertyIndexes = new HashMap<String, PropertyIndex>();
 
-    public Indexer(MicroKernel mkWrapper, MicroKernel mk, String indexRootNode) {
-        this.mkWrapper = mkWrapper;
-        if (mkWrapper instanceof IndexWrapper) {
-            this.mk = ((IndexWrapper) mkWrapper).getBaseKernel();
-        } else {
-            this.mk = mk;
-        }
-        this.indexRootNode = indexRootNode;
+    Indexer(MicroKernel mk) {
+        this.mk = mk;
     }
 
-    public Indexer(MicroKernel mk) {
-        this(mk, mk, INDEX_CONFIG_ROOT);
+    /**
+     * Get the indexer for the given MicroKernel. This will either create a new instance,
+     * or (if the MicroKernel is an IndexWrapper), return the existing indexer.
+     *
+     * @param mk the MicroKernel instance
+     * @return an indexer
+     */
+    public static Indexer getInstance(MicroKernel mk) {
+        if (mk instanceof IndexWrapper) {
+            Indexer indexer = ((IndexWrapper) mk).getIndexer();
+            if (indexer != null) {
+                return indexer;
+            }
+        }
+        return new Indexer(mk);
     }
 
     public String getIndexRootNode() {
@@ -371,7 +377,18 @@ public class Indexer implements QueryIndexProvider {
         JsopBuilder jsop = new JsopBuilder();
         jsop.tag('^').key("rev").value(readRevision);
         buffer(jsop.toString());
-        commitChanges();
+        try {
+            commitChanges();
+        } catch (MicroKernelException e) {
+            if (!mk.nodeExists(indexRootNode, revision)) {
+                // the index node itself was removed, which is
+                // unexpected but possible - re-create it
+                init = false;
+                init();
+            } else {
+                throw e;
+            }
+        }
         return revision;
     }
 
@@ -619,15 +636,12 @@ public class Indexer implements QueryIndexProvider {
     @Override
     public List<QueryIndex> getQueryIndexes(MicroKernel mk) {
         init();
-        if (mk != this.mkWrapper) {
-            return Collections.emptyList();
-        }
         if (queryIndexList == null) {
             queryIndexList = new ArrayList<QueryIndex>();
             for (Index index : indexes.values()) {
                 QueryIndex qi = null;
                 if (index instanceof PropertyIndex) {
-                    qi = new PropertyContentIndex(mk, (PropertyIndex) index);
+                    qi = new PropertyContentIndex((PropertyIndex) index);
                 } else if (index instanceof PrefixIndex) {
                     // TODO support prefix indexes?
                 }
