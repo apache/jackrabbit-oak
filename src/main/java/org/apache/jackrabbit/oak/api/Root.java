@@ -65,8 +65,10 @@ public interface Root {
      * Rebase this root to the latest revision.  After a call to this method,
      * all trees obtained through {@link #getTree(String)} become invalid and fresh
      * instances must be obtained.
+     *
+     * @param conflictHandler  {@link ConflictHandler} for resolving conflicts.
      */
-    void rebase();
+    void rebase(ConflictHandler conflictHandler);
 
     /**
      * Reverts all changes made to this root and refreshed to the latest trunk.
@@ -81,9 +83,10 @@ public interface Root {
      * all trees obtained through {@link #getTree(String)} become invalid and fresh
      * instances must be obtained.
      *
+     * @param conflictHandler  {@link ConflictHandler} for resolving conflicts.
      * @throws CommitFailedException TODO: add description and clarify how JCR exception can be generated from this generic exception
      */
-    void commit() throws CommitFailedException;
+    void commit(ConflictHandler conflictHandler) throws CommitFailedException;
 
     /**
      * Determine whether there are changes on this tree
