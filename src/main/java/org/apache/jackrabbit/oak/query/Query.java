@@ -23,6 +23,7 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.query.ast.AstVisitorBase;
 import org.apache.jackrabbit.oak.query.ast.BindVariableValueImpl;
@@ -504,6 +505,10 @@ public class Query {
 
     public NamePathMapper getNamePathMapper() {
         return namePathMapper;
+    }
+
+    public Tree getTree(String path) {
+        return session.getCurrentRoot().getTree(path);
     }
 
 }

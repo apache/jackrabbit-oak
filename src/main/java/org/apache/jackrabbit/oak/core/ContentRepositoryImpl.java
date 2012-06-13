@@ -71,6 +71,7 @@ public class ContentRepositoryImpl implements ContentRepository {
      */
     public ContentRepositoryImpl() {
         this(new MicroKernelImpl(), null, null);
+        // this(new IndexWrapper(new MicroKernelImpl()), null, null);
     }
 
     /**
@@ -79,6 +80,7 @@ public class ContentRepositoryImpl implements ContentRepository {
      *
      * @param microKernel underlying kernel instance
      * @param indexProvider index provider
+     * @param validatorProvider the validation provider
      */
     public ContentRepositoryImpl(MicroKernel microKernel, QueryIndexProvider indexProvider,
             ValidatorProvider validatorProvider) {
@@ -112,7 +114,7 @@ public class ContentRepositoryImpl implements ContentRepository {
     }
 
     private static QueryIndexProvider getDefaultIndexProvider(MicroKernel mk) {
-        return new Indexer(mk);
+        return Indexer.getInstance(mk);
     }
 
     @Nonnull

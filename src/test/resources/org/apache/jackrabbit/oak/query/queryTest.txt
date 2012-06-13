@@ -44,6 +44,18 @@ nt:base AS nt:base /* traverse "//*" */
 commit / - "test"
 commit /jcr:system/indexes - "property@id,unique"
 
+# fulltext search
+
+commit / + "test": { "name": "hello world" }
+
+select * from [nt:base] where contains(name, 'hello')
+/test
+
+select * from [nt:base] where contains(*, 'hello')
+/test
+
+commit / - "test"
+
 # other tests
 
 commit / + "test": { "jcr:resource": {}, "resource": { "x" : {}}}

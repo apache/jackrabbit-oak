@@ -22,6 +22,7 @@ import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.kernel.CoreValueMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.query.Query;
@@ -123,6 +124,10 @@ abstract class AstElement {
             throw new IllegalArgumentException("Not a valid JCR path: " + jcrPath);
         }
         return p;
+    }
+
+    protected Tree getTree(String path) {
+        return query.getTree(path);
     }
 
 }
