@@ -16,15 +16,14 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.commit.EmptyCommitHook;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
-
-import javax.annotation.Nonnull;
 
 /**
  * {@code NodeStore} implementations against {@link MicroKernel}.
@@ -50,10 +49,6 @@ public class KernelNodeStore extends MemoryNodeStore {
      * State of the current root node.
      */
     private KernelNodeState root;
-
-    public KernelNodeStore(MicroKernel kernel) {
-        this(kernel, new EmptyCommitHook());
-    }
 
     public KernelNodeStore(MicroKernel kernel, CommitHook commitHook) {
         assert kernel != null;
