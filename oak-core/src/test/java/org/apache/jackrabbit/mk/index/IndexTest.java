@@ -30,11 +30,14 @@ import org.junit.Test;
 public class IndexTest {
 
     private final MicroKernel mk = new MicroKernelImpl();
+    private final Indexer indexer = Indexer.getInstance(mk);
+
+    {
+        indexer.init();
+    }
 
     @Test
     public void createIndexAfterAddingData() {
-        Indexer indexer = new Indexer(mk);
-        indexer.init();
         PropertyIndex indexOld = indexer.createPropertyIndex("x", false);
         mk.commit("/", "+ \"test\": { \"test2\": { \"id\": 1 }, \"id\": 1 }", mk.getHeadRevision(), "");
         mk.commit("/", "+ \"test3\": { \"test2\": { \"id\": 2 }, \"id\": 2 }", mk.getHeadRevision(), "");
@@ -50,8 +53,6 @@ public class IndexTest {
 
     @Test
     public void nonUnique() {
-        Indexer indexer = new Indexer(mk);
-        indexer.init();
         PropertyIndex index = indexer.createPropertyIndex("id", false);
         mk.commit("/", "+ \"test\": { \"test2\": { \"id\": 1 }, \"id\": 1 }", mk.getHeadRevision(), "");
         mk.commit("/", "+ \"test3\": { \"test2\": { \"id\": 2 }, \"id\": 2 }", mk.getHeadRevision(), "");
@@ -65,8 +66,6 @@ public class IndexTest {
 
     @Test
     public void nestedAddNode() {
-        Indexer indexer = new Indexer(mk);
-        indexer.init();
         PropertyIndex index = indexer.createPropertyIndex("id", true);
 
         mk.commit("/", "+ \"test\": { \"test2\": { \"id\": 2 }, \"id\": 1 }", mk.getHeadRevision(), "");
@@ -76,8 +75,6 @@ public class IndexTest {
 
     @Test
     public void move() {
-        Indexer indexer = new Indexer(mk);
-        indexer.init();
         PropertyIndex index = indexer.createPropertyIndex("id", true);
 
         mk.commit("/", "+ \"test\": { \"test2\": { \"id\": 2 }, \"id\": 1 }", mk.getHeadRevision(), "");
@@ -91,8 +88,6 @@ public class IndexTest {
 
     @Test
     public void copy() {
-        Indexer indexer = new Indexer(mk);
-        indexer.init();
         PropertyIndex index = indexer.createPropertyIndex("id", false);
 
         mk.commit("/", "+ \"test\": { \"test2\": { \"id\": 2 }, \"id\": 1 }", mk.getHeadRevision(), "");
@@ -116,8 +111,6 @@ public class IndexTest {
 
     @Test
     public void ascending() {
-        Indexer indexer = new Indexer(mk);
-        indexer.init();
         BTree tree = new BTree(indexer, "test", true);
         tree.setMinSize(2);
         print(mk, tree);
@@ -159,8 +152,6 @@ public class IndexTest {
     }
 
     private void duplicateKey(boolean unique) {
-        Indexer indexer = new Indexer(mk);
-        indexer.init();
         BTree tree = new BTree(indexer, "test", unique);
         tree.setMinSize(2);
 
@@ -203,8 +194,6 @@ public class IndexTest {
 
     @Test
     public void random() {
-        Indexer indexer = new Indexer(mk);
-        indexer.init();
         BTree tree = new BTree(indexer, "test", true);
         tree.setMinSize(2);
         Random r = new Random(1);
