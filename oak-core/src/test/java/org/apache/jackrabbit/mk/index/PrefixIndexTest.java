@@ -30,14 +30,14 @@ public class PrefixIndexTest {
     @Test
     public void test() {
         MicroKernel mk = new MicroKernelImpl();
-        Indexer indexer = new Indexer(mk, mk, "index");
+        Indexer indexer = Indexer.getInstance(mk);
         indexer.init();
         PrefixIndex index = indexer.createPrefixIndex("d:");
 
         String head = mk.getHeadRevision();
 
         // meta data
-        String meta = mk.getNodes("/index", head, 1, 0, -1, null);
+        String meta = mk.getNodes(Indexer.INDEX_CONFIG_ROOT, head, 1, 0, -1, null);
         Assert.assertEquals("{\":childNodeCount\":1,\"prefix@d:\":{\":childNodeCount\":0}}", meta);
 
         Assert.assertEquals("", getPathList(index, "d:1", head));
