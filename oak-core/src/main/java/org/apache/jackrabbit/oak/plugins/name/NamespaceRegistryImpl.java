@@ -16,18 +16,19 @@
  */
 package org.apache.jackrabbit.oak.plugins.name;
 
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.Tree;
+import java.util.Arrays;
+import java.util.Map;
 
 import javax.annotation.Nonnull;
 import javax.jcr.NamespaceException;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.RepositoryException;
 
-import java.util.Arrays;
-import java.util.Map;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
 
 /**
  * Implementation of {@link NamespaceRegistry} based on {@link NamespaceMappings}.
@@ -50,7 +51,7 @@ public class NamespaceRegistryImpl implements NamespaceRegistry {
             Tree namespaces = getOrCreate(root, "jcr:system", Namespaces.NSMAPNODENAME);
             namespaces.setProperty(
                     prefix, session.getCoreValueFactory().createValue(uri));
-            root.commit();
+            root.commit(DefaultConflictHandler.OURS);
         } catch (NamespaceValidatorException e) {
             throw e.getNamespaceException();
         } catch (CommitFailedException e) {
@@ -72,7 +73,7 @@ public class NamespaceRegistryImpl implements NamespaceRegistry {
                         "Namespace mapping from " + prefix + " to "
                         + getURI(prefix) + " can not be unregistered");
             }
-            root.commit();
+            root.commit(DefaultConflictHandler.OURS);
         } catch (NamespaceValidatorException e) {
             throw e.getNamespaceException();
         } catch (CommitFailedException e) {

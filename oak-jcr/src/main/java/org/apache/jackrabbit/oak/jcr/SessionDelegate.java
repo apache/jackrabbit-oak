@@ -16,23 +16,10 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import org.apache.jackrabbit.oak.api.AuthInfo;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.QueryEngine;
-import org.apache.jackrabbit.oak.api.Result;
-import org.apache.jackrabbit.oak.api.ResultRow;
-import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.jcr.value.ValueFactoryImpl;
-import org.apache.jackrabbit.oak.namepath.AbstractNameMapper;
-import org.apache.jackrabbit.oak.namepath.NameMapper;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.io.IOException;
+import java.text.ParseException;
+import java.util.Collections;
+import java.util.Map;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -48,10 +35,25 @@ import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.version.VersionManager;
-import java.io.IOException;
-import java.text.ParseException;
-import java.util.Collections;
-import java.util.Map;
+
+import org.apache.jackrabbit.oak.api.AuthInfo;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.QueryEngine;
+import org.apache.jackrabbit.oak.api.Result;
+import org.apache.jackrabbit.oak.api.ResultRow;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
+import org.apache.jackrabbit.oak.jcr.value.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.namepath.AbstractNameMapper;
+import org.apache.jackrabbit.oak.namepath.NameMapper;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SessionDelegate {
     static final Logger log = LoggerFactory.getLogger(SessionDelegate.class);
@@ -166,7 +168,7 @@ public class SessionDelegate {
 
     public void save() throws RepositoryException {
         try {
-            root.commit();
+            root.commit(DefaultConflictHandler.OURS);
         }
         catch (CommitFailedException e) {
             throw new RepositoryException(e);
@@ -175,7 +177,7 @@ public class SessionDelegate {
 
     public void refresh(boolean keepChanges) {
         if (keepChanges) {
-            root.rebase();
+            root.rebase(DefaultConflictHandler.OURS);
         }
         else {
             root.refresh();
@@ -285,7 +287,7 @@ public class SessionDelegate {
         try {
             Root currentRoot = contentSession.getCurrentRoot();
             currentRoot.copy(srcPath, destPath);
-            currentRoot.commit();
+            currentRoot.commit(DefaultConflictHandler.OURS);
         }
         catch (CommitFailedException e) {
             throw new RepositoryException(e);
@@ -321,7 +323,7 @@ public class SessionDelegate {
         try {
             moveRoot.move(srcPath, destPath);
             if (!transientOp) {
-                moveRoot.commit();
+                moveRoot.commit(DefaultConflictHandler.OURS);
             }
         }
         catch (CommitFailedException e) {

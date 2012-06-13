@@ -24,6 +24,8 @@ import java.util.List;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.ConflictHandler;
+import org.apache.jackrabbit.oak.api.ConflictHandler.Resolution;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -36,6 +38,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.jackrabbit.oak.api.ConflictHandler.Resolution.*;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
@@ -135,14 +138,14 @@ public class RootImpl implements Root {
     }
 
     @Override
-    public void rebase() {
+    public void rebase(ConflictHandler conflictHandler) {
         purgePendingChanges();
         NodeState base = getBaseState();
         NodeState head = getCurrentRootState();
         currentRootState = null;
         branch = store.branch();
         root = TreeImpl.createRoot(this);
-        merge(base, head, getRoot());
+        merge(base, head, root, conflictHandler);
     }
 
     @Override
@@ -153,8 +156,8 @@ public class RootImpl implements Root {
     }
 
     @Override
-    public void commit() throws CommitFailedException {
-        rebase();
+    public void commit(ConflictHandler conflictHandler) throws CommitFailedException {
+        rebase(conflictHandler);
         purgePendingChanges();
         branch.merge();
         branch = store.branch();
@@ -291,39 +294,160 @@ public class RootImpl implements Root {
         return child;
     }
 
-    private void merge(NodeState fromState, NodeState toState, final Tree target) {
+    private void merge(NodeState fromState, NodeState toState, final TreeImpl target,
+            final ConflictHandler conflictHandler) {
+
+        assert target != null;
+
         store.compare(fromState, toState, new NodeStateDiff() {
             @Override
             public void propertyAdded(PropertyState after) {
-                setProperty(after, target);
+                Resolution resolution;
+                PropertyState p = target.getProperty(after.getName());
+
+                if (p == null) {
+                    resolution = OURS;
+                }
+                else if (after.equals(p)) {
+                    resolution = MERGED;
+                }
+                else {
+                    resolution = conflictHandler.addExistingProperty(target, after, p);
+                }
+
+                switch (resolution) {
+                    case OURS:
+                        setProperty(after, target);
+                        break;
+                    case THEIRS:
+                    case MERGED:
+                        break;
+                }
             }
 
             @Override
             public void propertyChanged(PropertyState before, PropertyState after) {
-                setProperty(after, target);
+                assert before.getName().equals(after.getName());
+
+                Resolution resolution;
+                PropertyState p = target.getProperty(after.getName());
+
+                if (p == null) {
+                    resolution = conflictHandler.changeDeletedProperty(target, after);
+                }
+                else if (before.equals(p)) {
+                    resolution = OURS;
+                }
+                else if (after.equals(p)) {
+                    resolution = MERGED;
+                }
+                else {
+                    resolution = conflictHandler.changeChangedProperty(target, after, p);
+                }
+
+                switch (resolution) {
+                    case OURS:
+                        setProperty(after, target);
+                        break;
+                    case THEIRS:
+                    case MERGED:
+                        break;
+                }
             }
 
             @Override
             public void propertyDeleted(PropertyState before) {
-                target.removeProperty(before.getName());
+                Resolution resolution;
+                PropertyState p = target.getProperty(before.getName());
+
+                if (before.equals(p)) {
+                    resolution = OURS;
+                }
+                else if (p == null) {
+                    resolution = MERGED;
+                }
+                else {
+                    resolution = conflictHandler.deleteChangedProperty(target, p);
+                }
+
+                switch (resolution) {
+                    case OURS:
+                        target.removeProperty(before.getName());
+                        break;
+                    case THEIRS:
+                    case MERGED:
+                        break;
+                }
             }
 
             @Override
             public void childNodeAdded(String name, NodeState after) {
-                addChild(name, after, target);
+                Resolution resolution;
+                TreeImpl n = target.getChild(name);
+
+                if (n == null) {
+                    resolution = OURS;
+                }
+                else {
+                    resolution = conflictHandler.addExistingNode(target, name, after, n.getNodeState());
+                }
+
+                switch (resolution) {
+                    case OURS:
+                        addChild(name, after, target);
+                        break;
+                    case THEIRS:
+                    case MERGED:
+                        break;
+                }
             }
 
             @Override
             public void childNodeChanged(String name, NodeState before, NodeState after) {
-                Tree child = target.getChild(name);
-                if (child != null) {
-                    merge(before, after, child);
+                Resolution resolution;
+                TreeImpl n = target.getChild(name);
+
+                if (n == null) {
+                    resolution = conflictHandler.changeDeletedNode(target, name, after);
+                }
+                else {
+                    merge(before, after, n, conflictHandler);
+                    resolution = MERGED;
+                }
+
+                switch (resolution) {
+                    case OURS:
+                        addChild(name, after, target);
+                        break;
+                    case THEIRS:
+                    case MERGED:
+                        break;
                 }
             }
 
             @Override
             public void childNodeDeleted(String name, NodeState before) {
-                target.removeChild(name);
+                Resolution resolution;
+                TreeImpl n = target.getChild(name);
+
+                if (n == null) {
+                    resolution = MERGED;
+                }
+                else if (before.equals(n.getNodeState())) {
+                    resolution = OURS;
+                }
+                else {
+                    resolution = conflictHandler.deleteChangedNode(target, name, n.getNodeState());
+                }
+
+                switch (resolution) {
+                    case OURS:
+                        target.removeChild(name);
+                        break;
+                    case THEIRS:
+                    case MERGED:
+                        break;
+                }
             }
 
             private void addChild(String name, NodeState state, Tree target) {

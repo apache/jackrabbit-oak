@@ -1230,7 +1230,12 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
             session2.save();
             assertFalse(session1.getRootNode().hasNode("node"));
-            assertFalse(session2.getRootNode().hasNode("node"));  // TODO: is this correct?
+            assertTrue(session2.getRootNode().hasNode("node"));
+            assertTrue(session2.getRootNode().getNode("node").hasNode("2"));
+
+            session1.refresh(true);
+            assertTrue(session1.getRootNode().hasNode("node"));
+            assertTrue(session1.getRootNode().getNode("node").hasNode("2"));
         }
         finally {
             session1.logout();

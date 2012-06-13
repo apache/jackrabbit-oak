@@ -18,6 +18,14 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
+import javax.jcr.PropertyType;
+
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.CoreValue;
@@ -26,13 +34,6 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
-
-import javax.jcr.PropertyType;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -128,7 +129,7 @@ public class RootImplTest extends AbstractOakTest {
         assertEquals("new", added.getName());
         assertTrue(tree.hasChild("new"));
 
-        root.commit();
+        root.commit(DefaultConflictHandler.OURS);
         tree = root.getTree("/");
 
         assertTrue(tree.hasChild("new"));
@@ -145,7 +146,7 @@ public class RootImplTest extends AbstractOakTest {
         assertFalse(tree.hasChild("new"));
         tree.addChild("new");
 
-        root.commit();
+        root.commit(DefaultConflictHandler.OURS);
         tree = root.getTree("/");
 
         assertTrue(tree.hasChild("new"));
@@ -163,7 +164,7 @@ public class RootImplTest extends AbstractOakTest {
         tree.removeChild("x");
         assertFalse(tree.hasChild("x"));
 
-        root.commit();
+        root.commit(DefaultConflictHandler.OURS);
         tree = root.getTree("/");
         
         assertFalse(tree.hasChild("x"));
@@ -182,7 +183,7 @@ public class RootImplTest extends AbstractOakTest {
         assertEquals("new", property.getName());
         assertEquals(value, property.getValue());
 
-        root.commit();
+        root.commit(DefaultConflictHandler.OURS);
         tree = root.getTree("/");
         
         property = tree.getProperty("new");
@@ -200,7 +201,7 @@ public class RootImplTest extends AbstractOakTest {
         tree.removeProperty("a");
         assertFalse(tree.hasProperty("a"));
 
-        root.commit();
+        root.commit(DefaultConflictHandler.OURS);
         tree = root.getTree("/");
 
         assertFalse(tree.hasProperty("a"));
@@ -218,7 +219,7 @@ public class RootImplTest extends AbstractOakTest {
         assertFalse(tree.hasChild("x"));
         assertTrue(y.hasChild("xx"));
         
-        root.commit();
+        root.commit(DefaultConflictHandler.OURS);
         tree = root.getTree("/");
 
         assertFalse(tree.hasChild("x"));
@@ -250,7 +251,7 @@ public class RootImplTest extends AbstractOakTest {
         assertFalse(tree.hasChild("x"));
         assertTrue(tree.hasChild("xx"));
         
-        root.commit();
+        root.commit(DefaultConflictHandler.OURS);
         tree = root.getTree("/");
 
         assertFalse(tree.hasChild("x"));
@@ -269,7 +270,7 @@ public class RootImplTest extends AbstractOakTest {
         assertTrue(tree.hasChild("x"));
         assertTrue(y.hasChild("xx"));
         
-        root.commit();
+        root.commit(DefaultConflictHandler.OURS);
         tree = root.getTree("/");
 
         assertTrue(tree.hasChild("x"));
@@ -289,7 +290,7 @@ public class RootImplTest extends AbstractOakTest {
         assertTrue(y.hasChild("xx"));
         assertTrue(y.getChild("xx").hasChild("x1"));
 
-        root.commit();
+        root.commit(DefaultConflictHandler.OURS);
         tree = root.getTree("/");
 
         assertTrue(tree.hasChild("x"));
@@ -346,12 +347,12 @@ public class RootImplTest extends AbstractOakTest {
         Tree tree = root.getTree("/");
 
         tree.setProperty("P0", valueFactory.createValue("V1"));
-        root.commit();
+        root.commit(DefaultConflictHandler.OURS);
         tree = root.getTree("/");
         assertTrue(tree.hasProperty("P0"));
 
         tree.removeProperty("P0");
-        root.commit();
+        root.commit(DefaultConflictHandler.OURS);
         tree = root.getTree("/");
         assertFalse(tree.hasProperty("P0"));
     }
@@ -363,21 +364,21 @@ public class RootImplTest extends AbstractOakTest {
 
         tree.addChild("new");
         assertEquals(Status.NEW, tree.getChildStatus("new"));
-        root.commit();
+        root.commit(DefaultConflictHandler.OURS);
 
         tree = root.getTree("/");
         assertEquals(Status.EXISTING, tree.getChildStatus("new"));
         Tree added = tree.getChild("new");
         added.addChild("another");
         assertEquals(Status.MODIFIED, tree.getChildStatus("new"));
-        root.commit();
+        root.commit(DefaultConflictHandler.OURS);
 
         tree = root.getTree("/");
         assertEquals(Status.EXISTING, tree.getChildStatus("new"));
         tree.getChild("new").removeChild("another");
         assertEquals(Status.MODIFIED, tree.getChildStatus("new"));
         assertEquals(Status.REMOVED, tree.getChild("new").getChildStatus("another"));
-        root.commit();
+        root.commit(DefaultConflictHandler.OURS);
 
         tree = root.getTree("/");
         assertEquals(Status.EXISTING, tree.getChildStatus("new"));
@@ -394,19 +395,19 @@ public class RootImplTest extends AbstractOakTest {
 
         tree.setProperty("new", value1);
         assertEquals(Status.NEW, tree.getPropertyStatus("new"));
-        root.commit();
+        root.commit(DefaultConflictHandler.OURS);
 
         tree = root.getTree("/");
         assertEquals(Status.EXISTING, tree.getPropertyStatus("new"));
         tree.setProperty("new", value2);
         assertEquals(Status.MODIFIED, tree.getPropertyStatus("new"));
-        root.commit();
+        root.commit(DefaultConflictHandler.OURS);
 
         tree = root.getTree("/");
         assertEquals(Status.EXISTING, tree.getPropertyStatus("new"));
         tree.removeProperty("new");
         assertEquals(Status.REMOVED, tree.getPropertyStatus("new"));
-        root.commit();
+        root.commit(DefaultConflictHandler.OURS);
 
         tree = root.getTree("/");
         assertNull(tree.getPropertyStatus("new"));
@@ -417,7 +418,7 @@ public class RootImplTest extends AbstractOakTest {
         RootImpl root = new RootImpl(store, null);
         Tree tree = root.getTree("/");
         tree.addChild("one").addChild("two");
-        root.commit();
+        root.commit(DefaultConflictHandler.OURS);
 
         tree = root.getTree("/");
         tree.getChild("one").getChild("two").addChild("three");
@@ -435,17 +436,17 @@ public class RootImplTest extends AbstractOakTest {
         CoreValue value = valueFactory.createValue("V1");
         root2.getTree("/").addChild("one").addChild("two").addChild("three")
                 .setProperty("p1", value);
-        root2.commit();
+        root2.commit(DefaultConflictHandler.OURS);
 
-        root1.rebase();
+        root1.rebase(DefaultConflictHandler.OURS);
         checkEqual(root1.getTree("/"), (root2.getTree("/")));
 
         Tree one = root2.getTree("/one");
         one.removeChild("two");
         one.addChild("four");
-        root2.commit();
+        root2.commit(DefaultConflictHandler.OURS);
 
-        root1.rebase();
+        root1.rebase(DefaultConflictHandler.OURS);
         checkEqual(root1.getTree("/"), (root2.getTree("/")));
     }
 
@@ -464,7 +465,7 @@ public class RootImplTest extends AbstractOakTest {
             tree.addChild(name);
         }
 
-        root.commit();
+        root.commit(DefaultConflictHandler.OURS);
         tree = root.getTree("/");
         tree = tree.getChild("large");
 
