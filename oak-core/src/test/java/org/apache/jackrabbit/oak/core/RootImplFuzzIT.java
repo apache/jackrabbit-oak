@@ -18,6 +18,9 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import java.util.Iterator;
+import java.util.Random;
+
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.CoreValue;
@@ -31,9 +34,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Iterator;
-import java.util.Random;
 
 import static org.apache.jackrabbit.oak.core.RootImplFuzzIT.Operation.AddNode;
 import static org.apache.jackrabbit.oak.core.RootImplFuzzIT.Operation.CopyNode;
@@ -97,10 +97,10 @@ public class RootImplFuzzIT {
             op.apply(root2);
             checkEqual(root1.getTree("/"), root2.getTree("/"));
 
-            root1.commit();
+            root1.commit(DefaultConflictHandler.OURS);
             checkEqual(root1.getTree("/"), root2.getTree("/"));
             if (op instanceof Save) {
-                root2.commit();
+                root2.commit(DefaultConflictHandler.OURS);
                 assertEquals(store1.getRoot(), store2.getRoot());
             }
         }
@@ -273,7 +273,7 @@ public class RootImplFuzzIT {
         static class Rebase extends Operation {
             @Override
             void apply(RootImpl root) {
-                root.rebase();
+                root.rebase(DefaultConflictHandler.OURS);
             }
 
             @Override
