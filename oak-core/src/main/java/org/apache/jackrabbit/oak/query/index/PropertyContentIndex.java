@@ -19,9 +19,7 @@
 package org.apache.jackrabbit.oak.query.index;
 
 import java.util.Iterator;
-import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.index.PropertyIndex;
-import org.apache.jackrabbit.mk.simple.NodeImpl;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.spi.Cursor;
 import org.apache.jackrabbit.oak.spi.Filter;
@@ -32,11 +30,9 @@ import org.apache.jackrabbit.oak.spi.QueryIndex;
  */
 public class PropertyContentIndex implements QueryIndex {
 
-    private final MicroKernel mk;
     private final PropertyIndex index;
 
-    public PropertyContentIndex(MicroKernel mk, PropertyIndex index) {
-        this.mk = mk;
+    public PropertyContentIndex(PropertyIndex index) {
         this.index = index;
     }
 
@@ -72,7 +68,7 @@ public class PropertyContentIndex implements QueryIndex {
         CoreValue first = restriction.first;
         String f = first == null ? null : first.toString();
         Iterator<String> it = index.getPaths(f, revisionId);
-        return new ContentCursor(mk, revisionId, it);
+        return new ContentCursor(it);
     }
 
 
@@ -86,30 +82,12 @@ public class PropertyContentIndex implements QueryIndex {
      */
     static class ContentCursor implements Cursor {
 
-        private final MicroKernel mk;
-        private final String revisionId;
         private final Iterator<String> it;
 
         private String currentPath;
-        private NodeImpl currentNode;
 
-        public ContentCursor(MicroKernel mk, String revisionId, Iterator<String> it) {
-            this.mk = mk;
-            this.revisionId = revisionId;
+        public ContentCursor(Iterator<String> it) {
             this.it = it;
-        }
-
-        @Override
-        public NodeImpl currentNode() {
-            // TODO same code as in TraversingCursor
-            if (currentNode == null) {
-                if (currentPath == null) {
-                    return null;
-                }
-                currentNode = NodeImpl.parse(mk.getNodes(currentPath, revisionId, 1, 0, -1, null));
-                currentNode.setPath(currentPath);
-            }
-            return currentNode;
         }
 
         @Override
@@ -121,7 +99,6 @@ public class PropertyContentIndex implements QueryIndex {
         public boolean next() {
             if (it.hasNext()) {
                 currentPath = it.next();
-                currentNode = null;
                 return true;
             }
             return false;

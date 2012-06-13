@@ -14,7 +14,6 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.simple.NodeImpl;
 import org.apache.jackrabbit.oak.query.Query;
 
 public class JoinImpl extends SourceImpl {
@@ -171,11 +170,6 @@ public class JoinImpl extends SourceImpl {
     public String currentPath() {
         // TODO join: what is the path of a join? it this method ever called?
         return left.currentPath();
-    }
-
-    @Override
-    public NodeImpl currentNode() {
-        return null;
     }
 
 }

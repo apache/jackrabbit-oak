@@ -30,7 +30,6 @@ public class TraversingCursor implements Cursor {
 
     private ArrayList<NodeCursor> nodes = new ArrayList<NodeCursor>();
     private String currentPath;
-    private NodeImpl currentNode;
 
     public TraversingCursor(MicroKernel mk, String revisionId, int childBlockSize, String path) {
         this.mk = mk;
@@ -54,29 +53,12 @@ public class TraversingCursor implements Cursor {
     }
 
     @Override
-    public NodeImpl currentNode() {
-        if (currentNode == null) {
-            if (currentPath == null) {
-                return null;
-            }
-            String s = mk.getNodes(currentPath, revisionId, 1, 0, -1, null);
-            if (s == null) {
-                return null;
-            }
-            currentNode = NodeImpl.parse(s);
-            currentNode.setPath(currentPath);
-        }
-        return currentNode;
-    }
-
-    @Override
     public String currentPath() {
         return currentPath;
     }
 
     @Override
     public boolean next() {
-        currentNode = null;
         if (nodes == null) {
             currentPath = null;
             return false;
