@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.type;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-
-import java.util.HashSet;
-import java.util.Set;
 
 public class TypeValidatorProvider implements ValidatorProvider {
 
@@ -87,6 +87,9 @@ public class TypeValidatorProvider implements ValidatorProvider {
         types.add("rep:AuthorizableFolder");
         types.add("rep:Members");
         types.add("rep:RetentionManageable");
+
+        // Oak types are always available
+        types.add("mix:mergeConflict");
 
         // Find any extra types from /jcr:system/jcr:nodeTypes
         NodeState system = after.getChildNode("jcr:system");
