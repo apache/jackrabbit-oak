@@ -937,6 +937,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
 
         // create a branch on head
         String branchRev = mk.branch(null);
+        String branchRootRev = branchRev;
 
         // add a node /branch in branchRev
         branchRev = mk.commit("", "+\"/branch\":{}", branchRev, "");
@@ -950,8 +951,8 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
 
         // make sure branchRev doesn't show up in revision history
         String hist = mk.getRevisionHistory(0, -1, null);
-        JSONArray ar = parseJSONArray(hist);
-        for (Object entry : ar) {
+        JSONArray array = parseJSONArray(hist);
+        for (Object entry : array) {
             assertTrue(entry instanceof JSONObject);
             JSONObject rev = (JSONObject) entry;
             assertFalse(branchRev.equals(rev.get("id")));
@@ -963,11 +964,34 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         assertFalse(mk.nodeExists("/test123", branchRev));
 
         // merge branchRev with head
-        mk.merge(branchRev, "");
+        String newHead = mk.merge(branchRev, "");
         // make sure /test123 still exists in head
         assertTrue(mk.nodeExists("/test123", null));
         // make sure /branch/foo does now exist in head
         assertTrue(mk.nodeExists("/branch/foo", null));
+
+        try {
+            mk.getJournal(branchRootRev, null, "/");
+            fail("getJournal should throw for branch revisions");
+        } catch (MicroKernelException e) {
+            // expected
+        }
+        try {
+            mk.getJournal(branchRootRev, branchRev, "/");
+            fail("getJournal should throw for branch revisions");
+        } catch (MicroKernelException e) {
+            // expected
+        }
+
+        String jrnl = mk.getJournal(newHead, newHead, "/");
+        array = parseJSONArray(jrnl);
+        assertEquals(1, array.size());
+        JSONObject rev = getObjectArrayEntry(array, 0);
+        assertPropertyValue(rev, "id", newHead);
+        String diff = (String) resolveValue(rev, "changes");
+        // TODO properly verify json diff format
+        // make sure json diff contains +"/branch":{...}
+        assertTrue(diff.matches("\\s*\\+\\s*\"/branch\"\\s*:\\s*\\{\\s*\"foo\"\\s*:\\s*\\{\\s*\\}\\s*\\}\\s*"));
     }
 
     @Test
