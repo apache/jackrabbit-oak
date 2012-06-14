@@ -16,19 +16,20 @@
  */
 package org.apache.jackrabbit.oak.util;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.NoSuchElementException;
+
+import javax.annotation.Nonnull;
+
 import org.apache.commons.collections.iterators.ArrayIterator;
 import org.apache.commons.collections.iterators.EmptyIterator;
 import org.apache.commons.collections.iterators.FilterIterator;
 import org.apache.commons.collections.iterators.IteratorChain;
 import org.apache.commons.collections.iterators.SingletonIterator;
 import org.apache.commons.collections.iterators.TransformIterator;
-
-import javax.annotation.Nonnull;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.NoSuchElementException;
 
 /**
  * Utility class containing type safe adapters for some of the iterators of
@@ -240,6 +241,21 @@ public final class Iterators {
                 current.remove();
             }
         };
+    }
+
+    /**
+     * Spools the values of an iterator into a list.
+     * @param values  the values to spool
+     * @param list  the target list to receive the values
+     * @param <T>
+     * @return  {@code list}
+     */
+    @Nonnull
+    public static <T> List<T> toList(Iterable<? extends T> values, List<T> list) {
+        for (T value : values) {
+            list.add(value);
+        }
+        return list;
     }
 
 }

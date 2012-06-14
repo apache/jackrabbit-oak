@@ -18,7 +18,9 @@ package org.apache.jackrabbit.oak.jcr;
 
 import java.io.IOException;
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import javax.annotation.CheckForNull;
@@ -26,6 +28,8 @@ import javax.annotation.Nonnull;
 import javax.jcr.ItemExistsException;
 import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
+import javax.jcr.Property;
+import javax.jcr.PropertyType;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -38,8 +42,11 @@ import javax.jcr.version.VersionManager;
 
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.ConflictHandler;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.CoreValueFactory;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
@@ -52,8 +59,13 @@ import org.apache.jackrabbit.oak.namepath.AbstractNameMapper;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.util.Iterators;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.jackrabbit.oak.util.Iterators.toList;
 
 public class SessionDelegate {
     static final Logger log = LoggerFactory.getLogger(SessionDelegate.class);
@@ -66,6 +78,7 @@ public class SessionDelegate {
     private final Workspace workspace;
     private final Session session;
     private final Root root;
+    private final ConflictHandler conflictHandler;
 
     private boolean isAlive = true;
 
@@ -79,6 +92,7 @@ public class SessionDelegate {
         this.workspace = new WorkspaceImpl(this);
         this.session = new SessionImpl(this);
         this.root = contentSession.getCurrentRoot();
+        this.conflictHandler = new AnnotatingConflictHandler();
     }
 
     public boolean isAlive() {
@@ -168,7 +182,7 @@ public class SessionDelegate {
 
     public void save() throws RepositoryException {
         try {
-            root.commit(DefaultConflictHandler.OURS);
+            root.commit(conflictHandler);
         }
         catch (CommitFailedException e) {
             throw new RepositoryException(e);
@@ -177,7 +191,7 @@ public class SessionDelegate {
 
     public void refresh(boolean keepChanges) {
         if (keepChanges) {
-            root.rebase(DefaultConflictHandler.OURS);
+            root.rebase(conflictHandler);
         }
         else {
             root.refresh();
@@ -440,5 +454,138 @@ public class SessionDelegate {
             // TODO right now we would have to check whether AbstractSession.namespaces is empty
             return true;
         }
+    }
+
+    //------------------------------------------------------------< AnnotatingConflictHandler >---
+
+    /**
+     * This {@link ConflictHandler} implementation resolves conflicts to
+     * {@link Resolution#THEIRS} and in addition marks nodes where a conflict
+     * occurred with {@code mix:mergeConflict}:
+     *
+     * <pre>
+     * [mix:mergeConflict]
+     *   mixin
+     *   primaryitem jcr:ours
+     *   + jcr:ours (nt:unstructured)
+     * </pre>
+     *
+     * The {@code jcr:ours} sub node contains our version of the node prior to
+     * the conflict.
+     *
+     * TODO: add corresponding commit hook which fails the commit on existence of mix:mergeConflict
+     */
+    private class AnnotatingConflictHandler implements ConflictHandler {
+        // TODO: move these constants to some common location for repository internal node types
+        public static final String MIX_MERGE_CONFLICT = "mix:mergeConflict";
+        public static final String JCR_OURS = "jcr:ours";
+        public static final String ADD_EXISTING = "addExisting";
+        public static final String CHANGE_DELETED = "changeDeleted";
+        public static final String CHANGE_CHANGED = "changeChanged";
+        public static final String DELETE_CHANGED = "deleteChanged";
+
+        private final CoreValueFactory valueFactory;
+        private final String jcrMixinTypes;
+
+        AnnotatingConflictHandler() throws RepositoryException {
+            valueFactory = contentSession.getCoreValueFactory();
+            jcrMixinTypes = getOakPathOrThrow(Property.JCR_MIXIN_TYPES);
+        }
+
+        @Override
+        public Resolution addExistingProperty(Tree parent, PropertyState ours, PropertyState theirs) {
+            Tree marker = addConflictMarker(parent);
+            setProperty(getOrCreateNode(marker, ADD_EXISTING), ours);
+            return Resolution.THEIRS;
+        }
+
+        @Override
+        public Resolution changeDeletedProperty(Tree parent, PropertyState ours) {
+            Tree marker = addConflictMarker(parent);
+            setProperty(getOrCreateNode(marker, CHANGE_DELETED), ours);
+            return Resolution.THEIRS;
+        }
+
+        @Override
+        public Resolution changeChangedProperty(Tree parent, PropertyState ours, PropertyState theirs) {
+            Tree marker = addConflictMarker(parent);
+            setProperty(getOrCreateNode(marker, CHANGE_CHANGED), ours);
+            return Resolution.THEIRS;
+        }
+
+        @Override
+        public Resolution deleteChangedProperty(Tree parent, PropertyState theirs) {
+            Tree marker = addConflictMarker(parent);
+            setProperty(getOrCreateNode(marker, DELETE_CHANGED), theirs);
+            return Resolution.THEIRS;
+        }
+
+        @Override
+        public Resolution addExistingNode(Tree parent, String name, NodeState ours, NodeState theirs) {
+            Tree marker = addConflictMarker(parent);
+            addChild(getOrCreateNode(marker, ADD_EXISTING), name, ours);
+            return Resolution.THEIRS;
+        }
+
+        @Override
+        public Resolution changeDeletedNode(Tree parent, String name, NodeState ours) {
+            Tree marker = addConflictMarker(parent);
+            addChild(getOrCreateNode(marker, CHANGE_DELETED), name, ours);
+            return Resolution.THEIRS;
+        }
+
+        @Override
+        public Resolution deleteChangedNode(Tree parent, String name, NodeState theirs) {
+            Tree marker = addConflictMarker(parent);
+            markChild(getOrCreateNode(marker, DELETE_CHANGED), name);
+            return Resolution.THEIRS;
+        }
+
+        private Tree addConflictMarker(Tree parent) {
+            PropertyState jcrMixin = parent.getProperty(jcrMixinTypes);
+            List<CoreValue> mixins = new ArrayList<CoreValue>();
+            if (jcrMixin != null) {
+                mixins = Iterators.toList(jcrMixin.getValues(), mixins);
+            }
+            if (!mixins.contains(MIX_MERGE_CONFLICT)) {
+                mixins.add(valueFactory.createValue(MIX_MERGE_CONFLICT, PropertyType.NAME));
+                parent.setProperty(jcrMixinTypes, mixins);
+            }
+
+            return getOrCreateNode(parent, JCR_OURS);
+        }
+
+        private Tree getOrCreateNode(Tree parent, String name) {
+            Tree child = parent.getChild(name);
+            if (child == null) {
+                child = parent.addChild(name);
+            }
+            return child;
+        }
+
+        private void addChild(Tree parent, String name, NodeState state) {
+            Tree child = parent.addChild(name);
+            for (PropertyState property : state.getProperties()) {
+                setProperty(child, property);
+            }
+            for (ChildNodeEntry entry : state.getChildNodeEntries()) {
+                addChild(child, entry.getName(), entry.getNodeState());
+            }
+        }
+
+        private void markChild(Tree parent, String name) {
+            parent.addChild(name);
+        }
+
+        private void setProperty(Tree parent, PropertyState property) {
+            if (property.isArray()) {
+                parent.setProperty(property.getName(),
+                        toList(property.getValues(), new ArrayList<CoreValue>()));
+            }
+            else {
+                parent.setProperty(property.getName(), property.getValue());
+            }
+        }
+
     }
 }
