@@ -16,15 +16,11 @@
  */
 package org.apache.jackrabbit.oak.api;
 
+import javax.jcr.RepositoryException;
+
 /**
  * Main exception thrown by methods defined on the {@code ContentSession} interface
  * indicating that committing a given set of changes failed.
- *
- * TODO: define mechanism to inform the oak-jcr level about the specific type of exception
- *       possible ways:
- *       - CommitFailedException contains nested jcr exceptions
- *       - CommitFailedException extends from repository exception
- *       - CommitFailedException transports status code that are then converted to jcr exceptions
  */
 public class CommitFailedException extends Exception {
     public CommitFailedException() {
@@ -40,5 +36,22 @@ public class CommitFailedException extends Exception {
 
     public CommitFailedException(Throwable cause) {
         super(cause);
+    }
+
+    /**
+     * Rethrow this exception cast into a {@link RepositoryException}: if the cause
+     * for this exception already is a {@code RepositoryException}, the cause is
+     * thrown. Otherwise a new {@code RepositoryException} instance with this
+     * {@code CommitFailedException} is thrown.
+     * @throws RepositoryException
+     */
+    public void throwRepositoryException() throws RepositoryException {
+        Throwable cause = getCause();
+        if (cause instanceof RepositoryException) {
+            throw (RepositoryException) cause;
+        }
+        else {
+            throw new RepositoryException(cause);
+        }
     }
 }

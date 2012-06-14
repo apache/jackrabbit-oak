@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.api;
 
+import org.apache.jackrabbit.oak.core.TreeImpl;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
@@ -52,7 +53,8 @@ public interface ConflictHandler {
         /**
          * Indicated changes have been merged by this {@code ConflictHandler} instance.
          */
-        MERGED}
+        MERGED
+    }
 
     /**
      * The property {@code ours} has been added to {@code parent} which conflicts
@@ -85,6 +87,16 @@ public interface ConflictHandler {
      * @return  {@link Resolution} of the conflict
      */
     Resolution changeChangedProperty(Tree parent, PropertyState ours, PropertyState theirs);
+
+    /**
+     * The property {@code ours} has been removed in {@code parent} while it was
+     * also removed in the persistence store.
+     *
+     * @param parent  root of the conflict
+     * @param ours  our version of the property
+     * @return  {@link Resolution} of the conflict
+     */
+    Resolution deleteDeletedProperty(TreeImpl parent, PropertyState ours);
 
     /**
      * The property {@code theirs} changed in the persistence store while it has been
@@ -130,4 +142,14 @@ public interface ConflictHandler {
      * @return  {@link Resolution} of the conflict
      */
     Resolution deleteChangedNode(Tree parent, String name, NodeState theirs);
+
+    /**
+     * The node {@code name} has been removed in {@code parent} while it was
+     * also removed in the persistence store.
+     *
+     * @param parent  root of the conflict
+     * @param name  name of the node
+     * @return  {@link Resolution} of the conflict
+     */
+    Resolution deleteDeletedNode(Tree parent, String name);
 }

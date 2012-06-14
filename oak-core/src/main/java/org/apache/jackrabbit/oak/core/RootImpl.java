@@ -311,9 +311,6 @@ public class RootImpl implements Root {
                 if (p == null) {
                     resolution = OURS;
                 }
-                else if (after.equals(p)) {
-                    resolution = MERGED;
-                }
                 else {
                     resolution = conflictHandler.addExistingProperty(target, after, p);
                 }
@@ -341,9 +338,6 @@ public class RootImpl implements Root {
                 else if (before.equals(p)) {
                     resolution = OURS;
                 }
-                else if (after.equals(p)) {
-                    resolution = MERGED;
-                }
                 else {
                     resolution = conflictHandler.changeChangedProperty(target, after, p);
                 }
@@ -367,7 +361,7 @@ public class RootImpl implements Root {
                     resolution = OURS;
                 }
                 else if (p == null) {
-                    resolution = MERGED;
+                    resolution = conflictHandler.deleteDeletedProperty(target, before);
                 }
                 else {
                     resolution = conflictHandler.deleteChangedProperty(target, p);
@@ -434,7 +428,7 @@ public class RootImpl implements Root {
                 TreeImpl n = target.getChild(name);
 
                 if (n == null) {
-                    resolution = MERGED;
+                    resolution = conflictHandler.deleteDeletedNode(target, name);
                 }
                 else if (before.equals(n.getNodeState())) {
                     resolution = OURS;
