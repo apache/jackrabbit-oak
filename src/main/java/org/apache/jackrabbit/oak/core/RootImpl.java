@@ -26,6 +26,7 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ConflictHandler;
 import org.apache.jackrabbit.oak.api.ConflictHandler.Resolution;
+import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -38,10 +39,12 @@ import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.oak.api.ConflictHandler.Resolution.*;
+import static org.apache.jackrabbit.oak.api.ConflictHandler.Resolution.MERGED;
+import static org.apache.jackrabbit.oak.api.ConflictHandler.Resolution.OURS;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
+import static org.apache.jackrabbit.oak.util.Iterators.toList;
 
 public class RootImpl implements Root {
     static final Logger log = LoggerFactory.getLogger(RootImpl.class);
@@ -317,7 +320,7 @@ public class RootImpl implements Root {
 
                 switch (resolution) {
                     case OURS:
-                        setProperty(after, target);
+                        setProperty(target, after);
                         break;
                     case THEIRS:
                     case MERGED:
@@ -347,7 +350,7 @@ public class RootImpl implements Root {
 
                 switch (resolution) {
                     case OURS:
-                        setProperty(after, target);
+                        setProperty(target, after);
                         break;
                     case THEIRS:
                     case MERGED:
@@ -394,7 +397,7 @@ public class RootImpl implements Root {
 
                 switch (resolution) {
                     case OURS:
-                        addChild(name, after, target);
+                        addChild(target, name, after);
                         break;
                     case THEIRS:
                     case MERGED:
@@ -417,7 +420,7 @@ public class RootImpl implements Root {
 
                 switch (resolution) {
                     case OURS:
-                        addChild(name, after, target);
+                        addChild(target, name, after);
                         break;
                     case THEIRS:
                     case MERGED:
@@ -450,19 +453,20 @@ public class RootImpl implements Root {
                 }
             }
 
-            private void addChild(String name, NodeState state, Tree target) {
+            private void addChild(Tree target, String name, NodeState state) {
                 Tree child = target.addChild(name);
                 for (PropertyState property : state.getProperties()) {
-                    setProperty(property, child);
+                    setProperty(child, property);
                 }
                 for (ChildNodeEntry entry : state.getChildNodeEntries()) {
-                    addChild(entry.getName(), entry.getNodeState(), child);
+                    addChild(child, entry.getName(), entry.getNodeState());
                 }
             }
 
-            private void setProperty(PropertyState property, Tree target) {
+            private void setProperty(Tree target, PropertyState property) {
                 if (property.isArray()) {
-                    target.setProperty(property.getName(), toList(property.getValues()));
+                    target.setProperty(property.getName(),
+                            toList(property.getValues(), new ArrayList<CoreValue>()));
                 }
                 else {
                     target.setProperty(property.getName(), property.getValue());
@@ -470,14 +474,6 @@ public class RootImpl implements Root {
             }
 
         });
-    }
-
-    private static <T> List<T> toList(Iterable<T> values) {
-        List<T> l = new ArrayList<T>();
-        for (T value : values) {
-            l.add(value);
-        }
-        return l;
     }
 
 }
