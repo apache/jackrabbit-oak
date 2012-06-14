@@ -272,7 +272,7 @@ public class MicroKernelImpl implements MicroKernel {
         }
 
         try {
-            if ("/".endsWith(path)) {
+            if ("/".equals(path)) {
                 StoredCommit toCommit = rep.getCommit(toRevisionId);
                 if (toCommit.getParentId().equals(fromRevisionId)) {
                     // specified range spans a single commit:
