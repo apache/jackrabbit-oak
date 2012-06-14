@@ -225,7 +225,10 @@ public class CommitBuilder {
             newCommit.setCommitTS(System.currentTimeMillis());
             newCommit.setMsg(msg);
             // dynamically build diff of merged commit
-            String diff = new DiffBuilder(store.getNodeState(theirRoot), store.getNodeState(ourRoot), "/", store, "").build();
+            String diff = new DiffBuilder(
+                    store.getNodeState(theirRoot),
+                    store.getNodeState(store.getNode(rootNodeId)),
+                    "/", store, "").build();
             newCommit.setChanges(diff);
             newCommit.setRootNodeId(rootNodeId);
             newCommit.setBranchRootId(null);
