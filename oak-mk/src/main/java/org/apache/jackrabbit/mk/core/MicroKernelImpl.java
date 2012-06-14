@@ -272,6 +272,14 @@ public class MicroKernelImpl implements MicroKernel {
         }
 
         try {
+            if ("/".endsWith(path)) {
+                StoredCommit toCommit = rep.getCommit(toRevisionId);
+                if (toCommit.getParentId().equals(fromRevisionId)) {
+                    // specified range spans a single commit:
+                    // use diff stored in commit instead of building it dynamically
+                    return toCommit.getChanges();
+                }
+            }
             NodeState before = rep.getNodeState(fromRevisionId, path);
             NodeState after = rep.getNodeState(toRevisionId, path);
 
