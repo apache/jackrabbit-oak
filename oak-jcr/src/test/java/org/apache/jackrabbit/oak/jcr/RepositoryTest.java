@@ -1199,9 +1199,12 @@ public class RepositoryTest extends AbstractRepositoryTest {
             assertTrue(session1.getRootNode().hasNode("node"));
             assertTrue(session2.getRootNode().hasNode("node"));
 
-            session2.save();
-            assertTrue(session1.getRootNode().hasNode("node"));
-            assertTrue(session2.getRootNode().hasNode("node"));
+            try {
+                session2.save();
+                fail("Expected InvalidItemStateException");
+            }
+            catch (InvalidItemStateException expected) {
+            }
         }
         finally {
             session1.logout();
@@ -1228,9 +1231,12 @@ public class RepositoryTest extends AbstractRepositoryTest {
             assertTrue(session2.getRootNode().hasNode("node"));
             assertTrue(session2.getRootNode().getNode("node").hasNode("2"));
 
-            session2.save();
-            assertFalse(session1.getRootNode().hasNode("node"));
-            assertFalse(session2.getRootNode().hasNode("node"));
+            try {
+                session2.save();
+                fail("Expected InvalidItemStateException");
+            }
+            catch (InvalidItemStateException expected) {
+            }
         }
         finally {
             session1.logout();

@@ -73,6 +73,11 @@ public class DefaultConflictHandler implements ConflictHandler {
     }
 
     @Override
+    public Resolution deleteDeletedProperty(TreeImpl parent, PropertyState ours) {
+        return resolution;
+    }
+
+    @Override
     public Resolution addExistingNode(Tree parent, String name, NodeState ours, NodeState theirs) {
         return resolution;
     }
@@ -84,6 +89,11 @@ public class DefaultConflictHandler implements ConflictHandler {
 
     @Override
     public Resolution deleteChangedNode(Tree parent, String name, NodeState theirs) {
+        return resolution;
+    }
+
+    @Override
+    public Resolution deleteDeletedNode(Tree parent, String name) {
         return resolution;
     }
 }

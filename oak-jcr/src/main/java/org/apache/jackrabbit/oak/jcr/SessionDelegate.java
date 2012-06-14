@@ -54,6 +54,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
+import org.apache.jackrabbit.oak.core.TreeImpl;
 import org.apache.jackrabbit.oak.jcr.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.namepath.AbstractNameMapper;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
@@ -185,7 +186,7 @@ public class SessionDelegate {
             root.commit(conflictHandler);
         }
         catch (CommitFailedException e) {
-            throw new RepositoryException(e);
+            e.throwRepositoryException();
         }
     }
 
@@ -472,8 +473,6 @@ public class SessionDelegate {
      *
      * The {@code jcr:ours} sub node contains our version of the node prior to
      * the conflict.
-     *
-     * TODO: add corresponding commit hook which fails the commit on existence of mix:mergeConflict
      */
     private class AnnotatingConflictHandler implements ConflictHandler {
         // TODO: move these constants to some common location for repository internal node types
@@ -483,6 +482,7 @@ public class SessionDelegate {
         public static final String CHANGE_DELETED = "changeDeleted";
         public static final String CHANGE_CHANGED = "changeChanged";
         public static final String DELETE_CHANGED = "deleteChanged";
+        public static final String DELETE_DELETED = "deleteDeleted";
 
         private final CoreValueFactory valueFactory;
         private final String jcrMixinTypes;
@@ -521,6 +521,13 @@ public class SessionDelegate {
         }
 
         @Override
+        public Resolution deleteDeletedProperty(TreeImpl parent, PropertyState ours) {
+            Tree marker = addConflictMarker(parent);
+            setProperty(getOrCreateNode(marker, DELETE_DELETED), ours);
+            return Resolution.THEIRS;
+        }
+
+        @Override
         public Resolution addExistingNode(Tree parent, String name, NodeState ours, NodeState theirs) {
             Tree marker = addConflictMarker(parent);
             addChild(getOrCreateNode(marker, ADD_EXISTING), name, ours);
@@ -541,10 +548,18 @@ public class SessionDelegate {
             return Resolution.THEIRS;
         }
 
+        @Override
+        public Resolution deleteDeletedNode(Tree parent, String name) {
+            Tree marker = addConflictMarker(parent);
+            markChild(getOrCreateNode(marker, DELETE_DELETED), name);
+            return Resolution.THEIRS;
+        }
+
         private Tree addConflictMarker(Tree parent) {
             PropertyState jcrMixin = parent.getProperty(jcrMixinTypes);
             List<CoreValue> mixins = new ArrayList<CoreValue>();
             if (jcrMixin != null) {
+                assert jcrMixin.isArray();
                 mixins = Iterators.toList(jcrMixin.getValues(), mixins);
             }
             if (!mixins.contains(MIX_MERGE_CONFLICT)) {

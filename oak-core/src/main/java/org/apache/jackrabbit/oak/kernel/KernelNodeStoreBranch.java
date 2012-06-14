@@ -122,7 +122,6 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
 
     @Override
     public KernelNodeState merge() throws CommitFailedException {
-        // TODO rebase to current trunk?
         MicroKernel kernel = store.getKernel();
         CommitHook commitHook = store.getCommitHook();
 
