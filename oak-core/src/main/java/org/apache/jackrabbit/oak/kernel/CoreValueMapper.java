@@ -16,16 +16,16 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
-import org.apache.jackrabbit.oak.util.JsonBuilder;
-import org.apache.jackrabbit.mk.json.JsopReader;
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.CoreValueFactory;
-
-import javax.jcr.PropertyType;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import javax.jcr.PropertyType;
+
+import org.apache.jackrabbit.mk.json.JsopReader;
+import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.CoreValueFactory;
 
 /**
  * CoreValueUtil provides methods to convert {@code CoreValue}s to the JSON
@@ -57,25 +57,22 @@ public class CoreValueMapper {
      *
      * @param value The core value to be converted.
      * @return The encoded JSON string.
-     * @see JsonBuilder#encode(String)
-     * @see JsonBuilder#encode(long)
-     * @see JsonBuilder#encode(long)
      */
     public static String toJsonValue(CoreValue value) {
         String jsonString;
         switch (value.getType()) {
             case PropertyType.BOOLEAN:
-                jsonString = JsonBuilder.encode(value.getBoolean());
+                jsonString = Boolean.toString(value.getBoolean());
                 break;
             case PropertyType.LONG:
-                jsonString = JsonBuilder.encode(value.getLong());
+                jsonString = Long.toString(value.getLong());
                 break;
             case PropertyType.STRING:
                 String str = value.getString();
                 if (startsWithHint(str)) {
                     jsonString = buildJsonStringWithHint(value);
                 } else {
-                    jsonString = JsonBuilder.encode(value.getString());
+                    jsonString = jsonEncode(value.getString());
                 }
                 break;
             default:
@@ -171,7 +168,7 @@ public class CoreValueMapper {
         sb.append(TYPE2HINT.get(value.getType()));
         sb.append(':');
         sb.append(value.getString());
-        return JsonBuilder.encode(sb.toString());
+        return jsonEncode(sb.toString());
     }
 
     /**
@@ -185,6 +182,61 @@ public class CoreValueMapper {
      */
     private static boolean startsWithHint(String jsonString) {
         return jsonString.length() >= 4 && jsonString.charAt(3) == ':';
+    }
+
+    /**
+     * Escape quotes, \, /, \r, \n, \b, \f, \t and other control characters
+     * (U+0000 through U+001F) and surround with double quotes.
+     */
+    private static String jsonEncode(String value) {
+        if (value == null) {
+            return null;
+        }
+
+        StringBuilder sb = new StringBuilder("\"");
+        for (int i = 0; i < value.length(); i++) {
+            char ch = value.charAt(i);
+            switch (ch) {
+                case '"':
+                    sb.append("\\\"");
+                    break;
+                case '\\':
+                    sb.append("\\\\");
+                    break;
+                case '\b':
+                    sb.append("\\b");
+                    break;
+                case '\f':
+                    sb.append("\\f");
+                    break;
+                case '\n':
+                    sb.append("\\n");
+                    break;
+                case '\r':
+                    sb.append("\\r");
+                    break;
+                case '\t':
+                    sb.append("\\t");
+                    break;
+                default:
+                    //Reference: http://www.unicode.org/versions/Unicode5.1.0/
+                    if (ch >= '\u0000' && ch <= '\u001F' ||
+                            ch >= '\u007F' && ch <= '\u009F' ||
+                            ch >= '\u2000' && ch <= '\u20FF') {
+
+                        String ss = Integer.toHexString(ch);
+                        sb.append("\\u");
+                        for (int k = 0; k < 4 - ss.length(); k++) {
+                            sb.append('0');
+                        }
+                        sb.append(ss.toUpperCase());
+                    } else {
+                        sb.append(ch);
+                    }
+            }
+        }
+
+        return sb.append('"').toString();
     }
 
 }
