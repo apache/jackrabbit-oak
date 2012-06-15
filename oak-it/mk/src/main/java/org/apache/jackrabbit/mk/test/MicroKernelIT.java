@@ -420,8 +420,12 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         obj = parseJSONObject(mk.getNodes("/", null, 1, 0, -1, "{properties:[\"*\",\":hash\"]}"));
         assertPropertyValue(obj, "test/booleanProp", true);
 
+        if (obj.get(":hash") == null) {
+            // :hash is optional, an implementation might not support it
+            return;
+        }
+
         assertPropertyExists(obj, ":hash", String.class);
-        assertPropertyExists(obj, "test/:hash", String.class);
         String hash0 = (String) resolveValue(obj, ":hash");
 
         // modify a property and verify that the hash of the root node changed
@@ -430,7 +434,6 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         assertPropertyValue(obj, "test/booleanProp", false);
 
         assertPropertyExists(obj, ":hash", String.class);
-        assertPropertyExists(obj, "test/:hash", String.class);
         String hash1 = (String) resolveValue(obj, ":hash");
 
         assertFalse(hash0.equals(hash1));
@@ -442,7 +445,6 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         assertPropertyValue(obj, "test/booleanProp", true);
 
         assertPropertyExists(obj, ":hash", String.class);
-        assertPropertyExists(obj, "test/:hash", String.class);
         String hash2 = (String) resolveValue(obj, ":hash");
 
         assertFalse(hash1.equals(hash2));
