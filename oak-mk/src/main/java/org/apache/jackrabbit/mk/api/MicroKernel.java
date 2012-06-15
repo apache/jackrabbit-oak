@@ -59,7 +59,7 @@ import java.io.InputStream;
  * <ul>
  * <li>If the binary is not references as a property value of the
  * format ":blobId:&lt;blobId&gt;" where &lt;blobId&gt; is the id returned by
- * {@link write(InputStream in)}. This includes simple property values such as
+ * {@link #write(InputStream in)}. This includes simple property values such as
  * {"bin": ":blobId:1234"} as well as array property values such as
  * {"array": [":blobId:1234", ":blobId:5678"]}.</li>
  * <li>If the binary was stored before the last retained revision (this is to
@@ -203,7 +203,7 @@ public interface MicroKernel {
      * @param path       path denoting node
      * @param revisionId revision id, if {@code null} the current head revision is assumed
      * @return {@code true} if the specified node exists, otherwise {@code false}
-     * @throws MicroKernelException if an error occurs
+     * @throws MicroKernelException if the specified revision does not exist or if another error occurs
      */
     boolean nodeExists(String path, String revisionId) throws MicroKernelException;
 
@@ -275,7 +275,7 @@ public interface MicroKernel {
      * node does not have any child nodes.
      * <li>If the value of {@code :childNodeCount} is larger than the number
      * of returned child nodes, then the node has more child nodes than those
-     * included in the tree.</li>
+     * included in the returned tree.</li>
      * </ul>
      * The {@code offset} parameter is only applied to the direct child nodes
      * of the root of the returned node tree. {@code maxChildNodes} however
