@@ -316,7 +316,7 @@ public interface MicroKernel {
      * If no filter is specified the implicit default filter is assumed:
      * {@code {nodes:["*"],properties:["*"]}}
      * <p/>
-     * System-generated metadata properties:
+     * System-provided metadata properties:
      * <ul>
      *     <li>{@code :childNodeCount} provides the actual number of direct child nodes; this property
      *     is included by the implicit default filter. it can be excluded by specifying a filter such
@@ -326,8 +326,14 @@ public interface MicroKernel {
      *     are similar to fingerprints. they can be compared to quickly determine
      *     if two subtrees are identical. if the {@code :hash} values are different
      *     the respective subtrees are different with regard to structure and/or properties.
+     *     if on the other hand the {@code :hash} values are identical the respective
+     *     subtrees are identical with regard to structure and/or properties.
      *     {@code :hash} is <i>not</i> included by the implicit default filter.
-     *     it can be included by specifying a filter such as {@code {properties:["*", ":hash"]}}</li>
+     *     it can be included by specifying a filter such as {@code {properties:["*", ":hash"]}}
+     *     <p>Returning the {@code :hash} property is optional. Some implementations
+     *     might only return it on specific nodes or might not support it at all.
+     *     If however a {@code :hash} property is returned it has to obey the contract
+     *     described above.</p></li>
      * </ul>
      *
      * @param path          path denoting root of node tree to be retrieved
