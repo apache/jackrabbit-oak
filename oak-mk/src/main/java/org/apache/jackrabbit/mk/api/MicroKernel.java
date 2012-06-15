@@ -327,7 +327,7 @@ public interface MicroKernel {
      *     if two subtrees are identical. if the {@code :hash} values are different
      *     the respective subtrees are different with regard to structure and/or properties.
      *     if on the other hand the {@code :hash} values are identical the respective
-     *     subtrees are identical with regard to structure and/or properties.
+     *     subtrees are identical with regard to structure and properties.
      *     {@code :hash} is <i>not</i> included by the implicit default filter.
      *     it can be included by specifying a filter such as {@code {properties:["*", ":hash"]}}
      *     <p>Returning the {@code :hash} property is optional. Some implementations
