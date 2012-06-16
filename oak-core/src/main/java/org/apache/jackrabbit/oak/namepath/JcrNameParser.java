@@ -20,7 +20,7 @@ import org.apache.jackrabbit.util.XMLChar;
 
 /**
  * Parses and validates JCR names. Upon successful completion of
- * {@link #parse(String, org.apache.jackrabbit.oak.namepath.JcrNameParser.Listener)}
+ * {@link #parse(String, Listener, int)}
  * the specified listener is informed about the (resulting) JCR name.
  * In case of failure {@link Listener#error(String)} is called indicating
  * the reason.
@@ -44,15 +44,16 @@ public class JcrNameParser {
          * Informs this listener that parsing the jcr name failed.
          *
          * @param message Details about the error.
-         * @see JcrNameParser#parse(String, org.apache.jackrabbit.oak.namepath.JcrNameParser.Listener)
+         * @see JcrNameParser#parse(String, Listener, int)
          */
         void error(String message);
 
         /**
-         * Informs this listener about the result of {@link JcrNameParser#parse(String, org.apache.jackrabbit.oak.namepath.JcrNameParser.Listener)}
+         * Informs this listener about the result of
+         * {@link JcrNameParser#parse(String, Listener, int)}
          *
          * @param name The resulting name upon successful completion of
-         * {@link org.apache.jackrabbit.oak.namepath.JcrNameParser#parse(String, org.apache.jackrabbit.oak.namepath.JcrNameParser.Listener)}
+         * {@link org.apache.jackrabbit.oak.namepath.JcrNameParser#parse(String, Listener, int)}
          * @param index the index (or {@code 0} when not specified)
          */
         boolean name(String name, int index);

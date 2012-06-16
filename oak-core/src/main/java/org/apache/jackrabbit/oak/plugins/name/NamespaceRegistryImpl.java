@@ -83,7 +83,7 @@ public class NamespaceRegistryImpl implements NamespaceRegistry {
         }
     }
 
-    private Tree getOrCreate(Root root, String... path) {
+    private static Tree getOrCreate(Root root, String... path) {
         Tree tree = root.getTree("/");
         for (String name : path) {
             Tree child = tree.getChild(name);
