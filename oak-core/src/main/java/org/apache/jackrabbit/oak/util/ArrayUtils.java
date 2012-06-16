@@ -14,12 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.commons;
+package org.apache.jackrabbit.oak.util;
 
-import javax.annotation.Nonnull;
 import java.lang.reflect.Array;
 import java.util.HashSet;
 import java.util.Set;
+
+import javax.annotation.Nonnull;
 
 /**
  * Array utility methods.

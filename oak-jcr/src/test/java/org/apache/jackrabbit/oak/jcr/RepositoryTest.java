@@ -67,8 +67,8 @@ import org.junit.Test;
 import util.NumberStream;
 
 import static java.util.Arrays.asList;
-import static org.apache.jackrabbit.oak.commons.ArrayUtils.contains;
-import static org.apache.jackrabbit.oak.commons.ArrayUtils.toSet;
+import static org.apache.jackrabbit.oak.util.ArrayUtils.contains;
+import static org.apache.jackrabbit.oak.util.ArrayUtils.toSet;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;

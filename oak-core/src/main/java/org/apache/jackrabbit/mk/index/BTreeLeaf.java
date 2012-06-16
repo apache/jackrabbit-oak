@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.mk.index;
 
-import org.apache.jackrabbit.mk.json.JsopBuilder;
-import org.apache.jackrabbit.oak.commons.ArrayUtils;
-import org.apache.jackrabbit.oak.commons.PathUtils;
-
 import java.util.Arrays;
+
+import org.apache.jackrabbit.mk.json.JsopBuilder;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.util.ArrayUtils;
 
 /**
  * An index leaf page.
