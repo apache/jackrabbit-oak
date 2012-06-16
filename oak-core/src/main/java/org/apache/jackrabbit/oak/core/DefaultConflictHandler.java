@@ -73,7 +73,7 @@ public class DefaultConflictHandler implements ConflictHandler {
     }
 
     @Override
-    public Resolution deleteDeletedProperty(TreeImpl parent, PropertyState ours) {
+    public Resolution deleteDeletedProperty(Tree parent, PropertyState ours) {
         return resolution;
     }
 

@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.api;
 
-import org.apache.jackrabbit.oak.core.TreeImpl;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
@@ -96,7 +95,7 @@ public interface ConflictHandler {
      * @param ours  our version of the property
      * @return  {@link Resolution} of the conflict
      */
-    Resolution deleteDeletedProperty(TreeImpl parent, PropertyState ours);
+    Resolution deleteDeletedProperty(Tree parent, PropertyState ours);
 
     /**
      * The property {@code theirs} changed in the persistence store while it has been

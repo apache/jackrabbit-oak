@@ -54,7 +54,6 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
-import org.apache.jackrabbit.oak.core.TreeImpl;
 import org.apache.jackrabbit.oak.jcr.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.namepath.AbstractNameMapper;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
@@ -521,7 +520,7 @@ public class SessionDelegate {
         }
 
         @Override
-        public Resolution deleteDeletedProperty(TreeImpl parent, PropertyState ours) {
+        public Resolution deleteDeletedProperty(Tree parent, PropertyState ours) {
             Tree marker = addConflictMarker(parent);
             setProperty(getOrCreateNode(marker, DELETE_DELETED), ours);
             return Resolution.THEIRS;
