@@ -34,7 +34,10 @@ class Namespaces {
             new HashMap<String, String>();
 
     // TODO: this should not use the "jcr" prefix
-    public final static String NSMAPNODENAME = "jcr:namespaces";
+    public static final String NSMAPNODENAME = "jcr:namespaces";
+
+    private Namespaces() {
+    }
 
     static {
         // Standard namespace specified by JCR (default one not included)
@@ -75,11 +78,11 @@ class Namespaces {
 
     public static boolean isValidPrefix(String prefix) {
         // TODO: Other prefix rules?
-        return prefix.length() > 0 && prefix.indexOf(':') == -1;
+        return !prefix.isEmpty() && prefix.indexOf(':') == -1;
     }
 
     public static boolean isValidLocalName(String local) {
-        if (local.length() == 0 || ".".equals(local) || "..".equals(local)) {
+        if (local.isEmpty() || ".".equals(local) || "..".equals(local)) {
             return false;
         }
 

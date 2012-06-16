@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.namepath;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.Nonnull;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * NamePathMapperImpl...
@@ -225,7 +225,7 @@ public class NamePathMapperImpl implements NamePathMapper {
                     return false;
                 }
                 if (keepIndex && index > 0) {
-                    p += "[" + index + "]";
+                    p += "[" + index + ']';
                 }
                 elements.add(p);
                 return true;
@@ -261,7 +261,7 @@ public class NamePathMapperImpl implements NamePathMapper {
         return oakPath.toString();
     }
 
-    private String removeTrailingSlash(String path) {
+    private static String removeTrailingSlash(String path) {
         if ("/".equals(path) || path.isEmpty()) {
             return path;
         } else if (path.endsWith("/")) {
