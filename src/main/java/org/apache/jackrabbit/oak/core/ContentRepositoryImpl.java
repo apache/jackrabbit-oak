@@ -21,7 +21,6 @@ import java.util.List;
 
 import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
-import javax.jcr.InvalidItemStateException;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.security.auth.login.LoginContext;
 import javax.security.auth.login.LoginException;
@@ -29,28 +28,23 @@ import javax.security.auth.login.LoginException;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.mk.index.Indexer;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.type.TypeValidatorProvider;
+import org.apache.jackrabbit.oak.plugins.value.ConflictValidatorProvider;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
 import org.apache.jackrabbit.oak.security.authentication.LoginContextProviderImpl;
 import org.apache.jackrabbit.oak.spi.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeCommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
-import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatingCommitHook;
-import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -150,50 +144,5 @@ public class ContentRepositoryImpl implements ContentRepository {
     }
 
     //------------------------------------------------------------< ConflictValidator >---
-
-    private static class ConflictValidatorProvider implements ValidatorProvider {
-        @Override
-        public Validator getRootValidator(NodeState before, NodeState after) {
-            return new DefaultValidator() {
-                @Override
-                public void propertyAdded(PropertyState after) throws CommitFailedException {
-                    failOnMergeConflict(after);
-                }
-
-                @Override
-                public void propertyChanged(PropertyState before, PropertyState after)
-                        throws CommitFailedException {
-                    failOnMergeConflict(after);
-                }
-
-                @Override
-                public Validator childNodeAdded(String name, NodeState after) {
-                    return this;
-                }
-
-                @Override
-                public Validator childNodeChanged(String name, NodeState before, NodeState after) {
-                    return this;
-                }
-
-                @Override
-                public Validator childNodeDeleted(String name, NodeState before) {
-                    return this;
-                }
-
-                private void failOnMergeConflict(PropertyState property) throws CommitFailedException {
-                    if ("jcr:mixinTypes".equals(property.getName())) {
-                        assert property.isArray();
-                        Iterable<CoreValue> mixins = property.getValues();
-                        for (CoreValue v : mixins) {
-                            if ("mix:mergeConflict".equals(v.getString())) {
-                                throw new CommitFailedException(new InvalidItemStateException("Item has unresolved conflicts"));
-                            }
-                        }
-                    }
-                }
-            };
-        }
-    }
 
 }
