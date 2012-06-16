@@ -44,6 +44,7 @@
               org.apache.jackrabbit.oak.util,
               org.apache.jackrabbit.oak.namepath,
               org.apache.jackrabbit.oak.plugins.name,
+              org.apache.jackrabbit.oak.plugins.value,
               org.apache.jackrabbit.oak.spi.state,
               org.apache.jackrabbit.oak.spi.security.authentication,
               org.apache.jackrabbit.oak.spi.security.principal,
