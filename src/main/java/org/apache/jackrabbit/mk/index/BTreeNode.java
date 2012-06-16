@@ -18,7 +18,7 @@ package org.apache.jackrabbit.mk.index;
 
 import java.util.Arrays;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
-import org.apache.jackrabbit.oak.commons.ArrayUtils;
+import org.apache.jackrabbit.oak.util.ArrayUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
 /**
