@@ -28,13 +28,13 @@
   <!-- =================================================================== -->
 
   <parent>
-    <groupId>org.apache.jackrabbit.oak</groupId>
-    <artifactId>oak-perf-parent</artifactId>
+    <groupId>org.apache.jackrabbit</groupId>
+    <artifactId>oak-bench-parent</artifactId>
     <version>0.3-SNAPSHOT</version>
     <relativePath>parent/pom.xml</relativePath>
   </parent>
 
-  <artifactId>oak-perf</artifactId>
+  <artifactId>oak-bench</artifactId>
   <name>Oak Performance Tests</name>
   <packaging>pom</packaging>
 

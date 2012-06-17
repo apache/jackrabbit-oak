@@ -28,16 +28,14 @@
   <!-- =================================================================== -->
 
   <parent>
-    <groupId>org.apache</groupId>
-    <artifactId>apache</artifactId>
-    <version>10</version>
+    <groupId>org.apache.jackrabbit</groupId>
+    <artifactId>oak-parent</artifactId>
+    <version>0.3-SNAPSHOT</version>
     <relativePath />
   </parent>
 
-  <groupId>org.apache.jackrabbit.oak</groupId>
-  <artifactId>oak-perf-parent</artifactId>
+  <artifactId>oak-bench-parent</artifactId>
   <name>Oak Performance Test Parent</name>
-  <version>0.3-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <properties>
@@ -50,22 +48,11 @@
     <pluginManagement>
       <plugins>
         <plugin>
-          <artifactId>maven-compiler-plugin</artifactId>
-          <configuration>
-            <source>1.5</source>
-            <target>1.5</target>
-          </configuration>
-        </plugin>
-        <plugin>
           <artifactId>maven-surefire-plugin</artifactId>
           <configuration>
-			<argLine>-Xms256m -Xmx512m</argLine>
+            <argLine>-Xms256m -Xmx512m</argLine>
             <enableAssertions>false</enableAssertions>
             <systemProperties>
-              <property>
-                <name>derby.stream.error.file</name>
-                <value>target/derby.log</value>
-              </property>
               <property>
                 <name>repo</name>
                 <value>${repo}</value>
@@ -99,7 +86,7 @@
             <plugin>
               <artifactId>maven-surefire-plugin</artifactId>
               <configuration>
-				<argLine>-Xmx512m -XX:MaxPermSize=512m -agentlib:${agentlib}</argLine>
+                <argLine>-Xmx512m -XX:MaxPermSize=512m -agentlib:${agentlib}</argLine>
               </configuration>
             </plugin>
           </plugins>
