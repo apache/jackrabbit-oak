@@ -35,8 +35,12 @@
   </parent>
 
   <artifactId>oak-bench</artifactId>
-  <name>Oak Performance Tests</name>
+  <name>Oak Performance Benchmark</name>
   <packaging>pom</packaging>
+
+  <properties>
+    <skip.deployment>true</skip.deployment>
+  </properties>
 
   <modules>
     <module>parent</module>

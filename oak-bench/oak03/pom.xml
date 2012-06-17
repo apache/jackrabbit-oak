@@ -33,6 +33,10 @@
   <artifactId>oak-bench-oak03</artifactId>
   <name>Oak 0.3 Performance Test</name>
 
+  <properties>
+    <skip.deployment>true</skip.deployment>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
