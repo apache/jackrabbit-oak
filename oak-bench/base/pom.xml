@@ -24,13 +24,13 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>org.apache.jackrabbit.oak</groupId>
-    <artifactId>oak-perf-parent</artifactId>
+    <groupId>org.apache.jackrabbit</groupId>
+    <artifactId>oak-bench-parent</artifactId>
     <version>0.3-SNAPSHOT</version>
     <relativePath>../parent/pom.xml</relativePath>
   </parent>
 
-  <artifactId>oak-perf-base</artifactId>
+  <artifactId>oak-bench-base</artifactId>
   <name>Oak Performance Test Utilities</name>
 
   <dependencies>
@@ -50,12 +50,6 @@
       <version>0.3-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
-    <!--  dependency>
-      <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>jackrabbit-core</artifactId>
-      <version>1.6.2</version --> <!-- overridden by downstream projects -->
-      <!-- scope>provided</scope>
-    </dependency -->
     <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
