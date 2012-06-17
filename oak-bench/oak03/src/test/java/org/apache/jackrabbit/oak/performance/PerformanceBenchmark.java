@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.performance;
 
 import org.testng.annotations.Test;
 
-public class PerformanceTest extends AbstractPerformanceTest {
+public class PerformanceBenchmark extends AbstractPerformanceTest {
 
     @Test
     public void testPerformance() throws Exception {

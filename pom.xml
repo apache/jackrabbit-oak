@@ -44,10 +44,7 @@
     <module>oak-sling</module>
     <module>oak-run</module>
     <module>oak-it</module>
-    <!--
-       TODO: include in the build but prevent performance tests from running on the default profile. See OAK-119
-      <module>oak-bench</module>
-    -->
+    <module>oak-bench</module>
   </modules>
 
   <scm>
@@ -68,7 +65,7 @@
               <exclude>.git/**</exclude>
               <exclude>.idea/**</exclude>
               <exclude>.gitignore</exclude>
-			  <exclude>oak-js/package.json</exclude>
+              <exclude>oak-js/package.json</exclude>
             </excludes>
           </configuration>
         </plugin>
