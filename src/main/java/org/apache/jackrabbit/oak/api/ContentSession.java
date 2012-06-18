@@ -16,9 +16,10 @@
  */
 package org.apache.jackrabbit.oak.api;
 
+import java.io.Closeable;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import java.io.Closeable;
 
 /**
  * Authentication session for accessing (TODO: a workspace inside) a content
@@ -67,8 +68,9 @@ public interface ContentSession extends Closeable {
     String getWorkspaceName();
 
     /**
-     * The current root as seen by this content session. Use {@link Root#commit()} to
-     * atomically apply the changes made in that subtree the underlying Microkernel.
+     * The current root as seen by this content session. Use
+     * {@link Root#commit(ConflictHandler)} to atomically apply the changes made in that
+     * subtree the underlying Microkernel.
      *
      * @return  the current root
      */
