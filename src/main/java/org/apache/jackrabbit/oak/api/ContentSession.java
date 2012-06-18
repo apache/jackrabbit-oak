@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.api;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import java.io.Closeable;
 
@@ -89,6 +90,19 @@ public interface ContentSession extends Closeable {
      */
     @Nonnull
     CoreValueFactory getCoreValueFactory();
+
+    /**
+     * Wait for changes to occur at {@code path} in the underlying repository.
+     * If {@code previous} is not {@code null} returns the {@link ChangeSet}
+     * instance following the one given in {@code previous}.
+     *
+     * @param path  path to the subtree to watch for changes
+     * @param previous  previous {@code ChangeSet} or {@code null}.
+     * @param timeout the maximum time to wait in milliseconds
+     * @return  the next {@code ChangeSet} or {@code null} if a timeout occurred.
+     */
+    @CheckForNull
+    ChangeSet waitForChanges(String path, ChangeSet previous, long timeout);
 
     // TODO : add versioning operations
 

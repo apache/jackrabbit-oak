@@ -16,7 +16,15 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import java.io.IOException;
+import java.util.Set;
+
+import javax.annotation.Nonnull;
+import javax.security.auth.login.LoginContext;
+import javax.security.auth.login.LoginException;
+
 import org.apache.jackrabbit.oak.api.AuthInfo;
+import org.apache.jackrabbit.oak.api.ChangeSet;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.QueryEngine;
@@ -24,12 +32,6 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nonnull;
-import javax.security.auth.login.LoginContext;
-import javax.security.auth.login.LoginException;
-import java.io.IOException;
-import java.util.Set;
 
 /**
  * {@code MicroKernel}-based implementation of the {@link ContentSession} interface.
@@ -97,4 +99,8 @@ class ContentSessionImpl implements ContentSession {
         return store.getValueFactory();
     }
 
+    @Override
+    public ChangeSet waitForChanges(String path, ChangeSet previous, long timeout) {
+        return null; // todo implement waitForChanges
+    }
 }
