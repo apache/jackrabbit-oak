@@ -294,7 +294,7 @@ public class SessionDelegate {
             currentRoot.commit(DefaultConflictHandler.OURS);
         }
         catch (CommitFailedException e) {
-            throw new RepositoryException(e);
+            e.throwRepositoryException();
         }
     }
 
@@ -331,7 +331,7 @@ public class SessionDelegate {
             }
         }
         catch (CommitFailedException e) {
-            throw new RepositoryException(e);
+            e.throwRepositoryException();
         }
     }
 

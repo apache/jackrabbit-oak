@@ -84,7 +84,7 @@ public interface Root {
      * instances must be obtained.
      *
      * @param conflictHandler  {@link ConflictHandler} for resolving conflicts.
-     * @throws CommitFailedException TODO: add description and clarify how JCR exception can be generated from this generic exception
+     * @throws CommitFailedException
      */
     void commit(ConflictHandler conflictHandler) throws CommitFailedException;
 

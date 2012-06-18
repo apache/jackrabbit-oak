@@ -16,15 +16,17 @@
  */
 package org.apache.jackrabbit.oak.plugins.type;
 
+import java.util.Collections;
+import java.util.Set;
+
+import javax.jcr.nodetype.NoSuchNodeTypeException;
+
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-
-import java.util.Collections;
-import java.util.Set;
 
 class TypeValidator implements Validator {
 
@@ -45,8 +47,8 @@ class TypeValidator implements Validator {
         for (CoreValue cv : coreValues) {
             String value = cv.getString();
             if (!types.contains(value)) {
-                // TODO: make sure NodeSuchNodeTypeException can be extracted in oak-jcr
-                throw new CommitFailedException("Unknown node type: " + value);
+                throw new CommitFailedException(
+                    new NoSuchNodeTypeException("Unknown node type: " + value));
             }
             // TODO: make sure the specified node type isn't abstract
         }
