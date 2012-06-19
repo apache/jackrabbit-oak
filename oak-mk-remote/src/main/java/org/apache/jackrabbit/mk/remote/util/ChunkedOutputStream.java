@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.util;
+package org.apache.jackrabbit.mk.remote.util;
 
 import java.io.FilterOutputStream;
 
 import java.io.IOException;
 import java.io.OutputStream;
 
-import static org.apache.jackrabbit.mk.util.ChunkedInputStream.MAX_CHUNK_SIZE;
+import static org.apache.jackrabbit.mk.remote.util.ChunkedInputStream.MAX_CHUNK_SIZE;
 
 /**
  * Output stream that encodes and writes HTTP chunks.

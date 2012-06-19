@@ -25,8 +25,8 @@ import java.net.URLDecoder;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import org.apache.jackrabbit.mk.util.BoundedInputStream;
-import org.apache.jackrabbit.mk.util.ChunkedInputStream;
+import org.apache.jackrabbit.mk.remote.util.BoundedInputStream;
+import org.apache.jackrabbit.mk.remote.util.ChunkedInputStream;
 import org.apache.jackrabbit.mk.util.IOUtils;
 
 /**

@@ -14,13 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.util;
+package org.apache.jackrabbit.mk.remote.util;
 
 import java.io.EOFException;
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
+
+import org.apache.jackrabbit.mk.util.IOUtils;
 
 /**
  * Input stream that reads and decodes HTTP chunks, assuming that no chunk
@@ -32,17 +34,12 @@ public class ChunkedInputStream extends FilterInputStream {
     /**
      * Maximum chunk size.
      */
-    public static final int MAX_CHUNK_SIZE = 0x8000;
+    public static final int MAX_CHUNK_SIZE = 0x100000;
 
     /**
      * CR + LF combination.
      */
     private static final byte[] CRLF = "\r\n".getBytes();
-
-    /**
-     * Chunk prefix (length encoded as hexadecimal string).
-     */
-    private final byte[] prefix = new byte[4];
 
     /**
      * Chunk data.
@@ -68,6 +65,11 @@ public class ChunkedInputStream extends FilterInputStream {
      * Flag indicating whether the last chunk was read.
      */
     private boolean lastChunk;
+    
+    /**
+     * Flag indicating whether there was an error decomposing a chunk.
+     */
+    private boolean chunkError;
 
     /**
      * Create a new instance of this class.
@@ -118,21 +120,16 @@ public class ChunkedInputStream extends FilterInputStream {
     private void readChunk() throws IOException {
         offset = length = 0;
 
-        readFully(in, prefix);
-        length = parseInt(prefix);
+        length = readLength(in);
         if (length < 0 || length > MAX_CHUNK_SIZE) {
+        	chunkError = true;
             String msg = "Chunk size smaller than 0 or bigger than " + MAX_CHUNK_SIZE;
             throw new IOException(msg);
         }
-        readFully(in, suffix);
-        if (!Arrays.equals(suffix, CRLF)) {
-            String msg = "Missing carriage return/line feed combination.";
-            throw new IOException(msg);
-        }
-
         readFully(in, data, 0, length);
         readFully(in, suffix);
         if (!Arrays.equals(suffix, CRLF)) {
+        	chunkError = true;
             String msg = "Missing carriage return/line feed combination.";
             throw new IOException(msg);
         }
@@ -140,6 +137,44 @@ public class ChunkedInputStream extends FilterInputStream {
         if (length == 0) {
             lastChunk = true;
         }
+    }
+    
+    private int readLength(InputStream in) throws IOException {
+    	int len = 0;
+    	
+    	for (int i = 0; i < 5; i++) {
+    		int n, ch = in.read();
+    		if (ch == -1) {
+    			break;
+    		}
+    		if (ch >= '0' && ch <= '9') {
+    			n = (ch - '0');
+    		} else if (ch >= 'A' && ch <= 'F') {
+    			n = (ch - 'A' + 10);
+    		} else if (ch >= 'a' && ch <= 'f') {
+    			n = (ch - 'a' + 10);
+    		} else if (ch == '\r') {
+    	        ch = in.read();
+    	        if (ch != '\n') {
+    	        	chunkError = true;
+    	            String msg = "Missing carriage return/line feed combination.";
+    	            throw new IOException(msg);
+    	        }
+    			return len;
+    		} else {
+            	chunkError = true;
+                String msg = String.format("Expected hexadecimal character, actual: %c", ch);
+    			throw new IOException(msg);
+    		}
+    		len = len * 16 + n;
+    	}
+        readFully(in, suffix);
+        if (!Arrays.equals(suffix, CRLF)) {
+        	chunkError = true;
+            String msg = "Missing carriage return/line feed combination.";
+            throw new IOException(msg);
+        }
+    	return len;
     }
     
     private static void readFully(InputStream in, byte[] b) throws IOException {
@@ -153,33 +188,6 @@ public class ChunkedInputStream extends FilterInputStream {
                     len, count);
             throw new EOFException(msg);
         }
-    }
-
-    /**
-     * Parse an integer that is given in its hexadecimal representation as
-     * a byte array.
-     *
-     * @param b byte array containing 4 ASCII characters
-     * @return parsed integer
-     */
-    private static int parseInt(byte[] b) throws IOException {
-        int result = 0;
-
-        for (int i = 0; i < 4; i++) {
-            int c = (int) b[i];
-            result <<= 4;
-            if (c >= '0' && c <= '9') {
-                result += c - '0';
-            } else if (c >= 'A' && c <= 'F') {
-                result += c - 'A' + 10;
-            } else if (c >= 'a' && c <= 'f') {
-                result += c - 'a' + 10;
-            } else {
-                String msg = "Not a hexadecimal character: " + c;
-                throw new IOException(msg);
-            }
-        }
-        return result;
     }
 
     /**
@@ -204,7 +212,7 @@ public class ChunkedInputStream extends FilterInputStream {
     public void close() throws IOException {
         if (in != null) {
             try {
-                while (!lastChunk) {
+                while (!chunkError && !lastChunk) {
                     readChunk();
                 }
             } finally {

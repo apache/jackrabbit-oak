@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.mk.client;
 
-import org.apache.jackrabbit.mk.util.BoundedInputStream;
-import org.apache.jackrabbit.mk.util.ChunkedInputStream;
-import org.apache.jackrabbit.mk.util.ChunkedOutputStream;
+import org.apache.jackrabbit.mk.remote.util.BoundedInputStream;
+import org.apache.jackrabbit.mk.remote.util.ChunkedInputStream;
 import org.apache.jackrabbit.mk.util.IOUtils;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.EOFException;
 import java.io.IOException;
@@ -53,7 +53,8 @@ class HttpExecutor implements Closeable {
     
     private OutputStream socketOut;
     
-    private final ChunkedOutputStream bodyOut = new ChunkedOutputStream(null);
+//    private final ChunkedOutputStream bodyOut = new ChunkedOutputStream(null);
+    private final ByteArrayOutputStream bodyOut = new ByteArrayOutputStream(256);
     
     private final ChunkedInputStream bodyIn = new ChunkedInputStream(null); 
     
@@ -94,24 +95,27 @@ class HttpExecutor implements Closeable {
             socketOut = new BufferedOutputStream(socket.getOutputStream());
         }
         String contentType = "application/x-www-form-urlencoded";
+        String boundary = null;
         if (in != null) {
-            contentType = "multipart/form-data";
+        	boundary = getBoundary();
+            contentType = "multipart/form-data; boundary=" + boundary;
         }
         
         writeLine(String.format("POST /%s HTTP/1.1", command));
         writeLine(String.format("Content-Type: %s", contentType));
-        writeLine("Transfer-Encoding: chunked");
-        writeLine("");
-        
-        bodyOut.recycle(socketOut);
-        
+
         if (in != null) {
-            String boundary = getBoundary();
+            bodyOut.write("--".getBytes());
             bodyOut.write(boundary.getBytes());
-            bodyOut.write("\r\n\r\n".getBytes());
+            bodyOut.write("\r\n".getBytes());
+            bodyOut.write("Content-Disposition: form-data; name=\"file\"; filename=\"upload\"\r\n".getBytes());
+            bodyOut.write("Content-Type: application/octet-stream\r\n".getBytes());
+            bodyOut.write("\r\n".getBytes());
             IOUtils.copy(in, bodyOut);
             bodyOut.write("\r\n".getBytes());
+            bodyOut.write("--".getBytes());
             bodyOut.write(boundary.getBytes());
+            bodyOut.write("--".getBytes	());
         } else {
             for (Map.Entry<String,String> param : params.entrySet()) {
                 String s = String.format("%s=%s&", 
@@ -121,7 +125,10 @@ class HttpExecutor implements Closeable {
             }
         }
         
-        bodyOut.close();
+        byte[] data = bodyOut.toByteArray();
+        writeLine(String.format("Content-Length: %d", data.length));
+        writeLine("");     
+        socketOut.write(data);
         socketOut.flush();
         
         // read response
@@ -280,7 +287,7 @@ class HttpExecutor implements Closeable {
             for (int i = 0; i < 16; i++) {
                 b.append(BOUNDARY_CHARACTERS[random.nextInt(BOUNDARY_CHARACTERS.length)]);
             }
-            boundary = String.format("------ClientFormBoundary%s--", b.toString());
+            boundary = String.format("----ClientFormBoundary%s", b.toString());
         }
         return boundary;
     }
