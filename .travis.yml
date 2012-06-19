@@ -13,7 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+script: mvn verify
 language: java
+jdk:
+  - openjdk6
+  - oraclejdk7
 notifications:
   email:
     - oak-dev@jackrabbit.apache.org
