@@ -26,8 +26,9 @@ import java.io.InputStream;
  * (writers don't interfere with readers, snapshot isolation)</li>
  * <li>GIT/SVN-inspired DAG-based versioning model</li>
  * <li>highly scalable concurrent read & write operations</li>
- * <li>stateless API</li>
- * <li>portable to C</li>
+ * <li>session-less API (there's no concept of sessions; an implementation doesn't need to track/manage session state)</li>
+ * <li>easily portable to C</li>
+ * <li>easy to remote</li>
  * <li>efficient support for large number of child nodes</li>
  * <li>integrated API for efficiently storing/retrieving large binaries</li>
  * <li>human-readable data serialization (JSON)</li>
