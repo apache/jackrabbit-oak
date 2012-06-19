@@ -39,12 +39,9 @@
         <configuration>
           <instructions>
             <Export-Package>
-              org.apache.jackrabbit.mk.api,
-              org.apache.jackrabbit.mk.server,
               org.apache.jackrabbit.mk.json,
               org.apache.jackrabbit.mk.util,
               org.apache.jackrabbit.mk.core,
-              org.apache.jackrabbit.mk.client,
               org.apache.jackrabbit.mk.blobs
             </Export-Package>
           </instructions>
@@ -82,6 +79,13 @@
       <scope>provided</scope>
     </dependency>
     
+    <!-- api dependency -->
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-mk-api</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
     <!-- commons dependency -->
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>

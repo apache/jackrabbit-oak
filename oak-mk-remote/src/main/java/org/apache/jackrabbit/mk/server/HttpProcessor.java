@@ -28,7 +28,7 @@ import java.net.Socket;
 /**
  * Process all HTTP requests on a single socket.
  */
-class HttpProcessor {
+public class HttpProcessor {
 
     private static final int INITIAL_SO_TIMEOUT = 10000;
 

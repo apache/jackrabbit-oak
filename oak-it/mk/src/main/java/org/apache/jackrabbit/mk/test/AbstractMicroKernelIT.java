@@ -55,6 +55,7 @@ public abstract class AbstractMicroKernelIT {
         Class<MicroKernelFixture> iface = MicroKernelFixture.class;
         ServiceLoader<MicroKernelFixture> loader =
                 ServiceLoader.load(iface, iface.getClassLoader());
+        
         for (MicroKernelFixture fixture : loader) {
             fixtures.add(new Object[] { fixture });
         }

@@ -24,7 +24,7 @@ import java.util.Map;
 
 import org.apache.jackrabbit.mk.util.IOUtils;
 
-import static org.apache.jackrabbit.mk.util.ChunkedInputStream.MAX_CHUNK_SIZE;
+import static org.apache.jackrabbit.mk.remote.util.ChunkedInputStream.MAX_CHUNK_SIZE;
 
 /**
  * HTTP Response implementation.

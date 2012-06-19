@@ -53,7 +53,9 @@ public class OSGiIT {
                 bundle(new File(base, "jackrabbit-api.jar").toURI().toURL().toString()),
                 bundle(new File(base, "jackrabbit-jcr-commons.jar").toURI().toURL().toString()),
                 bundle(new File(base, "oak-commons.jar").toURI().toURL().toString()),
+                bundle(new File(base, "oak-mk-api.jar").toURI().toURL().toString()),
                 bundle(new File(base, "oak-mk.jar").toURI().toURL().toString()),
+                bundle(new File(base, "oak-mk-remote.jar").toURI().toURL().toString()),
                 bundle(new File(base, "oak-core.jar").toURI().toURL().toString()),
                 bundle(new File(base, "oak-jcr.jar").toURI().toURL().toString()));
     }

@@ -105,7 +105,19 @@
 
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-mk-api</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-mk</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-mk-remote</artifactId>
       <version>${project.version}</version>
     </dependency>
 
