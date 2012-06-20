@@ -16,7 +16,7 @@
 script: mvn verify
 language: java
 jdk:
-  - oraclejdk7
+  - openjdk6
 notifications:
   email:
     - oak-dev@jackrabbit.apache.org
