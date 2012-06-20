@@ -100,7 +100,7 @@ class ContentSessionImpl implements ContentSession {
     }
 
     @Override
-    public ChangeSet waitForChanges(String path, ChangeSet previous, long timeout) {
-        return null; // todo implement waitForChanges. See OAK-144
+    public ChangeSet getChanges(String path, ChangeSet previous, long timeout) {
+        return null; // todo implement getChanges. See OAK-144
     }
 }
