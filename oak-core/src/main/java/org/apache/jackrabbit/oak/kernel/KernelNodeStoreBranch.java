@@ -125,7 +125,8 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
         MicroKernel kernel = store.getKernel();
         CommitHook commitHook = store.getCommitHook();
 
-        NodeState oldRoot = store.getRoot();
+        NodeState preMergeRoot = store.getRoot();
+        NodeState oldRoot = preMergeRoot;
         NodeState toCommit = commitHook.beforeCommit(store, oldRoot, currentRoot);
         while (!currentRoot.equals(toCommit)) {
             setRoot(toCommit);
@@ -139,7 +140,7 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
             currentRoot = null;
             committed = null;
             KernelNodeState committed = new KernelNodeState(kernel, getValueFactory(), "/", mergedRevision);
-            commitHook.afterCommit(store, oldRoot, committed);
+            commitHook.afterCommit(store, preMergeRoot, committed);
             return committed;
         }
         catch (MicroKernelException e) {
