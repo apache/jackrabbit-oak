@@ -21,9 +21,8 @@ import org.junit.runners.Suite;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-    MicroKernelIT.class
-    // TODO remove 
-    // DataStoreIT.class
+    MicroKernelIT.class,
+    DataStoreIT.class
 })
 public class MicroKernelTestSuite {
 }
