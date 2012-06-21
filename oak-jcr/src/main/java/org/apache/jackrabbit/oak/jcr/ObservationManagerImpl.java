@@ -33,6 +33,7 @@ import org.apache.jackrabbit.commons.iterator.EventListenerIteratorAdapter;
 import org.apache.jackrabbit.oak.api.ChangeExtractor;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.jcr.util.LazyValue;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
@@ -41,17 +42,18 @@ public class ObservationManagerImpl implements ObservationManager {
     private final Map<EventListener, ChangeProcessor> processors =
             new HashMap<EventListener, ChangeProcessor>();
 
-    private final Timer timer = new Timer("ObservationManager", true);
+    private final LazyValue<Timer> timer;
 
-    public ObservationManagerImpl(SessionDelegate sessionDelegate) {
+    public ObservationManagerImpl(SessionDelegate sessionDelegate, LazyValue<Timer> timer) {
         this.sessionDelegate = sessionDelegate;
+        this.timer = timer;
     }
 
     public void dispose() {
         for (ChangeProcessor processor : processors.values()) {
             processor.stop();
         }
-        timer.cancel();
+        timer.get().cancel();
     }
 
     @Override
@@ -65,7 +67,7 @@ public class ObservationManagerImpl implements ObservationManager {
             ChangeFilter filter = new ChangeFilter(eventTypes, absPath, isDeep, uuid, nodeTypeName, noLocal);
             ChangeProcessor changeProcessor = new ChangeProcessor(extractor, listener, filter);
             processors.put(listener, changeProcessor);
-            timer.schedule(changeProcessor, 0, 1000);
+            timer.get().schedule(changeProcessor, 0, 1000);
         }
         else {
             ChangeFilter filter = new ChangeFilter(eventTypes, absPath, isDeep, uuid, nodeTypeName, noLocal);
