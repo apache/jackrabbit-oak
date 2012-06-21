@@ -16,12 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import org.apache.jackrabbit.commons.SimpleValueFactory;
-import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.Timer;
 
 import javax.jcr.Credentials;
 import javax.jcr.Repository;
@@ -29,6 +24,14 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.Value;
 import javax.security.auth.login.LoginException;
+
+import org.apache.jackrabbit.commons.SimpleValueFactory;
+import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
+import org.apache.jackrabbit.oak.jcr.util.LazyValue;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * {@code RepositoryImpl}...
@@ -42,6 +45,13 @@ public class RepositoryImpl implements Repository {
 
     private final Descriptors descriptors = new Descriptors(new SimpleValueFactory());
     private final ContentRepository contentRepository;
+
+    private final LazyValue<Timer> observationTimer = new LazyValue<Timer>() {
+        @Override
+        protected Timer create() {
+            return new Timer("Observation", true);
+        }
+    };
 
     public RepositoryImpl(ContentRepository contentRepository) {
         this.contentRepository = contentRepository;
@@ -121,7 +131,7 @@ public class RepositoryImpl implements Repository {
         // TODO: needs complete refactoring
         try {
             ContentSession contentSession = contentRepository.login(credentials, workspaceName);
-            return new SessionDelegate(this, contentSession).getSession();
+            return new SessionDelegate(this, observationTimer, contentSession).getSession();
         } catch (LoginException e) {
             throw new javax.jcr.LoginException(e.getMessage());
         }
