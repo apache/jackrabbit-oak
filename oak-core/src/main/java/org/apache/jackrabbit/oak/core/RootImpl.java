@@ -145,9 +145,7 @@ public class RootImpl implements Root {
         purgePendingChanges();
         NodeState base = getBaseState();
         NodeState head = getCurrentRootState();
-        currentRootState = null;
-        branch = store.branch();
-        root = TreeImpl.createRoot(this);
+        refresh();
         merge(base, head, root, conflictHandler);
     }
 
@@ -163,8 +161,7 @@ public class RootImpl implements Root {
         rebase(conflictHandler);
         purgePendingChanges();
         branch.merge();
-        branch = store.branch();
-        root = TreeImpl.createRoot(this);
+        refresh();
     }
 
     @Override
