@@ -29,71 +29,71 @@ import javax.jcr.SimpleCredentials;
  */
 public class ConcurrentReadTest extends AbstractTest {
 
-	protected static final int NODE_COUNT = 100;
+    protected static final int NODE_COUNT = 100;
 
-	private static final int READER_COUNT = getScale(20);
+    private static final int READER_COUNT = getScale(20);
 
-	private Session session;
+    private Session session;
 
-	protected Node root;
+    protected Node root;
 
-	@Override
+    @Override
     public void beforeSuite() throws Exception {
-		session = getRepository().login(
-				new SimpleCredentials("admin", "admin".toCharArray()));
-		root = session.getRootNode().addNode("testroot", "nt:unstructured");
-		for (int i = 0; i < NODE_COUNT; i++) {
-			Node node = root.addNode("node" + i, "nt:unstructured");
-			for (int j = 0; j < NODE_COUNT; j++) {
-				node.addNode("node" + j, "nt:unstructured");
-			}
-			session.save();
-		}
+        session = getRepository().login(
+                new SimpleCredentials("admin", "admin".toCharArray()));
+        root = session.getRootNode().addNode("testroot", "nt:unstructured");
+        for (int i = 0; i < NODE_COUNT; i++) {
+            Node node = root.addNode("node" + i, "nt:unstructured");
+            for (int j = 0; j < NODE_COUNT; j++) {
+                node.addNode("node" + j, "nt:unstructured");
+            }
+            session.save();
+        }
 
-		for (int i = 0; i < READER_COUNT; i++) {
-			addBackgroundJob(new Reader());
-		}
-	}
+        for (int i = 0; i < READER_COUNT; i++) {
+            addBackgroundJob(new Reader());
+        }
+    }
 
-	private class Reader implements Runnable {
+    class Reader implements Runnable {
 
-		private Session session;
+        private Session session;
 
-		private final Random random = new Random();
+        private final Random random = new Random();
 
-		public void run() {
+        public void run() {
 
-			try {
-				session = getRepository().login(
-						new SimpleCredentials("admin", "admin".toCharArray()));
-				int i = random.nextInt(NODE_COUNT);
-				int j = random.nextInt(NODE_COUNT);
-				session.getRootNode()
-						.getNode("testroot/node" + i + "/node" + j);
-			} catch (RepositoryException e) {
-				throw new RuntimeException(e);
-			}
-		}
+            try {
+                session = getRepository().login(
+                        new SimpleCredentials("admin", "admin".toCharArray()));
+                int i = random.nextInt(NODE_COUNT);
+                int j = random.nextInt(NODE_COUNT);
+                session.getRootNode()
+                        .getNode("testroot/node" + i + "/node" + j);
+            } catch (RepositoryException e) {
+                throw new RuntimeException(e);
+            }
+        }
 
-	}
+    }
 
-	@Override
+    @Override
     public void runTest() throws Exception {
-		Reader reader = new Reader();
-		for (int i = 0; i < 1000; i++) {
-			reader.run();
-		}
-	}
+        Reader reader = new Reader();
+        for (int i = 0; i < 1000; i++) {
+            reader.run();
+        }
+    }
 
-	@Override
+    @Override
     public void afterSuite() throws Exception {
-		for (int i = 0; i < NODE_COUNT; i++) {
-			root.getNode("node" + i).remove();
-			session.save();
-		}
+        for (int i = 0; i < NODE_COUNT; i++) {
+            root.getNode("node" + i).remove();
+            session.save();
+        }
 
-		root.remove();
-		session.save();
-	}
+        root.remove();
+        session.save();
+    }
 
 }

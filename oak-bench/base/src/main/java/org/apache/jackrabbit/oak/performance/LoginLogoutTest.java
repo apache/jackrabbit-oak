@@ -24,13 +24,13 @@ import javax.jcr.SimpleCredentials;
 
 public class LoginLogoutTest extends AbstractTest {
 
-	@Override
-	public void setUp(Repository repository, Credentials credentials)
-			throws Exception {
-		super.setUp(repository,
-				new SimpleCredentials("admin", "admin".toCharArray()));
-	}
-	
+    @Override
+    public void setUp(Repository repository, Credentials credentials)
+            throws Exception {
+        super.setUp(repository,
+                new SimpleCredentials("admin", "admin".toCharArray()));
+    }
+    
     @Override
     public void runTest() throws RepositoryException {
         Repository repository = getRepository();
