@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.api;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
 /**
  * The root of a {@link Tree}.
@@ -93,4 +94,11 @@ public interface Root {
      * @return  {@code true} iff this tree was modified
      */
     boolean hasPendingChanges();
+
+    /**
+     * Return a {@link ChangeExtractor} for this {@code Root}.
+     * @return a {@code ChangeExtractor}.
+     */
+    @Nonnull
+    ChangeExtractor getChangeExtractor();
 }

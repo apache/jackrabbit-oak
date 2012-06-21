@@ -18,34 +18,29 @@
  */
 package org.apache.jackrabbit.oak.api;
 
-import javax.annotation.Nonnull;
-
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
 /**
- * A {@code ChangeSet} instance describes a set of changes to a (sub-)tree.
- *
- * TODO (which) meta data do we need to carry along in a ChangeSet?
- * - timestamp(s)?
- * - commit message?
- * - JCR user data?
- * - revision id(s)?
- * - cluster id?
- * - session id?
- * - whether gaps occurred due to gc-ed revisions
+ * An instance of {@code ChangeExtractor} can be used to follow changes
+ * done to a {@link Root} instance.
  */
-public interface ChangeSet {
+public interface ChangeExtractor {
 
     /**
-     * The {@link Tree} how it was before the changes.
-     * @return a read only tree.
+     * Get the most recent changes.
+     * @param diff  {@code NodeStateDiff} to receive the changes
      */
-    @Nonnull
-    Tree getTreeBeforeChange();
+    void getChanges(NodeStateDiff diff);
 
     /**
-     * The {@link Tree} how it was after the changes.
-     * @return a read only tree.
+     * Compares the given two node states. Any found differences are
+     * reported by calling the relevant added, changed or deleted methods
+     * of the given handler.
+     *
+     * @param before node state before changes
+     * @param after node state after changes
+     * @param diff handler of node state differences
      */
-    @Nonnull
-    Tree getTreeAfterChange();
+    void getChanges(NodeState before, NodeState after, NodeStateDiff diff);
 }

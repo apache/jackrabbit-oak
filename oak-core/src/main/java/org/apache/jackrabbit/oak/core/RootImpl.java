@@ -20,9 +20,11 @@ package org.apache.jackrabbit.oak.core;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.api.ChangeExtractor;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ConflictHandler;
 import org.apache.jackrabbit.oak.api.ConflictHandler.Resolution;
@@ -94,6 +96,12 @@ public class RootImpl implements Root {
     }
 
     /**
+     * Reference to a {@code NodeState} of the revision up to which
+     * observation events are generated.
+     */
+    private final AtomicReference<NodeState> observationLimit;
+
+    /**
      * New instance bases on a given {@link NodeStore} and a workspace
      * @param store  node store
      * @param workspaceName  name of the workspace
@@ -102,6 +110,7 @@ public class RootImpl implements Root {
     @SuppressWarnings("UnusedParameters")
     public RootImpl(NodeStore store, String workspaceName) {
         this.store = store;
+        this.observationLimit = new AtomicReference<NodeState>(store.getRoot());
         branch = store.branch();
         root = TreeImpl.createRoot(this);
     }
@@ -152,6 +161,10 @@ public class RootImpl implements Root {
     @Override
     public void refresh() {
         currentRootState = null;
+        // There is a small race here an we risk to get an "earlier" revision for the
+        // observation limit than for the branch. This is not a problem though since
+        // observation will catch up later on.
+        observationLimit.set(store.getRoot());
         branch = store.branch();
         root = TreeImpl.createRoot(this);
     }
@@ -167,6 +180,26 @@ public class RootImpl implements Root {
     @Override
     public boolean hasPendingChanges() {
         return !getBaseState().equals(getCurrentRootState());
+    }
+
+    @Override
+    @Nonnull
+    public ChangeExtractor getChangeExtractor() {
+        return new ChangeExtractor() {
+            private NodeState baseLine = observationLimit.get();
+
+            @Override
+            public void getChanges(NodeStateDiff diff) {
+                NodeState head = observationLimit.get();
+                store.compare(baseLine, head, diff);
+                baseLine = head;
+            }
+
+            @Override
+            public void getChanges(NodeState before, NodeState after, NodeStateDiff diff) {
+                store.compare(before, after, diff);
+            }
+        };
     }
 
     /**

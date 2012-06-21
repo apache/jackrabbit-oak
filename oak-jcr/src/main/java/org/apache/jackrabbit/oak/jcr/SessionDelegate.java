@@ -32,11 +32,13 @@ import javax.jcr.Session;
 import javax.jcr.Workspace;
 import javax.jcr.lock.LockManager;
 import javax.jcr.nodetype.NodeTypeManager;
+import javax.jcr.observation.ObservationManager;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.version.VersionManager;
 
 import org.apache.jackrabbit.oak.api.AuthInfo;
+import org.apache.jackrabbit.oak.api.ChangeExtractor;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ConflictHandler;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -70,6 +72,7 @@ public class SessionDelegate {
     private final Root root;
     private final ConflictHandler conflictHandler;
 
+    private ObservationManagerImpl observationManager;
     private boolean isAlive = true;
 
     SessionDelegate(Repository repository, ContentSession contentSession) throws RepositoryException {
@@ -111,6 +114,9 @@ public class SessionDelegate {
         }
 
         isAlive = false;
+        if (observationManager != null) {
+            observationManager.dispose();
+        }
         // TODO
 
         try {
@@ -253,6 +259,11 @@ public class SessionDelegate {
         }
     }
 
+    @Nonnull
+    public ChangeExtractor getChangeExtractor() {
+        return root.getChangeExtractor();
+    }
+
     //----------------------------------------------------------< Workspace >---
 
     @Nonnull
@@ -358,6 +369,14 @@ public class SessionDelegate {
     @Nonnull
     public VersionManager getVersionManager() throws RepositoryException {
         return workspace.getVersionManager();
+    }
+
+    @Nonnull
+    public ObservationManager getObservationManager() {
+        if (observationManager == null) {
+            observationManager = new ObservationManagerImpl(this);
+        }
+        return observationManager;
     }
 
     @Nonnull
