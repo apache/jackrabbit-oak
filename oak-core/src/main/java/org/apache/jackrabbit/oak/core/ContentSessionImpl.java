@@ -24,7 +24,6 @@ import javax.security.auth.login.LoginContext;
 import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.oak.api.AuthInfo;
-import org.apache.jackrabbit.oak.api.ChangeSet;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.QueryEngine;
@@ -97,10 +96,5 @@ class ContentSessionImpl implements ContentSession {
     @Override
     public CoreValueFactory getCoreValueFactory() {
         return store.getValueFactory();
-    }
-
-    @Override
-    public ChangeSet getChanges(String path, ChangeSet previous, long timeout) {
-        return null; // todo implement getChanges. See OAK-144
     }
 }

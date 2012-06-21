@@ -16,17 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import org.apache.jackrabbit.api.JackrabbitWorkspace;
-import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
-import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.jcr.nodetype.NodeTypeManagerImpl;
-import org.apache.jackrabbit.oak.jcr.query.QueryManagerImpl;
-import org.apache.jackrabbit.oak.jcr.security.privilege.PrivilegeManagerImpl;
-import org.apache.jackrabbit.oak.plugins.name.NamespaceRegistryImpl;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.xml.sax.ContentHandler;
-import org.xml.sax.InputSource;
+import java.io.IOException;
+import java.io.InputStream;
 
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.Repository;
@@ -39,8 +30,18 @@ import javax.jcr.observation.ObservationManager;
 import javax.jcr.query.QueryManager;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionManager;
-import java.io.IOException;
-import java.io.InputStream;
+
+import org.apache.jackrabbit.api.JackrabbitWorkspace;
+import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.jcr.nodetype.NodeTypeManagerImpl;
+import org.apache.jackrabbit.oak.jcr.query.QueryManagerImpl;
+import org.apache.jackrabbit.oak.jcr.security.privilege.PrivilegeManagerImpl;
+import org.apache.jackrabbit.oak.plugins.name.NamespaceRegistryImpl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.xml.sax.ContentHandler;
+import org.xml.sax.InputSource;
 
 /**
  * {@code WorkspaceImpl}...
@@ -164,8 +165,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
         ensureIsAlive();
         ensureSupportedOption(Repository.OPTION_OBSERVATION_SUPPORTED);
 
-        // TODO
-        throw new UnsupportedRepositoryOperationException("TODO: Workspace.getObservationManager");
+        return sessionDelegate.getObservationManager();
     }
 
     @Override
@@ -343,4 +343,5 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
             throw new UnsupportedRepositoryOperationException(option + " is not supported by this repository.");
         }
     }
+
 }
