@@ -24,28 +24,28 @@ import javax.jcr.SimpleCredentials;
 
 public class LoginTest extends AbstractTest {
 
-	private final Session[] sessions = new Session[1000];
+    private final Session[] sessions = new Session[1000];
 
-	@Override
-	public void setUp(Repository repository, Credentials credentials)
-			throws Exception {
-		super.setUp(repository,
-				new SimpleCredentials("admin", "admin".toCharArray()));
-	}
+    @Override
+    public void setUp(Repository repository, Credentials credentials)
+            throws Exception {
+        super.setUp(repository,
+                new SimpleCredentials("admin", "admin".toCharArray()));
+    }
 
-	@Override
+    @Override
     public void runTest() throws RepositoryException {
-		for (int i = 0; i < sessions.length; i++) {
-			sessions[i] = getRepository().login(getCredentials(), "default");
-		}
+        for (int i = 0; i < sessions.length; i++) {
+            sessions[i] = getRepository().login(getCredentials(), "default");
+        }
 
-	}
+    }
 
-	@Override
+    @Override
     public void afterTest() throws RepositoryException {
         for (Session session : sessions) {
             session.logout();
         }
-	}
+    }
 
 }

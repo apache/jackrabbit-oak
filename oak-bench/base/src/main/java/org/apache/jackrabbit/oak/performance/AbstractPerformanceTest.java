@@ -32,114 +32,114 @@ import org.apache.jackrabbit.oak.jcr.RepositoryImpl;
 
 public abstract class AbstractPerformanceTest {
 
-	private final int warmup = 1;
+    private final int warmup = 1;
 
-	private final int runtime = 10;
+    private final int runtime = 10;
 
-	private final Credentials credentials = new SimpleCredentials("admin",
-			"admin".toCharArray());
+    private final Credentials credentials = new SimpleCredentials("admin",
+            "admin".toCharArray());
 
-	private final Pattern microKernelPattern = Pattern.compile(System
-			.getProperty("mk", ".*"));
-	private final Pattern testPattern = Pattern.compile(System.getProperty(
-			"only", ".*"));
+    private final Pattern microKernelPattern = Pattern.compile(System
+            .getProperty("mk", ".*"));
+    private final Pattern testPattern = Pattern.compile(System.getProperty(
+            "only", ".*"));
 
-	protected void testPerformance(String name, String microKernel)
-			throws Exception {
+    protected void testPerformance(String name, String microKernel)
+            throws Exception {
 
-		runTest(new LoginTest(), name, microKernel);
-		runTest(new LoginLogoutTest(), name, microKernel);
-		runTest(new ReadPropertyTest(), name, microKernel);
-		runTest(new SetPropertyTest(), name, microKernel);
-		runTest(new SmallFileReadTest(), name, microKernel);
-		runTest(new SmallFileWriteTest(), name, microKernel);
-		runTest(new ConcurrentReadTest(), name, microKernel);
+        runTest(new LoginTest(), name, microKernel);
+        runTest(new LoginLogoutTest(), name, microKernel);
+        runTest(new ReadPropertyTest(), name, microKernel);
+        runTest(new SetPropertyTest(), name, microKernel);
+        runTest(new SmallFileReadTest(), name, microKernel);
+        runTest(new SmallFileWriteTest(), name, microKernel);
+        runTest(new ConcurrentReadTest(), name, microKernel);
         runTest(new ConcurrentReadWriteTest(), name, microKernel);
-		runTest(new SimpleSearchTest(), name, microKernel);
-		runTest(new SQL2SearchTest(), name, microKernel);
-		runTest(new DescendantSearchTest(), name, microKernel);
-		runTest(new SQL2DescendantSearchTest(), name, microKernel);
-		runTest(new CreateManyChildNodesTest(), name, microKernel);
-		runTest(new UpdateManyChildNodesTest(), name, microKernel);
-		runTest(new TransientManyChildNodesTest(), name, microKernel);
+        runTest(new SimpleSearchTest(), name, microKernel);
+        runTest(new SQL2SearchTest(), name, microKernel);
+        runTest(new DescendantSearchTest(), name, microKernel);
+        runTest(new SQL2DescendantSearchTest(), name, microKernel);
+        runTest(new CreateManyChildNodesTest(), name, microKernel);
+        runTest(new UpdateManyChildNodesTest(), name, microKernel);
+        runTest(new TransientManyChildNodesTest(), name, microKernel);
 
-	}
+    }
 
-	private void runTest(AbstractTest test, String name, String microKernel) {
-		if (microKernelPattern.matcher(microKernel).matches()
-				&& testPattern.matcher(test.toString()).matches()) {
+    private void runTest(AbstractTest test, String name, String microKernel) {
+        if (microKernelPattern.matcher(microKernel).matches()
+                && testPattern.matcher(test.toString()).matches()) {
 
-			RepositoryImpl repository;
-			try {
-				repository = createRepository(microKernel);
+            RepositoryImpl repository;
+            try {
+                repository = createRepository(microKernel);
 
-				// Run the test
-				DescriptiveStatistics statistics = runTest(test, repository);
-				if (statistics.getN() > 0) {
-					writeReport(test.toString(), name, microKernel, statistics);
-				}
-			} catch (RepositoryException re) {
-				re.printStackTrace();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-	}
+                // Run the test
+                DescriptiveStatistics statistics = runTest(test, repository);
+                if (statistics.getN() > 0) {
+                    writeReport(test.toString(), name, microKernel, statistics);
+                }
+            } catch (RepositoryException re) {
+                re.printStackTrace();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
 
-	private DescriptiveStatistics runTest(AbstractTest test,
-			Repository repository) throws Exception {
-		DescriptiveStatistics statistics = new DescriptiveStatistics();
+    private DescriptiveStatistics runTest(AbstractTest test,
+            Repository repository) throws Exception {
+        DescriptiveStatistics statistics = new DescriptiveStatistics();
 
-		test.setUp(repository, credentials);
-		try {
-			// Run a few iterations to warm up the system
-			long warmupEnd = System.currentTimeMillis() + warmup * 1000;
-			while (System.currentTimeMillis() < warmupEnd) {
-				test.execute();
-			}
+        test.setUp(repository, credentials);
+        try {
+            // Run a few iterations to warm up the system
+            long warmupEnd = System.currentTimeMillis() + warmup * 1000;
+            while (System.currentTimeMillis() < warmupEnd) {
+                test.execute();
+            }
 
-			// Run test iterations, and capture the execution times
-			long runtimeEnd = System.currentTimeMillis() + runtime * 1000;
-			while (System.currentTimeMillis() < runtimeEnd) {
-				statistics.addValue(test.execute());
-			}
-		} finally {
-			test.tearDown();
-		}
+            // Run test iterations, and capture the execution times
+            long runtimeEnd = System.currentTimeMillis() + runtime * 1000;
+            while (System.currentTimeMillis() < runtimeEnd) {
+                statistics.addValue(test.execute());
+            }
+        } finally {
+            test.tearDown();
+        }
 
-		return statistics;
-	}
+        return statistics;
+    }
 
-	private static void writeReport(String test, String name, String microKernel,
+    private static void writeReport(String test, String name, String microKernel,
             DescriptiveStatistics statistics) throws IOException {
-		File report = new File("target", test + "-" + microKernel + ".txt");
+        File report = new File("target", test + "-" + microKernel + ".txt");
 
-		boolean needsPrefix = !report.exists();
-		PrintWriter writer = new PrintWriter(new FileWriterWithEncoding(report,
-				"UTF-8", true));
-		try {
-			if (needsPrefix) {
-				writer.format(
-						"# %-34.34s     min     10%%     50%%     90%%     max%n",
-						test);
-			}
+        boolean needsPrefix = !report.exists();
+        PrintWriter writer = new PrintWriter(new FileWriterWithEncoding(report,
+                "UTF-8", true));
+        try {
+            if (needsPrefix) {
+                writer.format(
+                        "# %-34.34s     min     10%%     50%%     90%%     max%n",
+                        test);
+            }
 
-			writer.format("%-36.36s  %6.0f  %6.0f  %6.0f  %6.0f  %6.0f%n",
-					name, statistics.getMin(), statistics.getPercentile(10.0),
-					statistics.getPercentile(50.0),
-					statistics.getPercentile(90.0), statistics.getMax());
-		} finally {
-			writer.close();
-		}
-	}
+            writer.format("%-36.36s  %6.0f  %6.0f  %6.0f  %6.0f  %6.0f%n",
+                    name, statistics.getMin(), statistics.getPercentile(10.0),
+                    statistics.getPercentile(50.0),
+                    statistics.getPercentile(90.0), statistics.getMax());
+        } finally {
+            writer.close();
+        }
+    }
 
-	protected RepositoryImpl createRepository(String microKernel)
-			throws RepositoryException {
+    protected RepositoryImpl createRepository(String microKernel)
+            throws RepositoryException {
 
-		// TODO: depending on the microKernel string a particular repository
-		// with that MK must be returned
+        // TODO: depending on the microKernel string a particular repository
+        // with that MK must be returned
 
-		return new RepositoryImpl();
-	}
+        return new RepositoryImpl();
+    }
 
 }

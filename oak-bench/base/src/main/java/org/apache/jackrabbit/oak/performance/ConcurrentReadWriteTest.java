@@ -36,7 +36,7 @@ public class ConcurrentReadWriteTest extends ConcurrentReadTest {
         addBackgroundJob(new Writer());
     }
 
-    private class Writer implements Runnable {
+    class Writer implements Runnable {
 
         private Session session;
 
@@ -46,8 +46,8 @@ public class ConcurrentReadWriteTest extends ConcurrentReadTest {
 
         public void run() {
             try {
-            	session = getRepository().login(
-        				new SimpleCredentials("admin", "admin".toCharArray()));
+                session = getRepository().login(
+                        new SimpleCredentials("admin", "admin".toCharArray()));
                 int i = random.nextInt(NODE_COUNT);
                 int j = random.nextInt(NODE_COUNT);
                 Node node = session.getRootNode().getNode(
