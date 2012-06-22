@@ -31,7 +31,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
 
 /**
- * Implementation of {@link NamespaceRegistry} based on {@link NamespaceMappings}.
+ * Implementation of {@link NamespaceRegistry}.
  */
 public class NamespaceRegistryImpl implements NamespaceRegistry {
 
@@ -85,6 +85,7 @@ public class NamespaceRegistryImpl implements NamespaceRegistry {
 
     private static Tree getOrCreate(Root root, String... path) {
         Tree tree = root.getTree("/");
+        assert tree != null;
         for (String name : path) {
             Tree child = tree.getChild(name);
             if (child == null) {
