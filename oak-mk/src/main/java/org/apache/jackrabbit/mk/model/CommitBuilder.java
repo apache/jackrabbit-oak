@@ -322,7 +322,11 @@ public class CommitBuilder {
             public int compare(String path1, String path2) {
                 // paths should be ordered by depth, descending
                 int result = getDepth(path2) - getDepth(path1);
-                return (result != 0) ? result : 1;
+                if (result != 0) {
+                    return result;
+                } else {
+                    return path2.compareTo(path1);
+                }
             }
 
             int getDepth(String path) {
