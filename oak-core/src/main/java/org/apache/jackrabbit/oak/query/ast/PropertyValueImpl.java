@@ -69,6 +69,9 @@ public class PropertyValueImpl extends DynamicOperandImpl {
             }
             tree = tree.getChild(p);
         }
+        if (tree == null) {
+            return null;
+        }
         String name = PathUtils.getName(propertyName);
         if (!tree.hasProperty(name)) {
             return null;
