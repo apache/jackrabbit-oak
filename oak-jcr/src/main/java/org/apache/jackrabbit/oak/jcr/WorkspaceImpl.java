@@ -148,7 +148,12 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
 
     @Override
     public NamespaceRegistry getNamespaceRegistry() {
-        return new NamespaceRegistryImpl(sessionDelegate.getContentSession());
+        return new NamespaceRegistryImpl(sessionDelegate.getContentSession()) {
+            @Override
+            protected void refresh() throws RepositoryException {
+                getSession().refresh(true);
+            }
+        };
     }
 
     @Override

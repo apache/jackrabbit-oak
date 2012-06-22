@@ -41,6 +41,17 @@ public class NamespaceRegistryImpl implements NamespaceRegistry {
         this.session = session;
     }
 
+    /**
+     * Called by the {@link NamespaceRegistry} implementation methods to
+     * refresh the state of the session associated with this instance.
+     * That way the session is kept in sync with the latest global state
+     * seen by the namespace registry.
+     *
+     * @throws RepositoryException if the session could not be refreshed
+     */
+    protected void refresh() throws RepositoryException {
+    }
+
     //--------------------------------------------------< NamespaceRegistry >---
 
     @Override
@@ -52,6 +63,7 @@ public class NamespaceRegistryImpl implements NamespaceRegistry {
             namespaces.setProperty(
                     prefix, session.getCoreValueFactory().createValue(uri));
             root.commit(DefaultConflictHandler.OURS);
+            refresh();
         } catch (NamespaceValidatorException e) {
             throw e.getNamespaceException();
         } catch (CommitFailedException e) {
@@ -74,6 +86,7 @@ public class NamespaceRegistryImpl implements NamespaceRegistry {
                         + getURI(prefix) + " can not be unregistered");
             }
             root.commit(DefaultConflictHandler.OURS);
+            refresh();
         } catch (NamespaceValidatorException e) {
             throw e.getNamespaceException();
         } catch (CommitFailedException e) {
@@ -104,6 +117,7 @@ public class NamespaceRegistryImpl implements NamespaceRegistry {
             Map<String, String> map = Namespaces.getNamespaceMap(root);
             String[] prefixes = map.keySet().toArray(new String[map.size()]);
             Arrays.sort(prefixes);
+            refresh();
             return prefixes;
         } catch (RuntimeException e) {
             throw new RepositoryException(
@@ -119,6 +133,7 @@ public class NamespaceRegistryImpl implements NamespaceRegistry {
             Map<String, String> map = Namespaces.getNamespaceMap(root);
             String[] uris = map.values().toArray(new String[map.size()]);
             Arrays.sort(uris);
+            refresh();
             return uris;
         } catch (RuntimeException e) {
             throw new RepositoryException(
@@ -137,6 +152,7 @@ public class NamespaceRegistryImpl implements NamespaceRegistry {
                 throw new NamespaceException(
                         "No namespace registered for prefix " + prefix);
             }
+            refresh();
             return uri;
         } catch (RuntimeException e) {
             throw new RepositoryException(
@@ -153,6 +169,7 @@ public class NamespaceRegistryImpl implements NamespaceRegistry {
             Map<String, String> map = Namespaces.getNamespaceMap(root);
             for (Map.Entry<String, String> entry : map.entrySet()) {
                 if (entry.getValue().equals(uri)) {
+                    refresh();
                     return entry.getKey();
                 }
             }
