@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.util;
+package org.apache.jackrabbit.mk.simple;
 
 /**
  * A clock that normally returns the current system time since 1970, and is
@@ -23,7 +23,7 @@ package org.apache.jackrabbit.mk.util;
  * returns incrementing values. Unique nanosecond values are returned for system
  * times between the years 1970 and 2554.
  */
-public class AscendingClock {
+class AscendingClock {
 
     /**
      * The offset between System.nanoTime() (which returns elapsed time) and the

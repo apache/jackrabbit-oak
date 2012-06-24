@@ -21,13 +21,13 @@ import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.Iterator;
+
+import org.apache.jackrabbit.mk.ExceptionFactory;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.mk.json.JsopWriter;
 import org.apache.jackrabbit.mk.simple.NodeImpl.ChildVisitor;
 import org.apache.jackrabbit.oak.util.ArrayUtils;
-import org.apache.jackrabbit.mk.util.ExceptionFactory;
 import org.apache.jackrabbit.mk.util.IOUtils;
-import org.apache.jackrabbit.mk.util.StringCache;
 
 /**
  * A list of child nodes that fits in memory.

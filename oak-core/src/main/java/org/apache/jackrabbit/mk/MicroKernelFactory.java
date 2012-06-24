@@ -23,7 +23,6 @@ import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.mk.index.IndexWrapper;
 import org.apache.jackrabbit.mk.server.Server;
 import org.apache.jackrabbit.mk.simple.SimpleKernelImpl;
-import org.apache.jackrabbit.mk.util.ExceptionFactory;
 import org.apache.jackrabbit.mk.wrapper.LogWrapper;
 import org.apache.jackrabbit.mk.wrapper.SecurityWrapper;
 import org.apache.jackrabbit.mk.wrapper.VirtualRepositoryWrapper;
