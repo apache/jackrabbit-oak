@@ -18,9 +18,10 @@ package org.apache.jackrabbit.mk.wrapper;
 
 import java.io.InputStream;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import org.apache.jackrabbit.mk.ExceptionFactory;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
-import org.apache.jackrabbit.mk.util.ExceptionFactory;
 
 /**
  * A logging microkernel implementation.

@@ -20,8 +20,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
+
+import org.apache.jackrabbit.mk.ExceptionFactory;
 import org.apache.jackrabbit.mk.simple.NodeImpl.ChildVisitor;
-import org.apache.jackrabbit.mk.util.ExceptionFactory;
 
 public class NodeMap {
 

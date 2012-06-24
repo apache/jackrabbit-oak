@@ -20,9 +20,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.TreeMap;
 import java.util.Map.Entry;
+
+import org.apache.jackrabbit.mk.ExceptionFactory;
 import org.apache.jackrabbit.mk.simple.NodeImpl.ChildVisitor;
 import org.apache.jackrabbit.mk.util.Cache;
-import org.apache.jackrabbit.mk.util.ExceptionFactory;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;

@@ -14,14 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.util;
+package org.apache.jackrabbit.mk.simple;
 
 import java.lang.ref.SoftReference;
+
+import org.apache.jackrabbit.mk.util.IOUtils;
 
 /**
  * A simple string cache.
  */
-public class StringCache {
+class StringCache {
 
     public static final boolean OBJECT_CACHE = getBooleanSetting("mk.objectCache", true);
     public static final int OBJECT_CACHE_SIZE = IOUtils.nextPowerOf2(getIntSetting("mk.objectCacheSize", 1024));

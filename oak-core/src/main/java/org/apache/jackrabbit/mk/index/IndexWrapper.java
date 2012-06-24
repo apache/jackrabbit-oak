@@ -19,11 +19,12 @@ package org.apache.jackrabbit.mk.index;
 import java.io.InputStream;
 import java.util.HashSet;
 import java.util.Iterator;
+
+import org.apache.jackrabbit.mk.ExceptionFactory;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopStream;
-import org.apache.jackrabbit.mk.util.ExceptionFactory;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.mk.wrapper.MicroKernelWrapper;
 import org.apache.jackrabbit.mk.wrapper.MicroKernelWrapperBase;

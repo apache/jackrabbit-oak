@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.util;
+package org.apache.jackrabbit.mk;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -27,7 +27,7 @@ import org.apache.jackrabbit.mk.api.MicroKernelException;
  */
 public class ExceptionFactory {
 
-    private static final String POM = "META-INF/maven/org.apache.jackrabbit/microkernel/pom.properties";
+    private static final String POM = "META-INF/maven/org.apache.jackrabbit/oak-core/pom.properties";
 
     private static String version;
 

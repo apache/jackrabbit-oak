@@ -27,10 +27,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.TreeMap;
 import java.util.Map.Entry;
+
+import org.apache.jackrabbit.mk.ExceptionFactory;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.mk.simple.NodeImpl.ChildVisitor;
 import org.apache.jackrabbit.mk.util.Cache;
-import org.apache.jackrabbit.mk.util.ExceptionFactory;
 
 /**
  * A node map that stores data in a database.
