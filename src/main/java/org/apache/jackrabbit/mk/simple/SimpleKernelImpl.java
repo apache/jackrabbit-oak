@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.mk.simple;
 
+import org.apache.jackrabbit.mk.ExceptionFactory;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.blobs.AbstractBlobStore;
@@ -26,10 +27,8 @@ import org.apache.jackrabbit.mk.json.JsopStream;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.mk.json.JsopWriter;
 import org.apache.jackrabbit.mk.server.Server;
-import org.apache.jackrabbit.mk.util.AscendingClock;
 import org.apache.jackrabbit.mk.util.Cache;
 import org.apache.jackrabbit.mk.util.CommitGate;
-import org.apache.jackrabbit.mk.util.ExceptionFactory;
 import org.apache.jackrabbit.mk.wrapper.MicroKernelWrapperBase;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
