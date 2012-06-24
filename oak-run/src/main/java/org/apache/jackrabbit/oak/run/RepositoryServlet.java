@@ -16,48 +16,23 @@
  */
 package org.apache.jackrabbit.oak.run;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.core.MicroKernelImpl;
+import javax.jcr.Repository;
+
+import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.jcr.RepositoryImpl;
 import org.apache.jackrabbit.webdav.jcr.JCRWebdavServerServlet;
 
-import javax.jcr.Repository;
-import javax.servlet.ServletException;
-
 class RepositoryServlet extends JCRWebdavServerServlet {
-
-    private final String path;
-
-    private MicroKernelImpl kernel;
 
     private Repository repository;
 
-    public RepositoryServlet(String path) {
-        this.path = path;
-    }
-
-    @Override
-    public void init() throws ServletException {
-        if (path != null) {
-            kernel = new MicroKernelImpl(path);
-        } else {
-            kernel = new MicroKernelImpl();
-        }
-
-        repository = new RepositoryImpl();
-        super.init();
+    public RepositoryServlet(ContentRepository repository) {
+        this.repository = new RepositoryImpl(repository);
     }
 
     @Override
     protected Repository getRepository() {
         return repository;
-    }
-
-    @Override
-    public void destroy() {
-        super.destroy();
-
-        kernel.dispose();
     }
 
 }

@@ -19,8 +19,17 @@ package org.apache.jackrabbit.oak.run;
 import java.io.InputStream;
 import java.util.Properties;
 
+import javax.jcr.Repository;
 import javax.servlet.Servlet;
 
+import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.mk.core.MicroKernelImpl;
+import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
+import org.apache.jackrabbit.oak.http.OakServlet;
+import org.apache.jackrabbit.oak.jcr.RepositoryImpl;
+import org.apache.jackrabbit.webdav.jcr.JCRWebdavServerServlet;
+import org.apache.jackrabbit.webdav.simple.SimpleWebdavServlet;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
@@ -77,6 +86,8 @@ public class Main {
 
         private final Server server;
 
+        private final MicroKernel[] kernels;
+
         public HttpServer(String uri, String args[]) {
             context = new ServletContextHandler(ServletContextHandler.SECURITY);
             context.setContextPath("/");
@@ -84,17 +95,21 @@ public class Main {
             if (args.length == 0) {
                 System.out.println("Starting an in-memory repository");
                 System.out.println(URI + " -> [memory]");
-                addServlet(null, "/*");
+                kernels = new MicroKernel[] { new MicroKernelImpl() };
+                addServlets(kernels[0], "");
             } else if (args.length == 1) {
                 System.out.println("Starting a standalone repository");
                 System.out.println(URI + " -> " + args[0]);
-                addServlet(args[0], "/*");
+                kernels = new MicroKernel[] { new MicroKernelImpl(args[0]) };
+                addServlets(kernels[0], "");
             } else {
                 System.out.println("Starting a clustered repository");
+                kernels = new MicroKernel[args.length];
                 for (int i = 0; i < args.length; i++) {
                     // FIXME: Use a clustered MicroKernel implementation
                     System.out.println(URI + "/node" + i + "/ -> " + args[i]);
-                    addServlet(args[i], "/node" + i + "/*");
+                    kernels[i] = new MicroKernelImpl(args[i]);
+                    addServlets(kernels[i], "/node" + i);
                 }
             }
 
@@ -114,13 +129,39 @@ public class Main {
             server.stop();
         }
 
-        private void addServlet(String repo, String path) {
-            Servlet servlet = new RepositoryServlet(repo);
-            ServletHolder holder = new ServletHolder(servlet);
-            holder.setInitParameter(
+        private void addServlets(MicroKernel kernel, String path) {
+            ContentRepository repository =
+                    new ContentRepositoryImpl(kernel, null, null);
+
+            ServletHolder oak =
+                    new ServletHolder(new OakServlet(repository));
+            context.addServlet(oak, path + "/*");
+
+            final Repository jcrRepository = new RepositoryImpl(repository);
+
+            ServletHolder webdav =
+                    new ServletHolder(new SimpleWebdavServlet() {
+                        @Override
+                        public Repository getRepository() {
+                            return jcrRepository;
+                        }
+                    });
+            webdav.setInitParameter(
                     RepositoryServlet.INIT_PARAM_MISSING_AUTH_MAPPING,
                     "admin:admin");
-            context.addServlet(holder, path);
+            context.addServlet(webdav, path + "/webdav/*");
+
+            ServletHolder davex =
+                    new ServletHolder(new JCRWebdavServerServlet() {
+                        @Override
+                        protected Repository getRepository() {
+                            return jcrRepository;
+                        }
+                    });
+            davex.setInitParameter(
+                    RepositoryServlet.INIT_PARAM_MISSING_AUTH_MAPPING,
+                    "admin:admin");
+            context.addServlet(davex, path + "/davex/*");
         }
 
     }
