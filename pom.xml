@@ -44,6 +44,7 @@
     <module>oak-core</module>
     <module>oak-jcr</module>
     <module>oak-sling</module>
+    <module>oak-http</module>
     <module>oak-run</module>
     <module>oak-it</module>
     <module>oak-bench</module>
