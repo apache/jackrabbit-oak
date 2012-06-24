@@ -147,7 +147,10 @@ public class Main {
                         }
                     });
             webdav.setInitParameter(
-                    RepositoryServlet.INIT_PARAM_MISSING_AUTH_MAPPING,
+                    SimpleWebdavServlet.INIT_PARAM_RESOURCE_PATH_PREFIX,
+                    path + "/webdav");
+            webdav.setInitParameter(
+                    SimpleWebdavServlet.INIT_PARAM_MISSING_AUTH_MAPPING,
                     "admin:admin");
             context.addServlet(webdav, path + "/webdav/*");
 
@@ -159,7 +162,10 @@ public class Main {
                         }
                     });
             davex.setInitParameter(
-                    RepositoryServlet.INIT_PARAM_MISSING_AUTH_MAPPING,
+                    JCRWebdavServerServlet.INIT_PARAM_RESOURCE_PATH_PREFIX,
+                    path + "/davex");
+            davex.setInitParameter(
+                    JCRWebdavServerServlet.INIT_PARAM_MISSING_AUTH_MAPPING,
                     "admin:admin");
             context.addServlet(davex, path + "/davex/*");
         }
