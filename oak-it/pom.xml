@@ -36,7 +36,6 @@
   </properties>
 
   <modules>
-    <module>jcr</module>
     <module>mk</module>
     <module>osgi</module>
   </modules>
