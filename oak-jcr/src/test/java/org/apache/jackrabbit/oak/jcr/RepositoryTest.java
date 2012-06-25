@@ -64,7 +64,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
-import util.NumberStream;
 
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.oak.util.ArrayUtils.contains;
@@ -1755,6 +1754,28 @@ public class RepositoryTest extends AbstractRepositoryTest {
                 assertEquals(buf1[i], buf2[i]);
             }
         }
+    }
+
+    /**
+     * Dummy stream class used by the binary property tests.
+     */
+    private static class NumberStream extends InputStream {
+
+        private final int limit;
+
+        private int counter;
+
+        public NumberStream(int limit) {
+            this.limit = limit;
+        }
+
+        @Override
+        public int read() throws IOException {
+            return counter < limit
+                ? counter++ & 0xff
+                : -1;
+        }
+
     }
 
 }
