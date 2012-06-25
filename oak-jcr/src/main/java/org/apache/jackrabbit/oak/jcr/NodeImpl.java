@@ -56,9 +56,15 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.ItemNameMatcher;
 import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
 import org.apache.jackrabbit.commons.iterator.PropertyIteratorAdapter;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.CoreValueFactory;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
 import org.apache.jackrabbit.oak.jcr.value.ValueConverter;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.util.Function1;
@@ -68,6 +74,8 @@ import org.apache.jackrabbit.value.ValueHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static javax.jcr.Property.JCR_LOCK_IS_DEEP;
+import static javax.jcr.Property.JCR_LOCK_OWNER;
 import static org.apache.jackrabbit.oak.util.Iterators.filter;
 
 /**
@@ -1021,12 +1029,43 @@ public class NodeImpl extends ItemImpl implements Node {
     }
 
     /**
-     * @see javax.jcr.Node#lock(boolean, boolean)
+     * Checks whether this node is locked by looking for the
+     * <code>jcr:lockOwner</code> property either on this node or
+     * on any ancestor that also has the <code>jcr:lockIsDeep</code>
+     * property set to <code>true</code>.
      */
     @Override
-    @Nonnull
-    public Lock lock(boolean isDeep, boolean isSessionScoped) throws RepositoryException {
-        return sessionDelegate.getLockManager().lock(getPath(), isDeep, isSessionScoped, Long.MAX_VALUE, null);
+    public boolean isLocked() throws RepositoryException {
+        String lockOwner = sessionDelegate.getOakPathOrThrow(JCR_LOCK_OWNER);
+        String lockIsDeep = sessionDelegate.getOakPathOrThrow(JCR_LOCK_IS_DEEP);
+
+        if (dlg.getProperty(lockOwner) != null) {
+            return true;
+        }
+
+        NodeDelegate parent = dlg.getParent();
+        while (parent != null) {
+            if (parent.getProperty(lockOwner) != null) {
+                PropertyDelegate isDeep = parent.getProperty(lockIsDeep);
+                if (isDeep != null && !isDeep.isMultivalue()
+                        && isDeep.getValue().getBoolean()) {
+                    return true;
+                }
+            }
+            parent = dlg.getParent();
+        }
+
+        return false;
+    }
+
+    /**
+     * Checks whether this node holds a lock by looking for the
+     * <code>jcr:lockOwner</code> property.
+     */
+    @Override
+    public boolean holdsLock() throws RepositoryException {
+        String lockOwner = sessionDelegate.getOakPathOrThrow(JCR_LOCK_OWNER);
+        return dlg.getProperty(lockOwner) != null;
     }
 
     /**
@@ -1035,7 +1074,34 @@ public class NodeImpl extends ItemImpl implements Node {
     @Override
     @Nonnull
     public Lock getLock() throws RepositoryException {
-        return sessionDelegate.getLockManager().getLock(getPath());
+        throw new UnsupportedRepositoryOperationException();
+    }
+
+    /**
+     * @see javax.jcr.Node#lock(boolean, boolean)
+     */
+    @Override
+    @Nonnull
+    public Lock lock(boolean isDeep, boolean isSessionScoped)
+            throws RepositoryException {
+        String userID = getSession().getUserID();
+
+        String lockOwner = sessionDelegate.getOakPathOrThrow(JCR_LOCK_OWNER);
+        String lockIsDeep = sessionDelegate.getOakPathOrThrow(JCR_LOCK_IS_DEEP);
+        try {
+            ContentSession session = sessionDelegate.getContentSession();
+            CoreValueFactory factory = session.getCoreValueFactory();
+            Root root = session.getCurrentRoot();
+            Tree tree = root.getTree(dlg.getPath());
+            tree.setProperty(lockOwner, factory.createValue(userID));
+            tree.setProperty(lockIsDeep, factory.createValue(isDeep));
+            root.commit(DefaultConflictHandler.OURS); // TODO: fail instead?
+        } catch (CommitFailedException e) {
+            throw new RepositoryException("Unable to lock " + this, e);
+        }
+
+        getSession().refresh(true);
+        return getLock();
     }
 
     /**
@@ -1043,29 +1109,19 @@ public class NodeImpl extends ItemImpl implements Node {
      */
     @Override
     public void unlock() throws RepositoryException {
-        sessionDelegate.getLockManager().unlock(getPath());
-    }
-
-    /**
-     * @see javax.jcr.Node#holdsLock()
-     */
-    @Override
-    public boolean holdsLock() throws RepositoryException {
-        return sessionDelegate.getLockManager().holdsLock(getPath());
-    }
-
-    /**
-     * @see javax.jcr.Node#isLocked() ()
-     */
-    @Override
-    public boolean isLocked() throws RepositoryException {
+        String lockOwner = sessionDelegate.getOakPathOrThrow(JCR_LOCK_OWNER);
+        String lockIsDeep = sessionDelegate.getOakPathOrThrow(JCR_LOCK_IS_DEEP);
         try {
-            return sessionDelegate.getLockManager().isLocked(getPath());
-        } catch (UnsupportedRepositoryOperationException ex) {
-            // when locking is not supported all nodes are considered not to be
-            // locked
-            return false;
+            Root root = sessionDelegate.getContentSession().getCurrentRoot();
+            Tree tree = root.getTree(dlg.getPath());
+            tree.removeProperty(lockOwner);
+            tree.removeProperty(lockIsDeep);
+            root.commit(DefaultConflictHandler.OURS);
+        } catch (CommitFailedException e) {
+            throw new RepositoryException("Unable to unlock " + this, e);
         }
+
+        getSession().refresh(true);
     }
 
     @Override
