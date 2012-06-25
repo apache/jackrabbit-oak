@@ -1052,7 +1052,7 @@ public class NodeImpl extends ItemImpl implements Node {
                     return true;
                 }
             }
-            parent = dlg.getParent();
+            parent = parent.getParent();
         }
 
         return false;
