@@ -161,7 +161,7 @@ public class Descriptors {
                 falseValue, true, true));
         put(new Descriptor(
                 OPTION_LOCKING_SUPPORTED,
-                falseValue, true, true));
+                trueValue, true, true));
         put(new Descriptor(
                 OPTION_OBSERVATION_SUPPORTED,
                 falseValue, true, true));
