@@ -18,34 +18,47 @@ package org.apache.jackrabbit.oak.kernel;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.util.MicroKernelInputStream;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryValue;
 
 import java.io.InputStream;
+
+import javax.jcr.PropertyType;
 
 /**
  * BinaryValue... TODO: review name (BlobValue? BlobCoreValue? BinaryCoreValue?)
  */
-class BinaryValue {
-
-    /**
-     * logger instance
-     */
-    private static final Logger log = LoggerFactory.getLogger(BinaryValue.class);
+class BinaryValue extends MemoryValue {
 
     private final String binaryID;
     private final MicroKernel mk;
 
-    BinaryValue(String binaryID, MicroKernel mk) {
+    public BinaryValue(String binaryID, MicroKernel mk) {
         this.binaryID = binaryID;
         this.mk = mk;
     }
 
-    InputStream getStream() {
+    @Override
+    public int getType() {
+        return PropertyType.BINARY;
+    }
+
+    @Override
+    public boolean getBoolean() {
+        return Boolean.parseBoolean(getString());
+    }
+
+    @Override
+    public InputStream getNewStream() {
         return new MicroKernelInputStream(mk, binaryID);
     }
 
-    long length() {
+    @Override
+    public String getString() {
+        return binaryID;
+    }
+
+    @Override
+    public long length() {
         return mk.getLength(binaryID);
     }
 
@@ -71,8 +84,4 @@ class BinaryValue {
         return false;
     }
 
-    @Override
-    public String toString() {
-        return binaryID;
-    }
 }

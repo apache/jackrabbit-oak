@@ -16,19 +16,19 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.CoreValueFactory;
+import java.io.InputStream;
 
 import javax.jcr.PropertyType;
-import java.io.InputStream;
-import java.math.BigDecimal;
+
+import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryValueFactory;
 
 /**
  * {@code CoreValueFactoryImpl} is the default implementation of the
  * {@code CoreValueFactory} interface.
  */
-public class CoreValueFactoryImpl implements CoreValueFactory {
+public class CoreValueFactoryImpl extends MemoryValueFactory {
 
     private final MicroKernel mk;
 
@@ -38,45 +38,21 @@ public class CoreValueFactoryImpl implements CoreValueFactory {
     }
 
     //---------------------------------------------------< CoreValueFactory >---
-    @Override
-    public CoreValue createValue(String value) {
-        return new CoreValueImpl(value, PropertyType.STRING);
-    }
-
-    @Override
-    public CoreValue createValue(double value) {
-        return new CoreValueImpl(value);
-    }
-
-    @Override
-    public CoreValue createValue(long value) {
-        return new CoreValueImpl(value);
-    }
-
-    @Override
-    public CoreValue createValue(boolean value) {
-        return new CoreValueImpl(value);
-    }
-
-    @Override
-    public CoreValue createValue(BigDecimal value) {
-        return new CoreValueImpl(value);
-    }
 
     @Override
     public CoreValue createValue(InputStream value) {
         // TODO: mk.write throws MicrokernelException ... deal with this here.
         String binaryID = mk.write(value);
-        return new CoreValueImpl(new BinaryValue(binaryID, mk));
+        return new BinaryValue(binaryID, mk);
     }
 
     @Override
     public CoreValue createValue(String value, int type) {
         if (type == PropertyType.BINARY) {
-            BinaryValue bv = new BinaryValue(value, mk);
-            return new CoreValueImpl(bv);
+            return new BinaryValue(value, mk);
         } else {
-            return new CoreValueImpl(value, type);
+            return super.createValue(value, type);
         }
     }
+
 }

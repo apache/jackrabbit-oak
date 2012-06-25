@@ -20,12 +20,11 @@ package org.apache.jackrabbit.oak.kernel;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryValueFactory;
 
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-
-import javax.jcr.PropertyType;
 
 public class PropertyStateImpl implements PropertyState {
 
@@ -50,7 +49,7 @@ public class PropertyStateImpl implements PropertyState {
     }
 
     public PropertyStateImpl(String name, String value) {
-        this(name, new CoreValueImpl(value, PropertyType.STRING));
+        this(name, MemoryValueFactory.INSTANCE.createValue(value));
     }
 
     @Override
