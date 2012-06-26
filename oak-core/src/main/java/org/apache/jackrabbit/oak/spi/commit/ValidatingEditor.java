@@ -25,7 +25,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import static org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState.EMPTY_NODE;
 
 /**
- * This commit hook implementation validates the changes to be committed
+ * This commit editor implementation validates the changes to be committed
  * against all {@link Validator}s provided by the {@link ValidatorProvider}
  * passed to the class' constructor.
  */
@@ -49,11 +49,6 @@ public class ValidatingEditor implements CommitEditor {
         Validator validator = validatorProvider.getRootValidator(before, after);
         ValidatorDiff.validate(validator, store, before, after);
         return after;
-    }
-
-    @Override
-    public void afterCommit(NodeStore store, NodeState before, NodeState after) {
-        // nothing to do here
     }
 
     //------------------------------------------------------------< private >---

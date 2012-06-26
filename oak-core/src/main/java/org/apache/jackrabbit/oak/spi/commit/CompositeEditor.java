@@ -48,10 +48,4 @@ public class CompositeEditor implements CommitEditor {
         return newState;
     }
 
-    @Override
-    public void afterCommit(NodeStore store, NodeState before, NodeState after) {
-        for (CommitEditor hook : hooks) {
-            hook.afterCommit(store, before, after);
-        }
-    }
 }

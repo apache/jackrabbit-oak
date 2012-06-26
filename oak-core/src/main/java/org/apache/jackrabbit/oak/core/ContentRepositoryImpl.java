@@ -91,11 +91,11 @@ public class ContentRepositoryImpl implements ContentRepository {
             validatorProvider = createDefaultValidatorProvider();
         }
 
-        List<CommitEditor> hooks = new ArrayList<CommitEditor>();
-        hooks.add(new ValidatingEditor(validatorProvider));
-        CompositeEditor compositeHook = new CompositeEditor(hooks);
+        List<CommitEditor> editors = new ArrayList<CommitEditor>();
+        editors.add(new ValidatingEditor(validatorProvider));
+        CompositeEditor editor = new CompositeEditor(editors);
 
-        nodeStore = new KernelNodeStore(microKernel, compositeHook);
+        nodeStore = new KernelNodeStore(microKernel, editor);
         QueryIndexProvider qip = (indexProvider == null) ? getDefaultIndexProvider(microKernel) : indexProvider;
         queryEngine = new QueryEngineImpl(nodeStore, microKernel, qip);
 
