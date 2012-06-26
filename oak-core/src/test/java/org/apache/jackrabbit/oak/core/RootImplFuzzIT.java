@@ -30,7 +30,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.RootImplFuzzIT.Operation.Rebase;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
-import org.apache.jackrabbit.oak.spi.commit.EmptyCommitHook;
+import org.apache.jackrabbit.oak.spi.commit.EmptyEditor;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -79,13 +79,13 @@ public class RootImplFuzzIT {
         counter = 0;
 
         MicroKernel mk1 = new MicroKernelImpl("./target/mk1/" + random.nextInt());
-        store1 = new KernelNodeStore(mk1, EmptyCommitHook.INSTANCE);
+        store1 = new KernelNodeStore(mk1, EmptyEditor.INSTANCE);
         vf = store1.getValueFactory();
         mk1.commit("", "+\"/root\":{}", mk1.getHeadRevision(), "");
         root1 = new RootImpl(store1, null);
 
         MicroKernel mk2 = new MicroKernelImpl("./target/mk2/" + random.nextInt());
-        store2 = new KernelNodeStore(mk2, EmptyCommitHook.INSTANCE);
+        store2 = new KernelNodeStore(mk2, EmptyEditor.INSTANCE);
         mk2.commit("", "+\"/root\":{}", mk2.getHeadRevision(), "");
         root2 = new RootImpl(store2, null);
     }

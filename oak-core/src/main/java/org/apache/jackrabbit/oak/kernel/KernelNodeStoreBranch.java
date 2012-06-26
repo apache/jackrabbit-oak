@@ -22,7 +22,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.CommitEditor;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
@@ -123,7 +123,7 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
     @Override
     public KernelNodeState merge() throws CommitFailedException {
         MicroKernel kernel = store.getKernel();
-        CommitHook commitHook = store.getCommitHook();
+        CommitEditor commitHook = store.getCommitHook();
 
         NodeState preMergeRoot = store.getRoot();
         NodeState oldRoot = preMergeRoot;
