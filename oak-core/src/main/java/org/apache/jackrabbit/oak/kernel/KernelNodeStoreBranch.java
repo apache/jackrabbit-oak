@@ -123,15 +123,15 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
     @Override
     public KernelNodeState merge() throws CommitFailedException {
         MicroKernel kernel = store.getKernel();
-        CommitEditor commitHook = store.getCommitHook();
+        CommitEditor editor = store.getCommitEditor();
 
         NodeState preMergeRoot = store.getRoot();
         NodeState oldRoot = preMergeRoot;
-        NodeState toCommit = commitHook.beforeCommit(store, oldRoot, currentRoot);
+        NodeState toCommit = editor.beforeCommit(store, oldRoot, currentRoot);
         while (!currentRoot.equals(toCommit)) {
             setRoot(toCommit);
             oldRoot = store.getRoot();
-            toCommit = commitHook.beforeCommit(store, oldRoot, currentRoot);
+            toCommit = editor.beforeCommit(store, oldRoot, currentRoot);
         }
 
         try {
@@ -140,7 +140,6 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
             currentRoot = null;
             committed = null;
             KernelNodeState committed = new KernelNodeState(kernel, getValueFactory(), "/", mergedRevision);
-            commitHook.afterCommit(store, preMergeRoot, committed);
             return committed;
         }
         catch (MicroKernelException e) {
