@@ -36,9 +36,9 @@ public class KernelNodeStore extends MemoryNodeStore {
     private final MicroKernel kernel;
 
     /**
-     * Commit hook.
+     * Commit editor.
      */
-    private final CommitEditor commitHook;
+    private final CommitEditor editor;
 
     /**
      * Value factory backed by the {@link #kernel} instance.
@@ -50,12 +50,12 @@ public class KernelNodeStore extends MemoryNodeStore {
      */
     private KernelNodeState root;
 
-    public KernelNodeStore(MicroKernel kernel, CommitEditor commitHook) {
+    public KernelNodeStore(MicroKernel kernel, CommitEditor editor) {
         assert kernel != null;
-        assert commitHook != null;
+        assert editor != null;
 
         this.kernel = kernel;
-        this.commitHook = commitHook;
+        this.editor = editor;
         this.valueFactory = new CoreValueFactoryImpl(kernel);
         this.root = new KernelNodeState(
                 kernel, valueFactory, "/", kernel.getHeadRevision());
@@ -89,7 +89,7 @@ public class KernelNodeStore extends MemoryNodeStore {
     }
 
     @Nonnull
-    CommitEditor getCommitHook() {
-        return commitHook;
+    CommitEditor getCommitEditor() {
+        return editor;
     }
 }

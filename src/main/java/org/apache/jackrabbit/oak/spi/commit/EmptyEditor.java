@@ -49,10 +49,4 @@ public class EmptyEditor implements CommitEditor {
         return after;
     }
 
-    @Override
-    public void afterCommit(
-            NodeStore store, NodeState before, NodeState after) {
-        // do nothing
-    }
-
 }

@@ -140,14 +140,15 @@ public class KernelNodeStoreTest extends AbstractOakTest {
         final NodeState newRoot = rootBuilder.getNodeState();
 
         commitWithHook(newRoot, new EmptyEditor() {
-            @Override
-            public void afterCommit(NodeStore store, NodeState before, NodeState after) {
-                assertNull(before.getChildNode("test").getChildNode("newNode"));
-                assertNotNull(after.getChildNode("test").getChildNode("newNode"));
-                assertNull(after.getChildNode("test").getChildNode("a"));
-                assertEquals(fortyTwo, after.getChildNode("test").getChildNode("newNode").getProperty("n").getValue());
-                assertEquals(newRoot, after);
-            }
+// TODO: OAK-153 - use the Observer interface to observe content changes
+//            @Override
+//            public void afterCommit(NodeStore store, NodeState before, NodeState after) {
+//                assertNull(before.getChildNode("test").getChildNode("newNode"));
+//                assertNotNull(after.getChildNode("test").getChildNode("newNode"));
+//                assertNull(after.getChildNode("test").getChildNode("a"));
+//                assertEquals(fortyTwo, after.getChildNode("test").getChildNode("newNode").getProperty("n").getValue());
+//                assertEquals(newRoot, after);
+//            }
         });
     }
 
@@ -218,10 +219,6 @@ public class KernelNodeStoreTest extends AbstractOakTest {
             return delegate.beforeCommit(store, before, after);
         }
 
-        @Override
-        public void afterCommit(NodeStore store, NodeState before, NodeState after) {
-            delegate.afterCommit(store, before, after);
-        }
     }
 
 }
