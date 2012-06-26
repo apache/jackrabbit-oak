@@ -19,12 +19,13 @@
 
 package org.apache.jackrabbit.oak.jcr;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import javax.jcr.PropertyType;
 import javax.jcr.Repository;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
-import java.util.HashMap;
-import java.util.Map;
 
 import static javax.jcr.Repository.IDENTIFIER_STABILITY;
 import static javax.jcr.Repository.LEVEL_1_SUPPORTED;
@@ -164,7 +165,7 @@ public class Descriptors {
                 trueValue, true, true));
         put(new Descriptor(
                 OPTION_OBSERVATION_SUPPORTED,
-                falseValue, true, true));
+                trueValue, true, true));
         put(new Descriptor(
                 OPTION_NODE_AND_PROPERTY_WITH_SAME_NAME_SUPPORTED,
                 trueValue, true, true));

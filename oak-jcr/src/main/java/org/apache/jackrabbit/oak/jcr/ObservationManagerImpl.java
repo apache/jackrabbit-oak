@@ -23,6 +23,7 @@ import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.jcr.RepositoryException;
+import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.observation.Event;
 import javax.jcr.observation.EventJournal;
 import javax.jcr.observation.EventListener;
@@ -73,6 +74,8 @@ public class ObservationManagerImpl implements ObservationManager {
             ChangeFilter filter = new ChangeFilter(eventTypes, absPath, isDeep, uuid, nodeTypeName, noLocal);
             processor.setFilter(filter);
         }
+
+        throw new UnsupportedRepositoryOperationException();
     }
 
     @Override
@@ -90,18 +93,18 @@ public class ObservationManagerImpl implements ObservationManager {
 
     @Override
     public void setUserData(String userData) throws RepositoryException {
-        // todo implement setUserData
+        throw new UnsupportedRepositoryOperationException();
     }
 
     @Override
     public EventJournal getEventJournal() throws RepositoryException {
-        return null; // todo implement getEventJournal
+        throw new UnsupportedRepositoryOperationException();
     }
 
     @Override
     public EventJournal getEventJournal(int eventTypes, String absPath, boolean isDeep, String[] uuid, String[]
             nodeTypeName) throws RepositoryException {
-        return null; // todo implement getEventJournal
+        throw new UnsupportedRepositoryOperationException();
     }
 
     //------------------------------------------------------------< private >---
