@@ -43,7 +43,7 @@ public class EmptyEditor implements CommitEditor {
     public static final CommitEditor INSTANCE = new EmptyEditor();
 
     @Override
-    public NodeState beforeCommit(
+    public NodeState editCommit(
             NodeStore store, NodeState before, NodeState after)
             throws CommitFailedException {
         return after;

@@ -23,25 +23,28 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import java.util.List;
 
 /**
- * This {@code CommitHook} aggregates a list of commit hooks into
- * a single commit hook.
+ * Composite commit editor. Maintains a list of component editors and takes
+ * care of calling them in proper sequence in the
+ * {@link #editCommit(NodeStore, NodeState, NodeState)} method.
  */
 public class CompositeEditor implements CommitEditor {
-    private final List<CommitEditor> hooks;
 
-    public CompositeEditor(List<CommitEditor> hooks) {
-        this.hooks = hooks;
+    private final List<CommitEditor> editors;
+
+    public CompositeEditor(List<CommitEditor> editors) {
+        this.editors = editors;
     }
 
     @Override
-    public NodeState beforeCommit(NodeStore store, NodeState before, NodeState after)
+    public NodeState editCommit(
+            NodeStore store, NodeState before, NodeState after)
             throws CommitFailedException {
 
         NodeState oldState = before;
         NodeState newState = after;
-        for (CommitEditor hook : hooks) {
+        for (CommitEditor editor : editors) {
             NodeState newOldState = newState;
-            newState = hook.beforeCommit(store, oldState, newState);
+            newState = editor.editCommit(store, oldState, newState);
             oldState = newOldState;
         }
 

@@ -127,11 +127,11 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
 
         NodeState preMergeRoot = store.getRoot();
         NodeState oldRoot = preMergeRoot;
-        NodeState toCommit = editor.beforeCommit(store, oldRoot, currentRoot);
+        NodeState toCommit = editor.editCommit(store, oldRoot, currentRoot);
         while (!currentRoot.equals(toCommit)) {
             setRoot(toCommit);
             oldRoot = store.getRoot();
-            toCommit = editor.beforeCommit(store, oldRoot, currentRoot);
+            toCommit = editor.editCommit(store, oldRoot, currentRoot);
         }
 
         try {
