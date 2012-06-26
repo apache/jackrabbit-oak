@@ -20,8 +20,8 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
-import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.commit.EmptyCommitHook;
+import org.apache.jackrabbit.oak.spi.commit.CommitEditor;
+import org.apache.jackrabbit.oak.spi.commit.EmptyEditor;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Before;
@@ -53,8 +53,8 @@ public abstract class AbstractOakTest {
         state = createInitialState(microKernel);
     }
 
-    protected CommitHook createCommitHook() {
-        return new EmptyCommitHook();
+    protected CommitEditor createCommitHook() {
+        return new EmptyEditor();
     }
 
     protected abstract NodeState createInitialState(MicroKernel microKernel);

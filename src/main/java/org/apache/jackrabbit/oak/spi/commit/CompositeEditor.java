@@ -26,10 +26,10 @@ import java.util.List;
  * This {@code CommitHook} aggregates a list of commit hooks into
  * a single commit hook.
  */
-public class CompositeCommitHook implements CommitHook {
-    private final List<CommitHook> hooks;
+public class CompositeEditor implements CommitEditor {
+    private final List<CommitEditor> hooks;
 
-    public CompositeCommitHook(List<CommitHook> hooks) {
+    public CompositeEditor(List<CommitEditor> hooks) {
         this.hooks = hooks;
     }
 
@@ -39,7 +39,7 @@ public class CompositeCommitHook implements CommitHook {
 
         NodeState oldState = before;
         NodeState newState = after;
-        for (CommitHook hook : hooks) {
+        for (CommitEditor hook : hooks) {
             NodeState newOldState = newState;
             newState = hook.beforeCommit(store, oldState, newState);
             oldState = newOldState;
@@ -50,7 +50,7 @@ public class CompositeCommitHook implements CommitHook {
 
     @Override
     public void afterCommit(NodeStore store, NodeState before, NodeState after) {
-        for (CommitHook hook : hooks) {
+        for (CommitEditor hook : hooks) {
             hook.afterCommit(store, before, after);
         }
     }

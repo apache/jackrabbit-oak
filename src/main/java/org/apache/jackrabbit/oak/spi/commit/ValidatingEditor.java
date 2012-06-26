@@ -29,7 +29,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState.EMPTY_NOD
  * against all {@link Validator}s provided by the {@link ValidatorProvider}
  * passed to the class' constructor.
  */
-public class ValidatingCommitHook implements CommitHook {
+public class ValidatingEditor implements CommitEditor {
 
     private final ValidatorProvider validatorProvider;
 
@@ -38,7 +38,7 @@ public class ValidatingCommitHook implements CommitHook {
      * {@link Validator}s provided by {@code validatorProvider}.
      * @param validatorProvider  validator provider
      */
-    public ValidatingCommitHook(ValidatorProvider validatorProvider) {
+    public ValidatingEditor(ValidatorProvider validatorProvider) {
         this.validatorProvider = validatorProvider;
     }
 

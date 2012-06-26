@@ -21,7 +21,7 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
-import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.CommitEditor;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 
@@ -38,7 +38,7 @@ public class KernelNodeStore extends MemoryNodeStore {
     /**
      * Commit hook.
      */
-    private final CommitHook commitHook;
+    private final CommitEditor commitHook;
 
     /**
      * Value factory backed by the {@link #kernel} instance.
@@ -50,7 +50,7 @@ public class KernelNodeStore extends MemoryNodeStore {
      */
     private KernelNodeState root;
 
-    public KernelNodeStore(MicroKernel kernel, CommitHook commitHook) {
+    public KernelNodeStore(MicroKernel kernel, CommitEditor commitHook) {
         assert kernel != null;
         assert commitHook != null;
 
@@ -89,7 +89,7 @@ public class KernelNodeStore extends MemoryNodeStore {
     }
 
     @Nonnull
-    CommitHook getCommitHook() {
+    CommitEditor getCommitHook() {
         return commitHook;
     }
 }

@@ -39,10 +39,10 @@ import org.apache.jackrabbit.oak.plugins.value.ConflictValidatorProvider;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
 import org.apache.jackrabbit.oak.security.authentication.LoginContextProviderImpl;
 import org.apache.jackrabbit.oak.spi.QueryIndexProvider;
-import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.commit.CompositeCommitHook;
+import org.apache.jackrabbit.oak.spi.commit.CommitEditor;
+import org.apache.jackrabbit.oak.spi.commit.CompositeEditor;
 import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
-import org.apache.jackrabbit.oak.spi.commit.ValidatingCommitHook;
+import org.apache.jackrabbit.oak.spi.commit.ValidatingEditor;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -91,9 +91,9 @@ public class ContentRepositoryImpl implements ContentRepository {
             validatorProvider = createDefaultValidatorProvider();
         }
 
-        List<CommitHook> hooks = new ArrayList<CommitHook>();
-        hooks.add(new ValidatingCommitHook(validatorProvider));
-        CompositeCommitHook compositeHook = new CompositeCommitHook(hooks);
+        List<CommitEditor> hooks = new ArrayList<CommitEditor>();
+        hooks.add(new ValidatingEditor(validatorProvider));
+        CompositeEditor compositeHook = new CompositeEditor(hooks);
 
         nodeStore = new KernelNodeStore(microKernel, compositeHook);
         QueryIndexProvider qip = (indexProvider == null) ? getDefaultIndexProvider(microKernel) : indexProvider;
