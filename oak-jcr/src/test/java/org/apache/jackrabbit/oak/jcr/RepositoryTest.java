@@ -1477,12 +1477,12 @@ public class RepositoryTest extends AbstractRepositoryTest {
                 TEST_PATH + "/1/prop1");
 
         final Set<String> removeProperties = toSet(
-                TEST_PATH + "/1/prop2");
+                TEST_PATH + "/1/prop2",
+                TEST_PATH + "/2/jcr:primaryType");
 
         final List<Event> failedEvents = new ArrayList<Event>();
 
         ObservationManager obsMgr = getSession().getWorkspace().getObservationManager();
-        obsMgr.setUserData("my user data");
         obsMgr.addEventListener(new EventListener() {
                 @Override
                 public void onEvent(EventIterator events) {
@@ -1536,6 +1536,13 @@ public class RepositoryTest extends AbstractRepositoryTest {
         n.addNode("2");
         getSession().save();
 
+        try {
+            Thread.sleep(1000);
+        }
+        catch (InterruptedException e) {
+            // FIXME wait rather than sleep
+        }
+
         n.setProperty("property", 42);
         n.addNode("3").setProperty("prop3", "val3");
         n1.setProperty("prop1", "val1 new");
@@ -1543,12 +1550,19 @@ public class RepositoryTest extends AbstractRepositoryTest {
         n.getNode("2").remove();
         getSession().save();
 
-        assertTrue(failedEvents.isEmpty());
-        assertTrue(addNodes.isEmpty());
-        assertTrue(removeNodes.isEmpty());
-        assertTrue(addProperties.isEmpty());
-        assertTrue(removeProperties.isEmpty());
-        assertTrue(setProperties.isEmpty());
+        try {
+            Thread.sleep(1000);
+        }
+        catch (InterruptedException e) {
+            // FIXME wait rather than sleep
+        }
+
+        assertTrue("failedEvents not empty: " + failedEvents, failedEvents.isEmpty());
+        assertTrue("addNodes not empty: " + addNodes, addNodes.isEmpty());
+        assertTrue("removeNodes not empty: " + removeNodes, removeNodes.isEmpty());
+        assertTrue("addProperties not empty: " + addProperties, addProperties.isEmpty());
+        assertTrue("removeProperties not empty: " + removeProperties, removeProperties.isEmpty());
+        assertTrue("setProperties not empty: " + setProperties, setProperties.isEmpty());
     }
 
     @Ignore // TODO implement observation
