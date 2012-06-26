@@ -47,13 +47,13 @@ public abstract class AbstractOakTest {
     @Before
     public void setUp() {
         MicroKernel microKernel = new MicroKernelImpl();
-        store = new KernelNodeStore(microKernel, createCommitHook());
+        store = new KernelNodeStore(microKernel, createCommitEditor());
         valueFactory = store.getValueFactory();
 
         state = createInitialState(microKernel);
     }
 
-    protected CommitEditor createCommitHook() {
+    protected CommitEditor createCommitEditor() {
         return new EmptyEditor();
     }
 

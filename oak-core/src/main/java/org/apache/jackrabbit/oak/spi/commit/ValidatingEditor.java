@@ -43,7 +43,7 @@ public class ValidatingEditor implements CommitEditor {
     }
 
     @Override
-    public NodeState beforeCommit(
+    public NodeState editCommit(
             NodeStore store, NodeState before, NodeState after)
             throws CommitFailedException {
         Validator validator = validatorProvider.getRootValidator(before, after);
