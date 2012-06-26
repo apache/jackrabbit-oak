@@ -29,18 +29,18 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
  * the need for extra code for such cases.</li>
  * <li>Other commit hook implementations can extend this class and gain
  * improved forwards-compatibility to possible changes in the
- * {@link CommitHook} interface. For example if it is later decided that
+ * {@link CommitEditor} interface. For example if it is later decided that
  * new arguments are needed in the hook methods, this class is guaranteed
  * to implement any new method signatures in a way that falls gracefully
  * back to any earlier behavior.</li>
  * </ol>
  */
-public class EmptyCommitHook implements CommitHook {
+public class EmptyEditor implements CommitEditor {
 
     /**
      * Static instance of this class, useful as a "null object".
      */
-    public static final CommitHook INSTANCE = new EmptyCommitHook();
+    public static final CommitEditor INSTANCE = new EmptyEditor();
 
     @Override
     public NodeState beforeCommit(

@@ -47,7 +47,7 @@ import javax.annotation.Nonnull;
  * hooks are better expressed as implementations of the more specific
  * extension interfaces defined in this package.
  */
-public interface CommitHook {
+public interface CommitEditor {
 
     /**
      * Before-commit hook. The implementation can validate, record or

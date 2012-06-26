@@ -23,8 +23,8 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.core.AbstractOakTest;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
-import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.commit.EmptyCommitHook;
+import org.apache.jackrabbit.oak.spi.commit.CommitEditor;
+import org.apache.jackrabbit.oak.spi.commit.EmptyEditor;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -51,7 +51,7 @@ public class KernelNodeStoreTest extends AbstractOakTest {
     }
 
     @Override
-    protected CommitHook createCommitHook() {
+    protected CommitEditor createCommitHook() {
         return commitHookDelegate;
     }
 
@@ -139,7 +139,7 @@ public class KernelNodeStoreTest extends AbstractOakTest {
         rootBuilder.setNode("test", testBuilder.getNodeState());
         final NodeState newRoot = rootBuilder.getNodeState();
 
-        commitWithHook(newRoot, new EmptyCommitHook() {
+        commitWithHook(newRoot, new EmptyEditor() {
             @Override
             public void afterCommit(NodeStore store, NodeState before, NodeState after) {
                 assertNull(before.getChildNode("test").getChildNode("newNode"));
@@ -169,7 +169,7 @@ public class KernelNodeStoreTest extends AbstractOakTest {
         rootBuilder.setNode("test", testBuilder.getNodeState());
         final NodeState newRoot = rootBuilder.getNodeState();
 
-        commitWithHook(newRoot, new EmptyCommitHook() {
+        commitWithHook(newRoot, new EmptyEditor() {
             @Override
             public NodeState beforeCommit(NodeStore store, NodeState before, NodeState after) {
                 NodeStateBuilder rootBuilder = store.getBuilder(after);
@@ -190,7 +190,7 @@ public class KernelNodeStoreTest extends AbstractOakTest {
 
     //------------------------------------------------------------< private >---
 
-    private void commitWithHook(NodeState nodeState, CommitHook commitHook)
+    private void commitWithHook(NodeState nodeState, CommitEditor commitHook)
             throws CommitFailedException {
 
         commitHookDelegate.set(commitHook);
@@ -200,14 +200,14 @@ public class KernelNodeStoreTest extends AbstractOakTest {
             branch.merge();
         }
         finally {
-            commitHookDelegate.set(new EmptyCommitHook());
+            commitHookDelegate.set(new EmptyEditor());
         }
     }
 
-    private static class CommitHookDelegate implements CommitHook {
-        private CommitHook delegate = new EmptyCommitHook();
+    private static class CommitHookDelegate implements CommitEditor {
+        private CommitEditor delegate = new EmptyEditor();
 
-        public void set(CommitHook commitHook) {
+        public void set(CommitEditor commitHook) {
             delegate = commitHook;
         }
 
