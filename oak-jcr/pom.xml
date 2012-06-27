@@ -104,11 +104,11 @@ org.apache.jackrabbit.test.api.observation.NodeReorderTest#testNodeReorderMove  
 org.apache.jackrabbit.test.api.observation.NodeReorderTest#testNodeReorderSameName   <!-- reorder not supported -->
 org.apache.jackrabbit.test.api.observation.NodeReorderTest#testNodeReorderSameNameWithRemove  <!-- reorder not supported -->
 org.apache.jackrabbit.test.api.observation.PropertyAddedTest#testMultiPropertyAdded  <!-- JCR-3361 -->
-org.apache.jackrabbit.test.api.observation.PropertyChangedTest#testMultiPropertyChanged
+org.apache.jackrabbit.test.api.observation.PropertyChangedTest#testMultiPropertyChanged       <!-- JCR-3361 -->
 org.apache.jackrabbit.test.api.observation.PropertyChangedTest#testSinglePropertyChangedWithAdded
-org.apache.jackrabbit.test.api.observation.PropertyRemovedTest#testMultiPropertyRemoved
+org.apache.jackrabbit.test.api.observation.PropertyRemovedTest#testMultiPropertyRemoved       <!-- JCR-3361 -->
 org.apache.jackrabbit.test.api.observation.AddEventListenerTest#testPath
-org.apache.jackrabbit.test.api.observation.AddEventListenerTest#testNodeType
+org.apache.jackrabbit.test.api.observation.AddEventListenerTest#testNodeType                  <!-- JCR-3361 -->
 org.apache.jackrabbit.test.api.observation.AddEventListenerTest#testIsDeepFalseNodeAdded
 org.apache.jackrabbit.test.api.observation.AddEventListenerTest#testIsDeepFalsePropertyAdded
 org.apache.jackrabbit.test.api.observation.AddEventListenerTest#testNoLocalTrue
