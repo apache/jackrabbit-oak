@@ -99,10 +99,10 @@ org.apache.jackrabbit.test.api.observation.NodeRemovedTest#testMultiNodesRemoved
 org.apache.jackrabbit.test.api.observation.NodeMovedTest#testMoveNode
 org.apache.jackrabbit.test.api.observation.NodeMovedTest#testMoveTree
 org.apache.jackrabbit.test.api.observation.NodeMovedTest#testMoveWithRemove
-org.apache.jackrabbit.test.api.observation.NodeReorderTest#testNodeReorderAddRemove
-org.apache.jackrabbit.test.api.observation.NodeReorderTest#testNodeReorderMove
-org.apache.jackrabbit.test.api.observation.NodeReorderTest#testNodeReorderSameName
-org.apache.jackrabbit.test.api.observation.NodeReorderTest#testNodeReorderSameNameWithRemove
+org.apache.jackrabbit.test.api.observation.NodeReorderTest#testNodeReorderAddRemove  <!-- reorder not supported -->
+org.apache.jackrabbit.test.api.observation.NodeReorderTest#testNodeReorderMove       <!-- reorder not supported -->
+org.apache.jackrabbit.test.api.observation.NodeReorderTest#testNodeReorderSameName   <!-- reorder not supported -->
+org.apache.jackrabbit.test.api.observation.NodeReorderTest#testNodeReorderSameNameWithRemove  <!-- reorder not supported -->
 org.apache.jackrabbit.test.api.observation.PropertyAddedTest#testMultiPropertyAdded
 org.apache.jackrabbit.test.api.observation.PropertyChangedTest#testMultiPropertyChanged
 org.apache.jackrabbit.test.api.observation.PropertyChangedTest#testSinglePropertyChangedWithAdded
