@@ -1540,7 +1540,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         n1.setProperty("prop2", "val2");
         n.addNode("2");
         getSession().save();
-        assertTrue(eventCount.get().await(1, TimeUnit.SECONDS));
+        assertTrue(eventCount.get().await(2, TimeUnit.SECONDS));
 
         eventCount.set(new CountDownLatch(8));
         n.setProperty("property", 42);
@@ -1549,7 +1549,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         n1.getProperty("prop2").remove();
         n.getNode("2").remove();
         getSession().save();
-        assertTrue(eventCount.get().await(1, TimeUnit.SECONDS));
+        assertTrue(eventCount.get().await(2, TimeUnit.SECONDS));
 
         assertTrue("failedEvents not empty: " + failedEvents, failedEvents.isEmpty());
         assertTrue("addNodes not empty: " + addNodes, addNodes.isEmpty());
@@ -1561,7 +1561,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
     @Ignore // TODO implement observation
     @Test
-    public void observation2() throws RepositoryException {
+    public void observation2() throws RepositoryException, InterruptedException {
         final Set<String> addNodes = toSet(
                 TEST_PATH + "/1",
                 TEST_PATH + "/2");
@@ -1573,11 +1573,13 @@ public class RepositoryTest extends AbstractRepositoryTest {
                 TEST_PATH + "/1/jcr:primaryType",
                 TEST_PATH + "/2/jcr:primaryType");
 
+        final Set<String> removeProperties = toSet(
+                TEST_PATH + "/1/jcr:primaryType");
 
         final List<Event> failedEvents = new ArrayList<Event>();
+        final AtomicReference<CountDownLatch> eventCount = new AtomicReference<CountDownLatch>();
 
         ObservationManager obsMgr = getSession().getWorkspace().getObservationManager();
-        obsMgr.setUserData("my user data");
         obsMgr.addEventListener(new EventListener() {
                 @Override
                 public void onEvent(EventIterator events) {
@@ -1600,6 +1602,11 @@ public class RepositoryTest extends AbstractRepositoryTest {
                                         failedEvents.add(event);
                                     }
                                     break;
+                                case Event.PROPERTY_REMOVED:
+                                    if (!removeProperties.remove(event.getPath())) {
+                                        failedEvents.add(event);
+                                    }
+                                    break;
                                 default:
                                     failedEvents.add(event);
                             }
@@ -1607,46 +1614,30 @@ public class RepositoryTest extends AbstractRepositoryTest {
                         catch (RepositoryException e) {
                             failedEvents.add(event);
                         }
+                        eventCount.get().countDown();
                     }
                 }
             },
             Event.NODE_ADDED | Event.NODE_REMOVED | Event.NODE_MOVED | Event.PROPERTY_ADDED |
             Event.PROPERTY_REMOVED | Event.PROPERTY_CHANGED | Event.PERSIST, "/", true, null, null, false);
 
+        eventCount.set(new CountDownLatch(2));
         Node n = getNode(TEST_PATH);
         n.addNode("1");
         getSession().save();
+        assertTrue(eventCount.get().await(2, TimeUnit.SECONDS));
 
+        eventCount.set(new CountDownLatch(4));
         n.addNode("2");
         n.getNode("1").remove();
         getSession().save();
+        assertTrue(eventCount.get().await(2, TimeUnit.SECONDS));
 
-        assertTrue(failedEvents.isEmpty());
-        assertTrue(addNodes.isEmpty());
-        assertTrue(removeNodes.isEmpty());
-        assertTrue(addProperties.isEmpty());
-    }
-
-    @Ignore // TODO implement observation
-    @Test
-    public void observationNoEvents() throws RepositoryException, InterruptedException {
-        final List<Event> failedEvents = new ArrayList<Event>();
-
-        ObservationManager obsMgr = getSession().getWorkspace().getObservationManager();
-        obsMgr.setUserData("my user data");
-        obsMgr.addEventListener(new EventListener() {
-                @Override
-                public void onEvent(EventIterator events) {
-                    while (events.hasNext()) {
-                        failedEvents.add(events.nextEvent());
-                    }
-                }
-            },
-            Event.NODE_ADDED | Event.NODE_REMOVED | Event.NODE_MOVED | Event.PROPERTY_ADDED |
-            Event.PROPERTY_REMOVED | Event.PROPERTY_CHANGED | Event.PERSIST, "/", true, null, null, false);
-
-        Thread.sleep(5000);
-        assertTrue(failedEvents.isEmpty());
+        assertTrue("failedEvents not empty: " + failedEvents, failedEvents.isEmpty());
+        assertTrue("addNodes not empty: " + addNodes, addNodes.isEmpty());
+        assertTrue("removeNodes not empty: " + removeNodes, removeNodes.isEmpty());
+        assertTrue("addProperties not empty: " + addProperties, addProperties.isEmpty());
+        assertTrue("removeProperties not empty: " + removeProperties, removeProperties.isEmpty());
     }
 
     @Ignore // TODO implement observation
@@ -1657,7 +1648,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
         final List<Event> failedEvents = new ArrayList<Event>();
 
         final ObservationManager obsMgr = getSession().getWorkspace().getObservationManager();
-        obsMgr.setUserData("my user data");
         final EventListener listener = new EventListener() {
             @Override
             public void onEvent(EventIterator events) {
@@ -1670,17 +1660,16 @@ public class RepositoryTest extends AbstractRepositoryTest {
             Event.PROPERTY_ADDED | Event.PROPERTY_REMOVED | Event.PROPERTY_CHANGED | Event.PERSIST,
             "/", true, null, null, false);
 
-        FutureTask<Object> disposer = new FutureTask<Object>(new Callable<Object>() {
+        FutureTask<Void> disposer = new FutureTask<Void>(new Callable<Void>() {
             @Override
-            public Object call() throws Exception {
+            public Void call() throws Exception {
                 obsMgr.removeEventListener(listener);
                 return null;
             }
         });
 
-        Thread.sleep(250);
         Executors.newSingleThreadExecutor().execute(disposer);
-        disposer.get(10000, TimeUnit.MILLISECONDS);
+        disposer.get(2, TimeUnit.SECONDS);
         assertTrue(failedEvents.isEmpty());
     }
 
