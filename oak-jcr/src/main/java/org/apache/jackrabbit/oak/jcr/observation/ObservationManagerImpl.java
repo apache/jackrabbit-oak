@@ -69,8 +69,6 @@ public class ObservationManagerImpl implements ObservationManager {
             ChangeFilter filter = new ChangeFilter(eventTypes, absPath, isDeep, uuid, nodeTypeName, noLocal);
             processor.setFilter(filter);
         }
-
-        throw new UnsupportedRepositoryOperationException();
     }
 
     @Override
