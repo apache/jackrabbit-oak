@@ -28,11 +28,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.jcr.Binary;
 import javax.jcr.GuestCredentials;
@@ -1454,7 +1456,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
     @Ignore // TODO implement observation
     @Test
-    public void observation() throws RepositoryException {
+    public void observation() throws RepositoryException, InterruptedException {
         final Set<String> addNodes = toSet(
                 TEST_PATH + "/1",
                 TEST_PATH + "/2",
@@ -1481,6 +1483,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
                 TEST_PATH + "/2/jcr:primaryType");
 
         final List<Event> failedEvents = new ArrayList<Event>();
+        final AtomicReference<CountDownLatch> eventCount = new AtomicReference<CountDownLatch>();
 
         ObservationManager obsMgr = getSession().getWorkspace().getObservationManager();
         obsMgr.addEventListener(new EventListener() {
@@ -1522,12 +1525,14 @@ public class RepositoryTest extends AbstractRepositoryTest {
                         catch (RepositoryException e) {
                             failedEvents.add(event);
                         }
+                        eventCount.get().countDown();
                     }
                 }
             },
             Event.NODE_ADDED | Event.NODE_REMOVED | Event.NODE_MOVED | Event.PROPERTY_ADDED |
             Event.PROPERTY_REMOVED | Event.PROPERTY_CHANGED | Event.PERSIST, "/", true, null, null, false);
 
+        eventCount.set(new CountDownLatch(7));
         Node n = getNode(TEST_PATH);
         n.setProperty("prop0", "val0");
         Node n1 = n.addNode("1");
@@ -1535,27 +1540,16 @@ public class RepositoryTest extends AbstractRepositoryTest {
         n1.setProperty("prop2", "val2");
         n.addNode("2");
         getSession().save();
+        assertTrue(eventCount.get().await(1, TimeUnit.SECONDS));
 
-        try {
-            Thread.sleep(1000);
-        }
-        catch (InterruptedException e) {
-            // FIXME wait rather than sleep
-        }
-
+        eventCount.set(new CountDownLatch(8));
         n.setProperty("property", 42);
         n.addNode("3").setProperty("prop3", "val3");
         n1.setProperty("prop1", "val1 new");
         n1.getProperty("prop2").remove();
         n.getNode("2").remove();
         getSession().save();
-
-        try {
-            Thread.sleep(1000);
-        }
-        catch (InterruptedException e) {
-            // FIXME wait rather than sleep
-        }
+        assertTrue(eventCount.get().await(1, TimeUnit.SECONDS));
 
         assertTrue("failedEvents not empty: " + failedEvents, failedEvents.isEmpty());
         assertTrue("addNodes not empty: " + addNodes, addNodes.isEmpty());
