@@ -48,7 +48,6 @@ public class ObservationManagerImpl implements ObservationManager {
         for (ChangeProcessor processor : processors.values()) {
             processor.stop();
         }
-        timer.get().cancel();
     }
 
     @Override
