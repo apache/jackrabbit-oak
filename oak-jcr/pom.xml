@@ -103,7 +103,7 @@ org.apache.jackrabbit.test.api.observation.NodeReorderTest#testNodeReorderAddRem
 org.apache.jackrabbit.test.api.observation.NodeReorderTest#testNodeReorderMove       <!-- reorder not supported -->
 org.apache.jackrabbit.test.api.observation.NodeReorderTest#testNodeReorderSameName   <!-- reorder not supported -->
 org.apache.jackrabbit.test.api.observation.NodeReorderTest#testNodeReorderSameNameWithRemove  <!-- reorder not supported -->
-org.apache.jackrabbit.test.api.observation.PropertyAddedTest#testMultiPropertyAdded
+org.apache.jackrabbit.test.api.observation.PropertyAddedTest#testMultiPropertyAdded  <!-- JCR-3361 -->
 org.apache.jackrabbit.test.api.observation.PropertyChangedTest#testMultiPropertyChanged
 org.apache.jackrabbit.test.api.observation.PropertyChangedTest#testSinglePropertyChangedWithAdded
 org.apache.jackrabbit.test.api.observation.PropertyRemovedTest#testMultiPropertyRemoved
