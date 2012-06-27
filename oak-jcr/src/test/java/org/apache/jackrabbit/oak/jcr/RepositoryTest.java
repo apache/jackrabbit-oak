@@ -1454,7 +1454,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
         }
     }
 
-    @Ignore // TODO implement observation
     @Test
     public void observation() throws RepositoryException, InterruptedException {
         final Set<String> addNodes = toSet(
@@ -1559,7 +1558,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertTrue("setProperties not empty: " + setProperties, setProperties.isEmpty());
     }
 
-    @Ignore // TODO implement observation
     @Test
     public void observation2() throws RepositoryException, InterruptedException {
         final Set<String> addNodes = toSet(
@@ -1640,7 +1638,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertTrue("removeProperties not empty: " + removeProperties, removeProperties.isEmpty());
     }
 
-    @Ignore // TODO implement observation
     @Test
     public void observationDispose() throws RepositoryException, ExecutionException, TimeoutException,
                 InterruptedException {
