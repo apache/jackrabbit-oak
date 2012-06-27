@@ -30,7 +30,7 @@ import java.util.List;
  * {@code IllegalStateException}s to indicate that the snapshot is no
  * longer available.
  * <p>
- * A tree  instance belongs to the client and its state is only modified
+ * A tree instance belongs to the client and its state is only modified
  * in response to method calls made by the client. The various accessors
  * on this interface mirror these of the underlying {@code NodeState}
  * interface. However, since instances of this class are mutable return
