@@ -86,7 +86,7 @@ org.apache.jackrabbit.test.api.query.XPathQueryLevel2Test#testMultiValueSearch
 org.apache.jackrabbit.test.api.query.qom.ColumnTest#testExpandColumnsForNodeType
 org.apache.jackrabbit.test.api.query.qom.SelectorTest#testUnknownNodeType
 org.apache.jackrabbit.test.api.util
-org.apache.jackrabbit.test.api.observation.EventIteratorTest#testGetPosition
+org.apache.jackrabbit.test.api.observation.EventIteratorTest#testGetPosition  <!-- JCR-3361 -->
 org.apache.jackrabbit.test.api.observation.EventTest#testGetType
 org.apache.jackrabbit.test.api.observation.EventTest#testGetNodePath
 org.apache.jackrabbit.test.api.observation.EventTest#testGetUserId
