@@ -94,8 +94,8 @@ org.apache.jackrabbit.test.api.observation.NodeAddedTest#testSingleNodeAdded
 org.apache.jackrabbit.test.api.observation.NodeAddedTest#testMultipleNodeAdded1
 org.apache.jackrabbit.test.api.observation.NodeAddedTest#testMultipleNodeAdded2
 org.apache.jackrabbit.test.api.observation.NodeAddedTest#testTransientNodeAddedRemoved
-org.apache.jackrabbit.test.api.observation.NodeRemovedTest#testSingleNodeRemoved
-org.apache.jackrabbit.test.api.observation.NodeRemovedTest#testMultiNodesRemoved
+org.apache.jackrabbit.test.api.observation.NodeRemovedTest#testSingleNodeRemoved  <!-- JCR-3361 -->
+org.apache.jackrabbit.test.api.observation.NodeRemovedTest#testMultiNodesRemoved  <!-- JCR-3361 -->
 org.apache.jackrabbit.test.api.observation.NodeMovedTest#testMoveNode
 org.apache.jackrabbit.test.api.observation.NodeMovedTest#testMoveTree
 org.apache.jackrabbit.test.api.observation.NodeMovedTest#testMoveWithRemove
