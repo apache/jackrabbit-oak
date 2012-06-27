@@ -84,8 +84,8 @@ public class MemoryValueFactory implements CoreValueFactory {
             } catch (UnsupportedEncodingException e) {
                 throw new IllegalStateException("UTF-8 is not supported", e);
             }
-        } else if (type == PropertyType.DECIMAL) {
-            return createValue(createValue(value).getDecimal());
+        } else if (type == PropertyType.BOOLEAN) {
+            return createValue(createValue(value).getBoolean());
         } else if (type == PropertyType.DECIMAL) {
             return createValue(createValue(value).getDecimal());
         } else if (type == PropertyType.DOUBLE) {
