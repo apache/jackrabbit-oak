@@ -26,31 +26,27 @@ import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
 import org.apache.jackrabbit.oak.core.RootImpl;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryValueFactory;
-import org.apache.jackrabbit.oak.spi.commit.EmptyEditor;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.store.Directory;
-import org.apache.lucene.store.RAMDirectory;
 import org.junit.Test;
 
-public class LuceneObserverTest {
+public class LuceneEditorTest {
 
     @Test
     public void testLucene() throws Exception {
         MicroKernel mk = new MicroKernelImpl();
-        KernelNodeStore store = new KernelNodeStore(mk, new EmptyEditor());
+        KernelNodeStore store = new KernelNodeStore(
+                mk, new LuceneEditor("jcr:system", "oak:lucene"));
         Root root = new RootImpl(store, "");
         Tree tree = root.getTree("/");
+        System.out.println(store.getRoot());
 
-        NodeState before = store.getRoot();
         tree.setProperty("foo", MemoryValueFactory.INSTANCE.createValue("bar"));
         root.commit(DefaultConflictHandler.OURS);
-        NodeState after = store.getRoot();
 
-        Directory directory = new RAMDirectory();
-        LuceneObserver observer = new LuceneObserver(directory);
-        observer.contentChanged(store, before, after);
-
+        Directory directory = new OakDirectory(
+                store, store.getRoot(), "jcr:system", "oak:lucene");
+        System.out.println(store.getRoot());
         IndexReader reader = IndexReader.open(directory);
         try {
             assertEquals(1, reader.numDocs());
