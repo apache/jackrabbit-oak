@@ -86,7 +86,7 @@ org.apache.jackrabbit.test.api.query.XPathQueryLevel2Test#testMultiValueSearch
 org.apache.jackrabbit.test.api.query.qom.ColumnTest#testExpandColumnsForNodeType
 org.apache.jackrabbit.test.api.query.qom.SelectorTest#testUnknownNodeType
 org.apache.jackrabbit.test.api.util
-org.apache.jackrabbit.test.api.observation.EventIteratorTest#testGetPosition  <!-- JCR-3361 -->
+org.apache.jackrabbit.test.api.observation.EventIteratorTest#testSkip
 org.apache.jackrabbit.test.api.observation.EventTest#testGetType
 org.apache.jackrabbit.test.api.observation.EventTest#testGetNodePath
 org.apache.jackrabbit.test.api.observation.EventTest#testGetUserId
@@ -94,8 +94,8 @@ org.apache.jackrabbit.test.api.observation.NodeAddedTest#testSingleNodeAdded
 org.apache.jackrabbit.test.api.observation.NodeAddedTest#testMultipleNodeAdded1
 org.apache.jackrabbit.test.api.observation.NodeAddedTest#testMultipleNodeAdded2
 org.apache.jackrabbit.test.api.observation.NodeAddedTest#testTransientNodeAddedRemoved
-org.apache.jackrabbit.test.api.observation.NodeRemovedTest#testSingleNodeRemoved  <!-- JCR-3361 -->
-org.apache.jackrabbit.test.api.observation.NodeRemovedTest#testMultiNodesRemoved  <!-- JCR-3361 -->
+org.apache.jackrabbit.test.api.observation.NodeRemovedTest#testSingleNodeRemoved
+org.apache.jackrabbit.test.api.observation.NodeRemovedTest#testMultiNodesRemoved
 org.apache.jackrabbit.test.api.observation.NodeMovedTest#testMoveNode
 org.apache.jackrabbit.test.api.observation.NodeMovedTest#testMoveTree
 org.apache.jackrabbit.test.api.observation.NodeMovedTest#testMoveWithRemove
@@ -103,12 +103,9 @@ org.apache.jackrabbit.test.api.observation.NodeReorderTest#testNodeReorderAddRem
 org.apache.jackrabbit.test.api.observation.NodeReorderTest#testNodeReorderMove       <!-- reorder not supported -->
 org.apache.jackrabbit.test.api.observation.NodeReorderTest#testNodeReorderSameName   <!-- reorder not supported -->
 org.apache.jackrabbit.test.api.observation.NodeReorderTest#testNodeReorderSameNameWithRemove  <!-- reorder not supported -->
-org.apache.jackrabbit.test.api.observation.PropertyAddedTest#testMultiPropertyAdded  <!-- JCR-3361 -->
-org.apache.jackrabbit.test.api.observation.PropertyChangedTest#testMultiPropertyChanged       <!-- JCR-3361 -->
 org.apache.jackrabbit.test.api.observation.PropertyChangedTest#testSinglePropertyChangedWithAdded
-org.apache.jackrabbit.test.api.observation.PropertyRemovedTest#testMultiPropertyRemoved       <!-- JCR-3361 -->
 org.apache.jackrabbit.test.api.observation.AddEventListenerTest#testPath
-org.apache.jackrabbit.test.api.observation.AddEventListenerTest#testNodeType                  <!-- JCR-3361 -->
+org.apache.jackrabbit.test.api.observation.AddEventListenerTest#testNodeType
 org.apache.jackrabbit.test.api.observation.AddEventListenerTest#testIsDeepFalseNodeAdded
 org.apache.jackrabbit.test.api.observation.AddEventListenerTest#testIsDeepFalsePropertyAdded
 org.apache.jackrabbit.test.api.observation.AddEventListenerTest#testNoLocalTrue
