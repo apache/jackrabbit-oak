@@ -20,13 +20,15 @@ import java.io.IOException;
 
 import javax.jcr.PropertyType;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.spi.commit.Observer;
+import org.apache.jackrabbit.oak.spi.commit.CommitEditor;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -35,31 +37,33 @@ import org.apache.lucene.document.Field.Store;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.Version;
 import org.apache.tika.Tika;
 import org.apache.tika.exception.TikaException;
 
-public class LuceneObserver implements Observer {
+public class LuceneEditor implements CommitEditor {
 
     private static final Tika TIKA = new Tika();
 
     private static final Version VERSION = Version.LUCENE_36;
 
-    private static final IndexWriterConfig CONFIG =
-            new IndexWriterConfig(VERSION, new StandardAnalyzer(VERSION));
+    private static final Analyzer ANALYZER = new StandardAnalyzer(VERSION);
 
-    private final Directory directory;
+    private final String[] path;
 
-    public LuceneObserver(Directory directory) {
-        this.directory = directory;
+    public LuceneEditor(String... path) {
+        this.path = path;
     }
 
     @Override
-    public void contentChanged(
-            NodeStore store, NodeState before, NodeState after) {
+    public NodeState editCommit(
+            NodeStore store, NodeState before, NodeState after)
+            throws CommitFailedException {
         try {
-            IndexWriter writer = new IndexWriter(directory, CONFIG);
+            OakDirectory directory = new OakDirectory(store, after, path);
+
+            IndexWriter writer = new IndexWriter(
+                    directory, new IndexWriterConfig(VERSION, ANALYZER));
             try {
                 LuceneDiff diff = new LuceneDiff(store, writer, "");
                 store.compare(before, after, diff);
@@ -68,8 +72,11 @@ public class LuceneObserver implements Observer {
             } finally {
                 writer.close();
             }
+
+            return directory.getRoot();
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new CommitFailedException(
+                    "Failed to update the full text search index", e);
         }
     }
 

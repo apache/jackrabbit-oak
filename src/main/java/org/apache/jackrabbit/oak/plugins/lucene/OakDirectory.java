@@ -34,8 +34,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.IndexOutput;
+import org.apache.lucene.store.NoLockFactory;
 
-public class OakDirectory extends Directory {
+class OakDirectory extends Directory {
 
     private final NodeStore store;
 
@@ -49,7 +50,8 @@ public class OakDirectory extends Directory {
 
     private NodeState directory;
 
-    private OakDirectory(NodeStore store, NodeState root, String... path) {
+    public OakDirectory(NodeStore store, NodeState root, String... path) {
+        this.lockFactory = NoLockFactory.getNoLockFactory();
         this.store = store;
         this.factory = store.getValueFactory();
         this.path = path;
@@ -169,10 +171,11 @@ public class OakDirectory extends Directory {
             @Override
             public void readBytes(byte[] b, int offset, int len)
                     throws IOException {
-                if (offset < 0 || len < 0 || position + len > data.length) {
+                if (len < 0 || position + len > data.length) {
                     throw new IOException("Invalid byte range request");
                 } else {
                     System.arraycopy(data, position, b, offset, len);
+                    position += len;
                 }
             }
 
@@ -228,11 +231,11 @@ public class OakDirectory extends Directory {
         }
 
         if (value != null) {
-            int size = (int) value.length();
-            byte[] buffer = new byte[size];
-
             InputStream stream = value.getNewStream();
             try {
+                byte[] buffer = new byte[(int) value.length()];
+
+                int size = 0;
                 do {
                     int n = stream.read(buffer, size, buffer.length - size);
                     if (n == -1) {
@@ -241,11 +244,11 @@ public class OakDirectory extends Directory {
                     }
                     size += n;
                 } while (size < buffer.length);
+
+                return buffer;
             } finally {
                 stream.close();
             }
-
-            return buffer;
         } else {
             return new byte[0];
         }
