@@ -29,6 +29,9 @@ public abstract class MemoryNodeStore extends AbstractNodeStore {
 
     @Override
     public NodeStateBuilder getBuilder(NodeState base) {
+        if (base == null) {
+            base = MemoryNodeState.EMPTY_NODE;
+        }
         return new MemoryNodeStateBuilder(base);
     }
 
