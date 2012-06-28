@@ -83,7 +83,6 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
         copy(getName(), srcAbsPath, destAbsPath);
     }
 
-    @SuppressWarnings("deprecation")
     @Override
     public void copy(String srcWorkspace, String srcAbsPath, String destAbsPath) throws RepositoryException {
         ensureIsAlive();
@@ -104,7 +103,6 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
                 sessionDelegate.getOakPathOrThrowNotFound(oakPath));
     }
 
-    @SuppressWarnings("deprecation")
     @Override
     public void clone(String srcWorkspace, String srcAbsPath, String destAbsPath, boolean removeExisting) throws RepositoryException {
         ensureIsAlive();
@@ -113,7 +111,6 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
         throw new UnsupportedRepositoryOperationException("Not implemented.");
     }
 
-    @SuppressWarnings("deprecation")
     @Override
     public void move(String srcAbsPath, String destAbsPath) throws RepositoryException {
         ensureIsAlive();
@@ -185,7 +182,6 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
         return new String[] {getName()};
     }
 
-    @SuppressWarnings("deprecation")
     @Override
     public ContentHandler getImportContentHandler(String parentAbsPath, int uuidBehavior) throws RepositoryException {
         ensureIsAlive();
@@ -194,7 +190,6 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
         throw new UnsupportedRepositoryOperationException("TODO: Workspace.getImportContentHandler");
     }
 
-    @SuppressWarnings("deprecation")
     @Override
     public void importXML(String parentAbsPath, InputStream in, int uuidBehavior) throws IOException, RepositoryException {
         ensureIsAlive();
