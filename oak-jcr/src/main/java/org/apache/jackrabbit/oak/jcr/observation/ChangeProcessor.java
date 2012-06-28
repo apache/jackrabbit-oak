@@ -16,8 +16,9 @@
  */
 package org.apache.jackrabbit.oak.jcr.observation;
 
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -65,27 +66,42 @@ class ChangeProcessor extends TimerTask {
 
     @Override
     public void run() {
-        changeExtractor.getChanges(new EventGeneratingNodeStateDiff());
+        EventGeneratingNodeStateDiff diff = new EventGeneratingNodeStateDiff();
+        changeExtractor.getChanges(diff);
+        diff.sendEvents();
     }
 
     //------------------------------------------------------------< private >---
 
     private class EventGeneratingNodeStateDiff implements NodeStateDiff {
+        public static final int PURGE_LIMIT = 8192;
+
         private final String path;
 
-        EventGeneratingNodeStateDiff(String path) {
+        private int childNodeCount;
+        private List<Iterator<Event>> events;
+
+        EventGeneratingNodeStateDiff(String path, List<Iterator<Event>> events) {
             this.path = path;
+            this.events = events;
         }
 
         public EventGeneratingNodeStateDiff() {
-            this("/");
+            this("/", new ArrayList<Iterator<Event>>(PURGE_LIMIT));
+        }
+
+        public void sendEvents() {
+            if (!events.isEmpty()) {
+                listener.onEvent(new EventIteratorAdapter(Iterators.flatten(events.iterator())));
+                events = new ArrayList<Iterator<Event>>(PURGE_LIMIT);
+            }
         }
 
         @Override
         public void propertyAdded(PropertyState after) {
             if (!stopped && filterRef.get().include(Event.PROPERTY_ADDED, path, after)) {
                 Event event = generatePropertyEvent(Event.PROPERTY_ADDED, path, after);
-                listener.onEvent(new EventIteratorAdapter(Collections.singleton(event)));
+                events.add(Iterators.singleton(event));
             }
         }
 
@@ -93,7 +109,7 @@ class ChangeProcessor extends TimerTask {
         public void propertyChanged(PropertyState before, PropertyState after) {
             if (!stopped && filterRef.get().include(Event.PROPERTY_CHANGED, path, before)) {
                 Event event = generatePropertyEvent(Event.PROPERTY_CHANGED, path, after);
-                listener.onEvent(new EventIteratorAdapter(Collections.singleton(event)));
+                events.add(Iterators.singleton(event));
             }
         }
 
@@ -101,7 +117,7 @@ class ChangeProcessor extends TimerTask {
         public void propertyDeleted(PropertyState before) {
             if (!stopped && filterRef.get().include(Event.PROPERTY_REMOVED, path, before)) {
                 Event event = generatePropertyEvent(Event.PROPERTY_REMOVED, path, before);
-                listener.onEvent(new EventIteratorAdapter(Collections.singleton(event)));
+                events.add(Iterators.singleton(event));
             }
         }
 
@@ -109,7 +125,10 @@ class ChangeProcessor extends TimerTask {
         public void childNodeAdded(String name, NodeState after) {
             if (!stopped && filterRef.get().include(Event.NODE_ADDED, path, after)) {
                 Iterator<Event> events = generateNodeEvents(Event.NODE_ADDED, path, name, after);
-                listener.onEvent(new EventIteratorAdapter(events));
+                this.events.add(events);
+                if (++childNodeCount > PURGE_LIMIT) {
+                    sendEvents();
+                }
             }
         }
 
@@ -117,15 +136,18 @@ class ChangeProcessor extends TimerTask {
         public void childNodeDeleted(String name, NodeState before) {
             if (!stopped && filterRef.get().include(Event.NODE_REMOVED, path, before)) {
                 Iterator<Event> events = generateNodeEvents(Event.NODE_REMOVED, path, name, before);
-                listener.onEvent(new EventIteratorAdapter(events));
+                this.events.add(events);
             }
         }
 
         @Override
         public void childNodeChanged(String name, NodeState before, NodeState after) {
             if (!stopped && filterRef.get().includeChildren(path)) {
-                changeExtractor.getChanges(before, after,
-                        new EventGeneratingNodeStateDiff(PathUtils.concat(path, name)));
+                EventGeneratingNodeStateDiff diff = new EventGeneratingNodeStateDiff(PathUtils.concat(path, name), events);
+                changeExtractor.getChanges(before, after, diff);
+                if (events.size() > PURGE_LIMIT) {
+                    diff.sendEvents();
+                }
             }
         }
     }
