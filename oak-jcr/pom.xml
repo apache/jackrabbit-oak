@@ -98,7 +98,7 @@ org.apache.jackrabbit.test.api.observation.AddEventListenerTest#testPath
 org.apache.jackrabbit.test.api.observation.AddEventListenerTest#testNodeType
 org.apache.jackrabbit.test.api.observation.AddEventListenerTest#testIsDeepFalseNodeAdded
 org.apache.jackrabbit.test.api.observation.AddEventListenerTest#testIsDeepFalsePropertyAdded
-org.apache.jackrabbit.test.api.observation.WorkspaceOperationTest#testCopy
+org.apache.jackrabbit.test.api.observation.WorkspaceOperationTest#testCopy                    <!-- OAK-156 -->
 org.apache.jackrabbit.test.api.observation.GetIdentifierTest#testNodeAdded
 org.apache.jackrabbit.test.api.observation.GetIdentifierTest#testNodeMoved
 org.apache.jackrabbit.test.api.observation.GetIdentifierTest#testNodeRemoved
