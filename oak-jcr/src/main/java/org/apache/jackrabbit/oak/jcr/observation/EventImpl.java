@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr.observation;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 import javax.jcr.RepositoryException;
@@ -29,13 +31,14 @@ public class EventImpl implements Event {
     private final String identifier;
     private final Map<?, ?> info;
     private final long date;
+    private static Map<?, ?> EMPTY_INFO = Collections.unmodifiableMap(new HashMap<Object, Object>());
 
     public EventImpl(int type, String path, String userID, String identifier, Map<?, ?> info, long date) {
         this.type = type;
         this.path = path;
         this.userID = userID;
         this.identifier = identifier;
-        this.info = info;
+        this.info = info != null ? info : EMPTY_INFO;
         this.date = date;
     }
 
