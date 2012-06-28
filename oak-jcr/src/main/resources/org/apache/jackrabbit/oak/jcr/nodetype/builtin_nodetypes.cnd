@@ -18,7 +18,7 @@
 <rep='internal'>
 <jcr='http://www.jcp.org/jcr/1.0'>
 <nt='http://www.jcp.org/jcr/nt/1.0'>
-<mix='http://www.jcp.org/jcr/mix/1.0'>
+<mixin='http://www.jcp.org/jcr/mix/1.0'>
 
 //------------------------------------------------------------------------------
 // B A S E  T Y P E
@@ -43,7 +43,7 @@
  * This abstract node type serves as the supertype of nt:file and nt:folder.
  * @since 1.0
  */
-[nt:hierarchyNode] > mix:created
+[nt:hierarchyNode] > mixin:created
   abstract
 
 /**
@@ -92,7 +92,7 @@
  *
  * @since 1.0
  */
-[nt:resource] > mix:mimeType, mix:lastModified, mix:referenceable
+[nt:resource] > mixin:mimeType, mixin:lastModified, mixin:referenceable
   primaryitem jcr:data
   - jcr:data (BINARY) mandatory
 
@@ -103,7 +103,7 @@
  * Note that the protected attributes suggested by JSR283 are omitted in this variant.
  * @since 2.0
  */
-[mix:title]
+[mixin:title]
   mixin
   - jcr:title (STRING)
   - jcr:description (STRING)
@@ -120,7 +120,7 @@
  *
  * @since 2.0
  */
-[mix:created]
+[mixin:created]
   mixin
   - jcr:created (DATE) autocreated protected
   - jcr:createdBy (STRING) autocreated protected
@@ -142,7 +142,7 @@
  * Note that the protected attributes suggested by JSR283 are omitted in this variant.
  * @since 2.0
  */
-[mix:lastModified]
+[mixin:lastModified]
   mixin
   - jcr:lastModified (DATE) autocreated
   - jcr:lastModifiedBy (STRING) autocreated
@@ -157,7 +157,7 @@
  * Note that the protected attributes suggested by JSR283 are omitted in this variant.
  * @since 2.0
  */
-[mix:language]
+[mixin:language]
   mixin
   - jcr:language (STRING)
 
@@ -174,7 +174,7 @@
  * Note that the protected attributes suggested by JSR283 are omitted in this variant.
  * @since 2.0
  */
-[mix:mimeType]
+[mixin:mimeType]
   mixin
   - jcr:mimeType (STRING)
   - jcr:encoding (STRING)
@@ -221,14 +221,14 @@
   - jcr:id (WEAKREFERENCE)
 
 /**
- * The mix:etag mixin type defines a standardized identity validator for BINARY 
+ * The mixin:etag mixin type defines a standardized identity validator for BINARY 
  * properties similar to the entity tags used in HTTP/1.1
  *
  * A jcr:etag property is an opaque string whose syntax is identical to that
  * defined for entity tags in HTTP/1.1. Semantically, the jcr:etag is comparable
  * to the HTTP/1.1 strong entity tag.
  *
- * On creation of a mix:etag node N, or assignment of mix:etag to N, the
+ * On creation of a mixin:etag node N, or assignment of mixin:etag to N, the
  * repository must create a jcr:etag property with an implementation determined
  * value.
  *
@@ -240,7 +240,7 @@
  *
  * @since 2.0
  */
-[mix:etag]
+[mixin:etag]
   mixin
   - jcr:etag (STRING) protected autocreated
 
@@ -281,7 +281,7 @@
  *
  * @since 1.0
  */
-[mix:referenceable]
+[mixin:referenceable]
   mixin
   - jcr:uuid (STRING) mandatory autocreated protected INITIALIZE 
 
@@ -292,7 +292,7 @@
 /**
  * @since 1.0
  */
-[mix:lockable]
+[mixin:lockable]
   mixin
   - jcr:lockOwner (STRING) protected IGNORE
   - jcr:lockIsDeep (BOOLEAN) protected IGNORE
@@ -304,7 +304,7 @@
 /**
  * @since 2.0
  */
-[mix:shareable] > mix:referenceable
+[mixin:shareable] > mixin:referenceable
   mixin
 
 //------------------------------------------------------------------------------
@@ -314,14 +314,14 @@
 /**
  * @since 2.0
  */
-[mix:simpleVersionable]
+[mixin:simpleVersionable]
   mixin
   - jcr:isCheckedOut (BOOLEAN) = 'true' mandatory autocreated protected IGNORE
 
 /**
  * @since 1.0
  */
-[mix:versionable] > mix:simpleVersionable, mix:referenceable
+[mixin:versionable] > mixin:simpleVersionable, mixin:referenceable
   mixin
   - jcr:versionHistory (REFERENCE) mandatory protected IGNORE < 'nt:versionHistory'
   - jcr:baseVersion (REFERENCE) mandatory protected IGNORE < 'nt:version'
@@ -335,7 +335,7 @@
 /**
  * @since 1.0
  */
-[nt:versionHistory] > mix:referenceable
+[nt:versionHistory] > mixin:referenceable
   - jcr:versionableUuid (STRING) mandatory autocreated protected ABORT
     /** @since 2.0 */
   - jcr:copiedFrom (WEAKREFERENCE) protected ABORT < 'nt:version'
@@ -352,7 +352,7 @@
 /**
  * @since 1.0
  */
-[nt:version] > mix:referenceable
+[nt:version] > mixin:referenceable
   - jcr:created (DATE) mandatory autocreated protected ABORT
   - jcr:predecessors (REFERENCE) protected multiple ABORT < 'nt:version'
   - jcr:successors (REFERENCE) protected multiple ABORT < 'nt:version'
@@ -363,7 +363,7 @@
 /**
  * @since 1.0
  */
-[nt:frozenNode] > mix:referenceable
+[nt:frozenNode] > mixin:referenceable
   orderable
   - jcr:frozenPrimaryType (NAME) mandatory autocreated protected ABORT
   - jcr:frozenMixinTypes (NAME) protected multiple ABORT
@@ -381,13 +381,13 @@
 /**
  * @since 2.0
  */
-[nt:activity] > mix:referenceable
+[nt:activity] > mixin:referenceable
   - jcr:activityTitle (STRING) mandatory autocreated protected
 
 /**
  * @since 2.0
  */
-[nt:configuration] > mix:versionable
+[nt:configuration] > mixin:versionable
   - jcr:root (REFERENCE) mandatory autocreated protected
 
 //------------------------------------------------------------------------------
@@ -469,7 +469,7 @@
 //------------------------------------------------------------------------------
 
 /**
- * Only nodes with mixin node type mix:lifecycle may participate in a lifecycle.
+ * Only nodes with mixin node type mixin:lifecycle may participate in a lifecycle.
  *
  * @peop jcr:lifecyclePolicy
  *              This property is a reference to another node that contains
@@ -481,7 +481,7 @@
  *
  * @since 2.0
  */
-[mix:lifecycle]
+[mixin:lifecycle]
   mixin
   - jcr:lifecyclePolicy (REFERENCE) protected INITIALIZE
   - jcr:currentLifecycleState (STRING) protected INITIALIZE
@@ -591,7 +591,7 @@
 // User Management 
 // -----------------------------------------------------------------------------
 
-[rep:Authorizable] > mix:referenceable, nt:hierarchyNode
+[rep:Authorizable] > mixin:referenceable, nt:hierarchyNode
   abstract
   + * (nt:base) = nt:unstructured VERSION
   - rep:principalName (STRING) protected mandatory

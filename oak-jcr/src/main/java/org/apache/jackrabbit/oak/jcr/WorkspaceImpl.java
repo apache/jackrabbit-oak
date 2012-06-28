@@ -62,7 +62,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     public WorkspaceImpl(SessionDelegate sessionDelegate)
             throws RepositoryException {
         this.sessionDelegate = sessionDelegate;
-        this.nodeTypeManager = new NodeTypeManagerImpl(sessionDelegate.getValueFactory(), sessionDelegate.getNamePathMapper());
+        this.nodeTypeManager = new NodeTypeManagerImpl(sessionDelegate);
         this.queryManager = new QueryManagerImpl(sessionDelegate);
         this.lockManager = new LockManagerImpl(sessionDelegate.getSession());
     }
