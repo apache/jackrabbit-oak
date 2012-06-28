@@ -55,7 +55,6 @@ public class ObservationManagerImpl implements ObservationManager {
             boolean isDeep, String[] uuid, String[] nodeTypeName, boolean noLocal)
             throws RepositoryException {
 
-        // TODO: support noLocal flag!?
         ChangeProcessor processor = processors.get(listener);
         if (processor == null) {
             ChangeExtractor extractor = sessionDelegate.getChangeExtractor();
