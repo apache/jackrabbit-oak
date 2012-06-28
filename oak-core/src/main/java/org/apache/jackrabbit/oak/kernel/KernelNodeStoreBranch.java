@@ -125,14 +125,9 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
         MicroKernel kernel = store.getKernel();
         CommitEditor editor = store.getCommitEditor();
 
-        NodeState preMergeRoot = store.getRoot();
-        NodeState oldRoot = preMergeRoot;
+        NodeState oldRoot = store.getRoot();
         NodeState toCommit = editor.editCommit(store, oldRoot, currentRoot);
-        while (!currentRoot.equals(toCommit)) {
-            setRoot(toCommit);
-            oldRoot = store.getRoot();
-            toCommit = editor.editCommit(store, oldRoot, currentRoot);
-        }
+        setRoot(toCommit);
 
         try {
             String mergedRevision = kernel.merge(branchRevision, null);
