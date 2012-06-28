@@ -200,7 +200,7 @@ class ChangeProcessor extends TimerTask {
             propertyEvents = Iterators.empty();
         }
 
-        Iterator<Event> childNodeEvents = filter.includeChildren(jcrPath)
+        Iterator<Event> childNodeEvents = !stopped && filter.includeChildren(jcrPath)
             ? chain(generateChildEvents(eventType, path, node))
             : Iterators.<Event>empty();
 
