@@ -16,28 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.nodetype;
 
-import org.apache.jackrabbit.commons.cnd.CompactNodeTypeDefReader;
-import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory;
-import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory.AbstractNodeDefinitionBuilder;
-import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory.AbstractNodeTypeDefinitionBuilder;
-import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory.AbstractPropertyDefinitionBuilder;
-import org.apache.jackrabbit.commons.cnd.ParseException;
-import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.CoreValueFactory;
-import org.apache.jackrabbit.oak.jcr.value.ValueFactoryImpl;
-import org.apache.jackrabbit.oak.namepath.NameMapper;
-
-import javax.jcr.RepositoryException;
-import javax.jcr.UnsupportedRepositoryOperationException;
-import javax.jcr.nodetype.NoSuchNodeTypeException;
-import javax.jcr.nodetype.NodeDefinitionTemplate;
-import javax.jcr.nodetype.NodeType;
-import javax.jcr.nodetype.NodeTypeDefinition;
-import javax.jcr.nodetype.NodeTypeIterator;
-import javax.jcr.nodetype.NodeTypeManager;
-import javax.jcr.nodetype.NodeTypeTemplate;
-import javax.jcr.nodetype.PropertyDefinitionTemplate;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -49,23 +27,51 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.jcr.NamespaceRegistry;
+import javax.jcr.RepositoryException;
+import javax.jcr.UnsupportedRepositoryOperationException;
+import javax.jcr.nodetype.NoSuchNodeTypeException;
+import javax.jcr.nodetype.NodeDefinitionTemplate;
+import javax.jcr.nodetype.NodeType;
+import javax.jcr.nodetype.NodeTypeDefinition;
+import javax.jcr.nodetype.NodeTypeIterator;
+import javax.jcr.nodetype.NodeTypeManager;
+import javax.jcr.nodetype.NodeTypeTemplate;
+import javax.jcr.nodetype.PropertyDefinitionTemplate;
+
+import org.apache.jackrabbit.commons.cnd.CompactNodeTypeDefReader;
+import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory;
+import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory.AbstractNodeDefinitionBuilder;
+import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory.AbstractNodeTypeDefinitionBuilder;
+import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory.AbstractPropertyDefinitionBuilder;
+import org.apache.jackrabbit.commons.cnd.ParseException;
+import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
+import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.CoreValueFactory;
+import org.apache.jackrabbit.oak.jcr.SessionDelegate;
+import org.apache.jackrabbit.oak.jcr.value.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.namepath.NameMapper;
+import org.apache.jackrabbit.oak.plugins.name.NamespaceRegistryImpl;
+
 public class NodeTypeManagerImpl implements NodeTypeManager {
 
     private final ValueFactoryImpl vf;
     private final NameMapper mapper;
+    private final NamespaceRegistry nsregistry;
     private final List<NodeTypeDelegate> typeDelegates;
 
     private final Map<String, NodeType> typemap = new HashMap<String, NodeType>();
 
-    public NodeTypeManagerImpl(ValueFactoryImpl vf, NameMapper mapper) throws RepositoryException {
-        this.vf = vf;
-        this.mapper = mapper;
+    public NodeTypeManagerImpl(SessionDelegate sd) throws RepositoryException {
+        this.vf = sd.getValueFactory();
+        this.mapper = sd.getNamePathMapper();
+        this.nsregistry = new NamespaceRegistryImpl(sd.getContentSession());
 
         try {
             InputStream stream = NodeTypeManagerImpl.class.getResourceAsStream("builtin_nodetypes.cnd");
             Reader reader = new InputStreamReader(stream, "UTF-8");
             try {
-                DefinitionBuilderFactory<NodeTypeDelegate, Map<String, String>> dbf = new DefinitionDelegateBuilderFactory(vf);
+                DefinitionBuilderFactory<NodeTypeDelegate, Map<String, String>> dbf = new DefinitionDelegateBuilderFactory();
                 CompactNodeTypeDefReader<NodeTypeDelegate, Map<String, String>> cndr = new CompactNodeTypeDefReader<NodeTypeDelegate, Map<String, String>>(
                         reader, null, dbf);
 
@@ -192,13 +198,7 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
     private class DefinitionDelegateBuilderFactory extends DefinitionBuilderFactory<NodeTypeDelegate, Map<String, String>> {
 
         private Map<String, String> nsmap = new HashMap<String, String>();
-
-        private final ValueFactoryImpl vf;
-
-        public DefinitionDelegateBuilderFactory(ValueFactoryImpl vf) {
-            this.vf = vf;
-        }
-
+        
         @Override
         public Map<String, String> getNamespaceMapping() {
             return nsmap;
@@ -206,7 +206,7 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
 
         @Override
         public AbstractNodeTypeDefinitionBuilder<NodeTypeDelegate> newNodeTypeDefinitionBuilder() throws RepositoryException {
-            return new NodeTypeDefinitionDelegateBuilder(vf);
+            return new NodeTypeDefinitionDelegateBuilder(this);
         }
 
         @Override
@@ -218,6 +218,37 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
         public void setNamespaceMapping(Map<String, String> nsmap) {
             this.nsmap = nsmap;
         }
+
+        public String convertNameToOak(String cndName) throws RepositoryException {
+            if (cndName == null) {
+                return null;
+            } else {
+                int pos = cndName.indexOf(":");
+                if (pos < 0) {
+                    // no colon
+                    return cndName;
+                } else {
+                    String pref = cndName.substring(0, pos);
+                    String name = cndName.substring(pos + 1);
+                    String ns = nsmap.get(pref);
+
+                    if (ns == null) {
+                        throw new RepositoryException("no namespace defined for prefix " + pref);
+                    } else {
+                        String oakprefix = nsregistry.getPrefix(ns);
+                        return oakprefix + ":" + name;
+                    }
+                }
+            }
+        }
+
+        public List<String> convertNamesToOak(List<String> cndNames) throws RepositoryException {
+            List<String> result = new ArrayList<String>();
+            for (String cndName : cndNames) {
+                result.add(convertNameToOak(cndName));
+            }
+            return result;
+        }
     }
 
     private class NodeTypeDefinitionDelegateBuilder extends AbstractNodeTypeDefinitionBuilder<NodeTypeDelegate> {
@@ -225,13 +256,13 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
         private final List<PropertyDefinitionDelegateBuilder> propertyDefinitions = new ArrayList<PropertyDefinitionDelegateBuilder>();
         private final List<NodeDefinitionDelegateBuilder> childNodeDefinitions = new ArrayList<NodeDefinitionDelegateBuilder>();
 
-        private final ValueFactoryImpl vf;
+        private final DefinitionDelegateBuilderFactory ddbf;
 
         private String primaryItemName;
-        private final List<String> declaredSuperTypes = new ArrayList<String>();
+        private List<String> declaredSuperTypes = new ArrayList<String>();
 
-        public NodeTypeDefinitionDelegateBuilder(ValueFactoryImpl vf) {
-            this.vf = vf;
+        public NodeTypeDefinitionDelegateBuilder(DefinitionDelegateBuilderFactory ddbf) {
+            this.ddbf = ddbf;
         }
 
         @Override
@@ -257,6 +288,10 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
         @Override
         public NodeTypeDelegate build() throws RepositoryException {
 
+            name = ddbf.convertNameToOak(name);
+            declaredSuperTypes = ddbf.convertNamesToOak(declaredSuperTypes);
+            primaryItemName = ddbf.convertNameToOak(primaryItemName);
+
             NodeTypeDelegate result = new NodeTypeDelegate(name, declaredSuperTypes.toArray(new String[declaredSuperTypes.size()]),
                     primaryItemName, isMixin, isAbstract, isOrderable);
 
@@ -277,6 +312,10 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
 
         public void addNodeDefinition(NodeDefinitionDelegateBuilder nd) {
             this.childNodeDefinitions.add(nd);
+        }
+
+        public String convertNameToOak(String name) throws RepositoryException {
+            return ddbf.convertNameToOak(name);
         }
     }
 
@@ -330,13 +369,16 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
             this.ndtb = ntdb;
         }
 
-        public PropertyDefinitionDelegate getPropertyDefinitionDelegate(CoreValueFactory cvf) {
+        public PropertyDefinitionDelegate getPropertyDefinitionDelegate(CoreValueFactory cvf) throws RepositoryException {
 
             CoreValue[] defaultCoreValues = new CoreValue[defaultValues.size()];
 
             for (int i = 0; i < defaultCoreValues.length; i++) {
+                // TODO: need name mapping?
                 defaultCoreValues[i] = cvf.createValue(defaultValues.get(i), requiredType);
             }
+
+            name = ndtb.convertNameToOak(name);
 
             return new PropertyDefinitionDelegate(name, autocreate, isMandatory, onParent, isProtected, requiredType, isMultiple,
                     defaultCoreValues);
