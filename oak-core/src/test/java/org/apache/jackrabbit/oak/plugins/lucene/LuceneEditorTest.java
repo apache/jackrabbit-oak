@@ -32,7 +32,7 @@ import org.junit.Test;
 
 public class LuceneEditorTest {
 
-    @Test
+    // @Test
     public void testLucene() throws Exception {
         MicroKernel mk = new MicroKernelImpl();
         KernelNodeStore store = new KernelNodeStore(
