@@ -56,6 +56,8 @@ class ChangeFilter {
     }
 
     public boolean includeChildren(String path) {
-        return deep && PathUtils.isAncestor(this.path, path);
+        return PathUtils.isAncestor(path, this.path) ||
+                path.equals(this.path) ||
+                deep && PathUtils.isAncestor(this.path, path);
     }
 }
