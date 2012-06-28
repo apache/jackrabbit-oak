@@ -16,24 +16,46 @@
  */
 package org.apache.jackrabbit.oak.jcr.observation;
 
-import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 class ChangeFilter {
-    public ChangeFilter(int eventTypes, String absPath, boolean deep, String[] uuid, String[] nodeTypeName,
+    private final int eventTypes;
+    private final String path;
+    private final boolean deep;
+    private final String[] uuid;          // TODO implement filtering by uuid
+    private final String[] nodeTypeName;  // TODO implement filtering by nodeTypeName
+    private boolean noLocal;              // TODO implement filtering by noLocal
+
+    public ChangeFilter(int eventTypes, String path, boolean deep, String[] uuid, String[] nodeTypeName,
             boolean noLocal) {
-        // todo implement ChangeFilter
+        this.eventTypes = eventTypes;
+        this.path = path;
+        this.deep = deep;
+        this.uuid = uuid;
+        this.nodeTypeName = nodeTypeName;
+        this.noLocal = noLocal;
     }
 
-    public boolean include(int eventType, String path, PropertyState propertyState) {
-        return true; // todo implement include
+    public boolean include(int eventType) {
+        return (this.eventTypes & eventType) != 0;
     }
 
-    public boolean include(int eventType, String path, NodeState nodeState) {
-        return true; // todo implement include
+    public boolean include(String path) {
+        if (!deep && !this.path.equals(path)) {
+            return false;
+        }
+        if (deep && !PathUtils.isAncestor(this.path, path)) {
+            return false;
+        }
+        return true;
+    }
+
+    public boolean include(int eventType, String path, NodeState associatedParentNode) {
+        return include(eventType) && include(path);
     }
 
     public boolean includeChildren(String path) {
-        return true; // todo implement includeChildren
+        return deep && PathUtils.isAncestor(this.path, path);
     }
 }

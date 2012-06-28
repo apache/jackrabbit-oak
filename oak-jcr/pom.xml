@@ -86,14 +86,7 @@ org.apache.jackrabbit.test.api.query.XPathQueryLevel2Test#testMultiValueSearch
 org.apache.jackrabbit.test.api.query.qom.ColumnTest#testExpandColumnsForNodeType
 org.apache.jackrabbit.test.api.query.qom.SelectorTest#testUnknownNodeType
 org.apache.jackrabbit.test.api.util
-org.apache.jackrabbit.test.api.observation.EventIteratorTest#testSkip
-org.apache.jackrabbit.test.api.observation.EventTest#testGetType
-org.apache.jackrabbit.test.api.observation.EventTest#testGetNodePath
 org.apache.jackrabbit.test.api.observation.EventTest#testGetUserId
-org.apache.jackrabbit.test.api.observation.NodeAddedTest#testSingleNodeAdded
-org.apache.jackrabbit.test.api.observation.NodeAddedTest#testMultipleNodeAdded1
-org.apache.jackrabbit.test.api.observation.NodeAddedTest#testMultipleNodeAdded2
-org.apache.jackrabbit.test.api.observation.NodeAddedTest#testTransientNodeAddedRemoved
 org.apache.jackrabbit.test.api.observation.NodeRemovedTest#testSingleNodeRemoved
 org.apache.jackrabbit.test.api.observation.NodeRemovedTest#testMultiNodesRemoved
 org.apache.jackrabbit.test.api.observation.NodeMovedTest#testMoveNode
@@ -103,24 +96,17 @@ org.apache.jackrabbit.test.api.observation.NodeReorderTest#testNodeReorderAddRem
 org.apache.jackrabbit.test.api.observation.NodeReorderTest#testNodeReorderMove       <!-- reorder not supported -->
 org.apache.jackrabbit.test.api.observation.NodeReorderTest#testNodeReorderSameName   <!-- reorder not supported -->
 org.apache.jackrabbit.test.api.observation.NodeReorderTest#testNodeReorderSameNameWithRemove  <!-- reorder not supported -->
-org.apache.jackrabbit.test.api.observation.PropertyChangedTest#testSinglePropertyChangedWithAdded
 org.apache.jackrabbit.test.api.observation.AddEventListenerTest#testPath
 org.apache.jackrabbit.test.api.observation.AddEventListenerTest#testNodeType
 org.apache.jackrabbit.test.api.observation.AddEventListenerTest#testIsDeepFalseNodeAdded
 org.apache.jackrabbit.test.api.observation.AddEventListenerTest#testIsDeepFalsePropertyAdded
-org.apache.jackrabbit.test.api.observation.AddEventListenerTest#testNoLocalTrue
 org.apache.jackrabbit.test.api.observation.WorkspaceOperationTest#testCopy
-org.apache.jackrabbit.test.api.observation.WorkspaceOperationTest#testRename
-org.apache.jackrabbit.test.api.observation.WorkspaceOperationTest#testMove
 org.apache.jackrabbit.test.api.observation.GetIdentifierTest#testNodeAdded
 org.apache.jackrabbit.test.api.observation.GetIdentifierTest#testNodeMoved
 org.apache.jackrabbit.test.api.observation.GetIdentifierTest#testNodeRemoved
 org.apache.jackrabbit.test.api.observation.GetIdentifierTest#testPropertyAdded
 org.apache.jackrabbit.test.api.observation.GetIdentifierTest#testPropertyChanged
 org.apache.jackrabbit.test.api.observation.GetIdentifierTest#testPropertyRemoved
-org.apache.jackrabbit.test.api.observation.GetInfoTest#testNodeAdded
-org.apache.jackrabbit.test.api.observation.GetInfoTest#testNodeRemoved
-org.apache.jackrabbit.test.api.observation.GetInfoTest#testPropertyAdded
 org.apache.jackrabbit.test.api.observation.GetUserDataTest#testSave
 org.apache.jackrabbit.test.api.observation.GetUserDataTest#testWorkspaceOperation
     </known.issues>

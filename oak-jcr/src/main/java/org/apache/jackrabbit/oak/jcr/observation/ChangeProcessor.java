@@ -77,29 +77,36 @@ class ChangeProcessor extends TimerTask {
         public static final int PURGE_LIMIT = 8192;
 
         private final String path;
+        private final NodeState associatedParentNode;
 
         private int childNodeCount;
         private List<Iterator<Event>> events;
 
-        EventGeneratingNodeStateDiff(String path, List<Iterator<Event>> events) {
+        EventGeneratingNodeStateDiff(String path, List<Iterator<Event>> events, NodeState associatedParentNode) {
             this.path = path;
+            this.associatedParentNode = associatedParentNode;
             this.events = events;
         }
 
         public EventGeneratingNodeStateDiff() {
-            this("/", new ArrayList<Iterator<Event>>(PURGE_LIMIT));
+            this("/", new ArrayList<Iterator<Event>>(PURGE_LIMIT), null);
         }
 
         public void sendEvents() {
-            if (!events.isEmpty()) {
-                listener.onEvent(new EventIteratorAdapter(Iterators.flatten(events.iterator())));
+            Iterator<Event> eventIt = Iterators.flatten(events.iterator());
+            if (eventIt.hasNext()) {
+                listener.onEvent(new EventIteratorAdapter(eventIt));
                 events = new ArrayList<Iterator<Event>>(PURGE_LIMIT);
             }
         }
 
+        private String jcrPath() {
+            return namePathMapper.getJcrPath(path);
+        }
+
         @Override
         public void propertyAdded(PropertyState after) {
-            if (!stopped && filterRef.get().include(Event.PROPERTY_ADDED, path, after)) {
+            if (!stopped && filterRef.get().include(Event.PROPERTY_ADDED, jcrPath(), associatedParentNode)) {
                 Event event = generatePropertyEvent(Event.PROPERTY_ADDED, path, after);
                 events.add(Iterators.singleton(event));
             }
@@ -107,7 +114,7 @@ class ChangeProcessor extends TimerTask {
 
         @Override
         public void propertyChanged(PropertyState before, PropertyState after) {
-            if (!stopped && filterRef.get().include(Event.PROPERTY_CHANGED, path, before)) {
+            if (!stopped && filterRef.get().include(Event.PROPERTY_CHANGED, jcrPath(), associatedParentNode)) {
                 Event event = generatePropertyEvent(Event.PROPERTY_CHANGED, path, after);
                 events.add(Iterators.singleton(event));
             }
@@ -115,7 +122,7 @@ class ChangeProcessor extends TimerTask {
 
         @Override
         public void propertyDeleted(PropertyState before) {
-            if (!stopped && filterRef.get().include(Event.PROPERTY_REMOVED, path, before)) {
+            if (!stopped && filterRef.get().include(Event.PROPERTY_REMOVED, jcrPath(), associatedParentNode)) {
                 Event event = generatePropertyEvent(Event.PROPERTY_REMOVED, path, before);
                 events.add(Iterators.singleton(event));
             }
@@ -123,7 +130,7 @@ class ChangeProcessor extends TimerTask {
 
         @Override
         public void childNodeAdded(String name, NodeState after) {
-            if (!stopped && filterRef.get().include(Event.NODE_ADDED, path, after)) {
+            if (!stopped && filterRef.get().include(jcrPath())) {
                 Iterator<Event> events = generateNodeEvents(Event.NODE_ADDED, path, name, after);
                 this.events.add(events);
                 if (++childNodeCount > PURGE_LIMIT) {
@@ -134,7 +141,7 @@ class ChangeProcessor extends TimerTask {
 
         @Override
         public void childNodeDeleted(String name, NodeState before) {
-            if (!stopped && filterRef.get().include(Event.NODE_REMOVED, path, before)) {
+            if (!stopped && filterRef.get().include(jcrPath())) {
                 Iterator<Event> events = generateNodeEvents(Event.NODE_REMOVED, path, name, before);
                 this.events.add(events);
             }
@@ -142,8 +149,9 @@ class ChangeProcessor extends TimerTask {
 
         @Override
         public void childNodeChanged(String name, NodeState before, NodeState after) {
-            if (!stopped && filterRef.get().includeChildren(path)) {
-                EventGeneratingNodeStateDiff diff = new EventGeneratingNodeStateDiff(PathUtils.concat(path, name), events);
+            if (!stopped && filterRef.get().includeChildren(jcrPath())) {
+                EventGeneratingNodeStateDiff diff = new EventGeneratingNodeStateDiff(
+                        PathUtils.concat(path, name), events, after);
                 changeExtractor.getChanges(before, after, diff);
                 if (events.size() > PURGE_LIMIT) {
                     diff.sendEvents();
@@ -152,39 +160,59 @@ class ChangeProcessor extends TimerTask {
         }
     }
 
-    private Event generatePropertyEvent(int eventType, String path, PropertyState property) {
-        String jcrPath = namePathMapper.getJcrPath(PathUtils.concat(path, property.getName()));
+    private Event generatePropertyEvent(int eventType, String parentPath, PropertyState property) {
+        String jcrPath = namePathMapper.getJcrPath(PathUtils.concat(parentPath, property.getName()));
 
         // TODO support userId, identifier, info, date
         return new EventImpl(eventType, jcrPath, null, null, null, 0);
     }
 
-    private Iterator<Event> generateNodeEvents(final int eventType, String path, String name, NodeState node) {
-        final String jcrPath = namePathMapper.getJcrPath(PathUtils.concat(path, name));
+    private Iterator<Event> generateNodeEvents(int eventType, String parentPath, String name, NodeState node) {
+        ChangeFilter filter = filterRef.get();
+        final String path = PathUtils.concat(parentPath, name);
+        String jcrPath = namePathMapper.getJcrPath(path);
 
-        Iterator<Event> propertyEvents = Iterators.map(node.getProperties().iterator(),
+        Iterator<Event> nodeEvent;
+        if (filter.include(eventType)) {
+            // TODO support userId, identifier, info, date
+            Event event = new EventImpl(eventType, jcrPath, null, null, null, 0);
+            nodeEvent = singleton(event);
+        }
+        else {
+            nodeEvent = Iterators.empty();
+        }
+
+        final int propertyEventType = eventType == Event.NODE_ADDED
+            ? Event.PROPERTY_ADDED
+            : Event.PROPERTY_REMOVED;
+
+        Iterator<Event> propertyEvents;
+        if (filter.include(propertyEventType)) {
+            propertyEvents = Iterators.map(node.getProperties().iterator(),
                 new Function1<PropertyState, Event>() {
-                    int propertyEventType = eventType == Event.NODE_ADDED ? Event.PROPERTY_ADDED : Event.PROPERTY_REMOVED;
-
                     @Override
                     public Event apply(PropertyState property) {
-                        return generatePropertyEvent(propertyEventType, jcrPath, property);
+                        return generatePropertyEvent(propertyEventType, path, property);
                     }
                 });
+        }
+        else {
+            propertyEvents = Iterators.empty();
+        }
 
-        // TODO support userId, identifier, info, date
-        final Event nodeEvent = new EventImpl(eventType, jcrPath, null, null, null, 0);
-        Iterator<Event> events = Iterators.chain(singleton(nodeEvent), propertyEvents);
-        return chain(events, chain(generateChildEvents(eventType, path, name, node)));
+        Iterator<Event> childNodeEvents = filter.includeChildren(jcrPath)
+            ? chain(generateChildEvents(eventType, path, node))
+            : Iterators.<Event>empty();
+
+        return chain(nodeEvent, propertyEvents, childNodeEvents);
     }
 
-    private Iterator<Iterator<Event>> generateChildEvents(final int eventType, final String path, final String name,
-            NodeState node) {
+    private Iterator<Iterator<Event>> generateChildEvents(final int eventType, final String parentPath, NodeState node) {
         return Iterators.map(node.getChildNodeEntries().iterator(),
                 new Function1<ChildNodeEntry, Iterator<Event>>() {
             @Override
             public Iterator<Event> apply(ChildNodeEntry entry) {
-                return generateNodeEvents(eventType, path, name, entry.getNodeState());
+                return generateNodeEvents(eventType, parentPath, entry.getName(), entry.getNodeState());
             }
         });
     }
