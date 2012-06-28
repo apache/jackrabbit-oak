@@ -90,9 +90,9 @@ org.apache.jackrabbit.test.api.observation.EventTest#testGetUserId
 org.apache.jackrabbit.test.api.observation.NodeMovedTest#testMoveNode
 org.apache.jackrabbit.test.api.observation.NodeMovedTest#testMoveTree
 org.apache.jackrabbit.test.api.observation.NodeMovedTest#testMoveWithRemove
-org.apache.jackrabbit.test.api.observation.NodeReorderTest#testNodeReorderAddRemove  <!-- reorder not supported -->
-org.apache.jackrabbit.test.api.observation.NodeReorderTest#testNodeReorderMove       <!-- reorder not supported -->
-org.apache.jackrabbit.test.api.observation.NodeReorderTest#testNodeReorderSameName   <!-- reorder not supported -->
+org.apache.jackrabbit.test.api.observation.NodeReorderTest#testNodeReorderAddRemove           <!-- reorder not supported -->
+org.apache.jackrabbit.test.api.observation.NodeReorderTest#testNodeReorderMove                <!-- reorder not supported -->
+org.apache.jackrabbit.test.api.observation.NodeReorderTest#testNodeReorderSameName            <!-- reorder not supported -->
 org.apache.jackrabbit.test.api.observation.NodeReorderTest#testNodeReorderSameNameWithRemove  <!-- reorder not supported -->
 org.apache.jackrabbit.test.api.observation.AddEventListenerTest#testPath
 org.apache.jackrabbit.test.api.observation.AddEventListenerTest#testNodeType
