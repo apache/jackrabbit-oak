@@ -203,7 +203,7 @@ public final class Iterators {
      * @return
      */
     @Nonnull
-    public static <T> Iterator<T> flatten(final Iterator<Iterator<? extends T>> iterators) {
+    public static <T> Iterator<T> flatten(final Iterator<? extends Iterator<? extends T>> iterators) {
         return new Iterator<T>() {
             private Iterator<? extends T> current;
 
