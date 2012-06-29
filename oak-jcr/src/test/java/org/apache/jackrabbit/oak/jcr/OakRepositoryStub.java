@@ -16,16 +16,21 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import org.apache.jackrabbit.test.NotExecutableException;
-import org.apache.jackrabbit.test.RepositoryStub;
+import java.io.IOException;
+import java.security.Principal;
+import java.util.Properties;
 
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
-import java.io.IOException;
-import java.security.Principal;
-import java.util.Properties;
+
+import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.mk.core.MicroKernelImpl;
+import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
+import org.apache.jackrabbit.test.NotExecutableException;
+import org.apache.jackrabbit.test.RepositoryStub;
 
 public class OakRepositoryStub extends RepositoryStub {
 
@@ -40,7 +45,11 @@ public class OakRepositoryStub extends RepositoryStub {
      */
     public OakRepositoryStub(Properties settings) throws RepositoryException, IOException {
         super(settings);
-        repository = new RepositoryImpl();
+
+        MicroKernel microkernel = new MicroKernelImpl("target/mk-tck-" + System.currentTimeMillis());
+        ContentRepository contentRepository = new ContentRepositoryImpl(microkernel, null, null);
+        repository = new RepositoryImpl(contentRepository);
+
         Session session = repository.login(superuser);
         try {
             TestContentLoader loader = new TestContentLoader();
