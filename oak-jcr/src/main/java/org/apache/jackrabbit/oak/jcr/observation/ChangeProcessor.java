@@ -130,7 +130,7 @@ class ChangeProcessor extends TimerTask {
 
         @Override
         public void childNodeAdded(String name, NodeState after) {
-            if (!stopped && filterRef.get().include(jcrPath())) {
+            if (!stopped && filterRef.get().includeChildren(jcrPath())) {
                 Iterator<Event> events = generateNodeEvents(Event.NODE_ADDED, path, name, after);
                 this.events.add(events);
                 if (++childNodeCount > PURGE_LIMIT) {
@@ -141,7 +141,7 @@ class ChangeProcessor extends TimerTask {
 
         @Override
         public void childNodeDeleted(String name, NodeState before) {
-            if (!stopped && filterRef.get().include(jcrPath())) {
+            if (!stopped && filterRef.get().includeChildren(jcrPath())) {
                 Iterator<Event> events = generateNodeEvents(Event.NODE_REMOVED, path, name, before);
                 this.events.add(events);
             }
@@ -158,63 +158,65 @@ class ChangeProcessor extends TimerTask {
                 }
             }
         }
-    }
 
-    private Event generatePropertyEvent(int eventType, String parentPath, PropertyState property) {
-        String jcrPath = namePathMapper.getJcrPath(PathUtils.concat(parentPath, property.getName()));
+        private Event generatePropertyEvent(int eventType, String parentPath, PropertyState property) {
+            String jcrPath = namePathMapper.getJcrPath(PathUtils.concat(parentPath, property.getName()));
 
-        // TODO support userId, identifier, info, date
-        return new EventImpl(eventType, jcrPath, null, null, null, 0);
-    }
-
-    private Iterator<Event> generateNodeEvents(int eventType, String parentPath, String name, NodeState node) {
-        ChangeFilter filter = filterRef.get();
-        final String path = PathUtils.concat(parentPath, name);
-        String jcrPath = namePathMapper.getJcrPath(path);
-
-        Iterator<Event> nodeEvent;
-        if (filter.include(eventType)) {
             // TODO support userId, identifier, info, date
-            Event event = new EventImpl(eventType, jcrPath, null, null, null, 0);
-            nodeEvent = singleton(event);
-        }
-        else {
-            nodeEvent = Iterators.empty();
+            return new EventImpl(eventType, jcrPath, null, null, null, 0);
         }
 
-        final int propertyEventType = eventType == Event.NODE_ADDED
-            ? Event.PROPERTY_ADDED
-            : Event.PROPERTY_REMOVED;
+        private Iterator<Event> generateNodeEvents(int eventType, String parentPath, String name, NodeState node) {
+            ChangeFilter filter = filterRef.get();
+            final String path = PathUtils.concat(parentPath, name);
+            String jcrParentPath = namePathMapper.getJcrPath(parentPath);
+            String jcrPath = namePathMapper.getJcrPath(path);
 
-        Iterator<Event> propertyEvents;
-        if (filter.include(propertyEventType)) {
-            propertyEvents = Iterators.map(node.getProperties().iterator(),
-                new Function1<PropertyState, Event>() {
+            Iterator<Event> nodeEvent;
+            if (filter.include(eventType, jcrParentPath, associatedParentNode)) {
+                // TODO support userId, identifier, info, date
+                Event event = new EventImpl(eventType, jcrPath, null, null, null, 0);
+                nodeEvent = singleton(event);
+            }
+            else {
+                nodeEvent = Iterators.empty();
+            }
+
+            final int propertyEventType = eventType == Event.NODE_ADDED
+                    ? Event.PROPERTY_ADDED
+                    : Event.PROPERTY_REMOVED;
+
+            Iterator<Event> propertyEvents;
+            if (filter.include(propertyEventType, jcrPath, associatedParentNode)) {
+                propertyEvents = Iterators.map(node.getProperties().iterator(),
+                    new Function1<PropertyState, Event>() {
+                        @Override
+                        public Event apply(PropertyState property) {
+                            return generatePropertyEvent(propertyEventType, path, property);
+                        }
+                    });
+            }
+            else {
+                propertyEvents = Iterators.empty();
+            }
+
+            Iterator<Event> childNodeEvents = !stopped && filter.includeChildren(jcrPath)
+                    ? chain(generateChildEvents(eventType, path, node))
+                    : Iterators.<Event>empty();
+
+            return chain(nodeEvent, propertyEvents, childNodeEvents);
+        }
+
+        private Iterator<Iterator<Event>> generateChildEvents(final int eventType, final String parentPath, NodeState node) {
+            return Iterators.map(node.getChildNodeEntries().iterator(),
+                new Function1<ChildNodeEntry, Iterator<Event>>() {
                     @Override
-                    public Event apply(PropertyState property) {
-                        return generatePropertyEvent(propertyEventType, path, property);
+                    public Iterator<Event> apply(ChildNodeEntry entry) {
+                        return generateNodeEvents(eventType, parentPath, entry.getName(), entry.getNodeState());
                     }
                 });
         }
-        else {
-            propertyEvents = Iterators.empty();
-        }
 
-        Iterator<Event> childNodeEvents = !stopped && filter.includeChildren(jcrPath)
-            ? chain(generateChildEvents(eventType, path, node))
-            : Iterators.<Event>empty();
-
-        return chain(nodeEvent, propertyEvents, childNodeEvents);
-    }
-
-    private Iterator<Iterator<Event>> generateChildEvents(final int eventType, final String parentPath, NodeState node) {
-        return Iterators.map(node.getChildNodeEntries().iterator(),
-                new Function1<ChildNodeEntry, Iterator<Event>>() {
-            @Override
-            public Iterator<Event> apply(ChildNodeEntry entry) {
-                return generateNodeEvents(eventType, parentPath, entry.getName(), entry.getNodeState());
-            }
-        });
     }
 
 }

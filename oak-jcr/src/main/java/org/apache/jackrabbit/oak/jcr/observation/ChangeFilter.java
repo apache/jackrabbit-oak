@@ -42,10 +42,11 @@ class ChangeFilter {
     }
 
     public boolean include(String path) {
-        if (!deep && !this.path.equals(path)) {
+        boolean equalPaths = this.path.equals(path);
+        if (!deep && !equalPaths) {
             return false;
         }
-        if (deep && !PathUtils.isAncestor(this.path, path)) {
+        if (deep && !(PathUtils.isAncestor(this.path, path) || equalPaths)) {
             return false;
         }
         return true;
