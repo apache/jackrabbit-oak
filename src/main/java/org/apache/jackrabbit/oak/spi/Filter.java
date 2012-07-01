@@ -18,12 +18,16 @@
  */
 package org.apache.jackrabbit.oak.spi;
 
+import java.util.Collection;
+
 import org.apache.jackrabbit.oak.api.CoreValue;
 
 /**
  * The filter for an index lookup.
  */
 public interface Filter {
+
+    Collection<PropertyRestriction> getPropertyRestrictions();
 
     /**
      * Get the property restriction for the given property, if any.

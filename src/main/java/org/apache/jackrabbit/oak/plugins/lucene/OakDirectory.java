@@ -60,7 +60,7 @@ class OakDirectory extends Directory {
         NodeState state = root;
         builders[0] = store.getBuilder(state);
         for (int i = 0; i < path.length; i++) {
-            NodeState child = root.getChildNode(path[i]);
+            NodeState child = state.getChildNode(path[i]);
             if (child == null) {
                 builders[i + 1] = store.getBuilder(null);
                 state = builders[i + 1].getNodeState();
