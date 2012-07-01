@@ -16,6 +16,13 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import java.util.Iterator;
+import java.util.List;
+
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+import javax.jcr.InvalidItemStateException;
+
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -23,12 +30,6 @@ import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.util.Function1;
 import org.apache.jackrabbit.oak.util.Iterators;
-
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.jcr.InvalidItemStateException;
-import java.util.Iterator;
-import java.util.List;
 
 /**
  * {@code NodeDelegate} serve as internal representations of {@code Node}s.
@@ -76,7 +77,7 @@ public class NodeDelegate extends ItemDelegate {
     public Status getStatus() throws InvalidItemStateException {
         Tree parent = getParentTree();
         if (parent == null) {
-            return Status.EXISTING;  // FIXME: return correct status for root
+            return Status.EXISTING;  // FIXME: return correct status for root. See also OAK-161
         } else {
             Status childStatus = parent.getChildStatus(getName());
             if (childStatus == null) {
