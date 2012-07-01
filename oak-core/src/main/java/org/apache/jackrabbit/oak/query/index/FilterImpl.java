@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.spi.Filter;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map.Entry;
 
@@ -131,6 +132,11 @@ public class FilterImpl implements Filter {
 
     public SelectorImpl getSelector() {
         return selector;
+    }
+
+    @Override
+    public Collection<PropertyRestriction> getPropertyRestrictions() {
+        return propertyRestrictions.values();
     }
 
     /**

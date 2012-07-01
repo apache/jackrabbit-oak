@@ -17,6 +17,8 @@
 package org.apache.jackrabbit.oak.plugins.lucene;
 
 import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertFalse;
+import static junit.framework.Assert.assertTrue;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
@@ -26,33 +28,38 @@ import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
 import org.apache.jackrabbit.oak.core.RootImpl;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryValueFactory;
-import org.apache.lucene.index.IndexReader;
+import org.apache.jackrabbit.oak.query.ast.Operator;
+import org.apache.jackrabbit.oak.query.index.FilterImpl;
+import org.apache.jackrabbit.oak.spi.Cursor;
+import org.apache.jackrabbit.oak.spi.Filter;
+import org.apache.jackrabbit.oak.spi.QueryIndex;
 import org.apache.lucene.store.Directory;
 import org.junit.Test;
 
 public class LuceneEditorTest {
 
-    // @Test
+    @Test
     public void testLucene() throws Exception {
         MicroKernel mk = new MicroKernelImpl();
         KernelNodeStore store = new KernelNodeStore(
                 mk, new LuceneEditor("jcr:system", "oak:lucene"));
         Root root = new RootImpl(store, "");
         Tree tree = root.getTree("/");
-        System.out.println(store.getRoot());
 
         tree.setProperty("foo", MemoryValueFactory.INSTANCE.createValue("bar"));
         root.commit(DefaultConflictHandler.OURS);
 
-        Directory directory = new OakDirectory(
-                store, store.getRoot(), "jcr:system", "oak:lucene");
-        System.out.println(store.getRoot());
-        IndexReader reader = IndexReader.open(directory);
-        try {
-            assertEquals(1, reader.numDocs());
-        } finally {
-            reader.close();
-        }
+        QueryIndex index = new LuceneIndex(store, "jcr:system", "oak:lucene");
+        FilterImpl filter = new FilterImpl(null);
+        filter.restrictPath("/", Filter.PathRestriction.EXACT);
+        filter.restrictProperty(
+                "foo",
+                Operator.EQUAL,
+                MemoryValueFactory.INSTANCE.createValue("bar"));
+        Cursor cursor = index.query(filter, null);
+        assertTrue(cursor.next());
+        assertEquals("/", cursor.currentPath());
+        assertFalse(cursor.next());
     }
 
 }
