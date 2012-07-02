@@ -33,8 +33,6 @@
 
   <properties>
     <known.issues>
-org.apache.jackrabbit.test.api.observation.NodeRemovedTest <!-- TODO: Remove when we're back to 2.6-SNAPSHOT -->
-org.apache.jackrabbit.test.api.query.qom.GetQueryTest <!-- TODO: Remove when we're back to 2.6-SNAPSHOT -->
 org.apache.jackrabbit.test.api.SessionTest#testMoveConstraintViolationExceptionSrc<!--OAK-132-->
 org.apache.jackrabbit.test.api.SessionTest#testMoveConstraintViolationExceptionDest<!--OAK-132-->
 org.apache.jackrabbit.test.api.SessionTest#testSaveConstraintViolationException

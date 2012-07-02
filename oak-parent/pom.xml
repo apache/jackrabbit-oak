@@ -39,7 +39,7 @@
     <project.reporting.outputEncoding>
       ${project.build.sourceEncoding}
     </project.reporting.outputEncoding>
-    <jackrabbit.version>2.5.0</jackrabbit.version>
+    <jackrabbit.version>2.6-SNAPSHOT</jackrabbit.version>
   </properties>
 
   <issueManagement>
