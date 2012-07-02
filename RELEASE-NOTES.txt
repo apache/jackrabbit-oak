@@ -1,20 +1,95 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 0.2.1
+Release Notes -- Apache Jackrabbit Oak -- Version 0.3
 
 Introduction
 ------------
 
 Jackrabbit Oak is an effort to implement a scalable and performant hierarchical content 
 repository for use as the foundation of modern world-class web sites and 
-other demanding content applications. 
+other demanding content applications.
 
-The Oak effort is a part of the Apache Jackrabbit project. 
+The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Jackrabbit Oak 0.2.x is to be considered alpha-level software. Use at your own risk 
+Jackrabbit Oak 0.3 is to be considered alpha-level software. Use at your own risk 
 with no stability or compatibility guarantees.
 
-The earlier 0.2 release candidate was rejected because of a minor licensing issue 
-that is now resolved.
+Changes in Oak 0.3
+------------------
+
+New Features
+
+  [OAK-9] - Internal tree builder
+  [OAK-12] - Implement a test suite for the MicroKernel
+  [OAK-33] - Values in oak-core
+  [OAK-45] - Add support for branching and merging of private copies to MicroKernel
+  [OAK-68] - Extension point for commit validation
+  [OAK-75] - specify format and semantics of 'filter' parameter in MicroKernel API
+  [OAK-100] - Proper CommitHook handling in NodeStore
+  [OAK-119] - Oak performance benchmark
+  [OAK-133] - Session.refresh(true) should allow for manual conflict reconciliation
+
+Improvements
+
+  [OAK-15] - Clean up oak-jcr
+  [OAK-19] - Consolidate JSON utilities
+  [OAK-32] - Drop MicroKernel.dispose()
+  [OAK-40] - Define session-info like user identification for communication with oak-api
+  [OAK-54] - IOUtils.readVarInt and readVarLong can result in an endless loop on EOF
+  [OAK-65] - Naming of NodeState and related classes
+  [OAK-80] - Implement batched writing for KernelNodeStore
+  [OAK-84] - Delegates for Session, Node, Property and Item
+  [OAK-86] - Make setProperty methods of NodeStateBuilder and Tree return the affected property
+  [OAK-87] - Declarative services and OSGi configuration
+  [OAK-89] - Improve exception handling
+  [OAK-92] - Remove org.apache.jackrabbit.mk.HelloWorld
+  [OAK-96] - PathUtils should use assertions to enable validation instead of system property
+  [OAK-97] - Implement Item.toString() for logging and debugging purposes
+  [OAK-102] - Expose the branch feature from NodeStore
+  [OAK-106] - Use NodeStateBuilder instances to record changes in TreeImpl
+  [OAK-109] - Efficient diffing against the base node state
+  [OAK-112] - Refactor ModifiedNodeState and related classes to use type safe iterator utilities
+  [OAK-113] - drop MicroKernel getNodes(String, String) convenience signature
+  [OAK-115] - ItemDelegate and sub classes should throw IllegalItemStateException on stale items
+  [OAK-116] - MicroKernel API: clarify semantics of getNodes depth, offset and count parameters
+  [OAK-120] - MicroKernel API: specific retention policy of binaries
+  [OAK-122] - Performance test suite
+  [OAK-126] - remove unused code
+  [OAK-138] - Move client/server package in oak-mk to separate project
+  [OAK-145] - Set up Travis CI builds
+  [OAK-142] - MicroKernel API: returning the :hash property should be optional
+  [OAK-143] - Refactor conflict reconciliation from OAK-133: move inner classes to o.a.j.oak.plugins.value
+  [OAK-148] - Drop feature checks from WorkspaceImpl
+  [OAK-149] - Automatic session refresh after namespace registry changes
+  [OAK-151] - Merge oak-it-jcr to oak-jcr
+  [OAK-159] - Do not use in memory Microkernel for TCK
+
+Bug fixes 
+
+  [OAK-16] - Proper ValueFactory implementation and Value handling
+  [OAK-43] - Incomplete journal when move and copy operations are involved
+  [OAK-47] - Wrong results and NPE with copy operation
+  [OAK-49] - Session.getRepository() should return the object through which the Session was acquired
+  [OAK-55] - Provide reasonable way to set property on NodeStateEditor
+  [OAK-58] - connection leak in h2 persistence
+  [OAK-60] - occasional test case failure DbBlobStoreTest#testGarbageCollection
+  [OAK-73] - JsopReader and JsopWriter lack javadocs
+  [OAK-79] - Copy operation misses some child nodes
+  [OAK-83] - Copy operation would recurse indefinitely if memory permitted
+  [OAK-85] - NPE and wrong result on copy operation
+  [OAK-93] - Tree has wrong parent after move
+  [OAK-94] - oak-it/osgi fails due to required packages not being exported
+  [OAK-95] - path mapping needs to deal with relative paths
+  [OAK-99] - reading binary content fails for certain types of content
+  [OAK-105] - Workspace move operation should not do sanity checks in the scope of the current session
+  [OAK-110] - NPE in KernelNodeStoreBranch.diffToJsop
+  [OAK-121] - Occasional test failure in MicroKernelIT.testBlobs: java.net.SocketException: Broken pipe
+  [OAK-130] - Unexpected result of MicroKernel#getJournal after MicroKernel#merge
+  [OAK-131] - Session.save() silently discards pending changes
+  [OAK-134] - Session.save() should do an implicit refresh(true)
+  [OAK-135] - Better support for RangeIterators
+  [OAK-139] - Remove JsonBuilder
+  [OAK-146] - Wrong value passed to before parameter of CommitHook.afterCommit in KernelNodeStore.merge
+  [OAK-147] - Incorrect Comparator in CommitBuilder.persistStagedNodes
 
 Changes in Oak 0.2.1
 ------------------
@@ -103,7 +178,7 @@ other demanding content applications.
 The Oak effort is a part of the Apache Jackrabbit project. 
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-For more information, visit http://wiki.apache.org/jackrabbit/Jackrabbit%203
+For more information, visit http://jackrabbit.apache.org/oak
 
 About The Apache Software Foundation
 ------------------------------------
