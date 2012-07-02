@@ -449,15 +449,8 @@ public class NodeImpl extends ItemImpl implements Node {
         checkStatus();
 
         Iterator<NodeDelegate> children = dlg.getChildren();
-        final long size = dlg.getChildCount();
-        return new NodeIteratorAdapter(nodeIterator(children)) {
-            @Override
-            public long getSize() {
-                return size;
-            }
-        };
-        // TODO: Restore the following when we're back on 2.6-SNAPSHOT
-        // return new NodeIteratorAdapter(nodeIterator(children), size);
+        long size = dlg.getChildCount();
+        return new NodeIteratorAdapter(nodeIterator(children), size);
     }
 
     @Override
@@ -521,15 +514,8 @@ public class NodeImpl extends ItemImpl implements Node {
         checkStatus();
 
         Iterator<PropertyDelegate> properties = dlg.getProperties();
-        final long size = dlg.getPropertyCount();
-        return new PropertyIteratorAdapter(propertyIterator(properties)) {
-            @Override
-            public long getSize() {
-                return size;
-            }
-        };
-        // TODO: Restore the following when we're back on 2.6-SNAPSHOT
-        // return new PropertyIteratorAdapter(propertyIterator(properties), size);
+        long size = dlg.getPropertyCount();
+        return new PropertyIteratorAdapter(propertyIterator(properties), size);
     }
 
     @Override
