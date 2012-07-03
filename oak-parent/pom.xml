@@ -34,6 +34,7 @@
   <packaging>pom</packaging>
 
   <properties>
+    <test.opts>-Xmx128m -XX:MaxPermSize=32m</test.opts>
     <skip.deployment>false</skip.deployment>
     <known.issues />
     <project.reporting.outputEncoding>
@@ -108,6 +109,7 @@
         <plugin>
           <artifactId>maven-surefire-plugin</artifactId>
           <configuration>
+            <argLine>${test.opts}</argLine>
             <systemPropertyVariables>
               <known.issues>${known.issues}</known.issues>
             </systemPropertyVariables>
@@ -117,6 +119,7 @@
           <artifactId>maven-failsafe-plugin</artifactId>
           <version>2.12</version>
           <configuration>
+            <argLine>${test.opts}</argLine>
             <systemPropertyVariables>
               <known.issues>${known.issues}</known.issues>
             </systemPropertyVariables>
