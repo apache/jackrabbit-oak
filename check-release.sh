@@ -74,7 +74,7 @@ do
      CHKSUM="----"
    else
      A="`cat $f.$tp 2>/dev/null`"
-     B="`openssl $hash < $f 2>/dev/null | sed 's/.*= *//' `"
+     B="`openssl $hash $f 2>/dev/null | sed 's/.*= *//' `"
      if [ "$A" = "$B" ]; then CHKSUM="GOOD (`cat $f.$tp`)"; else CHKSUM="BAD!! : $A not equal to $B"; fi
    fi
    echo "$tp : ${CHKSUM}"
