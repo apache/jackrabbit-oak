@@ -146,13 +146,11 @@ public interface Tree {
     Tree getChild(String name);
 
     /**
-     * Get the {@code Status} of a child tree
-     * @param name  name of the child
-     * @return  the status of the child with the given {@code name} or {@code null} in
-     *          no such child exists.
+     * Get the {@code Status} of this tree
+     * @return  the status of this tree
      */
-    @CheckForNull
-    Status getChildStatus(String name);
+    @Nonnull
+    Status getStatus();
 
     /**
      * Determine if a child of this {@code Tree} instance exists.

@@ -363,27 +363,25 @@ public class RootImplTest extends AbstractOakTest {
         Tree tree = root.getTree("/");
 
         tree.addChild("new");
-        assertEquals(Status.NEW, tree.getChildStatus("new"));
+        assertEquals(Status.NEW, tree.getChild("new").getStatus());
         root.commit(DefaultConflictHandler.OURS);
 
         tree = root.getTree("/");
-        assertEquals(Status.EXISTING, tree.getChildStatus("new"));
+        assertEquals(Status.EXISTING, tree.getChild("new").getStatus());
         Tree added = tree.getChild("new");
         added.addChild("another");
-        assertEquals(Status.MODIFIED, tree.getChildStatus("new"));
+        assertEquals(Status.MODIFIED, tree.getChild("new").getStatus());
         root.commit(DefaultConflictHandler.OURS);
 
         tree = root.getTree("/");
-        assertEquals(Status.EXISTING, tree.getChildStatus("new"));
+        assertEquals(Status.EXISTING, tree.getChild("new").getStatus());
         tree.getChild("new").getChild("another").remove();
-        assertEquals(Status.MODIFIED, tree.getChildStatus("new"));
-        assertEquals(Status.REMOVED, tree.getChild("new").getChildStatus("another"));
+        assertEquals(Status.MODIFIED, tree.getChild("new").getStatus());
         root.commit(DefaultConflictHandler.OURS);
 
         tree = root.getTree("/");
-        assertEquals(Status.EXISTING, tree.getChildStatus("new"));
+        assertEquals(Status.EXISTING, tree.getChild("new").getStatus());
         assertNull(tree.getChild("new").getChild("another"));
-        assertNull(tree.getChild("new").getChildStatus("another"));
     }
 
     @Test
@@ -422,8 +420,8 @@ public class RootImplTest extends AbstractOakTest {
 
         tree = root.getTree("/");
         tree.getChild("one").getChild("two").addChild("three");
-        assertEquals(Status.EXISTING, tree.getChildStatus("one"));
-        assertEquals(Status.MODIFIED, tree.getChild("one").getChildStatus("two"));
+        assertEquals(Status.EXISTING, tree.getChild("one").getStatus());
+        assertEquals(Status.MODIFIED, tree.getChild("one").getChild("two").getStatus());
     }
 
     @Test

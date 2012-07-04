@@ -63,7 +63,7 @@ public class NodeDelegate extends ItemDelegate {
 
     @Override
     public NodeDelegate getParent() throws InvalidItemStateException {
-        Tree parent = getParentTree();
+        Tree parent = getTree().getParent();
         return parent == null ? null : new NodeDelegate(sessionDelegate, parent);
     }
 
@@ -75,16 +75,7 @@ public class NodeDelegate extends ItemDelegate {
 
     @Override
     public Status getStatus() throws InvalidItemStateException {
-        Tree parent = getParentTree();
-        if (parent == null) {
-            return Status.EXISTING;  // FIXME: return correct status for root. See also OAK-161
-        } else {
-            Status childStatus = parent.getChildStatus(getName());
-            if (childStatus == null) {
-                throw new InvalidItemStateException("Node is stale");
-            }
-            return childStatus;
-        }
+        return getTree().getStatus();
     }
 
     @Override
@@ -228,11 +219,6 @@ public class NodeDelegate extends ItemDelegate {
     private Tree getTree(String relPath) throws InvalidItemStateException {
         String absPath = PathUtils.concat(getPath(), relPath);
         return sessionDelegate.getTree(absPath);
-    }
-
-    @CheckForNull
-    private Tree getParentTree() throws InvalidItemStateException {
-        return getTree().getParent();
     }
 
     private synchronized Tree getTree() throws InvalidItemStateException {
