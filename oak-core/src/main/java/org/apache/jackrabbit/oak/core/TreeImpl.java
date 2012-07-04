@@ -195,42 +195,21 @@ public class TreeImpl implements Tree, PurgeListener {
     }
 
     @Override
-    public Status getChildStatus(String name) {
+    public Status getStatus() {
         NodeState baseState = getBaseState();
         if (baseState == null) {
-            // This instance is NEW...
-            if (hasChild(name)) {
-                // ...so all children are new
-                return Status.NEW;
-            } else {
-                // ...unless they don't exist.
-                return null;
+            // Did not exist before, so its NEW
+            return Status.NEW;
+        }
+        else {
+            // Did exit it before. So...
+            if (isSame(baseState, getNodeState())) {
+                // ...it's EXISTING if it hasn't changed
+                return Status.EXISTING;
             }
-        } else {
-            if (hasChild(name)) {
-                // We have the child...
-                if (baseState.getChildNode(name) == null) {
-                    // ...but didn't have it before. So its NEW.
-                    return Status.NEW;
-                } else {
-                    // ... and did have it before. So...
-                    if (isSame(baseState.getChildNode(name), getNodeState().getChildNode(name))) {
-                        // ...it's EXISTING if it hasn't changed
-                        return Status.EXISTING;
-                    } else {
-                        // ...and MODIFIED otherwise.
-                        return Status.MODIFIED;
-                    }
-                }
-            } else {
-                // We don't have the child
-                if (baseState.getChildNode(name) == null) {
-                    // ...and didn't have it before. So it doesn't exist.
-                    return null;
-                } else {
-                    // ...and didn't have it before. So it's REMOVED
-                    return Status.REMOVED;
-                }
+            else {
+                // ...and MODIFIED otherwise.
+                return Status.MODIFIED;
             }
         }
     }

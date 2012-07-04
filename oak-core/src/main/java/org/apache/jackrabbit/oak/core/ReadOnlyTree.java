@@ -115,12 +115,8 @@ public class ReadOnlyTree implements Tree {
     }
 
     @Override
-    public Status getChildStatus(String name) {
-        if (hasChild(name)) {
-            return Status.EXISTING;
-        } else {
-            return null;
-        }
+    public Status getStatus() {
+        return Status.EXISTING;
     }
 
     @Override
