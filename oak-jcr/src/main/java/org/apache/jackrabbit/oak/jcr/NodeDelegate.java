@@ -110,7 +110,7 @@ public class NodeDelegate extends ItemDelegate {
      * @return  {@code true} iff this is the root node
      */
     public boolean isRoot() throws InvalidItemStateException {
-        return getParentTree() == null;
+        return getTree().isRoot();
     }
 
     /**
