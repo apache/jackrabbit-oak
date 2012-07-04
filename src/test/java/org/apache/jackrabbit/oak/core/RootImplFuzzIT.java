@@ -166,7 +166,7 @@ public class RootImplFuzzIT {
             void apply(RootImpl root) {
                 String parentPath = PathUtils.getParentPath(path);
                 String name = PathUtils.getName(path);
-                root.getTree(parentPath).removeChild(name);
+                root.getTree(parentPath).getChild(name).remove();
             }
 
             @Override

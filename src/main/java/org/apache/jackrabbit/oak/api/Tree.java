@@ -189,11 +189,10 @@ public interface Tree {
     Tree addChild(String name);
 
     /**
-     * Remove a child with the given {@code name}. Does nothing if no such child exists.
-     * @param name  name of the child to remove
-     * @return  {@code false} iff no such child exists.
+     * Remove this sub tree if not root.
+     * @return  {@code false} iff this is the root.
      */
-    boolean removeChild(String name);
+    boolean remove();
 
     /**
      * Set a single valued property state
