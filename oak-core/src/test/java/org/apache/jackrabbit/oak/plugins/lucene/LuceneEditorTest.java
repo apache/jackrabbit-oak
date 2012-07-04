@@ -20,7 +20,6 @@ import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -33,16 +32,14 @@ import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.Cursor;
 import org.apache.jackrabbit.oak.spi.Filter;
 import org.apache.jackrabbit.oak.spi.QueryIndex;
-import org.apache.lucene.store.Directory;
 import org.junit.Test;
 
 public class LuceneEditorTest {
 
     @Test
     public void testLucene() throws Exception {
-        MicroKernel mk = new MicroKernelImpl();
-        KernelNodeStore store = new KernelNodeStore(
-                mk, new LuceneEditor("jcr:system", "oak:lucene"));
+        KernelNodeStore store = new KernelNodeStore(new MicroKernelImpl());
+        store.setEditor(new LuceneEditor("jcr:system", "oak:lucene"));
         Root root = new RootImpl(store, "");
         Tree tree = root.getTree("/");
 
