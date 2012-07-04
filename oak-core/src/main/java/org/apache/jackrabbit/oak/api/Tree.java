@@ -18,9 +18,10 @@
  */
 package org.apache.jackrabbit.oak.api;
 
+import java.util.List;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import java.util.List;
 
 /**
  * A tree instance represents a snapshot of the {@code ContentRepository}
@@ -75,6 +76,11 @@ public interface Tree {
      */
     @Nonnull
     String getName();
+
+    /**
+     * @return {@code true} iff this is the root
+     */
+    boolean isRoot();
 
     /**
      * @return  path of this {@code Tree} instance relative to its {@link Root}.

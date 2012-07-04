@@ -18,6 +18,16 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+
 import org.apache.commons.collections.map.ReferenceMap;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -29,15 +39,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.util.Function1;
 import org.apache.jackrabbit.oak.util.Iterators;
-
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import static org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState.EMPTY_NODE;
 
@@ -91,6 +92,11 @@ public class TreeImpl implements Tree, PurgeListener {
     @Override
     public String getName() {
         return name;
+    }
+
+    @Override
+    public boolean isRoot() {
+        return parent == null;
     }
 
     @Override
@@ -287,7 +293,7 @@ public class TreeImpl implements Tree, PurgeListener {
             children.remove(name);
             updateParentState(builder.getNodeState());
             return true;
-        }
+    }
         else {
             return false;
         }
