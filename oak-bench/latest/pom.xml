@@ -27,8 +27,8 @@
     <relativePath>../parent/pom.xml</relativePath>
   </parent>
 
-  <artifactId>oak-bench-oak03</artifactId>
-  <name>Oak 0.3 Performance Test</name>
+  <artifactId>oak-bench-latest</artifactId>
+  <name>Oak Performance Test</name>
 
   <properties>
     <skip.deployment>true</skip.deployment>
