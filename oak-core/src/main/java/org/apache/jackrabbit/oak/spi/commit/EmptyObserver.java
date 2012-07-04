@@ -14,23 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.lucene;
+package org.apache.jackrabbit.oak.spi.commit;
 
-import java.util.Collections;
-import java.util.List;
-
-import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
-import org.apache.jackrabbit.oak.spi.QueryIndex;
-import org.apache.jackrabbit.oak.spi.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
-public class LuceneIndexProvider implements QueryIndexProvider {
 
-    @Override
-    public List<QueryIndex> getQueryIndexes(MicroKernel mk) {
-        NodeStore store = new KernelNodeStore(mk);
-        return Collections.<QueryIndex>singletonList(new LuceneIndex(store));
+/**
+ * Basic content change observer that doesn't do anything. Useful as a
+ * "null object" for cases where another observer has not been configured,
+ * thus avoiding an extra {@code null} check when invoking the observer.
+ */
+public class EmptyObserver implements Observer {
+
+    /**
+     * Static instance of this class, useful as a "null object".
+     */
+    public static final EmptyObserver INSTANCE = new EmptyObserver();
+
+    public void contentChanged(
+            NodeStore store, NodeState before, NodeState after) {
+        // do nothing
     }
 
 }

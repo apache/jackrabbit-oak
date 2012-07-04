@@ -20,6 +20,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -33,6 +34,10 @@ public class CompositeEditor implements CommitEditor {
 
     public CompositeEditor(List<CommitEditor> editors) {
         this.editors = editors;
+    }
+
+    public CompositeEditor(CommitEditor... editors) {
+        this(Arrays.asList(editors));
     }
 
     @Override

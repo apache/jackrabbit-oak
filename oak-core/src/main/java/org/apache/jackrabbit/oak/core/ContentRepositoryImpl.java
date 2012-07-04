@@ -45,7 +45,6 @@ import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
 import org.apache.jackrabbit.oak.spi.commit.ValidatingEditor;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,7 +63,7 @@ public class ContentRepositoryImpl implements ContentRepository {
     private final LoginContextProvider loginContextProvider;
 
     private final QueryEngine queryEngine;
-    private final NodeStore nodeStore;
+    private final KernelNodeStore nodeStore;
 
     /**
      * Utility constructor that creates a new in-memory repository with default
@@ -91,11 +90,13 @@ public class ContentRepositoryImpl implements ContentRepository {
             validatorProvider = createDefaultValidatorProvider();
         }
 
+
+        nodeStore = new KernelNodeStore(microKernel);
+ 
         List<CommitEditor> editors = new ArrayList<CommitEditor>();
         editors.add(new ValidatingEditor(validatorProvider));
-        CompositeEditor editor = new CompositeEditor(editors);
+        nodeStore.setEditor(new CompositeEditor(editors));
 
-        nodeStore = new KernelNodeStore(microKernel, editor);
         QueryIndexProvider qip = (indexProvider == null) ? getDefaultIndexProvider(microKernel) : indexProvider;
         queryEngine = new QueryEngineImpl(nodeStore, microKernel, qip);
 

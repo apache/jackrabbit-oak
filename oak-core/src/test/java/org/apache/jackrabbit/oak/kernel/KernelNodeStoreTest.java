@@ -24,7 +24,7 @@ import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.core.AbstractOakTest;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.spi.commit.CommitEditor;
-import org.apache.jackrabbit.oak.spi.commit.EmptyEditor;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -36,7 +36,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 public class KernelNodeStoreTest extends AbstractOakTest {
-    private final CommitEditorDelegate commitHookDelegate = new CommitEditorDelegate();
 
     private NodeState root;
 
@@ -48,11 +47,6 @@ public class KernelNodeStoreTest extends AbstractOakTest {
         microKernel.commit("/", jsop, null, "test data");
         root = store.getRoot();
         return root;
-    }
-
-    @Override
-    protected CommitEditor createCommitEditor() {
-        return commitHookDelegate;
     }
 
     @Test
@@ -123,6 +117,16 @@ public class KernelNodeStoreTest extends AbstractOakTest {
 
     @Test
     public void afterCommitHook() throws CommitFailedException {
+        final NodeState[] states = new NodeState[2]; // { before, after }
+        store.setObserver(new Observer() {
+            @Override
+            public void contentChanged(
+                    NodeStore store, NodeState before, NodeState after) {
+                states[0] = before;
+                states[1] = after;
+            }
+        });
+
         NodeState root = store.getRoot();
         NodeStateBuilder rootBuilder= store.getBuilder(root);
 
@@ -130,30 +134,46 @@ public class KernelNodeStoreTest extends AbstractOakTest {
         NodeStateBuilder testBuilder = store.getBuilder(test);
 
         NodeStateBuilder newNodeBuilder = store.getBuilder(MemoryNodeState.EMPTY_NODE);
-        final CoreValue fortyTwo = store.getValueFactory().createValue(42);
+        CoreValue fortyTwo = store.getValueFactory().createValue(42);
         newNodeBuilder.setProperty("n", fortyTwo);
 
         testBuilder.setNode("newNode", newNodeBuilder.getNodeState());
         testBuilder.removeNode("a");
 
         rootBuilder.setNode("test", testBuilder.getNodeState());
-        final NodeState newRoot = rootBuilder.getNodeState();
+        NodeState newRoot = rootBuilder.getNodeState();
 
-        commitWithEditor(newRoot, new EmptyEditor() {
-// TODO: OAK-153 - use the Observer interface to observe content changes
-//            @Override
-//            public void afterCommit(NodeStore store, NodeState before, NodeState after) {
-//                assertNull(before.getChildNode("test").getChildNode("newNode"));
-//                assertNotNull(after.getChildNode("test").getChildNode("newNode"));
-//                assertNull(after.getChildNode("test").getChildNode("a"));
-//                assertEquals(fortyTwo, after.getChildNode("test").getChildNode("newNode").getProperty("n").getValue());
-//                assertEquals(newRoot, after);
-//            }
-        });
+        NodeStoreBranch branch = store.branch();
+        branch.setRoot(newRoot);
+        branch.merge();
+        store.getRoot(); // triggers the observer
+
+        NodeState before = states[0];
+        NodeState after = states[1];
+        assertNotNull(before);
+        assertNotNull(after);
+
+        assertNull(before.getChildNode("test").getChildNode("newNode"));
+        assertNotNull(after.getChildNode("test").getChildNode("newNode"));
+        assertNull(after.getChildNode("test").getChildNode("a"));
+        assertEquals(fortyTwo, after.getChildNode("test").getChildNode("newNode").getProperty("n").getValue());
+        assertEquals(newRoot, after);
     }
 
     @Test
     public void beforeCommitHook() throws CommitFailedException {
+        store.setEditor(new CommitEditor() {
+            @Override
+            public NodeState editCommit(
+                    NodeStore store, NodeState before, NodeState after) {
+                NodeStateBuilder rootBuilder = store.getBuilder(after);
+                NodeStateBuilder testBuilder = store.getBuilder(after.getChildNode("test"));
+                testBuilder.setNode("fromHook", MemoryNodeState.EMPTY_NODE);
+                rootBuilder.setNode("test", testBuilder.getNodeState());
+                return rootBuilder.getNodeState();
+            }
+        });
+
         NodeState root = store.getRoot();
         NodeStateBuilder rootBuilder = store.getBuilder(root);
 
@@ -168,18 +188,11 @@ public class KernelNodeStoreTest extends AbstractOakTest {
         testBuilder.removeNode("a");
 
         rootBuilder.setNode("test", testBuilder.getNodeState());
-        final NodeState newRoot = rootBuilder.getNodeState();
+        NodeState newRoot = rootBuilder.getNodeState();
 
-        commitWithEditor(newRoot, new EmptyEditor() {
-            @Override
-            public NodeState editCommit(NodeStore store, NodeState before, NodeState after) {
-                NodeStateBuilder rootBuilder = store.getBuilder(after);
-                NodeStateBuilder testBuilder = store.getBuilder(after.getChildNode("test"));
-                testBuilder.setNode("fromHook", MemoryNodeState.EMPTY_NODE);
-                rootBuilder.setNode("test", testBuilder.getNodeState());
-                return rootBuilder.getNodeState();
-            }
-        });
+        NodeStoreBranch branch = store.branch();
+        branch.setRoot(newRoot);
+        branch.merge();
 
         test = store.getRoot().getChildNode("test");
         assertNotNull(test.getChildNode("newNode"));
@@ -187,38 +200,6 @@ public class KernelNodeStoreTest extends AbstractOakTest {
         assertNull(test.getChildNode("a"));
         assertEquals(fortyTwo, test.getChildNode("newNode").getProperty("n").getValue());
         assertEquals(test, store.getRoot().getChildNode("test"));
-    }
-
-    //------------------------------------------------------------< private >---
-
-    private void commitWithEditor(NodeState nodeState, CommitEditor editor)
-            throws CommitFailedException {
-
-        commitHookDelegate.set(editor);
-        try {
-            NodeStoreBranch branch = store.branch();
-            branch.setRoot(nodeState);
-            branch.merge();
-        }
-        finally {
-            commitHookDelegate.set(new EmptyEditor());
-        }
-    }
-
-    private static class CommitEditorDelegate implements CommitEditor {
-        private CommitEditor delegate = new EmptyEditor();
-
-        public void set(CommitEditor editor) {
-            delegate = editor;
-        }
-
-        @Override
-        public NodeState editCommit(NodeStore store, NodeState before, NodeState after)
-                throws CommitFailedException {
-
-            return delegate.editCommit(store, before, after);
-        }
-
     }
 
 }
