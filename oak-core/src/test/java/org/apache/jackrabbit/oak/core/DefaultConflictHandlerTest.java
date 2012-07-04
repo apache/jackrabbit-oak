@@ -116,7 +116,7 @@ public class DefaultConflictHandlerTest extends AbstractOakTest {
 
     @Test
     public void testChangeDeletedNodeOurs() throws CommitFailedException {
-        theirRoot.getTree("/").removeChild("x");
+        theirRoot.getTree("/x").remove();
         ourRoot.getTree("/x").setProperty("p", ourValue);
 
         theirRoot.commit(DefaultConflictHandler.OURS);
@@ -130,7 +130,7 @@ public class DefaultConflictHandlerTest extends AbstractOakTest {
     @Test
     public void testDeleteChangedNodeOurs() throws CommitFailedException {
         theirRoot.getTree("/x").setProperty("p", theirValue);
-        ourRoot.getTree("/").removeChild("x");
+        ourRoot.getTree("/x").remove();
 
         theirRoot.commit(DefaultConflictHandler.OURS);
         ourRoot.commit(DefaultConflictHandler.OURS);
@@ -205,7 +205,7 @@ public class DefaultConflictHandlerTest extends AbstractOakTest {
 
     @Test
     public void testChangeDeletedNodeTheirs() throws CommitFailedException {
-        theirRoot.getTree("/").removeChild("x");
+        theirRoot.getTree("/x").remove();
         ourRoot.getTree("/x").setProperty("p", ourValue);
 
         theirRoot.commit(DefaultConflictHandler.THEIRS);
@@ -218,7 +218,7 @@ public class DefaultConflictHandlerTest extends AbstractOakTest {
     @Test
     public void testDeleteChangedNodeTheirs() throws CommitFailedException {
         theirRoot.getTree("/x").setProperty("p", theirValue);
-        ourRoot.getTree("/").removeChild("x");
+        ourRoot.getTree("/").remove();
 
         theirRoot.commit(DefaultConflictHandler.THEIRS);
         ourRoot.commit(DefaultConflictHandler.THEIRS);

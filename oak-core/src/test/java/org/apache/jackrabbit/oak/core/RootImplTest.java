@@ -161,7 +161,7 @@ public class RootImplTest extends AbstractOakTest {
         Tree tree = root.getTree("/");
 
         assertTrue(tree.hasChild("x"));
-        tree.removeChild("x");
+        tree.getChild("x").remove();
         assertFalse(tree.hasChild("x"));
 
         root.commit(DefaultConflictHandler.OURS);
@@ -310,7 +310,7 @@ public class RootImplTest extends AbstractOakTest {
 
         assertEquals(3, tree.getChildrenCount());
 
-        tree.removeChild("x");
+        tree.getChild("x").remove();
         assertEquals(2, tree.getChildrenCount());
 
         tree.addChild("a");
@@ -375,7 +375,7 @@ public class RootImplTest extends AbstractOakTest {
 
         tree = root.getTree("/");
         assertEquals(Status.EXISTING, tree.getChildStatus("new"));
-        tree.getChild("new").removeChild("another");
+        tree.getChild("new").getChild("another").remove();
         assertEquals(Status.MODIFIED, tree.getChildStatus("new"));
         assertEquals(Status.REMOVED, tree.getChild("new").getChildStatus("another"));
         root.commit(DefaultConflictHandler.OURS);
@@ -442,7 +442,7 @@ public class RootImplTest extends AbstractOakTest {
         checkEqual(root1.getTree("/"), (root2.getTree("/")));
 
         Tree one = root2.getTree("/one");
-        one.removeChild("two");
+        one.getChild("two").remove();
         one.addChild("four");
         root2.commit(DefaultConflictHandler.OURS);
 

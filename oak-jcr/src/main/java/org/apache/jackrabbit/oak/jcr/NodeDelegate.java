@@ -220,10 +220,7 @@ public class NodeDelegate extends ItemDelegate {
      * Remove the node if not root. Does nothing otherwise
      */
     public void remove() throws InvalidItemStateException {
-        Tree parentTree = getParentTree();
-        if (parentTree != null) {
-            parentTree.removeChild(getName());
-        }
+        getTree().remove();
     }
 
     // -----------------------------------------------------------< private >---

@@ -469,7 +469,9 @@ public class RootImpl implements Root {
 
                 switch (resolution) {
                     case OURS:
-                        target.removeChild(name);
+                        if (n != null) {
+                            n.remove();
+                        }
                         break;
                     case THEIRS:
                     case MERGED:

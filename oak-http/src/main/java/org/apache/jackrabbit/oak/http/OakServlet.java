@@ -31,6 +31,11 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.smile.SmileFactory;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -41,13 +46,6 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryValueFactory;
-
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonGenerationException;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.smile.SmileFactory;
 
 public class OakServlet extends HttpServlet {
 
@@ -112,7 +110,7 @@ public class OakServlet extends HttpServlet {
         }
     }
 
-    private void post(JsonNode node, Tree tree) {
+    private static void post(JsonNode node, Tree tree) {
         Iterator<Entry<String, JsonNode>> iterator = node.fields();
         while (iterator.hasNext()) {
             Entry<String, JsonNode> entry = iterator.next();
@@ -128,8 +126,9 @@ public class OakServlet extends HttpServlet {
                 }
                 post(value, child);
             } else {
-                if (tree.hasChild(name)) {
-                    tree.removeChild(name);
+                Tree child = tree.getChild(name);
+                if (child != null) {
+                    child.remove();
                 }
                 CoreValueFactory vf = MemoryValueFactory.INSTANCE;
                 if (value.isNull()) {
@@ -158,7 +157,10 @@ public class OakServlet extends HttpServlet {
             Tree tree = (Tree) request.getAttribute("tree");
             Tree parent = tree.getParent();
             if (parent != null) {
-                parent.removeChild(tree.getName());
+                Tree child = parent.getChild(tree.getName());
+                if (child != null) {
+                    child.remove();
+                }
                 root.commit(DefaultConflictHandler.OURS);
                 response.sendError(HttpServletResponse.SC_OK);
             } else {
@@ -170,7 +172,7 @@ public class OakServlet extends HttpServlet {
         }
     }
 
-    private int getDepth(HttpServletRequest request) {
+    private static int getDepth(HttpServletRequest request) {
         String d = request.getParameter("depth");
         if (d == null) {
             d = request.getParameter("d");
@@ -185,7 +187,7 @@ public class OakServlet extends HttpServlet {
         return 1;
     }
 
-    private JsonGenerator getRenderer(
+    private static JsonGenerator getRenderer(
             HttpServletRequest request, HttpServletResponse response)
             throws IOException {
         AcceptHeader accept = new AcceptHeader(request.getHeader("Accept"));
@@ -201,8 +203,8 @@ public class OakServlet extends HttpServlet {
         }
     }
 
-    private void render(Tree tree, int depth, JsonGenerator generator)
-            throws JsonGenerationException, IOException {
+    private static void render(Tree tree, int depth, JsonGenerator generator)
+            throws IOException {
         generator.writeStartObject();
         if (depth > 0) {
             for (PropertyState property : tree.getProperties()) {
@@ -217,8 +219,8 @@ public class OakServlet extends HttpServlet {
         generator.close();
     }
 
-    private void render(PropertyState property, JsonGenerator generator)
-            throws JsonGenerationException, IOException {
+    private static void render(PropertyState property, JsonGenerator generator)
+            throws IOException {
         generator.writeFieldName(property.getName());
         if (property.isArray()) {
             generator.writeStartArray();
@@ -231,8 +233,8 @@ public class OakServlet extends HttpServlet {
         }
     }
 
-    private void render(CoreValue value, JsonGenerator generator)
-            throws JsonGenerationException, IOException {
+    private static void render(CoreValue value, JsonGenerator generator)
+            throws IOException {
         // TODO: Type info?
         if (value.getType() == PropertyType.BOOLEAN) {
             generator.writeBoolean(value.getBoolean());
