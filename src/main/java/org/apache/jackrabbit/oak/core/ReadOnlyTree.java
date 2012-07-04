@@ -57,6 +57,11 @@ public class ReadOnlyTree implements Tree {
     }
 
     @Override
+    public boolean isRoot() {
+        return parent == null;
+    }
+
+    @Override
     public String getPath() {
         if (parent == null) {
             return "";
