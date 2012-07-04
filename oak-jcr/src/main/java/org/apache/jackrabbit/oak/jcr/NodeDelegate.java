@@ -229,14 +229,8 @@ public class NodeDelegate extends ItemDelegate {
     // -----------------------------------------------------------< private >---
 
     private Tree getTree(String relPath) throws InvalidItemStateException {
-        Tree tree = getTree();
-        for (String name : PathUtils.elements(relPath)) {
-            if (tree == null) {
-                return null;
-            }
-            tree = tree.getChild(name);
-        }
-        return tree;
+        String absPath = PathUtils.concat(getPath(), relPath);
+        return sessionDelegate.getTree(absPath);
     }
 
     @CheckForNull
