@@ -98,7 +98,6 @@ public class TreeImpl implements Tree, PurgeListener {
     public boolean isRoot() {
         return parent == null;
     }
-
     @Override
     public String getPath() {
         // Shortcut for root
@@ -286,17 +285,8 @@ public class TreeImpl implements Tree, PurgeListener {
     }
 
     @Override
-    public boolean removeChild(String name) {
-        if (hasChild(name)) {
-            NodeStateBuilder builder = getNodeStateBuilder();
-            builder.removeNode(name);
-            children.remove(name);
-            updateParentState(builder.getNodeState());
-            return true;
-    }
-        else {
-            return false;
-        }
+    public boolean remove() {
+        return !isRoot() && parent.removeChild(name);
     }
 
     @Override
@@ -383,6 +373,19 @@ public class TreeImpl implements Tree, PurgeListener {
     }
 
     //------------------------------------------------------------< private >---
+
+    private boolean removeChild(String name) {
+        if (hasChild(name)) {
+            NodeStateBuilder builder = getNodeStateBuilder();
+            builder.removeNode(name);
+            children.remove(name);
+            updateParentState(builder.getNodeState());
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
 
     private synchronized NodeStateBuilder getNodeStateBuilder() {
         if (nodeStateBuilder == null) {

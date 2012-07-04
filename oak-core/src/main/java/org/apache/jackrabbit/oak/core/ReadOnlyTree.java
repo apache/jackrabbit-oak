@@ -44,7 +44,7 @@ public class ReadOnlyTree implements Tree {
 
     private ReadOnlyTree(Tree parent, String name, NodeState state) {
         assert name != null;
-        assert name.length() > 0 || parent == null;
+        assert !name.isEmpty() || parent == null;
         assert state != null;
         this.parent = parent;
         this.name = name;
@@ -66,7 +66,7 @@ public class ReadOnlyTree implements Tree {
         if (parent == null) {
             return "";
         } else {
-            return parent.getPath() + "/" + name;
+            return parent.getPath() + '/' + name;
         }
     }
 
@@ -167,7 +167,7 @@ public class ReadOnlyTree implements Tree {
     }
 
     @Override
-    public boolean removeChild(String name) {
+    public boolean remove() {
         throw new UnsupportedOperationException();
     }
 
