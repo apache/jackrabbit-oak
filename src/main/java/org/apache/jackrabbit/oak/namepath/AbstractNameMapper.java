@@ -44,7 +44,6 @@ public abstract class AbstractNameMapper implements NameMapper {
 
                     String oakPref = getOakPrefixFromURI(nsuri);
                     if (oakPref == null) {
-                        // TODO
                         return null;
                     } else {
                         return oakPref + ':' + name;
