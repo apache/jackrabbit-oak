@@ -20,7 +20,8 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 /**
- * TODO
+ * {@code PathMapper} instances provide methods for mapping paths from their JCR
+ * string representation to their Oak representation and vice versa.
  */
 public interface PathMapper {
 
