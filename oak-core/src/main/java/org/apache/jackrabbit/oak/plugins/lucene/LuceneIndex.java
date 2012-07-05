@@ -107,7 +107,7 @@ public class LuceneIndex implements QueryIndex {
         }
     }
 
-    private Query getQuery(Filter filter) {
+    private static Query getQuery(Filter filter) {
         List<Query> qs = new ArrayList<Query>();
 
         String path = filter.getPath();
@@ -162,12 +162,13 @@ public class LuceneIndex implements QueryIndex {
 
         private final Iterator<String> iterator;
 
-        private String path = null;
+        private String path;
 
         public PathCursor(Collection<String> paths) {
             this.iterator = paths.iterator();
         }
 
+        @Override
         public boolean next() {
             if (iterator.hasNext()) {
                 path = iterator.next();
@@ -183,6 +184,6 @@ public class LuceneIndex implements QueryIndex {
             return path;
         }
 
-    };
+    }
 
 }

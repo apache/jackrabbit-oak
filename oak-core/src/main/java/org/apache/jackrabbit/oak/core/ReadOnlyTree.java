@@ -30,13 +30,13 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 public class ReadOnlyTree implements Tree {
 
     /** Parent of this tree, {@code null} for the root */
-    private Tree parent;
+    private final Tree parent;
 
     /** Name of this tree */
-    private String name;
+    private final String name;
 
     /** Underlying node state */
-    protected NodeState state;
+    private final NodeState state;
 
     public ReadOnlyTree(NodeState root) {
         this(null, "", root);
