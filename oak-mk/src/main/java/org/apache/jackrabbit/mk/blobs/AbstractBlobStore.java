@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.mk.blobs;
 
-import org.apache.jackrabbit.mk.util.IOUtils;
 import org.apache.jackrabbit.mk.util.Cache;
+import org.apache.jackrabbit.mk.util.IOUtils;
 import org.apache.jackrabbit.mk.util.StringUtils;
 
 import java.io.ByteArrayInputStream;

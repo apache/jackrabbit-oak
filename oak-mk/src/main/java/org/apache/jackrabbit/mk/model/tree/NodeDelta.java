@@ -16,14 +16,13 @@
  */
 package org.apache.jackrabbit.mk.model.tree;
 
+import org.apache.jackrabbit.mk.model.Id;
+import org.apache.jackrabbit.mk.store.RevisionProvider;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import org.apache.jackrabbit.mk.model.Id;
-import org.apache.jackrabbit.mk.model.PropertyState;
-import org.apache.jackrabbit.mk.store.RevisionProvider;
 
 /**
  *

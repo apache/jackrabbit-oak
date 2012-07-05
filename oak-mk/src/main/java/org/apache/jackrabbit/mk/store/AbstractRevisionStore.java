@@ -16,15 +16,15 @@
  */
 package org.apache.jackrabbit.mk.store;
 
-import java.util.HashSet;
-import java.util.Set;
-
-import org.apache.jackrabbit.mk.model.tree.ChildNode;
 import org.apache.jackrabbit.mk.model.Id;
+import org.apache.jackrabbit.mk.model.StoredNode;
+import org.apache.jackrabbit.mk.model.tree.ChildNode;
 import org.apache.jackrabbit.mk.model.tree.NodeState;
 import org.apache.jackrabbit.mk.model.tree.NodeStateDiff;
-import org.apache.jackrabbit.mk.model.PropertyState;
-import org.apache.jackrabbit.mk.model.StoredNode;
+import org.apache.jackrabbit.mk.model.tree.PropertyState;
+
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Abstract base class for revision store implementations.

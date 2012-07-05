@@ -17,14 +17,14 @@
 package org.apache.jackrabbit.mk.store;
 
 import org.apache.jackrabbit.mk.model.ChildNodeEntry;
+import org.apache.jackrabbit.mk.model.Id;
+import org.apache.jackrabbit.mk.model.StoredNode;
 import org.apache.jackrabbit.mk.model.tree.AbstractChildNode;
 import org.apache.jackrabbit.mk.model.tree.AbstractNodeState;
 import org.apache.jackrabbit.mk.model.tree.AbstractPropertyState;
 import org.apache.jackrabbit.mk.model.tree.ChildNode;
-import org.apache.jackrabbit.mk.model.Id;
 import org.apache.jackrabbit.mk.model.tree.NodeState;
-import org.apache.jackrabbit.mk.model.PropertyState;
-import org.apache.jackrabbit.mk.model.StoredNode;
+import org.apache.jackrabbit.mk.model.tree.PropertyState;
 
 import java.util.Collections;
 import java.util.Iterator;

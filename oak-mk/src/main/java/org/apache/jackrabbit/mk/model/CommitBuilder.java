@@ -16,6 +16,12 @@
  */
 package org.apache.jackrabbit.mk.model;
 
+import org.apache.jackrabbit.mk.model.tree.DiffBuilder;
+import org.apache.jackrabbit.mk.model.tree.NodeDelta;
+import org.apache.jackrabbit.mk.store.NotFoundException;
+import org.apache.jackrabbit.mk.store.RevisionStore;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -23,12 +29,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-
-import org.apache.jackrabbit.mk.model.tree.DiffBuilder;
-import org.apache.jackrabbit.mk.model.tree.NodeDelta;
-import org.apache.jackrabbit.mk.store.NotFoundException;
-import org.apache.jackrabbit.mk.store.RevisionStore;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 
 /**
  *

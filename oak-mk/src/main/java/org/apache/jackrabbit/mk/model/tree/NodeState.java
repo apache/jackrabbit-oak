@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.mk.model.tree;
 
-import org.apache.jackrabbit.mk.model.PropertyState;
-
 /**
  * A content tree consists of nodes and properties, each of which
  * evolves through different states during its lifecycle. This interface

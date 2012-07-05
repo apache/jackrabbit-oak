@@ -16,10 +16,8 @@
  */
 package org.apache.jackrabbit.mk.model.tree;
 
-import org.apache.jackrabbit.mk.model.PropertyState;
-
 /**
- * Abstract base class for {@link org.apache.jackrabbit.mk.model.PropertyState} implementations.
+ * Abstract base class for {@link PropertyState} implementations.
  * This base class contains default implementations of the
  * {@link #equals(Object)} and {@link #hashCode()} methods based on
  * the implemented interface.

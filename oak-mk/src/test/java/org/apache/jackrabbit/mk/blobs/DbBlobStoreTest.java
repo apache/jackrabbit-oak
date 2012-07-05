@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.mk.blobs;
 
-import java.sql.Connection;
-
 import org.h2.jdbcx.JdbcConnectionPool;
+
+import java.sql.Connection;
 
 /**
  * Tests the DbBlobStore implementation.

@@ -16,9 +16,10 @@
  */
 package org.apache.jackrabbit.mk.json;
 
-import java.io.IOException;
 import junit.framework.TestCase;
 import org.apache.jackrabbit.mk.util.StopWatch;
+
+import java.io.IOException;
 
 /**
  * Test the Jsop tokenizer and builder.
