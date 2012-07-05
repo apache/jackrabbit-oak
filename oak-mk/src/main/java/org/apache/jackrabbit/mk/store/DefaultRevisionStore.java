@@ -31,15 +31,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import org.apache.jackrabbit.mk.model.ChildNode;
+import org.apache.jackrabbit.mk.model.ChildNodeEntry;
 import org.apache.jackrabbit.mk.model.ChildNodeEntriesMap;
 import org.apache.jackrabbit.mk.model.Id;
 import org.apache.jackrabbit.mk.model.MutableCommit;
 import org.apache.jackrabbit.mk.model.MutableNode;
 import org.apache.jackrabbit.mk.model.Node;
 import org.apache.jackrabbit.mk.model.NodeDiffHandler;
-import org.apache.jackrabbit.mk.model.NodeState;
-import org.apache.jackrabbit.mk.model.NodeStateDiff;
+import org.apache.jackrabbit.mk.model.tree.NodeState;
+import org.apache.jackrabbit.mk.model.tree.NodeStateDiff;
 import org.apache.jackrabbit.mk.model.StoredCommit;
 import org.apache.jackrabbit.mk.model.StoredNode;
 import org.apache.jackrabbit.mk.persistence.GCPersistence;
@@ -459,19 +459,19 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
             }
 
             @Override
-            public void childNodeAdded(ChildNode added) {
+            public void childNodeAdded(ChildNodeEntry added) {
                 String name = added.getName();
                 diff.childNodeAdded(name, after.getChildNode(name));
             }
 
             @Override
-            public void childNodeDeleted(ChildNode deleted) {
+            public void childNodeDeleted(ChildNodeEntry deleted) {
                 String name = deleted.getName();
                 diff.childNodeDeleted(name, before.getChildNode(name));
             }
 
             @Override
-            public void childNodeChanged(ChildNode changed, Id newId) {
+            public void childNodeChanged(ChildNodeEntry changed, Id newId) {
                 String name = changed.getName();
                 diff.childNodeChanged(name, before.getChildNode(name),
                         after.getChildNode(name));
@@ -638,9 +638,9 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
         if (!gcpm.markNode(node.getId())) {
             return;
         }
-        Iterator<ChildNode> iter = node.getChildNodeEntries(0, -1);
+        Iterator<ChildNodeEntry> iter = node.getChildNodeEntries(0, -1);
         while (iter.hasNext()) {
-            ChildNode c = iter.next();
+            ChildNodeEntry c = iter.next();
             markNode(getNode(c.getId()));
         }
     }

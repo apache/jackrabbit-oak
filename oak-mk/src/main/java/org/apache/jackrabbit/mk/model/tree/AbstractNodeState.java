@@ -14,7 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.model;
+package org.apache.jackrabbit.mk.model.tree;
+
+import org.apache.jackrabbit.mk.model.PropertyState;
 
 /**
  * Abstract base class for {@link NodeState} implementations.
@@ -53,7 +55,7 @@ public abstract class AbstractNodeState implements NodeState {
 
     @Override
     public NodeState getChildNode(String name) {
-        for (ChildNodeEntry entry : getChildNodeEntries(0, -1)) {
+        for (ChildNode entry : getChildNodeEntries(0, -1)) {
             if (name.equals(entry.getName())) {
                 return entry.getNode();
             }
@@ -65,7 +67,7 @@ public abstract class AbstractNodeState implements NodeState {
     @SuppressWarnings("unused")
     public long getChildNodeCount() {
         long count = 0;
-        for (ChildNodeEntry entry : getChildNodeEntries(0, -1)) {
+        for (ChildNode entry : getChildNodeEntries(0, -1)) {
             count++;
         }
         return count;
@@ -103,7 +105,7 @@ public abstract class AbstractNodeState implements NodeState {
         }
 
         long childNodeCount = 0;
-        for (ChildNodeEntry entry : getChildNodeEntries(0, -1)) {
+        for (ChildNode entry : getChildNodeEntries(0, -1)) {
             if (!entry.getNode().equals(other.getChildNode(entry.getName()))) {
                 return false;
             }

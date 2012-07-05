@@ -19,10 +19,10 @@ package org.apache.jackrabbit.mk.store;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.jackrabbit.mk.model.ChildNodeEntry;
+import org.apache.jackrabbit.mk.model.tree.ChildNode;
 import org.apache.jackrabbit.mk.model.Id;
-import org.apache.jackrabbit.mk.model.NodeState;
-import org.apache.jackrabbit.mk.model.NodeStateDiff;
+import org.apache.jackrabbit.mk.model.tree.NodeState;
+import org.apache.jackrabbit.mk.model.tree.NodeStateDiff;
 import org.apache.jackrabbit.mk.model.PropertyState;
 import org.apache.jackrabbit.mk.model.StoredNode;
 
@@ -101,6 +101,8 @@ abstract class AbstractRevisionStore implements RevisionStore {
 
     /**
      * Compares the child nodes of the given two node states.
+     * <p/>
+     * <b>Disclaimer:</b> very inefficient implementation for large sets of child node entries
      *
      * @param before node state before changes
      * @param after node state after changes
@@ -110,7 +112,7 @@ abstract class AbstractRevisionStore implements RevisionStore {
             NodeState before, NodeState after, NodeStateDiff diff) {
         Set<String> beforeChildNodes = new HashSet<String>();
 
-        for (ChildNodeEntry beforeCNE : before.getChildNodeEntries(0, -1)) {
+        for (ChildNode beforeCNE : before.getChildNodeEntries(0, -1)) {
             String name = beforeCNE.getName();
             NodeState beforeChild = beforeCNE.getNode();
             NodeState afterChild = after.getChildNode(name);
@@ -124,7 +126,7 @@ abstract class AbstractRevisionStore implements RevisionStore {
             }
         }
 
-        for (ChildNodeEntry afterChild : after.getChildNodeEntries(0, -1)) {
+        for (ChildNode afterChild : after.getChildNodeEntries(0, -1)) {
             String name = afterChild.getName();
             if (!beforeChildNodes.contains(name)) {
                 diff.childNodeAdded(name, afterChild.getNode());

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.model;
+package org.apache.jackrabbit.mk.model.tree;
 
 /**
  * Storage abstraction for content trees. At any given point in time

@@ -36,7 +36,7 @@ public class StoredNode extends AbstractNode {
         this.id = id;
     }
     
-    public StoredNode(Id id, RevisionProvider provider, Map<String, String> properties, Iterator<ChildNode> cneIt) {
+    public StoredNode(Id id, RevisionProvider provider, Map<String, String> properties, Iterator<ChildNodeEntry> cneIt) {
         super(provider);
         this.id = id;
         this.properties.putAll(properties);
@@ -58,8 +58,8 @@ public class StoredNode extends AbstractNode {
         return Collections.unmodifiableMap(properties);
     }
 
-    public Iterator<ChildNode> getChildNodeEntries(int offset, int count) {
-        return new UnmodifiableIterator<ChildNode>(super.getChildNodeEntries(offset, count));
+    public Iterator<ChildNodeEntry> getChildNodeEntries(int offset, int count) {
+        return new UnmodifiableIterator<ChildNodeEntry>(super.getChildNodeEntries(offset, count));
     }
 
     public Iterator<String> getChildNodeNames(int offset, int count) {

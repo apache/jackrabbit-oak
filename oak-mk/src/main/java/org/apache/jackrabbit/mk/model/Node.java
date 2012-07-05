@@ -28,12 +28,12 @@ public interface Node {
 
     Map<String, String> getProperties();
     
-    ChildNode getChildNodeEntry(String name);
+    ChildNodeEntry getChildNodeEntry(String name);
 
     Iterator<String> getChildNodeNames(int offset, int count);
     int getChildNodeCount();
     
-    Iterator<ChildNode> getChildNodeEntries(int offset, int count);
+    Iterator<ChildNodeEntry> getChildNodeEntries(int offset, int count);
 
     void diff(Node other, NodeDiffHandler handler);
 

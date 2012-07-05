@@ -25,13 +25,13 @@ import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
-import org.apache.jackrabbit.mk.model.ChildNodeEntry;
+import org.apache.jackrabbit.mk.model.tree.ChildNode;
 import org.apache.jackrabbit.mk.model.Commit;
 import org.apache.jackrabbit.mk.model.CommitBuilder;
 import org.apache.jackrabbit.mk.model.CommitBuilder.NodeTree;
-import org.apache.jackrabbit.mk.model.DiffBuilder;
+import org.apache.jackrabbit.mk.model.tree.DiffBuilder;
 import org.apache.jackrabbit.mk.model.Id;
-import org.apache.jackrabbit.mk.model.NodeState;
+import org.apache.jackrabbit.mk.model.tree.NodeState;
 import org.apache.jackrabbit.mk.model.PropertyState;
 import org.apache.jackrabbit.mk.model.StoredCommit;
 import org.apache.jackrabbit.mk.util.CommitGate;
@@ -615,7 +615,7 @@ public class MicroKernelImpl implements MicroKernel {
                 count = -1;
             }
             int numSiblings = 0;
-            for (ChildNodeEntry entry : node.getChildNodeEntries(offset, count)) {
+            for (ChildNode entry : node.getChildNodeEntries(offset, count)) {
                 if (filter == null || filter.includeNode(entry.getName())) {
                     if (maxChildNodes != -1 && ++numSiblings > maxChildNodes) {
                         break;

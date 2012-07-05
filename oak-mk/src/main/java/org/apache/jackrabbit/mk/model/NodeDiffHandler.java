@@ -27,9 +27,9 @@ public interface NodeDiffHandler {
 
     void propDeleted(String propName, String value);
 
-    void childNodeAdded(ChildNode added);
+    void childNodeAdded(ChildNodeEntry added);
 
-    void childNodeDeleted(ChildNode deleted);
+    void childNodeDeleted(ChildNodeEntry deleted);
 
-    void childNodeChanged(ChildNode changed, Id newId);
+    void childNodeChanged(ChildNodeEntry changed, Id newId);
 }

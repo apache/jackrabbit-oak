@@ -14,9 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.model;
+package org.apache.jackrabbit.mk.model.tree;
 
 import org.apache.jackrabbit.mk.json.JsopBuilder;
+import org.apache.jackrabbit.mk.model.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
 import java.util.HashMap;
@@ -249,7 +250,7 @@ public class DiffBuilder {
         for (PropertyState property : node.getProperties()) {
             builder.key(property.getName()).encodedValue(property.getEncodedValue());
         }
-        for (ChildNodeEntry entry : node.getChildNodeEntries(0, -1)) {
+        for (ChildNode entry : node.getChildNodeEntries(0, -1)) {
             builder.key(entry.getName()).object();
             toJson(builder, entry.getNode());
             builder.endObject();
