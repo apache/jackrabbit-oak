@@ -38,7 +38,7 @@ public abstract class LazyValue<T> {
      *
      * @return the underlying value
      */
-    public T get() {
+    public synchronized T get() {
         if (value == null) {
             value = create();
         }
