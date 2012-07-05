@@ -16,16 +16,13 @@
  */
 package org.apache.jackrabbit.mk.core;
 
-import java.io.Closeable;
-import java.io.File;
-
 import org.apache.jackrabbit.mk.blobs.BlobStore;
 import org.apache.jackrabbit.mk.blobs.FileBlobStore;
 import org.apache.jackrabbit.mk.blobs.MemoryBlobStore;
 import org.apache.jackrabbit.mk.model.CommitBuilder;
 import org.apache.jackrabbit.mk.model.Id;
-import org.apache.jackrabbit.mk.model.tree.NodeState;
 import org.apache.jackrabbit.mk.model.StoredCommit;
+import org.apache.jackrabbit.mk.model.tree.NodeState;
 import org.apache.jackrabbit.mk.persistence.H2Persistence;
 import org.apache.jackrabbit.mk.persistence.InMemPersistence;
 import org.apache.jackrabbit.mk.store.DefaultRevisionStore;
@@ -33,6 +30,9 @@ import org.apache.jackrabbit.mk.store.NotFoundException;
 import org.apache.jackrabbit.mk.store.RevisionStore;
 import org.apache.jackrabbit.mk.util.IOUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+
+import java.io.Closeable;
+import java.io.File;
 
 /**
  *

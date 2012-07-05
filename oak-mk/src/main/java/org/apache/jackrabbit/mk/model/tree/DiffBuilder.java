@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.mk.model.tree;
 
 import org.apache.jackrabbit.mk.json.JsopBuilder;
-import org.apache.jackrabbit.mk.model.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
 import java.util.HashMap;

@@ -16,9 +16,10 @@
  */
 package org.apache.jackrabbit.mk.json;
 
-import java.io.IOException;
-import org.apache.jackrabbit.mk.util.StopWatch;
 import junit.framework.TestCase;
+import org.apache.jackrabbit.mk.util.StopWatch;
+
+import java.io.IOException;
 
 public class JsopStreamTest extends TestCase {
 

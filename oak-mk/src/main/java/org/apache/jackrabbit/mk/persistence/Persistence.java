@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.mk.persistence;
 
-import java.io.Closeable;
-import java.io.File;
-
 import org.apache.jackrabbit.mk.model.ChildNodeEntriesMap;
 import org.apache.jackrabbit.mk.model.Commit;
 import org.apache.jackrabbit.mk.model.Id;
@@ -26,6 +23,9 @@ import org.apache.jackrabbit.mk.model.Node;
 import org.apache.jackrabbit.mk.model.StoredCommit;
 import org.apache.jackrabbit.mk.model.StoredNode;
 import org.apache.jackrabbit.mk.store.NotFoundException;
+
+import java.io.Closeable;
+import java.io.File;
 
 /**
  * Defines the methods exposed by a persistence manager, that stores head

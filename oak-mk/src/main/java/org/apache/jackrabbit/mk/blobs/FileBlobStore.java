@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.mk.blobs;
 
+import org.apache.jackrabbit.mk.util.IOUtils;
+import org.apache.jackrabbit.mk.util.StringUtils;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -25,8 +28,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
-import org.apache.jackrabbit.mk.util.IOUtils;
-import org.apache.jackrabbit.mk.util.StringUtils;
 
 /**
  * A file blob store.

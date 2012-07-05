@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.mk.model.tree;
 
-import org.apache.jackrabbit.mk.model.PropertyState;
-
 /**
  * Abstract base class for {@link NodeState} implementations.
  * This base class contains default implementations of the

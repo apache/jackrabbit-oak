@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.mk.util;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.util.IOUtils;
 
 import java.io.IOException;
 import java.io.InputStream;

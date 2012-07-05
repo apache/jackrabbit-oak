@@ -16,6 +16,22 @@
  */
 package org.apache.jackrabbit.mk.store;
 
+import org.apache.jackrabbit.mk.model.ChildNodeEntriesMap;
+import org.apache.jackrabbit.mk.model.ChildNodeEntry;
+import org.apache.jackrabbit.mk.model.Id;
+import org.apache.jackrabbit.mk.model.MutableCommit;
+import org.apache.jackrabbit.mk.model.MutableNode;
+import org.apache.jackrabbit.mk.model.Node;
+import org.apache.jackrabbit.mk.model.NodeDiffHandler;
+import org.apache.jackrabbit.mk.model.StoredCommit;
+import org.apache.jackrabbit.mk.model.StoredNode;
+import org.apache.jackrabbit.mk.model.tree.NodeState;
+import org.apache.jackrabbit.mk.model.tree.NodeStateDiff;
+import org.apache.jackrabbit.mk.persistence.GCPersistence;
+import org.apache.jackrabbit.mk.persistence.Persistence;
+import org.apache.jackrabbit.mk.util.IOUtils;
+import org.apache.jackrabbit.mk.util.SimpleLRUCache;
+
 import java.io.Closeable;
 import java.util.Collections;
 import java.util.Iterator;
@@ -30,22 +46,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-
-import org.apache.jackrabbit.mk.model.ChildNodeEntry;
-import org.apache.jackrabbit.mk.model.ChildNodeEntriesMap;
-import org.apache.jackrabbit.mk.model.Id;
-import org.apache.jackrabbit.mk.model.MutableCommit;
-import org.apache.jackrabbit.mk.model.MutableNode;
-import org.apache.jackrabbit.mk.model.Node;
-import org.apache.jackrabbit.mk.model.NodeDiffHandler;
-import org.apache.jackrabbit.mk.model.tree.NodeState;
-import org.apache.jackrabbit.mk.model.tree.NodeStateDiff;
-import org.apache.jackrabbit.mk.model.StoredCommit;
-import org.apache.jackrabbit.mk.model.StoredNode;
-import org.apache.jackrabbit.mk.persistence.GCPersistence;
-import org.apache.jackrabbit.mk.persistence.Persistence;
-import org.apache.jackrabbit.mk.util.IOUtils;
-import org.apache.jackrabbit.mk.util.SimpleLRUCache;
 
 /**
  * Default revision store implementation, passing calls to a {@code Persistence}
