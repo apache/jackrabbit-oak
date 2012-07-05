@@ -14,7 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.model;
+package org.apache.jackrabbit.mk.model.tree;
+
+import org.apache.jackrabbit.mk.model.PropertyState;
 
 /**
  * A content tree consists of nodes and properties, each of which
@@ -142,7 +144,7 @@ public interface NodeState {
     long getChildNodeCount();
 
     /**
-     * Returns an iterable of the child node entries starting from the
+     * Returns an Iterable of the child node entries starting from the
      * given offset. Multiple iterations are guaranteed to return the
      * child nodes in the same order, but the specific order used is
      * implementation-dependent and may change across different states
@@ -154,6 +156,6 @@ public interface NodeState {
      *               or -1 for all remaining entries
      * @return requested child node entries in some stable order
      */
-    Iterable<? extends ChildNodeEntry> getChildNodeEntries(long offset, int count);
+    Iterable<? extends ChildNode> getChildNodeEntries(long offset, int count);
 
 }

@@ -20,10 +20,8 @@ import org.apache.jackrabbit.mk.store.Binding;
 import org.apache.jackrabbit.mk.store.RevisionProvider;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 
 /**
  *
@@ -55,8 +53,8 @@ public abstract class AbstractNode implements Node {
             } else {
                 this.childEntries = new ChildNodeEntriesTree(provider);
             }
-            for (Iterator<ChildNode> it = other.getChildNodeEntries(0, -1); it.hasNext(); ) {
-                ChildNode cne = it.next();
+            for (Iterator<ChildNodeEntry> it = other.getChildNodeEntries(0, -1); it.hasNext(); ) {
+                ChildNodeEntry cne = it.next();
                 this.childEntries.add(cne);
             }
         }
@@ -66,7 +64,7 @@ public abstract class AbstractNode implements Node {
         return properties;
     }
 
-    public ChildNode getChildNodeEntry(String name) {
+    public ChildNodeEntry getChildNodeEntry(String name) {
         return childEntries.get(name);
     }
 
@@ -78,7 +76,7 @@ public abstract class AbstractNode implements Node {
         return childEntries.getCount();
     }
 
-    public Iterator<ChildNode> getChildNodeEntries(int offset, int count) {
+    public Iterator<ChildNodeEntry> getChildNodeEntries(int offset, int count) {
         return childEntries.getEntries(offset, count);
     }
 
@@ -114,23 +112,23 @@ public abstract class AbstractNode implements Node {
 
             // delegate to ChildNodeEntries implementation
             ChildNodeEntries otherEntries = ((AbstractNode) other).childEntries;
-            for (Iterator<ChildNode> it = childEntries.getAdded(otherEntries); it.hasNext(); ) {
+            for (Iterator<ChildNodeEntry> it = childEntries.getAdded(otherEntries); it.hasNext(); ) {
                 handler.childNodeAdded(it.next());
             }
-            for (Iterator<ChildNode> it = childEntries.getRemoved(otherEntries); it.hasNext(); ) {
+            for (Iterator<ChildNodeEntry> it = childEntries.getRemoved(otherEntries); it.hasNext(); ) {
                 handler.childNodeDeleted(it.next());
             }
-            for (Iterator<ChildNode> it = childEntries.getModified(otherEntries); it.hasNext(); ) {
-                ChildNode old = it.next();
-                ChildNode modified = otherEntries.get(old.getName());
+            for (Iterator<ChildNodeEntry> it = childEntries.getModified(otherEntries); it.hasNext(); ) {
+                ChildNodeEntry old = it.next();
+                ChildNodeEntry modified = otherEntries.get(old.getName());
                 handler.childNodeChanged(old, modified.getId());
             }
             return;
         }
 
-        for (Iterator<ChildNode> it = getChildNodeEntries(0, -1); it.hasNext(); ) {
-            ChildNode child = it.next();
-            ChildNode newChild = other.getChildNodeEntry(child.getName());
+        for (Iterator<ChildNodeEntry> it = getChildNodeEntries(0, -1); it.hasNext(); ) {
+            ChildNodeEntry child = it.next();
+            ChildNodeEntry newChild = other.getChildNodeEntry(child.getName());
             if (newChild == null) {
                 handler.childNodeDeleted(child);
             } else {
@@ -139,8 +137,8 @@ public abstract class AbstractNode implements Node {
                 }
             }
         }
-        for (Iterator<ChildNode> it = other.getChildNodeEntries(0, -1); it.hasNext(); ) {
-            ChildNode child = it.next();
+        for (Iterator<ChildNodeEntry> it = other.getChildNodeEntries(0, -1); it.hasNext(); ) {
+            ChildNodeEntry child = it.next();
             if (getChildNodeEntry(child.getName()) == null) {
                 handler.childNodeAdded(child);
             }

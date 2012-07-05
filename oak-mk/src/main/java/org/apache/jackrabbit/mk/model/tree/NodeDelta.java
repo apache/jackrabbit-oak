@@ -14,13 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.model;
+package org.apache.jackrabbit.mk.model.tree;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.jackrabbit.mk.model.Id;
+import org.apache.jackrabbit.mk.model.PropertyState;
 import org.apache.jackrabbit.mk.store.RevisionProvider;
 
 /**

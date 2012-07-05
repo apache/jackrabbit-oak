@@ -34,7 +34,7 @@ import java.util.NoSuchElementException;
  */
 public class ChildNodeEntriesTree implements ChildNodeEntries {
 
-    protected static final List<ChildNode> EMPTY = Collections.emptyList();
+    protected static final List<ChildNodeEntry> EMPTY = Collections.emptyList();
     
     protected int count;
     
@@ -87,13 +87,13 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
     }
 
     @Override
-    public ChildNode get(String name) {
+    public ChildNodeEntry get(String name) {
         IndexEntry entry = index[keyToIndex(name)];
         if (entry == null) {
             return null;
         }
-        if (entry instanceof ChildNode) {
-            ChildNode cne = (ChildNode) entry;
+        if (entry instanceof ChildNodeEntry) {
+            ChildNodeEntry cne = (ChildNodeEntry) entry;
             return cne.getName().equals(name) ? cne : null;
         } else if (entry instanceof BucketInfo) {
             BucketInfo bi = (BucketInfo) entry;
@@ -124,14 +124,14 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
         return new AbstractRangeIterator<String>(getEntries(offset, cnt), 0, -1) {
             @Override
             protected String doNext() {
-                ChildNode cne = (ChildNode) it.next();
+                ChildNodeEntry cne = (ChildNodeEntry) it.next();
                 return cne.getName();
             }
         };
     }
 
     @Override
-    public Iterator<ChildNode> getEntries(int offset, int cnt) {
+    public Iterator<ChildNodeEntry> getEntries(int offset, int cnt) {
         if (offset < 0 || cnt < -1) {
             throw new IllegalArgumentException();
         }
@@ -144,7 +144,7 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
         if (cnt == -1 || (offset + cnt) > count) {
             cnt = count - offset;
         }
-        ArrayList<ChildNode> list = new ArrayList<ChildNode>(cnt);
+        ArrayList<ChildNodeEntry> list = new ArrayList<ChildNodeEntry>(cnt);
         for (IndexEntry e : index) {
             if (e != null) {
                 if (skipped + e.getSize() <= offset) {
@@ -155,7 +155,7 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
                     } else if (e instanceof BucketInfo) {
                         BucketInfo bi = (BucketInfo) e;
                         ChildNodeEntries bucket = retrieveBucket(bi.getId());
-                        for (Iterator<ChildNode> it =
+                        for (Iterator<ChildNodeEntry> it =
                                      bucket.getEntries(offset - skipped, cnt - list.size());
                              it.hasNext(); ) {
                             list.add(it.next());
@@ -164,7 +164,7 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
                     } else {
                         // dirty bucket
                         Bucket bucket = (Bucket) e;
-                        for (Iterator<ChildNode> it =
+                        for (Iterator<ChildNodeEntry> it =
                                      bucket.getEntries(offset - skipped, cnt - list.size());
                              it.hasNext(); ) {
                             list.add(it.next());
@@ -184,7 +184,7 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
     //------------------------------------------------------------< write ops >
 
     @Override
-    public ChildNode add(ChildNode entry) {
+    public ChildNodeEntry add(ChildNodeEntry entry) {
         int idx = keyToIndex(entry.getName());
         IndexEntry ie = index[idx];
         if (ie == null) {
@@ -192,8 +192,8 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
             count++;
             return null;
         }
-        if (ie instanceof ChildNode) {
-            ChildNode existing = (ChildNode) ie;
+        if (ie instanceof ChildNodeEntry) {
+            ChildNodeEntry existing = (ChildNodeEntry) ie;
             if (existing.getName().equals(entry.getName())) {
                 index[idx] = new NodeInfo(entry.getName(), entry.getId());
                 return existing;
@@ -216,7 +216,7 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
             bucket = (Bucket) ie;
         }
 
-        ChildNode existing = bucket.add(entry);
+        ChildNodeEntry existing = bucket.add(entry);
         if (entry.equals(existing)) {
             // no-op
             return existing;
@@ -230,14 +230,14 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
     }
 
     @Override
-    public ChildNode remove(String name) {
+    public ChildNodeEntry remove(String name) {
         int idx = keyToIndex(name);
         IndexEntry ie = index[idx];
         if (ie == null) {
             return null;
         }
-        if (ie instanceof ChildNode) {
-            ChildNode existing = (ChildNode) ie;
+        if (ie instanceof ChildNodeEntry) {
+            ChildNodeEntry existing = (ChildNodeEntry) ie;
             if (existing.getName().equals(name)) {
                 index[idx] = null;
                 count--;
@@ -256,7 +256,7 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
             bucket = (Bucket) ie;
         }
 
-        ChildNode existing = bucket.remove(name);
+        ChildNodeEntry existing = bucket.remove(name);
         if (existing == null) {
             return null;
         }
@@ -264,7 +264,7 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
             index[idx] = null;
         } else if (bucket.getCount() == 1) {
             // inline single remaining entry
-            ChildNode remaining = bucket.getEntries(0, 1).next();
+            ChildNodeEntry remaining = bucket.getEntries(0, 1).next();
             index[idx] = new NodeInfo(remaining.getName(), remaining.getId());
         } else {
             index[idx] = bucket;
@@ -274,24 +274,24 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
     }
 
     @Override
-    public ChildNode rename(String oldName, String newName) {
+    public ChildNodeEntry rename(String oldName, String newName) {
         if (oldName.equals(newName)) {
             return get(oldName);
         }
-        ChildNode old = remove(oldName);
+        ChildNodeEntry old = remove(oldName);
         if (old == null) {
             return null;
         }
-        add(new ChildNode(newName, old.getId()));
+        add(new ChildNodeEntry(newName, old.getId()));
         return old;
     }
 
     //-------------------------------------------------------------< diff ops >
 
     @Override
-    public Iterator<ChildNode> getAdded(final ChildNodeEntries other) {
+    public Iterator<ChildNodeEntry> getAdded(final ChildNodeEntries other) {
         if (other instanceof ChildNodeEntriesTree) {
-            List<ChildNode> added = new ArrayList<ChildNode>();
+            List<ChildNodeEntry> added = new ArrayList<ChildNodeEntry>();
             ChildNodeEntriesTree otherEntries = (ChildNodeEntriesTree) other;
             for (int i = 0; i < index.length; i++) {
                 IndexEntry ie1 = index[i];
@@ -301,18 +301,18 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
                     if (ie1 == null) {
                         // this index entry in null => other must be non-null
                         if (ie2 instanceof NodeInfo) {
-                            added.add((ChildNode) ie2);    
+                            added.add((ChildNodeEntry) ie2);
                         } else if (ie2 instanceof BucketInfo) {
                             BucketInfo bi = (BucketInfo) ie2;
                             ChildNodeEntries bucket = retrieveBucket(bi.getId());
-                            for (Iterator<ChildNode> it = bucket.getEntries(0, -1);
+                            for (Iterator<ChildNodeEntry> it = bucket.getEntries(0, -1);
                                  it.hasNext(); ) {
                                 added.add(it.next());
                             }
                         } else {
                             // dirty bucket
                             Bucket bucket = (Bucket) ie2;
-                            for (Iterator<ChildNode> it = bucket.getEntries(0, -1);
+                            for (Iterator<ChildNodeEntry> it = bucket.getEntries(0, -1);
                                  it.hasNext(); ) {
                                 added.add(it.next());
                             }
@@ -322,7 +322,7 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
                         ChildNodeEntriesMap bucket1;
                         if (ie1 instanceof NodeInfo) {
                             bucket1 = new ChildNodeEntriesMap();
-                            bucket1.add((ChildNode) ie1);
+                            bucket1.add((ChildNodeEntry) ie1);
                         } else if (ie1 instanceof BucketInfo) {
                             BucketInfo bi = (BucketInfo) ie1;
                             bucket1 = retrieveBucket(bi.getId());
@@ -333,7 +333,7 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
                         ChildNodeEntriesMap bucket2;
                         if (ie2 instanceof NodeInfo) {
                             bucket2 = new ChildNodeEntriesMap();
-                            bucket2.add((ChildNode) ie2);
+                            bucket2.add((ChildNodeEntry) ie2);
                         } else if (ie2 instanceof BucketInfo) {
                             BucketInfo bi = (BucketInfo) ie2;
                             bucket2 = retrieveBucket(bi.getId());
@@ -342,7 +342,7 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
                             bucket2 = (Bucket) ie2;
                         }
 
-                        for (Iterator<ChildNode> it = bucket1.getAdded(bucket2);
+                        for (Iterator<ChildNodeEntry> it = bucket1.getAdded(bucket2);
                              it.hasNext(); ) {
                             added.add(it.next());
                         }
@@ -352,9 +352,9 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
             return added.iterator();
         } else {
             // todo optimize
-            return new AbstractFilteringIterator<ChildNode>(other.getEntries(0, -1)) {
+            return new AbstractFilteringIterator<ChildNodeEntry>(other.getEntries(0, -1)) {
                 @Override
-                protected boolean include(ChildNode entry) {
+                protected boolean include(ChildNodeEntry entry) {
                     return get(entry.getName()) == null;
                 }
             };
@@ -362,9 +362,9 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
     }
 
     @Override
-    public Iterator<ChildNode> getRemoved(final ChildNodeEntries other) {
+    public Iterator<ChildNodeEntry> getRemoved(final ChildNodeEntries other) {
         if (other instanceof ChildNodeEntriesTree) {
-            List<ChildNode> removed = new ArrayList<ChildNode>();
+            List<ChildNodeEntry> removed = new ArrayList<ChildNodeEntry>();
             ChildNodeEntriesTree otherEntries = (ChildNodeEntriesTree) other;
             for (int i = 0; i < index.length; i++) {
                 IndexEntry ie1 = index[i];
@@ -374,18 +374,18 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
                     if (ie2 == null) {
                         // other index entry is null => this must be non-null
                         if (ie1 instanceof NodeInfo) {
-                            removed.add((ChildNode) ie1);
+                            removed.add((ChildNodeEntry) ie1);
                         } else if (ie1 instanceof BucketInfo) {
                             BucketInfo bi = (BucketInfo) ie1;
                             ChildNodeEntries bucket = retrieveBucket(bi.getId());
-                            for (Iterator<ChildNode> it = bucket.getEntries(0, -1);
+                            for (Iterator<ChildNodeEntry> it = bucket.getEntries(0, -1);
                                  it.hasNext(); ) {
                                 removed.add(it.next());
                             }
                         } else {
                             // dirty bucket
                             Bucket bucket = (Bucket) ie1;
-                            for (Iterator<ChildNode> it = bucket.getEntries(0, -1);
+                            for (Iterator<ChildNodeEntry> it = bucket.getEntries(0, -1);
                                  it.hasNext(); ) {
                                 removed.add(it.next());
                             }
@@ -395,7 +395,7 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
                         ChildNodeEntriesMap bucket1;
                         if (ie1 instanceof NodeInfo) {
                             bucket1 = new ChildNodeEntriesMap();
-                            bucket1.add((ChildNode) ie1);
+                            bucket1.add((ChildNodeEntry) ie1);
                         } else if (ie1 instanceof BucketInfo) {
                             BucketInfo bi = (BucketInfo) ie1;
                             bucket1 = retrieveBucket(bi.getId());
@@ -406,7 +406,7 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
                         ChildNodeEntriesMap bucket2;
                         if (ie2 instanceof NodeInfo) {
                             bucket2 = new ChildNodeEntriesMap();
-                            bucket2.add((ChildNode) ie2);
+                            bucket2.add((ChildNodeEntry) ie2);
                         } else if (ie2 instanceof BucketInfo) {
                             BucketInfo bi = (BucketInfo) ie2;
                             bucket2 = retrieveBucket(bi.getId());
@@ -415,7 +415,7 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
                             bucket2 = (Bucket) ie2;
                         }
 
-                        for (Iterator<ChildNode> it = bucket1.getRemoved(bucket2);
+                        for (Iterator<ChildNodeEntry> it = bucket1.getRemoved(bucket2);
                              it.hasNext(); ) {
                             removed.add(it.next());
                         }
@@ -425,9 +425,9 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
             return removed.iterator();
         } else {
             // todo optimize
-            return new AbstractFilteringIterator<ChildNode>(getEntries(0, -1)) {
+            return new AbstractFilteringIterator<ChildNodeEntry>(getEntries(0, -1)) {
                 @Override
-                protected boolean include(ChildNode entry) {
+                protected boolean include(ChildNodeEntry entry) {
                     return other.get(entry.getName()) == null;
                 }
             };
@@ -435,9 +435,9 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
     }
 
     @Override
-    public Iterator<ChildNode> getModified(final ChildNodeEntries other) {
+    public Iterator<ChildNodeEntry> getModified(final ChildNodeEntries other) {
         if (other instanceof ChildNodeEntriesTree) {
-            List<ChildNode> modified = new ArrayList<ChildNode>();
+            List<ChildNodeEntry> modified = new ArrayList<ChildNodeEntry>();
             ChildNodeEntriesTree otherEntries = (ChildNodeEntriesTree) other;
             for (int i = 0; i < index.length; i++) {
                 IndexEntry ie1 = index[i];
@@ -458,7 +458,7 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
                     ChildNodeEntriesMap bucket1;
                     if (ie1 instanceof NodeInfo) {
                         bucket1 = new ChildNodeEntriesMap();
-                        bucket1.add((ChildNode) ie1);
+                        bucket1.add((ChildNodeEntry) ie1);
                     } else if (ie1 instanceof BucketInfo) {
                         BucketInfo bi = (BucketInfo) ie1;
                         bucket1 = retrieveBucket(bi.getId());
@@ -469,7 +469,7 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
                     ChildNodeEntriesMap bucket2;
                     if (ie2 instanceof NodeInfo) {
                         bucket2 = new ChildNodeEntriesMap();
-                        bucket2.add((ChildNode) ie2);
+                        bucket2.add((ChildNodeEntry) ie2);
                     } else if (ie2 instanceof BucketInfo) {
                         BucketInfo bi = (BucketInfo) ie2;
                         bucket2 = retrieveBucket(bi.getId());
@@ -478,7 +478,7 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
                         bucket2 = (Bucket) ie2;
                     }
 
-                    for (Iterator<ChildNode> it = bucket1.getModified(bucket2);
+                    for (Iterator<ChildNodeEntry> it = bucket1.getModified(bucket2);
                          it.hasNext(); ) {
                         modified.add(it.next());
                     }
@@ -487,10 +487,10 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
 
             return modified.iterator();
         } else {
-            return new AbstractFilteringIterator<ChildNode>(getEntries(0, -1)) {
+            return new AbstractFilteringIterator<ChildNodeEntry>(getEntries(0, -1)) {
                 @Override
-                protected boolean include(ChildNode entry) {
-                    ChildNode namesake = other.get(entry.getName());
+                protected boolean include(ChildNodeEntry entry) {
+                    ChildNodeEntry namesake = other.get(entry.getName());
                     return (namesake != null && !namesake.getId().equals(entry.getId()));
                 }
             };
@@ -667,7 +667,7 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
         }
     }
 
-    protected static class NodeInfo extends ChildNode implements IndexEntry {
+    protected static class NodeInfo extends ChildNodeEntry implements IndexEntry {
 
         public NodeInfo(String name, Id id) {
             super(name, id);

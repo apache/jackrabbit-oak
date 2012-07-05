@@ -17,27 +17,36 @@
 package org.apache.jackrabbit.mk.model;
 
 /**
- * TODO: document
  *
- * <h2>Equality and hash codes</h2>
- * <p>
- * Two child node entries are considered equal if and only if their names
- * and referenced node states match. The {@link Object#equals(Object)}
- * method needs to be implemented so that it complies with this definition.
- * And while child node entries are not meant for use as hash keys, the
- * {@link Object#hashCode()} method should still be implemented according
- * to this equality contract.
  */
-public interface ChildNodeEntry {
+public class ChildNodeEntry {
 
-    /**
-     * TODO: document
-     */
-    String getName();
+    private final String name;
+    private final Id id;
 
-    /**
-     * TODO: document
-     */
-    NodeState getNode();
+    public ChildNodeEntry(String name, Id id) {
+        this.name = name;
+        this.id = id;
+    }
 
+    public String getName() {
+        return name;
+    }
+
+    public Id getId() {
+        return id;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj instanceof ChildNodeEntry) {
+            ChildNodeEntry other = (ChildNodeEntry) obj;
+            return (name == null ? other.name == null : name.equals(other.name)
+                    && id == null ? other.id == null : id.equals(other.id));
+        }
+        return false;
+    }
 }

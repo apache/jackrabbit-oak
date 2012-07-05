@@ -14,8 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.model;
+package org.apache.jackrabbit.mk.model.tree;
 
+import org.apache.jackrabbit.mk.model.tree.NodeState;
+import org.apache.jackrabbit.mk.model.tree.NodeStateDiff;
+import org.apache.jackrabbit.mk.model.tree.NodeStore;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
 import java.util.Stack;

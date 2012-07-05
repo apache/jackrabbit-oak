@@ -24,6 +24,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.jackrabbit.mk.model.tree.DiffBuilder;
+import org.apache.jackrabbit.mk.model.tree.NodeDelta;
 import org.apache.jackrabbit.mk.store.NotFoundException;
 import org.apache.jackrabbit.mk.store.RevisionStore;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -263,7 +265,7 @@ public class CommitBuilder {
                 if (node == null) {
                     // not yet staged, resolve id using staged parent
                     // to allow for staged move operations
-                    ChildNode cne = parent.getChildNodeEntry(name);
+                    ChildNodeEntry cne = parent.getChildNodeEntry(name);
                     if (cne == null) {
                         throw new NotFoundException(nodePath);
                     }
@@ -341,7 +343,7 @@ public class CommitBuilder {
             if (PathUtils.denotesRoot(path)) {
                 rootNodeId = id;
             } else {
-                staged.get(PathUtils.getParentPath(path)).add(new ChildNode(PathUtils.getName(path), id));
+                staged.get(PathUtils.getParentPath(path)).add(new ChildNodeEntry(PathUtils.getName(path), id));
             }
         }
         if (rootNodeId == null) {
@@ -390,10 +392,10 @@ public class CommitBuilder {
         }
 
         for (Map.Entry<String, Id> entry : ourChanges.getAddedChildNodes ().entrySet()) {
-            mergedNode.add(new ChildNode(entry.getKey(), entry.getValue()));
+            mergedNode.add(new ChildNodeEntry(entry.getKey(), entry.getValue()));
         }
         for (Map.Entry<String, Id> entry : ourChanges.getChangedChildNodes ().entrySet()) {
-            mergedNode.add(new ChildNode(entry.getKey(), entry.getValue()));
+            mergedNode.add(new ChildNodeEntry(entry.getKey(), entry.getValue()));
         }
         for (String name : ourChanges.getRemovedChildNodes().keySet()) {
             mergedNode.remove(name);
@@ -508,7 +510,7 @@ public class CommitBuilder {
             newChild.getProperties().putAll(node.props);
 
             // id will be computed on commit
-            modParent.add(new ChildNode(name, null));
+            modParent.add(new ChildNodeEntry(name, null));
             staged.put(newPath, newChild);
 
             for (String childName : node.nodes.keySet()) {
@@ -576,7 +578,7 @@ public class CommitBuilder {
                     throw new NotFoundException(srcPath);
                 }
             } else {
-                ChildNode srcCNE = srcParent.remove(srcNodeName);
+                ChildNodeEntry srcCNE = srcParent.remove(srcNodeName);
                 if (srcCNE == null) {
                     throw new NotFoundException(srcPath);
                 }
@@ -585,7 +587,7 @@ public class CommitBuilder {
                 if (destParent.getChildNodeEntry(destNodeName) != null) {
                     throw new Exception("node already exists at move destination path: " + destPath);
                 }
-                destParent.add(new ChildNode(destNodeName, srcCNE.getId()));
+                destParent.add(new ChildNodeEntry(destNodeName, srcCNE.getId()));
             }
 
             // update staging area
@@ -618,7 +620,7 @@ public class CommitBuilder {
             String destNodeName = PathUtils.getName(destPath);
 
             MutableNode srcParent = getOrCreateStagedNode(srcParentPath);
-            ChildNode srcCNE = srcParent.getChildNodeEntry(srcNodeName);
+            ChildNodeEntry srcCNE = srcParent.getChildNodeEntry(srcNodeName);
             if (srcCNE == null) {
                 throw new NotFoundException(srcPath);
             }
@@ -631,7 +633,7 @@ public class CommitBuilder {
             }
 
             MutableNode destParent = getOrCreateStagedNode(destParentPath);
-            destParent.add(new ChildNode(destNodeName, srcCNE.getId()));
+            destParent.add(new ChildNodeEntry(destNodeName, srcCNE.getId()));
 
         }
 
