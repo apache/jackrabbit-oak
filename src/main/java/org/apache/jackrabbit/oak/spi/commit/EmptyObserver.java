@@ -32,6 +32,7 @@ public class EmptyObserver implements Observer {
      */
     public static final EmptyObserver INSTANCE = new EmptyObserver();
 
+    @Override
     public void contentChanged(
             NodeStore store, NodeState before, NodeState after) {
         // do nothing
