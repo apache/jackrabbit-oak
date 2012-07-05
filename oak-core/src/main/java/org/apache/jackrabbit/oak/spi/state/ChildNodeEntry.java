@@ -20,8 +20,8 @@ package org.apache.jackrabbit.oak.spi.state;
 import javax.annotation.Nonnull;
 
 /**
- * TODO: document OR replace by mk.model ChildNodeEntry interface
- *
+ * A {@code ChildNodeEntry} instance represents the child node states of a
+ * {@link NodeState}.
  * <h2>Equality and hash codes</h2>
  * <p>
  * Two child node entries are considered equal if and only if their names
@@ -34,13 +34,15 @@ import javax.annotation.Nonnull;
 public interface ChildNodeEntry {
 
     /**
-     * TODO: document
+     * The name of the child node state wrt. to its parent state.
+     * @return  name of the child node
      */
     @Nonnull
     String getName();
 
     /**
-     * TODO: document
+     * The child node state
+     * @return child node state
      */
     @Nonnull
     NodeState getNodeState();
