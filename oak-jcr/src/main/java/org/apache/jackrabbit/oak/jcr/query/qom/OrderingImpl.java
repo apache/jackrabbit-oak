@@ -47,9 +47,8 @@ public class OrderingImpl extends QOMNode implements Ordering {
     public String toString() {
         if (order == Order.ASCENDING) {
             return operand + " ASC";
-        } else {
-            return operand + " DESC";
         }
+        return operand + " DESC";
     }
 
 }
