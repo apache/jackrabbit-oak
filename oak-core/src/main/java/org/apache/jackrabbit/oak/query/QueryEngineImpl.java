@@ -36,24 +36,23 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 public class QueryEngineImpl implements QueryEngine {
 
     static final String SQL2 = "JCR-SQL2";
-    private static final String XPATH = "xpath";
-    private static final String JQOM = "JCR-JQOM";
+    static final String SQL = "sql";
+    static final String XPATH = "xpath";
+    static final String JQOM = "JCR-JQOM";
 
     private final MicroKernel mk;
     private final CoreValueFactory vf;
-    private final SQL2Parser parserSQL2;
     private final QueryIndexProvider indexProvider;
 
     public QueryEngineImpl(NodeStore store, MicroKernel mk, QueryIndexProvider indexProvider) {
         this.mk = mk;
         this.vf = store.getValueFactory();
         this.indexProvider = indexProvider;
-        parserSQL2 = new SQL2Parser(vf);
     }
 
     @Override
     public List<String> getSupportedQueryLanguages() {
-        return Arrays.asList(SQL2, XPATH, JQOM);
+        return Arrays.asList(SQL2, SQL, XPATH, JQOM);
     }
 
     /**
@@ -73,11 +72,17 @@ public class QueryEngineImpl implements QueryEngine {
     private Query parseQuery(String statement, String language) throws ParseException {
         Query q;
         if (SQL2.equals(language) || JQOM.equals(language)) {
-            q = parserSQL2.parse(statement);
+            SQL2Parser parser = new SQL2Parser(vf);
+            q = parser.parse(statement);
+        } else if (SQL.equals(language)) {
+            SQL2Parser parser = new SQL2Parser(vf);
+            parser.setSupportSQL1(true);
+            q = parser.parse(statement);
         } else if (XPATH.equals(language)) {
             XPathToSQL2Converter converter = new XPathToSQL2Converter();
             String sql2 = converter.convert(statement);
-            q = parserSQL2.parse(sql2);
+            SQL2Parser parser = new SQL2Parser(vf);
+            q = parser.parse(sql2);
         } else {
             throw new ParseException("Unsupported language: " + language, 0);
         }

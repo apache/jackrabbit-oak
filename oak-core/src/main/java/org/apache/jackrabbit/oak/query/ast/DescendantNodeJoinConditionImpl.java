@@ -52,7 +52,7 @@ public class DescendantNodeJoinConditionImpl extends JoinConditionImpl {
     public String toString() {
         String descendant = getDescendantSelectorName();
         String ancestor = getAncestorSelectorName();
-        return "ISDESCENDANTNODE(" + descendant + ", " + ancestor + ')';
+        return "isdescendantnode(" + descendant + ", " + ancestor + ')';
     }
 
     public void bindSelector(SourceImpl source) {

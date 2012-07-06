@@ -20,9 +20,11 @@ package org.apache.jackrabbit.oak.query.ast;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.util.Iterator;
 import javax.jcr.PropertyType;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
 public class ComparisonImpl extends ConstraintImpl {
@@ -53,19 +55,48 @@ public class ComparisonImpl extends ConstraintImpl {
     public boolean evaluate() {
         // JCR 2.0 spec, 6.7.16 Comparison:
         // "operand1 may evaluate to an array of values"
-        // TODO support arrays
-        CoreValue v1 = operand1.currentValue();
+        PropertyState p1 = operand1.currentProperty();
+        if (p1 == null) {
+            return false;
+        }
         // "operand2 always evaluates to a scalar value"
         CoreValue v2 = operand2.currentValue();
-        if (v1 == null || v2 == null) {
+        if (v2 == null) {
             // TODO comparison: what about (null <> x) ?
             return false;
         }
-        if (v1.getType() != v2.getType()) {
+        boolean isArray = p1.isArray();
+        int v1Type;
+        if (isArray) {
+            Iterator<CoreValue> it = p1.getValues().iterator();
+            if (it.hasNext()) {
+                v1Type = it.next().getType();
+            } else {
+                // workaround for OAK-140: PropertyState: data type of empty array property
+                v1Type = v2.getType();
+            }
+        } else {
+            v1Type = p1.getValue().getType();
+        }
+        if (v1Type != v2.getType()) {
             // "the value of operand2 is converted to the
             // property type of the value of operand1"
-            v2 = convert(v2, v1.getType());
+            v2 = convert(v2, v1Type);
         }
+        if (!isArray) {
+            return evaluate(p1.getValue(), v2);
+        }
+        // for multi-valued properties: if any of the value matches,
+        // then return true
+        for (CoreValue v1 : p1.getValues()) {
+            if (evaluate(v1, v2)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean evaluate(CoreValue v1, CoreValue v2) {
         switch (operator) {
         case EQUAL:
             return v1.equals(v2);

@@ -49,7 +49,7 @@ public class AndImpl extends ConstraintImpl {
 
     @Override
     public String toString() {
-        return protect(constraint1) + " AND " + protect(constraint2);
+        return protect(constraint1) + " and " + protect(constraint2);
     }
 
     @Override

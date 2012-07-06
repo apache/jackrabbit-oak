@@ -81,6 +81,8 @@ public class SQL2Parser {
     private final AstElementFactory factory = new AstElementFactory();
     private final CoreValueFactory valueFactory;
 
+    private boolean supportSQL1;
+
     /**
      * Create a new parser. A parser can be re-used, but it is not thread safe.
      *
@@ -98,6 +100,9 @@ public class SQL2Parser {
      * @throws ParseException if parsing fails
      */
     public Query parse(String query) throws ParseException {
+        // TODO possibly support union,... as available at
+        // http://docs.jboss.org/modeshape/latest/manuals/reference/html/jcr-query-and-search.html
+
         initialize(query);
         selectors = new ArrayList<SelectorImpl>();
         expected = new ArrayList<String>();
@@ -106,6 +111,10 @@ public class SQL2Parser {
         boolean explain = readIf("EXPLAIN");
         read("SELECT");
         ArrayList<ColumnOrWildcard> list = parseColumns();
+        if (supportSQL1) {
+            addColumnIfNecessary(list, "jcr:path", "jcr:path");
+            addColumnIfNecessary(list, "jcr:score", "jcr:score");
+        }
         read("FROM");
         SourceImpl source = parseSource();
         ColumnImpl[] columnArray = resolveColumns(list);
@@ -125,6 +134,25 @@ public class SQL2Parser {
         q.setExplain(explain);
         q.init();
         return q;
+    }
+
+    private static void addColumnIfNecessary(ArrayList<ColumnOrWildcard> list,
+            String columnName, String propertyName) {
+        for (ColumnOrWildcard c : list) {
+            String col = c.columnName;
+            if (columnName.equals(col)) {
+                // it already exists
+                return;
+            }
+        }
+        ColumnOrWildcard column = new ColumnOrWildcard();
+        column.columnName = columnName;
+        column.propertyName = propertyName;
+        list.add(column);
+    }
+
+    void setSupportSQL1(boolean sql1) {
+        this.supportSQL1 = sql1;
     }
 
     private SelectorImpl parseSelector() throws ParseException {
@@ -249,7 +277,7 @@ public class SQL2Parser {
     private ConstraintImpl parseCondition() throws ParseException {
         ConstraintImpl a;
         if (readIf("NOT")) {
-            a = factory.not(parseConstraint());
+            a = factory.not(parseCondition());
         } else if (readIf("(")) {
             a = parseConstraint();
             read(")");
@@ -272,6 +300,15 @@ public class SQL2Parser {
                 a = parseCondition(factory.propertyValue(name, readName()));
             } else {
                 a = parseCondition(factory.propertyValue(getOnlySelectorName(), name));
+            }
+        } else if (supportSQL1) {
+            StaticOperandImpl left = parseStaticOperand();
+            if (readIf("IN")) {
+                DynamicOperandImpl right = parseDynamicOperand();
+                ConstraintImpl c = factory.comparison(right, Operator.EQUAL, left);
+                return c;
+            } else {
+                throw getSyntaxError();
             }
         } else {
             throw getSyntaxError();
@@ -341,6 +378,13 @@ public class SQL2Parser {
                 // specification of the selectorName preceding the
                 // propertyName is optional"
                 // but we anyway support it
+                read(",");
+                c = factory.fullTextSearch(
+                        getOnlySelectorName(), null, parseStaticOperand());
+            } else if (readIf(".")) {
+                if (!supportSQL1) {
+                    throw getSyntaxError("selector name, property name, or *");
+                }
                 read(",");
                 c = factory.fullTextSearch(
                         getOnlySelectorName(), null, parseStaticOperand());
@@ -612,16 +656,6 @@ public class SQL2Parser {
 
     private ColumnImpl[] resolveColumns(ArrayList<ColumnOrWildcard> list) throws ParseException {
         ArrayList<ColumnImpl> columns = new ArrayList<ColumnImpl>();
-//        for (SelectorImpl selector : selectors) {
-//            String selectorName = selector.getSelectorName();
-//            String columnName;
-//            if (selectors.size() > 1) {
-//                columnName = selectorName + "." + "jcr:path";
-//            } else {
-//                columnName = "jcr:path";
-//            }
-//            columns.add(factory.column(selectorName, "jcr:path", columnName));
-//        }
         for (ColumnOrWildcard c : list) {
             if (c.propertyName == null) {
                 for (SelectorImpl selector : selectors) {
@@ -820,6 +854,10 @@ public class SQL2Parser {
                 type = types[i];
                 if (type != CHAR_NAME && type != CHAR_VALUE) {
                     c = chars[i];
+                    if (supportSQL1 && c == ':') {
+                        i++;
+                        continue;
+                    }
                     break;
                 }
                 i++;
@@ -1001,7 +1039,7 @@ public class SQL2Parser {
         if (expected != null) {
             query += "; expected: " + expected;
         }
-        return new ParseException("Query:\n" + query, index);
+        return new ParseException("Query: " + query, index);
     }
 
     /**

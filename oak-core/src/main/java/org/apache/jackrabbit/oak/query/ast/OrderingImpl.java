@@ -43,11 +43,7 @@ public class OrderingImpl extends AstElement {
 
     @Override
     public String toString() {
-        if (order == Order.ASCENDING) {
-            return operand + " ASC";
-        } else {
-            return operand + " DESC";
-        }
+        return operand + " " + order.name();
     }
 
     public boolean isDescending() {

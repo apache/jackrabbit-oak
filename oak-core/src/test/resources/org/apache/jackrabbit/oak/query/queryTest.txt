@@ -21,6 +21,23 @@
 # * new tests are typically be added on top, after the syntax docs
 # * use ascii character only
 
+# sql-1 query (nt:unstructured needs to be escaped in sql-2)
+
+sql1 select prop1 from nt:unstructured where prop1 is not null order by prop1 asc
+
+# test multi-valued properties
+
+commit / + "test": { "a": { "name": ["Hello", "World" ] }, "b": { "name" : "Hello" }}
+
+select * from [nt:base] where name = 'Hello'
+/test/a
+/test/b
+
+select * from [nt:base] where name = 'World'
+/test/a
+
+commit / - "test"
+
 # test the property content index
 
 select * from [nt:base] as p inner join [nt:base] as p on ischildnode(p, p) where p.[jcr:path] = '/'
@@ -29,8 +46,17 @@ java.lang.IllegalArgumentException: Two selectors with the same name: p
 commit / + "test": { "a": { "id": "10" }, "b": { "id" : "20" }}
 commit /jcr:system/indexes + "property@id,unique": {}
 
+# combining 'not' and 'and'
+
+select * from [nt:base] where id is not null and not id = '100' and id <> '20'
+/test/a
+
+select * from [nt:base] where id is not null and not (id = '100' and id <> '20')
+/test/a
+/test/b
+
 explain select * from [nt:base] where id = '10'
-nt:base AS nt:base /* propertyIndex "id [10..10]" */
+nt:base as nt:base /* propertyIndex "id [10..10]" */
 
 select * from [nt:base] where id = '10'
 /test/a
@@ -39,7 +65,7 @@ select [jcr:path], * from [nt:base] where id = '10'
 /test/a, null
 
 explain select * from [nt:base] where id > '10'
-nt:base AS nt:base /* traverse "//*" */
+nt:base as nt:base /* traverse "//*" */
 
 commit / - "test"
 commit /jcr:system/indexes - "property@id,unique"
@@ -63,10 +89,10 @@ commit / + "test": { "jcr:resource": {}, "resource": { "x" : {}}}
 select * from [nt:base] where id = -1
 
 explain select * from [nt:base] as b where ischildnode(b, '/test')
-nt:base AS b /* traverse "/test/*" */
+nt:base as b /* traverse "/test/*" */
 
 explain select * from [nt:base] as b where isdescendantnode(b, '/test')
-nt:base AS b /* traverse "/test//*" */
+nt:base as b /* traverse "/test//*" */
 
 select * from [nt:base] as b where ischildnode(b, '/test')
 /test/jcr:resource
@@ -152,7 +178,7 @@ select * from [nt:base] as p inner join [nt:base] as c on p.id = c.p
 /parents/p2, /children/c3
 
 explain select * from [nt:base] as p inner join [nt:base] as c on p.id = c.p
-nt:base AS p /* traverse "//*" */ INNER JOIN nt:base AS c /* traverse "//*" */
+nt:base as p /* traverse "//*" */ INNER join nt:base as c /* traverse "//*" */
 
 commit / - "parents"
 commit / - "children"

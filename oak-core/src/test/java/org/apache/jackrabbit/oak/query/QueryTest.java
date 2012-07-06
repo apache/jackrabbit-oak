@@ -55,20 +55,20 @@ public class QueryTest extends AbstractQueryTest {
         sv.put("id", vf.createValue("1"));
         Iterator<? extends ResultRow> result;
         result = executeQuery("select * from [nt:base] where id = $id",
-                sv).getRows().iterator();
+                QueryEngineImpl.SQL2, sv).getRows().iterator();
         assertTrue(result.hasNext());
         assertEquals("/test/hello", result.next().getPath());
 
         sv.put("id", vf.createValue("2"));
         result = executeQuery("select * from [nt:base] where id = $id",
-                sv).getRows().iterator();
+                QueryEngineImpl.SQL2, sv).getRows().iterator();
         assertTrue(result.hasNext());
         assertEquals("/test/world", result.next().getPath());
 
         result = executeQuery("explain select * from [nt:base] where id = 1 order by id",
-                null).getRows().iterator();
+                QueryEngineImpl.SQL2, null).getRows().iterator();
         assertTrue(result.hasNext());
-        assertEquals("nt:base AS nt:base /* traverse \"//*\" */",
+        assertEquals("nt:base as nt:base /* traverse \"//*\" */",
                 result.next().getValue("plan").getString());
 
     }
@@ -103,10 +103,15 @@ public class QueryTest extends AbstractQueryTest {
                     if (!line.equals(got)) {
                         errors = true;
                     }
-                } else if (line.startsWith("select") || line.startsWith("explain")) {
+                } else if (line.startsWith("select") || line.startsWith("explain") || line.startsWith("sql1")) {
                     w.println(line);
+                    String language = QueryEngineImpl.SQL2;
+                    if (line.startsWith("sql1")) {
+                        language = QueryEngineImpl.SQL;
+                        line = line.substring("sql1 ".length());
+                    }
                     boolean readEnd = true;
-                    for (String resultLine : executeQuery(line)) {
+                    for (String resultLine : executeQuery(line, language)) {
                         w.println(resultLine);
                         if (readEnd) {
                             line = r.readLine();
@@ -159,10 +164,10 @@ public class QueryTest extends AbstractQueryTest {
         }
     }
 
-    private List<String> executeQuery(String query) {
+    private List<String> executeQuery(String query, String language) {
         List<String> lines = new ArrayList<String>();
         try {
-            Result result = executeQuery(query, null);
+            Result result = executeQuery(query, language, null);
             for (ResultRow row : result.getRows()) {
                 lines.add(readRow(row));
             }
@@ -177,7 +182,7 @@ public class QueryTest extends AbstractQueryTest {
         return lines;
     }
 
-    private String readRow(ResultRow row) {
+    private static String readRow(ResultRow row) {
         StringBuilder buff = new StringBuilder();
         CoreValue[] values = row.getValues();
         for (int i = 0; i < values.length; i++) {
@@ -190,8 +195,8 @@ public class QueryTest extends AbstractQueryTest {
         return buff.toString();
     }
 
-    private Result executeQuery(String statement, HashMap<String, CoreValue> sv) throws ParseException {
-        return qe.executeQuery(statement, QueryEngineImpl.SQL2, session, Long.MAX_VALUE, 0, sv, null);
+    private Result executeQuery(String statement, String language, HashMap<String, CoreValue> sv) throws ParseException {
+        return qe.executeQuery(statement, language, session, Long.MAX_VALUE, 0, sv, null);
     }
 
 }

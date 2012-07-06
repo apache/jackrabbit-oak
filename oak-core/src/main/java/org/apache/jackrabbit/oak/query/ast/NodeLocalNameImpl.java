@@ -20,6 +20,8 @@ package org.apache.jackrabbit.oak.query.ast;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.kernel.PropertyStateImpl;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
 public class NodeLocalNameImpl extends DynamicOperandImpl {
@@ -42,7 +44,7 @@ public class NodeLocalNameImpl extends DynamicOperandImpl {
 
     @Override
     public String toString() {
-        return "LOCALNAME(" + getSelectorName() + ')';
+        return "localname(" + getSelectorName() + ')';
     }
 
     public void bindSelector(SourceImpl source) {
@@ -53,12 +55,13 @@ public class NodeLocalNameImpl extends DynamicOperandImpl {
     }
 
     @Override
-    public CoreValue currentValue() {
+    public PropertyState currentProperty() {
         String name = PathUtils.getName(selector.currentPath());
         int colon = name.indexOf(':');
         // TODO LOCALNAME: evaluation of local name might not be correct
         String localName = colon < 0 ? name : name.substring(colon + 1);
-        return query.getValueFactory().createValue(localName);
+        CoreValue v = query.getValueFactory().createValue(localName);
+        return new PropertyStateImpl("LOCALNAME", v);
     }
 
     @Override

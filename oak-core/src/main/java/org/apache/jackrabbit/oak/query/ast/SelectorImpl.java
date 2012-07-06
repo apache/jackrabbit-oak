@@ -22,6 +22,7 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.kernel.PropertyStateImpl;
 import org.apache.jackrabbit.oak.query.Query;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.Cursor;
@@ -30,7 +31,7 @@ import org.apache.jackrabbit.oak.spi.QueryIndex;
 public class SelectorImpl extends SourceImpl {
 
     // TODO jcr:path isn't an official feature, support it?
-    private static final String PATH = "jcr:path";
+    public static final String PATH = "jcr:path";
 
     private static final String JCR_PRIMARY_TYPE = "jcr:primaryType";
 
@@ -62,7 +63,7 @@ public class SelectorImpl extends SourceImpl {
     @Override
     public String toString() {
         // TODO quote nodeTypeName?
-        return nodeTypeName + " AS " + getSelectorName();
+        return nodeTypeName + " as " + getSelectorName();
     }
 
 
@@ -78,7 +79,7 @@ public class SelectorImpl extends SourceImpl {
 
     @Override
     public String getPlan() {
-        return  nodeTypeName + " AS " + getSelectorName() + " /* " + index.getPlan(createFilter()) + " */";
+        return  nodeTypeName + " as " + getSelectorName() + " /* " + index.getPlan(createFilter()) + " */";
     }
 
     private FilterImpl createFilter() {
@@ -128,7 +129,7 @@ public class SelectorImpl extends SourceImpl {
         return cursor == null ? null : cursor.currentPath();
     }
 
-    public CoreValue currentProperty(String propertyName) {
+    public PropertyState currentProperty(String propertyName) {
         if (propertyName.equals(PATH)) {
             String p = currentPath();
             if (p == null) {
@@ -139,17 +140,14 @@ public class SelectorImpl extends SourceImpl {
                 // not a local path
                 return null;
             }
-            return query.getValueFactory().createValue(local);
+            CoreValue v = query.getValueFactory().createValue(local);
+            return new PropertyStateImpl(PATH, v);
         }
         String path = currentPath();
         if (path == null) {
             return null;
         }
-        PropertyState p = getTree(path).getProperty(propertyName);
-        if (p == null) {
-            return null;
-        }
-        return p.getValue();
+        return getTree(path).getProperty(propertyName);
     }
 
     @Override
