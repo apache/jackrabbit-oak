@@ -448,11 +448,11 @@ public class CommitBuilder {
         public Map<String, String> props = new HashMap<String, String>();
         public Map<String, NodeTree> nodes = new HashMap<String, NodeTree>();
 
-        void toJson(StringBuffer buf) {
+        void toJson(StringBuilder buf) {
             toJson(buf, this);
         }
 
-        private static void toJson(StringBuffer buf, NodeTree node) {
+        private static void toJson(StringBuilder buf, NodeTree node) {
             buf.append('{');
             for (String name : node.props.keySet()) {
                 if (buf.charAt(buf.length() - 1) != '{')  {
@@ -494,7 +494,7 @@ public class CommitBuilder {
 
         @Override
         String asDiff() {
-            StringBuffer diff = new StringBuffer("+");
+            StringBuilder diff = new StringBuilder("+");
             diff.append('"').append(PathUtils.concat(parentNodePath, nodeName)).append("\":");
             node.toJson(diff);
             return diff.toString();
@@ -542,7 +542,7 @@ public class CommitBuilder {
 
         @Override
         String asDiff() {
-            StringBuffer diff = new StringBuffer("-");
+            StringBuilder diff = new StringBuilder("-");
             diff.append('"').append(nodePath).append('"');
             return diff.toString();
         }
@@ -596,7 +596,7 @@ public class CommitBuilder {
 
         @Override
         String asDiff() {
-            StringBuffer diff = new StringBuffer(">");
+            StringBuilder diff = new StringBuilder(">");
             diff.append('"').append(srcPath).append("\":\"").append(destPath).append('"');
             return diff.toString();
         }
@@ -639,7 +639,7 @@ public class CommitBuilder {
 
         @Override
         String asDiff() {
-            StringBuffer diff = new StringBuffer("*");
+            StringBuilder diff = new StringBuilder("*");
             diff.append('"').append(srcPath).append("\":\"").append(destPath).append('"');
             return diff.toString();
         }
@@ -670,7 +670,7 @@ public class CommitBuilder {
 
         @Override
         String asDiff() {
-            StringBuffer diff = new StringBuffer("^");
+            StringBuilder diff = new StringBuilder("^");
             diff.append('"').append(PathUtils.concat(nodePath, propName)).append("\":").append(propValue);
             return diff.toString();
         }

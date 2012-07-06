@@ -37,6 +37,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.WeakHashMap;
 import java.util.concurrent.Executors;
@@ -540,8 +541,8 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
             gcpm.start();
             gcState.set(MARKING);
 
-            PutTokenImpl[] putTokens = this.putTokens.keySet().toArray(new PutTokenImpl[0]);
-            for (PutTokenImpl token : putTokens) {
+            PutTokenImpl[] tokens = putTokens.keySet().toArray(new PutTokenImpl[putTokens.size()]);
+            for (PutTokenImpl token : tokens) {
                 markNode(token.getLastModified());
             }
         } finally {
