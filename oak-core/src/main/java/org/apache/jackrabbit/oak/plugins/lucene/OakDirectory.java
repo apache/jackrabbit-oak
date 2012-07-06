@@ -38,13 +38,9 @@ import org.apache.lucene.store.NoLockFactory;
 
 class OakDirectory extends Directory {
 
-    private final NodeStore store;
-
     private final CoreValueFactory factory;
 
-    private final String[] path;
-
-    private final NodeStateBuilder[] builders;
+    private final NodeStateBuilder rootBuilder;
 
     private final NodeStateBuilder directoryBuilder;
 
@@ -52,36 +48,20 @@ class OakDirectory extends Directory {
 
     public OakDirectory(NodeStore store, NodeState root, String... path) {
         this.lockFactory = NoLockFactory.getNoLockFactory();
-        this.store = store;
         this.factory = store.getValueFactory();
-        this.path = path;
-        this.builders = new NodeStateBuilder[path.length + 1];
+        this.rootBuilder = store.getBuilder(root);
 
-        NodeState state = root;
-        builders[0] = store.getBuilder(state);
+        NodeStateBuilder builder = rootBuilder;
         for (int i = 0; i < path.length; i++) {
-            NodeState child = state.getChildNode(path[i]);
-            if (child == null) {
-                builders[i + 1] = store.getBuilder(null);
-                state = builders[i + 1].getNodeState();
-            } else {
-                builders[i + 1] = store.getBuilder(child);
-                state = child;
-            }
+            builder = builder.getChildBuilder(path[i]);
         }
-        this.directoryBuilder = builders[path.length];
-        this.directory = state;
+        this.directoryBuilder = builder;
+        this.directory = null;
     }
 
     @Nonnull
     public NodeState getRoot() {
-        NodeState state = getDirectory();
-        for (int i = 1; i <= path.length; i++) {
-            builders[path.length - i].setNode(
-                    path[path.length - i], state);
-            state = builders[path.length - i].getNodeState();
-        }
-        return state;
+        return rootBuilder.getNodeState();
     }
 
     @Nonnull
@@ -125,12 +105,10 @@ class OakDirectory extends Directory {
 
     @Override
     public void touchFile(String name) throws IOException {
-        NodeState file = getDirectory().getChildNode(name);
-        NodeStateBuilder builder = store.getBuilder(file);
+        NodeStateBuilder builder = directoryBuilder.getChildBuilder(name);
         builder.setProperty(
                 "jcr:lastModified",
                 factory.createValue(System.currentTimeMillis()));
-        directoryBuilder.setNode(name, builder.getNodeState());
         directory = null;
     }
 
@@ -319,7 +297,7 @@ class OakDirectory extends Directory {
             }
 
             NodeStateBuilder fileBuilder =
-                    store.getBuilder(getDirectory().getChildNode(name));
+                    directoryBuilder.getChildBuilder(name);
             fileBuilder.setProperty(
                     "jcr:lastModified",
                     factory.createValue(System.currentTimeMillis()));
@@ -327,7 +305,6 @@ class OakDirectory extends Directory {
                     "jcr:data",
                     factory.createValue(new ByteArrayInputStream(data)));
 
-            directoryBuilder.setNode(name, fileBuilder.getNodeState());
             directory = null;
         }
 
