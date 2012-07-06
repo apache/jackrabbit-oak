@@ -384,9 +384,9 @@ public class TreeImpl implements Tree, PurgeListener {
         }
     }
 
-    private boolean isSame(NodeState state1, NodeState state2) {
+    private static boolean isSame(NodeState state1, NodeState state2) {
         final boolean[] isDirty = {false};
-        root.compare(state1, state2, new NodeStateDiff() {
+        state2.compareAgainstBaseState(state1, new NodeStateDiff() {
             @Override
             public void propertyAdded(PropertyState after) {
                 isDirty[0] = true;

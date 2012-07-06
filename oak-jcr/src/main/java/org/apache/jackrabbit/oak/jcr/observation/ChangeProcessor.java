@@ -152,7 +152,7 @@ class ChangeProcessor extends TimerTask {
             if (!stopped && filterRef.get().includeChildren(jcrPath())) {
                 EventGeneratingNodeStateDiff diff = new EventGeneratingNodeStateDiff(
                         PathUtils.concat(path, name), events, after);
-                changeExtractor.getChanges(before, after, diff);
+                after.compareAgainstBaseState(before, diff);
                 if (events.size() > PURGE_LIMIT) {
                     diff.sendEvents();
                 }

@@ -191,13 +191,8 @@ public class RootImpl implements Root {
             @Override
             public void getChanges(NodeStateDiff diff) {
                 NodeState head = observationLimit.get();
-                store.compare(baseLine, head, diff);
+                head.compareAgainstBaseState(baseLine, diff);
                 baseLine = head;
-            }
-
-            @Override
-            public void getChanges(NodeState before, NodeState after, NodeStateDiff diff) {
-                store.compare(before, after, diff);
             }
         };
     }
@@ -271,19 +266,6 @@ public class RootImpl implements Root {
         }
     }
 
-    /**
-     * Compares the given two node states. Any found differences are
-     * reported by calling the relevant added, changed or deleted methods
-     * of the given handler.
-     *
-     * @param before node state before changes
-     * @param after node state after changes
-     * @param diffHandler handler of node state differences
-     */
-    public void compare(NodeState before, NodeState after, NodeStateDiff diffHandler) {
-        store.compare(before, after, diffHandler);
-    }
-
     //------------------------------------------------------------< private >---
 
     // TODO better way to determine purge limit
@@ -327,12 +309,12 @@ public class RootImpl implements Root {
         return child;
     }
 
-    private void merge(NodeState fromState, NodeState toState, final TreeImpl target,
+    private static void merge(NodeState fromState, NodeState toState, final TreeImpl target,
             final ConflictHandler conflictHandler) {
 
         assert target != null;
 
-        store.compare(fromState, toState, new NodeStateDiff() {
+        toState.compareAgainstBaseState(fromState, new NodeStateDiff() {
             @Override
             public void propertyAdded(PropertyState after) {
                 Resolution resolution;
