@@ -41,10 +41,11 @@ class MemoryNodeStateBuilder implements NodeStateBuilder {
             new HashMap<String, PropertyState>();
 
     /**
-     * Set of added, modified or removed ({@code null} value) child node states.
+     * Set of builders for added, modified or removed ({@code null} value)
+     * child nodes.
      */
-    private final Map<String, NodeState> nodes =
-            new HashMap<String, NodeState>();
+    private final Map<String, NodeStateBuilder> builders =
+            new HashMap<String, NodeStateBuilder>();
 
     public MemoryNodeStateBuilder(NodeState base) {
         assert base != null;
@@ -53,9 +54,19 @@ class MemoryNodeStateBuilder implements NodeStateBuilder {
 
     @Override
     public NodeState getNodeState() {
-        if (properties.isEmpty() && nodes.isEmpty()) {
+        if (properties.isEmpty() && builders.isEmpty()) {
             return base; // shortcut
         } else {
+            Map<String, NodeState> nodes = new HashMap<String, NodeState>();
+            for (Map.Entry<String, NodeStateBuilder> entry
+                    : builders.entrySet()) {
+                NodeStateBuilder builder = entry.getValue();
+                if (builder != null) {
+                    nodes.put(entry.getKey(), builder.getNodeState());
+                } else {
+                    nodes.put(entry.getKey(), null);
+                }
+            }
             return new ModifiedNodeState(
                     base, snapshot(properties), snapshot(nodes));
         }
@@ -80,15 +91,23 @@ class MemoryNodeStateBuilder implements NodeStateBuilder {
 
     @Override
     public void setNode(String name, NodeState nodeState) {
-        nodes.put(name, nodeState);
+        if (nodeState == null) {
+            removeNode(name);
+        } else {
+            if (nodeState.equals(base.getChildNode(name))) {
+                builders.remove(name);
+            } else {
+                builders.put(name, new MemoryNodeStateBuilder(nodeState));
+            }
+        }
     }
 
     @Override
     public void removeNode(String name) {
         if (base.getChildNode(name) != null) {
-            nodes.put(name, null);
+            builders.put(name, null);
         } else {
-            nodes.remove(name);
+            builders.remove(name);
         }
     }
 
@@ -111,6 +130,20 @@ class MemoryNodeStateBuilder implements NodeStateBuilder {
         } else {
             properties.remove(name);
         }
+    }
+
+    @Override
+    public NodeStateBuilder getChildBuilder(String name) {
+        NodeStateBuilder builder = builders.get(name);
+        if (builder == null) {
+            NodeState baseState = base.getChildNode(name);
+            if (baseState == null) {
+                baseState = MemoryNodeState.EMPTY_NODE;
+            }
+            builder = new MemoryNodeStateBuilder(baseState);
+            builders.put(name, builder);
+        }
+        return builder;
     }
 
 }
