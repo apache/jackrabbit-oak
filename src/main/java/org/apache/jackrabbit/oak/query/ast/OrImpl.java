@@ -50,7 +50,7 @@ public class OrImpl extends ConstraintImpl {
 
     @Override
     public String toString() {
-        return protect(constraint1) + " OR " + protect(constraint2);
+        return protect(constraint1) + " or " + protect(constraint2);
     }
 
     @Override

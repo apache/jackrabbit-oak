@@ -59,9 +59,8 @@ public class FullTextSearchImpl extends ConstraintImpl {
 
     @Override
     public String toString() {
-        // TODO quote property names?
         StringBuilder builder = new StringBuilder();
-        builder.append("CONTAINS(");
+        builder.append("contains(");
         builder.append(getSelectorName());
         if (propertyName != null) {
             builder.append('.');
@@ -75,6 +74,18 @@ public class FullTextSearchImpl extends ConstraintImpl {
         return builder.toString();
     }
 
+    private boolean evaluateContains(PropertyState p) {
+        if (!p.isArray()) {
+            return evaluateContains(p.getValue());
+        }
+        for (CoreValue v : p.getValues()) {
+            if (evaluateContains(v)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private boolean evaluateContains(CoreValue value) {
         String v = value.getString();
         return expr.evaluate(v);
@@ -83,16 +94,15 @@ public class FullTextSearchImpl extends ConstraintImpl {
     @Override
     public boolean evaluate() {
         if (propertyName != null) {
-            CoreValue v = selector.currentProperty(propertyName);
-            if (v == null) {
+            PropertyState p = selector.currentProperty(propertyName);
+            if (p == null) {
                 return false;
             }
-            return evaluateContains(v);
+            return evaluateContains(p);
         }
         Tree tree = getTree(selector.currentPath());
         for (PropertyState p : tree.getProperties()) {
-            CoreValue v = selector.currentProperty(p.getName());
-            if (evaluateContains(v)) {
+            if (evaluateContains(p)) {
                 return true;
             }
         }
@@ -119,7 +129,7 @@ public class FullTextSearchImpl extends ConstraintImpl {
                 f.restrictProperty(propertyName, Operator.NOT_EQUAL, (CoreValue) null);
             }
         }
-        // TODO support fulltext index conditions
+        f.restrictFulltextCondition(fullTextSearchExpression.currentValue().getString());
     }
 
     public static class FullTextParser {
@@ -255,6 +265,19 @@ public class FullTextSearchImpl extends ConstraintImpl {
             return list.size() == 1 ? list.get(0) : this;
         }
 
+        @Override
+        public String toString() {
+            StringBuilder buff = new StringBuilder();
+            int i = 0;
+            for (FullTextExpression e : list) {
+                if (i++ > 0) {
+                    buff.append(' ');
+                }
+                buff.append(e.toString());
+            }
+            return buff.toString();
+        }
+
     }
 
     static class FullTextOr extends FullTextExpression {
@@ -275,6 +298,19 @@ public class FullTextSearchImpl extends ConstraintImpl {
             return list.size() == 1 ? list.get(0).simplify() : this;
         }
 
+        @Override
+        public String toString() {
+            StringBuilder buff = new StringBuilder();
+            int i = 0;
+            for (FullTextExpression e : list) {
+                if (i++ > 0) {
+                    buff.append(" OR ");
+                }
+                buff.append(e.toString());
+            }
+            return buff.toString();
+        }
+
     }
 
     static class FullTextTerm extends FullTextExpression {
@@ -292,6 +328,11 @@ public class FullTextSearchImpl extends ConstraintImpl {
         @Override
         FullTextExpression simplify() {
             return this;
+        }
+
+        @Override
+        public String toString() {
+            return (not ? "-" : "") + "\"" + text.replaceAll("\"", "\\\"") + "\"";
         }
 
     }

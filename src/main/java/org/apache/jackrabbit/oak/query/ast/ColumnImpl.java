@@ -19,6 +19,8 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.kernel.PropertyStateImpl;
 
 public class ColumnImpl extends AstElement {
 
@@ -52,17 +54,21 @@ public class ColumnImpl extends AstElement {
     public String toString() {
         if (propertyName != null) {
             return getSelectorName() + '.' + getPropertyName()
-                    + " AS [" + columnName + "]";
+                    + " as [" + columnName + "]";
         } else {
             return getSelectorName() + ".*";
         }
     }
 
-    public CoreValue currentValue() {
+    public PropertyState currentProperty() {
         if (propertyName == null) {
             // TODO for SELECT * FROM queries, currently return the path (for testing only)
             String p = selector.currentPath();
-            return p == null ? null : query.getValueFactory().createValue(p);
+            if (p == null) {
+                return null;
+            }
+            CoreValue v = query.getValueFactory().createValue(p);
+            return new PropertyStateImpl(SelectorImpl.PATH, v);
         }
         return selector.currentProperty(propertyName);
     }

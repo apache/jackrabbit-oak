@@ -19,6 +19,8 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.kernel.PropertyStateImpl;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
 public class UpperCaseImpl extends DynamicOperandImpl {
@@ -40,17 +42,20 @@ public class UpperCaseImpl extends DynamicOperandImpl {
 
     @Override
     public String toString() {
-        return "UPPER(" + operand + ')';
+        return "upper(" + operand + ')';
     }
 
     @Override
-    public CoreValue currentValue() {
-        CoreValue v = operand.currentValue();
-        if (v == null) {
+    public PropertyState currentProperty() {
+        PropertyState p = operand.currentProperty();
+        if (p == null) {
             return null;
         }
-        String value = v.getString();
-        return query.getValueFactory().createValue(value.toUpperCase());
+        // TODO what is the expected result of UPPER(x) for an array property?
+        // currently throws an exception
+        String value = p.getValue().getString();
+        CoreValue v = query.getValueFactory().createValue(value.toUpperCase());
+        return new PropertyStateImpl(p.getName(), v);
     }
 
     @Override

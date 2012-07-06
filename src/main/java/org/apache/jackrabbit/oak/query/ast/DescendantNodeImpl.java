@@ -55,7 +55,7 @@ public class DescendantNodeImpl extends ConstraintImpl {
 
     @Override
     public String toString() {
-        return "ISDESCENDANTNODE(" + getSelectorName() + ", " + quotePath(ancestorPath) + ')';
+        return "isdescendantnode(" + getSelectorName() + ", " + quotePath(ancestorPath) + ')';
     }
 
     public void bindSelector(SourceImpl source) {

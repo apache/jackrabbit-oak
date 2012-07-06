@@ -21,9 +21,9 @@ package org.apache.jackrabbit.oak.query.ast;
  */
 public enum Order {
 
-    ASCENDING("ASC"),
+    ASCENDING("asc"),
 
-    DESCENDING("DESC");
+    DESCENDING("desc");
 
     /**
      * The name of this order.

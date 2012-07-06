@@ -43,7 +43,7 @@ public class LiteralImpl extends StaticOperandImpl {
     @Override
     public String toString() {
         String type = PropertyType.nameFromValue(value.getType()).toUpperCase();
-        return "CAST(" + escape() + " AS " + type + ')';
+        return "cast(" + escape() + " as " + type + ')';
     }
 
     private String escape() {

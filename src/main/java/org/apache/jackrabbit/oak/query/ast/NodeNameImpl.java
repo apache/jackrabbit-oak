@@ -20,7 +20,9 @@ package org.apache.jackrabbit.oak.query.ast;
 
 import javax.jcr.PropertyType;
 import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.kernel.PropertyStateImpl;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
 public class NodeNameImpl extends DynamicOperandImpl {
@@ -43,7 +45,7 @@ public class NodeNameImpl extends DynamicOperandImpl {
 
     @Override
     public String toString() {
-        return "NAME(" + getSelectorName() + ')';
+        return "name(" + getSelectorName() + ')';
     }
 
     public void bindSelector(SourceImpl source) {
@@ -54,13 +56,14 @@ public class NodeNameImpl extends DynamicOperandImpl {
     }
 
     @Override
-    public CoreValue currentValue() {
+    public PropertyState currentProperty() {
         String name = PathUtils.getName(selector.currentPath());
         CoreValue v = query.getValueFactory().createValue(name);
         String path = v.getString();
         // normalize paths (./name > name)
         path = getOakPath(path);
-        return query.getValueFactory().createValue(path, PropertyType.NAME);
+        CoreValue v2 = query.getValueFactory().createValue(path, PropertyType.NAME);
+        return new PropertyStateImpl("NAME", v2);
     }
 
     @Override

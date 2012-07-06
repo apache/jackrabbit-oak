@@ -51,7 +51,7 @@ public class ChildNodeJoinConditionImpl extends JoinConditionImpl {
     public String toString() {
         String child = getChildSelectorName();
         String parent = getParentSelectorName();
-        return "ISCHILDNODE(" + child + ", " + parent + ')';
+        return "ischildnode(" + child + ", " + parent + ')';
     }
 
     public void bindSelector(SourceImpl source) {

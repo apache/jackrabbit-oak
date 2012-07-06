@@ -18,6 +18,22 @@
 # * lines starting with "xpath" are xpath queries, followed by expected sql2 query
 # * use ascii character only
 
+# jboss example queries
+
+xpath //*
+select [jcr:path], [jcr:score], * from [nt:base]
+
+xpath //element(*,my:type)
+select [jcr:path], [jcr:score], * from [my:type]
+
+xpath //element(*,my:type)/@my:title
+select [jcr:path], [jcr:score], [my:title] from [my:type]
+
+xpath //element(*,my:type)/(@my:title | @my:text)
+select [jcr:path], [jcr:score], [my:title], [my:text] from [my:type]
+
+# other queries
+
 xpath /jcr:root/testdata/node[@jcr:primaryType]
 select [jcr:path], [jcr:score], * from [nt:base] where ([jcr:primaryType] is not null) and issamenode('/testdata/node')
 

@@ -34,7 +34,7 @@ public class LikePatternTest {
         pattern("%\\_%", "A_A", "AAA", null, null);
     }
 
-    private void pattern(String pattern, String match, String noMatch, String lower, String upper) {
+    private static void pattern(String pattern, String match, String noMatch, String lower, String upper) {
         ComparisonImpl.LikePattern p = new ComparisonImpl.LikePattern(pattern);
         if (match != null) {
             assertTrue(p.matches(match));

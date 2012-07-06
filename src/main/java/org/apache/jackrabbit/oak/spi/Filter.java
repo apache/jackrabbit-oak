@@ -30,6 +30,13 @@ public interface Filter {
     Collection<PropertyRestriction> getPropertyRestrictions();
 
     /**
+     * Get the fulltext search condition.
+     *
+     * @return the condition, or null if not used
+     */
+    String getFulltextCondition();
+
+    /**
      * Get the property restriction for the given property, if any.
      *
      * @param propertyName the property name

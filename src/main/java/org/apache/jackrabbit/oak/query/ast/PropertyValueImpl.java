@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
@@ -54,7 +55,7 @@ public class PropertyValueImpl extends DynamicOperandImpl {
     }
 
     @Override
-    public CoreValue currentValue() {
+    public PropertyState currentProperty() {
         if (propertyName.indexOf('/') < 0) {
             return selector.currentProperty(propertyName);
         }
@@ -76,7 +77,7 @@ public class PropertyValueImpl extends DynamicOperandImpl {
         if (!tree.hasProperty(name)) {
             return null;
         }
-        return tree.getProperty(name).getValue();
+        return tree.getProperty(name);
     }
 
     public void bindSelector(SourceImpl source) {
@@ -89,6 +90,10 @@ public class PropertyValueImpl extends DynamicOperandImpl {
     @Override
     public void apply(FilterImpl f, Operator operator, CoreValue v) {
         if (f.getSelector() == selector) {
+        		if (operator == Operator.NOT_EQUAL && v != null) {
+        			// not supported
+        			return;
+        		}
             f.restrictProperty(propertyName, operator, v);
         }
     }
