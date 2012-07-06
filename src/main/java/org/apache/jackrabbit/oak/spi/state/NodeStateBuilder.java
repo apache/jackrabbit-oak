@@ -71,4 +71,28 @@ public interface NodeStateBuilder {
      */
     void removeProperty(String name);
 
+    /**
+     * Returns a builder for constructing changes to the named child node.
+     * If the named child node does not already exist, a new empty child
+     * node is automatically created as the base state of the returned
+     * child builder. Otherwise the existing child node state is used
+     * as the base state of the returned builder.
+     * <p>
+     * All updates to the returned child builder will implicitly affect
+     * also this builder, as if a
+     * <code>setNode(name, childBilder.getNodeState())</code> method call
+     * had been made after each update. Repeated calls to this method with
+     * the same name will return the same child builder instance until an
+     * explicit {@link #setNode(String, NodeState)} or
+     * {@link #removeNode(String)} call is made, at which point the link
+     * between this builder and a previously returned child builder for
+     * that child node name will get broken.
+     *
+     * @since Oak 0.4
+     * @param name name of the child node
+     * @return child builder
+     */
+    @Nonnull
+    NodeStateBuilder getChildBuilder(String name);
+
 }

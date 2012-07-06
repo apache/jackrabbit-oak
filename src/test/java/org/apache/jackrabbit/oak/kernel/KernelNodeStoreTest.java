@@ -68,19 +68,13 @@ public class KernelNodeStoreTest extends AbstractOakTest {
         NodeStoreBranch branch = store.branch();
 
         NodeStateBuilder rootBuilder = store.getBuilder(branch.getRoot());
-        NodeStateBuilder testBuilder = store.getBuilder(root.getChildNode("test"));
+        NodeStateBuilder testBuilder = rootBuilder.getChildBuilder("test");
+        NodeStateBuilder newNodeBuilder = testBuilder.getChildBuilder("newNode");
 
-        testBuilder.setNode("newNode", MemoryNodeState.EMPTY_NODE);
         testBuilder.removeNode("x");
-
-        NodeStateBuilder newNodeBuilder = store.getBuilder(
-                testBuilder.getNodeState().getChildNode("newNode"));
 
         CoreValue fortyTwo = store.getValueFactory().createValue(42);
         newNodeBuilder.setProperty("n", fortyTwo);
-
-        testBuilder.setNode("newNode", newNodeBuilder.getNodeState());
-        rootBuilder.setNode("test", testBuilder.getNodeState());
 
         // Assert changes are present in the builder
         NodeState testState = rootBuilder.getNodeState().getChildNode("test");
@@ -129,18 +123,14 @@ public class KernelNodeStoreTest extends AbstractOakTest {
 
         NodeState root = store.getRoot();
         NodeStateBuilder rootBuilder= store.getBuilder(root);
+        NodeStateBuilder testBuilder = rootBuilder.getChildBuilder("test");
+        NodeStateBuilder newNodeBuilder = testBuilder.getChildBuilder("newNode");
 
-        NodeState test = root.getChildNode("test");
-        NodeStateBuilder testBuilder = store.getBuilder(test);
-
-        NodeStateBuilder newNodeBuilder = store.getBuilder(MemoryNodeState.EMPTY_NODE);
         CoreValue fortyTwo = store.getValueFactory().createValue(42);
         newNodeBuilder.setProperty("n", fortyTwo);
 
-        testBuilder.setNode("newNode", newNodeBuilder.getNodeState());
         testBuilder.removeNode("a");
 
-        rootBuilder.setNode("test", testBuilder.getNodeState());
         NodeState newRoot = rootBuilder.getNodeState();
 
         NodeStoreBranch branch = store.branch();
@@ -176,25 +166,21 @@ public class KernelNodeStoreTest extends AbstractOakTest {
 
         NodeState root = store.getRoot();
         NodeStateBuilder rootBuilder = store.getBuilder(root);
+        NodeStateBuilder testBuilder = rootBuilder.getChildBuilder("test");
+        NodeStateBuilder newNodeBuilder = testBuilder.getChildBuilder("newNode");
 
-        NodeState test = root.getChildNode("test");
-        NodeStateBuilder testBuilder = store.getBuilder(test);
-
-        NodeStateBuilder newNodeBuilder = store.getBuilder(MemoryNodeState.EMPTY_NODE);
         final CoreValue fortyTwo = store.getValueFactory().createValue(42);
         newNodeBuilder.setProperty("n", fortyTwo);
 
-        testBuilder.setNode("newNode", newNodeBuilder.getNodeState());
         testBuilder.removeNode("a");
 
-        rootBuilder.setNode("test", testBuilder.getNodeState());
         NodeState newRoot = rootBuilder.getNodeState();
 
         NodeStoreBranch branch = store.branch();
         branch.setRoot(newRoot);
         branch.merge();
 
-        test = store.getRoot().getChildNode("test");
+        NodeState test = store.getRoot().getChildNode("test");
         assertNotNull(test.getChildNode("newNode"));
         assertNotNull(test.getChildNode("fromHook"));
         assertNull(test.getChildNode("a"));
