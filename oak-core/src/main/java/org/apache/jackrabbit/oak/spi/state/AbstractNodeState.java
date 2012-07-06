@@ -18,6 +18,9 @@ package org.apache.jackrabbit.oak.spi.state;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -65,12 +68,52 @@ public abstract class AbstractNodeState implements NodeState {
         return count(getChildNodeEntries());
     }
 
-    private static long count(Iterable<?> iterable) {
-        long n = 0;
-        for (Object x : iterable) {
-            n++;
+    /**
+     * Generic default comparison algorithm that simply walks through the
+     * property and child node lists of the given base state and compares
+     * the entries one by one with corresponding ones (if any) in this state.
+     */
+    @Override
+    public void compareAgainstBaseState(NodeState base, NodeStateDiff diff) {
+        Set<String> baseProperties = new HashSet<String>();
+        for (PropertyState beforeProperty : base.getProperties()) {
+            String name = beforeProperty.getName();
+            PropertyState afterProperty = getProperty(name);
+            if (afterProperty == null) {
+                diff.propertyDeleted(beforeProperty);
+            } else {
+                baseProperties.add(name);
+                if (!beforeProperty.equals(afterProperty)) {
+                    diff.propertyChanged(beforeProperty, afterProperty);
+                }
+            }
         }
-        return n;
+        for (PropertyState afterProperty : getProperties()) {
+            if (!baseProperties.contains(afterProperty.getName())) {
+                diff.propertyAdded(afterProperty);
+            }
+        }
+
+        Set<String> baseChildNodes = new HashSet<String>();
+        for (ChildNodeEntry beforeCNE : base.getChildNodeEntries()) {
+            String name = beforeCNE.getName();
+            NodeState beforeChild = beforeCNE.getNodeState();
+            NodeState afterChild = getChildNode(name);
+            if (afterChild == null) {
+                diff.childNodeDeleted(name, beforeChild);
+            } else {
+                baseChildNodes.add(name);
+                if (!beforeChild.equals(afterChild)) {
+                    diff.childNodeChanged(name, beforeChild, afterChild);
+                }
+            }
+        }
+        for (ChildNodeEntry afterChild : getChildNodeEntries()) {
+            String name = afterChild.getName();
+            if (!baseChildNodes.contains(name)) {
+                diff.childNodeAdded(name, afterChild.getNodeState());
+            }
+        }
     }
 
     /**
@@ -151,6 +194,18 @@ public abstract class AbstractNodeState implements NodeState {
     @Override
     public int hashCode() {
         return 0;
+    }
+
+    //-----------------------------------------------------------< private >--
+
+    private static long count(Iterable<?> iterable) {
+        long n = 0;
+        Iterator<?> iterator = iterable.iterator();
+        while (iterator.hasNext()) {
+            iterator.next();
+            n++;
+        }
+        return n;
     }
 
 }

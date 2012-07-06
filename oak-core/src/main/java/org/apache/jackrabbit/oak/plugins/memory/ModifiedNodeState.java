@@ -46,39 +46,6 @@ public class ModifiedNodeState extends AbstractNodeState {
         this.nodes = nodes;
     }
 
-    NodeState getBase() {
-        return base;
-    }
-
-    void diffAgainstBase(NodeStateDiff diff) {
-        for (Map.Entry<String, PropertyState> entry : properties.entrySet()) {
-            PropertyState before = base.getProperty(entry.getKey());
-            PropertyState after = entry.getValue();
-            if (after == null) {
-                assert before != null;
-                diff.propertyDeleted(before);
-            } else if (before == null) {
-                diff.propertyAdded(after);
-            } else {
-                diff.propertyChanged(before, after);
-            }
-        }
-
-        for (Map.Entry<String, NodeState> entry : nodes.entrySet()) {
-            String name = entry.getKey();
-            NodeState before = base.getChildNode(name);
-            NodeState after = entry.getValue();
-            if (after == null) {
-                assert before != null;
-                diff.childNodeDeleted(name, before);
-            } else if (before == null) {
-                diff.childNodeAdded(name, after);
-            } else {
-                diff.childNodeChanged(name, before, after);
-            }
-        }
-    }
-
     //---------------------------------------------------------< NodeState >--
 
     @Override
@@ -176,6 +143,89 @@ public class ModifiedNodeState extends AbstractNodeState {
             }
         };
     }
+
+    /**
+     * Since we keep track of an explicit base node state for a
+     * {@link ModifiedNodeState} instance, we can do this in two steps:
+     * first compare the base states to each other (often a fast operation),
+     * ignoring all changed properties and child nodes for which we have
+     * further modifications, and then compare all the modified properties
+     * and child nodes to those in the given base state.
+     */
+    @Override
+    public void compareAgainstBaseState(
+            NodeState base, final NodeStateDiff diff) {
+        this.base.compareAgainstBaseState(base, new NodeStateDiff() {
+            @Override
+            public void propertyAdded(PropertyState after) {
+                if (!properties.containsKey(after.getName())) {
+                    diff.propertyAdded(after);
+                }
+            }
+            @Override
+            public void propertyChanged(
+                    PropertyState before, PropertyState after) {
+                if (!properties.containsKey(before.getName())) {
+                    diff.propertyChanged(before, after);
+                }
+            }
+            @Override
+            public void propertyDeleted(PropertyState before) {
+                if (!properties.containsKey(before.getName())) {
+                    diff.propertyDeleted(before);
+                }
+            }
+            @Override
+            public void childNodeAdded(String name, NodeState after) {
+                if (!nodes.containsKey(name)) {
+                    diff.childNodeAdded(name, after);
+                }
+            }
+            @Override
+            public void childNodeChanged(String name, NodeState before, NodeState after) {
+                if (!nodes.containsKey(name)) {
+                    diff.childNodeChanged(name, before, after);
+                }
+            }
+            @Override
+            public void childNodeDeleted(String name, NodeState before) {
+                if (!nodes.containsKey(name)) {
+                    diff.childNodeDeleted(name, before);
+                }
+            }
+        });
+
+        for (Map.Entry<String, PropertyState> entry : properties.entrySet()) {
+            PropertyState before = base.getProperty(entry.getKey());
+            PropertyState after = entry.getValue();
+            if (before == null && after == null) {
+                // do nothing
+            } else if (after == null) {
+                diff.propertyDeleted(before);
+            } else if (before == null) {
+                diff.propertyAdded(after);
+            } else if (!before.equals(after)) {
+                diff.propertyChanged(before, after);
+            }
+        }
+
+        for (Map.Entry<String, NodeState> entry : nodes.entrySet()) {
+            String name = entry.getKey();
+            NodeState before = base.getChildNode(name);
+            NodeState after = entry.getValue();
+            if (before == null && after == null) {
+                // do nothing
+            } else if (after == null) {
+                diff.childNodeDeleted(name, before);
+            } else if (before == null) {
+                diff.childNodeAdded(name, after);
+            } else if (!before.equals(after)) {
+                diff.childNodeChanged(name, before, after);
+            }
+        }
+    }
+
+    //-----------------------------------------------------------< private >--
 
     private class UnmodifiedPropertyPredicate implements Predicate<PropertyState> {
         @Override
