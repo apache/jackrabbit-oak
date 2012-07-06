@@ -47,7 +47,7 @@ public class ValidatingEditor implements CommitEditor {
             NodeStore store, NodeState before, NodeState after)
             throws CommitFailedException {
         Validator validator = validatorProvider.getRootValidator(before, after);
-        ValidatorDiff.validate(validator, store, before, after);
+        ValidatorDiff.validate(validator, before, after);
         return after;
     }
 
@@ -56,8 +56,6 @@ public class ValidatingEditor implements CommitEditor {
     private static class ValidatorDiff implements NodeStateDiff {
 
         private final Validator validator;
-
-        private final NodeStore store;
 
         /**
          * Checked exceptions don't compose. So we need to hack around.
@@ -75,19 +73,19 @@ public class ValidatingEditor implements CommitEditor {
          * @param after state of the modified subtree
          * @throws CommitFailedException if validation failed
          */
-        public static void validate(Validator validator, NodeStore store,
-                NodeState before, NodeState after) throws CommitFailedException {
-            new ValidatorDiff(validator, store).validate(before, after);
+        public static void validate(
+                Validator validator, NodeState before, NodeState after)
+                throws CommitFailedException {
+            new ValidatorDiff(validator).validate(before, after);
         }
 
-        private ValidatorDiff(Validator validator, NodeStore store) {
+        private ValidatorDiff(Validator validator) {
             this.validator = validator;
-            this.store = store;
         }
 
         private void validate(NodeState before, NodeState after)
                 throws CommitFailedException {
-            store.compare(before, after, this);
+            after.compareAgainstBaseState(before, this);
             if (exception != null) {
                 throw exception;
             }
@@ -134,7 +132,7 @@ public class ValidatingEditor implements CommitEditor {
                 try {
                     Validator v = validator.childNodeAdded(name, after);
                     if (v != null) {
-                        validate(v, store, EMPTY_NODE, after);
+                        validate(v, EMPTY_NODE, after);
                     }
                 } catch (CommitFailedException e) {
                     exception = e;
@@ -150,7 +148,7 @@ public class ValidatingEditor implements CommitEditor {
                     Validator v =
                             validator.childNodeChanged(name, before, after);
                     if (v != null) {
-                        validate(v, store, before, after);
+                        validate(v, before, after);
                     }
                 } catch (CommitFailedException e) {
                     exception = e;
@@ -164,7 +162,7 @@ public class ValidatingEditor implements CommitEditor {
                 try {
                     Validator v = validator.childNodeDeleted(name, before);
                     if (v != null) {
-                        validate(v, store, before, EMPTY_NODE);
+                        validate(v, before, EMPTY_NODE);
                     }
                 } catch (CommitFailedException e) {
                     exception = e;
