@@ -44,7 +44,7 @@ public class NotImpl extends ConstraintImpl {
 
     @Override
     public String toString() {
-        return "NOT " + protect(constraint);
+        return "not " + protect(constraint);
     }
 
     @Override

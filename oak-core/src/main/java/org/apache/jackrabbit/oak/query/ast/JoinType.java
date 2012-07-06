@@ -21,11 +21,11 @@ package org.apache.jackrabbit.oak.query.ast;
  */
 public enum JoinType {
 
-    INNER("INNER JOIN"),
+    INNER("inner join"),
 
-    LEFT_OUTER("LEFT OUTER JOIN"),
+    LEFT_OUTER("left outer join"),
 
-    RIGHT_OUTER("RIGHT OUTER JOIN");
+    RIGHT_OUTER("right outer join");
 
     /**
      * The name of this join type.

@@ -507,6 +507,12 @@ public class Indexer implements QueryIndexProvider {
 
     private void addOrRemoveIndex(String path, boolean remove, boolean add) {
         // check the depth first for speed
+
+        // TODO allow creating multiple indexes in one step
+        // (buffer indexes to be created; traverse the repository only once)
+        // TODO re-organize the index structure
+        // TODO allow filters (only index a certain path; exclude a list of paths)
+
         if (PathUtils.getDepth(path) == indexRootNodeDepth + 1) {
             // actually not required, just to make sure
             if (PathUtils.getParentPath(path).equals(indexRootNode)) {

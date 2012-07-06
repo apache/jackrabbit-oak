@@ -60,6 +60,8 @@ public class FilterImpl implements Filter {
      */
     private String valuePrefix;
 
+    private String fulltextCondition;
+
     private final HashMap<String, PropertyRestriction> propertyRestrictions =
             new HashMap<String, PropertyRestriction>();
 
@@ -344,6 +346,17 @@ public class FilterImpl implements Filter {
             }
             break;
         }
+    }
+
+    @Override
+    public String getFulltextCondition() {
+        return fulltextCondition;
+    }
+
+    public void restrictFulltextCondition(String fulltextCondition) {
+        // TODO support combining multiple conditions as in
+        // contains('x') and contains('y')
+        this.fulltextCondition = fulltextCondition;
     }
 
 }

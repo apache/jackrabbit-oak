@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
 public class FullTextSearchScoreImpl extends DynamicOperandImpl {
@@ -41,11 +42,11 @@ public class FullTextSearchScoreImpl extends DynamicOperandImpl {
 
     @Override
     public String toString() {
-        return "SCORE(" + getSelectorName() + ')';
+        return "score(" + getSelectorName() + ')';
     }
 
     @Override
-    public CoreValue currentValue() {
+    public PropertyState currentProperty() {
         // TODO support evaluating fulltext conditions (score)
         return null;
     }

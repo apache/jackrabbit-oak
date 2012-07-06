@@ -23,6 +23,7 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.query.ast.AstVisitorBase;
@@ -434,7 +435,8 @@ public class Query {
         CoreValue[] values = new CoreValue[columnCount];
         for (int i = 0; i < columnCount; i++) {
             ColumnImpl c = columns[i];
-            values[i] = c.currentValue();
+            PropertyState p = c.currentProperty();
+            values[i] = p == null ? null : p.getValue();
         }
         CoreValue[] orderValues;
         if (orderings == null) {
@@ -443,7 +445,10 @@ public class Query {
             int size = orderings.length;
             orderValues = new CoreValue[size];
             for (int i = 0; i < size; i++) {
-                orderValues[i] = orderings[i].getOperand().currentValue();
+                PropertyState p = orderings[i].getOperand().currentProperty();
+                // TODO how is order by multi-values properties defined?
+                // currently throws an exception
+                orderValues[i] = p == null ? null : p.getValue();
             }
         }
         return new ResultRowImpl(this, paths, values, orderValues);
@@ -509,6 +514,34 @@ public class Query {
 
     public Tree getTree(String path) {
         return session.getCurrentRoot().getTree(path);
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder buff = new StringBuilder();
+        buff.append("select ");
+        int i = 0;
+        for (ColumnImpl c : columns) {
+            if (i++ > 0) {
+                buff.append(", ");
+            }
+            buff.append(c);
+        }
+        buff.append(" from ").append(source);
+        if (constraint != null) {
+            buff.append(constraint);
+        }
+        if (orderings != null) {
+            buff.append(" order by ");
+            i = 0;
+            for (OrderingImpl o : orderings) {
+                if (i++ > 0) {
+                    buff.append(", ");
+                }
+                buff.append(o);
+            }
+        }
+        return buff.toString();
     }
 
 }

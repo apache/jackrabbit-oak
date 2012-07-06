@@ -79,7 +79,7 @@ public class FullTextTest {
         testInvalid("\"x\"y", "\"x\"(*)y; expected: space");
     }
 
-    private void testInvalid(String pattern, String expectedMessage) {
+    private static void testInvalid(String pattern, String expectedMessage) {
         try {
             test(pattern, "");
             fail("Expected exception " + expectedMessage);
@@ -91,7 +91,7 @@ public class FullTextTest {
         }
     }
 
-    private boolean test(String pattern, String value) throws ParseException {
+    private static boolean test(String pattern, String value) throws ParseException {
         FullTextSearchImpl.FullTextExpression e = FullTextSearchImpl.FullTextParser.parse(pattern);
         return e.evaluate(value);
     }
