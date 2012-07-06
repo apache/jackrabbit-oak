@@ -65,8 +65,8 @@ public class LuceneEditor implements CommitEditor {
             IndexWriter writer = new IndexWriter(
                     directory, new IndexWriterConfig(VERSION, ANALYZER));
             try {
-                LuceneDiff diff = new LuceneDiff(store, writer, "");
-                store.compare(before, after, diff);
+                LuceneDiff diff = new LuceneDiff(writer, "");
+                after.compareAgainstBaseState(before, diff);
                 diff.postProcess(after);
                 writer.commit();
             } finally {
@@ -82,8 +82,6 @@ public class LuceneEditor implements CommitEditor {
 
     private static class LuceneDiff implements NodeStateDiff {
 
-        private final NodeStore store;
-
         private final IndexWriter writer;
 
         private final String path;
@@ -92,8 +90,7 @@ public class LuceneEditor implements CommitEditor {
 
         private IOException exception = null;
 
-        public LuceneDiff(NodeStore store, IndexWriter writer, String path) {
-            this.store = store;
+        public LuceneDiff(IndexWriter writer, String path) {
             this.writer = writer;
             this.path = path;
         }
@@ -140,9 +137,8 @@ public class LuceneEditor implements CommitEditor {
                 String name, NodeState before, NodeState after) {
             if (exception == null) {
                 try {
-                    LuceneDiff diff =
-                            new LuceneDiff(store, writer, path + "/" + name);
-                    store.compare(before, after, diff);
+                    LuceneDiff diff = new LuceneDiff(writer, path + "/" + name);
+                    after.compareAgainstBaseState(before, diff);
                     diff.postProcess(after);
                 } catch (IOException e) {
                     exception = e;
