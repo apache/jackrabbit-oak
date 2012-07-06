@@ -702,11 +702,11 @@ public class MicroKernelImpl implements MicroKernel {
         }
 
         boolean includeNode(String name) {
-            return nodeFilter == null ? true : nodeFilter.matches(name);
+            return nodeFilter == null || nodeFilter.matches(name);
         }
 
         boolean includeProperty(String name) {
-            return propFilter == null ? true : propFilter.matches(name);
+            return propFilter == null || propFilter.matches(name);
         }
     }
 }

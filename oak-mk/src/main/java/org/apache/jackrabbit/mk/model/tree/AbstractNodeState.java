@@ -109,11 +109,7 @@ public abstract class AbstractNodeState implements NodeState {
             }
             childNodeCount++;
         }
-        if (childNodeCount != other.getChildNodeCount()) {
-            return false;
-        }
-
-        return true;
+        return childNodeCount == other.getChildNodeCount();
     }
 
     /**
