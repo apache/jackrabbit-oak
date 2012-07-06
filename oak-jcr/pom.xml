@@ -82,7 +82,6 @@ org.apache.jackrabbit.test.api.LifecycleTest
 org.apache.jackrabbit.test.api.query.GetPropertyNamesTest#testGetPropertyNames
 org.apache.jackrabbit.test.api.query.SaveTest#testConstraintViolationException
 org.apache.jackrabbit.test.api.query.SimpleSelectionTest#testSingleProperty
-org.apache.jackrabbit.test.api.query.XPathQueryLevel2Test#testMultiValueSearch
 org.apache.jackrabbit.test.api.query.qom.ColumnTest#testExpandColumnsForNodeType
 org.apache.jackrabbit.test.api.query.qom.SelectorTest#testUnknownNodeType
 org.apache.jackrabbit.test.api.util

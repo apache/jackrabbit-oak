@@ -24,9 +24,8 @@ abstract class QOMNode {
         String str = expression.toString();
         if (str.indexOf(' ') >= 0) {
             return '(' + str + ')';
-        } else {
-            return str;
         }
+        return str;
     }
 
     protected String quotePath(String path) {

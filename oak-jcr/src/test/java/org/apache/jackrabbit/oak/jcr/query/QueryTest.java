@@ -45,6 +45,7 @@ public class QueryTest extends AbstractRepositoryTest {
         logout();
     }
 
+    @SuppressWarnings("deprecation")
     @Test
     public void simple() throws RepositoryException {
         Session session = createAnonymousSession();
@@ -57,6 +58,9 @@ public class QueryTest extends AbstractRepositoryTest {
             ValueFactory vf = session.getValueFactory();
 
             QueryManager qm = session.getWorkspace().getQueryManager();
+
+            // SQL-2
+
             Query q = qm.createQuery("select text from [nt:base] where id = $id", Query.JCR_SQL2);
             q.bindValue("id", vf.createValue("1"));
             QueryResult r = q.execute();
@@ -72,6 +76,16 @@ public class QueryTest extends AbstractRepositoryTest {
             Node n = nodeIt.nextNode();
             assertEquals("hello world", n.getProperty("text").getString());
             assertFalse(it.hasNext());
+
+            // SQL
+
+            q = qm.createQuery("select text from [nt:base] where id = 1", Query.SQL);
+            q.execute();
+
+            // XPath
+
+            q = qm.createQuery("//*[@id=1]", Query.XPATH);
+            q.execute();
 
         } finally {
             session.logout();

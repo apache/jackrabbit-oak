@@ -53,9 +53,8 @@ public class ColumnImpl extends QOMNode implements Column {
         if (propertyName != null) {
             return getSelectorName() + '.' + getPropertyName()
                     + " AS [" + columnName + "]";
-        } else {
-            return getSelectorName() + ".*";
         }
+        return getSelectorName() + ".*";
     }
 
 }

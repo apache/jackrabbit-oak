@@ -97,9 +97,8 @@ public enum Operator {
     public String formatXpath(String a, String b) {
         if (this == LIKE) {
             return "jcr:like(" + a + ", " + b + ')';
-        } else {
-            return a + ' ' + xpath + ' ' + b;
         }
+        return a + ' ' + xpath + ' ' + b;
     }
 
     /**
