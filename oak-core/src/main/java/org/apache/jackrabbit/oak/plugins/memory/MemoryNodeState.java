@@ -20,8 +20,10 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
@@ -92,6 +94,44 @@ public class MemoryNodeState extends AbstractNodeState {
                 return MemoryChildNodeEntry.iterator(nodes.entrySet().iterator());
             }
         };
+    }
+
+    /**
+     * We don't keep track of a separate base node state for
+     * {@link MemoryNodeState} instances, so this method will just do
+     * a generic diff against the given state.
+     */
+    @Override
+    public void compareAgainstBaseState(NodeState base, NodeStateDiff diff) {
+        Map<String, PropertyState> newProperties =
+                new HashMap<String, PropertyState>(properties);
+        for (PropertyState before : base.getProperties()) {
+            PropertyState after = newProperties.remove(before.getName());
+            if (after == null) {
+                diff.propertyDeleted(before);
+            } else if (!after.equals(before)) {
+                diff.propertyChanged(before, after);
+            }
+        }
+        for (PropertyState after : newProperties.values()) {
+            diff.propertyAdded(after);
+        }
+
+        Map<String, NodeState> newNodes =
+                new HashMap<String, NodeState>(nodes);
+        for (ChildNodeEntry entry : base.getChildNodeEntries()) {
+            String name = entry.getName();
+            NodeState before = entry.getNodeState();
+            NodeState after = newNodes.remove(name);
+            if (after == null) {
+                diff.childNodeDeleted(name, before);
+            } else if (!after.equals(before)) {
+                diff.childNodeChanged(name, before, after);
+            }
+        }
+        for (Map.Entry<String, NodeState> entry : newNodes.entrySet()) {
+            diff.childNodeAdded(entry.getKey(), entry.getValue());
+        }
     }
 
 }

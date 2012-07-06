@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.memory;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
 /**
  * Abstract node store base class with in-memory node state builder
@@ -33,20 +32,6 @@ public abstract class MemoryNodeStore extends AbstractNodeStore {
             base = MemoryNodeState.EMPTY_NODE;
         }
         return new MemoryNodeStateBuilder(base);
-    }
-
-    @Override
-    public void compare(NodeState before, NodeState after, NodeStateDiff diff) {
-        if (after instanceof ModifiedNodeState) {
-            ModifiedNodeState modified = (ModifiedNodeState) after;
-            if (before.equals(modified.getBase())) {
-                modified.diffAgainstBase(diff);
-            } else {
-                super.compare(before, after, diff);
-            }
-        } else {
-            super.compare(before, after, diff);
-        }
     }
 
 }

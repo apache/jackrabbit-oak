@@ -159,4 +159,15 @@ public interface NodeState {
     @Nonnull
     Iterable<? extends ChildNodeEntry> getChildNodeEntries();
 
+    /**
+     * Compares this node state against the given base state. Any differences
+     * are reported by calling the relevant added/changed/deleted methods of
+     * the given handler.
+     *
+     * @param base base state
+     * @param diff handler of node state differences
+     * @since 0ak 0.4
+     */
+    void compareAgainstBaseState(NodeState base, NodeStateDiff diff);
+
 }
