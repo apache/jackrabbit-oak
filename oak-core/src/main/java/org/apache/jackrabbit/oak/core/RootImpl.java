@@ -161,7 +161,7 @@ public class RootImpl implements Root {
     @Override
     public void refresh() {
         currentRootState = null;
-        // There is a small race here an we risk to get an "earlier" revision for the
+        // There is a small race here and we risk to get an "earlier" revision for the
         // observation limit than for the branch. This is not a problem though since
         // observation will catch up later on with the next call to ChangeExtractor.getChanges()
         observationLimit.set(store.getRoot());
