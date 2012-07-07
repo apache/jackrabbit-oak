@@ -16,10 +16,11 @@
  */
 package org.apache.jackrabbit.oak.spi.state;
 
-import org.apache.jackrabbit.oak.api.CoreValue;
+import java.util.List;
 
 import javax.annotation.Nonnull;
-import java.util.List;
+
+import org.apache.jackrabbit.oak.api.CoreValue;
 
 /**
  * Builder interface for constructing new {@link NodeState node states}.
@@ -80,7 +81,7 @@ public interface NodeStateBuilder {
      * <p>
      * All updates to the returned child builder will implicitly affect
      * also this builder, as if a
-     * <code>setNode(name, childBilder.getNodeState())</code> method call
+     * {@code setNode(name, childBuilder.getNodeState())} method call
      * had been made after each update. Repeated calls to this method with
      * the same name will return the same child builder instance until an
      * explicit {@link #setNode(String, NodeState)} or
