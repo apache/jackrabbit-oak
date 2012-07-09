@@ -16,15 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import org.apache.jackrabbit.oak.spi.state.AbstractNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
  * Abstract node store base class with in-memory node state builder
  * functionality.
  */
-public abstract class MemoryNodeStore extends AbstractNodeStore {
+public abstract class MemoryNodeStore implements NodeStore {
 
     @Override
     public NodeStateBuilder getBuilder(NodeState base) {
