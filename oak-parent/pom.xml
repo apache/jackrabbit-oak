@@ -188,6 +188,11 @@
   <profiles>
     <profile>
       <id>integrationTesting</id>
+      <activation>
+        <property>
+          <name>env.OAK_INTEGRATION_TESTING</name>
+        </property>
+      </activation>
       <build>
         <plugins>
           <plugin>
