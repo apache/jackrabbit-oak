@@ -20,22 +20,29 @@ Maven 3 and Java 6 (or higher) like this:
 
     mvn clean install
 
-To run the build with all integration tests enabled, use:
+To enable all integration tests, including the JCR TCK, use:
 
     mvn clean install -PintegrationTesting
+
+Before committing changes or submitting a patch, please make sure that
+the above integration testing build passes without errors. If you like,
+you can enable integration tests by default by setting the
+`OAK_INTEGRATION_TESTING` environment variable.
 
 The build consists of the following main components:
 
   - oak-parent    - parent POM
   - oak-commons   - shared utility code
-  - oak-mk        - MicroKernel API and default implementation
+  - oak-mk-api    - MicroKernel API
+  - oak-mk        - default MicroKernel implementation
+  - oak-mk-remote - MicroKernel remoting
   - [oak-core][1] - Oak repository API and implementation
   - oak-jcr       - JCR binding for the Oak repository
   - oak-sling     - integration with Apache Sling
+  - oak-http      - HTTP binding for Oak
   - oak-run       - runnable jar packaging
   - oak-it        - integration tests
     - oak-it/mk   - integration tests for MicroKernel
-    - oak-it/jcr  - integration tests for JCR
     - oak-it/osgi - integration tests for OSGi
   - oak-bench     - performance tests
 
