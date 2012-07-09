@@ -65,15 +65,4 @@ public interface NodeStore {
     @Nonnull
     CoreValueFactory getValueFactory();
 
-    /**
-     * Compares the given two node states. Any found differences are
-     * reported by calling the relevant added, changed or deleted methods
-     * of the given handler.
-     *
-     * @param before node state before changes
-     * @param after node state after changes
-     * @param diff handler of node state differences
-     */
-    void compare(NodeState before, NodeState after, NodeStateDiff diff);
-
 }
