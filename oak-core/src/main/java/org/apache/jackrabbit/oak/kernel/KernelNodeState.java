@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.util.Iterators;
 import org.apache.jackrabbit.oak.util.PagedIterator;
 
@@ -178,17 +179,55 @@ final class KernelNodeState extends AbstractNodeState {
         };
     }
 
+    /**
+     * Optimised comparison method that can avoid traversing all properties
+     * and child nodes if both this and the given base node state come from
+     * the same MicroKernel and either have the same content hash (when
+     * available) or are located at the same path in different revisions.
+     *
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-175">OAK-175</a>
+     */
+    @Override
+    public void compareAgainstBaseState(NodeState base, NodeStateDiff diff) {
+        if (this == base) {
+            return; // no differences
+        } else if (base instanceof KernelNodeState) {
+            KernelNodeState kbase = (KernelNodeState) base;
+            if (kernel.equals(kbase.kernel)) {
+                if (revision.equals(kbase.revision) && path.equals(kbase.path)) {
+                    return; // no differences
+                } else {
+                    init();
+                    kbase.init();
+                    if (hash != null && hash.equals(kbase.hash)) {
+                        return; // no differences
+                    } else if (path.equals(kbase.path)) {
+                        // TODO: Parse the JSON diff returned by the kernel
+                        // kernel.diff(kbase.revision, revision, path);
+                    }
+                }
+            }
+        }
+        // fall back to the generic node state diff algorithm
+        super.compareAgainstBaseState(base, diff);
+    }
+
     //------------------------------------------------------------< Object >--
 
+    /**
+     * Optimised equality check that can avoid a full tree comparison if
+     * both instances come from the same MicroKernel and have either
+     * the same revision and path or the same content hash (when available).
+     * Otherwise we fall back to the default tree comparison algorithm.
+     *
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-172">OAK-172</a>
+     */
     @Override
     public boolean equals(Object object) {
         if (this == object) {
             return true;
         } else if (object instanceof KernelNodeState) {
             KernelNodeState that = (KernelNodeState) object;
-            // When both instances come from the same MicroKernel, we can
-            // use revision/path information or content hashes (when available)
-            // to avoid a full tree comparison in many cases.
             if (kernel.equals(that.kernel)) {
                 if (revision.equals(that.revision) && path.equals(that.path)) {
                     return true;
@@ -201,7 +240,7 @@ final class KernelNodeState extends AbstractNodeState {
                 }
             }
         }
-        // fallback
+        // fall back to the generic tree equality comparison algorithm
         return super.equals(object);
     }
 
