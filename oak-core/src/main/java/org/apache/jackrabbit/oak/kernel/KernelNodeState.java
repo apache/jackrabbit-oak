@@ -43,7 +43,7 @@ import java.util.Map.Entry;
  * Basic {@link NodeState} implementation based on the {@link MicroKernel}
  * interface. This class makes an attempt to load data lazily.
  */
-class KernelNodeState extends AbstractNodeState {
+final class KernelNodeState extends AbstractNodeState {
 
     /**
      * Maximum number of child nodes kept in memory.
@@ -60,6 +60,8 @@ class KernelNodeState extends AbstractNodeState {
     private Map<String, PropertyState> properties;
 
     private long childNodeCount = -1;
+
+    private String hash = null;
 
     // TODO: WeakReference?
     private Map<String, NodeState> childNodes;
@@ -89,7 +91,8 @@ class KernelNodeState extends AbstractNodeState {
     private synchronized void init() {
         if (properties == null) {
             String json = kernel.getNodes(
-                    path, revision, 0, 0, MAX_CHILD_NODE_NAMES, null);
+                    path, revision, 0, 0, MAX_CHILD_NODE_NAMES,
+                    "{properties:[\"*\",\":hash\"]}");
 
             JsopReader reader = new JsopTokenizer(json);
             reader.read('{');
@@ -101,6 +104,8 @@ class KernelNodeState extends AbstractNodeState {
                 if (":childNodeCount".equals(name)) {
                     childNodeCount =
                             Long.valueOf(reader.read(JsopReader.NUMBER));
+                } else if (":hash".equals(name)) {
+                    hash = reader.read(JsopReader.STRING);
                 } else if (reader.matches('{')) {
                     reader.read('}');
                     String childPath = path + '/' + name;
@@ -171,6 +176,33 @@ class KernelNodeState extends AbstractNodeState {
                 });
             }
         };
+    }
+
+    //------------------------------------------------------------< Object >--
+
+    @Override
+    public boolean equals(Object object) {
+        if (this == object) {
+            return true;
+        } else if (object instanceof KernelNodeState) {
+            KernelNodeState that = (KernelNodeState) object;
+            // When both instances come from the same MicroKernel, we can
+            // use revision/path information or content hashes (when available)
+            // to avoid a full tree comparison in many cases.
+            if (kernel.equals(that.kernel)) {
+                if (revision.equals(that.revision) && path.equals(that.path)) {
+                    return true;
+                } else {
+                    this.init();
+                    that.init();
+                    if (hash != null && that.hash != null) {
+                        return hash.equals(that.hash);
+                    }
+                }
+            }
+        }
+        // fallback
+        return super.equals(object);
     }
 
     //------------------------------------------------------------< internal >---
@@ -251,12 +283,4 @@ class KernelNodeState extends AbstractNodeState {
         }
     }
 
-    private List<CoreValue> readArray(JsopReader reader) {
-        List<CoreValue> values = new ArrayList<CoreValue>();
-        while (!reader.matches(']')) {
-            values.add(CoreValueMapper.fromJsopReader(reader, valueFactory));
-            reader.matches(',');
-        }
-        return values;
-    }
 }
