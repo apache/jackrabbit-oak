@@ -54,7 +54,7 @@ public class TreeImpl implements Tree, PurgeListener {
     private String name;
 
     /** Lazily initialised {@code NodeStateBuilder} for the underlying node state */
-    protected NodeStateBuilder nodeStateBuilder;
+    NodeStateBuilder nodeStateBuilder;
 
     private final Children children = new Children();
 
@@ -76,15 +76,12 @@ public class TreeImpl implements Tree, PurgeListener {
             }
 
             @Override
-            protected NodeState getNodeState() {
-                return nodeStateBuilder == null
-                    ? root.getCurrentRootState()
-                    : nodeStateBuilder.getNodeState();
-            }
-
-            @Override
-            protected void updateParentState(NodeState childState) {
-                root.setCurrentRootState(childState);
+            protected synchronized NodeStateBuilder getNodeStateBuilder() {
+                if (nodeStateBuilder == null) {
+                    nodeStateBuilder = root.createRootBuilder();
+                    root.addListener(this);
+                }
+                return nodeStateBuilder;
             }
         };
     }
@@ -255,7 +252,7 @@ public class TreeImpl implements Tree, PurgeListener {
         if (!hasChild(name)) {
             NodeStateBuilder builder = getNodeStateBuilder();
             builder.setNode(name, EMPTY_NODE);
-            updateParentState(builder.getNodeState());
+            root.purge();
         }
 
         TreeImpl child = getChild(name);
@@ -265,14 +262,23 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public boolean remove() {
-        return !isRoot() && parent.removeChild(name);
+        if (!isRoot() && parent.hasChild(name)) {
+            NodeStateBuilder builder = parent.getNodeStateBuilder();
+            builder.removeNode(name);
+            parent.children.remove(name);
+            parent.root.purge();
+            return true;
+        }
+        else {
+            return false;
+        }
     }
 
     @Override
     public PropertyState setProperty(String name, CoreValue value) {
         NodeStateBuilder builder = getNodeStateBuilder();
         builder.setProperty(name, value);
-        updateParentState(builder.getNodeState());
+        root.purge();
         PropertyState property = getProperty(name);
         assert property != null;
         return property;
@@ -282,7 +288,7 @@ public class TreeImpl implements Tree, PurgeListener {
     public PropertyState setProperty(String name, List<CoreValue> values) {
         NodeStateBuilder builder = getNodeStateBuilder();
         builder.setProperty(name, values);
-        updateParentState(builder.getNodeState());
+        root.purge();
         PropertyState property = getProperty(name);
         assert property != null;
         return property;
@@ -292,28 +298,7 @@ public class TreeImpl implements Tree, PurgeListener {
     public void removeProperty(String name) {
         NodeStateBuilder builder = getNodeStateBuilder();
         builder.removeProperty(name);
-        updateParentState(builder.getNodeState());
-    }
-
-    /**
-     * Move this tree to the parent at {@code destParent} with the new name
-     * {@code destName}.
-     *
-     * @param destParent  new parent for this tree
-     * @param destName  new name for this tree
-     * @return {@code true} if this tree was moved.
-     */
-    public boolean moveTo(TreeImpl destParent, String destName) {
-        if (destParent.hasChild(destName)) {
-            return false;
-        }
-
-        parent.children.remove(name);
-        destParent.children.put(destName, this);
-
-        name = destName;
-        parent = destParent;
-        return true;
+        root.purge();
     }
 
     //--------------------------------------------------< RootImpl.Listener >---
@@ -334,45 +319,37 @@ public class TreeImpl implements Tree, PurgeListener {
     }
 
     @Nonnull
-    protected NodeState getNodeState() {
+    protected synchronized NodeStateBuilder getNodeStateBuilder() {
         if (nodeStateBuilder == null) {
-            NodeState nodeState = parent.getNodeState().getChildNode(name);
-            assert nodeState != null;
-            return nodeState;
-        }
-        else {
-            return nodeStateBuilder.getNodeState();
-        }
-    }
-
-    protected void updateParentState(NodeState childState) {
-        NodeStateBuilder parentBuilder = parent.getNodeStateBuilder();
-        parentBuilder.setNode(name, childState);
-        parent.updateParentState(parentBuilder.getNodeState());
-    }
-
-    //------------------------------------------------------------< private >---
-
-    private boolean removeChild(String name) {
-        if (hasChild(name)) {
-            NodeStateBuilder builder = getNodeStateBuilder();
-            builder.removeNode(name);
-            children.remove(name);
-            updateParentState(builder.getNodeState());
-            return true;
-        }
-        else {
-            return false;
-        }
-    }
-
-    private synchronized NodeStateBuilder getNodeStateBuilder() {
-        if (nodeStateBuilder == null) {
-            nodeStateBuilder = root.getBuilder(getNodeState());
+            nodeStateBuilder = parent.getNodeStateBuilder().getChildBuilder(name);
             root.addListener(this);
         }
         return nodeStateBuilder;
     }
+
+    //------------------------------------------------------------< internal >---
+
+    /**
+     * Move this tree to the parent at {@code destParent} with the new name
+     * {@code destName}.
+     *
+     * @param destParent  new parent for this tree
+     * @param destName  new name for this tree
+     */
+    void moveTo(TreeImpl destParent, String destName) {
+        parent.children.remove(name);
+        destParent.children.put(destName, this);
+
+        name = destName;
+        parent = destParent;
+    }
+
+    @Nonnull
+    NodeState getNodeState() {
+        return getNodeStateBuilder().getNodeState();
+    }
+
+    //------------------------------------------------------------< private >---
 
     private void buildPath(StringBuilder sb) {
         if (parent != null) {
