@@ -92,7 +92,7 @@ final class KernelNodeState extends AbstractNodeState {
         if (properties == null) {
             String json = kernel.getNodes(
                     path, revision, 0, 0, MAX_CHILD_NODE_NAMES,
-                    "{properties:[\"*\",\":hash\"]}");
+                    "{\"properties\":[\"*\",\":hash\"]}");
 
             JsopReader reader = new JsopTokenizer(json);
             reader.read('{');
