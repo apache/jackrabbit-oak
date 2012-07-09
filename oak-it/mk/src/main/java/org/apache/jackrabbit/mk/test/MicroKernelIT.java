@@ -413,11 +413,11 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         // :hash must be explicitly specified in the filter
         JSONObject obj = parseJSONObject(mk.getNodes("/", null, 1, 0, -1, null));
         assertPropertyNotExists(obj, ":hash");
-        obj = parseJSONObject(mk.getNodes("/", null, 1, 0, -1, "{properties:[\"*\"]}"));
+        obj = parseJSONObject(mk.getNodes("/", null, 1, 0, -1, "{\"properties\":[\"*\"]}"));
         assertPropertyNotExists(obj, ":hash");
 
         // verify initial content with :hash property
-        obj = parseJSONObject(mk.getNodes("/", null, 1, 0, -1, "{properties:[\"*\",\":hash\"]}"));
+        obj = parseJSONObject(mk.getNodes("/", null, 1, 0, -1, "{\"properties\":[\"*\",\":hash\"]}"));
         assertPropertyValue(obj, "test/booleanProp", true);
 
         if (obj.get(":hash") == null) {
@@ -430,7 +430,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
 
         // modify a property and verify that the hash of the root node changed
         mk.commit("/test", "^\"booleanProp\":false", null, null);
-        obj = parseJSONObject(mk.getNodes("/", null, 1, 0, -1, "{properties:[\"*\",\":hash\"]}"));
+        obj = parseJSONObject(mk.getNodes("/", null, 1, 0, -1, "{\"properties\":[\"*\",\":hash\"]}"));
         assertPropertyValue(obj, "test/booleanProp", false);
 
         assertPropertyExists(obj, ":hash", String.class);
@@ -441,7 +441,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         // undo property modification and verify that the hash
         // of the root node is now the same as before the modification
         mk.commit("/test", "^\"booleanProp\":true", null, null);
-        obj = parseJSONObject(mk.getNodes("/", null, 1, 0, -1, "{properties:[\"*\",\":hash\"]}"));
+        obj = parseJSONObject(mk.getNodes("/", null, 1, 0, -1, "{\"properties\":[\"*\",\":hash\"]}"));
         assertPropertyValue(obj, "test/booleanProp", true);
 
         assertPropertyExists(obj, ":hash", String.class);
@@ -460,14 +460,14 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         long count = (Long) resolveValue(obj, ":childNodeCount") ;
         assertEquals(count, mk.getChildNodeCount("/", null));
 
-        obj = parseJSONObject(mk.getNodes("/", null, 1, 0, -1, "{properties:[\"*\"]}"));
+        obj = parseJSONObject(mk.getNodes("/", null, 1, 0, -1, "{\"properties\":[\"*\"]}"));
         assertPropertyExists(obj, ":childNodeCount", Long.class);
         assertPropertyExists(obj, "test/:childNodeCount", Long.class);
         count = (Long) resolveValue(obj, ":childNodeCount") ;
         assertEquals(count, mk.getChildNodeCount("/", null));
 
         // explicitly exclude :childNodeCount
-        obj = parseJSONObject(mk.getNodes("/", null, 1, 0, -1, "{properties:[\"*\",\"-:childNodeCount\"]}"));
+        obj = parseJSONObject(mk.getNodes("/", null, 1, 0, -1, "{\"properties\":[\"*\",\"-:childNodeCount\"]}"));
         assertPropertyNotExists(obj, ":childNodeCount");
         assertPropertyNotExists(obj, "test/:childNodeCount");
     }
@@ -477,7 +477,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         String head = mk.getHeadRevision();
 
         // verify initial content using filter
-        String filter = "{ properties : [ \"*ntProp\", \"-mult*\" ] } ";
+        String filter = "{ \"properties\" : [ \"*ntProp\", \"-mult*\" ] } ";
         JSONObject obj = parseJSONObject(mk.getNodes("/", head, 1, 0, -1, filter));
         assertPropertyExists(obj, "test/intProp");
         assertPropertyNotExists(obj, "test/multiIntProp");
@@ -637,7 +637,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
 
         // test offset with filter
         try {
-            parseJSONObject(mk.getNodes("/testRoot", head, 0, 10, NUM_SIBLINGS / 10, "{nodes:[\"n0*\"]}"));
+            parseJSONObject(mk.getNodes("/testRoot", head, 0, 10, NUM_SIBLINGS / 10, "{\"nodes\":[\"n0*\"]}"));
             fail();
         } catch (Throwable e) {
             // expected
@@ -699,7 +699,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
 
         // get max 5 siblings using filter
         maxSiblings = 5;
-        obj = parseJSONObject(mk.getNodes("/testRoot", head, 1, 0, maxSiblings, "{nodes:[\"n1*\"]}"));
+        obj = parseJSONObject(mk.getNodes("/testRoot", head, 1, 0, maxSiblings, "{\"nodes\":[\"n1*\"]}"));
         assertPropertyValue(obj, ":childNodeCount", (long) NUM_SIBLINGS);
         assertEquals((long) NUM_SIBLINGS, mk.getChildNodeCount("/testRoot", head));
         names = getNodeNames(obj);

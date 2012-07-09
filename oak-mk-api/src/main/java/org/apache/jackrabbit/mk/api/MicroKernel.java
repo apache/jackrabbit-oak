@@ -292,8 +292,8 @@ public interface MicroKernel {
      * Example:
      * <pre>
      * {
-     *   nodes: [ "foo*", "-foo1" ],
-     *   properties: [ "*", "-:childNodeCount" ]
+     *   "nodes": [ "foo*", "-foo1" ],
+     *   "properties": [ "*", "-:childNodeCount" ]
      * }
      * </pre>
      * In the above example all child nodes with names starting with "foo" will
@@ -315,7 +315,7 @@ public interface MicroKernel {
      * none of the exclusion patterns.</li>
      * </ul>
      * If no filter is specified the implicit default filter is assumed:
-     * {@code {nodes:["*"],properties:["*"]}}
+     * {@code {"nodes":["*"],"properties":["*"]}}
      * <p/>
      * System-provided metadata properties:
      * <ul>

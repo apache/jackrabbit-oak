@@ -667,7 +667,7 @@ public class MicroKernelImpl implements MicroKernel {
             NameFilter nodeFilter = null, propFilter = null;
 
             do {
-                String type = t.readRawValue();
+                String type = t.readString();
                 t.read(':');
                 String[] globs = parseArray(t);
                 if (type.equals("nodes")) {
