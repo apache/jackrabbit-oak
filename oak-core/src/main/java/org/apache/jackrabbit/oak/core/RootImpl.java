@@ -52,8 +52,7 @@ public class RootImpl implements Root {
     static final Logger log = LoggerFactory.getLogger(RootImpl.class);
 
     /**
-     * Number of {@link #setCurrentRootState} calls for which changes
-     * are kept in memory.
+     * Number of {@link #purge()} calls for which changes are kept in memory.
      */
     private static final int PURGE_LIMIT = 100;
 
@@ -66,11 +65,8 @@ public class RootImpl implements Root {
     /** Actual root element of the {@code Tree} */
     private TreeImpl root;
 
-    /** Current root node state if changed */
-    private NodeState currentRootState;
-
     /**
-     * Number of {@link #setCurrentRootState} occurred so since the lase
+     * Number of {@link #purge()} occurred so since the lase
      * purge.
      */
     private int modCount;
@@ -117,7 +113,6 @@ public class RootImpl implements Root {
 
     @Override
     public boolean move(String sourcePath, String destPath) {
-        purgePendingChanges();
         TreeImpl source = getChild(sourcePath);
         if (source == null) {
             return false;
@@ -128,14 +123,13 @@ public class RootImpl implements Root {
         }
 
         String destName = getName(destPath);
-        if (source.moveTo(destParent, destName)) {
-            currentRootState = null;
-            return branch.move(sourcePath, destPath);
-        }
-        else {
-            currentRootState = null;
+        if (destParent.hasChild(destName)) {
             return false;
         }
+
+        purgePendingChanges();
+        source.moveTo(destParent, destName);
+        return branch.move(sourcePath, destPath);
     }
 
     @Override
@@ -160,7 +154,6 @@ public class RootImpl implements Root {
 
     @Override
     public void refresh() {
-        currentRootState = null;
         // There is a small race here and we risk to get an "earlier" revision for the
         // observation limit than for the branch. This is not a problem though since
         // observation will catch up later on with the next call to ChangeExtractor.getChanges()
@@ -213,10 +206,7 @@ public class RootImpl implements Root {
      */
     @Nonnull
     public NodeState getCurrentRootState() {
-        if (currentRootState == null) {
-            currentRootState = branch.getRoot();
-        }
-        return currentRootState;
+        return root.getNodeState();
     }
 
     /**
@@ -241,42 +231,31 @@ public class RootImpl implements Root {
         return store.getBuilder(nodeState);
     }
 
-    /**
-     * Set the current root node state
-     *
-     * @param nodeState  node state representing the modified root state
-     */
-    public void setCurrentRootState(NodeState nodeState) {
-        currentRootState = nodeState;
-        modCount++;
-        if (needsPurging()) {
-            purgePendingChanges();
-        }
+    //------------------------------------------------------------< internal >---
+
+    NodeStateBuilder createRootBuilder() {
+        return store.getBuilder(branch.getRoot());
     }
 
-    /**
-     * Purge all pending changes to the underlying {@link NodeStoreBranch}.
-     * All registered {@link PurgeListener}s are notified.
-     */
-    public void purgePendingChanges() {
-        if (currentRootState != null) {
-            branch.setRoot(currentRootState);
-            currentRootState = null;
-            notifyListeners();
+    // TODO better way to determine purge limit
+    void purge() {
+        if (++modCount > PURGE_LIMIT) {
+            modCount = 0;
+            purgePendingChanges();
         }
     }
 
     //------------------------------------------------------------< private >---
 
-    // TODO better way to determine purge limit
-    private boolean needsPurging() {
-        if (modCount > PURGE_LIMIT) {
-            modCount = 0;
-            return true;
+    /**
+     * Purge all pending changes to the underlying {@link NodeStoreBranch}.
+     * All registered {@link PurgeListener}s are notified.
+     */
+    private void purgePendingChanges() {
+        if (hasPendingChanges()) {
+            branch.setRoot(getCurrentRootState());
         }
-        else {
-            return false;
-        }
+        notifyListeners();
     }
 
     private void notifyListeners() {
