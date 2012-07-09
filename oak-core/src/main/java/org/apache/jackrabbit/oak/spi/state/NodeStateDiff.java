@@ -19,16 +19,18 @@ package org.apache.jackrabbit.oak.spi.state;
 import org.apache.jackrabbit.oak.api.PropertyState;
 
 /**
- * Handler of node state differences.
- * The {@link NodeStore#compare(NodeState, NodeState, NodeStateDiff)} reports
- * detected node state differences by calling methods of a handler instance
- * that implements this interface. The compare method will go through all
- * properties and child nodes of the two states, calling the relevant
- * added, changed or deleted methods where appropriate. Differences in
- * the ordering of properties or child nodes do not affect the comparison,
- * and the order in which such differences are reported is unspecified.
+ * Handler of node state differences. The
+ * {@link NodeState#compareAgainstBaseState(NodeState, NodeStateDiff)}
+ * method reports detected node state differences by calling methods of
+ * a handler instance that implements this interface. The compare method
+ * will go through all properties and child nodes of the two states,
+ * calling the relevant added, changed or deleted methods where appropriate.
+ * Differences in the ordering of properties or child nodes do not affect
+ * the comparison, and the order in which such differences are reported
+ * is unspecified.
  * <p>
- * Note that the {@link NodeStore#compare(NodeState, NodeState, NodeStateDiff)}
+ * Note that the
+ * {@link NodeState#compareAgainstBaseState(NodeState, NodeStateDiff)}
  * method only compares the given states without recursing to the subtrees
  * below. An implementation of this interface should recursively call that
  * method for the relevant child node entries to find out all the changes
