@@ -23,6 +23,7 @@ import java.util.Map;
 
 import javax.jcr.PropertyType;
 
+import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
@@ -105,30 +106,34 @@ public class CoreValueMapper {
         return sb.toString();
     }
 
+    public static CoreValue fromJsopReader(JsopReader reader, MicroKernel kernel) {
+        return fromJsopReader(reader, new CoreValueFactoryImpl(kernel));
+    }
+
     /**
      * Read a single value from the specified reader and convert it into a
      * {@code CoreValue}. This method takes type-hint prefixes into account.
      *
      * @param reader The JSON reader.
-     * @param valueFactory The factory used to create the value.
+     * @param factory The factory used to create the value.
      * @return The value such as defined by the token obtained from the reader.
      */
-    public static CoreValue fromJsopReader(JsopReader reader, CoreValueFactory valueFactory) {
+    public static CoreValue fromJsopReader(JsopReader reader, CoreValueFactory factory) {
         CoreValue value;
         if (reader.matches(JsopReader.NUMBER)) {
             String number = reader.getToken();
-            value = valueFactory.createValue(Long.valueOf(number));
+            value = factory.createValue(Long.valueOf(number));
         } else if (reader.matches(JsopReader.TRUE)) {
-            value = valueFactory.createValue(true);
+            value = factory.createValue(true);
         } else if (reader.matches(JsopReader.FALSE)) {
-            value = valueFactory.createValue(false);
+            value = factory.createValue(false);
         } else if (reader.matches(JsopReader.STRING)) {
             String jsonString = reader.getToken();
             if (startsWithHint(jsonString)) {
                 int type = HINT2TYPE.get(jsonString.substring(0, 3));
-                value = valueFactory.createValue(jsonString.substring(4), type);
+                value = factory.createValue(jsonString.substring(4), type);
             } else {
-                value = valueFactory.createValue(jsonString);
+                value = factory.createValue(jsonString);
             }
         } else {
             throw new IllegalArgumentException("Unexpected token: " + reader.getToken());
@@ -144,10 +149,10 @@ public class CoreValueMapper {
      * @param valueFactory The factory used to create the values.
      * @return A list of values such as defined by the reader.
      */
-    public static List<CoreValue> listFromJsopReader(JsopReader reader, CoreValueFactory valueFactory) {
+    public static List<CoreValue> listFromJsopReader(JsopReader reader, MicroKernel kernel) {
         List<CoreValue> values = new ArrayList<CoreValue>();
         while (!reader.matches(']')) {
-            values.add(fromJsopReader(reader, valueFactory));
+            values.add(fromJsopReader(reader, kernel));
             reader.matches(',');
         }
         return values;

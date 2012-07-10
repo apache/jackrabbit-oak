@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.kernel;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.commit.CommitEditor;
@@ -59,7 +58,7 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
 
         MicroKernel kernel = store.getKernel();
         this.branchRevision = kernel.branch(null);
-        this.currentRoot = new KernelNodeState(kernel, getValueFactory(), "/", branchRevision);
+        this.currentRoot = new KernelNodeState(kernel, "/", branchRevision);
         this.base = currentRoot;
         this.committed = currentRoot;
     }
@@ -134,7 +133,7 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
             branchRevision = null;
             currentRoot = null;
             committed = null;
-            KernelNodeState committed = new KernelNodeState(kernel, getValueFactory(), "/", mergedRevision);
+            KernelNodeState committed = new KernelNodeState(kernel, "/", mergedRevision);
             return committed;
         }
         catch (MicroKernelException e) {
@@ -143,10 +142,6 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
     }
 
     //------------------------------------------------------------< private >---
-
-    private CoreValueFactory getValueFactory() {
-        return store.getValueFactory();
-    }
 
     private NodeState getNode(String path) {
         NodeState node = getRoot();
@@ -163,7 +158,7 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
     private void commit(String jsop) {
         MicroKernel kernel = store.getKernel();
         branchRevision = kernel.commit("/", jsop, branchRevision, null);
-        currentRoot = new KernelNodeState(kernel, getValueFactory(), "/", branchRevision);
+        currentRoot = new KernelNodeState(kernel, "/", branchRevision);
         committed = currentRoot;
     }
 
