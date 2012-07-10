@@ -179,12 +179,16 @@ public class SessionDelegate {
     }
 
     public boolean hasPendingChanges() {
-        return root.hasPendingChanges();
+        synchronized (root) {
+            return root.hasPendingChanges();
+        }
     }
 
     public void save() throws RepositoryException {
         try {
-            root.commit(conflictHandler);
+            synchronized (root) {
+                root.commit(conflictHandler);
+            }
         }
         catch (CommitFailedException e) {
             e.throwRepositoryException();
@@ -192,11 +196,13 @@ public class SessionDelegate {
     }
 
     public void refresh(boolean keepChanges) {
-        if (keepChanges) {
-            root.rebase(conflictHandler);
-        }
-        else {
-            root.refresh();
+        synchronized (root) {
+            if (keepChanges) {
+                root.rebase(conflictHandler);
+            }
+            else {
+                root.refresh();
+            }
         }
     }
 
@@ -267,7 +273,9 @@ public class SessionDelegate {
 
     @Nonnull
     public ChangeExtractor getChangeExtractor() {
-        return root.getChangeExtractor();
+        synchronized (root) {
+            return root.getChangeExtractor();
+        }
     }
 
     //----------------------------------------------------------< Workspace >---
@@ -318,37 +326,39 @@ public class SessionDelegate {
     public void move(String srcAbsPath, String destAbsPath, boolean transientOp)
             throws RepositoryException {
 
-        String srcPath = PathUtils.relativize("/", srcAbsPath);
-        String destPath = PathUtils.relativize("/", destAbsPath);
-        Root moveRoot = transientOp ? root : contentSession.getCurrentRoot();
+        synchronized (root) {
+            String srcPath = PathUtils.relativize("/", srcAbsPath);
+            String destPath = PathUtils.relativize("/", destAbsPath);
+            Root moveRoot = transientOp ? root : contentSession.getCurrentRoot();
 
-        // check destination
-        Tree dest = moveRoot.getTree(destPath);
-        if (dest != null) {
-            throw new ItemExistsException(destAbsPath);
-        }
-
-        // check parent of destination
-        String destParentPath = PathUtils.getParentPath(destPath);
-        Tree destParent = moveRoot.getTree(destParentPath);
-        if (destParent == null) {
-            throw new PathNotFoundException(PathUtils.getParentPath(destAbsPath));
-        }
-
-        // check source exists
-        Tree src = moveRoot.getTree(srcPath);
-        if (src == null) {
-            throw new PathNotFoundException(srcAbsPath);
-        }
-
-        try {
-            moveRoot.move(srcPath, destPath);
-            if (!transientOp) {
-                moveRoot.commit(DefaultConflictHandler.OURS);
+            // check destination
+            Tree dest = moveRoot.getTree(destPath);
+            if (dest != null) {
+                throw new ItemExistsException(destAbsPath);
             }
-        }
-        catch (CommitFailedException e) {
-            e.throwRepositoryException();
+
+            // check parent of destination
+            String destParentPath = PathUtils.getParentPath(destPath);
+            Tree destParent = moveRoot.getTree(destParentPath);
+            if (destParent == null) {
+                throw new PathNotFoundException(PathUtils.getParentPath(destAbsPath));
+            }
+
+            // check source exists
+            Tree src = moveRoot.getTree(srcPath);
+            if (src == null) {
+                throw new PathNotFoundException(srcAbsPath);
+            }
+
+            try {
+                moveRoot.move(srcPath, destPath);
+                if (!transientOp) {
+                    moveRoot.commit(DefaultConflictHandler.OURS);
+                }
+            }
+            catch (CommitFailedException e) {
+                e.throwRepositoryException();
+            }
         }
     }
 
@@ -394,7 +404,9 @@ public class SessionDelegate {
 
     @CheckForNull
     Tree getTree(String path) {
-        return root.getTree(path);
+        synchronized (root) {
+            return root.getTree(path);
+        }
     }
 
     @CheckForNull

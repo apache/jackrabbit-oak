@@ -16,18 +16,19 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Tree.Status;
-import org.apache.jackrabbit.oak.commons.PathUtils;
+import java.util.List;
 
 import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.Value;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.PropertyDefinition;
-import java.util.List;
+
+import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Tree.Status;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 
 /**
  * {@code PropertyDelegate} serve as internal representations of {@code Property}s.
@@ -251,7 +252,7 @@ public class PropertyDelegate extends ItemDelegate {
     //------------------------------------------------------------< private >---
 
     @Nonnull
-    private PropertyState getPropertyState() throws InvalidItemStateException {
+    private synchronized PropertyState getPropertyState() throws InvalidItemStateException {
         resolve();
         if (parent == null) {
             throw new InvalidItemStateException("Property is stale");
@@ -261,7 +262,7 @@ public class PropertyDelegate extends ItemDelegate {
     }
 
     @Nonnull
-    private Tree getParentTree() throws InvalidItemStateException {
+    private synchronized Tree getParentTree() throws InvalidItemStateException {
         resolve();
         if (parent == null) {
             throw new InvalidItemStateException("Property is stale");

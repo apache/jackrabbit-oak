@@ -59,8 +59,7 @@ public class ObservationManagerImpl implements ObservationManager {
         if (processor == null) {
             ChangeExtractor extractor = sessionDelegate.getChangeExtractor();
             ChangeFilter filter = new ChangeFilter(eventTypes, absPath, isDeep, uuid, nodeTypeName, noLocal);
-            ChangeProcessor changeProcessor = new ChangeProcessor(sessionDelegate.getNamePathMapper(), extractor,
-                    listener, filter);
+            ChangeProcessor changeProcessor = new ChangeProcessor(sessionDelegate, extractor, listener, filter);
             processors.put(listener, changeProcessor);
             timer.get().schedule(changeProcessor, 0, 1000);
         }
