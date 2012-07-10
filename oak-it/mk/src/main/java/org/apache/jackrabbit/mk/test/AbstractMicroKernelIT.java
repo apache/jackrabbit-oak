@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.mk.test;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
@@ -29,7 +30,6 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.ComparisonFailure;
 import org.junit.runners.Parameterized.Parameters;
 
 import static org.junit.Assert.assertEquals;
@@ -128,6 +128,13 @@ public abstract class AbstractMicroKernelIT {
     @After
     public void tearDown() {
         fixture.tearDownCluster(mks);
+
+        // Clear fields to avoid consuming memory after the test has run.
+        // It looks like JUnit keeps references to all test instances until
+        // the entire test suite has been run.
+        Arrays.fill(mks, null);
+        mk = null;
+        parser = null;
     }
 
     //--------------------------------< utility methods for parsing json data >
