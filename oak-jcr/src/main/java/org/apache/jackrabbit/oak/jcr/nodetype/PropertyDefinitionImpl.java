@@ -16,19 +16,25 @@
  */
 package org.apache.jackrabbit.oak.jcr.nodetype;
 
+import java.util.List;
+
 import javax.jcr.Value;
+import javax.jcr.ValueFormatException;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.PropertyDefinition;
 
-import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.jcr.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class PropertyDefinitionImpl extends ItemDefinitionImpl implements PropertyDefinition {
 
     private final PropertyDefinitionDelegate dlg;
 
     private final ValueFactoryImpl vfac;
+
+    private static final Logger log = LoggerFactory.getLogger(PropertyDefinitionImpl.class);
 
     public PropertyDefinitionImpl(NodeType type, NameMapper mapper, ValueFactoryImpl vfac, PropertyDefinitionDelegate delegate) {
         super(type, mapper, delegate);
@@ -48,10 +54,15 @@ class PropertyDefinitionImpl extends ItemDefinitionImpl implements PropertyDefin
 
     @Override
     public Value[] getDefaultValues() {
-        CoreValue[] defaults = dlg.getDefaultCoreValues();
-        Value[] result = new Value[defaults.length];
-        for (int i = 0; i < defaults.length; i++) {
-            result[i] = vfac.createValue(defaults[i]);
+        List<String> defaults = dlg.getDefaultValues();
+        Value[] result = new Value[defaults.size()];
+        for (int i = 0; i < defaults.size(); i++) {
+            try {
+                result[i] = vfac.createValue(defaults.get(i), dlg.getRequiredType());
+            } catch (ValueFormatException e) {
+                log.error("Converting value " + defaults.get(i), e);
+                return null;
+            }
         }
         return result;
     }
