@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
+import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
@@ -42,8 +43,10 @@ import static org.junit.Assert.assertEquals;
  */
 public class CoreValueFactoryTest {
 
+    private final MicroKernel kernel = new MicroKernelImpl();
+
     private final CoreValueFactory valueFactory =
-            new CoreValueFactoryImpl(new MicroKernelImpl());
+            new CoreValueFactoryImpl(kernel);
 
     private Map<CoreValue, String> singleValueMap;
 
@@ -151,7 +154,7 @@ public class CoreValueFactoryTest {
         for (CoreValue v : singleValueMap.keySet()) {
             String json = singleValueMap.get(v);
             JsopReader reader = new JsopTokenizer(json);
-            assertEquals(v, CoreValueMapper.fromJsopReader(reader, valueFactory));
+            assertEquals(v, CoreValueMapper.fromJsopReader(reader, kernel));
         }
     }
 
@@ -169,7 +172,7 @@ public class CoreValueFactoryTest {
             List<CoreValue> values = mvValueMap.get(json);
             JsopReader reader = new JsopTokenizer(json);
             if (reader.matches('[')) {
-                assertEquals(values, CoreValueMapper.listFromJsopReader(reader, valueFactory));
+                assertEquals(values, CoreValueMapper.listFromJsopReader(reader, kernel));
             }
         }
     }

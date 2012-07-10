@@ -51,11 +51,6 @@ public class KernelNodeStore extends MemoryNodeStore {
     private volatile Observer observer = EmptyObserver.INSTANCE;
 
     /**
-     * Value factory backed by the {@link #kernel} instance.
-     */
-    private final CoreValueFactory valueFactory;
-
-    /**
      * State of the current root node.
      */
     private KernelNodeState root;
@@ -63,9 +58,7 @@ public class KernelNodeStore extends MemoryNodeStore {
     public KernelNodeStore(MicroKernel kernel) {
         assert kernel != null;
         this.kernel = kernel;
-        this.valueFactory = new CoreValueFactoryImpl(kernel);
-        this.root = new KernelNodeState(
-                kernel, valueFactory, "/", kernel.getHeadRevision());
+        this.root = new KernelNodeState(kernel, "/", kernel.getHeadRevision());
     }
 
     public CommitEditor getEditor() {
@@ -93,8 +86,7 @@ public class KernelNodeStore extends MemoryNodeStore {
         String revision = kernel.getHeadRevision();
         if (!revision.equals(root.getRevision())) {
             NodeState before = root;
-            root = new KernelNodeState(
-                    kernel, valueFactory, "/", kernel.getHeadRevision());
+            root = new KernelNodeState(kernel, "/", kernel.getHeadRevision());
             observer.contentChanged(this, before, root);
         }
         return root;
@@ -107,7 +99,7 @@ public class KernelNodeStore extends MemoryNodeStore {
 
     @Override
     public CoreValueFactory getValueFactory() {
-        return valueFactory;
+        return new CoreValueFactoryImpl(kernel);
     }
 
     //------------------------------------------------------------< internal >---
