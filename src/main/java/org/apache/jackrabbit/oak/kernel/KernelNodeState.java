@@ -22,7 +22,6 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
@@ -52,7 +51,6 @@ final class KernelNodeState extends AbstractNodeState {
     static final int MAX_CHILD_NODE_NAMES = 1000;
 
     private final MicroKernel kernel;
-    private final CoreValueFactory valueFactory;
 
     private final String path;
 
@@ -77,14 +75,12 @@ final class KernelNodeState extends AbstractNodeState {
      * @param path
      * @param revision
      */
-    public KernelNodeState(MicroKernel kernel, CoreValueFactory valueFactory, String path, String revision) {
+    public KernelNodeState(MicroKernel kernel, String path, String revision) {
         assert kernel != null;
-        assert valueFactory != null;
         assert path != null;
         assert revision != null;
 
         this.kernel = kernel;
-        this.valueFactory = valueFactory;
         this.path = path;
         this.revision = revision;
     }
@@ -113,11 +109,11 @@ final class KernelNodeState extends AbstractNodeState {
                     if ("/".equals(path)) {
                         childPath = '/' + name;
                     }
-                    childNodes.put(name, new KernelNodeState(kernel, valueFactory, childPath, revision));
+                    childNodes.put(name, new KernelNodeState(kernel, childPath, revision));
                 } else if (reader.matches('[')) {
-                    properties.put(name, new PropertyStateImpl(name, CoreValueMapper.listFromJsopReader(reader, valueFactory)));
+                    properties.put(name, new PropertyStateImpl(name, CoreValueMapper.listFromJsopReader(reader, kernel)));
                 } else {
-                    CoreValue cv = CoreValueMapper.fromJsopReader(reader, valueFactory);
+                    CoreValue cv = CoreValueMapper.fromJsopReader(reader, kernel);
                     properties.put(name, new PropertyStateImpl(name, cv));
                 }
             } while (reader.matches(','));
@@ -157,7 +153,7 @@ final class KernelNodeState extends AbstractNodeState {
         if (child == null && childNodeCount > MAX_CHILD_NODE_NAMES) {
             String childPath = getChildPath(name);
             if (kernel.nodeExists(childPath, revision)) {
-                child = new KernelNodeState(kernel, valueFactory, childPath, revision);
+                child = new KernelNodeState(kernel, childPath, revision);
             }
         }
         return child;
@@ -300,8 +296,8 @@ final class KernelNodeState extends AbstractNodeState {
                 if (reader.matches('{')) {
                     reader.read('}');
                     String childPath = getChildPath(name);
-                    NodeState child = new KernelNodeState(
-                            kernel, valueFactory, childPath, revision);
+                    NodeState child =
+                            new KernelNodeState(kernel, childPath, revision);
                     entries.add(new MemoryChildNodeEntry(name, child));
                 } else {
                     reader.read();
