@@ -55,7 +55,6 @@ import org.apache.jackrabbit.oak.jcr.observation.ObservationManagerImpl;
 import org.apache.jackrabbit.oak.jcr.util.LazyValue;
 import org.apache.jackrabbit.oak.jcr.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.namepath.AbstractNameMapper;
-import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.value.AnnotatingConflictHandler;
@@ -65,8 +64,7 @@ import org.slf4j.LoggerFactory;
 public class SessionDelegate {
     static final Logger log = LoggerFactory.getLogger(SessionDelegate.class);
 
-    private final NameMapper nameMapper = new SessionNameMapper();
-    private final NamePathMapper namePathMapper = new NamePathMapperImpl(nameMapper);
+    private final NamePathMapper namePathMapper = new NamePathMapperImpl(new SessionNameMapper());
     private final Repository repository;
     private final LazyValue<Timer> observationTimer;
     private final ContentSession contentSession;
