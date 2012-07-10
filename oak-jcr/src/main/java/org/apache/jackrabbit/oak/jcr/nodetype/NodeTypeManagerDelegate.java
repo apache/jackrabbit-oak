@@ -21,11 +21,11 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.jcr.NamespaceRegistry;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.commons.cnd.CompactNodeTypeDefReader;
@@ -34,20 +34,27 @@ import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory.AbstractNodeDe
 import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory.AbstractNodeTypeDefinitionBuilder;
 import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory.AbstractPropertyDefinitionBuilder;
 import org.apache.jackrabbit.commons.cnd.ParseException;
-import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
-import org.apache.jackrabbit.oak.plugins.name.NamespaceRegistryImpl;
 
 public class NodeTypeManagerDelegate {
 
     private final CoreValueFactory cvf;
-    private final NamespaceRegistry nsregistry;
     private final List<NodeTypeDelegate> typeDelegates;
 
-    public NodeTypeManagerDelegate(ContentSession session, CoreValueFactory cvf) throws RepositoryException {
+    private static final Map<String, String> nsdefaults;
+    static {
+        Map<String, String> tmp = new HashMap<String,String>();
+        tmp.put("rep", "internal"); // TODO: https://issues.apache.org/jira/browse/OAK-74
+        tmp.put("jcr", "http://www.jcp.org/jcr/1.0");
+        tmp.put("nt",  "http://www.jcp.org/jcr/nt/1.0");
+        tmp.put("mix", "http://www.jcp.org/jcr/mix/1.0");
+        tmp.put("xml", "http://www.w3.org/XML/1998/namespace");
+        nsdefaults = Collections.unmodifiableMap(tmp);
+    }
+
+    public NodeTypeManagerDelegate(CoreValueFactory cvf) throws RepositoryException {
         this.cvf = cvf;
-        this.nsregistry = new NamespaceRegistryImpl(session);
 
         try {
             InputStream stream = NodeTypeManagerImpl.class.getResourceAsStream("builtin_nodetypes.cnd");
@@ -88,6 +95,15 @@ public class NodeTypeManagerDelegate {
 
         @Override
         public void setNamespace(String prefix, String uri) throws RepositoryException {
+
+            String t = nsdefaults.get(prefix);
+            if (t == null) {
+                throw new RepositoryException("Unsupported namespace prefix for initial CND load: " + prefix);
+            }
+            else if (!t.equals(uri)) {
+                throw new RepositoryException("Can't remap namespace prefix for initial CND laod: " + prefix);
+            }
+
             nsmap.put(prefix, uri);
         }
 
@@ -97,26 +113,7 @@ public class NodeTypeManagerDelegate {
         }
 
         public String convertNameToOak(String cndName) throws RepositoryException {
-            if (cndName == null) {
-                return null;
-            } else {
-                int pos = cndName.indexOf(":");
-                if (pos < 0) {
-                    // no colon
-                    return cndName;
-                } else {
-                    String pref = cndName.substring(0, pos);
-                    String name = cndName.substring(pos + 1);
-                    String ns = nsmap.get(pref);
-
-                    if (ns == null) {
-                        throw new RepositoryException("no namespace defined for prefix " + pref);
-                    } else {
-                        String oakprefix = nsregistry.getPrefix(ns);
-                        return oakprefix + ":" + name;
-                    }
-                }
-            }
+            return cndName; // is assumed to be the Oak name for now
         }
 
         public List<String> convertNamesToOak(List<String> cndNames) throws RepositoryException {

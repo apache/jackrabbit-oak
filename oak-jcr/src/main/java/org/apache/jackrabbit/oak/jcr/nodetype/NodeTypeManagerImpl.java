@@ -49,7 +49,7 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
     public NodeTypeManagerImpl(SessionDelegate sd) throws RepositoryException {
         this.vf = sd.getValueFactory();
         this.mapper = sd.getNamePathMapper();
-        this.ntmd = new NodeTypeManagerDelegate(sd.getContentSession(), sd.getValueFactory().getCoreValueFactory());
+        this.ntmd = new NodeTypeManagerDelegate(sd.getValueFactory().getCoreValueFactory());
     }
 
     private void init() {
