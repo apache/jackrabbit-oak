@@ -16,24 +16,24 @@
  */
 package org.apache.jackrabbit.oak.jcr.nodetype;
 
-import org.apache.jackrabbit.oak.api.CoreValue;
+import java.util.List;
 
 public class PropertyDefinitionDelegate extends ItemDefinitionDelegate {
 
     private final int requiredType;
     private final boolean multiple;
-    private final CoreValue[] defaultCoreValues;
+    private final List<String> defaultValues;
 
     protected PropertyDefinitionDelegate(String name, boolean autoCreated, boolean mandatory, int onParentVersion,
-            boolean isProtected, int requiredType, boolean multiple, CoreValue[] defaultCoreValues) {
+            boolean isProtected, int requiredType, boolean multiple, List<String> defaultValues) {
         super(name, autoCreated, mandatory, onParentVersion, isProtected);
         this.requiredType = requiredType;
         this.multiple = multiple;
-        this.defaultCoreValues = defaultCoreValues;
+        this.defaultValues = defaultValues;
     }
 
-    public CoreValue[] getDefaultCoreValues() {
-        return defaultCoreValues;
+    public List<String> getDefaultValues() {
+        return defaultValues;
     }
 
     public int getRequiredType() {

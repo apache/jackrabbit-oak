@@ -34,12 +34,9 @@ import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory.AbstractNodeDe
 import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory.AbstractNodeTypeDefinitionBuilder;
 import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory.AbstractPropertyDefinitionBuilder;
 import org.apache.jackrabbit.commons.cnd.ParseException;
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.CoreValueFactory;
 
 public class NodeTypeManagerDelegate {
 
-    private final CoreValueFactory cvf;
     private final List<NodeTypeDelegate> typeDelegates;
 
     private static final Map<String, String> nsdefaults;
@@ -53,9 +50,7 @@ public class NodeTypeManagerDelegate {
         nsdefaults = Collections.unmodifiableMap(tmp);
     }
 
-    public NodeTypeManagerDelegate(CoreValueFactory cvf) throws RepositoryException {
-        this.cvf = cvf;
-
+    public NodeTypeManagerDelegate() throws RepositoryException {
         try {
             InputStream stream = NodeTypeManagerImpl.class.getResourceAsStream("builtin_nodetypes.cnd");
             Reader reader = new InputStreamReader(stream, "UTF-8");
@@ -245,17 +240,10 @@ public class NodeTypeManagerDelegate {
 
         public PropertyDefinitionDelegate getPropertyDefinitionDelegate() throws RepositoryException {
 
-            CoreValue[] defaultCoreValues = new CoreValue[defaultValues.size()];
-
-            for (int i = 0; i < defaultCoreValues.length; i++) {
-                // TODO: need name mapping?
-                defaultCoreValues[i] = cvf.createValue(defaultValues.get(i), requiredType);
-            }
-
             name = ndtb.convertNameToOak(name);
 
             return new PropertyDefinitionDelegate(name, autocreate, isMandatory, onParent, isProtected, requiredType, isMultiple,
-                    defaultCoreValues);
+                    defaultValues);
         }
 
         @Override
