@@ -286,6 +286,12 @@ public interface MicroKernel {
      * greater than zero and a {@code filter} on node names (see below) have been
      * specified.
      * <p/>
+     * The order of the child nodes is stable for any given {@code revisionId},
+     * i.e. calling {@link #getNodes} repeatedly with the same {@code revisionId}
+     * is guaranteed to return the child nodes in the same order, but the
+     * specific order used is implementation-dependent and may change across
+     * different revisions of the same node.
+     * <p/>
      * The optional {@code filter} parameter allows to specify glob patterns for names of
      * nodes and/or properties to be included or excluded.
      * <p/>
