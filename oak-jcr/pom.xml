@@ -84,7 +84,6 @@ org.apache.jackrabbit.test.api.query.SaveTest#testConstraintViolationException
 org.apache.jackrabbit.test.api.query.SimpleSelectionTest#testSingleProperty
 org.apache.jackrabbit.test.api.query.qom.ColumnTest#testExpandColumnsForNodeType
 org.apache.jackrabbit.test.api.query.qom.SelectorTest#testUnknownNodeType
-org.apache.jackrabbit.test.api.query.SQLPathTest#testChildAxisRoot <!-- JCR-3376 -->
 org.apache.jackrabbit.test.api.util
 org.apache.jackrabbit.test.api.observation.EventTest#testGetUserId
 org.apache.jackrabbit.test.api.observation.NodeMovedTest#testMoveNode
