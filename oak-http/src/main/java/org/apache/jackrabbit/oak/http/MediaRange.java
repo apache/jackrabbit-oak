@@ -76,12 +76,7 @@ public class MediaRange {
                 && type.getType().equals(this.type.getType())) {
             return q;
         } else {
-            MediaType superType = registry.getSupertype(type);
-            if (superType != null) {
-                return match(superType, registry);
-            } else {
-                return 0.0;
-            }
+            return 0.0;
         }
     }
 

@@ -16,42 +16,45 @@
  */
 package org.apache.jackrabbit.oak.http;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
 import javax.jcr.GuestCredentials;
 import javax.jcr.NoSuchWorkspaceException;
-import javax.jcr.PropertyType;
 import javax.security.auth.login.LoginException;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.smile.SmileFactory;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryValueFactory;
+import org.apache.tika.mime.MediaType;
+
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.smile.SmileFactory;
 
 public class OakServlet extends HttpServlet {
 
-    private static final JsonFactory JSON_FACTORY = new JsonFactory();
+    private static final MediaType JSON =
+            MediaType.parse("application/json");
 
-    private static final JsonFactory SMILE_FACTORY = new SmileFactory();
+    private static final MediaType SMILE =
+            MediaType.parse("application/x-jackson-smile");
+
+    private static final Representation[] REPRESENTATIONS = {
+        new JsonRepresentation(JSON, new JsonFactory()),
+        new JsonRepresentation(SMILE, new SmileFactory()),
+        new TextRepresentation() };
 
     private final ContentRepository repository;
 
@@ -85,8 +88,11 @@ public class OakServlet extends HttpServlet {
     protected void doGet(
             HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        AcceptHeader accept = new AcceptHeader(request.getHeader("Accept"));
+        Representation representation = accept.resolve(REPRESENTATIONS);
+
         Tree tree = (Tree) request.getAttribute("tree");
-        render(tree, getDepth(request), getRenderer(request, response));
+        representation.render(tree, response);
     }
 
     @Override
@@ -169,97 +175,6 @@ public class OakServlet extends HttpServlet {
             }
         } catch (CommitFailedException e) {
             throw new ServletException(e);
-        }
-    }
-
-    private static int getDepth(HttpServletRequest request) {
-        String d = request.getParameter("depth");
-        if (d == null) {
-            d = request.getParameter("d");
-        }
-        if (d != null) {
-            try {
-                return Integer.parseInt(d);
-            } catch (NumberFormatException e) {
-                // ignore
-            }
-        }
-        return 1;
-    }
-
-    private static JsonGenerator getRenderer(
-            HttpServletRequest request, HttpServletResponse response)
-            throws IOException {
-        AcceptHeader accept = new AcceptHeader(request.getHeader("Accept"));
-        String type = accept.resolve(
-                "application/json",
-                "application/x-jackson-smile");
-        if ("application/x-jackson-smile".equals(type)) {
-            response.setContentType("application/x-jackson-smile");
-            return SMILE_FACTORY.createJsonGenerator(response.getOutputStream());
-        } else {
-            response.setContentType("application/json");
-            return JSON_FACTORY.createJsonGenerator(response.getOutputStream());
-        }
-    }
-
-    private static void render(Tree tree, int depth, JsonGenerator generator)
-            throws IOException {
-        generator.writeStartObject();
-        if (depth > 0) {
-            for (PropertyState property : tree.getProperties()) {
-                render(property, generator);
-            }
-            for (Tree child : tree.getChildren()) {
-                generator.writeFieldName(child.getName());
-                render(child, depth - 1, generator);
-            }
-        }
-        generator.writeEndObject();
-        generator.close();
-    }
-
-    private static void render(PropertyState property, JsonGenerator generator)
-            throws IOException {
-        generator.writeFieldName(property.getName());
-        if (property.isArray()) {
-            generator.writeStartArray();
-            for (CoreValue value : property.getValues()) {
-                render(value, generator);
-            }
-            generator.writeEndArray();
-        } else {
-            render(property.getValue(), generator);
-        }
-    }
-
-    private static void render(CoreValue value, JsonGenerator generator)
-            throws IOException {
-        // TODO: Type info?
-        if (value.getType() == PropertyType.BOOLEAN) {
-            generator.writeBoolean(value.getBoolean());
-        } else if (value.getType() == PropertyType.DECIMAL) {
-            generator.writeNumber(value.getDecimal());
-        } else if (value.getType() == PropertyType.DOUBLE) {
-            generator.writeNumber(value.getDouble());
-        } else if (value.getType() == PropertyType.LONG) {
-            generator.writeNumber(value.getLong());
-        } else if (value.getType() == PropertyType.BINARY) {
-            ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-            InputStream stream = value.getNewStream();
-            try {
-                byte[] b = new byte[1024];
-                int n = stream.read(b);
-                while (n != -1) {
-                    buffer.write(b, 0, n);
-                    n = stream.read(b);
-                }
-            } finally {
-                stream.close();
-            }
-            generator.writeBinary(buffer.toByteArray());
-        } else {
-            generator.writeString(value.getString());
         }
     }
 
