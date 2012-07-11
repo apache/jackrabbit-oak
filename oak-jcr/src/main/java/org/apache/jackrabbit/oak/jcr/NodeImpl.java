@@ -1093,6 +1093,9 @@ public class NodeImpl extends ItemImpl implements Node {
             CoreValueFactory factory = session.getCoreValueFactory();
             Root root = session.getCurrentRoot();
             Tree tree = root.getTree(dlg.getPath());
+            if (tree == null) {
+                throw new ItemNotFoundException();
+            }
             tree.setProperty(lockOwner, factory.createValue(userID));
             tree.setProperty(lockIsDeep, factory.createValue(isDeep));
             root.commit(DefaultConflictHandler.OURS); // TODO: fail instead?
@@ -1114,6 +1117,9 @@ public class NodeImpl extends ItemImpl implements Node {
         try {
             Root root = sessionDelegate.getContentSession().getCurrentRoot();
             Tree tree = root.getTree(dlg.getPath());
+            if (tree == null) {
+                throw new ItemNotFoundException();
+            }
             tree.removeProperty(lockOwner);
             tree.removeProperty(lockIsDeep);
             root.commit(DefaultConflictHandler.OURS);
