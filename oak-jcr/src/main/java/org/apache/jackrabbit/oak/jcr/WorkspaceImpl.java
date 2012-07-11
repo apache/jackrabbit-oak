@@ -34,6 +34,7 @@ import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.lock.LockManagerImpl;
+import org.apache.jackrabbit.oak.jcr.nodetype.NodeTypeManagerDelegate;
 import org.apache.jackrabbit.oak.jcr.nodetype.NodeTypeManagerImpl;
 import org.apache.jackrabbit.oak.jcr.query.QueryManagerImpl;
 import org.apache.jackrabbit.oak.jcr.security.privilege.PrivilegeManagerImpl;
@@ -62,7 +63,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     public WorkspaceImpl(SessionDelegate sessionDelegate)
             throws RepositoryException {
         this.sessionDelegate = sessionDelegate;
-        this.nodeTypeManager = new NodeTypeManagerImpl(sessionDelegate);
+        this.nodeTypeManager = new NodeTypeManagerImpl(sessionDelegate, sessionDelegate.getNodeTypeManagerDelegate());
         this.queryManager = new QueryManagerImpl(sessionDelegate);
         this.lockManager = new LockManagerImpl(sessionDelegate.getSession());
     }

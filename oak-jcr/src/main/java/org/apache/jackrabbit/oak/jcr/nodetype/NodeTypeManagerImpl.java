@@ -46,10 +46,10 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
     private final NodeTypeManagerDelegate ntmd;
     private final Map<String, NodeType> typemap = new HashMap<String, NodeType>();
 
-    public NodeTypeManagerImpl(SessionDelegate sd) throws RepositoryException {
+    public NodeTypeManagerImpl(SessionDelegate sd, NodeTypeManagerDelegate ntmd) throws RepositoryException {
         this.vf = sd.getValueFactory();
         this.mapper = sd.getNamePathMapper();
-        this.ntmd = new NodeTypeManagerDelegate();
+        this.ntmd = ntmd;
     }
 
     private void init() {
