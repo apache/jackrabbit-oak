@@ -29,7 +29,6 @@ import org.apache.jackrabbit.commons.iterator.EventIteratorAdapter;
 import org.apache.jackrabbit.oak.api.ChangeExtractor;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.jcr.SessionDelegate;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -41,21 +40,19 @@ import static org.apache.jackrabbit.commons.iterator.LazyIteratorChain.chain;
 import static org.apache.jackrabbit.oak.util.Iterators.singleton;
 
 class ChangeProcessor extends TimerTask {
-    private final SessionDelegate sessionDelegate;
+    private final NamePathMapper namePathMapper;
     private final ChangeExtractor changeExtractor;
     private final EventListener listener;
     private final AtomicReference<ChangeFilter> filterRef;
-    private final NamePathMapper namePathMapper;
 
     private volatile boolean stopped;
 
-    public ChangeProcessor(SessionDelegate sessionDelegate, ChangeExtractor changeExtractor, EventListener listener,
+    public ChangeProcessor(NamePathMapper namePathMapper, ChangeExtractor changeExtractor, EventListener listener,
             ChangeFilter filter) {
-        this.sessionDelegate = sessionDelegate;
+        this.namePathMapper = namePathMapper;
         this.changeExtractor = changeExtractor;
         this.listener = listener;
         filterRef = new AtomicReference<ChangeFilter>(filter);
-        namePathMapper = sessionDelegate.getNamePathMapper();
     }
 
     public void setFilter(ChangeFilter filter) {
@@ -69,7 +66,6 @@ class ChangeProcessor extends TimerTask {
 
     @Override
     public void run() {
-        sessionDelegate.refresh(true);
         EventGeneratingNodeStateDiff diff = new EventGeneratingNodeStateDiff();
         changeExtractor.getChanges(diff);
         diff.sendEvents();
