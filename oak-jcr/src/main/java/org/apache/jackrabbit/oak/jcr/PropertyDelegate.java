@@ -252,7 +252,7 @@ public class PropertyDelegate extends ItemDelegate {
     //------------------------------------------------------------< private >---
 
     @Nonnull
-    private synchronized PropertyState getPropertyState() throws InvalidItemStateException {
+    private PropertyState getPropertyState() throws InvalidItemStateException {
         resolve();
         if (parent == null) {
             throw new InvalidItemStateException("Property is stale");
@@ -262,7 +262,7 @@ public class PropertyDelegate extends ItemDelegate {
     }
 
     @Nonnull
-    private synchronized Tree getParentTree() throws InvalidItemStateException {
+    private Tree getParentTree() throws InvalidItemStateException {
         resolve();
         if (parent == null) {
             throw new InvalidItemStateException("Property is stale");
