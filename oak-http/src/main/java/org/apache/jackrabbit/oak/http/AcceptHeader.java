@@ -43,23 +43,22 @@ public class AcceptHeader {
 
     }
 
-    public String resolve(String... types) {
+    public Representation resolve(Representation... representations) {
+        assert representations != null && representations.length > 0;
         int maxIndex = 0;
-        double[] qs = new double[types.length];
-        for (int i = 0; i < types.length; i++) {
-            MediaType type = registry.normalize(MediaType.parse(types[i]));
+        double maxQ = 0.0;
+        for (int i = 0; i < representations.length; i++) {
+            double q = 0.0;
+            MediaType type = registry.normalize(representations[i].getType());
             for (MediaRange range : ranges) {
-                qs[i] = Math.max(qs[i], range.match(type, registry));
+                q = Math.max(q, range.match(type, registry));
             }
-            if (qs[i] > qs[maxIndex]) {
+            if (q > maxQ) {
                 maxIndex = i;
+                maxQ = q;
             }
         }
-        if (qs[maxIndex] > 0.0) {
-            return types[maxIndex];
-        } else {
-            return MediaType.OCTET_STREAM.toString();
-        }
+        return representations[maxIndex];
     }
 
 }

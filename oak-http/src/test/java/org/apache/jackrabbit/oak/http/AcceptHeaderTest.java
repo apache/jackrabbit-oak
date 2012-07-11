@@ -22,29 +22,29 @@ import org.junit.Test;
 
 public class AcceptHeaderTest {
 
-    @Test
-    public void testRfcExample1() {
-        AcceptHeader accept = new AcceptHeader(
-                "text/plain; q=0.5, text/html, text/x-dvi; q=0.8, text/x-c");
-
-        assertEquals("text/plain", accept.resolve("text/plain"));
-        assertEquals("text/html", accept.resolve("text/html"));
-        assertEquals("text/x-dvi", accept.resolve("text/x-dvi"));
-        assertEquals("text/x-c", accept.resolve("text/x-c"));
-
-        assertEquals(
-                "application/octet-stream",
-                accept.resolve("application/octet-stream"));
-        assertEquals(
-                "application/octet-stream",
-                accept.resolve("application/pdf"));
-
-        assertEquals("text/html", accept.resolve("text/plain", "text/html"));
-        assertEquals("text/x-c", accept.resolve("text/x-dvi", "text/x-c"));
-        assertEquals("text/x-dvi", accept.resolve("text/x-dvi", "text/plain"));
-
-        assertEquals("text/html", accept.resolve("text/html", "text/x-c"));
-        assertEquals("text/x-c", accept.resolve("text/x-c", "text/html"));
-    }
+//    @Test
+//    public void testRfcExample1() {
+//        AcceptHeader accept = new AcceptHeader(
+//                "text/plain; q=0.5, text/html, text/x-dvi; q=0.8, text/x-c");
+//
+//        assertEquals("text/plain", accept.resolve("text/plain"));
+//        assertEquals("text/html", accept.resolve("text/html"));
+//        assertEquals("text/x-dvi", accept.resolve("text/x-dvi"));
+//        assertEquals("text/x-c", accept.resolve("text/x-c"));
+//
+//        assertEquals(
+//                "application/octet-stream",
+//                accept.resolve("application/octet-stream"));
+//        assertEquals(
+//                "application/octet-stream",
+//                accept.resolve("application/pdf"));
+//
+//        assertEquals("text/html", accept.resolve("text/plain", "text/html"));
+//        assertEquals("text/x-c", accept.resolve("text/x-dvi", "text/x-c"));
+//        assertEquals("text/x-dvi", accept.resolve("text/x-dvi", "text/plain"));
+//
+//        assertEquals("text/html", accept.resolve("text/html", "text/x-c"));
+//        assertEquals("text/x-c", accept.resolve("text/x-c", "text/html"));
+//    }
 
 }
