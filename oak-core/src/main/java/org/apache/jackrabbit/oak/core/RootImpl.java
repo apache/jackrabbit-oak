@@ -237,7 +237,7 @@ public class RootImpl implements Root {
         return store.getBuilder(branch.getRoot());
     }
 
-    // TODO better way to determine purge limit
+    // TODO better way to determine purge limit. See OAK-175
     void purge() {
         if (++modCount > PURGE_LIMIT) {
             modCount = 0;
