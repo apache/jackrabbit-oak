@@ -54,6 +54,7 @@ public class OakServlet extends HttpServlet {
     private static final Representation[] REPRESENTATIONS = {
         new JsonRepresentation(JSON, new JsonFactory()),
         new JsonRepresentation(SMILE, new SmileFactory()),
+        new PostRepresentation(),
         new TextRepresentation() };
 
     private final ContentRepository repository;
