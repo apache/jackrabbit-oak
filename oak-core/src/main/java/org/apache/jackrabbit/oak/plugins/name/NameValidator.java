@@ -16,15 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.name;
 
+import java.util.Set;
+
+import javax.jcr.PropertyType;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-
-import java.util.Set;
-
-import javax.jcr.PropertyType;
 
 class NameValidator implements Validator {
 
@@ -38,7 +38,7 @@ class NameValidator implements Validator {
         int colon = name.indexOf(':');
         if (colon != -1) {
             String prefix = name.substring(0, colon);
-            if (prefix.length() == 0 || !prefixes.contains(prefix)) {
+            if (prefix.isEmpty() || !prefixes.contains(prefix)) {
                 throw new CommitFailedException(
                         "Invalid namespace prefix: " + name);
             }
