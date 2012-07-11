@@ -68,7 +68,6 @@ public class ValidatingEditor implements CommitEditor {
          * Validates the given subtree by diffing and recursing through it.
          *
          * @param validator validator for the root of the subtree
-         * @param store store to where the subtree lives
          * @param before state of the original subtree
          * @param after state of the modified subtree
          * @throws CommitFailedException if validation failed

@@ -16,15 +16,16 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user;
 
-import org.apache.jackrabbit.util.Text;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nullable;
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+
+import javax.annotation.Nullable;
+
+import org.apache.jackrabbit.util.Text;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Utility to generate and compare password hashes.
@@ -156,7 +157,7 @@ public class PasswordUtility {
 
     private static String generateSalt(int saltSize) {
         SecureRandom random = new SecureRandom();
-        byte salt[] = new byte[saltSize];
+        byte[] salt = new byte[saltSize];
         random.nextBytes(salt);
 
         StringBuilder res = new StringBuilder(salt.length * 2);

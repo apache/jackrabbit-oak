@@ -146,7 +146,7 @@ public class CoreValueMapper {
      * {@link CoreValue}s. This method takes type-hint prefixes into account.
      *
      * @param reader The JSON reader.
-     * @param valueFactory The factory used to create the values.
+     * @param kernel The Microkernel instance from which the values originate
      * @return A list of values such as defined by the reader.
      */
     public static List<CoreValue> listFromJsopReader(JsopReader reader, MicroKernel kernel) {

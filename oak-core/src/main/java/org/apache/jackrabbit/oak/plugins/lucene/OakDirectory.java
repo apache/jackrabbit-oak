@@ -52,8 +52,8 @@ class OakDirectory extends Directory {
         this.rootBuilder = store.getBuilder(root);
 
         NodeStateBuilder builder = rootBuilder;
-        for (int i = 0; i < path.length; i++) {
-            builder = builder.getChildBuilder(path[i]);
+        for (String name : path) {
+            builder = builder.getChildBuilder(name);
         }
         this.directoryBuilder = builder;
         this.directory = null;
@@ -144,7 +144,7 @@ class OakDirectory extends Directory {
 
             private final byte[] data = readFile(name);
 
-            private int position = 0;
+            private int position;
 
             @Override
             public void readBytes(byte[] b, int offset, int len)
@@ -186,7 +186,7 @@ class OakDirectory extends Directory {
             }
 
             @Override
-            public void close() throws IOException {
+            public void close() {
                 // do nothing
             }
 
@@ -250,7 +250,7 @@ class OakDirectory extends Directory {
         }
 
         @Override
-        public long length() throws IOException {
+        public long length() {
             return size;
         }
 
