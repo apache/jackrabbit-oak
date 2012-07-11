@@ -18,6 +18,15 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
@@ -30,14 +39,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.util.Iterators;
 import org.apache.jackrabbit.oak.util.PagedIterator;
-
-import javax.annotation.Nonnull;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 
 /**
  * Basic {@link NodeState} implementation based on the {@link MicroKernel}
@@ -60,7 +61,7 @@ final class KernelNodeState extends AbstractNodeState {
 
     private long childNodeCount = -1;
 
-    private String hash = null;
+    private String hash;
 
     // TODO: WeakReference?
     private Map<String, NodeState> childNodes;
@@ -71,7 +72,6 @@ final class KernelNodeState extends AbstractNodeState {
      * underlying Microkernel does not contain such a node.
      *
      * @param kernel
-     * @param valueFactory
      * @param path
      * @param revision
      */

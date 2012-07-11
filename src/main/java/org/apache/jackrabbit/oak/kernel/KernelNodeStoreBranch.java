@@ -168,7 +168,7 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
         return jsop.toString();
     }
 
-    private void diffToJsop(NodeState before, NodeState after, final String path,
+    private static void diffToJsop(NodeState before, NodeState after, final String path,
             final StringBuilder jsop) {
         after.compareAgainstBaseState(before, new NodeStateDiff() {
             @Override
