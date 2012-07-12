@@ -75,9 +75,6 @@ public class FullTextSearchImpl extends ConstraintImpl {
     }
 
     private boolean evaluateContains(PropertyState p) {
-        if (!p.isArray()) {
-            return evaluateContains(p.getValue());
-        }
         for (CoreValue v : p.getValues()) {
             if (evaluateContains(v)) {
                 return true;

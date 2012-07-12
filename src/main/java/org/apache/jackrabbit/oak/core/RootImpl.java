@@ -28,7 +28,6 @@ import org.apache.jackrabbit.oak.api.ChangeExtractor;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ConflictHandler;
 import org.apache.jackrabbit.oak.api.ConflictHandler.Resolution;
-import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -46,7 +45,6 @@ import static org.apache.jackrabbit.oak.api.ConflictHandler.Resolution.OURS;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
-import static org.apache.jackrabbit.oak.util.Iterators.toList;
 
 public class RootImpl implements Root {
     static final Logger log = LoggerFactory.getLogger(RootImpl.class);
@@ -426,10 +424,8 @@ public class RootImpl implements Root {
 
             private void setProperty(Tree target, PropertyState property) {
                 if (property.isArray()) {
-                    target.setProperty(property.getName(),
-                            toList(property.getValues(), new ArrayList<CoreValue>()));
-                }
-                else {
+                    target.setProperty(property.getName(), property.getValues());
+                } else {
                     target.setProperty(property.getName(), property.getValue());
                 }
             }

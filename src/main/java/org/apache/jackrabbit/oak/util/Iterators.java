@@ -243,19 +243,4 @@ public final class Iterators {
         };
     }
 
-    /**
-     * Spools the values of an iterator into a list.
-     * @param values  the values to spool
-     * @param list  the target list to receive the values
-     * @param <T>
-     * @return  {@code list}
-     */
-    @Nonnull
-    public static <T> List<T> toList(Iterable<? extends T> values, List<T> list) {
-        for (T value : values) {
-            list.add(value);
-        }
-        return list;
-    }
-
 }

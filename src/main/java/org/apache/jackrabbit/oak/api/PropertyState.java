@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.api;
 
+import java.util.List;
+
 import javax.annotation.Nonnull;
 
 /**
@@ -54,11 +56,14 @@ public interface PropertyState {
     CoreValue getValue();
 
     /**
-     * Values of this property.
-     * @return  an iterable of the values of this multi valued property.
-     * @throws IllegalStateException  if {@code isArray()} is {@code false}.
+     * Values of this property. The returned list is immutable and contains
+     * all the values of this property. If this is a single-valued property,
+     * then the returned list will simply contain the single value returned
+     * by the {@link #getValue()} method.
+     *
+     * @return immutable list of the values of this property
      */
     @Nonnull
-    Iterable<CoreValue> getValues();
+    List<CoreValue> getValues();
 
 }
