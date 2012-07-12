@@ -31,11 +31,6 @@ import static org.junit.Assert.fail;
  */
 public class CompatibilityIssuesTest extends AbstractRepositoryTest {
 
-    @After
-    public void tearDown() throws RepositoryException {
-        logout();
-    }
-
     /**
      * Trans-session isolation differs from Jackrabbit 2. Snapshot isolation can
      * result in write skew as this test demonstrates: the check method enforces

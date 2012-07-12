@@ -16,13 +16,21 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
 
+import org.apache.commons.collections.Predicate;
+import org.apache.commons.collections.iterators.FilterIterator;
+import org.apache.commons.collections.iterators.IteratorChain;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -162,12 +170,71 @@ public class NodeDelegate extends ItemDelegate {
     }
 
     /**
-     * Get child nodes
+     * Returns an iterator for traversing all the children of this node.
+     * If the node is orderable (there is an "<code>oak:childOrder</code>"
+     * property) then the iterator will return child nodes in the specified
+     * order. Otherwise the ordering of the iterator is undefined.
+     *
      * @return  child nodes of the node
      */
+    @SuppressWarnings("unchecked")
     @Nonnull
     public Iterator<NodeDelegate> getChildren() throws InvalidItemStateException {
-        return nodeDelegateIterator(getTree().getChildren().iterator());
+        Tree tree = getTree();
+        long count = tree.getChildrenCount();
+        if (count == 0) {
+            // Optimise the most common case
+            return Collections.<NodeDelegate>emptySet().iterator();
+        } else if (count == 1) {
+            // Optimise another typical case
+            Tree child = tree.getChildren().iterator().next();
+            NodeDelegate delegate = new NodeDelegate(sessionDelegate, child);
+            return Collections.singleton(delegate).iterator();
+        } else {
+            // TODO: Use a proper namespace for this property?
+            PropertyState order = tree.getProperty("childOrder");
+            if (order == null || !order.isArray()) {
+                // No specified ordering
+                return nodeDelegateIterator(tree.getChildren().iterator());
+            } else {
+                // Collect child nodes in the specified order
+                final Map<String, NodeDelegate> ordered =
+                        new LinkedHashMap<String, NodeDelegate>();
+
+                for (CoreValue value : order.getValues()) {
+                    String name = value.getString();
+                    Tree child = tree.getChild(name);
+                    if (child != null) {
+                        ordered.put(name, new NodeDelegate(sessionDelegate, child));
+                    }
+                }
+
+                if (ordered.size() == count) {
+                    // We have all the child nodes
+                    return ordered.values().iterator();
+                } else {
+                    // The specified ordering didn't cover all the children,
+                    // so return a combined iterator that first iterates
+                    // through the ordered subset and then all the remaining
+                    // children in an undefined order
+                    Predicate predicate = new Predicate() {
+                        @Override
+                        public boolean evaluate(Object object) {
+                            if (object instanceof Tree) {
+                                Tree tree = (Tree) object;
+                                return !ordered.containsKey(tree.getName());
+                            } else {
+                                return false;
+                            }
+                        }
+                    };
+                    return new IteratorChain(
+                            ordered.values().iterator(),
+                            nodeDelegateIterator(new FilterIterator(
+                                    tree.getChildren().iterator(), predicate)));
+                }
+            }
+        }
     }
 
     /**

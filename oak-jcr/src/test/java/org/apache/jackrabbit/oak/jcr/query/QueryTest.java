@@ -32,18 +32,12 @@ import javax.jcr.query.QueryResult;
 import javax.jcr.query.Row;
 import javax.jcr.query.RowIterator;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
-import org.junit.After;
 import org.junit.Test;
 
 /**
  * Tests the query feature.
  */
 public class QueryTest extends AbstractRepositoryTest {
-
-    @After
-    public void tearDown() throws RepositoryException {
-        logout();
-    }
 
     @SuppressWarnings("deprecation")
     @Test
