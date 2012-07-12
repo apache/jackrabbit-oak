@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.jcr;
 import org.junit.Test;
 
 import javax.jcr.Node;
+import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
@@ -64,4 +65,10 @@ public class CRUDTest extends AbstractRepositoryTest {
         root.setProperty("missing", (String) null);
     }
 
+    @Test
+    public void testRootPropertyPath() throws RepositoryException {
+        Property property =
+                getSession().getRootNode().getProperty("jcr:primaryType");
+        assertEquals("/jcr:primaryType", property.getPath());
+    }
 }

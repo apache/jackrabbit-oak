@@ -68,7 +68,12 @@ public class PropertyDelegate extends ItemDelegate {
 
     @Override
     public String getPath() throws InvalidItemStateException {
-        return getParent().getPath() + '/' + getName();
+        String path = getParent().getPath();
+        if (path.equals("/")) {
+            return path + getName();
+        } else {
+            return path + '/' + getName();
+        }
     }
 
     @Override
