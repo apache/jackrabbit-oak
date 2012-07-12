@@ -39,21 +39,21 @@ public class OrderableNodesTest extends AbstractRepositoryTest {
 
         NodeIterator iterator;
 
-        root.setProperty("childOrder", "abc".split(""));
+        root.orderBefore("a", "b");
         iterator = root.getNodes();
         assertEquals("a", iterator.nextNode().getName());
         assertEquals("b", iterator.nextNode().getName());
         assertEquals("c", iterator.nextNode().getName());
         assertFalse(iterator.hasNext());
 
-        root.setProperty("childOrder", "cab".split(""));
+        root.orderBefore("c", "a");
         iterator = root.getNodes();
         assertEquals("c", iterator.nextNode().getName());
         assertEquals("a", iterator.nextNode().getName());
         assertEquals("b", iterator.nextNode().getName());
         assertFalse(iterator.hasNext());
 
-        root.setProperty("childOrder", "bc".split(""));
+        root.orderBefore("b", "c");
         iterator = root.getNodes();
         assertEquals("b", iterator.nextNode().getName());
         assertEquals("c", iterator.nextNode().getName());

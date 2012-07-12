@@ -232,7 +232,14 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
     @Override
     public void orderBefore(String srcChildRelPath, String destChildRelPath) throws RepositoryException {
         checkStatus();
-        throw new UnsupportedRepositoryOperationException("TODO: ordering not supported");
+        String oakSrcChildRelPath =
+                sessionDelegate.getOakPathOrThrowNotFound(srcChildRelPath);
+        String oakDestChildRelPath = null;
+        if (destChildRelPath != null) {
+            oakDestChildRelPath =
+                    sessionDelegate.getOakPathOrThrowNotFound(destChildRelPath);
+        }
+        dlg.orderBefore(oakSrcChildRelPath, oakDestChildRelPath);
     }
 
     /**
