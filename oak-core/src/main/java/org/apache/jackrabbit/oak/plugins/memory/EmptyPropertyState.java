@@ -18,13 +18,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.PropertyState;
-
 import java.util.Collections;
 import java.util.List;
 
 import javax.annotation.Nonnull;
+
+import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.PropertyState;
 
 /**
  * Property state that contains an empty array of values. Used as a base
@@ -102,11 +102,7 @@ class EmptyPropertyState implements PropertyState {
 
     @Override
     public String toString() {
-        if (isArray()) {
-            return getName() + '=' + getValues();
-        } else {
-            return getName() + '=' + getValues();
-        }
+        return getName() + '=' + getValues();
     }
 
 }
