@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.memory;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.kernel.PropertyStateImpl;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateBuilder;
 
@@ -113,14 +112,16 @@ class MemoryNodeStateBuilder implements NodeStateBuilder {
 
     @Override
     public void setProperty(String name, CoreValue value) {
-        PropertyState property = new PropertyStateImpl(name, value);
-        properties.put(name, property);
+        properties.put(name, new SinglePropertyState(name, value));
     }
 
     @Override
     public void setProperty(String name, List<CoreValue> values) {
-        PropertyState property = new PropertyStateImpl(name, values);
-        properties.put(name, property);
+        if (values.isEmpty()) {
+            properties.put(name, new EmptyPropertyState(name));
+        } else {
+            properties.put(name, new MultiPropertyState(name, values));
+        }
     }
 
     @Override
