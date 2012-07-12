@@ -25,6 +25,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.Binary;
 import javax.jcr.InvalidItemStateException;
@@ -246,7 +247,7 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
      * @see Node#setProperty(String, javax.jcr.Value)
      */
     @Override
-    @Nonnull
+    @CheckForNull
     public Property setProperty(String name, Value value) throws RepositoryException {
         int type = PropertyType.UNDEFINED;
         if (value != null) {
@@ -259,7 +260,7 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
      * @see Node#setProperty(String, javax.jcr.Value, int)
      */
     @Override
-    @Nonnull
+    @CheckForNull
     public Property setProperty(String jcrName, Value value, int type)
             throws RepositoryException {
         checkStatus();
@@ -339,7 +340,7 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
      * @see Node#setProperty(String, String)
      */
     @Override
-    @Nonnull
+    @CheckForNull
     public Property setProperty(String name, String value) throws RepositoryException {
         Value v = (value == null) ? null : getValueFactory().createValue(value, PropertyType.STRING);
         return setProperty(name, v, PropertyType.UNDEFINED);
@@ -349,7 +350,7 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
      * @see Node#setProperty(String, String, int)
      */
     @Override
-    @Nonnull
+    @CheckForNull
     public Property setProperty(String name, String value, int type) throws RepositoryException {
         Value v = (value == null) ? null : getValueFactory().createValue(value, type);
         return setProperty(name, v, type);
@@ -360,7 +361,7 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
      */
     @SuppressWarnings("deprecation")
     @Override
-    @Nonnull
+    @CheckForNull
     public Property setProperty(String name, InputStream value) throws RepositoryException {
         Value v = (value == null ? null : getValueFactory().createValue(value));
         return setProperty(name, v, PropertyType.BINARY);
@@ -370,7 +371,7 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
      * @see Node#setProperty(String, Binary)
      */
     @Override
-    @Nonnull
+    @CheckForNull
     public Property setProperty(String name, Binary value) throws RepositoryException {
         Value v = (value == null ? null : getValueFactory().createValue(value));
         return setProperty(name, v, PropertyType.BINARY);
@@ -398,7 +399,7 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
      * @see Node#setProperty(String, BigDecimal)
      */
     @Override
-    @Nonnull
+    @CheckForNull
     public Property setProperty(String name, BigDecimal value) throws RepositoryException {
         Value v = (value == null ? null : getValueFactory().createValue(value));
         return setProperty(name, v, PropertyType.DECIMAL);
@@ -417,7 +418,7 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
      * @see Node#setProperty(String, Calendar)
      */
     @Override
-    @Nonnull
+    @CheckForNull
     public Property setProperty(String name, Calendar value) throws RepositoryException {
         Value v = (value == null ? null : getValueFactory().createValue(value));
         return setProperty(name, v, PropertyType.DATE);
@@ -427,7 +428,7 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
      * @see Node#setProperty(String, Node)
      */
     @Override
-    @Nonnull
+    @CheckForNull
     public Property setProperty(String name, Node value) throws RepositoryException {
         Value v = (value == null) ? null : getValueFactory().createValue(value);
         return setProperty(name, v, PropertyType.REFERENCE);
