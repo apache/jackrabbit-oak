@@ -68,9 +68,8 @@ public class RepositoryImpl implements Repository {
     /**
      * Utility constructor that creates a new in-memory repository for use
      * mostly in test cases.
-     * @throws RepositoryException 
      */
-    public RepositoryImpl() throws RepositoryException {
+    public RepositoryImpl() {
         this(new ContentRepositoryImpl());
     }
 
