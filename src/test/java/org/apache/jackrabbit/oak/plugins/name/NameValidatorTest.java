@@ -35,10 +35,10 @@ public class NameValidatorTest {
 
     @Test(expected = CommitFailedException.class)
     public void testParentPath() throws CommitFailedException {
-        validator.childNodeAdded(".", MemoryNodeState.EMPTY_NODE);
+        validator.childNodeAdded("..", MemoryNodeState.EMPTY_NODE);
     }
 
-    @Test(expected = CommitFailedException.class)
+    @Test // valid as of OAK-182
     public void testEmptyPrefix() throws CommitFailedException {
         validator.childNodeAdded(":name", MemoryNodeState.EMPTY_NODE);
     }

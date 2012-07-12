@@ -36,7 +36,7 @@ class NameValidator implements Validator {
 
     protected void checkValidName(String name) throws CommitFailedException {
         int colon = name.indexOf(':');
-        if (colon != -1) {
+        if (colon > 0) {
             String prefix = name.substring(0, colon);
             if (prefix.isEmpty() || !prefixes.contains(prefix)) {
                 throw new CommitFailedException(
