@@ -223,9 +223,13 @@ public class RepositoryTest extends AbstractRepositoryTest {
         root.getNode("bar").remove();  // transiently removed and...
         root.addNode("bar");           // ... added again
         NodeIterator nodes = root.getNodes();
-        assertEquals(3, nodes.getSize());
+        int expected = 3 + (root.hasNode("jcr:system") ? 1 : 0);
+        assertEquals(expected, nodes.getSize());
         while (nodes.hasNext()) {
-            assertTrue(nodeNames.remove(nodes.nextNode().getName()));
+        		String name = nodes.nextNode().getName();
+        		if (!name.equals("jcr:system")) {
+        			assertTrue(nodeNames.remove(name));
+        		}
         }
 
         assertTrue(nodeNames.isEmpty());
@@ -1491,29 +1495,34 @@ public class RepositoryTest extends AbstractRepositoryTest {
                     while (events.hasNext()) {
                         Event event = events.nextEvent();
                         try {
+                            String path = event.getPath();
+                            if (path.startsWith("/jcr:system")) {
+                            		// ignore changes in jcr:system
+                            		continue;
+                            }
                             switch (event.getType()) {
                                 case Event.NODE_ADDED:
-                                    if (!addNodes.remove(event.getPath())) {
+                                    if (!addNodes.remove(path)) {
                                         failedEvents.add(event);
                                     }
                                     break;
                                 case Event.NODE_REMOVED:
-                                    if (!removeNodes.remove(event.getPath())) {
+                                    if (!removeNodes.remove(path)) {
                                         failedEvents.add(event);
                                     }
                                     break;
                                 case Event.PROPERTY_ADDED:
-                                    if (!addProperties.remove(event.getPath())) {
+                                    if (!addProperties.remove(path)) {
                                         failedEvents.add(event);
                                     }
                                     break;
                                 case Event.PROPERTY_CHANGED:
-                                    if (!setProperties.remove(event.getPath())) {
+                                    if (!setProperties.remove(path)) {
                                         failedEvents.add(event);
                                     }
                                     break;
                                 case Event.PROPERTY_REMOVED:
-                                    if (!removeProperties.remove(event.getPath())) {
+                                    if (!removeProperties.remove(path)) {
                                         failedEvents.add(event);
                                     }
                                     break;
@@ -1584,24 +1593,29 @@ public class RepositoryTest extends AbstractRepositoryTest {
                     while (events.hasNext()) {
                         Event event = events.nextEvent();
                         try {
+                            String path = event.getPath();
+                            if (path.startsWith("/jcr:system")) {
+                            		// ignore changes in jcr:system
+                            		continue;
+                            }
                             switch (event.getType()) {
                                 case Event.NODE_ADDED:
-                                    if (!addNodes.remove(event.getPath())) {
+                                    if (!addNodes.remove(path)) {
                                         failedEvents.add(event);
                                     }
                                     break;
                                 case Event.NODE_REMOVED:
-                                    if (!removeNodes.remove(event.getPath())) {
+                                    if (!removeNodes.remove(path)) {
                                         failedEvents.add(event);
                                     }
                                     break;
                                 case Event.PROPERTY_ADDED:
-                                    if (!addProperties.remove(event.getPath())) {
+                                    if (!addProperties.remove(path)) {
                                         failedEvents.add(event);
                                     }
                                     break;
                                 case Event.PROPERTY_REMOVED:
-                                    if (!removeProperties.remove(event.getPath())) {
+                                    if (!removeProperties.remove(path)) {
                                         failedEvents.add(event);
                                     }
                                     break;
