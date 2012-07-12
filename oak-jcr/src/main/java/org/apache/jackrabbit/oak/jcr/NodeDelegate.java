@@ -16,9 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -28,9 +26,6 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
 
-import org.apache.commons.collections.Predicate;
-import org.apache.commons.collections.iterators.FilterIterator;
-import org.apache.commons.collections.iterators.IteratorChain;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -38,6 +33,7 @@ import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.util.Function1;
 import org.apache.jackrabbit.oak.util.Iterators;
+import org.apache.jackrabbit.oak.util.Predicate;
 
 /**
  * {@code NodeDelegate} serve as internal representations of {@code Node}s.
@@ -117,6 +113,7 @@ public class NodeDelegate extends ItemDelegate {
      * @return  number of properties of the node
      */
     public long getPropertyCount() throws InvalidItemStateException {
+        // TODO: Exclude "invisible" internal properties (OAK-182)
         return getTree().getPropertyCount();
     }
 
@@ -154,6 +151,7 @@ public class NodeDelegate extends ItemDelegate {
      * @return  number of child nodes of the node
      */
     public long getChildCount() throws InvalidItemStateException {
+        // TODO: Exclude "invisible" internal child nodes (OAK-182)
         return getTree().getChildrenCount();
     }
 
@@ -177,7 +175,6 @@ public class NodeDelegate extends ItemDelegate {
      *
      * @return  child nodes of the node
      */
-    @SuppressWarnings("unchecked")
     @Nonnull
     public Iterator<NodeDelegate> getChildren() throws InvalidItemStateException {
         Tree tree = getTree();
@@ -188,8 +185,12 @@ public class NodeDelegate extends ItemDelegate {
         } else if (count == 1) {
             // Optimise another typical case
             Tree child = tree.getChildren().iterator().next();
-            NodeDelegate delegate = new NodeDelegate(sessionDelegate, child);
-            return Collections.singleton(delegate).iterator();
+            if (!child.getName().startsWith(":")) {
+                NodeDelegate delegate = new NodeDelegate(sessionDelegate, child);
+                return Collections.singleton(delegate).iterator();
+            } else {
+                return Collections.<NodeDelegate>emptySet().iterator();
+            }
         } else {
             // TODO: Use a proper namespace for this property?
             PropertyState order = tree.getProperty("childOrder");
@@ -204,7 +205,7 @@ public class NodeDelegate extends ItemDelegate {
                 for (CoreValue value : order.getValues()) {
                     String name = value.getString();
                     Tree child = tree.getChild(name);
-                    if (child != null) {
+                    if (child != null && !name.startsWith(":")) {
                         ordered.put(name, new NodeDelegate(sessionDelegate, child));
                     }
                 }
@@ -217,21 +218,17 @@ public class NodeDelegate extends ItemDelegate {
                     // so return a combined iterator that first iterates
                     // through the ordered subset and then all the remaining
                     // children in an undefined order
-                    Predicate predicate = new Predicate() {
-                        @Override
-                        public boolean evaluate(Object object) {
-                            if (object instanceof Tree) {
-                                Tree tree = (Tree) object;
-                                return !ordered.containsKey(tree.getName());
-                            } else {
-                                return false;
-                            }
-                        }
-                    };
-                    return new IteratorChain(
+                    Iterator<Tree> remaining = Iterators.filter(
+                            tree.getChildren().iterator(),
+                            new Predicate<Tree>() {
+                                @Override
+                                public boolean evaluate(Tree tree) {
+                                    return !ordered.containsKey(tree.getName());
+                                }
+                            });
+                    return Iterators.chain(
                             ordered.values().iterator(),
-                            nodeDelegateIterator(new FilterIterator(
-                                    tree.getChildren().iterator(), predicate)));
+                            nodeDelegateIterator(remaining));
                 }
             }
         }
@@ -305,7 +302,13 @@ public class NodeDelegate extends ItemDelegate {
 
     private Iterator<NodeDelegate> nodeDelegateIterator(
             Iterator<Tree> childNodeStates) {
-        return Iterators.map(childNodeStates,
+        return Iterators.map(
+                Iterators.filter(childNodeStates, new Predicate<Tree>() {
+                    @Override
+                    public boolean evaluate(Tree tree) {
+                        return !tree.getName().startsWith(":");
+                    }
+                }),
                 new Function1<Tree, NodeDelegate>() {
                     @Override
                     public NodeDelegate apply(Tree state) {
@@ -316,7 +319,13 @@ public class NodeDelegate extends ItemDelegate {
 
     private Iterator<PropertyDelegate> propertyDelegateIterator(
             Iterator<? extends PropertyState> properties) {
-        return Iterators.map(properties,
+        return Iterators.map(
+                Iterators.filter(properties, new Predicate<PropertyState>() {
+                    @Override
+                    public boolean evaluate(PropertyState property) {
+                        return !property.getName().startsWith(":");
+                    }
+                }),
                 new Function1<PropertyState, PropertyDelegate>() {
                     @Override
                     public PropertyDelegate apply(PropertyState propertyState) {
