@@ -62,7 +62,7 @@ public class RootImpl implements Root {
     /** Current branch this root operates on */
     private NodeStoreBranch branch;
 
-    /** Actual root element of the {@code Tree} */
+    /** Current root {@code Tree} */
     private TreeImpl root;
 
     /**
@@ -267,10 +267,6 @@ public class RootImpl implements Root {
         }
     }
 
-    private TreeImpl getRoot() {
-        return root;
-    }
-
     /**
      * Get a tree for the child identified by {@code path}
      * @param path  the path to the child
@@ -278,7 +274,7 @@ public class RootImpl implements Root {
      *          at {@code path} or {@code null} if no such item exits.
      */
     private TreeImpl getChild(String path) {
-        TreeImpl child = getRoot();
+        TreeImpl child = root;
         for (String name : elements(path)) {
             child = child.getChild(name);
             if (child == null) {
