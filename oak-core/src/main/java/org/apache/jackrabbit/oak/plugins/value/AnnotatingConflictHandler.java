@@ -28,9 +28,6 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.util.Iterators;
-
-import static org.apache.jackrabbit.oak.util.Iterators.toList;
 
 /**
  * This {@link ConflictHandler} implementation resolves conflicts to
@@ -135,7 +132,7 @@ public class AnnotatingConflictHandler implements ConflictHandler {
         List<CoreValue> mixins = new ArrayList<CoreValue>();
         if (jcrMixin != null) {
             assert jcrMixin.isArray();
-            mixins = Iterators.toList(jcrMixin.getValues(), mixins);
+            mixins.addAll(jcrMixin.getValues());
         }
         if (!mixins.contains(MIX_MERGE_CONFLICT)) {
             mixins.add(valueFactory.createValue(MIX_MERGE_CONFLICT, PropertyType.NAME));
@@ -169,10 +166,8 @@ public class AnnotatingConflictHandler implements ConflictHandler {
 
     private static void setProperty(Tree parent, PropertyState property) {
         if (property.isArray()) {
-            parent.setProperty(property.getName(),
-                    toList(property.getValues(), new ArrayList<CoreValue>()));
-        }
-        else {
+            parent.setProperty(property.getName(), property.getValues());
+        } else {
             parent.setProperty(property.getName(), property.getValue());
         }
     }

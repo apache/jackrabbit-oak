@@ -52,12 +52,8 @@ class NameValidator implements Validator {
 
     protected void checkValidValue(PropertyState property)
             throws CommitFailedException {
-        if (property.isArray()) {
-            for (CoreValue value : property.getValues()) {
-                checkValidValue(value);
-            }
-        } else {
-            checkValidValue(property.getValue());
+        for (CoreValue value : property.getValues()) {
+            checkValidValue(value);
         }
     }
 

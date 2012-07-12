@@ -184,12 +184,8 @@ public class LuceneEditor implements CommitEditor {
                     ":path", path, Store.YES, Index.NOT_ANALYZED));
             for (PropertyState property : state.getProperties()) {
                 String pname = property.getName();
-                if (property.isArray()) {
-                    for (CoreValue value : property.getValues()) {
-                        document.add(makeField(pname, value));
-                    }
-                } else {
-                    document.add(makeField(pname, property.getValue()));
+                for (CoreValue value : property.getValues()) {
+                    document.add(makeField(pname, value));
                 }
             }
             return document;

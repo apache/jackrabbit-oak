@@ -38,19 +38,16 @@ class TypeValidator implements Validator {
 
     private void checkTypeExists(PropertyState after)
             throws CommitFailedException {
-        Iterable<CoreValue> coreValues = Collections.emptyList();
-        if (JcrConstants.JCR_PRIMARYTYPE.equals(after.getName())) {
-            coreValues = Collections.singletonList(after.getValue());
-        } else if (JcrConstants.JCR_MIXINTYPES.equals(after.getName())) {
-            coreValues = after.getValues();
-        }
-        for (CoreValue cv : coreValues) {
-            String value = cv.getString();
-            if (!types.contains(value)) {
-                throw new CommitFailedException(
-                    new NoSuchNodeTypeException("Unknown node type: " + value));
+        if (JcrConstants.JCR_PRIMARYTYPE.equals(after.getName())
+                || JcrConstants.JCR_MIXINTYPES.equals(after.getName())) {
+            for (CoreValue cv : after.getValues()) {
+                String value = cv.getString();
+                if (!types.contains(value)) {
+                    throw new CommitFailedException(
+                        new NoSuchNodeTypeException("Unknown node type: " + value));
+                }
+                // TODO: make sure the specified node type isn't abstract
             }
-            // TODO: make sure the specified node type isn't abstract
         }
     }
 

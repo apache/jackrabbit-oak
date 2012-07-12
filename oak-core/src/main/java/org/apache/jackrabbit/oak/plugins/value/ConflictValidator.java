@@ -61,8 +61,7 @@ public class ConflictValidator extends DefaultValidator {
     private static void failOnMergeConflict(PropertyState property) throws CommitFailedException {
         if ("jcr:mixinTypes".equals(property.getName())) {
             assert property.isArray();
-            Iterable<CoreValue> mixins = property.getValues();
-            for (CoreValue v : mixins) {
+            for (CoreValue v : property.getValues()) {
                 if ("mix:mergeConflict".equals(v.getString())) {
                     throw new CommitFailedException(new InvalidItemStateException("Item has unresolved conflicts"));
                 }
