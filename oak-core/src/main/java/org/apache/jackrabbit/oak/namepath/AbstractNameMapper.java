@@ -33,6 +33,9 @@ public abstract class AbstractNameMapper implements NameMapper {
         if (pos < 0) {
             // no colon
             return jcrName.startsWith("{}") ? jcrName.substring(2) : jcrName;
+        } else if (pos == 0) {
+            // Internal name, should not be visible to JCR clients
+            return null;
         } else {
             if (jcrName.charAt(0) == '{') {
                 int endpos = jcrName.indexOf('}');
@@ -74,6 +77,10 @@ public abstract class AbstractNameMapper implements NameMapper {
         if (pos < 0) {
             // non-prefixed
             return oakName;
+        } else if (pos == 0) {
+            // Internal name, should not be visible to JCR clients
+            throw new IllegalStateException(
+                    "internal Oak name: " + oakName);
         } else {
             String pref = oakName.substring(0, pos);
             String name = oakName.substring(pos + 1);
