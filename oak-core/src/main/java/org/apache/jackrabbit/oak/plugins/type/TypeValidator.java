@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.type;
 
-import java.util.Collections;
 import java.util.Set;
 
 import javax.jcr.nodetype.NoSuchNodeTypeException;

@@ -35,18 +35,25 @@ import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
 
 import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
 import org.apache.jackrabbit.oak.jcr.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 
 public class NodeTypeManagerImpl implements NodeTypeManager {
 
+    private final ContentSession cs;
     private final ValueFactoryImpl vf;
     private final NameMapper mapper;
     private final NodeTypeManagerDelegate ntmd;
     private final Map<String, NodeType> typemap = new HashMap<String, NodeType>();
 
     public NodeTypeManagerImpl(SessionDelegate sd, NodeTypeManagerDelegate ntmd) throws RepositoryException {
+        this.cs = sd.getContentSession();
         this.vf = sd.getValueFactory();
         this.mapper = sd.getNamePathMapper();
         this.ntmd = ntmd;
@@ -134,23 +141,51 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
     @Override
     public NodeType registerNodeType(NodeTypeDefinition ntd, boolean allowUpdate) throws RepositoryException {
         // TODO proper node type registration... (OAK-66)
+        try {
+            Root root = cs.getCurrentRoot();
+            NodeType type = internalRegister(ntd, root.getTree("/"));
+            root.commit(DefaultConflictHandler.OURS);
+            return type;
+        } catch (CommitFailedException e) {
+            throw new RepositoryException(e);
+        }
+    }
+
+    @Override
+    public NodeTypeIterator registerNodeTypes(NodeTypeDefinition[] ntds, boolean allowUpdate) throws RepositoryException {
+        // TODO handle inter-type dependencies (OAK-66)
+        try {
+            Root root = cs.getCurrentRoot();
+            NodeType[] types = new NodeType[ntds.length];
+            for (int i = 0; i < ntds.length; i++) {
+                types[i] = internalRegister(ntds[i], root.getTree("/"));
+            }
+            root.commit(DefaultConflictHandler.OURS);
+            return new NodeTypeIteratorAdapter(Arrays.asList(types));
+        } catch (CommitFailedException e) {
+            throw new RepositoryException(e);
+        }
+    }
+
+    private NodeType internalRegister(NodeTypeDefinition ntd, Tree root) {
         NodeTypeDelegate delegate = new NodeTypeDelegate(
                 ntd.getName(),
                 ntd.getDeclaredSupertypeNames(), ntd.getPrimaryItemName(),
                 ntd.isMixin(), ntd.isAbstract(), ntd.hasOrderableChildNodes());
         NodeType type = new NodeTypeImpl(this, vf, mapper, delegate);
         typemap.put(ntd.getName(), type);
-        return type;
-    }
 
-    @Override
-    public NodeTypeIterator registerNodeTypes(NodeTypeDefinition[] ntds, boolean allowUpdate) throws RepositoryException {
-        // TODO handle inter-type dependencies (OAK-66)
-        NodeType[] types = new NodeType[ntds.length];
-        for (int i = 0; i < ntds.length; i++) {
-            types[i] = registerNodeType(ntds[i], allowUpdate);
+        Tree system = root.getChild("jcr:system");
+        if (system == null) {
+            system = root.addChild("jcr:system");
         }
-        return new NodeTypeIteratorAdapter(Arrays.asList(types));
+        Tree nodetypes = system.getChild("jcr:nodeTypes");
+        if (nodetypes == null) {
+            nodetypes = system.addChild("jcr:nodeTypes");
+        }
+        nodetypes.addChild(ntd.getName());
+
+        return type;
     }
 
     @Override
