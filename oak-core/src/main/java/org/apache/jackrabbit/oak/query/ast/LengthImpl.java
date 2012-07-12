@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.query.ast;
 import javax.jcr.PropertyType;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.kernel.PropertyStateImpl;
+import org.apache.jackrabbit.oak.plugins.memory.SinglePropertyState;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
 public class LengthImpl extends DynamicOperandImpl {
@@ -55,7 +55,7 @@ public class LengthImpl extends DynamicOperandImpl {
         if (!p.isArray()) {
             long length = p.getValue().length();
             CoreValue v = query.getValueFactory().createValue(length);
-            return new PropertyStateImpl("LENGTH", v);
+            return new SinglePropertyState("LENGTH", v);
         }
         // TODO what is the expected result for LENGTH(multiValueProperty)?
         throw new IllegalArgumentException("LENGTH(x) on multi-valued property is not supported");

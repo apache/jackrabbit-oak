@@ -16,40 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.kernel;
+package org.apache.jackrabbit.oak.plugins.memory;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryValueFactory;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-public class PropertyStateImpl implements PropertyState {
+import javax.annotation.Nonnull;
+
+/**
+ * Property state that contains an empty array of values. Used as a base
+ * class for {@link SinglePropertyState} and {@link MultiPropertyState}.
+ */
+class EmptyPropertyState implements PropertyState {
 
     private final String name;
 
-    private final boolean array;
-
-    private final CoreValue[] values;
-
-    public PropertyStateImpl(String name, CoreValue value) {
-        assert name != null && value != null;
+    public EmptyPropertyState(String name) {
+        assert name != null;
         this.name = name;
-        this.array = false;
-        this.values = new CoreValue[] { value };
-    }
-
-    public PropertyStateImpl(String name, List<CoreValue> values) {
-        assert name != null && values != null;
-        this.name = name;
-        this.array = true;
-        this.values = values.toArray(new CoreValue[values.size()]);
-    }
-
-    public PropertyStateImpl(String name, String value) {
-        this(name, MemoryValueFactory.INSTANCE.createValue(value));
     }
 
     @Override
@@ -59,23 +46,23 @@ public class PropertyStateImpl implements PropertyState {
 
     @Override
     public boolean isArray() {
-        return array;
+        return true;
     }
 
     @Override
+    @Nonnull
     public CoreValue getValue() {
-        if (array) {
-            throw new IllegalStateException("Not a single valued property");
-        }
-        return values[0];
+        throw new IllegalStateException("Not a single valued property");
     }
 
     @Override
+    @Nonnull
     public List<CoreValue> getValues() {
-        return Collections.unmodifiableList(Arrays.asList(values));
+        return Collections.emptyList();
     }
 
-    //------------------------------------------------------------< Object >----
+    //------------------------------------------------------------< Object >--
+
     /**
      * Checks whether the given object is equal to this one. Two property
      * states are considered equal if both their names and encoded values
@@ -110,12 +97,16 @@ public class PropertyStateImpl implements PropertyState {
      */
     @Override
     public int hashCode() {
-        return getName().hashCode();
+        return name.hashCode();
     }
 
     @Override
     public String toString() {
-        return getName() + '=' + (isArray() ? getValues() : getValue());
+        if (isArray()) {
+            return getName() + '=' + getValues();
+        } else {
+            return getName() + '=' + getValues();
+        }
     }
 
 }
