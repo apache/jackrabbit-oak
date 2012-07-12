@@ -22,7 +22,7 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.kernel.PropertyStateImpl;
+import org.apache.jackrabbit.oak.plugins.memory.SinglePropertyState;
 import org.apache.jackrabbit.oak.query.Query;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.Cursor;
@@ -141,7 +141,7 @@ public class SelectorImpl extends SourceImpl {
                 return null;
             }
             CoreValue v = query.getValueFactory().createValue(local);
-            return new PropertyStateImpl(PATH, v);
+            return new SinglePropertyState(PATH, v);
         }
         String path = currentPath();
         if (path == null) {

@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.query.ast;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.kernel.PropertyStateImpl;
+import org.apache.jackrabbit.oak.plugins.memory.SinglePropertyState;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
 public class LowerCaseImpl extends DynamicOperandImpl {
@@ -55,7 +55,7 @@ public class LowerCaseImpl extends DynamicOperandImpl {
         // currently throws an exception
         String value = p.getValue().getString();
         CoreValue v = query.getValueFactory().createValue(value.toLowerCase());
-        return new PropertyStateImpl(p.getName(), v);
+        return new SinglePropertyState(p.getName(), v);
     }
 
     @Override

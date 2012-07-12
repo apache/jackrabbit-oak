@@ -18,6 +18,9 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
+import static org.apache.jackrabbit.oak.kernel.CoreValueMapper.fromJsopReader;
+import static org.apache.jackrabbit.oak.kernel.CoreValueMapper.listFromJsopReader;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -33,6 +36,8 @@ import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
+import org.apache.jackrabbit.oak.plugins.memory.MultiPropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.SinglePropertyState;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -111,10 +116,11 @@ final class KernelNodeState extends AbstractNodeState {
                     }
                     childNodes.put(name, new KernelNodeState(kernel, childPath, revision));
                 } else if (reader.matches('[')) {
-                    properties.put(name, new PropertyStateImpl(name, CoreValueMapper.listFromJsopReader(reader, kernel)));
+                    List<CoreValue> values = listFromJsopReader(reader, kernel);
+                    properties.put(name, new MultiPropertyState(name, values));
                 } else {
-                    CoreValue cv = CoreValueMapper.fromJsopReader(reader, kernel);
-                    properties.put(name, new PropertyStateImpl(name, cv));
+                    CoreValue cv = fromJsopReader(reader, kernel);
+                    properties.put(name, new SinglePropertyState(name, cv));
                 }
             } while (reader.matches(','));
             reader.read('}');
