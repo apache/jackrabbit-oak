@@ -147,7 +147,7 @@ public class RootImpl implements Root {
     public void rebase(ConflictHandler conflictHandler) {
         purgePendingChanges();
         NodeState base = getBaseState();
-        NodeState head = getCurrentRootState();
+        NodeState head = root.getNodeState();
         refresh();
         merge(base, head, root, conflictHandler);
     }
@@ -172,7 +172,7 @@ public class RootImpl implements Root {
 
     @Override
     public boolean hasPendingChanges() {
-        return !getBaseState().equals(getCurrentRootState());
+        return !getBaseState().equals(root.getNodeState());
     }
 
     @Override
@@ -200,38 +200,16 @@ public class RootImpl implements Root {
         purgePurgeListeners.add(purgeListener);
     }
 
-    /**
-     * Returns the current root node state
-     * @return root node state
-     */
-    @Nonnull
-    public NodeState getCurrentRootState() {
-        return root.getNodeState();
-    }
+    //------------------------------------------------------------< internal >---
 
     /**
      * Returns the node state from which the current branch was created.
      * @return base node state
      */
     @Nonnull
-    public NodeState getBaseState() {
+    NodeState getBaseState() {
         return branch.getBase();
     }
-
-    /**
-     * Returns a builder for constructing a new or modified node state.
-     * The builder is initialized with all the properties and child nodes
-     * from the given base node state.
-     *
-     * @param nodeState  base node state, or {@code null} for building new nodes
-     * @return  builder instance
-     */
-    @Nonnull
-    public NodeStateBuilder getBuilder(NodeState nodeState) {
-        return store.getBuilder(nodeState);
-    }
-
-    //------------------------------------------------------------< internal >---
 
     NodeStateBuilder createRootBuilder() {
         return store.getBuilder(branch.getRoot());
@@ -253,7 +231,7 @@ public class RootImpl implements Root {
      */
     private void purgePendingChanges() {
         if (hasPendingChanges()) {
-            branch.setRoot(getCurrentRootState());
+            branch.setRoot(root.getNodeState());
         }
         notifyListeners();
     }
