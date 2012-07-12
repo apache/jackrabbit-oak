@@ -93,8 +93,12 @@ public class PrivilegeRegistry implements PrivilegeProvider, PrivilegeConstants 
     public PrivilegeDefinition registerDefinition(String privilegeName,
                                                   boolean isAbstract,
                                                   Set<String> declaredAggregateNames) throws RepositoryException {
-        // TODO: check permission, validate and register the custom definition
-        throw new UnsupportedOperationException("TODO: Register Privileges");
+        // TODO: check permission, validate and persist the custom definition
+        PrivilegeDefinition definition = new PrivilegeDefinitionImpl(
+                privilegeName, isAbstract,
+                declaredAggregateNames.toArray(new String[declaredAggregateNames.size()]));
+        definitions.put(privilegeName, definition);
+        return definition;
     }
 
 
