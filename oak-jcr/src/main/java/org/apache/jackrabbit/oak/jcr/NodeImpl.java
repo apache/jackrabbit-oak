@@ -81,18 +81,15 @@ import static org.apache.jackrabbit.oak.util.Iterators.filter;
 /**
  * {@code NodeImpl}...
  */
-public class NodeImpl extends ItemImpl implements Node {
+public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
 
     /**
      * logger instance
      */
     private static final Logger log = LoggerFactory.getLogger(NodeImpl.class);
 
-    private final NodeDelegate dlg;
-
     public NodeImpl(NodeDelegate dlg) {
         super(dlg.getSessionDelegate(), dlg);
-        this.dlg = dlg;
     }
 
     //---------------------------------------------------------------< Item >---
@@ -1030,9 +1027,9 @@ public class NodeImpl extends ItemImpl implements Node {
 
     /**
      * Checks whether this node is locked by looking for the
-     * <code>jcr:lockOwner</code> property either on this node or
-     * on any ancestor that also has the <code>jcr:lockIsDeep</code>
-     * property set to <code>true</code>.
+     * {@code jcr:lockOwner} property either on this node or
+     * on any ancestor that also has the {@code jcr:lockIsDeep}
+     * property set to {@code true}.
      */
     @Override
     public boolean isLocked() throws RepositoryException {
@@ -1060,7 +1057,7 @@ public class NodeImpl extends ItemImpl implements Node {
 
     /**
      * Checks whether this node holds a lock by looking for the
-     * <code>jcr:lockOwner</code> property.
+     * {@code jcr:lockOwner} property.
      */
     @Override
     public boolean holdsLock() throws RepositoryException {

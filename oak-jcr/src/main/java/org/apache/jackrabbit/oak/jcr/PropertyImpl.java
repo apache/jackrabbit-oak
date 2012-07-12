@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import org.apache.jackrabbit.oak.api.Tree.Status;
-import org.apache.jackrabbit.oak.jcr.value.ValueConverter;
-import org.apache.jackrabbit.value.ValueHelper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.io.InputStream;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.List;
 
 import javax.annotation.Nonnull;
 import javax.jcr.Binary;
@@ -35,27 +35,25 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFormatException;
 import javax.jcr.nodetype.PropertyDefinition;
-import java.io.InputStream;
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.List;
+
+import org.apache.jackrabbit.oak.api.Tree.Status;
+import org.apache.jackrabbit.oak.jcr.value.ValueConverter;
+import org.apache.jackrabbit.value.ValueHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * {@code PropertyImpl}...
  */
-public class PropertyImpl extends ItemImpl implements Property {
+public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property {
 
     /**
      * logger instance
      */
     private static final Logger log = LoggerFactory.getLogger(PropertyImpl.class);
 
-    private final PropertyDelegate dlg;
-    
     PropertyImpl(PropertyDelegate dlg) {
         super(dlg.getSessionDelegate(), dlg);
-        this.dlg = dlg;
     }
 
     //---------------------------------------------------------------< Item >---

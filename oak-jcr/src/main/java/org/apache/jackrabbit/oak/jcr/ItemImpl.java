@@ -16,10 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import org.apache.jackrabbit.commons.AbstractItem;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.Item;
@@ -28,20 +24,24 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.ValueFactory;
 
+import org.apache.jackrabbit.commons.AbstractItem;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * {@code ItemImpl}...
  */
-abstract class ItemImpl extends AbstractItem {
+abstract class ItemImpl<T extends ItemDelegate> extends AbstractItem {
 
     protected final SessionDelegate sessionDelegate;
-    protected final ItemDelegate dlg;
+    protected final T dlg;
 
     /**
      * logger instance
      */
     private static final Logger log = LoggerFactory.getLogger(ItemImpl.class);
 
-    protected ItemImpl(SessionDelegate sessionDelegate, ItemDelegate itemDelegate) {
+    protected ItemImpl(SessionDelegate sessionDelegate, T itemDelegate) {
         this.sessionDelegate = sessionDelegate;
         this.dlg = itemDelegate;
     }
