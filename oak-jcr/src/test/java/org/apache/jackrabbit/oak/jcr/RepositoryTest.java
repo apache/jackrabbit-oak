@@ -62,7 +62,6 @@ import javax.jcr.observation.EventListener;
 import javax.jcr.observation.ObservationManager;
 
 import org.apache.jackrabbit.JcrConstants;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -101,11 +100,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
         finally {
             session.logout();
         }
-    }
-
-    @After
-    public void tearDown() throws RepositoryException {
-        logout();
     }
 
     @Test

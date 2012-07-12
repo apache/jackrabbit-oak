@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import org.apache.jackrabbit.commons.JcrUtils;
+import org.junit.After;
 
 import javax.jcr.GuestCredentials;
 import javax.jcr.Node;
@@ -34,35 +35,24 @@ import javax.jcr.Session;
  * this instance and clean up the repository when done.
  */
 public abstract class AbstractRepositoryTest {
-    private Repository repository;
-    private Session session;
+    private Repository repository = null;
+    private Session session = null;
 
+    @After
     public void logout() throws RepositoryException {
-        Session cleanupSession = createAnonymousSession();
-        try {
-            Node root = cleanupSession.getRootNode();
-            NodeIterator ns = root.getNodes();
-            while (ns.hasNext()) {
-                ns.nextNode().remove();
-            }
-            cleanupSession.save();
-        }
-        finally {
-            cleanupSession.logout();
-        }
-
         // release session field
         if (session != null) {
             session.logout();
             session = null;
         }
+        // release repository field
+        repository = null;
     }
 
     protected Repository getRepository() throws RepositoryException {
         if (repository == null) {
-            repository = JcrUtils.getRepository("jcr-oak://inmemory/CRUDTest");
+            repository = new RepositoryImpl();
         }
-
         return repository;
     }
 

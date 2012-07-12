@@ -16,12 +16,9 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import org.junit.After;
 import org.junit.Test;
 
-import javax.jcr.GuestCredentials;
 import javax.jcr.Node;
-import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
@@ -30,14 +27,8 @@ import static junit.framework.Assert.assertTrue;
 
 public class CRUDTest extends AbstractRepositoryTest {
 
-    @After
-    public void tearDown() throws RepositoryException {
-        logout();
-    }
-
     @Test
     public void testCRUD() throws RepositoryException {
-        Repository repository = getRepository();
         Session session = createAnonymousSession();
         try {
             // Create
