@@ -80,8 +80,14 @@ public class XmlImportHandler extends DefaultHandler {
                 if (values.size() == 1) {
                     if (name.equals("jcr:primaryType")) {
                         node.setPrimaryType(values.get(0));
+                    } else if (name.equals("jcr:mixinTypes")) {
+                        node.addMixin(values.get(0));
                     } else {
                         node.setProperty(name, values.get(0));
+                    }
+                } else if (name.equals("jcr:mixinTypes")) {
+                    for (String value : values) {
+                        node.addMixin(value);
                     }
                 } else {
                     node.setProperty(name, values.toArray(new String[values.size()]));
