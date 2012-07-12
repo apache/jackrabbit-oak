@@ -22,30 +22,30 @@ import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryValueFactory;
 
+import java.util.Arrays;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 
 public class PropertyStateImpl implements PropertyState {
 
     private final String name;
-    private final CoreValue value;
-    private final List<CoreValue> values;
 
-    private PropertyStateImpl(String name, CoreValue value, List<CoreValue> values) {
-        assert name != null;
+    private final boolean array;
 
-        this.name = name;
-        this.value = value;
-        this.values = values;
-    }
+    private final CoreValue[] values;
 
     public PropertyStateImpl(String name, CoreValue value) {
-        this(name, value, null);
+        assert name != null && value != null;
+        this.name = name;
+        this.array = false;
+        this.values = new CoreValue[] { value };
     }
 
     public PropertyStateImpl(String name, List<CoreValue> values) {
-        this(name, null, Collections.unmodifiableList(values));
+        assert name != null && values != null;
+        this.name = name;
+        this.array = true;
+        this.values = values.toArray(new CoreValue[values.size()]);
     }
 
     public PropertyStateImpl(String name, String value) {
@@ -59,23 +59,20 @@ public class PropertyStateImpl implements PropertyState {
 
     @Override
     public boolean isArray() {
-        return value == null;
-    }
-    
-    @Override
-    public CoreValue getValue() {
-        if (value == null) {
-            throw new IllegalStateException("Not a single valued property");
-        }
-        return value;
+        return array;
     }
 
     @Override
-    public Iterable<CoreValue> getValues() {
-        if (values == null) {
-            throw new IllegalStateException("Not a multi valued property");
+    public CoreValue getValue() {
+        if (array) {
+            throw new IllegalStateException("Not a single valued property");
         }
-        return values;
+        return values[0];
+    }
+
+    @Override
+    public List<CoreValue> getValues() {
+        return Collections.unmodifiableList(Arrays.asList(values));
     }
 
     //------------------------------------------------------------< Object >----
@@ -94,7 +91,9 @@ public class PropertyStateImpl implements PropertyState {
             return true;
         } else if (that instanceof PropertyState) {
             PropertyState other = (PropertyState) that;
-            return getName().equals(other.getName()) && valueEquals(other);
+            return getName().equals(other.getName())
+                    && isArray() == other.isArray()
+                    && getValues().equals(other.getValues());
         } else {
             return false;
         }
@@ -119,21 +118,4 @@ public class PropertyStateImpl implements PropertyState {
         return getName() + '=' + (isArray() ? getValues() : getValue());
     }
 
-    //------------------------------------------------------------< private >---
-
-    private boolean valueEquals(PropertyState other) {
-        if (isArray() != other.isArray()) {
-            return false;
-        } else if (isArray()) {
-            Iterator<CoreValue> iterator = other.getValues().iterator();
-            for (CoreValue value : getValues()) {
-                if (!iterator.hasNext() || !value.equals(iterator.next())) {
-                    return false;
-                }
-            }
-            return !iterator.hasNext();
-        } else {
-            return getValue().equals(other.getValue());
-        }
-    }
 }
