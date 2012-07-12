@@ -291,6 +291,10 @@ public class NodeDelegate extends ItemDelegate {
         return new PropertyDelegate(sessionDelegate, getTree(), propertyState);
     }
 
+    public void removeProperty(String name) throws InvalidItemStateException {
+        getTree().removeProperty(name);
+    }
+
     /**
      * Set a multi valued property
      * @param name  oak name

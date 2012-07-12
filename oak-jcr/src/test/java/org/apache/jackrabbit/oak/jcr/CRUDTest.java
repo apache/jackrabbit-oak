@@ -57,4 +57,11 @@ public class CRUDTest extends AbstractRepositoryTest {
         }
     }
 
+    @Test
+    public void testRemoveMissingProperty() throws RepositoryException {
+        Session session = getSession();
+        Node root = session.getRootNode();
+        root.setProperty("missing", (String) null);
+    }
+
 }
