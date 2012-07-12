@@ -16,17 +16,22 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
+import javax.jcr.ItemNotFoundException;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
@@ -231,6 +236,46 @@ public class NodeDelegate extends ItemDelegate {
                             nodeDelegateIterator(remaining));
                 }
             }
+        }
+    }
+
+    public void orderBefore(String source, String target)
+            throws ItemNotFoundException, InvalidItemStateException {
+        Tree tree = getTree();
+        if (tree.getChild(source) == null) {
+            throw new ItemNotFoundException("Not a child: " + source);
+        } else if (target != null && tree.getChild(target) == null) {
+            throw new ItemNotFoundException("Not a child: " + target);
+        } else {
+            List<CoreValue> order = new ArrayList<CoreValue>();
+            Set<String> added = new HashSet<String>();
+            CoreValueFactory factory =
+                    sessionDelegate.getContentSession().getCoreValueFactory();
+
+            PropertyState property = tree.getProperty("childOrder");
+            if (property != null) {
+                for (CoreValue value : property.getValues()) {
+                    String name = value.getString();
+                    if (!name.equals(source) && !added.contains(property)
+                            && !name.startsWith(":")) {
+                        if (name.equals(target)) {
+                            order.add(factory.createValue(source));
+                            added.add(source);
+                        }
+                        order.add(factory.createValue(name));
+                        added.add(name);
+                    }
+                }
+            }
+
+            if (!added.contains(source)) {
+                order.add(factory.createValue(source));
+            }
+            if (target != null && !added.contains(target)) {
+                order.add(factory.createValue(source));
+            }
+
+            tree.setProperty("childOrder", order);
         }
     }
 
