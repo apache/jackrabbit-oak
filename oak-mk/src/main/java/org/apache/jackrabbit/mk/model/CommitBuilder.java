@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.mk.model;
 
+import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.mk.model.tree.DiffBuilder;
 import org.apache.jackrabbit.mk.model.tree.NodeDelta;
 import org.apache.jackrabbit.mk.store.NotFoundException;
@@ -448,26 +449,20 @@ public class CommitBuilder {
         public Map<String, String> props = new HashMap<String, String>();
         public Map<String, NodeTree> nodes = new HashMap<String, NodeTree>();
 
-        void toJson(StringBuilder buf) {
+        void toJson(JsopBuilder buf) {
             toJson(buf, this);
         }
 
-        private static void toJson(StringBuilder buf, NodeTree node) {
-            buf.append('{');
+        private static void toJson(JsopBuilder buf, NodeTree node) {
+            buf.object();
             for (String name : node.props.keySet()) {
-                if (buf.charAt(buf.length() - 1) != '{')  {
-                    buf.append(',');
-                }
-                buf.append('"').append(name).append("\":").append(node.props.get(name));
+                buf.key(name).encodedValue(node.props.get(name));
             }
             for (String name : node.nodes.keySet()) {
-                if (buf.charAt(buf.length() - 1) != '{')  {
-                    buf.append(',');
-                }
-                buf.append('"').append(name).append("\":");
+                buf.key(name);
                 toJson(buf, node.nodes.get(name));
             }
-            buf.append('}');
+            buf.endObject();
         }
     }
 
@@ -494,8 +489,8 @@ public class CommitBuilder {
 
         @Override
         String asDiff() {
-            StringBuilder diff = new StringBuilder("+");
-            diff.append('"').append(PathUtils.concat(parentNodePath, nodeName)).append("\":");
+            JsopBuilder diff = new JsopBuilder();
+            diff.tag('+').key(PathUtils.concat(parentNodePath, nodeName));
             node.toJson(diff);
             return diff.toString();
         }
@@ -542,8 +537,8 @@ public class CommitBuilder {
 
         @Override
         String asDiff() {
-            StringBuilder diff = new StringBuilder("-");
-            diff.append('"').append(nodePath).append('"');
+            JsopBuilder diff = new JsopBuilder();
+            diff.tag('-').value(nodePath);
             return diff.toString();
         }
     }
@@ -596,8 +591,8 @@ public class CommitBuilder {
 
         @Override
         String asDiff() {
-            StringBuilder diff = new StringBuilder(">");
-            diff.append('"').append(srcPath).append("\":\"").append(destPath).append('"');
+            JsopBuilder diff = new JsopBuilder();
+            diff.tag('>').key(srcPath).value(destPath);
             return diff.toString();
         }
     }
@@ -639,10 +634,11 @@ public class CommitBuilder {
 
         @Override
         String asDiff() {
-            StringBuilder diff = new StringBuilder("*");
-            diff.append('"').append(srcPath).append("\":\"").append(destPath).append('"');
+            JsopBuilder diff = new JsopBuilder();
+            diff.tag('*').key(srcPath).value(destPath);
             return diff.toString();
         }
+
     }
 
     class SetProperty extends Change {
@@ -670,9 +666,15 @@ public class CommitBuilder {
 
         @Override
         String asDiff() {
-            StringBuilder diff = new StringBuilder("^");
-            diff.append('"').append(PathUtils.concat(nodePath, propName)).append("\":").append(propValue);
+            JsopBuilder diff = new JsopBuilder();
+            diff.tag('^').key(PathUtils.concat(nodePath, propName));
+            if (propValue != null) {
+                diff.encodedValue(propValue);
+            } else {
+                diff.value(null);
+            }
             return diff.toString();
         }
     }
+
 }
