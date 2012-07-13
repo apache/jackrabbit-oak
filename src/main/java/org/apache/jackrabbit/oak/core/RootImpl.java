@@ -143,11 +143,13 @@ public class RootImpl implements Root {
 
     @Override
     public void rebase(ConflictHandler conflictHandler) {
-        purgePendingChanges();
-        NodeState base = getBaseState();
-        NodeState head = root.getNodeState();
-        refresh();
-        merge(base, head, root, conflictHandler);
+        if (!store.getRoot().equals(root.getBaseState())) {
+            purgePendingChanges();
+            NodeState base = getBaseState();
+            NodeState head = root.getNodeState();
+            refresh();
+            merge(base, head, root, conflictHandler);
+        }
     }
 
     @Override
