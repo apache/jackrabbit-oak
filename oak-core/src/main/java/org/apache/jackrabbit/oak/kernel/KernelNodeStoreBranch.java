@@ -16,9 +16,13 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
+import javax.jcr.PropertyType;
+
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
+import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.commit.CommitEditor;
@@ -30,6 +34,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
+import static org.apache.jackrabbit.oak.kernel.CoreValueMapper.TYPE2HINT;
 
 /**
  * {@code NodeStoreBranch} based on {@link MicroKernel} branching and merging.
@@ -163,40 +168,40 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
     }
 
     private String buildJsop() {
-        StringBuilder jsop = new StringBuilder();
+        JsopBuilder jsop = new JsopBuilder();
         diffToJsop(committed, currentRoot, "", jsop);
         return jsop.toString();
     }
 
     private static void diffToJsop(NodeState before, NodeState after, final String path,
-            final StringBuilder jsop) {
+            final JsopBuilder jsop) {
         after.compareAgainstBaseState(before, new NodeStateDiff() {
             @Override
             public void propertyAdded(PropertyState after) {
-                jsop.append('^').append(buildPath(after.getName()))
-                        .append(':').append(toJson(after));
+                jsop.tag('^').key(buildPath(after.getName()));
+                toJson(after, jsop);
             }
 
             @Override
             public void propertyChanged(PropertyState before, PropertyState after) {
-                jsop.append('^').append(buildPath(after.getName()))
-                        .append(':').append(toJson(after));
+                jsop.tag('^').key(buildPath(after.getName()));
+                toJson(after, jsop);
             }
 
             @Override
             public void propertyDeleted(PropertyState before) {
-                jsop.append('^').append(buildPath(before.getName())).append(":null");
+                jsop.tag('^').key(buildPath(before.getName())).value(null);
             }
 
             @Override
             public void childNodeAdded(String name, NodeState after) {
-                jsop.append('+').append(buildPath(name)).append(':');
-                toJson(after);
+                jsop.tag('+').key(buildPath(name));
+                toJson(after, jsop);
             }
 
             @Override
             public void childNodeDeleted(String name, NodeState before) {
-                jsop.append('-').append(buildPath(name));
+                jsop.tag('-').value(buildPath(name));
             }
 
             @Override
@@ -205,33 +210,50 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
             }
 
             private String buildPath(String name) {
-                return '"' + PathUtils.concat(path, name) + '"';
+                return PathUtils.concat(path, name);
             }
 
-            private String toJson(PropertyState propertyState) {
-                return propertyState.isArray()
-                    ? CoreValueMapper.toJsonArray(propertyState.getValues())
-                    : CoreValueMapper.toJsonValue(propertyState.getValue());
-            }
-
-            private void toJson(NodeState nodeState) {
-                jsop.append('{');
-                String comma = "";
+            private void toJson(NodeState nodeState, JsopBuilder jsop) {
+                jsop.object();
                 for (PropertyState property : nodeState.getProperties()) {
-                    String value = toJson(property);
-                    jsop.append(comma);
-                    comma = ",";
-                    jsop.append('"').append(property.getName()).append("\":").append(value);
+                    jsop.key(property.getName());
+                    toJson(property, jsop);
                 }
-
                 for (ChildNodeEntry child : nodeState.getChildNodeEntries()) {
-                    jsop.append(comma);
-                    comma = ",";
-                    jsop.append('"').append(child.getName()).append("\":");
-                    toJson(child.getNodeState());
+                    jsop.key(child.getName());
+                    toJson(child.getNodeState(), jsop);
                 }
-                jsop.append('}');
+                jsop.endObject();
             }
+
+            private void toJson(PropertyState propertyState, JsopBuilder jsop) {
+                if (propertyState.isArray()) {
+                    jsop.array();
+                    for (CoreValue value : propertyState.getValues()) {
+                        toJson(value, jsop);
+                    }
+                    jsop.endArray();
+                } else {
+                    toJson(propertyState.getValue(), jsop);
+                }
+            }
+
+            private void toJson(CoreValue value, JsopBuilder jsop) {
+                int type = value.getType();
+                if (type == PropertyType.BOOLEAN) {
+                    jsop.value(value.getBoolean());
+                } else if (type == PropertyType.LONG) {
+                    jsop.value(value.getLong());
+                } else {
+                    String string = value.getString();
+                    if (type != PropertyType.STRING
+                            || CoreValueMapper.startsWithHint(string)) {
+                        string = TYPE2HINT.get(type) + ':' + string;
+                    }
+                    jsop.value(string);
+                }
+            }
+
         });
     }
 }
