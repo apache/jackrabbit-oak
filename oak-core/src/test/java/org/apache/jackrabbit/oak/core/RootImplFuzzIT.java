@@ -54,7 +54,11 @@ public class RootImplFuzzIT {
 
     private static final int OP_COUNT = 5000;
 
-    private final Random random;
+    private static final int SEED = Integer.getInteger(
+            RootImplFuzzIT.class.getSimpleName() + "-seed",
+            new Random().nextInt());
+
+    private static final Random random = new Random(SEED);
 
     private KernelNodeStore store1;
     private RootImpl root1;
@@ -65,13 +69,6 @@ public class RootImplFuzzIT {
     private int counter;
 
     private CoreValueFactory vf;
-
-    public RootImplFuzzIT() {
-        int seed = Integer.getInteger(RootImplFuzzIT.class.getSimpleName() + "-seed",
-                new Random().nextInt());
-        log.info("Seed = {}", seed);
-        random = new Random(seed);
-    }
 
     @Before
     public void setup() {
@@ -101,7 +98,7 @@ public class RootImplFuzzIT {
             checkEqual(root1.getTree("/"), root2.getTree("/"));
             if (op instanceof Save) {
                 root2.commit(DefaultConflictHandler.OURS);
-                assertEquals(store1.getRoot(), store2.getRoot());
+                assertEquals("seed " + SEED, store1.getRoot(), store2.getRoot());
             }
         }
     }
@@ -431,13 +428,16 @@ public class RootImplFuzzIT {
     }
 
     private static void checkEqual(Tree tree1, Tree tree2) {
-        assertEquals(tree1.getPath() + "!=" + tree2.getPath(), tree1.getPath(), tree2.getPath());
-        assertEquals(tree1.getPath() + "!=" + tree2.getPath(), tree1.getChildrenCount(), tree2.getChildrenCount());
-        assertEquals(tree1.getPath() + "!=" + tree2.getPath(), tree1.getPropertyCount(), tree2.getPropertyCount());
+        String message =
+                tree1.getPath() + "!=" + tree2.getPath()
+                + " (seed " + SEED + ")";
+        assertEquals(message, tree1.getPath(), tree2.getPath());
+        assertEquals(message, tree1.getChildrenCount(), tree2.getChildrenCount());
+        assertEquals(message, tree1.getPropertyCount(), tree2.getPropertyCount());
 
         for (PropertyState property1 : tree1.getProperties()) {
             PropertyState property2 = tree2.getProperty(property1.getName());
-            assertEquals(property1 + "!=" + property2, property1, property2);
+            assertEquals(message, property1, property2);
         }
 
         for (Tree child1 : tree1.getChildren()) {
