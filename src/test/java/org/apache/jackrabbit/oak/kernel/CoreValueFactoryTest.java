@@ -142,27 +142,11 @@ public class CoreValueFactoryTest {
     }
 
     @Test
-    public void testToJsonValue() throws IOException {
-        for (CoreValue v : singleValueMap.keySet()) {
-            String json = singleValueMap.get(v);
-            assertEquals(json, CoreValueMapper.toJsonValue(v));
-        }
-    }
-
-    @Test
     public void testFromJsonValue() throws IOException {
         for (CoreValue v : singleValueMap.keySet()) {
             String json = singleValueMap.get(v);
             JsopReader reader = new JsopTokenizer(json);
             assertEquals(v, CoreValueMapper.fromJsopReader(reader, kernel));
-        }
-    }
-
-    @Test
-    public void testToJsonArray() throws IOException {
-        for (String json : mvValueMap.keySet()) {
-            List<CoreValue> values = mvValueMap.get(json);
-            assertEquals(json, CoreValueMapper.toJsonArray(values));
         }
     }
 
