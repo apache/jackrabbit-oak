@@ -34,7 +34,7 @@ import org.apache.jackrabbit.oak.api.CoreValueFactory;
  */
 public class CoreValueMapper {
 
-    private static final Map<Integer, String> TYPE2HINT = new HashMap<Integer, String>();
+    public static final Map<Integer, String> TYPE2HINT = new HashMap<Integer, String>();
     private static final Map<String, Integer> HINT2TYPE = new HashMap<String, Integer>();
 
     static {
@@ -49,61 +49,6 @@ public class CoreValueMapper {
      * Avoid instantiation.
      */
     private CoreValueMapper() {
-    }
-
-    /**
-     * Returns the internal JSON representation of the specified {@code value}
-     * that is stored in the MicroKernel. All property types that are not
-     * reflected as JSON types are converted to strings and get a type prefix.
-     *
-     * @param value The core value to be converted.
-     * @return The encoded JSON string.
-     */
-    public static String toJsonValue(CoreValue value) {
-        String jsonString;
-        switch (value.getType()) {
-            case PropertyType.BOOLEAN:
-                jsonString = Boolean.toString(value.getBoolean());
-                break;
-            case PropertyType.LONG:
-                jsonString = Long.toString(value.getLong());
-                break;
-            case PropertyType.STRING:
-                String str = value.getString();
-                if (startsWithHint(str)) {
-                    jsonString = buildJsonStringWithHint(value);
-                } else {
-                    jsonString = jsonEncode(value.getString());
-                }
-                break;
-            default:
-                // any other type
-                jsonString = buildJsonStringWithHint(value);
-        }
-        return jsonString;
-    }
-
-    /**
-     * Returns an JSON array containing the JSON representation of the
-     * specified values.
-     *
-     * @param values The values to be converted to a JSON array.
-     * @return JSON array containing the JSON representation of the specified
-     * values.
-     * @see #toJsonValue(org.apache.jackrabbit.oak.api.CoreValue)
-     */
-    public static String toJsonArray(Iterable<CoreValue> values) {
-        StringBuilder sb = new StringBuilder();
-        sb.append('[');
-        for (CoreValue cv : values) {
-            sb.append(toJsonValue(cv));
-            sb.append(',');
-        }
-        if (sb.length() > 1) {
-            sb.deleteCharAt(sb.length() - 1);
-        }
-        sb.append(']');
-        return sb.toString();
     }
 
     public static CoreValue fromJsopReader(JsopReader reader, MicroKernel kernel) {
@@ -158,24 +103,6 @@ public class CoreValueMapper {
         return values;
     }
 
-    //--------------------------------------------------------------------------
-    /**
-     * Build the JSON representation of the specified value consisting of
-     * a leading type hint, followed by ':" and the String conversion of this
-     * value.
-     *
-     * @param value The value to be serialized.
-     * @return The string representation of the specified value including a
-     * leading type hint.
-     */
-    private static String buildJsonStringWithHint(CoreValue value) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(TYPE2HINT.get(value.getType()));
-        sb.append(':');
-        sb.append(value.getString());
-        return jsonEncode(sb.toString());
-    }
-
     /**
      * Returns {@code true} if the specified JSON String represents a value
      * serialization that includes a leading type hint.
@@ -185,63 +112,8 @@ public class CoreValueMapper {
      * hint; {@code false} otherwise.
      * @see #buildJsonStringWithHint(org.apache.jackrabbit.oak.api.CoreValue)
      */
-    private static boolean startsWithHint(String jsonString) {
+    public static boolean startsWithHint(String jsonString) {
         return jsonString.length() >= 4 && jsonString.charAt(3) == ':';
-    }
-
-    /**
-     * Escape quotes, \, /, \r, \n, \b, \f, \t and other control characters
-     * (U+0000 through U+001F) and surround with double quotes.
-     */
-    private static String jsonEncode(String value) {
-        if (value == null) {
-            return null;
-        }
-
-        StringBuilder sb = new StringBuilder("\"");
-        for (int i = 0; i < value.length(); i++) {
-            char ch = value.charAt(i);
-            switch (ch) {
-                case '"':
-                    sb.append("\\\"");
-                    break;
-                case '\\':
-                    sb.append("\\\\");
-                    break;
-                case '\b':
-                    sb.append("\\b");
-                    break;
-                case '\f':
-                    sb.append("\\f");
-                    break;
-                case '\n':
-                    sb.append("\\n");
-                    break;
-                case '\r':
-                    sb.append("\\r");
-                    break;
-                case '\t':
-                    sb.append("\\t");
-                    break;
-                default:
-                    //Reference: http://www.unicode.org/versions/Unicode5.1.0/
-                    if (ch >= '\u0000' && ch <= '\u001F' ||
-                            ch >= '\u007F' && ch <= '\u009F' ||
-                            ch >= '\u2000' && ch <= '\u20FF') {
-
-                        String ss = Integer.toHexString(ch);
-                        sb.append("\\u");
-                        for (int k = 0; k < 4 - ss.length(); k++) {
-                            sb.append('0');
-                        }
-                        sb.append(ss.toUpperCase());
-                    } else {
-                        sb.append(ch);
-                    }
-            }
-        }
-
-        return sb.append('"').toString();
     }
 
 }
