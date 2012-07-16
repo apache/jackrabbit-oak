@@ -32,7 +32,7 @@ public class PropertyIndex implements Index {
     private final BTree tree;
     private final String propertyName;
 
-    public PropertyIndex(Indexer indexer, String propertyName, boolean unique) {
+    PropertyIndex(Indexer indexer, String propertyName, boolean unique) {
         this.indexer = indexer;
         this.propertyName = propertyName;
         this.tree = new BTree(indexer, Indexer.TYPE_PROPERTY + propertyName +
@@ -40,7 +40,7 @@ public class PropertyIndex implements Index {
         tree.setMinSize(10);
     }
 
-    public static PropertyIndex fromNodeName(Indexer indexer, String nodeName) {
+    static PropertyIndex fromNodeName(Indexer indexer, String nodeName) {
         if (!nodeName.startsWith(Indexer.TYPE_PROPERTY)) {
             return null;
         }
