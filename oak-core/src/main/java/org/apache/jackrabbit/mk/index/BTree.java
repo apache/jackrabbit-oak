@@ -37,11 +37,7 @@ public class BTree {
         this.indexer = indexer;
         this.name = name;
         this.unique = unique;
-        if (!indexer.nodeExists(name)) {
-            JsopBuilder jsop = new JsopBuilder();
-            jsop.tag('+').key(name).object().endObject();
-            indexer.commit(jsop.toString());
-        }
+        indexer.createNodes(PathUtils.concat(name, Indexer.INDEX_CONTENT));
     }
 
     public void setMinSize(int minSize) {
@@ -127,7 +123,7 @@ public class BTree {
 
     void bufferSetArray(String path, String propertyName, String[] data) {
         JsopBuilder jsop = new JsopBuilder();
-        path = PathUtils.concat(name, path);
+        path = PathUtils.concat(name, Indexer.INDEX_CONTENT, path);
         jsop.tag('^').key(PathUtils.concat(path, propertyName));
         if (data == null) {
             jsop.value(null);
@@ -151,7 +147,7 @@ public class BTree {
 
     void bufferDelete(String path) {
         JsopBuilder jsop = new JsopBuilder();
-        jsop.tag('-').value(PathUtils.concat(name, path));
+        jsop.tag('-').value(PathUtils.concat(name, Indexer.INDEX_CONTENT, path));
         jsop.newline();
         indexer.buffer(jsop.toString());
     }
@@ -164,7 +160,7 @@ public class BTree {
         indexer.modified(this, page, false);
     }
 
-    public void moveCache(String oldPath) {
+    void moveCache(String oldPath) {
         indexer.moveCache(this, oldPath);
     }
 

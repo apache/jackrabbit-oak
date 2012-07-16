@@ -70,8 +70,8 @@ class BTreeNode extends BTreePage {
         n2.writeCreate();
         for (String c : n2.children) {
             tree.bufferMove(
-                    PathUtils.concat(tree.getName(), getPath(), c),
-                    PathUtils.concat(tree.getName(), getParentPath(), siblingName, c)
+                    PathUtils.concat(tree.getName(), Indexer.INDEX_CONTENT, getPath(), c),
+                    PathUtils.concat(tree.getName(), Indexer.INDEX_CONTENT, getParentPath(), siblingName, c)
             );
         }
         tree.moveCache(getPath());
@@ -108,30 +108,7 @@ class BTreeNode extends BTreePage {
     void writeCreate() {
         verify();
         tree.modified(this);
-        JsopBuilder jsop = new JsopBuilder();
-        jsop.tag('+').key(PathUtils.concat(tree.getName(), getPath())).object();
-        jsop.key("keys").array();
-        for (String k : keys) {
-            jsop.value(k);
-        }
-        jsop.endArray();
-        jsop.key("values").array();
-        for (String v : values) {
-            jsop.value(v);
-        }
-        jsop.endArray();
-        // could just use child node list, but then
-        // new children need to be ordered at the right position,
-        // and we would need a way to distinguish empty lists
-        // from a leaf
-        jsop.key("children").array();
-        for (String d : children) {
-            jsop.value(d);
-        }
-        jsop.endArray();
-        jsop.endObject();
-        jsop.newline();
-        tree.buffer(jsop.toString());
+        tree.buffer(getJsop());
     }
 
     void delete(int pos) {
@@ -157,7 +134,7 @@ class BTreeNode extends BTreePage {
         return children.length == 0;
     }
 
-    void verify() {
+    private void verify() {
         if (values.length != keys.length) {
             throw new IllegalArgumentException(
                     "Number of values doesn't match number of keys: " +
@@ -170,6 +147,38 @@ class BTreeNode extends BTreePage {
                         Arrays.toString(values) + " " + Arrays.toString(keys) + " " + Arrays.toString(children));
             }
         }
+    }
+
+    private String getJsop() {
+        JsopBuilder jsop = new JsopBuilder();
+        jsop.tag('+').key(PathUtils.concat(tree.getName(), Indexer.INDEX_CONTENT, getPath())).object();
+        jsop.key("keys").array();
+        for (String k : keys) {
+            jsop.value(k);
+        }
+        jsop.endArray();
+        jsop.key("values").array();
+        for (String v : values) {
+            jsop.value(v);
+        }
+        jsop.endArray();
+        // could just use child node list, but then
+        // new children need to be ordered at the right position,
+        // and we would need a way to distinguish empty lists
+        // from a leaf
+        jsop.key("children").array();
+        for (String d : children) {
+            jsop.value(d);
+        }
+        jsop.endArray();
+        jsop.endObject();
+        jsop.newline();
+        return jsop.toString();
+    }
+
+    @Override
+    public String toString() {
+    		return "node: " + getJsop();
     }
 
 }

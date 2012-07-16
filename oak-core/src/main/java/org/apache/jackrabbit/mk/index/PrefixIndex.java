@@ -20,6 +20,7 @@ import java.util.Iterator;
 import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.mk.simple.NodeImpl;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 
 /**
  * An index for all values with a given prefix.
@@ -98,10 +99,11 @@ public class PrefixIndex implements Index {
 
     private void addOrRemove(String path, String propertyName, String value, boolean add) {
         String v = value.substring(prefix.length());
+        String p = PathUtils.concat(path,  propertyName);
         if (add) {
-            tree.add(v, path + "/" + propertyName);
+            tree.add(v, p);
         } else {
-            tree.remove(v, path + "/" + propertyName);
+            tree.remove(v, p);
         }
     }
 

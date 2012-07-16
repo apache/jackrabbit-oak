@@ -79,8 +79,20 @@ class BTreeLeaf extends BTreePage {
     void writeCreate() {
         verify();
         tree.modified(this);
+        tree.buffer(getJsop());
+    }
+
+    private void verify() {
+        if (values.length != keys.length) {
+            throw new IllegalArgumentException(
+                    "Number of values doesn't match number of keys: " +
+                    Arrays.toString(values) + " " + Arrays.toString(keys));
+        }
+    }
+
+    private String getJsop() {
         JsopBuilder jsop = new JsopBuilder();
-        jsop.tag('+').key(PathUtils.concat(tree.getName(), getPath())).object();
+        jsop.tag('+').key(PathUtils.concat(tree.getName(), Indexer.INDEX_CONTENT, getPath())).object();
         jsop.key("keys").array();
         for (String k : keys) {
             jsop.value(k);
@@ -93,15 +105,12 @@ class BTreeLeaf extends BTreePage {
         jsop.endArray();
         jsop.endObject();
         jsop.newline();
-        tree.buffer(jsop.toString());
+        return jsop.toString();
     }
 
-    void verify() {
-        if (values.length != keys.length) {
-            throw new IllegalArgumentException(
-                    "Number of values doesn't match number of keys: " +
-                    Arrays.toString(values) + " " + Arrays.toString(keys));
-        }
+    @Override
+    public String toString() {
+    		return "leaf: " + getJsop();
     }
 
 }
