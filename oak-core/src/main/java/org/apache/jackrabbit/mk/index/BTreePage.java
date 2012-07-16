@@ -44,15 +44,16 @@ abstract class BTreePage {
     void setParent(BTreeNode newParent, String newName, boolean parentIsNew) {
         if (newParent != null) {
             String oldPath = getPath();
+            String temp = PathUtils.concat(Indexer.INDEX_CONTENT, "temp");
             tree.bufferMove(
-                    PathUtils.concat(tree.getName(), getPath()),
-                    "temp");
+                    PathUtils.concat(tree.getName(), Indexer.INDEX_CONTENT, getPath()),
+                    temp);
             if (parentIsNew) {
                 newParent.writeCreate();
             }
             tree.bufferMove(
-                    "temp",
-                    PathUtils.concat(tree.getName(), getParentPath(), newName));
+            			temp,
+                    PathUtils.concat(tree.getName(), Indexer.INDEX_CONTENT, getParentPath(), newName));
             parent = newParent;
             name = newName;
             tree.moveCache(oldPath);

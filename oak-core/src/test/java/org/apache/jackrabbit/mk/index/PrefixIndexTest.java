@@ -38,7 +38,9 @@ public class PrefixIndexTest {
 
         // meta data
         String meta = mk.getNodes(Indexer.INDEX_CONFIG_ROOT, head, 1, 0, -1, null);
-        Assert.assertEquals("{\":childNodeCount\":1,\"prefix@d:\":{\":childNodeCount\":0}}", meta);
+
+        Assert.assertEquals("{\":childNodeCount\":2,\"prefix@d:\":" +
+        		"{\":childNodeCount\":1,\":data\":{}},\":data\":{\":childNodeCount\":0}}", meta);
 
         Assert.assertEquals("", getPathList(index, "d:1", head));
 
@@ -70,7 +72,7 @@ public class PrefixIndexTest {
         Assert.assertEquals("/test7/b", getPathList(index, "d:4", head));
     }
 
-    private String getPathList(PrefixIndex index, String value, String revision) {
+    private static String getPathList(PrefixIndex index, String value, String revision) {
         StringBuilder buff = new StringBuilder();
         int i = 0;
         for (Iterator<String> it = index.getPaths(value, revision); it.hasNext();) {
