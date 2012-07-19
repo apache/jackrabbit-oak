@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.lucene;
 
+import static org.apache.jackrabbit.oak.plugins.lucene.FieldFactory.newPathField;
+import static org.apache.jackrabbit.oak.plugins.lucene.FieldFactory.newPropertyField;
+import static org.apache.jackrabbit.oak.plugins.lucene.TermFactory.newPathTerm;
+
 import java.io.IOException;
 
 import javax.jcr.PropertyType;
@@ -31,12 +35,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
-import org.apache.lucene.document.Field.Index;
-import org.apache.lucene.document.Field.Store;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.index.Term;
 import org.apache.lucene.util.Version;
 import org.apache.tika.Tika;
 import org.apache.tika.exception.TikaException;
@@ -45,7 +45,7 @@ public class LuceneEditor implements CommitEditor {
 
     private static final Tika TIKA = new Tika();
 
-    private static final Version VERSION = Version.LUCENE_36;
+    private static final Version VERSION = Version.LUCENE_40;
 
     private static final Analyzer ANALYZER = new StandardAnalyzer(VERSION);
 
@@ -101,7 +101,7 @@ public class LuceneEditor implements CommitEditor {
             }
             if (modified) {
                 writer.updateDocument(
-                        makePathTerm(path),
+                        newPathTerm(path),
                         makeDocument(path, state));
             }
         }
@@ -167,31 +167,26 @@ public class LuceneEditor implements CommitEditor {
 
         private void deleteSubtree(String path, NodeState state)
                 throws IOException {
-            writer.deleteDocuments(makePathTerm(path));
+            writer.deleteDocuments(newPathTerm(path));
             for (ChildNodeEntry entry : state.getChildNodeEntries()) {
                 deleteSubtree(path + "/" + entry.getName(), entry.getNodeState());
             }
         }
 
-        private Term makePathTerm(String path) {
-            return new Term(":path", path);
-        }
-
         private Document makeDocument(
                 String path, NodeState state) {
             Document document = new Document();
-            document.add(new Field(
-                    ":path", path, Store.YES, Index.NOT_ANALYZED));
+            document.add(newPathField(path));
             for (PropertyState property : state.getProperties()) {
                 String pname = property.getName();
                 for (CoreValue value : property.getValues()) {
-                    document.add(makeField(pname, value));
+                    document.add(newPropertyField(pname, parseStringValue(value)));
                 }
             }
             return document;
         }
 
-        private Field makeField(String name, CoreValue value) {
+        private String parseStringValue(CoreValue value) {
             String string;
             if (value.getType() != PropertyType.BINARY) {
                 string = value.getString();
@@ -204,7 +199,7 @@ public class LuceneEditor implements CommitEditor {
                     string = "";
                 }
             }
-            return new Field(name, string, Store.NO, Index.ANALYZED);
+            return string;
         }
 
     }

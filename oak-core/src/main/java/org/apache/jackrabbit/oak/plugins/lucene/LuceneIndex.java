@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.lucene;
 
+import static org.apache.jackrabbit.oak.plugins.lucene.FieldNames.PATH;
+import static org.apache.jackrabbit.oak.plugins.lucene.FieldNames.PATH_SELECTOR;
+import static org.apache.jackrabbit.oak.plugins.lucene.TermFactory.newPathTerm;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -28,6 +32,7 @@ import org.apache.jackrabbit.oak.spi.Filter;
 import org.apache.jackrabbit.oak.spi.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause.Occur;
@@ -70,32 +75,29 @@ public class LuceneIndex implements QueryIndex {
     @Override
     public Cursor query(Filter filter, String revisionId) {
         try {
-            Directory directory =
-                    new OakDirectory(store, store.getRoot(), path);
+            Directory directory = new OakDirectory(store, store.getRoot(), path);
             try {
-                IndexReader reader = IndexReader.open(directory);
+                IndexReader reader = DirectoryReader.open(directory);
                 try {
                     IndexSearcher searcher = new IndexSearcher(reader);
-                    try {
-                        Collection<String> paths = new ArrayList<String>();
+                    Collection<String> paths = new ArrayList<String>();
 
-                        Query query = getQuery(filter);
-                        if (query != null) {
-                            TopDocs docs = searcher.search(query, Integer.MAX_VALUE);
-                            for (ScoreDoc doc : docs.scoreDocs) {
-                                String path = reader.document(doc.doc).get(":path");
-                                if ("".equals(path)) {
-                                    paths.add("/");
-                                } else if (path != null) {
-                                    paths.add(path);
-                                }
+                    Query query = getQuery(filter);
+                    if (query != null) {
+                        TopDocs docs = searcher
+                                .search(query, Integer.MAX_VALUE);
+                        for (ScoreDoc doc : docs.scoreDocs) {
+                            String path = reader.document(doc.doc,
+                                    PATH_SELECTOR).get(PATH);
+                            if ("".equals(path)) {
+                                paths.add("/");
+                            } else if (path != null) {
+                                paths.add(path);
                             }
                         }
-
-                        return new PathCursor(paths);
-                    } finally {
-                        searcher.close();
                     }
+
+                    return new PathCursor(paths);
                 } finally {
                     reader.close();
                 }
@@ -103,7 +105,7 @@ public class LuceneIndex implements QueryIndex {
                 directory.close();
             }
         } catch (IOException e) {
-            return new PathCursor(Collections.<String>emptySet());
+            return new PathCursor(Collections.<String> emptySet());
         }
     }
 
@@ -116,19 +118,19 @@ public class LuceneIndex implements QueryIndex {
         }
         switch (filter.getPathRestriction()) {
         case ALL_CHILDREN:
-            qs.add(new PrefixQuery(new Term(":path", path + "/")));
+            qs.add(new PrefixQuery(newPathTerm(path + "/")));
             break;
         case DIRECT_CHILDREN:
-            qs.add(new PrefixQuery(new Term(":path", path + "/"))); // FIXME
+            qs.add(new PrefixQuery(newPathTerm(path + "/"))); // FIXME
             break;
         case EXACT:
-            qs.add(new TermQuery(new Term(":path", path)));
+            qs.add(new TermQuery(newPathTerm(path)));
             break;
         case PARENT:
             int slash = path.lastIndexOf('/');
             if (slash != -1) {
                 String parent = path.substring(0, slash);
-                qs.add(new TermQuery(new Term(":path", parent)));
+                qs.add(new TermQuery(newPathTerm(parent)));
             } else {
                 return null; // there's no parent of the root node
             }
@@ -142,8 +144,8 @@ public class LuceneIndex implements QueryIndex {
             if (first .equals(last) && pr.firstIncluding && pr.lastIncluding) {
                 qs.add(new TermQuery(new Term(name, first)));
             } else {
-                qs.add(new TermRangeQuery(
-                        name, first, last, pr.firstIncluding, pr.lastIncluding));
+                qs.add(TermRangeQuery.newStringRange(name, first, last,
+                        pr.firstIncluding, pr.lastIncluding));
             }
         }
 
