@@ -98,9 +98,10 @@ public interface Tree {
 
     /**
      * Get a property state
-     * @param name name of the property state
-     * @return  the property state with the given {@code name} or {@code null}
-     *          if no such property state exists.
+     *
+     * @param name The name of the property state.
+     * @return the property state with the given {@code name} or {@code null}
+     * if no such property state exists or the property is not accessible.
      */
     @CheckForNull
     PropertyState getProperty(String name);
@@ -115,10 +116,11 @@ public interface Tree {
     Status getPropertyStatus(String name);
 
     /**
-     * Determine if a property state exists
-     * @param name  name of the property state
-     * @return  {@code true} if and only if a property with the given {@code name}
-     *          exists.
+     * Determine if a property state exists and is accessible.
+     *
+     * @param name The name of the property state
+     * @return {@code true} if and only if a property with the given {@code name}
+     *          exists and is accessible.
      */
     boolean hasProperty(String name);
 
