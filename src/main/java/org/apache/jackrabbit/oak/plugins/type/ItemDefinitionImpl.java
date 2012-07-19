@@ -51,64 +51,11 @@ class ItemDefinitionImpl implements ItemDefinition {
 
     private final NodeType type;
 
-    private final NameMapper mapper;
+    protected final NodeUtil node;
 
-    private final Tree tree;
-
-    protected ItemDefinitionImpl(
-            NodeType type, NameMapper mapper, Tree tree) {
+    protected ItemDefinitionImpl(NodeType type, NodeUtil node) {
         this.type = type;
-        this.mapper = mapper;
-        this.tree = tree;
-    }
-
-    protected boolean getBoolean(String name, boolean defaultValue) {
-        PropertyState property = tree.getProperty(name);
-        if (property != null && !property.isArray()) {
-            return property.getValue().getBoolean();
-        } else {
-            return defaultValue;
-        }
-    }
-
-    protected String getString(String name, String defaultValue) {
-        PropertyState property = tree.getProperty(name);
-        if (property != null && !property.isArray()) {
-            return property.getValue().getString();
-        } else {
-            return defaultValue;
-        }
-    }
-
-    protected String[] getStrings(String name, String[] defaultValues) {
-        PropertyState property = tree.getProperty(name);
-        if (property != null) {
-            List<CoreValue> values = property.getValues();
-            String[] strings = new String[values.size()];
-            for (int i = 0; i < strings.length; i++) {
-                strings[i] = values.get(i).getString();
-            }
-            return strings;
-        } else {
-            return defaultValues;
-        }
-    }
-
-    protected String getName(String name, String defaultValue) {
-        PropertyState property = tree.getProperty(name);
-        if (property != null && !property.isArray()) {
-            return mapper.getJcrName(property.getValue().getString());
-        } else {
-            return defaultValue;
-        }
-    }
-
-    protected String[] getNames(String name, String... defaultValues) {
-        String[] strings = getStrings(name, defaultValues);
-        for (int i = 0; i < strings.length; i++) {
-            strings[i] = mapper.getJcrName(strings[i]);
-        }
-        return strings;
+        this.node = node;
     }
 
     @Override
@@ -118,22 +65,22 @@ class ItemDefinitionImpl implements ItemDefinition {
 
     @Override
     public String getName() {
-        return getName("jcr:name", "*");
+        return node.getName("jcr:name", "*");
     }
 
     @Override
     public boolean isAutoCreated() {
-        return getBoolean("jcr:autoCreated", false);
+        return node.getBoolean("jcr:autoCreated");
     }
 
     @Override
     public boolean isMandatory() {
-        return getBoolean("jcr:mandatory", false);
+        return node.getBoolean("jcr:mandatory");
     }
 
     @Override
     public int getOnParentVersion() {
-        String opv = getString("jcr:onParentVersion", ACTIONNAME_COPY);
+        String opv = node.getString("jcr:onParentVersion", ACTIONNAME_COPY);
         if (ACTIONNAME_ABORT.equalsIgnoreCase(opv)) {
             return OnParentVersionAction.ABORT;
         } else if (ACTIONNAME_COMPUTE.equalsIgnoreCase(opv)) {
@@ -151,7 +98,7 @@ class ItemDefinitionImpl implements ItemDefinition {
 
     @Override
     public boolean isProtected() {
-        return getBoolean("jcr:protected", false);
+        return node.getBoolean("jcr:protected");
     }
 
 }
