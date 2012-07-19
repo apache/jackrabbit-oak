@@ -19,8 +19,10 @@ package org.apache.jackrabbit.oak.plugins.name;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.jcr.NamespaceRegistry;
 import javax.jcr.PropertyType;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -30,8 +32,7 @@ import org.apache.jackrabbit.oak.api.Tree;
  */
 class Namespaces {
 
-    private static final Map<String, String> defaults =
-            new HashMap<String, String>();
+    private static final Map<String, String> defaults = new HashMap<String, String>();
 
     // TODO: this should not use the "jcr" prefix
     public static final String NSMAPNODENAME = "jcr:namespaces";
@@ -41,13 +42,14 @@ class Namespaces {
 
     static {
         // Standard namespace specified by JCR (default one not included)
-        defaults.put("", "");
-        defaults.put("jcr", "http://www.jcp.org/jcr/1.0");
-        defaults.put("nt",  "http://www.jcp.org/jcr/nt/1.0");
-        defaults.put("mix", "http://www.jcp.org/jcr/mix/1.0");
-        defaults.put("xml", "http://www.w3.org/XML/1998/namespace");
+        defaults.put(NamespaceRegistry.PREFIX_EMPTY, NamespaceRegistry.NAMESPACE_EMPTY);
+        defaults.put(NamespaceRegistry.PREFIX_JCR, NamespaceRegistry.NAMESPACE_JCR);
+        defaults.put(NamespaceRegistry.PREFIX_NT,  NamespaceRegistry.NAMESPACE_NT);
+        defaults.put(NamespaceRegistry.PREFIX_MIX, NamespaceRegistry.NAMESPACE_MIX);
+        defaults.put(NamespaceRegistry.PREFIX_XML, NamespaceRegistry.NAMESPACE_XML);
 
         // Namespace included in Jackrabbit 2.x
+        // TODO: use constants (see also http://java.net/jira/browse/JSR_333-50)
         defaults.put("sv", "http://www.jcp.org/jcr/sv/1.0");
 
         // TODO: see OAK-74
@@ -57,7 +59,7 @@ class Namespaces {
     public static Map<String, String> getNamespaceMap(Tree root) {
         Map<String, String> map = new HashMap<String, String>(defaults);
 
-        Tree system = root.getChild("jcr:system");
+        Tree system = root.getChild(JcrConstants.JCR_SYSTEM);
         if (system != null) {
             Tree namespaces = system.getChild(NSMAPNODENAME);
             if (namespaces != null) {
