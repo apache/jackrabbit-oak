@@ -17,13 +17,17 @@
 package org.apache.jackrabbit.oak.security.privilege;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Callable;
+
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.util.ArrayUtils;
+import org.apache.jackrabbit.oak.util.TODO;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeProvider;
 
@@ -60,7 +64,7 @@ public class PrivilegeRegistry implements PrivilegeProvider, PrivilegeConstants 
         // TODO: define where custom privileges are being stored.
 
         for (String privilegeName : SIMPLE_PRIVILEGES) {
-            PrivilegeDefinition def = new PrivilegeDefinitionImpl(privilegeName, false, new String[0]);
+            PrivilegeDefinition def = new PrivilegeDefinitionImpl(privilegeName, false);
             definitions.put(privilegeName, def);
         }
 
@@ -70,11 +74,11 @@ public class PrivilegeRegistry implements PrivilegeProvider, PrivilegeConstants 
         }
 
         // TODO: jcr:all needs to be recalculated if custom privileges are registered
-        definitions.put(JCR_ALL, new PrivilegeDefinitionImpl(JCR_ALL, false, new String[] {
+        definitions.put(JCR_ALL, new PrivilegeDefinitionImpl(JCR_ALL, false,
             JCR_READ, JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL,
             JCR_VERSION_MANAGEMENT, JCR_LOCK_MANAGEMENT, JCR_LIFECYCLE_MANAGEMENT,
             JCR_RETENTION_MANAGEMENT, JCR_WORKSPACE_MANAGEMENT, JCR_NODE_TYPE_DEFINITION_MANAGEMENT,
-            JCR_NAMESPACE_MANAGEMENT, REP_PRIVILEGE_MANAGEMENT, REP_WRITE}));
+            JCR_NAMESPACE_MANAGEMENT, REP_PRIVILEGE_MANAGEMENT, REP_WRITE));
     }
 
     //--------------------------------------------------< PrivilegeProvider >---
@@ -90,15 +94,22 @@ public class PrivilegeRegistry implements PrivilegeProvider, PrivilegeConstants 
     }
 
     @Override
-    public PrivilegeDefinition registerDefinition(String privilegeName,
-                                                  boolean isAbstract,
-                                                  Set<String> declaredAggregateNames) throws RepositoryException {
+    public PrivilegeDefinition registerDefinition(
+            final String privilegeName, final boolean isAbstract,
+            final Set<String> declaredAggregateNames)
+            throws RepositoryException {
         // TODO: check permission, validate and persist the custom definition
-        PrivilegeDefinition definition = new PrivilegeDefinitionImpl(
-                privilegeName, isAbstract,
-                declaredAggregateNames.toArray(new String[declaredAggregateNames.size()]));
-        definitions.put(privilegeName, definition);
-        return definition;
+        return TODO.dummyImplementation().call(new Callable<PrivilegeDefinition>() {
+            @Override
+            public PrivilegeDefinition call() throws Exception {
+                PrivilegeDefinition definition = new PrivilegeDefinitionImpl(
+                        privilegeName, isAbstract,
+                        new HashSet<String>(declaredAggregateNames));
+                // TODO: update jcr:all
+                definitions.put(privilegeName, definition);
+                return definition;
+            }
+        });
     }
 
 
@@ -111,10 +122,15 @@ public class PrivilegeRegistry implements PrivilegeProvider, PrivilegeConstants 
         private final Set<String> declaredAggregateNames;
 
         private PrivilegeDefinitionImpl(String name, boolean isAbstract,
-                                        String[] declaredAggregateNames) {
+                                        Set<String> declaredAggregateNames) {
             this.name = name;
             this.isAbstract = isAbstract;
-            this.declaredAggregateNames = ArrayUtils.toSet(declaredAggregateNames);
+            this.declaredAggregateNames = declaredAggregateNames;
+        }
+
+        private PrivilegeDefinitionImpl(String name, boolean isAbstract,
+                                        String... declaredAggregateNames) {
+            this(name, isAbstract, ArrayUtils.toSet(declaredAggregateNames));
         }
 
         //--------------------------------------------< PrivilegeDefinition >---
