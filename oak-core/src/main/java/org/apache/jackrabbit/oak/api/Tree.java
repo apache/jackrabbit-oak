@@ -89,6 +89,14 @@ public interface Tree {
     String getPath();
 
     /**
+     * Get the {@code Status} of this tree instance.
+     *
+     * @return The status of this tree instance.
+     */
+    @Nonnull
+    Status getStatus();
+
+    /**
      * @return the parent of this {@code Tree} instance. This method returns
      * {@code null} if the parent is not accessible or if no parent exists (root
      * node).
@@ -155,14 +163,6 @@ public interface Tree {
     Tree getChild(String name);
 
     /**
-     * Get the {@code Status} of this tree instance.
-     *
-     * @return The status of this tree instance.
-     */
-    @Nonnull
-    Status getStatus();
-
-    /**
      * Determine if a child of this {@code Tree} instance exists. If no child
      * exists or an existing child isn't accessible this method returns {@code false}.
      *
@@ -192,6 +192,13 @@ public interface Tree {
     Iterable<Tree> getChildren();
 
     /**
+     * Remove this tree instance. This operation never succeeds for the root tree.
+     *
+     * @return {@code true} if the node was removed; {@code false} otherwise.
+     */
+    boolean remove();
+
+    /**
      * Add a child with the given {@code name}. Does nothing if such a child
      * already exists.
      *
@@ -200,12 +207,6 @@ public interface Tree {
      */
     @Nonnull
     Tree addChild(String name);
-
-    /**
-     * Remove this sub tree if not root.
-     * @return  {@code false} iff this is the root.
-     */
-    boolean remove();
 
     /**
      * Set a single valued property state
@@ -228,8 +229,9 @@ public interface Tree {
     PropertyState setProperty(String name, List<CoreValue> values);
 
     /**
-     * Remove a property
-     * @param name name of the property
+     * Remove the property with the given name.
+     *
+     * @param name The name of the property
      */
     void removeProperty(String name);
 
