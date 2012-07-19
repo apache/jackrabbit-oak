@@ -55,7 +55,7 @@ public class RootImpl implements Root {
     private NodeStoreBranch branch;
 
     /** Current root {@code Tree} */
-    private TreeImpl root;
+    private TreeImpl rootTree;
 
     /**
      * Number of {@link #purge()} occurred so since the lase
@@ -100,9 +100,10 @@ public class RootImpl implements Root {
         this.store = store;
         this.observationLimit = new AtomicReference<NodeState>(store.getRoot());
         branch = store.branch();
-        root = TreeImpl.createRoot(this);
+        rootTree = TreeImpl.createRoot(this);
     }
 
+    //---------------------------------------------------------------< Root >---
     @Override
     public boolean move(String sourcePath, String destPath) {
         TreeImpl source = getChild(sourcePath);
@@ -137,12 +138,12 @@ public class RootImpl implements Root {
 
     @Override
     public void rebase(ConflictHandler conflictHandler) {
-        if (!store.getRoot().equals(root.getBaseState())) {
+        if (!store.getRoot().equals(rootTree.getBaseState())) {
             purgePendingChanges();
             NodeState base = getBaseState();
-            NodeState head = root.getNodeState();
+            NodeState head = rootTree.getNodeState();
             refresh();
-            MergingNodeStateDiff.merge(base, head, root, conflictHandler);
+            MergingNodeStateDiff.merge(base, head, rootTree, conflictHandler);
         }
     }
 
@@ -153,7 +154,7 @@ public class RootImpl implements Root {
         // observation will catch up later on with the next call to ChangeExtractor.getChanges()
         observationLimit.set(store.getRoot());
         branch = store.branch();
-        root = TreeImpl.createRoot(this);
+        rootTree = TreeImpl.createRoot(this);
     }
 
     @Override
@@ -166,7 +167,7 @@ public class RootImpl implements Root {
 
     @Override
     public boolean hasPendingChanges() {
-        return !getBaseState().equals(root.getNodeState());
+        return !getBaseState().equals(rootTree.getNodeState());
     }
 
     @Override
@@ -184,17 +185,7 @@ public class RootImpl implements Root {
         };
     }
 
-    /**
-     * Add a {@code PurgeListener} to this instance. Listeners are automatically
-     * unregistered after having been called. If further notifications are required,
-     * they need to explicitly re-register.
-     * @param purgeListener  listener
-     */
-    public void addListener(PurgeListener purgeListener) {
-        purgePurgeListeners.add(purgeListener);
-    }
-
-    //------------------------------------------------------------< internal >---
+    //-----------------------------------------------------------< internal >---
 
     /**
      * Returns the node state from which the current branch was created.
@@ -207,6 +198,16 @@ public class RootImpl implements Root {
 
     NodeStateBuilder createRootBuilder() {
         return store.getBuilder(branch.getRoot());
+    }
+
+    /**
+     * Add a {@code PurgeListener} to this instance. Listeners are automatically
+     * unregistered after having been called. If further notifications are required,
+     * they need to explicitly re-register.
+     * @param purgeListener  listener
+     */
+    void addListener(PurgeListener purgeListener) {
+        purgePurgeListeners.add(purgeListener);
     }
 
     // TODO better way to determine purge limit. See OAK-175
@@ -225,7 +226,7 @@ public class RootImpl implements Root {
      */
     private void purgePendingChanges() {
         if (hasPendingChanges()) {
-            branch.setRoot(root.getNodeState());
+            branch.setRoot(rootTree.getNodeState());
         }
         notifyListeners();
     }
@@ -246,7 +247,7 @@ public class RootImpl implements Root {
      *          at {@code path} or {@code null} if no such item exits.
      */
     private TreeImpl getChild(String path) {
-        TreeImpl child = root;
+        TreeImpl child = rootTree;
         for (String name : elements(path)) {
             child = child.getChild(name);
             if (child == null) {
