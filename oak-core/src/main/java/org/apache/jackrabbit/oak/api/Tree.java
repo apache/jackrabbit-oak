@@ -89,7 +89,9 @@ public interface Tree {
     String getPath();
 
     /**
-     * @return  the parent of this {@code Tree} instance or {@code null} for the root.
+     * @return the parent of this {@code Tree} instance. This method returns
+     * {@code null} if the parent is not accessible or if no parent exists (root
+     * node).
      */
     @CheckForNull
     Tree getParent();
