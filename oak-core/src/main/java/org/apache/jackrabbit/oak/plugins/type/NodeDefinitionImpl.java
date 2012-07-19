@@ -24,8 +24,6 @@ import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeManager;
 
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,15 +44,14 @@ class NodeDefinitionImpl extends ItemDefinitionImpl implements NodeDefinition {
     private final NodeTypeManager manager;
 
     protected NodeDefinitionImpl(
-            NodeTypeManager manager,
-            NodeType type, NameMapper mapper, Tree tree) {
-        super(type, mapper, tree);
+            NodeTypeManager manager, NodeType type, NodeUtil node) {
+        super(type, node);
         this.manager = manager;
     }
 
     @Override
     public String[] getRequiredPrimaryTypeNames() {
-        return getNames("requiredPrimaryTypes", "nt:base");
+        return node.getNames("requiredPrimaryTypes", "nt:base");
     }
 
     @Override
@@ -74,7 +71,7 @@ class NodeDefinitionImpl extends ItemDefinitionImpl implements NodeDefinition {
 
     @Override
     public String getDefaultPrimaryTypeName() {
-        return getName("jcr:defaultPrimaryTypeName", null);
+        return node.getName("jcr:defaultPrimaryTypeName", null);
     }
 
     @Override
@@ -93,7 +90,7 @@ class NodeDefinitionImpl extends ItemDefinitionImpl implements NodeDefinition {
 
     @Override
     public boolean allowsSameNameSiblings() {
-        return getBoolean("jcr:sameNameSiblings", false);
+        return node.getBoolean("jcr:sameNameSiblings");
     }
 
 }
