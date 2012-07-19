@@ -24,9 +24,6 @@ import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.query.qom.QueryObjectModelConstants;
 
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.namepath.NameMapper;
-
 /**
  * <pre>
  * [nt:propertyDefinition]
@@ -46,22 +43,13 @@ import org.apache.jackrabbit.oak.namepath.NameMapper;
 class PropertyDefinitionImpl extends ItemDefinitionImpl
         implements PropertyDefinition {
 
-    private static String[] DEFAULT_QOPS = new String[] {
-        QueryObjectModelConstants.JCR_OPERATOR_EQUAL_TO,
-        QueryObjectModelConstants.JCR_OPERATOR_NOT_EQUAL_TO,
-        QueryObjectModelConstants.JCR_OPERATOR_GREATER_THAN,
-        QueryObjectModelConstants.JCR_OPERATOR_GREATER_THAN_OR_EQUAL_TO,
-        QueryObjectModelConstants.JCR_OPERATOR_LESS_THAN,
-        QueryObjectModelConstants.JCR_OPERATOR_LESS_THAN_OR_EQUAL_TO,
-        QueryObjectModelConstants.JCR_OPERATOR_LIKE };
-
-    public PropertyDefinitionImpl(NodeType type, NameMapper mapper, Tree tree) {
-        super(type, mapper, tree);
+    public PropertyDefinitionImpl(NodeType type, NodeUtil node) {
+        super(type, node);
     }
 
     @Override
     public int getRequiredType() {
-        String type = getString("jcr:requiredType", TYPENAME_UNDEFINED);
+        String type = node.getString("jcr:requiredType", TYPENAME_UNDEFINED);
         if (PropertyType.TYPENAME_BINARY.equalsIgnoreCase(type)) {
             return PropertyType.BINARY;
         } else if (PropertyType.TYPENAME_BOOLEAN.equalsIgnoreCase(type)) {
@@ -93,16 +81,8 @@ class PropertyDefinitionImpl extends ItemDefinitionImpl
 
     @Override
     public String[] getValueConstraints() {
-        String[] constraints = getStrings("jcr:valueConstraints", null);
-        if (constraints != null) {
-            int type = getRequiredType();
-            if (type == PropertyType.NAME || type == PropertyType.PATH) {
-                for (int i = 0; i < constraints.length; i++) {
-                    // TODO: namespace mapping
-                }
-            }
-        }
-        return constraints;
+        // TODO: namespace mapping?
+        return node.getStrings("jcr:valueConstraints");
     }
 
     @Override
@@ -112,22 +92,33 @@ class PropertyDefinitionImpl extends ItemDefinitionImpl
 
     @Override
     public boolean isMultiple() {
-        return getBoolean("jcr:multiple", false);
+        return node.getBoolean("jcr:multiple");
     }
 
     @Override
     public String[] getAvailableQueryOperators() {
-        return getStrings("jcr:availableQueryOperators", DEFAULT_QOPS.clone());
+        String[] ops = node.getStrings("jcr:availableQueryOperators");
+        if (ops == null) {
+            ops = new String[] {
+                    QueryObjectModelConstants.JCR_OPERATOR_EQUAL_TO,
+                    QueryObjectModelConstants.JCR_OPERATOR_NOT_EQUAL_TO,
+                    QueryObjectModelConstants.JCR_OPERATOR_GREATER_THAN,
+                    QueryObjectModelConstants.JCR_OPERATOR_GREATER_THAN_OR_EQUAL_TO,
+                    QueryObjectModelConstants.JCR_OPERATOR_LESS_THAN,
+                    QueryObjectModelConstants.JCR_OPERATOR_LESS_THAN_OR_EQUAL_TO,
+                    QueryObjectModelConstants.JCR_OPERATOR_LIKE };
+        }
+        return ops;
     }
 
     @Override
     public boolean isFullTextSearchable() {
-        return getBoolean("jcr:isFullTextSearchable", true);
+        return node.getBoolean("jcr:isFullTextSearchable");
     }
 
     @Override
     public boolean isQueryOrderable() {
-        return getBoolean("jcr:isQueryOrderable", true);
+        return node.getBoolean("jcr:isQueryOrderable");
     }
 
 }
