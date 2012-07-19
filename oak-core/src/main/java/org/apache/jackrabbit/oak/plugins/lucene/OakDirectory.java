@@ -20,6 +20,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import javax.annotation.Nonnull;
@@ -32,6 +33,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.IndexOutput;
 import org.apache.lucene.store.NoLockFactory;
@@ -60,7 +62,7 @@ class OakDirectory extends Directory {
     }
 
     @Nonnull
-    public NodeState getRoot() {
+    NodeState getRoot() {
         return rootBuilder.getNodeState();
     }
 
@@ -89,30 +91,6 @@ class OakDirectory extends Directory {
     }
 
     @Override
-    public long fileModified(String name) throws IOException {
-        NodeState file = getDirectory().getChildNode(name);
-        if (file == null) {
-            return 0;
-        }
-
-        PropertyState property = file.getProperty("jcr:lastModified");
-        if (property == null || property.isArray()) {
-            return 0;
-        }
-
-        return property.getValue().getLong();
-    }
-
-    @Override
-    public void touchFile(String name) throws IOException {
-        NodeStateBuilder builder = directoryBuilder.getChildBuilder(name);
-        builder.setProperty(
-                "jcr:lastModified",
-                factory.createValue(System.currentTimeMillis()));
-        directory = null;
-    }
-
-    @Override
     public void deleteFile(String name) throws IOException {
         directoryBuilder.removeNode(name);
         directory = null;
@@ -132,65 +110,23 @@ class OakDirectory extends Directory {
 
         return property.getValue().length();
     }
+    
 
     @Override
-    public IndexOutput createOutput(String name) throws IOException {
+    public IndexOutput createOutput(String name, IOContext context)
+            throws IOException {
         return new OakIndexOutput(name);
     }
 
     @Override
-    public IndexInput openInput(final String name) throws IOException {
-        return new IndexInput(name) {
+    public IndexInput openInput(String name, IOContext context)
+            throws IOException {
+        return new OakIndexInput(name);
+    }
 
-            private final byte[] data = readFile(name);
-
-            private int position;
-
-            @Override
-            public void readBytes(byte[] b, int offset, int len)
-                    throws IOException {
-                if (len < 0 || position + len > data.length) {
-                    throw new IOException("Invalid byte range request");
-                } else {
-                    System.arraycopy(data, position, b, offset, len);
-                    position += len;
-                }
-            }
-
-            @Override
-            public byte readByte() throws IOException {
-                if (position >= data.length) {
-                    throw new IOException("Invalid byte range request");
-                } else {
-                    return data[position++];
-                }
-            }
-
-            @Override
-            public void seek(long pos) throws IOException {
-                if (pos < 0 || pos >= data.length) {
-                    throw new IOException("Invalid seek request");
-                } else {
-                    position = (int) pos;
-                }
-            }
-
-            @Override
-            public long length() {
-                return data.length;
-            }
-
-            @Override
-            public long getFilePointer() {
-                return position;
-            }
-
-            @Override
-            public void close() {
-                // do nothing
-            }
-
-        };
+    @Override
+    public void sync(Collection<String> names) throws IOException {
+        // ?
     }
 
     @Override
@@ -314,5 +250,62 @@ class OakDirectory extends Directory {
         }
     }
 
+    private final class OakIndexInput extends IndexInput {
+
+        private final byte[] data;
+
+        private int position;
+
+        public OakIndexInput(String name) throws IOException {
+            super(name);
+            this.data = readFile(name);
+            this.position = 0;
+        }
+
+        @Override
+        public void readBytes(byte[] b, int offset, int len)
+                throws IOException {
+            if (len < 0 || position + len > data.length) {
+                throw new IOException("Invalid byte range request");
+            } else {
+                System.arraycopy(data, position, b, offset, len);
+                position += len;
+            }
+        }
+
+        @Override
+        public byte readByte() throws IOException {
+            if (position >= data.length) {
+                throw new IOException("Invalid byte range request");
+            } else {
+                return data[position++];
+            }
+        }
+
+        @Override
+        public void seek(long pos) throws IOException {
+            if (pos < 0 || pos >= data.length) {
+                throw new IOException("Invalid seek request");
+            } else {
+                position = (int) pos;
+            }
+        }
+
+        @Override
+        public long length() {
+            return data.length;
+        }
+
+        @Override
+        public long getFilePointer() {
+            return position;
+        }
+
+        @Override
+        public void close() {
+            // do nothing
+        }
+
+    };
 
 }
