@@ -16,8 +16,11 @@
  */
 package org.apache.jackrabbit.oak.util;
 
+import java.util.concurrent.Callable;
+
 import javax.jcr.UnsupportedRepositoryOperationException;
 
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,6 +40,10 @@ public class TODO {
 
     public static TODO unimplemented() {
         return new TODO("unimplemented");
+    }
+
+    public static TODO dummyImplementation() {
+        return new TODO("dummy implementation");
     }
 
     private final UnsupportedOperationException exception;
@@ -68,4 +75,21 @@ public class TODO {
             logger.warn(message, exception);
         }
     }
+
+    public <T> T call(Callable<T> callable)
+            throws UnsupportedRepositoryOperationException {
+        if (strict) {
+            throw new UnsupportedRepositoryOperationException(
+                    message, exception);
+        } else if (log) {
+            logger.warn(message, exception);
+        }
+        try {
+            return callable.call();
+        } catch (Exception e) {
+            throw new UnsupportedRepositoryOperationException(
+                    message + " failure", e);
+        }
+    }
+
 }
