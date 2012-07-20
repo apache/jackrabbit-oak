@@ -218,7 +218,7 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public long getChildrenCount() {
-        return getNodeState().getChildNodeCount();
+        return getNodeStateBuilder().getChildNodeCount();
     }
 
     @Override

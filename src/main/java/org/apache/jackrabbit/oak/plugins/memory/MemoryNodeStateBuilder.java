@@ -25,10 +25,8 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -103,6 +101,21 @@ public class MemoryNodeStateBuilder implements NodeStateBuilder {
         } else {
             return new ModifiedNodeState(base, props, nodes);
         }
+    }
+
+    @Override
+    public long getChildNodeCount() {
+        long count = base.getChildNodeCount();
+        for (Map.Entry<String, NodeStateBuilder> entry : builders.entrySet()) {
+            NodeState before = base.getChildNode(entry.getKey());
+            NodeStateBuilder after = entry.getValue();
+            if (before == null && after != null) {
+                count++;
+            } else if (before != null && after == null) {
+                count--;
+            }
+        }
+        return count;
     }
 
     @Override
