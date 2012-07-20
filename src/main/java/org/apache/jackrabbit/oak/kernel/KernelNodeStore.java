@@ -20,18 +20,20 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStateBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CommitEditor;
 import org.apache.jackrabbit.oak.spi.commit.EmptyEditor;
 import org.apache.jackrabbit.oak.spi.commit.EmptyObserver;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 
 /**
  * {@code NodeStore} implementations against {@link MicroKernel}.
  */
-public class KernelNodeStore extends MemoryNodeStore {
+public class KernelNodeStore implements NodeStore {
 
     /**
      * The {@link MicroKernel} instance used to store the content tree.
@@ -98,6 +100,11 @@ public class KernelNodeStore extends MemoryNodeStore {
     }
 
     @Override
+    public NodeStateBuilder getBuilder(NodeState base) {
+        return new MemoryNodeStateBuilder(base);
+    }
+
+    @Override
     public CoreValueFactory getValueFactory() {
         return new CoreValueFactoryImpl(kernel);
     }
@@ -113,4 +120,5 @@ public class KernelNodeStore extends MemoryNodeStore {
     CommitEditor getCommitEditor() {
         return editor;
     }
+
 }
