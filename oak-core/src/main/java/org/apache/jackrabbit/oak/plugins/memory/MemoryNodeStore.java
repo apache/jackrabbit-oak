@@ -16,15 +16,28 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
+import java.util.concurrent.atomic.AtomicReference;
+
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 
 /**
- * Abstract node store base class with in-memory node state builder
- * functionality.
+ * Basic in-memory node store implementation. Useful as a base class for
+ * more complex functionality.
  */
-public abstract class MemoryNodeStore implements NodeStore {
+public class MemoryNodeStore implements NodeStore {
+
+    private final AtomicReference<NodeState> root =
+            new AtomicReference<NodeState>(MemoryNodeState.EMPTY_NODE);
+
+    @Override
+    public NodeState getRoot() {
+        return root.get();
+    }
 
     @Override
     public NodeStateBuilder getBuilder(NodeState base) {
@@ -32,6 +45,63 @@ public abstract class MemoryNodeStore implements NodeStore {
             base = MemoryNodeState.EMPTY_NODE;
         }
         return new MemoryNodeStateBuilder(base);
+    }
+
+    @Override
+    public NodeStoreBranch branch() {
+        return new MemoryNodeStoreBranch(root.get());
+    }
+
+    @Override
+    public CoreValueFactory getValueFactory() {
+        return MemoryValueFactory.INSTANCE;
+    }
+
+    private class MemoryNodeStoreBranch implements NodeStoreBranch {
+
+        private final NodeState base;
+
+        private volatile NodeState root;
+
+        public MemoryNodeStoreBranch(NodeState base) {
+            this.base = base;
+            this.root = base;
+        }
+
+        @Override
+        public NodeState getBase() {
+            return base;
+        }
+
+        @Override
+        public NodeState getRoot() {
+            return root;
+        }
+
+        @Override
+        public void setRoot(NodeState newRoot) {
+            this.root = newRoot;
+        }
+
+        @Override
+        public NodeState merge() throws CommitFailedException {
+            while (!MemoryNodeStore.this.root.compareAndSet(base, root)) {
+                // TODO: rebase();
+                throw new UnsupportedOperationException();
+            }
+            return root;
+        }
+
+        @Override
+        public boolean copy(String source, String target) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean move(String source, String target) {
+            throw new UnsupportedOperationException();
+        }
+
     }
 
 }
