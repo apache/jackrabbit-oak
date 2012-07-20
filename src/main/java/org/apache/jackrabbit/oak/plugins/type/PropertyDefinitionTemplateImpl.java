@@ -25,7 +25,7 @@ import javax.jcr.nodetype.PropertyDefinitionTemplate;
 
 import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory.AbstractPropertyDefinitionBuilder;
 
-abstract class PropertyDefinitionTemplateImpl
+class PropertyDefinitionTemplateImpl
         extends AbstractPropertyDefinitionBuilder<NodeTypeTemplate>
         implements PropertyDefinitionTemplate {
 
