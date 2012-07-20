@@ -114,7 +114,7 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public PropertyState getProperty(String name) {
-        return getNodeState().getProperty(name);
+        return getNodeStateBuilder().getProperty(name);
     }
 
     @Override
@@ -162,17 +162,17 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public boolean hasProperty(String name) {
-        return getNodeState().getProperty(name) != null;
+        return getProperty(name) != null;
     }
 
     @Override
     public long getPropertyCount() {
-        return getNodeState().getPropertyCount();
+        return getNodeStateBuilder().getPropertyCount();
     }
 
     @Override
     public Iterable<? extends PropertyState> getProperties() {
-        return getNodeState().getProperties();
+        return getNodeStateBuilder().getProperties();
     }
 
     @Override
@@ -435,10 +435,6 @@ public class TreeImpl implements Tree, PurgeListener {
             } finally {
                 writeLock.unlock();
             }
-        }
-
-        public void clear() {
-            children.clear();
         }
 
         @Override

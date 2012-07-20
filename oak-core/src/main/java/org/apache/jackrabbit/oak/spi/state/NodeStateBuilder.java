@@ -21,6 +21,7 @@ import java.util.List;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.PropertyState;
 
 /**
  * Builder interface for constructing new {@link NodeState node states}.
@@ -49,6 +50,29 @@ public interface NodeStateBuilder {
      * @param name  name of the child node
      */
     void removeNode(String name);
+
+    /**
+     * Returns the current number of properties.
+     *
+     * @return number of properties
+     */
+    long getPropertyCount();
+
+    /**
+     * Returns the current properties.
+     *
+     * @return current properties
+     */
+    Iterable<? extends PropertyState> getProperties();
+
+    /**
+     * Returns the current state of the named property, or {@code null}
+     * if the property is not set.
+     *
+     * @param name property name
+     * @return property state
+     */
+    PropertyState getProperty(String name);
 
     /**
      * Set a property.
