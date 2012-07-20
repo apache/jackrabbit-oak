@@ -21,19 +21,25 @@ import java.util.List;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
+import javax.jcr.ValueFactory;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeDefinitionTemplate;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeDefinition;
+import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
 
 import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory.AbstractNodeTypeDefinitionBuilder;
 
-abstract class NodeTypeTemplateImpl
+class NodeTypeTemplateImpl
     extends AbstractNodeTypeDefinitionBuilder<NodeTypeTemplate>
     implements NodeTypeTemplate {
+
+    private final NodeTypeManager manager;
+
+    private final ValueFactory factory;
 
     private String primaryItemName = null;
 
@@ -45,10 +51,20 @@ abstract class NodeTypeTemplateImpl
     private final List<NodeDefinitionTemplate> nodeDefinitionTemplates =
             new ArrayList<NodeDefinitionTemplate>();
 
-    public NodeTypeTemplateImpl() {
+    private NodeTypeTemplateImpl(NodeTypeManager manager, ValueFactory factory) {
+        this.manager = manager;
+        this.factory = factory;
     }
 
-    public NodeTypeTemplateImpl(NodeTypeDefinition ntd) {
+    public NodeTypeTemplateImpl() {
+        this(null, null);
+    }
+
+    public NodeTypeTemplateImpl(
+            NodeTypeManager manager, ValueFactory factory,
+            NodeTypeDefinition ntd) {
+        this(manager, factory);
+
         setName(ntd.getName());
         setAbstract(ntd.isAbstract());
         setMixin(ntd.isMixin());
@@ -90,11 +106,6 @@ abstract class NodeTypeTemplateImpl
         }
     }
 
-    protected abstract Value createValue(String value)
-            throws RepositoryException;
-
-    protected abstract NodeType getNodeType(String name);
-
     @Override
     public NodeTypeTemplate build() {
         return this;
@@ -106,11 +117,15 @@ abstract class NodeTypeTemplateImpl
             @Override
             protected Value createValue(String value)
                     throws RepositoryException {
-                return NodeTypeTemplateImpl.this.createValue(value);
+                if (factory != null) {
+                    return factory.createValue(value);
+                } else {
+                    return super.createValue(value);
+                }
             }
             @Override
             public void build() {
-                getPropertyDefinitionTemplates().add(this);
+                propertyDefinitionTemplates.add(this);
             }
         };
     }
@@ -119,12 +134,17 @@ abstract class NodeTypeTemplateImpl
     public NodeDefinitionTemplateImpl newNodeDefinitionBuilder() {
         return new NodeDefinitionTemplateImpl() {
             @Override
-            protected NodeType getNodeType(String name) {
-                return NodeTypeTemplateImpl.this.getNodeType(name);
+            protected NodeType getNodeType(String name)
+                    throws RepositoryException  {
+                if (manager != null) {
+                    return manager.getNodeType(name);
+                } else {
+                    return super.getNodeType(name);
+                }
             }
             @Override
             public void build() {
-                getNodeDefinitionTemplates().add(this);
+                nodeDefinitionTemplates.add(this);
             }
         };
     }

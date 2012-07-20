@@ -19,9 +19,6 @@ package org.apache.jackrabbit.oak.plugins.type;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.jcr.RepositoryException;
-import javax.jcr.Value;
-import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeTemplate;
 
 import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory;
@@ -32,21 +29,8 @@ class DefBuilderFactory extends
     private Map<String, String> namespaces = new HashMap<String, String>();
 
     @Override
-    public NodeTypeTemplateImpl newNodeTypeDefinitionBuilder()
-            throws RepositoryException {
-        return new NodeTypeTemplateImpl() {
-            @Override
-            protected NodeType getNodeType(String name) {
-                // TODO Auto-generated method stub
-                return null;
-            }
-            @Override
-            protected Value createValue(String value)
-                    throws RepositoryException {
-                // TODO Auto-generated method stub
-                return null;
-            }
-        };
+    public NodeTypeTemplateImpl newNodeTypeDefinitionBuilder() {
+        return new NodeTypeTemplateImpl();
     }
 
     @Override
