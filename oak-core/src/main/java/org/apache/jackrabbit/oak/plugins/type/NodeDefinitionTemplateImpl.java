@@ -29,7 +29,7 @@ import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory.AbstractNodeDe
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-abstract class NodeDefinitionTemplateImpl
+class NodeDefinitionTemplateImpl
         extends AbstractNodeDefinitionBuilder<NodeTypeTemplate>
         implements NodeDefinitionTemplate {
 

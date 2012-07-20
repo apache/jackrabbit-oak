@@ -23,16 +23,9 @@ import static javax.jcr.version.OnParentVersionAction.ACTIONNAME_IGNORE;
 import static javax.jcr.version.OnParentVersionAction.ACTIONNAME_INITIALIZE;
 import static javax.jcr.version.OnParentVersionAction.ACTIONNAME_VERSION;
 
-import java.util.List;
-
 import javax.jcr.nodetype.ItemDefinition;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.version.OnParentVersionAction;
-
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.namepath.NameMapper;
 
 /**
  * <pre>
@@ -46,7 +39,6 @@ import org.apache.jackrabbit.oak.namepath.NameMapper;
  *   ...
  * </pre>
  */
-
 class ItemDefinitionImpl implements ItemDefinition {
 
     private final NodeType type;
