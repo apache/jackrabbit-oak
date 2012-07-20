@@ -38,6 +38,13 @@ public interface NodeStateBuilder {
     NodeState getNodeState();
 
     /**
+     * Returns the current number of child nodes.
+     *
+     * @return number of child nodes
+     */
+    long getChildNodeCount();
+
+    /**
      * Add a sub-tree
      *
      * @param name  name child node containing the sub-tree
