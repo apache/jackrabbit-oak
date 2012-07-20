@@ -32,7 +32,7 @@
 
   <properties>
     <skip.deployment>true</skip.deployment>
-    <pax.exam.version>2.4.0.RC1</pax.exam.version>
+    <pax.exam.version>2.4.0</pax.exam.version>
   </properties>
 
   <build>
