@@ -21,10 +21,17 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateBuilder;
 
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.Iterables;
+
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Basic in-memory node state builder.
@@ -117,6 +124,47 @@ public class MemoryNodeStateBuilder implements NodeStateBuilder {
             builders.put(name, null);
         } else {
             builders.remove(name);
+        }
+    }
+
+    @Override
+    public long getPropertyCount() {
+        long count = base.getPropertyCount();
+        for (Map.Entry<String, PropertyState> entry : properties.entrySet()) {
+            PropertyState before = base.getProperty(entry.getKey());
+            PropertyState after = entry.getValue();
+            if (before == null && after != null) {
+                count++;
+            } else if (before != null && after == null) {
+                count--;
+            }
+        }
+        return count;
+    }
+
+    @Override
+    public Iterable<? extends PropertyState> getProperties() {
+        frozen = true;
+        final Set<String> names = properties.keySet();
+        Predicate<PropertyState> predicate = new Predicate<PropertyState>() {
+            @Override
+            public boolean apply(PropertyState input) {
+                return !names.contains(input.getName());
+            }
+        };
+        return Iterables.concat(
+                Iterables.filter(properties.values(), Predicates.notNull()),
+                Iterables.filter(base.getProperties(), predicate));
+    }
+
+
+    @Override
+    public PropertyState getProperty(String name) {
+        PropertyState property = properties.get(name);
+        if (property != null || properties.containsKey(name)) {
+            return property;
+        } else {
+            return base.getProperty(name);
         }
     }
 
