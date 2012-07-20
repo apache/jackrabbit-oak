@@ -29,7 +29,7 @@ import java.util.Map;
 /**
  * Basic in-memory node state builder.
  */
-class MemoryNodeStateBuilder implements NodeStateBuilder {
+public class MemoryNodeStateBuilder implements NodeStateBuilder {
 
     private final NodeState base;
 
