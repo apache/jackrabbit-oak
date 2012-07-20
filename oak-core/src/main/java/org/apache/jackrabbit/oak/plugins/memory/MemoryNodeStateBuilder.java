@@ -36,7 +36,7 @@ public class MemoryNodeStateBuilder implements NodeStateBuilder {
     /**
      * Set of added, modified or removed ({@code null} value) property states.
      */
-    private final Map<String, PropertyState> properties =
+    private Map<String, PropertyState> properties =
             new HashMap<String, PropertyState>();
 
     /**
@@ -46,17 +46,40 @@ public class MemoryNodeStateBuilder implements NodeStateBuilder {
     private final Map<String, NodeStateBuilder> builders =
             new HashMap<String, NodeStateBuilder>();
 
+    /**
+     * Flag to indicate that the current {@link #properties} map is being
+     * referenced by a {@link ModifiedNodeState} instance returned by a
+     * previous {@link #getNodeState()} call, and thus should not be
+     * modified unless first explicitly {@link #unfreeze() unfrozen}.
+     */
+    private boolean frozen = false;
+
     public MemoryNodeStateBuilder(NodeState base) {
         assert base != null;
         this.base = base;
     }
 
+    /**
+     * Ensures that the current {@link #properties} map is not {@link #frozen}.
+     */
+    private void unfreeze() {
+        if (frozen) {
+            properties = new HashMap<String, PropertyState>(properties);
+            frozen = false;
+        }
+    }
+
     @Override
     public NodeState getNodeState() {
-        if (properties.isEmpty() && builders.isEmpty()) {
-            return base; // shortcut
-        } else {
-            Map<String, NodeState> nodes = new HashMap<String, NodeState>();
+        Map<String, PropertyState> props = Collections.emptyMap();
+        if (!properties.isEmpty()) {
+            frozen = true;
+            props = properties;
+        }
+
+        Map<String, NodeState> nodes = Collections.emptyMap();
+        if (!builders.isEmpty()) {
+            nodes = new HashMap<String, NodeState>(builders.size() * 2);
             for (Map.Entry<String, NodeStateBuilder> entry
                     : builders.entrySet()) {
                 NodeStateBuilder builder = entry.getValue();
@@ -66,25 +89,12 @@ public class MemoryNodeStateBuilder implements NodeStateBuilder {
                     nodes.put(entry.getKey(), null);
                 }
             }
-            return new ModifiedNodeState(
-                    base, snapshot(properties), snapshot(nodes));
         }
-    }
 
-    /**
-     * Returns an optimized snapshot of the current state of the given map.
-     *
-     * @param map mutable map
-     * @return optimized snapshot
-     */
-    private static <T> Map<String, T> snapshot(Map<String, T> map) {
-        if (map.isEmpty()) {
-            return Collections.emptyMap();
-        } else if (map.size() == 1) {
-            Map.Entry<String, T> entry = map.entrySet().iterator().next();
-            return Collections.singletonMap(entry.getKey(), entry.getValue());
+        if (props.isEmpty() && nodes.isEmpty()) {
+            return base;
         } else {
-            return new HashMap<String, T>(map);
+            return new ModifiedNodeState(base, props, nodes);
         }
     }
 
@@ -112,11 +122,13 @@ public class MemoryNodeStateBuilder implements NodeStateBuilder {
 
     @Override
     public void setProperty(String name, CoreValue value) {
+        unfreeze();
         properties.put(name, new SinglePropertyState(name, value));
     }
 
     @Override
     public void setProperty(String name, List<CoreValue> values) {
+        unfreeze();
         if (values.isEmpty()) {
             properties.put(name, new EmptyPropertyState(name));
         } else {
@@ -126,6 +138,7 @@ public class MemoryNodeStateBuilder implements NodeStateBuilder {
 
     @Override
     public void removeProperty(String name) {
+        unfreeze();
         if (base.getProperty(name) != null) {
             properties.put(name, null);
         } else {
