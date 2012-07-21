@@ -26,10 +26,11 @@ import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.util.ArrayUtils;
 import org.apache.jackrabbit.oak.util.TODO;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeProvider;
+
+import com.google.common.collect.ImmutableSet;
 
 /**
  * PrivilegeProviderImpl... TODO
@@ -130,7 +131,7 @@ public class PrivilegeRegistry implements PrivilegeProvider, PrivilegeConstants 
 
         private PrivilegeDefinitionImpl(String name, boolean isAbstract,
                                         String... declaredAggregateNames) {
-            this(name, isAbstract, ArrayUtils.toSet(declaredAggregateNames));
+            this(name, isAbstract, ImmutableSet.copyOf(declaredAggregateNames));
         }
 
         //--------------------------------------------< PrivilegeDefinition >---

@@ -17,8 +17,6 @@
 package org.apache.jackrabbit.oak.util;
 
 import java.lang.reflect.Array;
-import java.util.HashSet;
-import java.util.Set;
 
 import javax.annotation.Nonnull;
 
@@ -205,33 +203,6 @@ public class ArrayUtils {
         if (index < size) {
             System.arraycopy(src, index + 1, dst, index, size - index - 1);
         }
-    }
-
-        /**
-     * Check whether an array contains a given element
-     * @param array
-     * @param element
-     * @param <T>
-     * @return {@code true} iff {@code array} contains {@code element}.
-     */
-    public static <T> boolean contains(T[] array, T element) {
-        for (T t : array) {
-            if (element == null && t == null || element != null && element.equals(t)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Convert an array to a set.
-     * @param elements
-     * @param <T>
-     * @return
-     */
-    @Nonnull
-    public static <T> Set<T> toSet(T... elements) {
-        return new HashSet<T>(java.util.Arrays.asList(elements));
     }
 
 }
