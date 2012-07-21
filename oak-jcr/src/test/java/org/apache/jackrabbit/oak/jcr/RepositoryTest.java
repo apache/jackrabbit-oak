@@ -66,9 +66,9 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import com.google.common.collect.Sets;
+
 import static java.util.Arrays.asList;
-import static org.apache.jackrabbit.oak.util.ArrayUtils.contains;
-import static org.apache.jackrabbit.oak.util.ArrayUtils.toSet;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -1402,16 +1402,16 @@ public class RepositoryTest extends AbstractRepositoryTest {
     public void testNamespaceRegistry() throws RepositoryException {
         NamespaceRegistry nsReg =
                 getSession().getWorkspace().getNamespaceRegistry();
-        assertFalse(contains(nsReg.getPrefixes(), "foo"));
-        assertFalse(contains(nsReg.getURIs(), "file:///foo"));
+        assertFalse(asList(nsReg.getPrefixes()).contains("foo"));
+        assertFalse(asList(nsReg.getURIs()).contains("file:///foo"));
 
         nsReg.registerNamespace("foo", "file:///foo");
-        assertTrue(contains(nsReg.getPrefixes(), "foo"));
-        assertTrue(contains(nsReg.getURIs(), "file:///foo"));
+        assertTrue(asList(nsReg.getPrefixes()).contains("foo"));
+        assertTrue(asList(nsReg.getURIs()).contains("file:///foo"));
 
         nsReg.unregisterNamespace("foo");
-        assertFalse(contains(nsReg.getPrefixes(), "foo"));
-        assertFalse(contains(nsReg.getURIs(), "file:///foo"));
+        assertFalse(asList(nsReg.getPrefixes()).contains("foo"));
+        assertFalse(asList(nsReg.getURIs()).contains("file:///foo"));
     }
 
     @Ignore // TODO implement node type support
@@ -1455,15 +1455,15 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
     @Test
     public void observation() throws RepositoryException, InterruptedException {
-        final Set<String> addNodes = toSet(
+        final Set<String> addNodes = Sets.newHashSet(
                 TEST_PATH + "/1",
                 TEST_PATH + "/2",
                 TEST_PATH + "/3");
 
-        final Set<String> removeNodes = toSet(
+        final Set<String> removeNodes = Sets.newHashSet(
                 TEST_PATH + "/2");
 
-        final Set<String> addProperties = toSet(
+        final Set<String> addProperties = Sets.newHashSet(
                 TEST_PATH + "/property",
                 TEST_PATH + "/prop0",
                 TEST_PATH + "/1/prop1",
@@ -1473,10 +1473,10 @@ public class RepositoryTest extends AbstractRepositoryTest {
                 TEST_PATH + "/3/jcr:primaryType",
                 TEST_PATH + "/3/prop3");
 
-        final Set<String> setProperties = toSet(
+        final Set<String> setProperties = Sets.newHashSet(
                 TEST_PATH + "/1/prop1");
 
-        final Set<String> removeProperties = toSet(
+        final Set<String> removeProperties = Sets.newHashSet(
                 TEST_PATH + "/1/prop2",
                 TEST_PATH + "/2/jcr:primaryType");
 
@@ -1564,18 +1564,18 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
     @Test
     public void observation2() throws RepositoryException, InterruptedException {
-        final Set<String> addNodes = toSet(
+        final Set<String> addNodes = Sets.newHashSet(
                 TEST_PATH + "/1",
                 TEST_PATH + "/2");
 
-        final Set<String> removeNodes = toSet(
+        final Set<String> removeNodes = Sets.newHashSet(
                 TEST_PATH + "/1");
 
-        final Set<String> addProperties = toSet(
+        final Set<String> addProperties = Sets.newHashSet(
                 TEST_PATH + "/1/jcr:primaryType",
                 TEST_PATH + "/2/jcr:primaryType");
 
-        final Set<String> removeProperties = toSet(
+        final Set<String> removeProperties = Sets.newHashSet(
                 TEST_PATH + "/1/jcr:primaryType");
 
         final List<Event> failedEvents = new ArrayList<Event>();

@@ -21,12 +21,10 @@ package org.apache.jackrabbit.oak.kernel;
 import static org.apache.jackrabbit.oak.kernel.CoreValueMapper.fromJsopReader;
 import static org.apache.jackrabbit.oak.kernel.CoreValueMapper.listFromJsopReader;
 
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import javax.annotation.Nonnull;
 
@@ -42,9 +40,9 @@ import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
-import org.apache.jackrabbit.oak.util.PagedIterator;
 
-import com.google.common.collect.Iterators;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 
 /**
  * Basic {@link NodeState} implementation based on the {@link MicroKernel}
@@ -168,18 +166,20 @@ final class KernelNodeState extends AbstractNodeState {
 
     @Override
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
-        return new Iterable<ChildNodeEntry>() {
-            @Override
-            public Iterator<ChildNodeEntry> iterator() {
-                return  Iterators.concat(
-                    new PagedIterator<ChildNodeEntry>(MAX_CHILD_NODE_NAMES) {
-                        @Override
-                        protected Iterator<? extends ChildNodeEntry> getPage(long pos, int size) {
-                            return getChildNodeEntries(pos, size);
-                        }
-                });
+        init();
+        Iterable<ChildNodeEntry> iterable =
+                MemoryChildNodeEntry.iterable(childNodes.entrySet());
+        if (childNodeCount > childNodes.size()) {
+            List<Iterable<ChildNodeEntry>> iterables = Lists.newArrayList();
+            iterables.add(iterable);
+            long offset = childNodes.size();
+            while (offset < childNodeCount) {
+                iterables.add(getChildNodeEntries(offset, MAX_CHILD_NODE_NAMES));
+                offset += MAX_CHILD_NODE_NAMES;
             }
-        };
+            iterable = Iterables.concat(iterables);
+        }
+        return iterable;
     }
 
     /**
@@ -261,60 +261,35 @@ final class KernelNodeState extends AbstractNodeState {
 
     //------------------------------------------------------------< private >---
 
-    private Iterator<? extends ChildNodeEntry> getChildNodeEntries(
-            long offset, int count) {
-        init();
-        boolean all;
-        if (count == -1) {
-            count = Integer.MAX_VALUE;
-            all = true;
-            if (childNodeCount > count) {
-                throw new RuntimeException("Too many child nodes");
+    private Iterable<ChildNodeEntry> getChildNodeEntries(
+            final long offset, final int count) {
+        return new Iterable<ChildNodeEntry>() {
+            @Override
+            public Iterator<ChildNodeEntry> iterator() {
+                List<ChildNodeEntry> entries =
+                        Lists.newArrayListWithCapacity(count);
+                String json = kernel.getNodes(
+                        path, revision, 0, offset, count, null);
+                JsopReader reader = new JsopTokenizer(json);
+                reader.read('{');
+                do {
+                    String name = reader.readString();
+                    reader.read(':');
+                    if (reader.matches('{')) {
+                        reader.read('}');
+                        String childPath = getChildPath(name);
+                        NodeState child =
+                                new KernelNodeState(kernel, childPath, revision);
+                        entries.add(new MemoryChildNodeEntry(name, child));
+                    } else {
+                        reader.read();
+                    }
+                } while (reader.matches(','));
+                reader.read('}');
+                reader.read(JsopReader.END);
+                return entries.iterator();
             }
-        } else {
-            all = false;
-        }
-
-        List<ChildNodeEntry> entries = new ArrayList<ChildNodeEntry>();
-
-        if (offset < childNodes.size()) {
-            Iterator<Entry<String, NodeState>> iterator =
-                    childNodes.entrySet().iterator();
-            while (offset > 0) {
-                iterator.next();
-                offset--;
-            }
-            while (count > 0 && iterator.hasNext()) {
-                entries.add(new MemoryChildNodeEntry(iterator.next()));
-                count--;
-            }
-            offset = childNodes.size();
-        }
-
-        if (count > 0 && childNodeCount > MAX_CHILD_NODE_NAMES) {
-            String json = kernel.getNodes(
-                    path, revision, 0, offset, all ? -1 : count, null);
-
-            JsopReader reader = new JsopTokenizer(json);
-            reader.read('{');
-            do {
-                String name = reader.readString();
-                reader.read(':');
-                if (reader.matches('{')) {
-                    reader.read('}');
-                    String childPath = getChildPath(name);
-                    NodeState child =
-                            new KernelNodeState(kernel, childPath, revision);
-                    entries.add(new MemoryChildNodeEntry(name, child));
-                } else {
-                    reader.read();
-                }
-            } while (reader.matches(','));
-            reader.read('}');
-            reader.read(JsopReader.END);
-        }
-
-        return entries.iterator();
+        };
     }
 
     private String getChildPath(String name) {

@@ -24,11 +24,10 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.collect.Iterators;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 
-import java.util.Iterator;
 import java.util.Map;
-import java.util.Map.Entry;
 
 public class ModifiedNodeState extends AbstractNodeState {
 
@@ -80,21 +79,18 @@ public class ModifiedNodeState extends AbstractNodeState {
         if (properties.isEmpty()) {
             return base.getProperties(); // shortcut
         }
-        final Iterable<? extends PropertyState> unmodified = base.getProperties();
-        final Iterable<? extends PropertyState> modified = properties.values();
 
-        return new Iterable<PropertyState>() {
-            @Override
-            public Iterator<PropertyState> iterator() {
-                Iterator<? extends PropertyState> a = Iterators.filter(
-                        unmodified.iterator(), new UnmodifiedPropertyPredicate());
-
-                Iterator<? extends PropertyState> b = Iterators.filter(
-                        modified.iterator(), Predicates.notNull());
-
-                return Iterators.concat(a, b);
-            }
-        };
+        Iterable<? extends PropertyState> unmodified = Iterables.filter(
+                base.getProperties(),
+                new Predicate<PropertyState>() {
+                    @Override
+                    public boolean apply(PropertyState property) {
+                        return !properties.containsKey(property.getName());
+                    }
+                });
+        Iterable<PropertyState> modified =
+                Iterables.filter(properties.values(), Predicates.notNull());
+        return Iterables.concat(unmodified, modified);
     }
 
     @Override
@@ -128,21 +124,18 @@ public class ModifiedNodeState extends AbstractNodeState {
         if (nodes.isEmpty()) {
             return base.getChildNodeEntries(); // shortcut
         }
-        final Iterable<? extends ChildNodeEntry> unmodified = base.getChildNodeEntries();
-        final Iterator<Entry<String, NodeState>> modified = nodes.entrySet().iterator();
 
-        return new Iterable<ChildNodeEntry>() {
-            @Override
-            public Iterator<ChildNodeEntry> iterator() {
-                Iterator<? extends ChildNodeEntry> a = Iterators.filter(
-                        unmodified.iterator(), new UnmodifiedChildNodePredicate());
-
-                Iterator<Entry<String, NodeState>> b = Iterators.filter(
-                        modified, new UndeletedChildNodePredicate());
-
-                return Iterators.concat(a, MemoryChildNodeEntry.iterator(b));
-            }
-        };
+        Iterable<? extends ChildNodeEntry> unmodified = Iterables.filter(
+                base.getChildNodeEntries(),
+                new Predicate<ChildNodeEntry>() {
+                    @Override
+                    public boolean apply(ChildNodeEntry input) {
+                        return !nodes.containsKey(input.getName());
+                    }
+                });
+        Iterable<ChildNodeEntry> modified = MemoryChildNodeEntry.iterable(
+                Maps.filterValues(nodes, Predicates.notNull()).entrySet());
+        return Iterables.concat(unmodified, modified);
     }
 
     /**
@@ -223,29 +216,6 @@ public class ModifiedNodeState extends AbstractNodeState {
             } else if (!before.equals(after)) {
                 diff.childNodeChanged(name, before, after);
             }
-        }
-    }
-
-    //-----------------------------------------------------------< private >--
-
-    private class UnmodifiedPropertyPredicate implements Predicate<PropertyState> {
-        @Override
-        public boolean apply(PropertyState property) {
-            return !properties.containsKey(property.getName());
-        }
-    }
-
-    private class UnmodifiedChildNodePredicate implements Predicate<ChildNodeEntry> {
-        @Override
-        public boolean apply(ChildNodeEntry entry) {
-            return !nodes.containsKey(entry.getName());
-        }
-    }
-
-    private static class UndeletedChildNodePredicate implements Predicate<Entry<?, ?>> {
-        @Override
-        public boolean apply(Entry<?, ?> entry) {
-            return entry.getValue() != null;
         }
     }
 
