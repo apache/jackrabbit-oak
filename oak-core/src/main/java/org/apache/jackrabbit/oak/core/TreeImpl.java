@@ -32,7 +32,6 @@ import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.RootImpl.PurgeListener;
-import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
@@ -214,7 +213,7 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public boolean hasChild(String name) {
-        return getNodeState().getChildNode(name) != null;
+        return getNodeStateBuilder().hasChildNode(name);
     }
 
     @Override
@@ -225,15 +224,14 @@ public class TreeImpl implements Tree, PurgeListener {
     @Override
     public Iterable<Tree> getChildren() {
         return Iterables.transform(
-                getNodeState().getChildNodeEntries(),
-                new Function<ChildNodeEntry, Tree>() {
+                getNodeStateBuilder().getChildNodeNames(),
+                new Function<String, Tree>() {
                     @Override
-                    public Tree apply(ChildNodeEntry input) {
-                        String childName = input.getName();
-                        TreeImpl child = children.get(childName);
+                    public Tree apply(String input) {
+                        TreeImpl child = children.get(input);
                         if (child == null) {
-                            child = new TreeImpl(root, TreeImpl.this, childName);
-                            children.put(childName, child);
+                            child = new TreeImpl(root, TreeImpl.this, input);
+                            children.put(input, child);
                         }
                         return  child;
                     }

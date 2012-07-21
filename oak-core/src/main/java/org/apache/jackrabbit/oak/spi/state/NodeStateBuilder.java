@@ -45,6 +45,22 @@ public interface NodeStateBuilder {
     long getChildNodeCount();
 
     /**
+     * Checks whether the named child node currently exists.
+     *
+     * @param name child node name
+     * @return {@code true} if the named child node exists,
+     *         {@code false} otherwise
+     */
+    boolean hasChildNode(String name);
+
+    /**
+     * Returns the names of current child nodes.
+     *
+     * @return child node names
+     */
+    Iterable<String> getChildNodeNames();
+
+    /**
      * Add a sub-tree
      *
      * @param name  name child node containing the sub-tree
