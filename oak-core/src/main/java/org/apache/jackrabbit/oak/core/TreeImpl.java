@@ -28,7 +28,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
-import org.apache.commons.collections.map.ReferenceMap;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -37,8 +36,10 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
-import org.apache.jackrabbit.oak.util.Function1;
-import org.apache.jackrabbit.oak.util.Iterators;
+
+import com.google.common.base.Function;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.collect.Iterables;
 
 import static org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState.EMPTY_NODE;
 
@@ -223,18 +224,12 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public Iterable<Tree> getChildren() {
-        return new Iterable<Tree>() {
-            @Override
-            public Iterator<Tree> iterator() {
-                final NodeState nodeState = getNodeState();
-
-                Iterator<? extends ChildNodeEntry> childEntries =
-                    nodeState.getChildNodeEntries().iterator();
-
-                return Iterators.map(childEntries, new Function1<ChildNodeEntry, Tree>() {
+        return Iterables.transform(
+                getNodeState().getChildNodeEntries(),
+                new Function<ChildNodeEntry, Tree>() {
                     @Override
-                    public Tree apply(ChildNodeEntry entry) {
-                        String childName = entry.getName();
+                    public Tree apply(ChildNodeEntry input) {
+                        String childName = input.getName();
                         TreeImpl child = children.get(childName);
                         if (child == null) {
                             child = new TreeImpl(root, TreeImpl.this, childName);
@@ -243,8 +238,6 @@ public class TreeImpl implements Tree, PurgeListener {
                         return  child;
                     }
                 });
-            }
-        };
     }
 
     @Override
@@ -399,8 +392,10 @@ public class TreeImpl implements Tree, PurgeListener {
     }
 
     private static class Children implements Iterable<TreeImpl> {
-        @SuppressWarnings("unchecked")
-        private final Map<String, TreeImpl> children = new ReferenceMap();
+
+        private final Map<String, TreeImpl> children =
+                CacheBuilder.newBuilder().weakValues().<String, TreeImpl>build().asMap();
+
         private final Lock readLock;
         private final Lock writeLock;
 

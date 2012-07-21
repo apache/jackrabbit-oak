@@ -41,6 +41,7 @@
       ${project.build.sourceEncoding}
     </project.reporting.outputEncoding>
     <jackrabbit.version>2.6-SNAPSHOT</jackrabbit.version>
+    <guava.version>12.0.1</guava.version>
   </properties>
 
   <issueManagement>

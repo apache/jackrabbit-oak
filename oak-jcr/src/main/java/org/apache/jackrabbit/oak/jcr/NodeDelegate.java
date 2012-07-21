@@ -36,9 +36,10 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.util.Function1;
-import org.apache.jackrabbit.oak.util.Iterators;
-import org.apache.jackrabbit.oak.util.Predicate;
+
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterators;
 
 /**
  * {@code NodeDelegate} serve as internal representations of {@code Node}s.
@@ -227,11 +228,11 @@ public class NodeDelegate extends ItemDelegate {
                             tree.getChildren().iterator(),
                             new Predicate<Tree>() {
                                 @Override
-                                public boolean evaluate(Tree tree) {
+                                public boolean apply(Tree tree) {
                                     return !ordered.containsKey(tree.getName());
                                 }
                             });
-                    return Iterators.chain(
+                    return Iterators.concat(
                             ordered.values().iterator(),
                             nodeDelegateIterator(remaining));
                 }
@@ -351,14 +352,14 @@ public class NodeDelegate extends ItemDelegate {
 
     private Iterator<NodeDelegate> nodeDelegateIterator(
             Iterator<Tree> childNodeStates) {
-        return Iterators.map(
+        return Iterators.transform(
                 Iterators.filter(childNodeStates, new Predicate<Tree>() {
                     @Override
-                    public boolean evaluate(Tree tree) {
+                    public boolean apply(Tree tree) {
                         return !tree.getName().startsWith(":");
                     }
                 }),
-                new Function1<Tree, NodeDelegate>() {
+                new Function<Tree, NodeDelegate>() {
                     @Override
                     public NodeDelegate apply(Tree state) {
                         return new NodeDelegate(sessionDelegate, state);
@@ -368,14 +369,14 @@ public class NodeDelegate extends ItemDelegate {
 
     private Iterator<PropertyDelegate> propertyDelegateIterator(
             Iterator<? extends PropertyState> properties) {
-        return Iterators.map(
+        return Iterators.transform(
                 Iterators.filter(properties, new Predicate<PropertyState>() {
                     @Override
-                    public boolean evaluate(PropertyState property) {
+                    public boolean apply(PropertyState property) {
                         return !property.getName().startsWith(":");
                     }
                 }),
-                new Function1<PropertyState, PropertyDelegate>() {
+                new Function<PropertyState, PropertyDelegate>() {
                     @Override
                     public PropertyDelegate apply(PropertyState propertyState) {
                         return new PropertyDelegate(sessionDelegate, tree,

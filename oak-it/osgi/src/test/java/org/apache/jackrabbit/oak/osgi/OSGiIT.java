@@ -49,7 +49,6 @@ public class OSGiIT {
                 mavenBundle("org.apache.felix", "org.apache.felix.scr", "1.6.0"),
                 bundle(new File(base, "jcr.jar").toURI().toURL().toString()),
                 bundle(new File(base, "commons-io.jar").toURI().toURL().toString()),
-                bundle(new File(base, "commons-collections.jar").toURI().toURL().toString()),
                 bundle(new File(base, "guava.jar").toURI().toURL().toString()),
                 bundle(new File(base, "jackrabbit-api.jar").toURI().toURL().toString()),
                 bundle(new File(base, "jackrabbit-jcr-commons.jar").toURI().toURL().toString()),

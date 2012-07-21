@@ -33,11 +33,9 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
-import org.apache.jackrabbit.oak.util.Function1;
-import org.apache.jackrabbit.oak.util.Iterators;
 
-import static org.apache.jackrabbit.commons.iterator.LazyIteratorChain.chain;
-import static org.apache.jackrabbit.oak.util.Iterators.singleton;
+import com.google.common.base.Function;
+import com.google.common.collect.Iterators;
 
 class ChangeProcessor extends TimerTask {
     private final NamePathMapper namePathMapper;
@@ -93,7 +91,7 @@ class ChangeProcessor extends TimerTask {
         }
 
         public void sendEvents() {
-            Iterator<Event> eventIt = Iterators.flatten(events.iterator());
+            Iterator<Event> eventIt = Iterators.concat(events.iterator());
             if (eventIt.hasNext()) {
                 listener.onEvent(new EventIteratorAdapter(eventIt));
                 events = new ArrayList<Iterator<Event>>(PURGE_LIMIT);
@@ -108,7 +106,7 @@ class ChangeProcessor extends TimerTask {
         public void propertyAdded(PropertyState after) {
             if (!stopped && filterRef.get().include(Event.PROPERTY_ADDED, jcrPath(), associatedParentNode)) {
                 Event event = generatePropertyEvent(Event.PROPERTY_ADDED, path, after);
-                events.add(Iterators.singleton(event));
+                events.add(Iterators.singletonIterator(event));
             }
         }
 
@@ -116,7 +114,7 @@ class ChangeProcessor extends TimerTask {
         public void propertyChanged(PropertyState before, PropertyState after) {
             if (!stopped && filterRef.get().include(Event.PROPERTY_CHANGED, jcrPath(), associatedParentNode)) {
                 Event event = generatePropertyEvent(Event.PROPERTY_CHANGED, path, after);
-                events.add(Iterators.singleton(event));
+                events.add(Iterators.singletonIterator(event));
             }
         }
 
@@ -124,7 +122,7 @@ class ChangeProcessor extends TimerTask {
         public void propertyDeleted(PropertyState before) {
             if (!stopped && filterRef.get().include(Event.PROPERTY_REMOVED, jcrPath(), associatedParentNode)) {
                 Event event = generatePropertyEvent(Event.PROPERTY_REMOVED, path, before);
-                events.add(Iterators.singleton(event));
+                events.add(Iterators.singletonIterator(event));
             }
         }
 
@@ -176,10 +174,9 @@ class ChangeProcessor extends TimerTask {
             if (filter.include(eventType, jcrParentPath, associatedParentNode)) {
                 // TODO support userId, identifier, info, date
                 Event event = new EventImpl(eventType, jcrPath, null, null, null, 0);
-                nodeEvent = singleton(event);
-            }
-            else {
-                nodeEvent = Iterators.empty();
+                nodeEvent = Iterators.singletonIterator(event);
+            } else {
+                nodeEvent = Iterators.emptyIterator();
             }
 
             final int propertyEventType = eventType == Event.NODE_ADDED
@@ -188,33 +185,34 @@ class ChangeProcessor extends TimerTask {
 
             Iterator<Event> propertyEvents;
             if (filter.include(propertyEventType, jcrPath, associatedParentNode)) {
-                propertyEvents = Iterators.map(node.getProperties().iterator(),
-                    new Function1<PropertyState, Event>() {
-                        @Override
-                        public Event apply(PropertyState property) {
-                            return generatePropertyEvent(propertyEventType, path, property);
-                        }
-                    });
-            }
-            else {
-                propertyEvents = Iterators.empty();
+                propertyEvents = Iterators.transform(
+                        node.getProperties().iterator(),
+                        new Function<PropertyState, Event>() {
+                            @Override
+                            public Event apply(PropertyState property) {
+                                return generatePropertyEvent(propertyEventType, path, property);
+                            }
+                        });
+            } else {
+                propertyEvents = Iterators.emptyIterator();
             }
 
             Iterator<Event> childNodeEvents = !stopped && filter.includeChildren(jcrPath)
-                    ? chain(generateChildEvents(eventType, path, node))
-                    : Iterators.<Event>empty();
+                    ? Iterators.concat(generateChildEvents(eventType, path, node))
+                    : Iterators.<Event>emptyIterator();
 
-            return chain(nodeEvent, propertyEvents, childNodeEvents);
+            return Iterators.concat(nodeEvent, propertyEvents, childNodeEvents);
         }
 
         private Iterator<Iterator<Event>> generateChildEvents(final int eventType, final String parentPath, NodeState node) {
-            return Iterators.map(node.getChildNodeEntries().iterator(),
-                new Function1<ChildNodeEntry, Iterator<Event>>() {
-                    @Override
-                    public Iterator<Event> apply(ChildNodeEntry entry) {
-                        return generateNodeEvents(eventType, parentPath, entry.getName(), entry.getNodeState());
-                    }
-                });
+            return Iterators.transform(
+                    node.getChildNodeEntries().iterator(),
+                    new Function<ChildNodeEntry, Iterator<Event>>() {
+                        @Override
+                        public Iterator<Event> apply(ChildNodeEntry entry) {
+                            return generateNodeEvents(eventType, parentPath, entry.getName(), entry.getNodeState());
+                        }
+                    });
         }
 
     }
