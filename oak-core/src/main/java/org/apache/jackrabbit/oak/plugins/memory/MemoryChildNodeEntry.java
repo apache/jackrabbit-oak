@@ -18,16 +18,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
+import java.util.Map;
+import java.util.Map.Entry;
+
 import org.apache.jackrabbit.oak.spi.state.AbstractChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.base.Function;
-import com.google.common.collect.Iterators;
-
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Map.Entry;
+import com.google.common.collect.Iterables;
 
 /**
  * Basic JavaBean implementation of a child node entry.
@@ -36,10 +35,10 @@ public class MemoryChildNodeEntry extends AbstractChildNodeEntry {
     private final String name;
     private final NodeState node;
 
-    public static Iterator<ChildNodeEntry> iterator(
-            final Iterator<Entry<String, NodeState>> iterator) {
-        return Iterators.transform(
-                iterator,
+    public static Iterable<ChildNodeEntry> iterable(
+            final Iterable<Entry<String, NodeState>> iterable) {
+        return Iterables.transform(
+                iterable,
                 new Function<Entry<String, NodeState>, ChildNodeEntry>() {
                     @Override
                     public ChildNodeEntry apply(Entry<String, NodeState> input) {

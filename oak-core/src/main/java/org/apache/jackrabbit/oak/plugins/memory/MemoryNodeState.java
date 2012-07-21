@@ -24,7 +24,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 
 /**
@@ -88,12 +87,7 @@ public class MemoryNodeState extends AbstractNodeState {
 
     @Override
     public Iterable<ChildNodeEntry> getChildNodeEntries() {
-        return new Iterable<ChildNodeEntry>() {
-            @Override
-            public Iterator<ChildNodeEntry> iterator() {
-                return MemoryChildNodeEntry.iterator(nodes.entrySet().iterator());
-            }
-        };
+        return MemoryChildNodeEntry.iterable(nodes.entrySet());
     }
 
     /**
