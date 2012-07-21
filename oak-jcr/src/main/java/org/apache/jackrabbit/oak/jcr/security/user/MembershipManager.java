@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.user;
 
-import org.apache.commons.collections.iterators.EmptyIterator;
-import org.apache.commons.collections.iterators.IteratorChain;
-import org.apache.commons.collections.iterators.SingletonIterator;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -31,6 +28,8 @@ import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
 import org.apache.jackrabbit.oak.jcr.SessionDelegate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Iterators;
 
 import javax.jcr.Node;
 import javax.jcr.Property;
@@ -238,7 +237,8 @@ class MembershipManager {
             @Override
             public Iterator<Authorizable> next() {
                 Authorizable next = authorizables.next();
-                return new IteratorChain(new SingletonIterator(next), inherited(next));
+                return Iterators.concat(
+                        Iterators.singletonIterator(next), inherited(next));
             }
 
             @Override
@@ -254,7 +254,7 @@ class MembershipManager {
                         log.warn("Could not determine members of " + authorizable, e);
                     }
                 }
-                return EmptyIterator.INSTANCE;
+                return Iterators.emptyIterator();
             }
         };
 
@@ -271,7 +271,9 @@ class MembershipManager {
             @Override
             public Iterator<Group> next() {
                 Group next = (Group) membership.next();
-                return new IteratorChain(new SingletonIterator(next), inherited((AuthorizableImpl) next));
+                return Iterators.concat(
+                        Iterators.singletonIterator(next),
+                        inherited((AuthorizableImpl) next));
             }
 
             @Override
@@ -287,7 +289,7 @@ class MembershipManager {
                         log.warn("Could not determine members of " + authorizable, e);
                     }
                 }
-                return EmptyIterator.INSTANCE;
+                return Iterators.emptyIterator();
             }
         };
 

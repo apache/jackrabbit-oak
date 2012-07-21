@@ -68,16 +68,16 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
 import org.apache.jackrabbit.oak.jcr.value.ValueConverter;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
-import org.apache.jackrabbit.oak.util.Function1;
-import org.apache.jackrabbit.oak.util.Iterators;
-import org.apache.jackrabbit.oak.util.Predicate;
 import org.apache.jackrabbit.value.ValueHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterators;
+
 import static javax.jcr.Property.JCR_LOCK_IS_DEEP;
 import static javax.jcr.Property.JCR_LOCK_OWNER;
-import static org.apache.jackrabbit.oak.util.Iterators.filter;
 
 /**
  * {@code NodeImpl}...
@@ -465,10 +465,11 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
             throws RepositoryException {
         checkStatus();
 
-        Iterator<NodeDelegate> children = filter(dlg.getChildren(),
+        Iterator<NodeDelegate> children = Iterators.filter(
+                dlg.getChildren(),
                 new Predicate<NodeDelegate>() {
                     @Override
-                    public boolean evaluate(NodeDelegate state) {
+                    public boolean apply(NodeDelegate state) {
                         try {
                             return ItemNameMatcher.matches(toJcrPath(state.getName()), namePattern);
                         } catch (InvalidItemStateException e) {
@@ -485,10 +486,11 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
     public NodeIterator getNodes(final String[] nameGlobs) throws RepositoryException {
         checkStatus();
 
-        Iterator<NodeDelegate> children = filter(dlg.getChildren(),
+        Iterator<NodeDelegate> children = Iterators.filter(
+                dlg.getChildren(),
                 new Predicate<NodeDelegate>() {
                     @Override
-                    public boolean evaluate(NodeDelegate state) {
+                    public boolean apply(NodeDelegate state) {
                         try {
                             return ItemNameMatcher.matches(toJcrPath(state.getName()), nameGlobs);
                         } catch (InvalidItemStateException e) {
@@ -529,10 +531,11 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
     public PropertyIterator getProperties(final String namePattern) throws RepositoryException {
         checkStatus();
 
-        Iterator<PropertyDelegate> properties = filter(dlg.getProperties(),
+        Iterator<PropertyDelegate> properties = Iterators.filter(
+                dlg.getProperties(),
                 new Predicate<PropertyDelegate>() {
                     @Override
-                    public boolean evaluate(PropertyDelegate entry) {
+                    public boolean apply(PropertyDelegate entry) {
                         try {
                             return ItemNameMatcher.matches(toJcrPath(entry.getName()), namePattern);
                         } catch (InvalidItemStateException e) {
@@ -549,10 +552,11 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
     public PropertyIterator getProperties(final String[] nameGlobs) throws RepositoryException {
         checkStatus();
 
-        Iterator<PropertyDelegate> propertyNames = filter(dlg.getProperties(),
+        Iterator<PropertyDelegate> propertyNames = Iterators.filter(
+                dlg.getProperties(),
                 new Predicate<PropertyDelegate>() {
                     @Override
-                    public boolean evaluate(PropertyDelegate entry) {
+                    public boolean apply(PropertyDelegate entry) {
                         try {
                             return ItemNameMatcher.matches(toJcrPath(entry.getName()), nameGlobs);
                         } catch (InvalidItemStateException e) {
@@ -1180,17 +1184,20 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
     //------------------------------------------------------------< private >---
 
     private static Iterator<Node> nodeIterator(Iterator<NodeDelegate> childNodes) {
-        return Iterators.map(childNodes, new Function1<NodeDelegate, Node>() {
-            @Override
-            public Node apply(NodeDelegate nodeDelegate) {
-                return new NodeImpl(nodeDelegate);
-            }
-        });
+        return Iterators.transform(
+                childNodes,
+                new Function<NodeDelegate, Node>() {
+                    @Override
+                    public Node apply(NodeDelegate nodeDelegate) {
+                        return new NodeImpl(nodeDelegate);
+                    }
+                });
     }
 
     private static Iterator<Property> propertyIterator(Iterator<PropertyDelegate> properties) {
-        return Iterators.map(properties,
-                new Function1<PropertyDelegate, Property>() {
+        return Iterators.transform(
+                properties,
+                new Function<PropertyDelegate, Property>() {
                     @Override
                     public Property apply(PropertyDelegate propertyDelegate) {
                         return new PropertyImpl(propertyDelegate);
