@@ -21,9 +21,10 @@ import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
-import org.apache.jackrabbit.oak.util.Iterators;
-import org.apache.jackrabbit.oak.util.Predicate;
-import org.apache.jackrabbit.oak.util.Predicates;
+
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.Iterators;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -85,13 +86,13 @@ public class ModifiedNodeState extends AbstractNodeState {
         return new Iterable<PropertyState>() {
             @Override
             public Iterator<PropertyState> iterator() {
-                Iterator<PropertyState> a = Iterators.filter(
+                Iterator<? extends PropertyState> a = Iterators.filter(
                         unmodified.iterator(), new UnmodifiedPropertyPredicate());
 
-                Iterator<PropertyState> b = Iterators.filter(
-                        modified.iterator(), Predicates.nonNull());
+                Iterator<? extends PropertyState> b = Iterators.filter(
+                        modified.iterator(), Predicates.notNull());
 
-                return Iterators.chain(a, b);
+                return Iterators.concat(a, b);
             }
         };
     }
@@ -133,13 +134,13 @@ public class ModifiedNodeState extends AbstractNodeState {
         return new Iterable<ChildNodeEntry>() {
             @Override
             public Iterator<ChildNodeEntry> iterator() {
-                Iterator<ChildNodeEntry> a = Iterators.filter(
+                Iterator<? extends ChildNodeEntry> a = Iterators.filter(
                         unmodified.iterator(), new UnmodifiedChildNodePredicate());
 
                 Iterator<Entry<String, NodeState>> b = Iterators.filter(
                         modified, new UndeletedChildNodePredicate());
 
-                return Iterators.chain(a, MemoryChildNodeEntry.iterator(b));
+                return Iterators.concat(a, MemoryChildNodeEntry.iterator(b));
             }
         };
     }
@@ -229,21 +230,21 @@ public class ModifiedNodeState extends AbstractNodeState {
 
     private class UnmodifiedPropertyPredicate implements Predicate<PropertyState> {
         @Override
-        public boolean evaluate(PropertyState property) {
+        public boolean apply(PropertyState property) {
             return !properties.containsKey(property.getName());
         }
     }
 
     private class UnmodifiedChildNodePredicate implements Predicate<ChildNodeEntry> {
         @Override
-        public boolean evaluate(ChildNodeEntry entry) {
+        public boolean apply(ChildNodeEntry entry) {
             return !nodes.containsKey(entry.getName());
         }
     }
 
     private static class UndeletedChildNodePredicate implements Predicate<Entry<?, ?>> {
         @Override
-        public boolean evaluate(Entry<?, ?> entry) {
+        public boolean apply(Entry<?, ?> entry) {
             return entry.getValue() != null;
         }
     }

@@ -42,8 +42,9 @@ import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
-import org.apache.jackrabbit.oak.util.Iterators;
 import org.apache.jackrabbit.oak.util.PagedIterator;
+
+import com.google.common.collect.Iterators;
 
 /**
  * Basic {@link NodeState} implementation based on the {@link MicroKernel}
@@ -170,7 +171,7 @@ final class KernelNodeState extends AbstractNodeState {
         return new Iterable<ChildNodeEntry>() {
             @Override
             public Iterator<ChildNodeEntry> iterator() {
-                return Iterators.flatten(
+                return  Iterators.concat(
                     new PagedIterator<ChildNodeEntry>(MAX_CHILD_NODE_NAMES) {
                         @Override
                         protected Iterator<? extends ChildNodeEntry> getPage(long pos, int size) {

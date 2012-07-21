@@ -21,8 +21,9 @@ package org.apache.jackrabbit.oak.plugins.memory;
 import org.apache.jackrabbit.oak.spi.state.AbstractChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.util.Function1;
-import org.apache.jackrabbit.oak.util.Iterators;
+
+import com.google.common.base.Function;
+import com.google.common.collect.Iterators;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -37,14 +38,14 @@ public class MemoryChildNodeEntry extends AbstractChildNodeEntry {
 
     public static Iterator<ChildNodeEntry> iterator(
             final Iterator<Entry<String, NodeState>> iterator) {
-
-        return Iterators.map(iterator,
-                new Function1<Entry<String, NodeState>, ChildNodeEntry>() {
-            @Override
-            public ChildNodeEntry apply(Entry<String, NodeState> entry) {
-                return new MemoryChildNodeEntry(entry);
-            }
-        });
+        return Iterators.transform(
+                iterator,
+                new Function<Entry<String, NodeState>, ChildNodeEntry>() {
+                    @Override
+                    public ChildNodeEntry apply(Entry<String, NodeState> input) {
+                        return new MemoryChildNodeEntry(input);
+                    }
+                });
     }
 
     /**
