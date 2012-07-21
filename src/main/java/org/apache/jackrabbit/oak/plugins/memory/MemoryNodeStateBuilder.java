@@ -18,12 +18,16 @@ package org.apache.jackrabbit.oak.plugins.memory;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateBuilder;
 
+import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -116,6 +120,36 @@ public class MemoryNodeStateBuilder implements NodeStateBuilder {
             }
         }
         return count;
+    }
+
+    public boolean hasChildNode(String name) {
+        NodeStateBuilder builder = builders.get(name);
+        if (builder != null) {
+            return true;
+        } else if (builders.containsKey(name)) {
+            return false;
+        } else {
+            return base.getChildNode(name) != null;
+        }
+    }
+
+    @Override
+    public Iterable<String> getChildNodeNames() {
+        Iterable<String> unmodified = Iterables.transform(
+                base.getChildNodeEntries(),
+                new Function<ChildNodeEntry, String>() {
+                    @Override
+                    public String apply(ChildNodeEntry input) {
+                        return input.getName();
+                    }
+                });
+        Predicate<String> unmodifiedFilter = Predicates.not(Predicates.in(
+                ImmutableSet.copyOf(builders.keySet())));
+        Set<String> modified = ImmutableSet.copyOf(
+                Maps.filterValues(builders, Predicates.notNull()).keySet());
+        return Iterables.concat(
+                Iterables.filter(unmodified, unmodifiedFilter),
+                modified);
     }
 
     @Override
