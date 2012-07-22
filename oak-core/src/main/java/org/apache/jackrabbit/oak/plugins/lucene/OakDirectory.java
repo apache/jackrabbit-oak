@@ -19,16 +19,13 @@ package org.apache.jackrabbit.oak.plugins.lucene;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -38,6 +35,8 @@ import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.IndexOutput;
 import org.apache.lucene.store.NoLockFactory;
 
+import com.google.common.collect.Iterables;
+
 class OakDirectory extends Directory {
 
     private final CoreValueFactory factory;
@@ -45,8 +44,6 @@ class OakDirectory extends Directory {
     private final NodeStateBuilder rootBuilder;
 
     private final NodeStateBuilder directoryBuilder;
-
-    private NodeState directory;
 
     public OakDirectory(NodeStore store, NodeState root, String... path) {
         this.lockFactory = NoLockFactory.getNoLockFactory();
@@ -58,7 +55,6 @@ class OakDirectory extends Directory {
             builder = builder.getChildBuilder(name);
         }
         this.directoryBuilder = builder;
-        this.directory = null;
     }
 
     @Nonnull
@@ -66,44 +62,30 @@ class OakDirectory extends Directory {
         return rootBuilder.getNodeState();
     }
 
-    @Nonnull
-    private NodeState getDirectory() {
-        if (directory == null) {
-            directory = directoryBuilder.getNodeState();
-        }
-        return directory;
-    }
-
     @Override
     public String[] listAll() throws IOException {
-        NodeState directory = getDirectory();
-        List<String> names =
-                new ArrayList<String>((int) directory.getChildNodeCount());
-        for (ChildNodeEntry entry : directory.getChildNodeEntries()) {
-            names.add(entry.getName());
-        }
-        return names.toArray(new String[names.size()]);
+        return Iterables.toArray(
+                directoryBuilder.getChildNodeNames(), String.class);
     }
 
     @Override
     public boolean fileExists(String name) throws IOException {
-        return getDirectory().getChildNode(name) != null;
+        return directoryBuilder.hasChildNode(name);
     }
 
     @Override
     public void deleteFile(String name) throws IOException {
         directoryBuilder.removeNode(name);
-        directory = null;
     }
 
     @Override
     public long fileLength(String name) throws IOException {
-        NodeState file = getDirectory().getChildNode(name);
-        if (file == null) {
+        if (!fileExists(name)) {
             return 0;
         }
 
-        PropertyState property = file.getProperty("jcr:data");
+        NodeStateBuilder fileBuilder = directoryBuilder.getChildBuilder(name);
+        PropertyState property = fileBuilder.getProperty("jcr:data");
         if (property == null || property.isArray()) {
             return 0;
         }
@@ -135,36 +117,34 @@ class OakDirectory extends Directory {
     }
 
     private byte[] readFile(String name) throws IOException {
-        CoreValue value = null;
-        NodeState file = getDirectory().getChildNode(name);
-        if (file != null) {
-            PropertyState property = file.getProperty("jcr:data");
-            if (property != null && !property.isArray()) {
-                value = property.getValue();
-            }
+        if (!fileExists(name)) {
+            return new byte[0];
         }
 
-        if (value != null) {
-            InputStream stream = value.getNewStream();
-            try {
-                byte[] buffer = new byte[(int) value.length()];
-
-                int size = 0;
-                do {
-                    int n = stream.read(buffer, size, buffer.length - size);
-                    if (n == -1) {
-                        throw new IOException(
-                                "Unexpected end of index file: " + name);
-                    }
-                    size += n;
-                } while (size < buffer.length);
-
-                return buffer;
-            } finally {
-                stream.close();
-            }
-        } else {
+        NodeStateBuilder fileBuilder = directoryBuilder.getChildBuilder(name);
+        PropertyState property = fileBuilder.getProperty("jcr:data");
+        if (property == null || property.isArray()) {
             return new byte[0];
+        }
+
+        CoreValue value = property.getValue();
+        InputStream stream = value.getNewStream();
+        try {
+            byte[] buffer = new byte[(int) value.length()];
+
+            int size = 0;
+            do {
+                int n = stream.read(buffer, size, buffer.length - size);
+                if (n == -1) {
+                    throw new IOException(
+                            "Unexpected end of index file: " + name);
+                }
+                size += n;
+            } while (size < buffer.length);
+
+            return buffer;
+        } finally {
+            stream.close();
         }
     }
 
@@ -240,8 +220,6 @@ class OakDirectory extends Directory {
             fileBuilder.setProperty(
                     "jcr:data",
                     factory.createValue(new ByteArrayInputStream(data)));
-
-            directory = null;
         }
 
         @Override
