@@ -41,9 +41,6 @@ public class MemoryNodeStore implements NodeStore {
 
     @Override
     public NodeStateBuilder getBuilder(NodeState base) {
-        if (base == null) {
-            base = MemoryNodeState.EMPTY_NODE;
-        }
         return new MemoryNodeStateBuilder(base);
     }
 
