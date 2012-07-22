@@ -45,15 +45,13 @@ public class MemoryNodeStateBuilder implements NodeStateBuilder {
     /**
      * Set of added, modified or removed ({@code null} value) property states.
      */
-    private Map<String, PropertyState> properties =
-            new HashMap<String, PropertyState>();
+    private Map<String, PropertyState> properties = Maps.newHashMap();
 
     /**
      * Set of builders for added, modified or removed ({@code null} value)
      * child nodes.
      */
-    private final Map<String, NodeStateBuilder> builders =
-            new HashMap<String, NodeStateBuilder>();
+    private final Map<String, NodeStateBuilder> builders = Maps.newHashMap();
 
     /**
      * Flag to indicate that the current {@link #properties} map is being
@@ -63,9 +61,39 @@ public class MemoryNodeStateBuilder implements NodeStateBuilder {
      */
     private boolean frozen = false;
 
+    /**
+     * Creates a new in-memory node state builder.
+     *
+     * @param base base state of the new builder, or {@code null}
+     */
     public MemoryNodeStateBuilder(NodeState base) {
-        assert base != null;
-        this.base = base;
+        if (base != null) {
+            this.base = base;
+        } else {
+            this.base = MemoryNodeState.EMPTY_NODE;
+        }
+    }
+
+    /**
+     * Factory method for creating new child state builders. Subclasses may
+     * override this method to control the behavior of child state builders.
+     *
+     * @param child base state of the new builder, or {@code null}
+     * @return new builder
+     */
+    protected MemoryNodeStateBuilder createChildBuilder(NodeState child) {
+        return new MemoryNodeStateBuilder(child);
+    }
+
+    /**
+     * Called whenever <em>this</em> node is modified, i.e. a property is
+     * added, changed or removed, or a child node is added or removed. Changes
+     * inside child nodes or the subtrees below are not reported. The default
+     * implementation does nothing, but subclasses may override this method
+     * to better track changes.
+     */
+    protected void updated() {
+        // do nothing
     }
 
     /**
@@ -160,8 +188,9 @@ public class MemoryNodeStateBuilder implements NodeStateBuilder {
             if (nodeState.equals(base.getChildNode(name))) {
                 builders.remove(name);
             } else {
-                builders.put(name, new MemoryNodeStateBuilder(nodeState));
+                builders.put(name, createChildBuilder(nodeState));
             }
+            updated();
         }
     }
 
@@ -172,6 +201,7 @@ public class MemoryNodeStateBuilder implements NodeStateBuilder {
         } else {
             builders.remove(name);
         }
+        updated();
     }
 
     @Override
@@ -219,6 +249,7 @@ public class MemoryNodeStateBuilder implements NodeStateBuilder {
     public void setProperty(String name, CoreValue value) {
         unfreeze();
         properties.put(name, new SinglePropertyState(name, value));
+        updated();
     }
 
     @Override
@@ -229,6 +260,7 @@ public class MemoryNodeStateBuilder implements NodeStateBuilder {
         } else {
             properties.put(name, new MultiPropertyState(name, values));
         }
+        updated();
     }
 
     @Override
@@ -239,6 +271,7 @@ public class MemoryNodeStateBuilder implements NodeStateBuilder {
         } else {
             properties.remove(name);
         }
+        updated();
     }
 
     @Override
@@ -246,10 +279,7 @@ public class MemoryNodeStateBuilder implements NodeStateBuilder {
         NodeStateBuilder builder = builders.get(name);
         if (builder == null) {
             NodeState baseState = base.getChildNode(name);
-            if (baseState == null) {
-                baseState = MemoryNodeState.EMPTY_NODE;
-            }
-            builder = new MemoryNodeStateBuilder(baseState);
+            builder = createChildBuilder(baseState);
             builders.put(name, builder);
         }
         return builder;
