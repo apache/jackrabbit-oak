@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStateBuilder;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -28,12 +28,11 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateBuilder;
 
 /**
  * Basic in-memory node state builder.
@@ -59,7 +58,7 @@ public class MemoryNodeStateBuilder implements NodeStateBuilder {
      * previous {@link #getNodeState()} call, and thus should not be
      * modified unless first explicitly {@link #unfreeze() unfrozen}.
      */
-    private boolean frozen = false;
+    private boolean frozen;
 
     /**
      * Creates a new in-memory node state builder.
@@ -150,6 +149,7 @@ public class MemoryNodeStateBuilder implements NodeStateBuilder {
         return count;
     }
 
+    @Override
     public boolean hasChildNode(String name) {
         NodeStateBuilder builder = builders.get(name);
         if (builder != null) {

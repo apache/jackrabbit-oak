@@ -29,9 +29,9 @@ class PropertyDefinitionTemplateImpl
         extends AbstractPropertyDefinitionBuilder<NodeTypeTemplate>
         implements PropertyDefinitionTemplate {
 
-    private String[] valueConstraints = null;
+    private String[] valueConstraints;
 
-    private Value[] defaultValues = null;
+    private Value[] defaultValues;
 
     protected Value createValue(String value) throws RepositoryException {
         throw new UnsupportedRepositoryOperationException();

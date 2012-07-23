@@ -284,6 +284,6 @@ class OakDirectory extends Directory {
             // do nothing
         }
 
-    };
+    }
 
 }
