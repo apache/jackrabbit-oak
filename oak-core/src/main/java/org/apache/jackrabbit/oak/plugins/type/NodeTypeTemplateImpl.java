@@ -51,7 +51,7 @@ class NodeTypeTemplateImpl
     private final List<NodeDefinitionTemplate> nodeDefinitionTemplates =
             new ArrayList<NodeDefinitionTemplate>();
 
-    private NodeTypeTemplateImpl(NodeTypeManager manager, ValueFactory factory) {
+    public NodeTypeTemplateImpl(NodeTypeManager manager, ValueFactory factory) {
         this.manager = manager;
         this.factory = factory;
     }

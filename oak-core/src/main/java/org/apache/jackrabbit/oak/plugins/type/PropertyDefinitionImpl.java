@@ -16,13 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.type;
 
-import static javax.jcr.PropertyType.TYPENAME_UNDEFINED;
-
 import javax.jcr.PropertyType;
 import javax.jcr.Value;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.query.qom.QueryObjectModelConstants;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * <pre>
@@ -43,38 +44,20 @@ import javax.jcr.query.qom.QueryObjectModelConstants;
 class PropertyDefinitionImpl extends ItemDefinitionImpl
         implements PropertyDefinition {
 
+    private static final Logger log =
+            LoggerFactory.getLogger(PropertyDefinitionImpl.class);
+
     public PropertyDefinitionImpl(NodeType type, NodeUtil node) {
         super(type, node);
     }
 
     @Override
     public int getRequiredType() {
-        String type = node.getString("jcr:requiredType", TYPENAME_UNDEFINED);
-        if (PropertyType.TYPENAME_BINARY.equalsIgnoreCase(type)) {
-            return PropertyType.BINARY;
-        } else if (PropertyType.TYPENAME_BOOLEAN.equalsIgnoreCase(type)) {
-            return PropertyType.BOOLEAN;
-        } else if (PropertyType.TYPENAME_DATE.equalsIgnoreCase(type)) {
-            return PropertyType.DATE;
-        } else if (PropertyType.TYPENAME_DECIMAL.equalsIgnoreCase(type)) {
-            return PropertyType.DECIMAL;
-        } else if (PropertyType.TYPENAME_DOUBLE.equalsIgnoreCase(type)) {
-            return PropertyType.DOUBLE;
-        } else if (PropertyType.TYPENAME_LONG.equalsIgnoreCase(type)) {
-            return PropertyType.LONG;
-        } else if (PropertyType.TYPENAME_NAME.equalsIgnoreCase(type)) {
-            return PropertyType.NAME;
-        } else if (PropertyType.TYPENAME_PATH.equalsIgnoreCase(type)) {
-            return PropertyType.PATH;
-        } else if (PropertyType.TYPENAME_REFERENCE.equalsIgnoreCase(type)) {
-            return PropertyType.REFERENCE;
-        } else if (PropertyType.TYPENAME_STRING.equalsIgnoreCase(type)) {
-            return PropertyType.STRING;
-        } else if (PropertyType.TYPENAME_URI.equalsIgnoreCase(type)) {
-            return PropertyType.URI;
-        } else if (PropertyType.TYPENAME_WEAKREFERENCE.equalsIgnoreCase(type)) {
-            return PropertyType.WEAKREFERENCE;
-        } else {
+        try {
+            return PropertyType.valueFromName(node.getString(
+                    "jcr:requiredType", PropertyType.TYPENAME_UNDEFINED));
+        } catch (IllegalArgumentException e) {
+            log.warn("Unexpected jcr:requiredType value", e);
             return PropertyType.UNDEFINED;
         }
     }
