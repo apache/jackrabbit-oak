@@ -235,8 +235,8 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
         Tree types = getOrCreateNodeTypes(root);
         try {
             List<NodeType> list = Lists.newArrayList();
-            for (int i = 0; i < ntds.length; i++) {
-                list.add(internalRegister(types, ntds[i], allowUpdate));
+            for (NodeTypeDefinition ntd : ntds) {
+                list.add(internalRegister(types, ntd, allowUpdate));
             }
             root.commit(DefaultConflictHandler.OURS);
             return new NodeTypeIteratorAdapter(list);
