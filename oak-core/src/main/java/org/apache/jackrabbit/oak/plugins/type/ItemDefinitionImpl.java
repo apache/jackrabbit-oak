@@ -16,16 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.type;
 
-import static javax.jcr.version.OnParentVersionAction.ACTIONNAME_ABORT;
-import static javax.jcr.version.OnParentVersionAction.ACTIONNAME_COMPUTE;
-import static javax.jcr.version.OnParentVersionAction.ACTIONNAME_COPY;
-import static javax.jcr.version.OnParentVersionAction.ACTIONNAME_IGNORE;
-import static javax.jcr.version.OnParentVersionAction.ACTIONNAME_INITIALIZE;
-import static javax.jcr.version.OnParentVersionAction.ACTIONNAME_VERSION;
-
 import javax.jcr.nodetype.ItemDefinition;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.version.OnParentVersionAction;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * <pre>
@@ -40,6 +36,9 @@ import javax.jcr.version.OnParentVersionAction;
  * </pre>
  */
 class ItemDefinitionImpl implements ItemDefinition {
+
+    private static final Logger log =
+            LoggerFactory.getLogger(ItemDefinitionImpl.class);
 
     private final NodeType type;
 
@@ -72,18 +71,12 @@ class ItemDefinitionImpl implements ItemDefinition {
 
     @Override
     public int getOnParentVersion() {
-        String opv = node.getString("jcr:onParentVersion", ACTIONNAME_COPY);
-        if (ACTIONNAME_ABORT.equalsIgnoreCase(opv)) {
-            return OnParentVersionAction.ABORT;
-        } else if (ACTIONNAME_COMPUTE.equalsIgnoreCase(opv)) {
-            return OnParentVersionAction.COMPUTE;
-        } else if (ACTIONNAME_IGNORE.equalsIgnoreCase(opv)) {
-            return OnParentVersionAction.IGNORE;
-        } else if (ACTIONNAME_INITIALIZE.equalsIgnoreCase(opv)) {
-            return OnParentVersionAction.INITIALIZE;
-        } else if (ACTIONNAME_VERSION.equalsIgnoreCase(opv)) {
-            return OnParentVersionAction.VERSION;
-        } else {
+        try {
+            return OnParentVersionAction.valueFromName(node.getString(
+                    "jcr:onParentVersion",
+                    OnParentVersionAction.ACTIONNAME_COPY));
+        } catch (IllegalArgumentException e) {
+            log.warn("Unexpected jcr:onParentVersion value", e);
             return OnParentVersionAction.COPY;
         }
     }

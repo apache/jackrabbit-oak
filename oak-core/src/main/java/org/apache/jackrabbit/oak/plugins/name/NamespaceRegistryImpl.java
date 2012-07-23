@@ -75,16 +75,16 @@ public class NamespaceRegistryImpl implements NamespaceRegistry {
 
     @Override
     public void unregisterNamespace(String prefix) throws RepositoryException {
+        Root root = session.getCurrentRoot();
+        Tree namespaces = root.getTree("/jcr:system/jcr:namespaces");
+        if (namespaces == null || !namespaces.hasProperty(prefix)) {
+            throw new NamespaceException(
+                    "Namespace mapping from " + prefix + " to "
+                    + getURI(prefix) + " can not be unregistered");
+        }
+
         try {
-            Root root = session.getCurrentRoot();
-            Tree namespaces = getOrCreate(root, "jcr:system", Namespaces.NSMAPNODENAME);
-            if (namespaces.hasProperty(prefix)) {
-                namespaces.removeProperty(prefix);
-            } else {
-                throw new NamespaceException(
-                        "Namespace mapping from " + prefix + " to "
-                        + getURI(prefix) + " can not be unregistered");
-            }
+            namespaces.removeProperty(prefix);
             root.commit(DefaultConflictHandler.OURS);
             refresh();
         } catch (NamespaceValidatorException e) {
