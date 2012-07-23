@@ -50,6 +50,7 @@ import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 public class NodeTypeManagerImpl implements NodeTypeManager {
 
@@ -65,23 +66,54 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
         this.mapper = mapper;
         this.factory = factory;
 
-        try {
-            InputStream stream = NodeTypeManagerImpl.class.getResourceAsStream(
-                    "builtin_nodetypes.cnd");
+        if (session.getCurrentRoot().getTree("/jcr:system/jcr:nodeTypes") == null) {
             try {
-                CompactNodeTypeDefReader<NodeTypeTemplate, Map<String, String>> reader =
-                        new CompactNodeTypeDefReader<NodeTypeTemplate, Map<String, String>>(
-                                new InputStreamReader(stream, "UTF-8"), null, new DefBuilderFactory());
-                registerNodeTypes(reader.getNodeTypeDefinitions().toArray(
-                        new NodeTypeTemplate[0]), true);
-            } finally {
-                stream.close();
+                InputStream stream = NodeTypeManagerImpl.class.getResourceAsStream(
+                        "builtin_nodetypes.cnd");
+                try {
+                    CompactNodeTypeDefReader<NodeTypeTemplate, Map<String, String>> reader =
+                            new CompactNodeTypeDefReader<NodeTypeTemplate, Map<String, String>>(
+                                    new InputStreamReader(stream, "UTF-8"), null, new DefBuilderFactory());
+                    Map<String, NodeTypeTemplate> templates = Maps.newHashMap();
+                    for (NodeTypeTemplate template : reader.getNodeTypeDefinitions()) {
+                        templates.put(template.getName(), template);
+                    }
+                    for (NodeTypeTemplate template : templates.values()) {
+                        if (!template.isMixin()
+                                && !"nt:base".equals(template.getName())) {
+                            String[] supertypes =
+                                    template.getDeclaredSupertypeNames();
+                            if (supertypes.length == 0) {
+                                template.setDeclaredSuperTypeNames(
+                                        new String[] { "nt:base" });
+                            } else {
+                                // Check whether we need to add the implicit "nt:base" supertype
+                                boolean needsNtBase = true;
+                                for (String name : supertypes) {
+                                    if (!templates.get(name).isMixin()) {
+                                        needsNtBase = false;
+                                    }
+                                }
+                                if (needsNtBase) {
+                                    String[] withBase = new String[supertypes.length + 1];
+                                    withBase[0] = "nt:base";
+                                    System.arraycopy(supertypes, 0, withBase, 1, supertypes.length);
+                                    template.setDeclaredSuperTypeNames(withBase);
+                                }
+                            }
+                        }
+                    }
+                    registerNodeTypes(templates.values().toArray(
+                            new NodeTypeTemplate[templates.size()]), true);
+                } finally {
+                    stream.close();
+                }
+            } catch (Exception e) {
+                throw new IllegalStateException(
+                        "Unable to load built-in node types", e);
             }
-        } catch (Exception e) {
-            throw new IllegalStateException(
-                    "Unable to load built-in node types", e);
         }
-}
+    }
 
     protected String getOakName(String name) throws RepositoryException {
         return name; // TODO
@@ -114,7 +146,7 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
         if (types != null) {
             Tree type = types.getChild(mapper.getOakName(name));
             if (type != null) {
-                return new NodeTypeImpl(this, new NodeUtil(
+                return new NodeTypeImpl(this, factory, new NodeUtil(
                         session.getCoreValueFactory(), mapper, type));
             }
         }
@@ -128,7 +160,7 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
                 "/jcr:system/jcr:nodeTypes");
         if (types != null) {
             for (Tree type : types.getChildren()) {
-                list.add(new NodeTypeImpl(this, new NodeUtil(
+                list.add(new NodeTypeImpl(this, factory, new NodeUtil(
                         session.getCoreValueFactory(), mapper, type)));
                 
             }
@@ -243,28 +275,32 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
             node.setName("jcr:primaryItemName", primaryItemName);
         }
 
-        Tree props = type.addChild("jcr:propertyDefinition");
+        int pdn = 1;
         for (PropertyDefinition pd : ntd.getDeclaredPropertyDefinitions()) {
-            Tree def = props.addChild(mapper.getOakName(pd.getName()));
+            Tree def = type.addChild("jcr:propertyDefinition" + pdn++);
             internalRegisterPropertyDefinition(
                     new NodeUtil(factory, mapper, def), pd);
         }
 
-        Tree nodes = type.addChild("jcr:childNodeDefinition");
+        int ndn = 1;
         for (NodeDefinition nd : ntd.getDeclaredChildNodeDefinitions()) {
-            Tree def = nodes.addChild(mapper.getOakName(nd.getName()));
+            Tree def = type.addChild("jcr:childNodeDefinition" + ndn++);
             internalRegisterNodeDefinition(
                     new NodeUtil(factory, mapper, def), nd);
         }
 
-        return new NodeTypeImpl(this, node);
+        return new NodeTypeImpl(this, this.factory, node);
     }
 
     private void internalRegisterItemDefinition(
             NodeUtil node, ItemDefinition def) {
-        node.setName("jcr:name", def.getName());
+        String name = def.getName();
+        if (!"*".equals(name)) {
+            node.setName("jcr:name", name);
+        }
         node.setBoolean("jcr:autoCreated", def.isAutoCreated());
         node.setBoolean("jcr:mandatory", def.isMandatory());
+        node.setBoolean("jcr:protected", def.isProtected());
         node.setString(
                 "jcr:onParentVersion",
                 OnParentVersionAction.nameFromValue(def.getOnParentVersion()));
@@ -290,7 +326,7 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
 
         Value[] values = def.getDefaultValues();
         if (values != null) {
-            // TODO: convert to CoreValues
+            node.setValues("jcr:defaultValues", values);
         }
     }
 

@@ -32,6 +32,7 @@ import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
 
 import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory.AbstractNodeTypeDefinitionBuilder;
+import org.apache.jackrabbit.value.ValueFactoryImpl;
 
 class NodeTypeTemplateImpl
     extends AbstractNodeTypeDefinitionBuilder<NodeTypeTemplate>
@@ -57,7 +58,7 @@ class NodeTypeTemplateImpl
     }
 
     public NodeTypeTemplateImpl() {
-        this(null, null);
+        this(null, ValueFactoryImpl.getInstance());
     }
 
     public NodeTypeTemplateImpl(
@@ -117,11 +118,7 @@ class NodeTypeTemplateImpl
             @Override
             protected Value createValue(String value)
                     throws RepositoryException {
-                if (factory != null) {
-                    return factory.createValue(value);
-                } else {
-                    return super.createValue(value);
-                }
+                return factory.createValue(value);
             }
             @Override
             public void build() {

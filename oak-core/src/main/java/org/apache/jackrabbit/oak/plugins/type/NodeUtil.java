@@ -20,17 +20,27 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.jcr.PropertyType;
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+import javax.jcr.ValueFactory;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
+import org.apache.jackrabbit.value.ValueFactoryImpl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Lists;
 
 /**
  * Utility class for accessing typed content of a node.
  */
 class NodeUtil {
+
+    private static final Logger log = LoggerFactory.getLogger(NodeUtil.class);
 
     private final CoreValueFactory factory;
 
@@ -135,15 +145,43 @@ class NodeUtil {
         tree.setProperty(name, cvs);
     }
 
-    public NodeUtil[] getNodes(String name) {
-        List<NodeUtil> nodes = new ArrayList<NodeUtil>();
-        Tree child = tree.getChild(name);
-        if (child != null) {
-            for (Tree tree : child.getChildren()) {
-                nodes.add(new NodeUtil(factory, mapper, tree));
+    public List<NodeUtil> getNodes(String namePrefix) {
+        List<NodeUtil> nodes = Lists.newArrayList();
+        for (Tree child : tree.getChildren()) {
+            if (child.getName().startsWith(namePrefix)) {
+                nodes.add(new NodeUtil(factory, mapper, child));
             }
         }
-        return nodes.toArray(new NodeUtil[nodes.size()]);
+        return nodes;
+    }
+
+    public void setValues(String name, Value[] values) {
+        List<CoreValue> cvs = Lists.newArrayList();
+        for (Value value : values) {
+            try {
+                cvs.add(factory.createValue(value.getString(), value.getType()));
+            } catch (RepositoryException e) {
+                log.warn("Unable to convert a default value", e);
+            }
+        }
+        tree.setProperty(name, cvs);
+    }
+
+    public Value[] getValues(String name, ValueFactory vf) {
+        PropertyState property = tree.getProperty(name);
+        if (property != null) {
+            List<Value> values = Lists.newArrayList();
+            for (CoreValue value : property.getValues()) {
+                try {
+                    values.add(vf.createValue(value.getString(), value.getType()));
+                } catch (RepositoryException e) {
+                    log.warn("Unable to convert a default value", e);
+                }
+            }
+            return values.toArray(new Value[values.size()]);
+        } else {
+            return null;
+        }
     }
 
 }

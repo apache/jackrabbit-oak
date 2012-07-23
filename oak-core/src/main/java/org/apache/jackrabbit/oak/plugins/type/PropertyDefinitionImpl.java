@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.type;
 
 import javax.jcr.PropertyType;
 import javax.jcr.Value;
+import javax.jcr.ValueFactory;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.query.qom.QueryObjectModelConstants;
@@ -47,8 +48,11 @@ class PropertyDefinitionImpl extends ItemDefinitionImpl
     private static final Logger log =
             LoggerFactory.getLogger(PropertyDefinitionImpl.class);
 
-    public PropertyDefinitionImpl(NodeType type, NodeUtil node) {
+    private final ValueFactory factory;
+
+    public PropertyDefinitionImpl(NodeType type, ValueFactory factory, NodeUtil node) {
         super(type, node);
+        this.factory = factory;
     }
 
     @Override
@@ -70,7 +74,7 @@ class PropertyDefinitionImpl extends ItemDefinitionImpl
 
     @Override
     public Value[] getDefaultValues() {
-        return new Value[0]; // TODO
+        return node.getValues("jcr:defaultValues", factory);
     }
 
     @Override

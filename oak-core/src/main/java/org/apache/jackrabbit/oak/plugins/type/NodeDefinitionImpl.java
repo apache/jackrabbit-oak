@@ -51,7 +51,7 @@ class NodeDefinitionImpl extends ItemDefinitionImpl implements NodeDefinition {
 
     @Override
     public String[] getRequiredPrimaryTypeNames() {
-        return node.getNames("requiredPrimaryTypes", "nt:base");
+        return node.getNames("jcr:requiredPrimaryTypes", "nt:base");
     }
 
     @Override
@@ -71,7 +71,7 @@ class NodeDefinitionImpl extends ItemDefinitionImpl implements NodeDefinition {
 
     @Override
     public String getDefaultPrimaryTypeName() {
-        return node.getName("jcr:defaultPrimaryTypeName", null);
+        return node.getName("jcr:defaultPrimaryType", null);
     }
 
     @Override

@@ -51,7 +51,6 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
-import org.apache.jackrabbit.oak.jcr.nodetype.NodeTypeManagerDelegate;
 import org.apache.jackrabbit.oak.jcr.observation.ObservationManagerImpl;
 import org.apache.jackrabbit.oak.jcr.util.LazyValue;
 import org.apache.jackrabbit.oak.jcr.value.ValueFactoryImpl;
@@ -67,7 +66,6 @@ public class SessionDelegate {
 
     private final NamePathMapper namePathMapper = new NamePathMapperImpl(new SessionNameMapper());
     private final Repository repository;
-    private final NodeTypeManagerDelegate nodeTypeManagerDelegate;
     private final LazyValue<Timer> observationTimer;
     private final ContentSession contentSession;
     private final ValueFactoryImpl valueFactory;
@@ -79,13 +77,12 @@ public class SessionDelegate {
     private ObservationManagerImpl observationManager;
     private boolean isAlive = true;
 
-    SessionDelegate(Repository repository, NodeTypeManagerDelegate nodeTypeManagerDelegate, LazyValue<Timer> observationTimer, ContentSession contentSession)
+    SessionDelegate(Repository repository, LazyValue<Timer> observationTimer, ContentSession contentSession)
             throws RepositoryException {
         assert repository != null;
         assert contentSession != null;
 
         this.repository = repository;
-        this.nodeTypeManagerDelegate = nodeTypeManagerDelegate;
         this.observationTimer = observationTimer;
         this.contentSession = contentSession;
         this.valueFactory = new ValueFactoryImpl(contentSession.getCoreValueFactory(), namePathMapper);
@@ -112,11 +109,6 @@ public class SessionDelegate {
     @Nonnull
     public Repository getRepository() {
         return repository;
-    }
-
-    @Nonnull
-    public NodeTypeManagerDelegate getNodeTypeManagerDelegate() {
-        return nodeTypeManagerDelegate;
     }
 
     public void logout() {
