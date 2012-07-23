@@ -19,8 +19,6 @@ package org.apache.jackrabbit.mk.json;
 import junit.framework.TestCase;
 import org.apache.jackrabbit.mk.util.StopWatch;
 
-import java.io.IOException;
-
 public class JsopStreamTest extends TestCase {
 
     // run the micro-benchmark
@@ -57,7 +55,7 @@ public class JsopStreamTest extends TestCase {
         testRawValue(new JsopTokenizer(s.toString()));
     }
 
-    private void testRawValue(JsopReader s) {
+    private static void testRawValue(JsopReader s) {
         for (int i = 0; i < 3; i++) {
             assertFalse(s.matches('-'));
             assertTrue(s.matches('+'));
@@ -193,7 +191,7 @@ public class JsopStreamTest extends TestCase {
         }
     }
 
-    public void testBuilder() throws IOException {
+    public static void testBuilder() {
 
         JsopWriter buff = new JsopStream();
         buff.tag('+').object().

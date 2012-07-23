@@ -212,7 +212,7 @@ public class IOUtilsTest extends TestCase {
         }
     }
 
-    private void testVarInt(int x, int expectedLen) throws IOException {
+    private static void testVarInt(int x, int expectedLen) throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         IOUtils.writeVarInt(out, x);
         byte[] data = out.toByteArray();
@@ -226,7 +226,7 @@ public class IOUtilsTest extends TestCase {
         assertEquals(-1, in.read());
     }
 
-    private void testVarLong(long x, int expectedLen) throws IOException {
+    private static void testVarLong(long x, int expectedLen) throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         IOUtils.writeVarLong(out, x);
         byte[] data = out.toByteArray();
