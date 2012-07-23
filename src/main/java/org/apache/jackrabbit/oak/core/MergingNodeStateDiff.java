@@ -203,7 +203,7 @@ class MergingNodeStateDiff implements NodeStateDiff {
 
     //-------------------------------------------------------------<private >---
 
-    private void addChild(Tree target, String name, NodeState state) {
+    private static void addChild(Tree target, String name, NodeState state) {
         Tree child = target.addChild(name);
         for (PropertyState property : state.getProperties()) {
             setProperty(child, property);
@@ -213,7 +213,7 @@ class MergingNodeStateDiff implements NodeStateDiff {
         }
     }
 
-    private void setProperty(Tree target, PropertyState property) {
+    private static void setProperty(Tree target, PropertyState property) {
         if (property.isArray()) {
             target.setProperty(property.getName(), property.getValues());
         } else {
