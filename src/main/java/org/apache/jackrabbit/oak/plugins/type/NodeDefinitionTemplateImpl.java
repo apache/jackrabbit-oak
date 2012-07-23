@@ -154,12 +154,13 @@ class NodeDefinitionTemplateImpl
         } else {
             List<NodeType> types =
                     new ArrayList<NodeType>(requiredPrimaryTypeNames.length);
-            for (int i = 0; i < requiredPrimaryTypeNames.length; i++) {
+            for (String requiredPrimaryTypeName : requiredPrimaryTypeNames) {
                 try {
-                    types.add(getNodeType(requiredPrimaryTypeNames[i]));
-                } catch (RepositoryException e) {
+                    types.add(getNodeType(requiredPrimaryTypeName));
+                }
+                catch (RepositoryException e) {
                     log.warn("Unable to required primary primary type "
-                            + requiredPrimaryTypeNames[i] + " of " + name, e);
+                            + requiredPrimaryTypeName + " of " + name, e);
                 }
             }
             return types.toArray(new NodeType[types.size()]);
