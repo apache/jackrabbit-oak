@@ -56,7 +56,7 @@ public class NodeDelegate extends ItemDelegate {
      */
     private Tree tree;
 
-    NodeDelegate(SessionDelegate sessionDelegate, Tree tree) {
+    public NodeDelegate(SessionDelegate sessionDelegate, Tree tree) {
         super(sessionDelegate);
         this.tree = tree;
     }

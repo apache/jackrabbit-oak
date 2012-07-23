@@ -199,6 +199,25 @@ public class SessionDelegate {
     }
 
     /**
+     * Returns the Oak name for the given JCR name, or throws a
+     * {@link RepositoryException} if the name is invalid or can
+     * otherwise not be mapped.
+     *
+     * @param jcrName JCR name
+     * @return Oak name
+     * @throws RepositoryException if the name is invalid
+     */
+    @Nonnull
+    public String getOakNameOrThrow(String jcrName) throws RepositoryException {
+        String oakName = getNamePathMapper().getOakName(jcrName);
+        if (oakName != null) {
+            return oakName;
+        } else {
+            throw new RepositoryException("Invalid name: " + jcrName);
+        }
+    }
+
+    /**
      * Shortcut for {@code SessionDelegate.getNamePathMapper().getOakPath(jcrPath)}.
      *
      * @param jcrPath JCR path

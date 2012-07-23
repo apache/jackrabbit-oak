@@ -16,68 +16,82 @@
  */
 package org.apache.jackrabbit.oak.jcr.nodetype;
 
-import javax.jcr.RepositoryException;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.annotation.CheckForNull;
+import javax.jcr.Node;
+import javax.jcr.Property;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeManager;
 
-import org.apache.jackrabbit.oak.namepath.NameMapper;
+import com.google.common.base.Joiner;
 
+/**
+ * Adapter class for turning an in-content property definition
+ * node ("nt:childNodeDefinition") to a {@link NodeDefinition} instance.
+ */
 class NodeDefinitionImpl extends ItemDefinitionImpl implements NodeDefinition {
 
     private final NodeTypeManager manager;
 
-    private final NodeDefinitionDelegate dlg;
-
-    protected NodeDefinitionImpl(NodeTypeManager manager, NodeType type, NameMapper mapper, NodeDefinitionDelegate delegate) {
-        super(type, mapper, delegate);
+    protected NodeDefinitionImpl(
+            NodeTypeManager manager, NodeType type, Node node) {
+        super(type, node);
         this.manager = manager;
-        this.dlg = delegate;
+    }
+
+    /** CND: <pre>- jcr:requiredPrimaryTypes (NAME) = 'nt:base' protected mandatory multiple</pre> */
+    @Override
+    public String[] getRequiredPrimaryTypeNames() {
+        return getStrings(Property.JCR_REQUIRED_PRIMARY_TYPES);
     }
 
     @Override
     public NodeType[] getRequiredPrimaryTypes() {
         String[] names = getRequiredPrimaryTypeNames();
-        NodeType[] types = new NodeType[names.length];
+        List<NodeType> types = new ArrayList<NodeType>(names.length);
         for (int i = 0; i < names.length; i++) {
-            try {
-                types[i] = manager.getNodeType(names[i]);
-            } catch (RepositoryException e) {
-                throw new IllegalStateException("Inconsistent node definition: " + this, e);
-            }
+            types.add(getType(manager, names[i]));
         }
-        return types;
+        return types.toArray(new NodeType[types.size()]);
     }
 
-    @Override
-    public String[] getRequiredPrimaryTypeNames() {
-        String[] requiredPrimaryTypeNames = dlg.getRequiredPrimaryTypeNames();
-        String[] result = new String[requiredPrimaryTypeNames.length];
-        for (int i = 0; i < result.length; i++) {
-            result[i] = mapper.getJcrName(requiredPrimaryTypeNames[i]);
-        }
-        return result;
+    /** CND: <pre>- jcr:defaultPrimaryType (NAME) protected</pre> */
+    @Override @CheckForNull
+    public String getDefaultPrimaryTypeName() {
+        return getString(Property.JCR_DEFAULT_PRIMARY_TYPE, null);
     }
 
     @Override
     public NodeType getDefaultPrimaryType() {
-        try {
-            String defaultName = getDefaultPrimaryTypeName();
-            return defaultName == null ? null : manager.getNodeType(getDefaultPrimaryTypeName());
-        } catch (RepositoryException e) {
-            throw new IllegalStateException("Inconsistent node definition: " + this, e);
+        String name = getDefaultPrimaryTypeName();
+        if (name != null) {
+            return getType(manager, name);
         }
+        return null;
     }
 
-    @Override
-    public String getDefaultPrimaryTypeName() {
-        String defaultPrimaryTypeName = dlg.getDefaultPrimaryTypeName();
-        return defaultPrimaryTypeName == null ? null : mapper.getJcrName(defaultPrimaryTypeName);
-    }
-
+    /** CND: <pre>- jcr:sameNameSiblings (BOOLEAN) protected mandatory</pre> */
     @Override
     public boolean allowsSameNameSiblings() {
-        return dlg.allowsSameNameSiblings();
+        return getBoolean(Property.JCR_SAME_NAME_SIBLINGS);
+    }
+
+    //------------------------------------------------------------< Object >--
+
+    public String toString() {
+        String rt = null;
+        String[] rts = getRequiredPrimaryTypeNames();
+        if (rts != null) {
+            rt = Joiner.on(", ").join(rts);
+        }
+
+        StringBuilder sb = new StringBuilder("+ ");
+        appendItemCND(sb, rt, getDefaultPrimaryTypeName());
+        sb.append(" ..."); // TODO: rest of the info
+        return sb.toString();
     }
 
 }

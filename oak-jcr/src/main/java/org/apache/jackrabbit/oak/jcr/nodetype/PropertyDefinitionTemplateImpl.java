@@ -16,26 +16,91 @@
  */
 package org.apache.jackrabbit.oak.jcr.nodetype;
 
-import javax.jcr.PropertyType;
+import javax.jcr.RepositoryException;
+import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Value;
+import javax.jcr.nodetype.NodeType;
+import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
 
-class PropertyDefinitionTemplateImpl extends ItemDefinitionTemplateImpl
+import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory.AbstractPropertyDefinitionBuilder;
+
+class PropertyDefinitionTemplateImpl
+        extends AbstractPropertyDefinitionBuilder<NodeTypeTemplate>
         implements PropertyDefinitionTemplate {
 
-    private boolean isMultiple = false;
+    private String[] valueConstraints;
 
-    private Value[] defaultValues = null;
+    private Value[] defaultValues;
 
-    private String[] availableQueryOperators = new String[0];
+    protected Value createValue(String value) throws RepositoryException {
+        throw new UnsupportedRepositoryOperationException();
+    }
 
-    private int requiredType = PropertyType.STRING;
+    @Override
+    public void build() {
+        // do nothing by default
+    }
 
-    private boolean fullTextSearchable = true;
+    @Override
+    public NodeType getDeclaringNodeType() {
+        return null;
+    }
 
-    private boolean queryOrderable = true;
+    @Override
+    public void setDeclaringNodeType(String name) {
+        // ignore
+    }
 
-    private String[] valueConstraints = null;
+    @Override
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    @Override
+    public boolean isAutoCreated() {
+        return autocreate;
+    }
+
+    @Override
+    public void setAutoCreated(boolean autocreate) {
+        this.autocreate = autocreate;
+    }
+
+    @Override
+    public boolean isProtected() {
+        return isProtected;
+    }
+
+    @Override
+    public void setProtected(boolean isProtected) {
+        this.isProtected = isProtected;
+    }
+
+    @Override
+    public boolean isMandatory() {
+        return isMandatory;
+    }
+
+    @Override
+    public void setMandatory(boolean isMandatory) {
+        this.isMandatory = isMandatory;
+    }
+
+    @Override
+    public int getOnParentVersion() {
+        return onParent;
+    }
+
+    @Override
+    public void setOnParentVersion(int onParent) {
+        this.onParent = onParent;
+    }
+
+    @Override
+    public void setRequiredType(int requiredType) {
+        this.requiredType = requiredType;
+    }
 
     @Override
     public boolean isMultiple() {
@@ -48,18 +113,8 @@ class PropertyDefinitionTemplateImpl extends ItemDefinitionTemplateImpl
     }
 
     @Override
-    public String[] getValueConstraints() {
-        return valueConstraints ;
-    }
-
-    @Override
-    public void setValueConstraints(String[] constraints) {
-        this.valueConstraints = constraints;
-    }
-
-    @Override
     public boolean isQueryOrderable() {
-        return queryOrderable ;
+        return queryOrderable;
     }
 
     @Override
@@ -78,13 +133,13 @@ class PropertyDefinitionTemplateImpl extends ItemDefinitionTemplateImpl
     }
 
     @Override
-    public int getRequiredType() {
-        return requiredType ;
+    public String[] getAvailableQueryOperators() {
+        return queryOperators;
     }
 
     @Override
-    public void setRequiredType(int type) {
-        this.requiredType = type;
+    public void setAvailableQueryOperators(String[] queryOperators) {
+        this.queryOperators = queryOperators;
     }
 
     @Override
@@ -98,13 +153,37 @@ class PropertyDefinitionTemplateImpl extends ItemDefinitionTemplateImpl
     }
 
     @Override
-    public String[] getAvailableQueryOperators() {
-        return availableQueryOperators ;
+    public void addDefaultValues(String value) throws RepositoryException {
+        if (defaultValues == null) {
+            defaultValues = new Value[] { createValue(value) };
+        } else {
+            Value[] values = new Value[defaultValues.length + 1];
+            System.arraycopy(defaultValues, 0, values, 0, defaultValues.length);
+            values[defaultValues.length] = createValue(value);
+            defaultValues = values;
+        }
     }
 
     @Override
-    public void setAvailableQueryOperators(String[] operators) {
-        this.availableQueryOperators = operators;
+    public String[] getValueConstraints() {
+        return valueConstraints;
+    }
+
+    @Override
+    public void setValueConstraints(String[] constraints) {
+        this.valueConstraints = constraints;
+    }
+
+    @Override
+    public void addValueConstraint(String constraint) {
+        if (valueConstraints == null) {
+            valueConstraints = new String[] { constraint };
+        } else {
+            String[] constraints = new String[valueConstraints.length + 1];
+            System.arraycopy(valueConstraints, 0, constraints, 0, valueConstraints.length);
+            constraints[valueConstraints.length] = constraint;
+            valueConstraints = constraints;
+        }
     }
 
 }
