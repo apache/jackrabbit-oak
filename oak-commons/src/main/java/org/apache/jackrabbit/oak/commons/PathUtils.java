@@ -181,22 +181,16 @@ public class PathUtils {
                     if (pos >= path.length()) {
                         return false;
                     }
-                    else {
-                        int i = path.indexOf('/', pos);
-                        if (i < 0) {
-                            next = path.substring(pos);
-                            pos = path.length();
-                        }
-                        else {
-                            next = path.substring(pos, i);
-                            pos = i + 1;
-                        }
-                        return true;
+                    int i = path.indexOf('/', pos);
+                    if (i < 0) {
+                        next = path.substring(pos);
+                        pos = path.length();
+                    } else {
+                        next = path.substring(pos, i);
+                        pos = i + 1;
                     }
                 }
-                else {
-                    return true;
-                }
+                return true;
             }
 
             @Override
@@ -206,9 +200,7 @@ public class PathUtils {
                     this.next = null;
                     return next;
                 }
-                else {
-                    throw new NoSuchElementException();
-                }
+                throw new NoSuchElementException();
             }
 
             @Override
