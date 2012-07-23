@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.plugins.lucene;
 import org.apache.lucene.index.Term;
 
 /**
- * <code>TermFactory</code> is a factory for <code>Term</code> instances with
+ * {@code TermFactory} is a factory for <code>Term</code> instances with
  * frequently used field names.
  */
 public final class TermFactory {
@@ -31,9 +31,9 @@ public final class TermFactory {
     }
 
     /**
-     * Creates a Term with the given <code>path</code> value and with a field
+     * Creates a Term with the given {@code path} value and with a field
      * name {@link FieldNames#PATH}.
-     * 
+     *
      * @param path
      *            the path.
      * @return the path term.
