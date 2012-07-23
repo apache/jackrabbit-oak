@@ -19,6 +19,9 @@ package org.apache.jackrabbit.oak.commons;
 import junit.framework.AssertionFailedError;
 import junit.framework.TestCase;
 
+/**
+ * Test the PathUtils class.
+ */
 public class PathTest extends TestCase {
     static boolean assertsEnabled;
 
@@ -54,7 +57,7 @@ public class PathTest extends TestCase {
         test("x", "y");
     }
 
-    private int getElementCount(String path) {
+    private static int getElementCount(String path) {
         int count = 0;
         for (String p : PathUtils.elements(path)) {
             assertFalse(PathUtils.isAbsolute(p));
@@ -63,7 +66,7 @@ public class PathTest extends TestCase {
         return count;
     }
 
-    private String getElement(String path, int index) {
+    private static String getElement(String path, int index) {
         int count = 0;
         for (String p : PathUtils.elements(path)) {
             if (index == count++) {
@@ -74,7 +77,7 @@ public class PathTest extends TestCase {
         return "";
     }
 
-    private void test(String parent, String child) {
+    private static void test(String parent, String child) {
 
         // split
         assertEquals(0, getElementCount(""));
