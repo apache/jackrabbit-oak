@@ -16,75 +16,96 @@
  */
 package org.apache.jackrabbit.oak.jcr.nodetype;
 
-import java.util.List;
-
+import javax.jcr.Node;
+import javax.jcr.Property;
+import javax.jcr.PropertyType;
 import javax.jcr.Value;
-import javax.jcr.ValueFormatException;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.PropertyDefinition;
 
-import org.apache.jackrabbit.oak.jcr.value.ValueFactoryImpl;
-import org.apache.jackrabbit.oak.namepath.NameMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.google.common.base.Joiner;
 
-class PropertyDefinitionImpl extends ItemDefinitionImpl implements PropertyDefinition {
+/**
+ * Adapter class for turning an in-content property definition
+ * node ("nt:propertyDefinition") to a {@link PropertyDefinition} instance.
+ */
+class PropertyDefinitionImpl extends ItemDefinitionImpl
+        implements PropertyDefinition {
 
-    private final PropertyDefinitionDelegate dlg;
-
-    private final ValueFactoryImpl vfac;
-
-    private static final Logger log = LoggerFactory.getLogger(PropertyDefinitionImpl.class);
-
-    public PropertyDefinitionImpl(NodeType type, NameMapper mapper, ValueFactoryImpl vfac, PropertyDefinitionDelegate delegate) {
-        super(type, mapper, delegate);
-        this.vfac = vfac;
-        this.dlg = delegate;
+    public PropertyDefinitionImpl(NodeType type, Node node) {
+        super(type, node);
     }
 
+    //------------------------------------------------< PropertyDefinition >--
+
+    /**
+     * CND:
+     * <pre>
+     * - jcr:requiredType (STRING) protected mandatory
+     *   < 'STRING', 'URI', 'BINARY', 'LONG', 'DOUBLE',
+     *     'DECIMAL', 'BOOLEAN', 'DATE', 'NAME', 'PATH',
+     *     'REFERENCE', 'WEAKREFERENCE', 'UNDEFINED'
+     * </pre>
+     */
     @Override
     public int getRequiredType() {
-        return dlg.getRequiredType();
+        try {
+            return PropertyType.valueFromName(
+                    getString(Property.JCR_REQUIRED_TYPE));
+        } catch (IllegalArgumentException e) {
+            throw illegalState(e);
+        }
     }
 
+    /** CND: <pre>- jcr:valueConstraints (STRING) protected multiple</pre> */
     @Override
     public String[] getValueConstraints() {
-        return new String[0];
+        return getStrings(Property.JCR_VALUE_CONSTRAINTS, null);
     }
 
+    /** CND: <pre>- jcr:defaultValues (UNDEFINED) protected multiple</pre> */
     @Override
     public Value[] getDefaultValues() {
-        List<String> defaults = dlg.getDefaultValues();
-        Value[] result = new Value[defaults.size()];
-        for (int i = 0; i < defaults.size(); i++) {
-            try {
-                result[i] = vfac.createValue(defaults.get(i), dlg.getRequiredType());
-            } catch (ValueFormatException e) {
-                log.error("Converting value " + defaults.get(i), e);
-                return null;
-            }
-        }
-        return result;
+        return getValues(Property.JCR_DEFAULT_VALUES, null);
     }
 
+    /** CND: <pre>- jcr:multiple (BOOLEAN) protected mandatory</pre> */
     @Override
     public boolean isMultiple() {
-        return dlg.isMultiple();
+        return getBoolean(Property.JCR_MULTIPLE);
     }
 
+    /** CND: <pre>- jcr:availableQueryOperators (NAME) protected mandatory multiple</pre> */
     @Override
     public String[] getAvailableQueryOperators() {
-        return new String[0];
+        return getStrings("jcr:availableQueryOperators", null); // TODO: constant
     }
 
+    /** CND: <pre>- jcr:isFullTextSearchable (BOOLEAN) protected mandatory</pre> */
     @Override
     public boolean isFullTextSearchable() {
-        return false;
+        return getBoolean("jcr:isFullTextSearchable"); // TODO: constant
     }
 
+    /** CND: <pre>- jcr:isQueryOrderable (BOOLEAN) protected mandatory</pre> */
     @Override
     public boolean isQueryOrderable() {
-        return false;
+        return getBoolean("jcr:isQueryOrderable"); // TODO: constant
+    }
+
+    //------------------------------------------------------------< Object >--
+
+    public String toString() {
+        String dv = null;
+        String[] dvs = getStrings(Property.JCR_DEFAULT_VALUES, null);
+        if (dvs != null) {
+            dv = Joiner.on(", ").join(dvs);
+        }
+
+        StringBuilder sb = new StringBuilder("- ");
+        appendItemCND(sb, PropertyType.nameFromValue(getRequiredType()), dv);
+        sb.append(" ..."); // TODO: rest of the info
+        return sb.toString();
     }
 
 }

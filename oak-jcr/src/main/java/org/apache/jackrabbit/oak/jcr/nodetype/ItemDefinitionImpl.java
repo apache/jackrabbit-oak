@@ -16,52 +16,96 @@
  */
 package org.apache.jackrabbit.oak.jcr.nodetype;
 
+import javax.jcr.Node;
+import javax.jcr.Property;
 import javax.jcr.nodetype.ItemDefinition;
 import javax.jcr.nodetype.NodeType;
+import javax.jcr.version.OnParentVersionAction;
 
-import org.apache.jackrabbit.oak.namepath.NameMapper;
-
-class ItemDefinitionImpl implements ItemDefinition {
-
-    private final ItemDefinitionDelegate dlg;
+/**
+ * Adapter class for turning an in-content property or node definition
+ * node ("nt:propertyDefinition" or "nt:childNodeDefinition") to an
+ * {@link ItemDefinition} instance.
+ */
+class ItemDefinitionImpl extends TypeNode implements ItemDefinition {
 
     private final NodeType type;
 
-    protected final NameMapper mapper;
-
-    protected ItemDefinitionImpl(NodeType type, NameMapper mapper, ItemDefinitionDelegate delegate) {
-        this.dlg = delegate;
+    protected ItemDefinitionImpl(NodeType type, Node node) {
+        super(node);
         this.type = type;
-        this.mapper = mapper;
     }
+
+    protected void appendItemCND(
+            StringBuilder sb, String requiredType, String defaultValue) {
+        sb.append(getName());
+        if (requiredType != null) {
+            sb.append(" (").append(requiredType).append(")");
+        }
+        if (defaultValue != null) {
+            sb.append(" = ").append(defaultValue);
+        }
+        if (isAutoCreated()) {
+            sb.append(" autocreated");
+        }
+        if (isMandatory()) {
+            sb.append(" mandatory");
+        }
+        if (isProtected()) {
+            sb.append(" protected");
+        }
+        int opv = getOnParentVersion();
+        if (opv != OnParentVersionAction.COPY) {
+            sb.append(" ").append(OnParentVersionAction.nameFromValue(opv));
+        }
+    }
+
+    //----------------------------------------------------< ItemDefinition >--
 
     @Override
     public NodeType getDeclaringNodeType() {
         return type;
     }
 
+    /** CND: <pre>- jcr:name (NAME) protected</pre> */
     @Override
     public String getName() {
-        return mapper.getJcrName(dlg.getName());
+        return getString(Property.JCR_NAME, "*");
     }
 
+    /** CND: <pre>- jcr:autoCreated (BOOLEAN) protected mandatory</pre> */
     @Override
     public boolean isAutoCreated() {
-        return dlg.isAutoCreated();
+        return getBoolean(Property.JCR_AUTOCREATED);
     }
 
+    /** CND: <pre>- jcr:mandatory (BOOLEAN) protected mandatory</pre> */
     @Override
     public boolean isMandatory() {
-        return dlg.isMandatory();
+        return getBoolean(Property.JCR_MANDATORY);
     }
 
+    /**
+     * CND:
+     * <pre>
+     * - jcr:onParentVersion (STRING) protected mandatory
+     *   &lt; 'COPY', 'VERSION', 'INITIALIZE', 'COMPUTE', 'IGNORE', 'ABORT'
+     * </pre>
+     */
     @Override
     public int getOnParentVersion() {
-        return dlg.getOnParentVersion();
+        try {
+            return OnParentVersionAction.valueFromName(
+                    getString(Property.JCR_ON_PARENT_VERSION));
+        } catch (IllegalArgumentException e) {
+            throw illegalState(e);
+        }
     }
 
+    /** CND: <pre>- jcr:protected (BOOLEAN) protected mandatory</pre> */
     @Override
     public boolean isProtected() {
-        return dlg.isProtected();
+        return getBoolean(Property.JCR_PROTECTED);
     }
+
 }

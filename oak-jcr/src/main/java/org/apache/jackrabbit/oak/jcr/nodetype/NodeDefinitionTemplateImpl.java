@@ -16,17 +16,121 @@
  */
 package org.apache.jackrabbit.oak.jcr.nodetype;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.jcr.RepositoryException;
+import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.nodetype.NodeDefinitionTemplate;
 import javax.jcr.nodetype.NodeType;
+import javax.jcr.nodetype.NodeTypeTemplate;
 
-class NodeDefinitionTemplateImpl extends ItemDefinitionTemplateImpl
+import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory.AbstractNodeDefinitionBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+class NodeDefinitionTemplateImpl
+        extends AbstractNodeDefinitionBuilder<NodeTypeTemplate>
         implements NodeDefinitionTemplate {
 
-    private String defaultPrimaryTypeName = null;
+    private static final Logger log =
+            LoggerFactory.getLogger(NodeDefinitionTemplateImpl.class);
 
-    private String[] requiredPrimaryTypeNames = null;
+    private String defaultPrimaryTypeName;
 
-    private boolean allowSameNameSiblings = false;
+    private String[] requiredPrimaryTypeNames;
+
+    protected NodeType getNodeType(String name) throws RepositoryException {
+        throw new UnsupportedRepositoryOperationException();
+    }
+
+    @Override
+    public void build() {
+        // do nothing by default
+    }
+
+    @Override
+    public NodeType getDeclaringNodeType() {
+        return null;
+    }
+
+    @Override
+    public void setDeclaringNodeType(String name) {
+        // ignore
+    }
+
+    @Override
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    @Override
+    public boolean isAutoCreated() {
+        return autocreate;
+    }
+
+    @Override
+    public void setAutoCreated(boolean autocreate) {
+        this.autocreate = autocreate;
+    }
+
+    @Override
+    public boolean isProtected() {
+        return isProtected;
+    }
+
+    @Override
+    public void setProtected(boolean isProtected) {
+        this.isProtected = isProtected;
+    }
+
+    @Override
+    public boolean isMandatory() {
+        return isMandatory;
+    }
+
+    @Override
+    public void setMandatory(boolean isMandatory) {
+        this.isMandatory = isMandatory;
+    }
+
+    @Override
+    public int getOnParentVersion() {
+        return onParent;
+    }
+
+    @Override
+    public void setOnParentVersion(int onParent) {
+        this.onParent = onParent;
+    }
+
+    @Override
+    public boolean allowsSameNameSiblings() {
+        return allowSns;
+    }
+
+    @Override
+    public void setSameNameSiblings(boolean allowSns) {
+        this.allowSns = allowSns;
+    }
+
+    @Override
+    public void setAllowsSameNameSiblings(boolean allowSns) {
+        setSameNameSiblings(allowSns);
+    }
+
+    @Override
+    public NodeType getDefaultPrimaryType() {
+        if (defaultPrimaryTypeName != null) {
+            try {
+                return getNodeType(defaultPrimaryTypeName);
+            } catch (RepositoryException e) {
+                log.warn("Unable to access default primary type "
+                        + defaultPrimaryTypeName + " of " + name, e);
+            }
+        }
+        return null;
+    }
 
     @Override
     public String getDefaultPrimaryTypeName() {
@@ -39,8 +143,28 @@ class NodeDefinitionTemplateImpl extends ItemDefinitionTemplateImpl
     }
 
     @Override
-    public NodeType getDefaultPrimaryType() {
-        return null;
+    public void setDefaultPrimaryType(String name) {
+        setDefaultPrimaryTypeName(name);
+    }
+
+    @Override
+    public NodeType[] getRequiredPrimaryTypes() {
+        if (requiredPrimaryTypeNames == null) {
+            return new NodeType[0];
+        } else {
+            List<NodeType> types =
+                    new ArrayList<NodeType>(requiredPrimaryTypeNames.length);
+            for (String requiredPrimaryTypeName : requiredPrimaryTypeNames) {
+                try {
+                    types.add(getNodeType(requiredPrimaryTypeName));
+                }
+                catch (RepositoryException e) {
+                    log.warn("Unable to required primary primary type "
+                            + requiredPrimaryTypeName + " of " + name, e);
+                }
+            }
+            return types.toArray(new NodeType[types.size()]);
+        }
     }
 
     @Override
@@ -54,18 +178,16 @@ class NodeDefinitionTemplateImpl extends ItemDefinitionTemplateImpl
     }
 
     @Override
-    public NodeType[] getRequiredPrimaryTypes() {
-        return null;
-    }
+    public void addRequiredPrimaryType(String name) {
+        if (requiredPrimaryTypeNames == null) {
+            requiredPrimaryTypeNames = new String[] { name };
+        } else {
+            String[] names = new String[requiredPrimaryTypeNames.length + 1];
+            System.arraycopy(requiredPrimaryTypeNames, 0, names, 0, requiredPrimaryTypeNames.length);
+            names[requiredPrimaryTypeNames.length] = name;
+            requiredPrimaryTypeNames = names;
+        }
 
-    @Override
-    public boolean allowsSameNameSiblings() {
-        return allowSameNameSiblings;
-    }
-
-    @Override
-    public void setSameNameSiblings(boolean allowSameNameSiblings) {
-        this.allowSameNameSiblings = allowSameNameSiblings;
     }
 
 }

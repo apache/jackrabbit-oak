@@ -29,7 +29,6 @@ import org.apache.jackrabbit.commons.SimpleValueFactory;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
-import org.apache.jackrabbit.oak.jcr.nodetype.NodeTypeManagerDelegate;
 import org.apache.jackrabbit.oak.jcr.util.LazyValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -19,47 +19,131 @@ package org.apache.jackrabbit.oak.jcr.nodetype;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+import javax.jcr.ValueFactory;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeDefinitionTemplate;
+import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeDefinition;
+import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
 
-class NodeTypeTemplateImpl implements NodeTypeTemplate {
+import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory.AbstractNodeTypeDefinitionBuilder;
+import org.apache.jackrabbit.value.ValueFactoryImpl;
 
-    private String name = null;
+class NodeTypeTemplateImpl
+    extends AbstractNodeTypeDefinitionBuilder<NodeTypeTemplate>
+    implements NodeTypeTemplate {
 
-    private boolean isAbstract = false;
+    private final NodeTypeManager manager;
 
-    private boolean isMixin = false;
+    private final ValueFactory factory;
 
-    private boolean isOrderable = false;
-
-    private boolean isQueryable = true;
-
-    private String primaryItemName = null;
+    private String primaryItemName;
 
     private String[] superTypeNames = new String[0];
 
-    private List<PropertyDefinitionTemplate> propertyDefinitionTemplates =
+    private final List<PropertyDefinitionTemplate> propertyDefinitionTemplates =
             new ArrayList<PropertyDefinitionTemplate>();
 
-    private List<NodeDefinitionTemplate> nodeDefinitionTemplates =
+    private final List<NodeDefinitionTemplate> nodeDefinitionTemplates =
             new ArrayList<NodeDefinitionTemplate>();
 
-    public NodeTypeTemplateImpl() {
+    public NodeTypeTemplateImpl(NodeTypeManager manager, ValueFactory factory) {
+        this.manager = manager;
+        this.factory = factory;
     }
 
-    public NodeTypeTemplateImpl(NodeTypeDefinition ntd) {
-        this.name = ntd.getName();
-        this.isAbstract = ntd.isAbstract();
-        this.isMixin = ntd.isMixin();
-        this.isOrderable = ntd.hasOrderableChildNodes();
-        this.isQueryable = ntd.isQueryable();
-        this.primaryItemName = ntd.getPrimaryItemName();
-        this.superTypeNames = ntd.getDeclaredSupertypeNames();
-        // TODO: child item templates?
+    public NodeTypeTemplateImpl() {
+        this(null, ValueFactoryImpl.getInstance());
+    }
+
+    public NodeTypeTemplateImpl(
+            NodeTypeManager manager, ValueFactory factory,
+            NodeTypeDefinition ntd) {
+        this(manager, factory);
+
+        setName(ntd.getName());
+        setAbstract(ntd.isAbstract());
+        setMixin(ntd.isMixin());
+        setOrderableChildNodes(ntd.hasOrderableChildNodes());
+        setQueryable(ntd.isQueryable());
+        setPrimaryItemName(ntd.getPrimaryItemName());
+        setDeclaredSuperTypeNames(ntd.getDeclaredSupertypeNames());
+
+        for (PropertyDefinition pd : getDeclaredPropertyDefinitions()) {
+            PropertyDefinitionTemplateImpl pdt = newPropertyDefinitionBuilder();
+            pdt.setDeclaringNodeType(pd.getDeclaringNodeType().getName());
+            pdt.setName(pd.getName());
+            pdt.setProtected(pd.isProtected());
+            pdt.setMandatory(pd.isMandatory());
+            pdt.setAutoCreated(pd.isAutoCreated());
+            pdt.setOnParentVersion(pd.getOnParentVersion());
+            pdt.setMultiple(pd.isMultiple());
+            pdt.setRequiredType(pd.getRequiredType());
+            pdt.setDefaultValues(pd.getDefaultValues());
+            pdt.setValueConstraints(pd.getValueConstraints());
+            pdt.setFullTextSearchable(pd.isFullTextSearchable());
+            pdt.setAvailableQueryOperators(pd.getAvailableQueryOperators());
+            pdt.setQueryOrderable(pd.isQueryOrderable());
+            pdt.build();
+        }
+
+        for (NodeDefinition nd : getDeclaredChildNodeDefinitions()) {
+            NodeDefinitionTemplateImpl ndt = newNodeDefinitionBuilder();
+            ndt.setDeclaringNodeType(nd.getDeclaringNodeType().getName());
+            ndt.setName(nd.getName());
+            ndt.setProtected(nd.isProtected());
+            ndt.setMandatory(nd.isMandatory());
+            ndt.setAutoCreated(nd.isAutoCreated());
+            ndt.setOnParentVersion(nd.getOnParentVersion());
+            ndt.setSameNameSiblings(nd.allowsSameNameSiblings());
+            ndt.setDefaultPrimaryTypeName(nd.getDefaultPrimaryTypeName());
+            ndt.setRequiredPrimaryTypeNames(nd.getRequiredPrimaryTypeNames());
+            ndt.build();
+        }
+    }
+
+    @Override
+    public NodeTypeTemplate build() {
+        return this;
+    }
+
+    @Override
+    public PropertyDefinitionTemplateImpl newPropertyDefinitionBuilder() {
+        return new PropertyDefinitionTemplateImpl() {
+            @Override
+            protected Value createValue(String value)
+                    throws RepositoryException {
+                return factory.createValue(value);
+            }
+            @Override
+            public void build() {
+                propertyDefinitionTemplates.add(this);
+            }
+        };
+    }
+
+    @Override
+    public NodeDefinitionTemplateImpl newNodeDefinitionBuilder() {
+        return new NodeDefinitionTemplateImpl() {
+            @Override
+            protected NodeType getNodeType(String name)
+                    throws RepositoryException  {
+                if (manager != null) {
+                    return manager.getNodeType(name);
+                } else {
+                    return super.getNodeType(name);
+                }
+            }
+            @Override
+            public void build() {
+                nodeDefinitionTemplates.add(this);
+            }
+        };
     }
 
     @Override
@@ -104,12 +188,12 @@ class NodeTypeTemplateImpl implements NodeTypeTemplate {
 
     @Override
     public boolean isQueryable() {
-        return isQueryable;
+        return queryable;
     }
 
     @Override
     public void setQueryable(boolean queryable) {
-        this.isQueryable = queryable;
+        this.queryable = queryable;
     }
 
     @Override
@@ -133,6 +217,14 @@ class NodeTypeTemplateImpl implements NodeTypeTemplate {
     }
 
     @Override
+    public void addSupertype(String name) throws RepositoryException {
+        String[] names = new String[superTypeNames.length + 1];
+        System.arraycopy(superTypeNames, 0, names, 0, superTypeNames.length);
+        names[superTypeNames.length] = name;
+        superTypeNames = names;
+    }
+
+    @Override
     public List<PropertyDefinitionTemplate> getPropertyDefinitionTemplates() {
         return propertyDefinitionTemplates;
     }
@@ -144,12 +236,14 @@ class NodeTypeTemplateImpl implements NodeTypeTemplate {
 
     @Override
     public PropertyDefinition[] getDeclaredPropertyDefinitions() {
-        return null;
+        return propertyDefinitionTemplates.toArray(
+                new PropertyDefinition[propertyDefinitionTemplates.size()]);
     }
 
     @Override
     public NodeDefinition[] getDeclaredChildNodeDefinitions() {
-        return null;
+        return nodeDefinitionTemplates.toArray(
+                new NodeDefinition[nodeDefinitionTemplates.size()]);
     }
 
 }
