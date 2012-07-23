@@ -24,16 +24,14 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
-import org.apache.jackrabbit.value.ValueFactoryImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.Lists;
 
 /**
  * Utility class for accessing typed content of a node.
@@ -121,8 +119,13 @@ class NodeUtil {
     }
 
     public void setName(String name, String value) {
+        String oakName = mapper.getOakName(value);
+        if (oakName == null) {
+            throw new IllegalArgumentException("Invalid name:" + name);
+        }
+
         tree.setProperty(name, factory.createValue(
-                mapper.getOakName(value), PropertyType.NAME));
+                oakName, PropertyType.NAME));
     }
 
     public String[] getNames(String name, String... defaultValues) {
@@ -139,8 +142,13 @@ class NodeUtil {
     public void setNames(String name, String... values) {
         List<CoreValue> cvs = new ArrayList<CoreValue>(values.length);
         for (String value : values) {
+            String oakName = mapper.getOakName(value);
+            if (oakName == null) {
+                throw new IllegalArgumentException("Invalid name:" + name);
+            }
+
             cvs.add(factory.createValue(
-                    mapper.getOakName(value), PropertyType.NAME));
+                    oakName, PropertyType.NAME));
         }
         tree.setProperty(name, cvs);
     }
