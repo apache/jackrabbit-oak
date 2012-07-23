@@ -46,7 +46,6 @@ public class RepositoryImpl implements Repository {
 
     private final Descriptors descriptors = new Descriptors(new SimpleValueFactory());
     private final ContentRepository contentRepository;
-    private final NodeTypeManagerDelegate nodeTypeManagerDelegate;
 
     private final LazyValue<Timer> observationTimer = new LazyValue<Timer>() {
         @Override
@@ -57,12 +56,6 @@ public class RepositoryImpl implements Repository {
 
     public RepositoryImpl(ContentRepository contentRepository) {
         this.contentRepository = contentRepository;
-        try {
-            nodeTypeManagerDelegate = new NodeTypeManagerDelegate();
-        }
-        catch (RepositoryException ex) {
-            throw new RuntimeException(ex);
-        }
     }
 
     /**
@@ -139,7 +132,7 @@ public class RepositoryImpl implements Repository {
         // TODO: needs complete refactoring
         try {
             ContentSession contentSession = contentRepository.login(credentials, workspaceName);
-            return new SessionDelegate(this, nodeTypeManagerDelegate, observationTimer, contentSession).getSession();
+            return new SessionDelegate(this, observationTimer, contentSession).getSession();
         } catch (LoginException e) {
             throw new javax.jcr.LoginException(e.getMessage());
         }

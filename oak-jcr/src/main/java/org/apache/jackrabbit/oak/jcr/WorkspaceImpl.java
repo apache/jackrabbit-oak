@@ -34,11 +34,10 @@ import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.lock.LockManagerImpl;
-import org.apache.jackrabbit.oak.jcr.nodetype.NodeTypeManagerDelegate;
-import org.apache.jackrabbit.oak.jcr.nodetype.NodeTypeManagerImpl;
 import org.apache.jackrabbit.oak.jcr.query.QueryManagerImpl;
 import org.apache.jackrabbit.oak.jcr.security.privilege.PrivilegeManagerImpl;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceRegistryImpl;
+import org.apache.jackrabbit.oak.plugins.type.NodeTypeManagerImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.ContentHandler;
@@ -55,7 +54,6 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     private static final Logger log = LoggerFactory.getLogger(WorkspaceImpl.class);
 
     private final SessionDelegate sessionDelegate;
-    private final NodeTypeManager nodeTypeManager;
     private final QueryManagerImpl queryManager;
 
     private final LockManager lockManager;
@@ -63,7 +61,6 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     public WorkspaceImpl(SessionDelegate sessionDelegate)
             throws RepositoryException {
         this.sessionDelegate = sessionDelegate;
-        this.nodeTypeManager = new NodeTypeManagerImpl(sessionDelegate, sessionDelegate.getNodeTypeManagerDelegate());
         this.queryManager = new QueryManagerImpl(sessionDelegate);
         this.lockManager = new LockManagerImpl(sessionDelegate.getSession());
     }
@@ -157,7 +154,10 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
 
     @Override
     public NodeTypeManager getNodeTypeManager() {
-        return nodeTypeManager;
+        return new NodeTypeManagerImpl(
+                sessionDelegate.getContentSession(),
+                sessionDelegate.getNamePathMapper(),
+                sessionDelegate.getValueFactory());
     }
 
     @Override

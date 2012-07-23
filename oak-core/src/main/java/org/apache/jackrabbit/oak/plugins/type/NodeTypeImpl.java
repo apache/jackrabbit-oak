@@ -27,6 +27,7 @@ import java.util.Set;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
+import javax.jcr.ValueFactory;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeType;
@@ -59,10 +60,14 @@ class NodeTypeImpl implements NodeType {
 
     private final NodeTypeManager manager;
 
+    private final ValueFactory factory;
+
     private final NodeUtil node;
 
-    public NodeTypeImpl(NodeTypeManager manager, NodeUtil node) {
+    public NodeTypeImpl(
+            NodeTypeManager manager, ValueFactory factory, NodeUtil node) {
         this.manager = manager;
+        this.factory = factory;
         this.node = node;
     }
 
@@ -107,43 +112,44 @@ class NodeTypeImpl implements NodeType {
 
     @Override
     public PropertyDefinition[] getDeclaredPropertyDefinitions() {
-        NodeUtil[] nodes = node.getNodes("jcr:propertyDefinition");
-        PropertyDefinition[] definitions = new PropertyDefinition[nodes.length];
-        for (int i = 0; i < nodes.length; i++) {
-            definitions[i] = new PropertyDefinitionImpl(this, nodes[i]);
+        List<NodeUtil> nodes = node.getNodes("jcr:propertyDefinition");
+        PropertyDefinition[] definitions = new PropertyDefinition[nodes.size()];
+        for (int i = 0; i < nodes.size(); i++) {
+            definitions[i] = new PropertyDefinitionImpl(
+                    this, factory, nodes.get(i));
         }
         return definitions;
     }
 
     @Override
     public NodeDefinition[] getDeclaredChildNodeDefinitions() {
-        NodeUtil[] nodes = node.getNodes("jcr:childNodeDefinition");
-        NodeDefinition[] definitions = new NodeDefinition[nodes.length];
-        for (int i = 0; i < nodes.length; i++) {
-            definitions[i] = new NodeDefinitionImpl(manager, this, nodes[i]);
+        List<NodeUtil> nodes = node.getNodes("jcr:childNodeDefinition");
+        NodeDefinition[] definitions = new NodeDefinition[nodes.size()];
+        for (int i = 0; i < nodes.size(); i++) {
+            definitions[i] = new NodeDefinitionImpl(manager, this, nodes.get(i));
         }
         return definitions;
     }
 
     @Override
     public NodeType[] getSupertypes() {
-        try {
-            Collection<NodeType> types = new ArrayList<NodeType>();
-            Set<String> added = new HashSet<String>();
-            Queue<String> queue = new LinkedList<String>(Arrays.asList(
-                    getDeclaredSupertypeNames()));
-            while (!queue.isEmpty()) {
-                String name = queue.remove();
-                if (added.add(name)) {
+        Collection<NodeType> types = new ArrayList<NodeType>();
+        Set<String> added = new HashSet<String>();
+        Queue<String> queue = new LinkedList<String>(Arrays.asList(
+                getDeclaredSupertypeNames()));
+        while (!queue.isEmpty()) {
+            String name = queue.remove();
+            if (added.add(name)) {
+                try {
                     NodeType type = manager.getNodeType(name);
                     types.add(type);
                     queue.addAll(Arrays.asList(type.getDeclaredSupertypeNames()));
+                } catch (RepositoryException e) {
+                    throw new IllegalStateException("Inconsistent node type: " + this, e);
                 }
             }
-            return types.toArray(new NodeType[types.size()]);
-        } catch (RepositoryException e) {
-            throw new IllegalStateException("Inconsistent node type: " + this, e);
         }
+        return types.toArray(new NodeType[types.size()]);
     }
 
     @Override
@@ -152,7 +158,8 @@ class NodeTypeImpl implements NodeType {
         List<NodeType> types = new ArrayList<NodeType>(names.length);
         for (int i = 0; i < names.length; i++) {
             try {
-                types.add(manager.getNodeType(names[i]));
+                NodeType type = manager.getNodeType(names[i]);
+                types.add(type);
             } catch (RepositoryException e) {
                 log.warn("Unable to access declared supertype "
                         + names[i] + " of " + getName(), e);
