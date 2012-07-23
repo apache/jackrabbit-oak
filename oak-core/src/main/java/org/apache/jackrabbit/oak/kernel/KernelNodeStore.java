@@ -20,7 +20,6 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStateBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CommitEditor;
 import org.apache.jackrabbit.oak.spi.commit.EmptyEditor;
 import org.apache.jackrabbit.oak.spi.commit.EmptyObserver;
@@ -101,7 +100,7 @@ public class KernelNodeStore implements NodeStore {
 
     @Override
     public NodeStateBuilder getBuilder(NodeState base) {
-        return new MemoryNodeStateBuilder(base);
+        return new KernelRootStateBuilder(base);
     }
 
     @Override
