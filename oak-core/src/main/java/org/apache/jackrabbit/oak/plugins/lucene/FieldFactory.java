@@ -16,14 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.lucene;
 
-import static org.apache.jackrabbit.oak.plugins.lucene.FieldNames.PATH;
-import static org.apache.lucene.document.Field.Store.*;
-
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StringField;
 
+import static org.apache.jackrabbit.oak.plugins.lucene.FieldNames.PATH;
+import static org.apache.lucene.document.Field.Store.NO;
+import static org.apache.lucene.document.Field.Store.YES;
+
 /**
- * <code>FieldFactory</code> is a factory for <code>Field</code> instances with
+ * {@code FieldFactory} is a factory for <code>Field</code> instances with
  * frequently used fields.
  */
 public final class FieldFactory {
