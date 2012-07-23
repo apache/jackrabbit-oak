@@ -16,10 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.lucene;
 
-import static org.apache.jackrabbit.oak.plugins.lucene.FieldFactory.newPathField;
-import static org.apache.jackrabbit.oak.plugins.lucene.FieldFactory.newPropertyField;
-import static org.apache.jackrabbit.oak.plugins.lucene.TermFactory.newPathTerm;
-
 import java.io.IOException;
 
 import javax.jcr.PropertyType;
@@ -40,6 +36,10 @@ import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.util.Version;
 import org.apache.tika.Tika;
 import org.apache.tika.exception.TikaException;
+
+import static org.apache.jackrabbit.oak.plugins.lucene.FieldFactory.newPathField;
+import static org.apache.jackrabbit.oak.plugins.lucene.FieldFactory.newPropertyField;
+import static org.apache.jackrabbit.oak.plugins.lucene.TermFactory.newPathTerm;
 
 public class LuceneEditor implements CommitEditor {
 
@@ -86,9 +86,9 @@ public class LuceneEditor implements CommitEditor {
 
         private final String path;
 
-        private boolean modified = false;
+        private boolean modified;
 
-        private IOException exception = null;
+        private IOException exception;
 
         public LuceneDiff(IndexWriter writer, String path) {
             this.writer = writer;
@@ -173,7 +173,7 @@ public class LuceneEditor implements CommitEditor {
             }
         }
 
-        private Document makeDocument(
+        private static Document makeDocument(
                 String path, NodeState state) {
             Document document = new Document();
             document.add(newPathField(path));
@@ -186,7 +186,7 @@ public class LuceneEditor implements CommitEditor {
             return document;
         }
 
-        private String parseStringValue(CoreValue value) {
+        private static String parseStringValue(CoreValue value) {
             String string;
             if (value.getType() != PropertyType.BINARY) {
                 string = value.getString();

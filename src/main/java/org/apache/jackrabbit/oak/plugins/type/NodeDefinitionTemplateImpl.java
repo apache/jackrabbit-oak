@@ -36,9 +36,9 @@ class NodeDefinitionTemplateImpl
     private static final Logger log =
             LoggerFactory.getLogger(NodeDefinitionTemplateImpl.class);
 
-    private String defaultPrimaryTypeName = null;
+    private String defaultPrimaryTypeName;
 
-    private String[] requiredPrimaryTypeNames = null;
+    private String[] requiredPrimaryTypeNames;
 
     protected NodeType getNodeType(String name) throws RepositoryException {
         throw new UnsupportedRepositoryOperationException();

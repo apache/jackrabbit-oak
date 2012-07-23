@@ -42,7 +42,7 @@ class NodeTypeTemplateImpl
 
     private final ValueFactory factory;
 
-    private String primaryItemName = null;
+    private String primaryItemName;
 
     private String[] superTypeNames = new String[0];
 

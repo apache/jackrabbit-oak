@@ -139,7 +139,7 @@ public class PasswordUtility {
     private static String generateHash(String pwd, String algorithm, String salt, int iterations) throws NoSuchAlgorithmException, UnsupportedEncodingException {
         StringBuilder passwordHash = new StringBuilder();
         passwordHash.append('{').append(algorithm).append('}');
-        if (salt != null && salt.length() > 0) {
+        if (salt != null && !salt.isEmpty()) {
             StringBuilder data = new StringBuilder();
             data.append(salt).append(pwd);
 
@@ -197,7 +197,7 @@ public class PasswordUtility {
      * or if the extracted string isn't a supported algorithm.
      */
     private static String extractAlgorithm(String hashedPwd) {
-        if (hashedPwd != null && !"".equals(hashedPwd)) {
+        if (hashedPwd != null && !hashedPwd.isEmpty()) {
             int end = hashedPwd.indexOf('}');
             if (hashedPwd.charAt(0) == '{' && end > 0 && end < hashedPwd.length()-1) {
                 String algorithm = hashedPwd.substring(1, end);
