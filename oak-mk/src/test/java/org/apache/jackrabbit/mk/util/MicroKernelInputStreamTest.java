@@ -77,7 +77,7 @@ public class MicroKernelInputStreamTest {
         assertByteArrayEquals(expectedData, expectedLen, got);
     }
 
-    private void assertByteArrayEquals(byte[] expected, int expectedLen, byte[] got) {
+    private static void assertByteArrayEquals(byte[] expected, int expectedLen, byte[] got) {
         assertEquals(expectedLen, got.length);
         for (int j = 0; j < expectedLen; j++) {
             if (expected[j] != got[j]) {

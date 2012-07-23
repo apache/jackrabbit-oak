@@ -331,7 +331,7 @@ public abstract class AbstractBlobStore implements Closeable, BlobStore, Cache.B
                 return;
             } else if (type == TYPE_DATA) {
                 int len = IOUtils.readVarInt(idStream);
-                IOUtils.skipFully(idStream, (int) len);
+                IOUtils.skipFully(idStream, len);
             } else if (type == TYPE_HASH) {
                 int level = IOUtils.readVarInt(idStream);
                 // totalLength

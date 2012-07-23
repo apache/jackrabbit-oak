@@ -19,8 +19,6 @@ package org.apache.jackrabbit.mk.json;
 import junit.framework.TestCase;
 import org.apache.jackrabbit.mk.util.StopWatch;
 
-import java.io.IOException;
-
 /**
  * Test the Jsop tokenizer and builder.
  */
@@ -36,7 +34,7 @@ public class JsopTest extends TestCase {
             for (int i = 0; i < 10000000; i++) {
                 t2 += JsopBuilder.encode(s).length();
             }
-            System.out.println(timer.seconds());
+            System.out.println(timer.seconds() + " dummy: " + t2);
         }
         // old: not escaped: 5691 ms; escaped: 10609 ms
         // new: not escaped: 3931 ms; escaped: 11001 ms
@@ -290,7 +288,7 @@ public class JsopTest extends TestCase {
         }
     }
 
-    public void testBuilder() throws IOException {
+    public void testBuilder() {
 
         JsopBuilder buff = new JsopBuilder();
         buff.tag('+').object().
@@ -334,7 +332,7 @@ public class JsopTest extends TestCase {
 
     }
 
-    public void testEscape() throws IOException {
+    public void testEscape() {
         assertEquals("null", JsopBuilder.encode(null));
         JsopBuilder buff = new JsopBuilder().
                 key("back\\slash").value("\\").
