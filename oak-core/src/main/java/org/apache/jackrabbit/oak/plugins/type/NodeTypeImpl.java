@@ -156,13 +156,14 @@ class NodeTypeImpl implements NodeType {
     public NodeType[] getDeclaredSupertypes() {
         String[] names = getDeclaredSupertypeNames();
         List<NodeType> types = new ArrayList<NodeType>(names.length);
-        for (int i = 0; i < names.length; i++) {
+        for (String name : names) {
             try {
-                NodeType type = manager.getNodeType(names[i]);
+                NodeType type = manager.getNodeType(name);
                 types.add(type);
-            } catch (RepositoryException e) {
+            }
+            catch (RepositoryException e) {
                 log.warn("Unable to access declared supertype "
-                        + names[i] + " of " + getName(), e);
+                        + name + " of " + getName(), e);
             }
         }
         return types.toArray(new NodeType[types.size()]);

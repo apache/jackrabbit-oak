@@ -58,12 +58,13 @@ class NodeDefinitionImpl extends ItemDefinitionImpl implements NodeDefinition {
     public NodeType[] getRequiredPrimaryTypes() {
         String[] names = getRequiredPrimaryTypeNames();
         List<NodeType> types = new ArrayList<NodeType>(names.length);
-        for (int i = 0; i < names.length; i++) {
+        for (String name : names) {
             try {
-                types.add(manager.getNodeType(names[i]));
-            } catch (RepositoryException e) {
+                types.add(manager.getNodeType(name));
+            }
+            catch (RepositoryException e) {
                 log.warn("Unable to access required primary type "
-                        + names[i] + " of node " + getName(), e);
+                        + name + " of node " + getName(), e);
             }
         }
         return types.toArray(new NodeType[types.size()]);
