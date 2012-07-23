@@ -17,10 +17,15 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import java.security.AccessControlException;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
 import javax.jcr.ItemNotFoundException;
+import javax.jcr.NamespaceException;
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -38,6 +43,7 @@ import org.apache.jackrabbit.commons.AbstractSession;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.xml.XmlImportHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
+import org.apache.jackrabbit.util.XMLChar;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.ContentHandler;
@@ -171,6 +177,9 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     @Override
     public void logout() {
         dlg.logout();
+        synchronized (namespaces) {
+            namespaces.clear();
+        }
     }
 
     @Override
@@ -265,6 +274,119 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
         throw new UnsupportedRepositoryOperationException("Retention Management is not supported.");
     }
 
+    //--------------------------------------------------< Namespaces >---   
+
+    // The code below is copied from JCR Commons AbstractSession, but provides information
+    // the "hasRemappings" information
+
+    /**
+     * Local namespace mappings. Prefixes as keys and namespace URIs as values.
+     * <p>
+     * This map is only accessed from synchronized methods (see
+     * <a href="https://issues.apache.org/jira/browse/JCR-1793">JCR-1793</a>).
+     */
+    private final Map<String, String> namespaces =
+        new HashMap<String, String>();
+
+    @Override
+    public void setNamespacePrefix(String prefix, String uri) throws NamespaceException, RepositoryException {
+        if (prefix == null) {
+            throw new IllegalArgumentException("Prefix must not be null");
+        } else if (uri == null) {
+            throw new IllegalArgumentException("Namespace must not be null");
+        } else if (prefix.length() == 0) {
+            throw new NamespaceException(
+                    "Empty prefix is reserved and can not be remapped");
+        } else if (uri.length() == 0) {
+            throw new NamespaceException(
+                    "Default namespace is reserved and can not be remapped");
+        } else if (prefix.toLowerCase().startsWith("xml")) {
+            throw new NamespaceException(
+                    "XML prefixes are reserved: " + prefix);
+        } else if (!XMLChar.isValidNCName(prefix)) {
+            throw new NamespaceException(
+                    "Prefix is not a valid XML NCName: " + prefix);
+        }
+
+        synchronized (namespaces) {
+            // Remove existing mapping for the given prefix
+            namespaces.remove(prefix);
+
+            // Remove existing mapping(s) for the given URI
+            Set<String> prefixes = new HashSet<String>();
+            for (Map.Entry<String, String> entry : namespaces.entrySet()) {
+                if (entry.getValue().equals(uri)) {
+                    prefixes.add(entry.getKey());
+                }
+            }
+            namespaces.keySet().removeAll(prefixes);
+
+            // Add the new mapping
+            namespaces.put(prefix, uri);
+        }
+    }
+
+    @Override
+    public String[] getNamespacePrefixes() throws RepositoryException {
+        for (String uri : getWorkspace().getNamespaceRegistry().getURIs()) {
+            getNamespacePrefix(uri);
+        }
+
+        synchronized (namespaces) {
+            return namespaces.keySet().toArray(new String[namespaces.size()]);
+        }
+    }
+
+    @Override
+    public String getNamespaceURI(String prefix) throws NamespaceException, RepositoryException {
+        synchronized (namespaces) {
+            String uri = namespaces.get(prefix);
+
+            if (uri == null) {
+                // Not in local mappings, try the global ones
+                uri = getWorkspace().getNamespaceRegistry().getURI(prefix);
+                if (namespaces.containsValue(uri)) {
+                    // The global URI is locally mapped to some other prefix,
+                    // so there are no mappings for this prefix
+                    throw new NamespaceException("Namespace not found: " + prefix);
+                }
+                // Add the mapping to the local set, we already know that
+                // the prefix is not taken
+                namespaces.put(prefix, uri);
+            }
+
+            return uri;
+        }
+    }
+
+    @Override
+    public String getNamespacePrefix(String uri) throws NamespaceException, RepositoryException {
+        synchronized (namespaces) {
+            for (Map.Entry<String, String> entry : namespaces.entrySet()) {
+                if (entry.getValue().equals(uri)) {
+                    return entry.getKey();
+                }
+            }
+
+            // The following throws an exception if the URI is not found, that's OK
+            String prefix = getWorkspace().getNamespaceRegistry().getPrefix(uri);
+
+            // Generate a new prefix if the global mapping is already taken
+            String base = prefix;
+            for (int i = 2; namespaces.containsKey(prefix); i++) {
+                prefix = base + i;
+            }
+
+            namespaces.put(prefix, uri);
+            return prefix;
+        }
+    }
+
+    // needed for implementation of NameMapper.hasSessionLocalMappings
+    public boolean hasSessionLocalMappings() {
+        return !namespaces.isEmpty();
+    }
+
     //--------------------------------------------------< JackrabbitSession >---
 
     @Override
@@ -295,5 +417,4 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
             throw new RepositoryException("This session has been closed.");
         }
     }
-
 }

@@ -463,9 +463,13 @@ public class SessionDelegate {
 
         @Override
         public boolean hasSessionLocalMappings() {
-            // TODO OAK-61
-            // TODO right now we would have to check whether AbstractSession.namespaces is empty
-            return true;
+            if (session instanceof SessionImpl) {
+                return ((SessionImpl)session).hasSessionLocalMappings();
+            }
+            else {
+                // we don't know
+                return true;
+            }
         }
     }
 
