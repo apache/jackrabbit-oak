@@ -62,6 +62,7 @@ org.apache.jackrabbit.test.api.SetPropertyValueTest#testSetSingleValueArrayValue
 org.apache.jackrabbit.test.api.SetPropertyValueTest#testSetSingleValueArrayValueFormatExceptionWithPropertyType
 org.apache.jackrabbit.test.api.SetPropertyAssumeTypeTest
 org.apache.jackrabbit.test.api.NodeAddMixinTest#testAddInheritedMixin
+org.apache.jackrabbit.test.api.ValueFactoryTest#testValueFormatException<!--OAK-204-->
 org.apache.jackrabbit.test.api.WorkspaceCopySameNameSibsTest
 org.apache.jackrabbit.test.api.WorkspaceCopyTest#testCopyNodesConstraintViolationException
 org.apache.jackrabbit.test.api.WorkspaceCopyTest#testCopyNodesAccessDenied
