@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.RootImplFuzzIT.Operation.Rebase;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,7 +87,7 @@ public class RootImplFuzzIT {
         root2 = new RootImpl(store2, null);
     }
 
-    @Test
+    @Test @Ignore
     public void fuzzTest() throws Exception {
         for (Operation op : operations(OP_COUNT)) {
             log.info("{}", op);
