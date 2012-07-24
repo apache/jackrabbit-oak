@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
@@ -128,6 +129,9 @@ class ChangeProcessor extends TimerTask {
 
         @Override
         public void childNodeAdded(String name, NodeState after) {
+            if (NodeStateUtils.isHidden(name)) {
+                return;
+            }
             if (!stopped && filterRef.get().includeChildren(jcrPath())) {
                 Iterator<Event> events = generateNodeEvents(Event.NODE_ADDED, path, name, after);
                 this.events.add(events);
@@ -139,6 +143,9 @@ class ChangeProcessor extends TimerTask {
 
         @Override
         public void childNodeDeleted(String name, NodeState before) {
+            if (NodeStateUtils.isHidden(name)) {
+                return;
+            }
             if (!stopped && filterRef.get().includeChildren(jcrPath())) {
                 Iterator<Event> events = generateNodeEvents(Event.NODE_REMOVED, path, name, before);
                 this.events.add(events);
@@ -147,6 +154,9 @@ class ChangeProcessor extends TimerTask {
 
         @Override
         public void childNodeChanged(String name, NodeState before, NodeState after) {
+            if (NodeStateUtils.isHidden(name)) {
+                return;
+            }
             if (!stopped && filterRef.get().includeChildren(jcrPath())) {
                 EventGeneratingNodeStateDiff diff = new EventGeneratingNodeStateDiff(
                         PathUtils.concat(path, name), events, after);
