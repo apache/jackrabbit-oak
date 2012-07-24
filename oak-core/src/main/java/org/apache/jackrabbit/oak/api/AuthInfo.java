@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.api;
 
+import java.security.Principal;
+import java.util.Collections;
+import java.util.Set;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
@@ -32,6 +35,7 @@ public interface AuthInfo {
             return null;
         }
 
+        @Nonnull
         @Override
         public String[] getAttributeNames() {
             return new String[0];
@@ -40,6 +44,11 @@ public interface AuthInfo {
         @Override
         public Object getAttribute(String attributeName) {
             return null;
+        }
+
+        @Override
+        public Set<Principal> getPrincipals() {
+            return Collections.emptySet();
         }
     };
 
@@ -71,4 +80,11 @@ public interface AuthInfo {
      */
     @CheckForNull
     Object getAttribute(String attributeName);
+
+    /**
+     * Returns the set of principals associated with this {@code AuthInfo} instance.
+     *
+     * @return A set of principals.
+     */
+    Set<Principal> getPrincipals();
 }

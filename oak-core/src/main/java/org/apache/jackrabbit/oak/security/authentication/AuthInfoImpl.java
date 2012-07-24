@@ -22,6 +22,7 @@ import java.security.Principal;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
+import javax.annotation.Nonnull;
 
 /**
  * AuthInfoImpl... TODO
@@ -35,11 +36,7 @@ public class AuthInfoImpl implements AuthInfo {
     public AuthInfoImpl(String userID, Map<String, ?> attributes, Set<Principal> principals) {
         this.userID = userID;
         this.attributes = (attributes == null) ? Collections.<String, Object>emptyMap() : attributes;
-        this.principals = principals;
-    }
-
-    Set<Principal> getPrincipals() {
-        return principals;
+        this.principals = Collections.unmodifiableSet(principals);
     }
 
     //-----------------------------------------------------------< AuthInfo >---
@@ -48,6 +45,7 @@ public class AuthInfoImpl implements AuthInfo {
         return userID;
     }
 
+    @Nonnull
     @Override
     public String[] getAttributeNames() {
         return attributes.keySet().toArray(new String[attributes.size()]);
@@ -56,5 +54,10 @@ public class AuthInfoImpl implements AuthInfo {
     @Override
     public Object getAttribute(String attributeName) {
         return attributes.get(attributeName);
+    }
+
+    @Override
+    public Set<Principal> getPrincipals() {
+        return principals;
     }
 }
