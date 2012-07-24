@@ -21,6 +21,9 @@ package org.apache.jackrabbit.oak.query.ast;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
+/**
+ * The "a.x = b.y" join condition.
+ */
 public class EquiJoinConditionImpl extends JoinConditionImpl {
 
     private final String property1Name;

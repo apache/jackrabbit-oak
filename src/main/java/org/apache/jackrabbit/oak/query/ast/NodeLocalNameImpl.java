@@ -24,6 +24,9 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.SinglePropertyState;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
+/**
+ * The function "localname(..)".
+ */
 public class NodeLocalNameImpl extends DynamicOperandImpl {
 
     private final String selectorName;

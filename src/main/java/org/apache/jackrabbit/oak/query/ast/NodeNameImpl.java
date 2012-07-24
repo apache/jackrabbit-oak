@@ -25,6 +25,9 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.SinglePropertyState;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
+/**
+ * The function "name(..)".
+ */
 public class NodeNameImpl extends DynamicOperandImpl {
 
     private final String selectorName;

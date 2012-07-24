@@ -20,6 +20,9 @@ package org.apache.jackrabbit.oak.query.ast;
 
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
+/**
+ * A "not" condition.
+ */
 public class NotImpl extends ConstraintImpl {
 
     private final ConstraintImpl constraint;

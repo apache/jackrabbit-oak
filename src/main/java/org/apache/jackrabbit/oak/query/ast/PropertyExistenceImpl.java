@@ -22,6 +22,9 @@ import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
+/**
+ * A condition to check if the property exists ("is not null").
+ */
 public class PropertyExistenceImpl extends ConstraintImpl {
 
     private final String selectorName;

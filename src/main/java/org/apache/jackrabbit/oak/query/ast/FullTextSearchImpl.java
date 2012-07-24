@@ -25,6 +25,9 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
+/**
+ * A fulltext "contains(...)" condition.
+ */
 public class FullTextSearchImpl extends ConstraintImpl {
 
     private final String selectorName;
@@ -129,6 +132,9 @@ public class FullTextSearchImpl extends ConstraintImpl {
         f.restrictFulltextCondition(fullTextSearchExpression.currentValue().getString());
     }
 
+    /**
+     * A parser for fulltext condition literals.
+     */
     public static class FullTextParser {
 
         String text;
@@ -239,11 +245,17 @@ public class FullTextSearchImpl extends ConstraintImpl {
 
     }
 
+    /**
+     * The base class for fulltext condition expression.
+     */
     public abstract static class FullTextExpression {
         public abstract boolean evaluate(String value);
         abstract FullTextExpression simplify();
     }
 
+    /**
+     * A fulltext "and" condition.
+     */
     static class FullTextAnd extends FullTextExpression {
         ArrayList<FullTextExpression> list = new ArrayList<FullTextExpression>();
 
@@ -277,6 +289,9 @@ public class FullTextSearchImpl extends ConstraintImpl {
 
     }
 
+    /**
+     * A fulltext "or" condition.
+     */
     static class FullTextOr extends FullTextExpression {
         ArrayList<FullTextExpression> list = new ArrayList<FullTextExpression>();
 
@@ -310,6 +325,9 @@ public class FullTextSearchImpl extends ConstraintImpl {
 
     }
 
+    /**
+     * A fulltext term, or a "not" term.
+     */
     static class FullTextTerm extends FullTextExpression {
         boolean not;
         String text;

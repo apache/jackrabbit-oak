@@ -22,6 +22,9 @@ import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
+/**
+ * A fulltext search score expression.
+ */
 public class FullTextSearchScoreImpl extends DynamicOperandImpl {
 
     private final String selectorName;

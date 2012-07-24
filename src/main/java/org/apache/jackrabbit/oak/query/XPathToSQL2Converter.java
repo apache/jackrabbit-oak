@@ -704,6 +704,16 @@ public class XPathToSQL2Converter {
         return new ParseException("Query:\n" + query, index);
     }
 
+    static String removeParens(String s) {
+        if (s.startsWith("(") && s.endsWith(")")) {
+            return s.substring(1, s.length() - 1);
+        }
+        return s;
+    }
+
+    /**
+     * An expression.
+     */
     abstract static class Expression {
 
         boolean isCondition() {
@@ -712,6 +722,9 @@ public class XPathToSQL2Converter {
 
     }
 
+    /**
+     * A literal expression.
+     */
     static class Literal extends Expression {
 
         final String value;
@@ -739,6 +752,9 @@ public class XPathToSQL2Converter {
 
     }
 
+    /**
+     * A property expression.
+     */
     static class Property extends Expression {
 
         final String name;
@@ -754,6 +770,9 @@ public class XPathToSQL2Converter {
 
     }
 
+    /**
+     * A condition.
+     */
     static class Condition extends Expression {
 
         final Expression left;
@@ -783,6 +802,9 @@ public class XPathToSQL2Converter {
 
     }
 
+    /**
+     * A function call.
+     */
     static class Function extends Expression {
 
         final String name;
@@ -813,6 +835,9 @@ public class XPathToSQL2Converter {
 
     }
 
+    /**
+     * A cast operation.
+     */
     static class Cast extends Expression {
 
         final Expression expr;
@@ -838,6 +863,9 @@ public class XPathToSQL2Converter {
 
     }
 
+    /**
+     * An order by expression.
+     */
     static class Order {
 
         boolean descending;
@@ -848,13 +876,6 @@ public class XPathToSQL2Converter {
             return expr + (descending ? " desc" : "");
         }
 
-    }
-
-    static String removeParens(String s) {
-        if (s.startsWith("(") && s.endsWith(")")) {
-            return s.substring(1, s.length() - 1);
-        }
-        return s;
     }
 
 }

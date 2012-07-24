@@ -24,6 +24,9 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.SinglePropertyState;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
+/**
+ * The function "length(..)".
+ */
 public class LengthImpl extends DynamicOperandImpl {
 
     private final PropertyValueImpl propertyValue;

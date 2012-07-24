@@ -27,6 +27,9 @@ import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
+/**
+ * A comparison operation (including "like").
+ */
 public class ComparisonImpl extends ConstraintImpl {
 
     private final DynamicOperandImpl operand1;

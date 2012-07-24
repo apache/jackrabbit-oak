@@ -21,6 +21,9 @@ package org.apache.jackrabbit.oak.query.ast;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.Filter;
 
+/**
+ * The "issamenode(...)" join condition.
+ */
 public class SameNodeJoinConditionImpl extends JoinConditionImpl {
 
     private final String selector1Name;
