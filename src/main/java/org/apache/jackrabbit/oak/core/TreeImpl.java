@@ -56,6 +56,9 @@ public class TreeImpl implements Tree, PurgeListener {
     /** Lazily initialised {@code NodeStateBuilder} for the underlying node state */
     NodeStateBuilder nodeStateBuilder;
 
+    /**
+     * Cache for child trees that have been accessed before.
+     */
     private final Children children = new Children();
 
     private TreeImpl(RootImpl root, TreeImpl parent, String name) {
