@@ -18,6 +18,9 @@ package org.apache.jackrabbit.oak.jcr.query.qom;
 
 import javax.jcr.query.qom.DynamicOperand;
 
+/**
+ * The base class for dynamic operands.
+ */
 public abstract class DynamicOperandImpl extends QOMNode implements DynamicOperand {
 
     // base class without methods

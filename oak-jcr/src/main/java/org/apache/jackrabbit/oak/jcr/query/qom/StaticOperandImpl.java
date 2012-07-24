@@ -20,6 +20,9 @@ package org.apache.jackrabbit.oak.jcr.query.qom;
 
 import javax.jcr.query.qom.StaticOperand;
 
+/**
+ * The base class for static operands.
+ */
 public abstract class StaticOperandImpl extends QOMNode implements StaticOperand {
 
     public abstract void bindVariables(QueryObjectModelImpl qom);

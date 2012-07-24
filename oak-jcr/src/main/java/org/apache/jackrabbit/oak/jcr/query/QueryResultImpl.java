@@ -79,7 +79,7 @@ public class QueryResultImpl implements QueryResult {
 
     @Override
     public RowIterator getRows() throws RepositoryException {
-        Iterator<RowImpl> it = new Iterator<RowImpl>() {
+        Iterator<RowImpl> rowIterator = new Iterator<RowImpl>() {
 
             private final Iterator<? extends ResultRow> it = result.getRows().iterator();
             private RowImpl current;
@@ -90,7 +90,7 @@ public class QueryResultImpl implements QueryResult {
 
             private void fetch() {
                 current = null;
-                while(it.hasNext()) {
+                while (it.hasNext()) {
                     ResultRow r = it.next();
                     for (String s : getSelectorNames()) {
                         String path = r.getPath(s);
@@ -123,7 +123,7 @@ public class QueryResultImpl implements QueryResult {
             }
 
         };
-        return new RowIteratorAdapter(it);
+        return new RowIteratorAdapter(rowIterator);
     }
 
     @CheckForNull
@@ -142,7 +142,7 @@ public class QueryResultImpl implements QueryResult {
             throw new RepositoryException("Query contains more than one selector: " +
                     Arrays.toString(getSelectorNames()));
         }
-        Iterator<NodeImpl> it = new Iterator<NodeImpl>() {
+        Iterator<NodeImpl> nodeIterator = new Iterator<NodeImpl>() {
 
             private final Iterator<? extends ResultRow> it = result.getRows().iterator();
             private NodeImpl current;
@@ -153,7 +153,7 @@ public class QueryResultImpl implements QueryResult {
 
             private void fetch() {
                 current = null;
-                while(it.hasNext()) {
+                while (it.hasNext()) {
                     ResultRow r = it.next();
                     String path = r.getPath();
                     if (includeRow(path)) {
@@ -184,7 +184,7 @@ public class QueryResultImpl implements QueryResult {
             }
 
         };
-        return new NodeIteratorAdapter(it);
+        return new NodeIteratorAdapter(nodeIterator);
     }
 
     Value createValue(CoreValue value) {
