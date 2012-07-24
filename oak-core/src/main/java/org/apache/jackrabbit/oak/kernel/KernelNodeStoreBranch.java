@@ -127,7 +127,7 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
     @Override
     public KernelNodeState merge() throws CommitFailedException {
         MicroKernel kernel = store.getKernel();
-        CommitEditor editor = store.getCommitEditor();
+        CommitEditor editor = store.getEditor();
 
         NodeState oldRoot = store.getRoot();
         NodeState toCommit = editor.editCommit(store, oldRoot, currentRoot);

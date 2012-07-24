@@ -62,6 +62,7 @@ public class KernelNodeStore implements NodeStore {
         this.root = new KernelNodeState(kernel, "/", kernel.getHeadRevision());
     }
 
+    @Nonnull
     public CommitEditor getEditor() {
         return editor;
     }
@@ -71,6 +72,7 @@ public class KernelNodeStore implements NodeStore {
         this.editor = editor;
     }
 
+    @Nonnull
     public Observer getObserver() {
         return observer;
     }
@@ -80,7 +82,7 @@ public class KernelNodeStore implements NodeStore {
         this.observer = observer;
     }
 
-    //-----------------------------------------------------------< NodeStore >
+    //----------------------------------------------------------< NodeStore >---
 
     @Override
     public synchronized NodeState getRoot() {
@@ -108,16 +110,11 @@ public class KernelNodeStore implements NodeStore {
         return new CoreValueFactoryImpl(kernel);
     }
 
-    //------------------------------------------------------------< internal >---
+    //-----------------------------------------------------------< internal >---
 
     @Nonnull
     MicroKernel getKernel() {
         return kernel;
-    }
-
-    @Nonnull
-    CommitEditor getCommitEditor() {
-        return editor;
     }
 
 }
