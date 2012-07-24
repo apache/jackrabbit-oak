@@ -23,11 +23,16 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
  */
 public class NodeCreator {
 
+    private static final String DEFAULT_TEST_ROOT = "test";
+    private static final int DEFAULT_COUNT = 200;
+    private static final int DEFAULT_WIDTH = 30;
+
     private final MicroKernel mk;
+    private String testRoot = DEFAULT_TEST_ROOT;
+    private int totalCount = DEFAULT_COUNT;
+    private int width = DEFAULT_WIDTH;
     private String head;
-    private int totalCount = 200;
-    private int width = 30, count;
-    private String nodeName = "test";
+    private int count;
     private String data = "Hello World";
     private boolean logToSystemOut;
 
@@ -44,8 +49,8 @@ public class NodeCreator {
         this.totalCount = totalCount;
     }
 
-    public void setNodeName(String nodeName) {
-        this.nodeName = nodeName;
+    public void setTestRoot(String testRoot) {
+        this.testRoot = testRoot;
     }
 
     public void setData(String data) {
@@ -53,21 +58,21 @@ public class NodeCreator {
     }
 
     public void create() {
-        log("implementation: " + mk);
-        log("creating " + totalCount + " nodes");
-        head = mk.commit("/", "+\"" + nodeName + "\":{}", head, "");
+        log("Implementation: " + mk);
+        log("Creating " + totalCount + " nodes under " + testRoot);
+        head = mk.commit("/", "+\"" + testRoot + "\":{}", head, "");
         count = 0;
         int depth = (int) Math.ceil(Math.log(totalCount) / Math.log(width));
-        log("depth: " + depth);
-        createNodes(nodeName, depth);
+        log("Depth: " + depth);
+        createNodes(testRoot, depth);
         log("");
     }
 
     public void traverse() {
         count = 0;
         int depth = (int) Math.ceil(Math.log(totalCount) / Math.log(width));
-        log("depth: " + depth);
-        traverse(nodeName, depth);
+        log("Depth: " + depth);
+        traverse(testRoot, depth);
     }
 
     private void createNodes(String parent, int depth) {
