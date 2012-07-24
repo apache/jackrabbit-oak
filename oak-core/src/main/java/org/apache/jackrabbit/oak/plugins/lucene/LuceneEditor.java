@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitEditor;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -123,6 +124,9 @@ public class LuceneEditor implements CommitEditor {
 
         @Override
         public void childNodeAdded(String name, NodeState after) {
+            if (NodeStateUtils.isHidden(name)) {
+                return;
+            }
             if (exception == null) {
                 try {
                     addSubtree(path + "/" + name, after);
@@ -135,6 +139,9 @@ public class LuceneEditor implements CommitEditor {
         @Override
         public void childNodeChanged(
                 String name, NodeState before, NodeState after) {
+            if (NodeStateUtils.isHidden(name)) {
+                return;
+            }
             if (exception == null) {
                 try {
                     LuceneDiff diff = new LuceneDiff(writer, path + "/" + name);
@@ -148,6 +155,9 @@ public class LuceneEditor implements CommitEditor {
 
         @Override
         public void childNodeDeleted(String name, NodeState before) {
+            if (NodeStateUtils.isHidden(name)) {
+                return;
+            }
             if (exception == null) {
                 try {
                     deleteSubtree(path + "/" + name, before);
