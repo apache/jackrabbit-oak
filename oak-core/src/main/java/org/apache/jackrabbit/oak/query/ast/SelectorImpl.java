@@ -28,6 +28,9 @@ import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.Cursor;
 import org.apache.jackrabbit.oak.spi.QueryIndex;
 
+/**
+ * A selector within a query.
+ */
 public class SelectorImpl extends SourceImpl {
 
     // TODO jcr:path isn't an official feature, support it?
@@ -37,6 +40,7 @@ public class SelectorImpl extends SourceImpl {
 
     private static final String TYPE_BASE = "nt:base";
 
+    // TODO possibly support using multiple indexes (using index intersection / index merge)
     protected QueryIndex index;
 
     private final String nodeTypeName, selectorName;

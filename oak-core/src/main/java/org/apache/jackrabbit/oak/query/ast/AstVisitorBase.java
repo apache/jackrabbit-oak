@@ -18,6 +18,9 @@ package org.apache.jackrabbit.oak.query.ast;
 
 import org.apache.jackrabbit.oak.query.Query;
 
+/**
+ * The base class to visit all elements.
+ */
 public abstract class AstVisitorBase implements AstVisitor {
 
     /**

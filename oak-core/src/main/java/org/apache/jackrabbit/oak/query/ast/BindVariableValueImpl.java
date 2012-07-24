@@ -20,6 +20,9 @@ package org.apache.jackrabbit.oak.query.ast;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
 
+/**
+ * A bind variable.
+ */
 public class BindVariableValueImpl extends StaticOperandImpl {
 
     private final String bindVariableName;

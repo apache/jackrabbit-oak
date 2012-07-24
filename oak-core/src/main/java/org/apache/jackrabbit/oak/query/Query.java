@@ -349,6 +349,9 @@ public class Query {
         source.prepare(mk);
     }
 
+    /**
+     * An iterator over result rows.
+     */
     class RowIterator implements Iterator<ResultRowImpl> {
 
         private final String revisionId;

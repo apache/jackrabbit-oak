@@ -18,6 +18,9 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+/**
+ * A visitor to access all elements.
+ */
 public interface AstVisitor {
 
     boolean visit(AndImpl node);

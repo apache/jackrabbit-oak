@@ -22,6 +22,9 @@ import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.SinglePropertyState;
 
+/**
+ * A result column expression.
+ */
 public class ColumnImpl extends AstElement {
 
     private final String selectorName, propertyName, columnName;

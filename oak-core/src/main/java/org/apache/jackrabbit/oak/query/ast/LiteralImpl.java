@@ -23,6 +23,9 @@ import org.apache.jackrabbit.oak.query.SQL2Parser;
 
 import javax.jcr.PropertyType;
 
+/**
+ * A literal of a certain data type, possibly "cast(..)" of a literal.
+ */
 public class LiteralImpl extends StaticOperandImpl {
 
     private final CoreValue value;

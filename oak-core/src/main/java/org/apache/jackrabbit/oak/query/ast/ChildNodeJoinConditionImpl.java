@@ -22,6 +22,9 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.Filter;
 
+/**
+ * The "ischildnode(...)" join condition.
+ */
 public class ChildNodeJoinConditionImpl extends JoinConditionImpl {
 
     private final String childSelectorName;

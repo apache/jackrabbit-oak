@@ -18,6 +18,10 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+/**
+ * An element of an "order by" list. This includes whether this element should
+ * be sorted in ascending or descending order.
+ */
 public class OrderingImpl extends AstElement {
 
     private final DynamicOperandImpl operand;

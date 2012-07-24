@@ -23,6 +23,9 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.SinglePropertyState;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
+/**
+ * The function "lower(..)".
+ */
 public class LowerCaseImpl extends DynamicOperandImpl {
 
     private final DynamicOperandImpl operand;
