@@ -126,6 +126,15 @@
             </systemPropertyVariables>
           </configuration>
         </plugin>
+          <plugin>
+            <artifactId>maven-checkstyle-plugin</artifactId>
+            <version>2.9.1</version>
+          </plugin>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>findbugs-maven-plugin</artifactId>
+            <version>2.5.1</version>
+          </plugin>
         <!-- This plugin's configuration is used to store Eclipse m2e      -->
         <!-- settings only. It has no influence on the Maven build itself. -->
         <plugin>
@@ -226,9 +235,36 @@
               </execution>
             </executions>
           </plugin>
+          <plugin>
+            <artifactId>maven-checkstyle-plugin</artifactId>
+            <configuration>
+              <failOnViolation>false</failOnViolation>
+            </configuration>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>check</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>findbugs-maven-plugin</artifactId>
+            <configuration>
+              <failOnError>false</failOnError>
+            </configuration>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>check</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
         </plugins>
       </build>
     </profile>
   </profiles>
-</project>
 
+</project>
