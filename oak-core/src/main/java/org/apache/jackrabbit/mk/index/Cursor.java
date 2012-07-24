@@ -73,15 +73,20 @@ public class Cursor implements Iterator<String> {
         this.pos = pos;
     }
 
+    /**
+     * An iterator over a cursor.
+     */
     public static class RangeIterator implements Iterator<String> {
         private final Cursor cursor;
         private final String maxKey;
         private String value;
+
         RangeIterator(Cursor cursor, String maxKey) {
             this.cursor = cursor;
             this.maxKey = maxKey;
             step();
         }
+
         private void step() {
             value = null;
             if (cursor.hasNext()) {
@@ -91,20 +96,24 @@ public class Cursor implements Iterator<String> {
                 }
             }
         }
+
         @Override
         public boolean hasNext() {
             return value != null;
         }
+
         @Override
         public String next() {
             String v = value;
             step();
             return v;
         }
+
         @Override
         public void remove() {
             throw new UnsupportedOperationException();
         }
+
     }
 
 }

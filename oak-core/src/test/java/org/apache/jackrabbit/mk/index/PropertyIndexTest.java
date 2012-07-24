@@ -36,9 +36,9 @@ public class PropertyIndexTest {
         String head = mk.getHeadRevision();
 
         // meta data
-        String meta = mk.getNodes(Indexer.INDEX_CONFIG_ROOT, head, 1, 0, -1, null);
+        String meta = mk.getNodes(Indexer.INDEX_CONFIG_PATH, head, 1, 0, -1, null);
         Assert.assertEquals("{\":childNodeCount\":2,\":data\":{\":childNodeCount\":0}," +
-        		"\"property@id,unique\":{\":childNodeCount\":1,\":data\":{}}}", meta);
+                "\"property@id,unique\":{\":childNodeCount\":1,\":data\":{}}}", meta);
 
         String oldHead = head;
 
