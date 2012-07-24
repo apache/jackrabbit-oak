@@ -31,6 +31,10 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.runners.Parameterized.Parameters;
 
+/**
+ * The base class for tests that are run using multiple MicroKernel
+ * implementations.
+ */
 public class MultiMkTestBase {
 
     private static final boolean PROFILE = false;
@@ -95,6 +99,7 @@ public class MultiMkTestBase {
     /**
      * Whether this is (directly or indirectly) the MemoryKernelImpl.
      *
+     * @param mk the MicroKernel implementation
      * @return true if it is
      */
     public static boolean isSimpleKernel(MicroKernel mk) {

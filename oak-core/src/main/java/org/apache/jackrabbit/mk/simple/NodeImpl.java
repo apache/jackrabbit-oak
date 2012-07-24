@@ -198,11 +198,11 @@ public class NodeImpl implements Cache.Value {
             throw ExceptionFactory.get("Node not found: " + path);
         }
         long diffDescendant = -n.descendantCount;
-        long diffInline = -n.descendantInlineCount;
+        // long diffInline = -n.descendantInlineCount;
         NodeImpl n2 = n.cloneAndAddChildNode(path.substring(index + 1), before, position, newNode, revId);
         NodeImpl clone = setChild(child, n2, revId);
         diffDescendant += n2.descendantCount;
-        diffInline += n2.descendantInlineCount;
+        // diffInline += n2.descendantInlineCount;
         clone.descendantCount += diffDescendant;
         clone.descendantInlineCount += diffDescendant;
         return clone;
@@ -625,17 +625,14 @@ public class NodeImpl implements Cache.Value {
                 String key = t.readString();
                 t.read(':');
                 String value = t.readRawValue();
-                if (key.length() > 0 && key.charAt(0) == ':') {
-                    if (key.equals(CHILDREN)) {
-                        node.childNodes = NodeListTrie.read(t, map, value);
-                    } else if (key.equals(DESCENDANT_COUNT)) {
-                        node.descendantCount = Long.parseLong(value);
-                        descendantCountSet = true;
-                    } else if (key.equals(HASH)) {
-                        node.id.setHash(StringUtils.convertHexToBytes(JsopTokenizer.decodeQuoted(value)));
-                    } else {
-                        node.setProperty(key, value);
-                    }
+                boolean hidden = key.length() > 0 && key.charAt(0) == ':';
+                if (hidden && key.equals(CHILDREN)) {
+                    node.childNodes = NodeListTrie.read(t, map, value);
+                } else if (hidden && key.equals(DESCENDANT_COUNT)) {
+                    node.descendantCount = Long.parseLong(value);
+                    descendantCountSet = true;
+                } else if (hidden && key.equals(HASH)) {
+                    node.id.setHash(StringUtils.convertHexToBytes(JsopTokenizer.decodeQuoted(value)));
                 } else if (map.isId(value)) {
                     if (node.childNodes == null) {
                         node.childNodes = new NodeListSmall();
@@ -691,6 +688,9 @@ public class NodeImpl implements Cache.Value {
         }
     }
 
+    /**
+     * A visitor over the child nodes.
+     */
     interface ChildVisitor {
         void accept(NodeId childId);
     }

@@ -24,6 +24,9 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.jackrabbit.mk.ExceptionFactory;
 import org.apache.jackrabbit.mk.simple.NodeImpl.ChildVisitor;
 
+/**
+ * A map of nodes that are accessible by id.
+ */
 public class NodeMap {
 
     public static final String MAX_MEMORY_CHILDREN = "maxMemoryChildren";

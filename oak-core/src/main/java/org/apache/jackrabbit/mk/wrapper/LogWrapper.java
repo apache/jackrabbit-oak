@@ -249,7 +249,7 @@ public class LogWrapper implements MicroKernel {
         return o.toString();
     }
 
-    private RuntimeException convert(Exception e) {
+    private static RuntimeException convert(Exception e) {
         if (e instanceof RuntimeException) {
             return (RuntimeException) e;
         }
@@ -257,15 +257,15 @@ public class LogWrapper implements MicroKernel {
         return ExceptionFactory.convert(e);
     }
 
-    private void logException(Exception e) {
+    private static void logException(Exception e) {
         log("// exception: " + e.toString());
     }
 
-    private void logResult(Object result) {
+    private static void logResult(Object result) {
         log("// " + quote(result));
     }
 
-    private void log(String message) {
+    private static void log(String message) {
         if (DEBUG) {
             System.out.println(message);
         }

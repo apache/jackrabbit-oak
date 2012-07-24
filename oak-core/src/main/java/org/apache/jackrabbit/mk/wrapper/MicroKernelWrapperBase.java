@@ -89,15 +89,18 @@ public abstract class MicroKernelWrapperBase implements MicroKernel, MicroKernel
         throw new IllegalArgumentException("wrapper instance was not created by this factory");
     }
 
+    /**
+     * A wrapper for MicroKernel implementations that don't support JSOP methods.
+     */
     private static class MicroKernelWrapperImpl implements MicroKernelWrapper {
 
         final MicroKernel wrapped;
 
-        private MicroKernelWrapperImpl(MicroKernel mk) {
+        MicroKernelWrapperImpl(MicroKernel mk) {
             wrapped = mk;
         }
 
-        private MicroKernel getWrapped() {
+        MicroKernel getWrapped() {
             return wrapped;
         }
 

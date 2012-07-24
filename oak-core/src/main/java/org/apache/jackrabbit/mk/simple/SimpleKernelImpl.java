@@ -422,7 +422,7 @@ public class SimpleKernelImpl extends MicroKernelWrapperBase implements MicroKer
         return buff.endArray();
    }
 
-    private NodeImpl getRevisionNode(NodeImpl node, long fromRev, long toRev) {
+    private static NodeImpl getRevisionNode(NodeImpl node, long fromRev, long toRev) {
         while (true) {
             long next = -1;
             String nextRev = null;
