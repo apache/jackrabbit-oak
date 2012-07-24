@@ -16,11 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.authentication;
 
-import org.apache.jackrabbit.oak.spi.security.authentication.CredentialsCallback;
-import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import java.io.IOException;
+import java.util.Map;
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
 import javax.security.auth.Subject;
@@ -29,10 +26,12 @@ import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.auth.login.LoginException;
 import javax.security.auth.spi.LoginModule;
-import java.io.IOException;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+
+import org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule;
+import org.apache.jackrabbit.oak.spi.security.authentication.CredentialsCallback;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The {@code GuestLoginModule} is intended to provide backwards compatibility
@@ -54,10 +53,11 @@ import java.util.Set;
  *     instead of failing to obtain any credentials.</li>
  * </ol>
  *
- * Note however that this implementation does not populate the subject during
- * {@link #commit() phase 2} of the authentication process. This responsibility
- * is delegated to a subsequent login module implementation that may or may not
- * use the {@code GuestCredentials} this module added to the share state.<p/>
+ * If this login module pushed {@link GuestLoginModule} to the shared state
+ * in phase 1 it will add those credentials and the {@link EveryonePrincipal}
+ * to the subject in phase 2 of the login process. Subsequent login modules
+ * my choose to provide additional principals/credentials associated with
+ * a guest login.<p/>
  *
  * The authentication configuration using this {@code LoginModule} could for
  * example look as follows:
@@ -100,16 +100,8 @@ public class GuestLoginModule implements LoginModule {
                 callbackHandler.handle(new Callback[] {ccb});
                 Credentials credentials = ccb.getCredentials();
                 if (credentials == null) {
-                    Set<Credentials> sharedCredentials;
-                    Object sharedObj = sharedState.get(LoginModuleImpl.SHARED_KEY_CREDENTIALS);
-                    if (sharedObj == null || !(sharedObj instanceof Set)) {
-                        sharedCredentials = new HashSet<Credentials>();
-                    } else {
-                        sharedCredentials = (Set) sharedObj;
-                    }
                     guestCredentials = new GuestCredentials();
-                    sharedCredentials.add(guestCredentials);
-                    sharedState.put(LoginModuleImpl.SHARED_KEY_CREDENTIALS, sharedCredentials);
+                    sharedState.put(AbstractLoginModule.SHARED_KEY_CREDENTIALS, guestCredentials);
                     return true;
                 }
             } catch (IOException e) {

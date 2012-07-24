@@ -16,15 +16,12 @@
  */
 package org.apache.jackrabbit.oak.security.authentication;
 
-import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
-import org.apache.jackrabbit.oak.api.AuthInfo;
-import org.apache.jackrabbit.oak.spi.security.authentication.CredentialsCallback;
-import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
-import org.apache.jackrabbit.oak.spi.security.authentication.PrincipalProviderCallback;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import java.io.IOException;
+import java.security.Principal;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
 import javax.jcr.SimpleCredentials;
@@ -33,13 +30,14 @@ import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.auth.login.LoginException;
-import javax.security.auth.spi.LoginModule;
-import java.io.IOException;
-import java.security.Principal;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+
+import org.apache.jackrabbit.oak.api.AuthInfo;
+import org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule;
+import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
+import org.apache.jackrabbit.oak.spi.security.authentication.PrincipalProviderCallback;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Default login module implementation that authenticates JCR {@code Credentials}
@@ -55,10 +53,7 @@ import java.util.Set;
  *     <li>{@code Credentials} as specified in {@link javax.jcr.Repository#login(javax.jcr.Credentials)}
  *     in which case they are retrieved from the {@code CallbackHandler}.</li>
  *     <li>A {@link #SHARED_KEY_CREDENTIALS} entry in the shared state. The
- *     expected value is a set of {@code Credentials}. Ffor backwards compatibility
- *     with the Jackrabbit 2.x) the former {@link #SHARED_KEY_JR_CREDENTIALS}
- *     entry in the shared state is also respected. In the latter case
- *     the expected value is a single {@code Credentials} object.</li>
+ *     expected value is a validated single {@code Credentials} object.</li>
  *     <li>If neither of the above variants provides Credentials this module
  *     tries to obtain them from the subject. See also
  *     {@link Subject#getSubject(java.security.AccessControlContext)}</li>
@@ -70,7 +65,6 @@ import java.util.Set;
  * <ul>
  *     <li>{@link SimpleCredentials}</li>
  *     <li>{@link GuestCredentials}</li>
- *     <li>{@link TokenCredentials}</li>
  *     <li>{@link ImpersonationCredentials}</li>
  * </ul>
  *
@@ -91,48 +85,27 @@ import java.util.Set;
  *
  *
  */
-public class LoginModuleImpl implements LoginModule {
+public class LoginModuleImpl extends AbstractLoginModule {
 
     private static final Logger log = LoggerFactory.getLogger(LoginModuleImpl.class);
 
-    /**
-     * Backwards compatibility: Key of the sharedState entry referring to a
-     * Credentials object being passed between multiple login modules.
-     *
-     * @deprecated Use {@link #SHARED_KEY_CREDENTIALS} instead.
-     */
-    private static final String SHARED_KEY_JR_CREDENTIALS = "org.apache.jackrabbit.credentials";
-
-    /**
-     * Key of the sharedState entry referring to a Set of Credentials that is
-     * shared between multiple login modules.
-     */
-    public static final String SHARED_KEY_CREDENTIALS = "org.apache.jackrabbit.oak.credentials";
-
-    protected static final Set<Class> SUPPORTED_CREDENTIALS = new HashSet<Class>(2);
+    protected static final Set<Class> SUPPORTED_CREDENTIALS = new HashSet<Class>(3);
     static {
         SUPPORTED_CREDENTIALS.add(SimpleCredentials.class);
         SUPPORTED_CREDENTIALS.add(GuestCredentials.class);
         SUPPORTED_CREDENTIALS.add(ImpersonationCredentials.class);
-        SUPPORTED_CREDENTIALS.add(TokenCredentials.class);
     }
 
-    private Subject subject;
-    private CallbackHandler callbackHandler;
-    private Map sharedState;
-
-    private Set<Credentials> credentials;
+    private Credentials credentials;
     private Set<Principal> principals;
     private String userID;
 
     //--------------------------------------------------------< LoginModule >---
     @Override
     public void initialize(Subject subject, CallbackHandler callbackHandler, Map<String, ?> sharedState, Map<String, ?> options) {
-        // TODO
+        super.initialize(subject, callbackHandler, sharedState, options);
 
-        this.subject = subject;
-        this.callbackHandler = callbackHandler;
-        this.sharedState = sharedState;
+        // TODO
     }
 
     @Override
@@ -143,25 +116,32 @@ public class LoginModuleImpl implements LoginModule {
         principals = getPrincipals(userID);
 
         Authentication authentication = new AuthenticationImpl(userID);
-        boolean success = authenticate(authentication);
+        boolean success = authentication.authenticate(credentials);
         if (!success) {
             success = impersonate(authentication);
+        }
+
+        if (success) {
+            log.debug("Login: adding Credentials to shared state.");
+            sharedState.put(SHARED_KEY_CREDENTIALS, credentials);
         }
         return success;
     }
 
     @Override
     public boolean commit() throws LoginException {
-        // TODO
-
-        if (!subject.isReadOnly()) {
-            subject.getPrincipals().addAll(principals);
-            subject.getPublicCredentials().addAll(credentials);
-            subject.getPublicCredentials().add(getAuthInfo());
+        if (credentials == null || principals.isEmpty()) {
+            return false;
         } else {
-            log.debug("Could not add information to read only subject {}", subject);
+            if (!subject.isReadOnly()) {
+                subject.getPrincipals().addAll(principals);
+                subject.getPublicCredentials().add(credentials);
+                subject.getPublicCredentials().add(getAuthInfo());
+            } else {
+                log.debug("Could not add information to read only subject {}", subject);
+            }
+            return true;
         }
-        return true;
     }
 
     @Override
@@ -171,102 +151,25 @@ public class LoginModuleImpl implements LoginModule {
         return true;
     }
 
+    //------------------------------------------------< AbstractLoginModule >---
+
     @Override
-    public boolean logout() throws LoginException {
-        if (subject.getPrincipals().isEmpty() || subject.getPublicCredentials(Credentials.class).isEmpty()) {
-            return false;
-        } else {
-            // clear subject if not readonly
-            if (!subject.isReadOnly()) {
-                subject.getPrincipals().clear();
-                subject.getPublicCredentials().clear();
-            }
-            return true;
-        }
+    protected Set<Class> getSupportedCredentials() {
+        return SUPPORTED_CREDENTIALS;
     }
 
     //--------------------------------------------------------------------------
 
-    private Set<Credentials> getCredentials() {
-        Set<Credentials> credentials = new HashSet<Credentials>();
-        credentials.addAll(getSharedCredentials());
-
-        if (callbackHandler != null) {
-            log.debug("Login: retrieving Credentials using callback.");
-            try {
-                CredentialsCallback callback = new CredentialsCallback();
-                callbackHandler.handle(new Callback[]{callback});
-                Credentials creds = callback.getCredentials();
-                if (creds != null) {
-                    log.debug("Login: Credentials '{}' obtained from callback", creds);
-                    credentials.add(creds);
-                }
-            } catch (UnsupportedCallbackException e) {
-                log.warn(e.getMessage());
-            } catch (IOException e) {
-                log.error(e.getMessage());
-            }
-        }
-
-        log.debug("Login: adding Credentials to shared state.");
-        sharedState.put(SHARED_KEY_CREDENTIALS, credentials);
-
-        if (credentials.isEmpty()) {
-            log.debug("Login: No credentials found; looking for supported credentials in subject.");
-            for (Class clz : SUPPORTED_CREDENTIALS) {
-                credentials.addAll(subject.getPublicCredentials(clz));
-            }
-        }
-        return credentials;
-    }
-
-    private Set<Credentials> getSharedCredentials() {
-        Set<Credentials> sharedCredentials = new HashSet<Credentials>();
-        if (sharedState.containsKey(SHARED_KEY_JR_CREDENTIALS)) {
-            Object sc = sharedState.get(SHARED_KEY_JR_CREDENTIALS);
-            if (sc instanceof Credentials) {
-                sharedCredentials.add((Credentials) sc);
-            } else {
-                log.debug("Login: Invalid value for share state entry " + SHARED_KEY_JR_CREDENTIALS + ". Credentials expected.");
-            }
-        }
-        if (sharedState.containsKey(SHARED_KEY_CREDENTIALS)) {
-            Object scSet = sharedState.get(SHARED_KEY_CREDENTIALS);
-            if (scSet instanceof Set) {
-                 for (Object sc : (Set) scSet) {
-                     if (sc instanceof Credentials) {
-                         sharedCredentials.add((Credentials) sc);
-                     }
-                 }
-            } else {
-                log.debug("Login: Invalid value for share state entry " + SHARED_KEY_CREDENTIALS + ". Set of Credentials expected.");            }
-        }
-
-        return sharedCredentials;
-    }
-
-    private <T extends Credentials> java.util.Set<T> getCredentials(java.lang.Class<T> credentialsClass) {
-        Set<T> cds = new HashSet<T>();
-        for (Credentials c : credentials) {
-            if (credentialsClass.isAssignableFrom(c.getClass())) {
-                cds.add((T) c);
-            }
-        }
-        return cds;
-    }
-
     private Set<Principal> getPrincipals(String userID) {
         Set<Principal> principals = new HashSet<Principal>();
         PrincipalProvider principalProvider = getPrincipalProvider();
-        if (principalProvider != null) {
-            for (Credentials creds : credentials) {
-                Principal p = principalProvider.getPrincipal(userID); // TODO FIXME
-                if (p != null) {
-                    principals.add(p);
-                    principals.addAll(principalProvider.getGroupMembership(p));
-                } else {
-                    log.debug("Commit: Cannot retrieve principal for Credentials '{}'.", creds);
-                }
+        if (principalProvider != null && userID != null) {
+            Principal p = principalProvider.getPrincipal(userID); // TODO FIXME
+            if (p != null) {
+                principals.add(p);
+                principals.addAll(principalProvider.getGroupMembership(p));
+            } else {
+                log.debug("Commit: Cannot retrieve principal for userID '{}'.", userID);
             }
         } else {
             log.debug("Commit: Cannot retrieve principals. No principal provider configured.");
@@ -294,14 +197,13 @@ public class LoginModuleImpl implements LoginModule {
     private String getUserID() {
         // TODO add proper implementation
         String userID = null;
-        if (!credentials.isEmpty()) {
-            Credentials c = credentials.iterator().next();
-            if (c instanceof SimpleCredentials) {
-                userID = ((SimpleCredentials) c).getUserID();
-            } else if (c instanceof GuestCredentials) {
+        if (credentials != null) {
+            if (credentials instanceof SimpleCredentials) {
+                userID = ((SimpleCredentials) credentials).getUserID();
+            } else if (credentials instanceof GuestCredentials) {
                 userID = "anonymous";
-            } else if (c instanceof ImpersonationCredentials) {
-                Credentials bc = ((ImpersonationCredentials) c).getBaseCredentials();
+            } else if (credentials instanceof ImpersonationCredentials) {
+                Credentials bc = ((ImpersonationCredentials) credentials).getBaseCredentials();
                 if (bc instanceof SimpleCredentials) {
                     userID = ((SimpleCredentials) bc).getUserID();
                 }
@@ -311,20 +213,9 @@ public class LoginModuleImpl implements LoginModule {
     }
 
     private boolean impersonate(Authentication authentication) {
-        for (ImpersonationCredentials ic : getCredentials(ImpersonationCredentials.class)) {
-            AuthInfo info = ic.getImpersonatorInfo();
-            if (info instanceof AuthInfoImpl) {
-                if (authentication.impersonate(((AuthInfoImpl) info).getPrincipals())) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    private boolean authenticate(Authentication authentication) {
-        for (Credentials creds : credentials) {
-            if (authentication.authenticate(creds)) {
+        if (credentials instanceof ImpersonationCredentials) {
+            AuthInfo info = ((ImpersonationCredentials) credentials).getImpersonatorInfo();
+            if (authentication.impersonate(info.getPrincipals())) {
                 return true;
             }
         }
@@ -333,7 +224,8 @@ public class LoginModuleImpl implements LoginModule {
 
     private AuthInfo getAuthInfo() {
         Map<String, Object> attributes = new HashMap<String, Object>();
-        for (SimpleCredentials sc : getCredentials(SimpleCredentials.class)) {
+        if (credentials instanceof SimpleCredentials) {
+            SimpleCredentials sc = (SimpleCredentials) credentials;
             for (String attrName : sc.getAttributeNames()) {
                 attributes.put(attrName, sc.getAttribute(attrName));
             }
