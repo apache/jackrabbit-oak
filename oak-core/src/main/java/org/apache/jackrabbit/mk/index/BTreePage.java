@@ -52,7 +52,7 @@ abstract class BTreePage {
                 newParent.writeCreate();
             }
             tree.bufferMove(
-            			temp,
+                    temp,
                     PathUtils.concat(tree.getName(), Indexer.INDEX_CONTENT, getParentPath(), newName));
             parent = newParent;
             name = newName;

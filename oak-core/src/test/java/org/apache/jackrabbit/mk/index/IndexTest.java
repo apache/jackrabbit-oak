@@ -240,7 +240,7 @@ public class IndexTest {
 
     static void print(MicroKernel mk, BTree tree) {
         String head = mk.getHeadRevision();
-        String t = mk.getNodes(Indexer.INDEX_CONFIG_ROOT, head, 100, 0, -1, null);
+        String t = mk.getNodes(Indexer.INDEX_CONFIG_PATH, head, 100, 0, -1, null);
         log(t);
         Cursor c = tree.findFirst("0");
         StringBuilder buff = new StringBuilder();
