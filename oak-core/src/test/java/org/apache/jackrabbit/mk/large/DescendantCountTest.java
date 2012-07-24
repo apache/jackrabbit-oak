@@ -56,7 +56,7 @@ public class DescendantCountTest extends MultiMkTestBase {
 
         NodeCreator c = new NodeCreator(mk);
         for (int i = 1; i < 20; i++) {
-            c.setNodeName("test" + i);
+            c.setTestRoot("test" + i);
             c.setWidth(2);
             c.setTotalCount(i);
             c.setData(null);
