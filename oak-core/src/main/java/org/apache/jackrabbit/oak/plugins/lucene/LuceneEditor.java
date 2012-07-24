@@ -42,6 +42,9 @@ import static org.apache.jackrabbit.oak.plugins.lucene.FieldFactory.newPathField
 import static org.apache.jackrabbit.oak.plugins.lucene.FieldFactory.newPropertyField;
 import static org.apache.jackrabbit.oak.plugins.lucene.TermFactory.newPathTerm;
 
+/**
+ * This class updates a Lucene index when node content is changed.
+ */
 public class LuceneEditor implements CommitEditor {
 
     private static final Tika TIKA = new Tika();

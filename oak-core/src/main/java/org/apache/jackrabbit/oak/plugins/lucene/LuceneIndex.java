@@ -46,6 +46,9 @@ import org.apache.lucene.search.TermRangeQuery;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.Directory;
 
+/**
+ * This index uses internally runs a query against a Lucene index.
+ */
 public class LuceneIndex implements QueryIndex {
 
     private final NodeStore store;
