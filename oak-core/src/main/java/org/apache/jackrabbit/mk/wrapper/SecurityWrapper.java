@@ -390,7 +390,7 @@ public class SecurityWrapper extends MicroKernelWrapperBase implements MicroKern
         return n;
     }
 
-    private boolean checkPropertyRights(String path) {
+    private static boolean checkPropertyRights(String path) {
         return !PathUtils.getName(path).equals(":rights");
     }
 

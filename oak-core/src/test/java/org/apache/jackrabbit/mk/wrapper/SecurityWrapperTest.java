@@ -116,7 +116,7 @@ public class SecurityWrapperTest {
         assertEquals("{\":childNodeCount\":1,\"test\":{\"data\":\"Hello\",\":childNodeCount\":0}}", mkGuest.getNodes("/", head, 1, 0, -1, null));
     }
 
-    private String filterJournal(String journal) {
+    private static String filterJournal(String journal) {
         JsopTokenizer t = new JsopTokenizer(journal);
         StringBuilder buff = new StringBuilder();
         t.read('[');

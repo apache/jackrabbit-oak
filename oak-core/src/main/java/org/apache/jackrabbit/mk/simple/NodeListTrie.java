@@ -81,7 +81,7 @@ public class NodeListTrie implements NodeList {
         this.size = size;
     }
 
-    private String getPrefix(String name, int len) {
+    private static String getPrefix(String name, int len) {
         if (name.length() < len) {
             return name + new String(new char[len - name.length()]);
         }

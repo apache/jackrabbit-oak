@@ -24,6 +24,9 @@ import static org.junit.Assert.assertFalse;
 import org.apache.jackrabbit.oak.query.ast.ComparisonImpl;
 import org.junit.Test;
 
+/**
+ * Tests "like" pattern matching.
+ */
 public class LikePatternTest {
 
     @Test
