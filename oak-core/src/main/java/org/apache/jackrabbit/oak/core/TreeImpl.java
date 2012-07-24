@@ -197,14 +197,12 @@ public class TreeImpl implements Tree, PurgeListener {
         if (baseState == null) {
             // Did not exist before, so its NEW
             return Status.NEW;
-        }
-        else {
+        } else {
             // Did exit it before. So...
             if (isSame(baseState, getNodeState())) {
                 // ...it's EXISTING if it hasn't changed
                 return Status.EXISTING;
-            }
-            else {
+            } else {
                 // ...and MODIFIED otherwise.
                 return Status.MODIFIED;
             }
@@ -259,8 +257,7 @@ public class TreeImpl implements Tree, PurgeListener {
             parent.children.remove(name);
             parent.root.purge();
             return true;
-        }
-        else {
+        } else {
             return false;
         }
     }
