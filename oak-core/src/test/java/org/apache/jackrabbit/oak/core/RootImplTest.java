@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -239,6 +240,29 @@ public class RootImplTest extends AbstractOakTest {
         root.move("x", "y/x");
         assertTrue(y.hasChild("x"));
         assertEquals("y", x.getParent().getName());
+    }
+
+    @Test @Ignore
+    /**
+     * Regression test for OAK-208
+     */
+    public void removeMoved() throws CommitFailedException {
+        RootImpl root = new RootImpl(store, null);
+        Tree r = root.getTree("");
+        r.addChild("a");
+        r.addChild("b");
+
+        root.move("a", "b/c");
+        assertFalse(r.hasChild("a"));
+        assertTrue(r.hasChild("b"));
+
+        r.getChild("b").remove();
+        assertFalse(r.hasChild("a"));
+        assertFalse(r.hasChild("b"));
+
+        root.commit(DefaultConflictHandler.OURS);
+        assertFalse(r.hasChild("a"));
+        assertFalse(r.hasChild("b"));
     }
 
     @Test
