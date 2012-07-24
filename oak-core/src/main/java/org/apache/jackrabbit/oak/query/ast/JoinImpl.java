@@ -16,6 +16,9 @@ package org.apache.jackrabbit.oak.query.ast;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.query.Query;
 
+/**
+ * A join.
+ */
 public class JoinImpl extends SourceImpl {
 
     private final JoinConditionImpl joinCondition;

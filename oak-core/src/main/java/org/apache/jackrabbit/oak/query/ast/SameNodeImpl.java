@@ -21,6 +21,9 @@ package org.apache.jackrabbit.oak.query.ast;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.Filter;
 
+/**
+ * The function "issamenode(..)".
+ */
 public class SameNodeImpl extends ConstraintImpl {
 
     private final String path;

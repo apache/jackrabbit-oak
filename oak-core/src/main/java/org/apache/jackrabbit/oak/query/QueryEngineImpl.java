@@ -33,6 +33,9 @@ import org.apache.jackrabbit.oak.spi.QueryIndex;
 import org.apache.jackrabbit.oak.spi.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
+/**
+ * The query engine implementation.
+ */
 public class QueryEngineImpl implements QueryEngine {
 
     static final String SQL2 = "JCR-SQL2";

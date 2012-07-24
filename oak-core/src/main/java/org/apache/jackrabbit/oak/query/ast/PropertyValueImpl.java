@@ -24,6 +24,9 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
+/**
+ * A property expression.
+ */
 public class PropertyValueImpl extends DynamicOperandImpl {
 
     private final String selectorName;
@@ -90,10 +93,10 @@ public class PropertyValueImpl extends DynamicOperandImpl {
     @Override
     public void apply(FilterImpl f, Operator operator, CoreValue v) {
         if (f.getSelector() == selector) {
-        		if (operator == Operator.NOT_EQUAL && v != null) {
-        			// not supported
-        			return;
-        		}
+            if (operator == Operator.NOT_EQUAL && v != null) {
+                // not supported
+                return;
+            }
             f.restrictProperty(propertyName, operator, v);
         }
     }

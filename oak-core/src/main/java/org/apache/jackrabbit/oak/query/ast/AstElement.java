@@ -29,6 +29,9 @@ import org.apache.jackrabbit.oak.query.Query;
 
 import javax.jcr.PropertyType;
 
+/**
+ * The base class for all abstract syntax tree nodes.
+ */
 abstract class AstElement {
 
     protected Query query;

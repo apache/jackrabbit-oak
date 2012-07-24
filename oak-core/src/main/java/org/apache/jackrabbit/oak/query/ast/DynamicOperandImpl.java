@@ -20,6 +20,9 @@ import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
+/**
+ * The base class for dynamic operands (such as a function or property).
+ */
 public abstract class DynamicOperandImpl extends AstElement {
 
     public abstract PropertyState currentProperty();

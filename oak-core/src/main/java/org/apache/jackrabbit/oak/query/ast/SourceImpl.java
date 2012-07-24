@@ -21,6 +21,9 @@ package org.apache.jackrabbit.oak.query.ast;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.query.Query;
 
+/**
+ * The base class of a selector and a join.
+ */
 public abstract class SourceImpl extends AstElement {
 
     protected ConstraintImpl queryConstraint;
