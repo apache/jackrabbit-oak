@@ -24,6 +24,8 @@ public abstract class AbstractNameMapper implements NameMapper {
 
     protected abstract String getOakPrefixFromURI(String uri);
 
+    public abstract boolean hasSessionLocalMappings();
+
     @Override
     public String getOakName(String jcrName) {
         if (jcrName == null || jcrName.isEmpty()) {
@@ -56,13 +58,17 @@ public abstract class AbstractNameMapper implements NameMapper {
 
             // otherwise: not an expanded name
 
-            String pref = jcrName.substring(0, pos);
-            String name = jcrName.substring(pos + 1);
-            String oakPrefix = getOakPrefix(pref);
-            if (oakPrefix == null) {
-                return null; // not a mapped name
+            if (!hasSessionLocalMappings()) {
+                return jcrName;
             } else {
-                return oakPrefix + ':' + name;
+                String pref = jcrName.substring(0, pos);
+                String name = jcrName.substring(pos + 1);
+                String oakPrefix = getOakPrefix(pref);
+                if (oakPrefix == null) {
+                    return null; // not a mapped name
+                } else {
+                    return oakPrefix + ':' + name;
+                }
             }
         }
     }
