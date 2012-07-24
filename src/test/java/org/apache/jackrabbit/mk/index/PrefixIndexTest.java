@@ -37,10 +37,10 @@ public class PrefixIndexTest {
         String head = mk.getHeadRevision();
 
         // meta data
-        String meta = mk.getNodes(Indexer.INDEX_CONFIG_ROOT, head, 1, 0, -1, null);
+        String meta = mk.getNodes(Indexer.INDEX_CONFIG_PATH, head, 1, 0, -1, null);
 
         Assert.assertEquals("{\":childNodeCount\":2,\"prefix@d:\":" +
-        		"{\":childNodeCount\":1,\":data\":{}},\":data\":{\":childNodeCount\":0}}", meta);
+                "{\":childNodeCount\":1,\":data\":{}},\":data\":{\":childNodeCount\":0}}", meta);
 
         Assert.assertEquals("", getPathList(index, "d:1", head));
 

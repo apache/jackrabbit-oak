@@ -42,17 +42,17 @@ import java.util.Map.Entry;
  */
 public class Indexer implements QueryIndexProvider {
 
-	/**
-	 * The root node of the index definition (configuration) nodes.
-	 */
+    /**
+     * The root node of the index definition (configuration) nodes.
+     */
     // TODO OAK-178 discuss where to store index config data
-    public static final String INDEX_CONFIG_ROOT = "/jcr:system/indexes";
+    public static final String INDEX_CONFIG_PATH = "/jcr:system/indexes";
 
-	/**
-	 * For each index, the index content is stored relative to the index
-	 * definition below this node. There is also such a node just below the
-	 * index definition node, to store the last revision and for temporary data.
-	 */
+    /**
+     * For each index, the index content is stored relative to the index
+     * definition below this node. There is also such a node just below the
+     * index definition node, to store the last revision and for temporary data.
+     */
     public static final String INDEX_CONTENT = ":data";
 
     /**
@@ -63,6 +63,7 @@ public class Indexer implements QueryIndexProvider {
     /**
      * The node name prefix of a property index.
      */
+    // TODO support multi-property indexes
     static final String TYPE_PROPERTY = "property@";
 
     /**
@@ -70,11 +71,16 @@ public class Indexer implements QueryIndexProvider {
      */
     static final String UNIQUE = "unique";
 
+    /**
+     * The maximum length of the write buffer.
+     */
+    private static final int MAX_BUFFER_LENGTH = 100000;
+
     private static final boolean DISABLED = Boolean.getBoolean("mk.indexDisabled");
 
     private MicroKernel mk;
     private String revision;
-    private String indexRootNode = INDEX_CONFIG_ROOT;
+    private String indexRootNode = INDEX_CONFIG_PATH;
     private int indexRootNodeDepth;
     private StringBuilder buffer;
     private ArrayList<QueryIndex> queryIndexList;
@@ -135,8 +141,8 @@ public class Indexer implements QueryIndexProvider {
         revision = mk.getHeadRevision();
         readRevision = revision;
         boolean exists = mk.nodeExists(indexRootNode, revision);
-		createNodes(INDEX_CONTENT);
-		if (exists) {
+        createNodes(INDEX_CONTENT);
+            if (exists) {
             String node = mk.getNodes(indexRootNode, revision, 1, 0, Integer.MAX_VALUE, null);
             JsopTokenizer t = new JsopTokenizer(node);
             NodeMap map = new NodeMap();
@@ -146,21 +152,21 @@ public class Indexer implements QueryIndexProvider {
             if (rev != null) {
                 readRevision = rev;
             }
-			for (int i = 0; i < n.getChildNodeCount(); i++) {
-				String k = n.getChildNodeName(i);
-				PropertyIndex prop = PropertyIndex.fromNodeName(this, k);
-				if (prop != null) {
-					indexes.put(prop.getIndexNodeName(), prop);
-					propertyIndexes.put(prop.getPropertyName(), prop);
-					queryIndexList = null;
-				}
-				PrefixIndex pref = PrefixIndex.fromNodeName(this, k);
-				if (pref != null) {
-					indexes.put(pref.getIndexNodeName(), pref);
-					prefixIndexes.put(pref.getPrefix(), pref);
-					queryIndexList = null;
-				}
-			}
+            for (int i = 0; i < n.getChildNodeCount(); i++) {
+                String k = n.getChildNodeName(i);
+                PropertyIndex prop = PropertyIndex.fromNodeName(this, k);
+                if (prop != null) {
+                    indexes.put(prop.getIndexNodeName(), prop);
+                    propertyIndexes.put(prop.getPropertyName(), prop);
+                    queryIndexList = null;
+                }
+                PrefixIndex pref = PrefixIndex.fromNodeName(this, k);
+                if (pref != null) {
+                    indexes.put(pref.getIndexNodeName(), pref);
+                    prefixIndexes.put(pref.getPrefix(), pref);
+                    queryIndexList = null;
+                }
+            }
         }
     }
 
@@ -208,14 +214,15 @@ public class Indexer implements QueryIndexProvider {
     }
 
     void createNodes(String path) {
-    		String rev = mk.getHeadRevision();
+        String rev = mk.getHeadRevision();
         JsopBuilder jsop = new JsopBuilder();
         String p = "/";
         path = PathUtils.concat(indexRootNode, path);
         for (String e : PathUtils.elements(path)) {
             p = PathUtils.concat(p, e);
             if (!mk.nodeExists(p, rev)) {
-                jsop.tag('+').key(PathUtils.relativize("/", p)).object().endObject().newline();
+                jsop.tag('+').key(PathUtils.relativize("/", p)).
+                    object().endObject().newline();
             }
         }
         revision = mk.commit("/", jsop.toString(), rev, null);
@@ -373,6 +380,9 @@ public class Indexer implements QueryIndexProvider {
             }
             lastRevision = rev;
             t.read('}');
+            if (buffer != null && buffer.length() > MAX_BUFFER_LENGTH) {
+                updateEnd(rev);
+            }
         } while (t.matches(','));
         updateEnd(toRevision);
     }
@@ -388,17 +398,21 @@ public class Indexer implements QueryIndexProvider {
         JsopBuilder jsop = new JsopBuilder();
         jsop.tag('^').key(PathUtils.concat(INDEX_CONTENT, "rev")).value(readRevision);
         buffer(jsop.toString());
+        flushBuffer();
+        return revision;
+    }
+
+    private void flushBuffer() {
         try {
             commitChanges();
         } catch (MicroKernelException e) {
             if (!mk.nodeExists(indexRootNode, revision)) {
                 // the index node itself was removed, which is
                 // unexpected but possible
-            		// this will cause all indexes to be removed, so
-            		// it can be ignored here
+                // this will cause all indexes to be removed, so
+                // it can be ignored here
             }
         }
-        return revision;
     }
 
     /**
@@ -493,12 +507,8 @@ public class Indexer implements QueryIndexProvider {
     private void addOrRemoveRecursive(NodeImpl n, boolean remove, boolean add) {
         String path = n.getPath();
         if (isInIndex(path)) {
-            if (n.getPropertyCount() == 0) {
-                // add or remove the index itself - otherwise it's
-                // changing the root page of the index
-                addOrRemoveIndex(path, remove, add);
-            }
-            // don't index the index
+            addOrRemoveIndex(path, remove, add);
+            // don't index the index data itself
             return;
         }
         for (Index index : indexes.values()) {
@@ -561,7 +571,7 @@ public class Indexer implements QueryIndexProvider {
 
     private void removeProperty(String path, String lastRevision) {
         if (isInIndex(path)) {
-            // don't index the index
+            // don't index the index data itself
             return;
         }
         String nodePath = PathUtils.getParentPath(path);
@@ -585,7 +595,7 @@ public class Indexer implements QueryIndexProvider {
 
     private void addProperty(String path, String value) {
         if (isInIndex(path)) {
-            // don't index the index
+            // don't index the index data itself
             return;
         }
         String nodePath = PathUtils.getParentPath(path);
@@ -603,7 +613,7 @@ public class Indexer implements QueryIndexProvider {
             if (targetPath != null) {
                 addOrRemoveIndex(targetPath, false, true);
             }
-            // don't index the index
+            // don't index the index data itself
             return;
         }
         if (!mk.nodeExists(sourcePath, lastRevision)) {
@@ -646,6 +656,13 @@ public class Indexer implements QueryIndexProvider {
         for (Iterator<String> it = n.getChildNodeNames(Integer.MAX_VALUE); it.hasNext();) {
             addRecursive(index, PathUtils.concat(path, it.next()));
         }
+        if (needFlush()) {
+            flushBuffer();
+        }
+    }
+
+    private boolean needFlush() {
+        return buffer != null && buffer.length() > MAX_BUFFER_LENGTH;
     }
 
     @Override
