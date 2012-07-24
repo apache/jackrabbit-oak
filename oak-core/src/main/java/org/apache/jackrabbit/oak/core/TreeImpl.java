@@ -95,6 +95,7 @@ public class TreeImpl implements Tree, PurgeListener {
     public boolean isRoot() {
         return parent == null;
     }
+
     @Override
     public String getPath() {
         // Shortcut for root
