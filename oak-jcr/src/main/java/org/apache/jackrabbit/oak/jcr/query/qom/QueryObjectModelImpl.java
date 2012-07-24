@@ -13,7 +13,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.query.qom;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import javax.jcr.ItemNotFoundException;
 import javax.jcr.Node;
@@ -26,7 +25,6 @@ import javax.jcr.query.qom.Column;
 import javax.jcr.query.qom.Constraint;
 import javax.jcr.query.qom.Ordering;
 import javax.jcr.query.qom.QueryObjectModel;
-import javax.jcr.query.qom.Selector;
 import javax.jcr.query.qom.Source;
 import org.apache.jackrabbit.oak.jcr.query.QueryManagerImpl;
 
@@ -35,12 +33,11 @@ import org.apache.jackrabbit.oak.jcr.query.QueryManagerImpl;
  */
 public class QueryObjectModelImpl implements QueryObjectModel {
 
+    private final Source source;
+    private final Constraint constraint;
+    private final HashMap<String, Value> bindVariableMap = new HashMap<String, Value>();
     private final QueryManagerImpl queryManager;
     private final ValueFactory valueFactory;
-    final Source source;
-    final Constraint constraint;
-    final HashMap<String, Value> bindVariableMap = new HashMap<String, Value>();
-    final ArrayList<Selector> selectors = new ArrayList<Selector>();
     private final Ordering[] orderings;
     private final Column[] columns;
     private long limit = Long.MAX_VALUE;

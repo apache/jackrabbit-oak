@@ -15,6 +15,9 @@ package org.apache.jackrabbit.oak.jcr.query.qom;
 
 import javax.jcr.query.qom.JoinCondition;
 
+/**
+ * The base class for join conditions.
+ */
 public abstract class JoinConditionImpl extends QOMNode implements JoinCondition {
 
     // base class without methods

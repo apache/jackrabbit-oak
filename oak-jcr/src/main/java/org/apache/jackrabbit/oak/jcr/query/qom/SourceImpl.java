@@ -20,6 +20,9 @@ package org.apache.jackrabbit.oak.jcr.query.qom;
 
 import javax.jcr.query.qom.Source;
 
+/**
+ * The base class for sources.
+ */
 public abstract class SourceImpl extends QOMNode implements Source {
 
     // base class without methods
