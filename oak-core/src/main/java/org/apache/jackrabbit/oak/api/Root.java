@@ -27,24 +27,38 @@ import javax.annotation.Nonnull;
 public interface Root {
 
     /**
-     * Move the child located at {@code sourcePath} to a child
-     * at {@code destPath}. Do nothing if either the source
-     * does not exist, the parent of the destination does not exist
-     * or the destination exists already. Both paths must resolve
-     * to a child located beneath this root.
+     * Move the child located at {@code sourcePath} to a child at {@code destPath}.
+     * Both paths must resolve to a child located beneath this root.<br>
      *
-     * @param sourcePath source path relative to this root
-     * @param destPath destination path relative to this root
-     * @return  {@code true} on success, {@code false} otherwise.
+     * This method does nothing and returns {@code false} if
+     * <ul>
+     *     <li>the tree at {@code sourcePath} does not exist or is not accessible,</li>
+     *     <li>the parent of the tree at {@code destinationPath} does not exist or is not accessible,</li>
+     *     <li>a tree already exists at {@code destinationPath}.</li>
+     * </ul>
+     * If a tree at {@code destinationPath} exists but is not accessible to the
+     * editing content session this method succeeds but a subsequent
+     * {@link #commit(ConflictHandler)} will detect the violation and fail.
+     *
+     * @param sourcePath The source path relative to this root
+     * @param destPath The destination path relative to this root
+     * @return {@code true} on success, {@code false} otherwise.
      */
     boolean move(String sourcePath, String destPath);
 
     /**
-     * Copy the child located at {@code sourcePath} to a child
-     * at {@code destPath}. Do nothing if either the source
-     * does not exist, the parent of the destination does not exist
-     * or the destination exists already. Both paths must resolve
-     * to a child located in this root.
+     * Copy the child located at {@code sourcePath} to a child at {@code destPath}.
+     * Both paths must resolve to a child located in this root.<br>
+     *
+     * This method does nothing an returns {@code false} if
+     * <ul>
+     *     <li>The tree at {@code sourcePath} does exist or is not accessible,</li>
+     *     <li>the parent of the tree at {@code destinationPath} does not exist or is not accessible,</li>
+     *     <li>a tree already exists at {@code destinationPath}.</li>
+     * </ul>
+     * If a tree at {@code destinationPath} exists but is not accessible to the
+     * editing content session this method succeeds but a subsequent
+     * {@link #commit(ConflictHandler)} will detect the violation and fail.
      *
      * @param sourcePath source path relative to this root
      * @param destPath destination path relative to this root
@@ -57,17 +71,18 @@ public interface Root {
      * a tree in this root.
      *
      * @param path  path to the tree
-     * @return  tree at the given path or {@code null} if no such tree exists
+     * @return tree at the given path or {@code null} if no such tree exists or
+     * if the tree at {@code path} is not accessible.
      */
     @CheckForNull
     Tree getTree(String path);
 
     /**
-     * Rebase this root to the latest revision.  After a call to this method,
+     * Rebase this root instance to the latest revision. After a call to this method,
      * all trees obtained through {@link #getTree(String)} become invalid and fresh
      * instances must be obtained.
      *
-     * @param conflictHandler  {@link ConflictHandler} for resolving conflicts.
+     * @param conflictHandler A {@link ConflictHandler} for resolving conflicts.
      */
     void rebase(ConflictHandler conflictHandler);
 
