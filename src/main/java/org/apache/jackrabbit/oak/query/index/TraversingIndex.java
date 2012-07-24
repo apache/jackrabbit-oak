@@ -24,6 +24,9 @@ import org.apache.jackrabbit.oak.spi.Cursor;
 import org.apache.jackrabbit.oak.spi.Filter;
 import org.apache.jackrabbit.oak.spi.QueryIndex;
 
+/**
+ * An index that traverses over a given subtree.
+ */
 public class TraversingIndex implements QueryIndex {
 
     private final MicroKernel mk;

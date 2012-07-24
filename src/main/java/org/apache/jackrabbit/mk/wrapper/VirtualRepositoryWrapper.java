@@ -287,7 +287,7 @@ public class VirtualRepositoryWrapper extends MicroKernelWrapperBase implements 
         return mk.getNodesStream(path, rev, depth, offset, count, filter);
     }
 
-    private String getRevision(String mount, String revisionId) {
+    private static String getRevision(String mount, String revisionId) {
         for (String rev : revisionId.split(",")) {
             if (rev.startsWith(mount + ":")) {
                 return rev.substring(mount.length() + 1);

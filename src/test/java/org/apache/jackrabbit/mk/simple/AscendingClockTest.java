@@ -16,10 +16,11 @@
  */
 package org.apache.jackrabbit.mk.simple;
 
-import org.apache.jackrabbit.mk.simple.AscendingClock;
-
 import junit.framework.TestCase;
 
+/**
+ * A test for the class {@code AscendingClock}.
+ */
 public class AscendingClockTest extends TestCase {
 
     public void testMillis() throws InterruptedException {

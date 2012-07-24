@@ -100,6 +100,9 @@ public class TraversingCursor implements Cursor {
         return false;
     }
 
+    /**
+     * A pointer to a child node within a node.
+     */
     static class NodeCursor {
         NodeImpl node;
         long pos;
