@@ -33,7 +33,6 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -242,7 +241,7 @@ public class RootImplTest extends AbstractOakTest {
         assertEquals("y", x.getParent().getName());
     }
 
-    @Test @Ignore
+    @Test
     /**
      * Regression test for OAK-208
      */
