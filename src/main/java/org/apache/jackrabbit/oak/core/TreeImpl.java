@@ -154,7 +154,7 @@ public class TreeImpl implements Tree, PurgeListener {
                     // ...and didn't have it before. So it doesn't exist.
                     return null;
                 } else {
-                    // ...and didn't have it before. So it's REMOVED
+                    // ...but did have it before. So it's REMOVED
                     return Status.REMOVED;
                 }
             }
@@ -316,7 +316,7 @@ public class TreeImpl implements Tree, PurgeListener {
         return nodeStateBuilder;
     }
 
-    //------------------------------------------------------------< internal >---
+    //-----------------------------------------------------------< internal >---
 
     /**
      * Move this tree to the parent at {@code destParent} with the new name
