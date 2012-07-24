@@ -25,6 +25,10 @@ import org.apache.jackrabbit.oak.spi.QueryIndex;
 import org.apache.jackrabbit.oak.spi.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
+/**
+ * A provider for Lucene indexes. There is exactly one Lucene index instance per
+ * MicroKernel.
+ */
 public class LuceneIndexProvider implements QueryIndexProvider {
 
     @Override

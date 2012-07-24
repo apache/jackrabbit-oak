@@ -37,6 +37,10 @@ import org.apache.lucene.store.NoLockFactory;
 
 import com.google.common.collect.Iterables;
 
+/**
+ * An implementation of the Lucene directory (a flat list of files) that allows
+ * to store Lucene index content in an Oak repository.
+ */
 class OakDirectory extends Directory {
 
     private final CoreValueFactory factory;
