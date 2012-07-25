@@ -25,6 +25,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.jcr.observation.Event;
 import javax.jcr.observation.EventListener;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.commons.iterator.EventIteratorAdapter;
 import org.apache.jackrabbit.oak.api.ChangeExtractor;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -35,10 +37,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Iterators;
-
 class ChangeProcessor extends TimerTask {
+    private final ObservationManagerImpl observationManager;
     private final NamePathMapper namePathMapper;
     private final ChangeExtractor changeExtractor;
     private final EventListener listener;
@@ -46,10 +46,10 @@ class ChangeProcessor extends TimerTask {
 
     private volatile boolean stopped;
 
-    public ChangeProcessor(NamePathMapper namePathMapper, ChangeExtractor changeExtractor, EventListener listener,
-            ChangeFilter filter) {
-        this.namePathMapper = namePathMapper;
-        this.changeExtractor = changeExtractor;
+    public ChangeProcessor(ObservationManagerImpl observationManager, EventListener listener, ChangeFilter filter) {
+        this.observationManager = observationManager;
+        this.namePathMapper = observationManager.getNamePathMapper();
+        this.changeExtractor = observationManager.getChangeExtractor();
         this.listener = listener;
         filterRef = new AtomicReference<ChangeFilter>(filter);
     }
@@ -67,6 +67,7 @@ class ChangeProcessor extends TimerTask {
     public void run() {
         EventGeneratingNodeStateDiff diff = new EventGeneratingNodeStateDiff();
         changeExtractor.getChanges(diff);
+        observationManager.setHasEvents();
         diff.sendEvents();
     }
 

@@ -113,7 +113,13 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     @Nonnull
     public Node getRootNode() throws RepositoryException {
         ensureIsAlive();
-        return new NodeImpl(dlg.getRoot());
+
+        return dlg.perform(new SessionOperation<NodeImpl>() {
+            @Override
+            public NodeImpl perform() {
+                return new NodeImpl(dlg.getRoot());
+            }
+        });
     }
 
     @Override
@@ -124,30 +130,43 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
 
     @Override
     @Nonnull
-    public Node getNodeByIdentifier(String id) throws RepositoryException {
+    public Node getNodeByIdentifier(final String id) throws RepositoryException {
         ensureIsAlive();
-        NodeDelegate d = dlg.getNodeByIdentifier(id);
-        if (d == null) {
-            throw new ItemNotFoundException("Node with id " + id + " does not exist.");
-        }
-        return new NodeImpl(d);
+
+        return dlg.perform(new SessionOperation<NodeImpl>() {
+            @Override
+            public NodeImpl perform() throws RepositoryException {
+                NodeDelegate d = dlg.getNodeByIdentifier(id);
+                if (d == null) {
+                    throw new ItemNotFoundException("Node with id " + id + " does not exist.");
+                }
+                return new NodeImpl(d);
+            }
+        });
     }
 
     @Override
-    public void move(String srcAbsPath, String destAbsPath) throws RepositoryException {
+    public void move(final String srcAbsPath, final String destAbsPath) throws RepositoryException {
         ensureIsAlive();
 
-        String oakPath = dlg.getOakPathKeepIndexOrThrowNotFound(destAbsPath);
-        String oakName = PathUtils.getName(oakPath);
-        // handle index
-        if (oakName.contains("[")) {
-            throw new RepositoryException("Cannot create a new node using a name including an index");
-        }
+        dlg.perform(new SessionOperation<Void>() {
+            @Override
+            public Void perform() throws RepositoryException {
+                String oakPath = dlg.getOakPathKeepIndexOrThrowNotFound(destAbsPath);
+                String oakName = PathUtils.getName(oakPath);
+                // handle index
+                if (oakName.contains("[")) {
+                    throw new RepositoryException("Cannot create a new node using a name including an index");
+                }
 
-        dlg.move(
-                dlg.getOakPathOrThrowNotFound(srcAbsPath),
-                dlg.getOakPathOrThrowNotFound(oakPath),
-                true);
+                dlg.move(
+                        dlg.getOakPathOrThrowNotFound(srcAbsPath),
+                        dlg.getOakPathOrThrowNotFound(oakPath),
+                        true);
+
+                return null;
+            }
+        });
     }
 
     @Override

@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.jcr.observation;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Timer;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
@@ -31,6 +32,7 @@ import org.apache.jackrabbit.commons.iterator.EventListenerIteratorAdapter;
 import org.apache.jackrabbit.oak.api.ChangeExtractor;
 import org.apache.jackrabbit.oak.jcr.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.util.LazyValue;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 
 public class ObservationManagerImpl implements ObservationManager {
     private final SessionDelegate sessionDelegate;
@@ -38,6 +40,7 @@ public class ObservationManagerImpl implements ObservationManager {
             new HashMap<EventListener, ChangeProcessor>();
 
     private final LazyValue<Timer> timer;
+    private final AtomicBoolean hasEvents = new AtomicBoolean(false);
 
     public ObservationManagerImpl(SessionDelegate sessionDelegate, LazyValue<Timer> timer) {
         this.sessionDelegate = sessionDelegate;
@@ -50,6 +53,15 @@ public class ObservationManagerImpl implements ObservationManager {
         }
     }
 
+    /**
+     * Determine whether events have been generated since the time this method has been called.
+     * @return  {@code true} if this {@code ObservationManager} instance has generated events
+     *          since the last time this method has been called, {@code false} otherwise.
+     */
+    public boolean hasEvents() {
+        return hasEvents.getAndSet(false);
+    }
+
     @Override
     public void addEventListener(EventListener listener, int eventTypes, String absPath,
             boolean isDeep, String[] uuid, String[] nodeTypeName, boolean noLocal)
@@ -57,10 +69,8 @@ public class ObservationManagerImpl implements ObservationManager {
 
         ChangeProcessor processor = processors.get(listener);
         if (processor == null) {
-            ChangeExtractor extractor = sessionDelegate.getChangeExtractor();
             ChangeFilter filter = new ChangeFilter(eventTypes, absPath, isDeep, uuid, nodeTypeName, noLocal);
-            ChangeProcessor changeProcessor = new ChangeProcessor(sessionDelegate.getNamePathMapper(), extractor,
-                    listener, filter);
+            ChangeProcessor changeProcessor = new ChangeProcessor(this, listener, filter);
             processors.put(listener, changeProcessor);
             timer.get().schedule(changeProcessor, 100, 1000);
         }
@@ -99,4 +109,17 @@ public class ObservationManagerImpl implements ObservationManager {
         throw new UnsupportedRepositoryOperationException();
     }
 
+    //------------------------------------------------------------< internal >---
+
+    NamePathMapper getNamePathMapper() {
+        return sessionDelegate.getNamePathMapper();
+    }
+
+    ChangeExtractor getChangeExtractor() {
+        return sessionDelegate.getChangeExtractor();
+    }
+
+    void setHasEvents() {
+        hasEvents.set(true);
+    }
 }

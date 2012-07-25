@@ -1482,84 +1482,101 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
         final List<Event> failedEvents = new ArrayList<Event>();
         final AtomicReference<CountDownLatch> eventCount = new AtomicReference<CountDownLatch>();
-
-        ObservationManager obsMgr = getSession().getWorkspace().getObservationManager();
-        obsMgr.addEventListener(new EventListener() {
-                @Override
-                public void onEvent(EventIterator events) {
-                    while (events.hasNext()) {
-                        Event event = events.nextEvent();
-                        try {
-                            String path = event.getPath();
-                            if (path.startsWith("/jcr:system")) {
-                            		// ignore changes in jcr:system
-                            		continue;
+        final Session observingSession = createAnonymousSession();
+        try {
+            ObservationManager obsMgr = observingSession.getWorkspace().getObservationManager();
+            obsMgr.addEventListener(new EventListener() {
+                    @Override
+                    public void onEvent(EventIterator events) {
+                        while (events.hasNext()) {
+                            Event event = events.nextEvent();
+                            try {
+                                String path = event.getPath();
+                                if (path.startsWith("/jcr:system")) {
+                                        // ignore changes in jcr:system
+                                        continue;
+                                }
+                                switch (event.getType()) {
+                                    case Event.NODE_ADDED:
+                                        if (!addNodes.remove(path)) {
+                                            failedEvents.add(event);
+                                        }
+                                        if (!observingSession.nodeExists(path)) {
+                                            failedEvents.add(event);
+                                        }
+                                        break;
+                                    case Event.NODE_REMOVED:
+                                        if (!removeNodes.remove(path)) {
+                                            failedEvents.add(event);
+                                        }
+                                        if (observingSession.nodeExists(path)) {
+                                            failedEvents.add(event);
+                                        }
+                                        break;
+                                    case Event.PROPERTY_ADDED:
+                                        if (!addProperties.remove(path)) {
+                                            failedEvents.add(event);
+                                        }
+                                        if (!observingSession.propertyExists(path)) {
+                                            failedEvents.add(event);
+                                        }
+                                        break;
+                                    case Event.PROPERTY_CHANGED:
+                                        if (!setProperties.remove(path)) {
+                                            failedEvents.add(event);
+                                        }
+                                        break;
+                                    case Event.PROPERTY_REMOVED:
+                                        if (!removeProperties.remove(path)) {
+                                            failedEvents.add(event);
+                                        }
+                                        if (observingSession.propertyExists(path)) {
+                                            failedEvents.add(event);
+                                        }
+                                        break;
+                                    default:
+                                        failedEvents.add(event);
+                                }
                             }
-                            switch (event.getType()) {
-                                case Event.NODE_ADDED:
-                                    if (!addNodes.remove(path)) {
-                                        failedEvents.add(event);
-                                    }
-                                    break;
-                                case Event.NODE_REMOVED:
-                                    if (!removeNodes.remove(path)) {
-                                        failedEvents.add(event);
-                                    }
-                                    break;
-                                case Event.PROPERTY_ADDED:
-                                    if (!addProperties.remove(path)) {
-                                        failedEvents.add(event);
-                                    }
-                                    break;
-                                case Event.PROPERTY_CHANGED:
-                                    if (!setProperties.remove(path)) {
-                                        failedEvents.add(event);
-                                    }
-                                    break;
-                                case Event.PROPERTY_REMOVED:
-                                    if (!removeProperties.remove(path)) {
-                                        failedEvents.add(event);
-                                    }
-                                    break;
-                                default:
-                                    failedEvents.add(event);
+                            catch (RepositoryException e) {
+                                failedEvents.add(event);
                             }
+                            eventCount.get().countDown();
                         }
-                        catch (RepositoryException e) {
-                            failedEvents.add(event);
-                        }
-                        eventCount.get().countDown();
                     }
-                }
-            },
-            Event.NODE_ADDED | Event.NODE_REMOVED | Event.NODE_MOVED | Event.PROPERTY_ADDED |
-            Event.PROPERTY_REMOVED | Event.PROPERTY_CHANGED | Event.PERSIST, "/", true, null, null, false);
+                },
+                Event.NODE_ADDED | Event.NODE_REMOVED | Event.NODE_MOVED | Event.PROPERTY_ADDED |
+                Event.PROPERTY_REMOVED | Event.PROPERTY_CHANGED | Event.PERSIST, "/", true, null, null, false);
 
-        eventCount.set(new CountDownLatch(7));
-        Node n = getNode(TEST_PATH);
-        n.setProperty("prop0", "val0");
-        Node n1 = n.addNode("1");
-        n1.setProperty("prop1", "val1");
-        n1.setProperty("prop2", "val2");
-        n.addNode("2");
-        getSession().save();
-        assertTrue(eventCount.get().await(2, TimeUnit.SECONDS));
+            eventCount.set(new CountDownLatch(7));
+            Node n = getNode(TEST_PATH);
+            n.setProperty("prop0", "val0");
+            Node n1 = n.addNode("1");
+            n1.setProperty("prop1", "val1");
+            n1.setProperty("prop2", "val2");
+            n.addNode("2");
+            getSession().save();
+            assertTrue(eventCount.get().await(2, TimeUnit.SECONDS));
 
-        eventCount.set(new CountDownLatch(8));
-        n.setProperty("property", 42);
-        n.addNode("3").setProperty("prop3", "val3");
-        n1.setProperty("prop1", "val1 new");
-        n1.getProperty("prop2").remove();
-        n.getNode("2").remove();
-        getSession().save();
-        assertTrue(eventCount.get().await(2, TimeUnit.SECONDS));
+            eventCount.set(new CountDownLatch(8));
+            n.setProperty("property", 42);
+            n.addNode("3").setProperty("prop3", "val3");
+            n1.setProperty("prop1", "val1 new");
+            n1.getProperty("prop2").remove();
+            n.getNode("2").remove();
+            getSession().save();
+            assertTrue(eventCount.get().await(2, TimeUnit.SECONDS));
 
-        assertTrue("failedEvents not empty: " + failedEvents, failedEvents.isEmpty());
-        assertTrue("addNodes not empty: " + addNodes, addNodes.isEmpty());
-        assertTrue("removeNodes not empty: " + removeNodes, removeNodes.isEmpty());
-        assertTrue("addProperties not empty: " + addProperties, addProperties.isEmpty());
-        assertTrue("removeProperties not empty: " + removeProperties, removeProperties.isEmpty());
-        assertTrue("setProperties not empty: " + setProperties, setProperties.isEmpty());
+            assertTrue("failedEvents not empty: " + failedEvents, failedEvents.isEmpty());
+            assertTrue("addNodes not empty: " + addNodes, addNodes.isEmpty());
+            assertTrue("removeNodes not empty: " + removeNodes, removeNodes.isEmpty());
+            assertTrue("addProperties not empty: " + addProperties, addProperties.isEmpty());
+            assertTrue("removeProperties not empty: " + removeProperties, removeProperties.isEmpty());
+            assertTrue("setProperties not empty: " + setProperties, setProperties.isEmpty());
+        }
+        finally {
+            observingSession.logout();
+        }
     }
 
     @Test
@@ -1581,70 +1598,88 @@ public class RepositoryTest extends AbstractRepositoryTest {
         final List<Event> failedEvents = new ArrayList<Event>();
         final AtomicReference<CountDownLatch> eventCount = new AtomicReference<CountDownLatch>();
 
-        ObservationManager obsMgr = getSession().getWorkspace().getObservationManager();
-        obsMgr.addEventListener(new EventListener() {
-                @Override
-                public void onEvent(EventIterator events) {
-                    while (events.hasNext()) {
-                        Event event = events.nextEvent();
-                        try {
-                            String path = event.getPath();
-                            if (path.startsWith("/jcr:system")) {
-                            		// ignore changes in jcr:system
-                            		continue;
+        final Session observingSession = createAnonymousSession();
+        try {
+            ObservationManager obsMgr = observingSession.getWorkspace().getObservationManager();
+            obsMgr.addEventListener(new EventListener() {
+                    @Override
+                    public void onEvent(EventIterator events) {
+                        while (events.hasNext()) {
+                            Event event = events.nextEvent();
+                            try {
+                                String path = event.getPath();
+                                if (path.startsWith("/jcr:system")) {
+                                        // ignore changes in jcr:system
+                                        continue;
+                                }
+                                switch (event.getType()) {
+                                    case Event.NODE_ADDED:
+                                        if (!addNodes.remove(path)) {
+                                            failedEvents.add(event);
+                                        }
+                                        if (!observingSession.nodeExists(path)) {
+                                            failedEvents.add(event);
+                                        }
+                                        break;
+                                    case Event.NODE_REMOVED:
+                                        if (!removeNodes.remove(path)) {
+                                            failedEvents.add(event);
+                                        }
+                                        if (observingSession.nodeExists(path)) {
+                                            failedEvents.add(event);
+                                        }
+                                        break;
+                                    case Event.PROPERTY_ADDED:
+                                        if (!addProperties.remove(path)) {
+                                            failedEvents.add(event);
+                                        }
+                                        if (!observingSession.propertyExists(path)) {
+                                            failedEvents.add(event);
+                                        }
+                                        break;
+                                    case Event.PROPERTY_REMOVED:
+                                        if (!removeProperties.remove(path)) {
+                                            failedEvents.add(event);
+                                        }
+                                        if (observingSession.propertyExists(path)) {
+                                            failedEvents.add(event);
+                                        }
+                                        break;
+                                    default:
+                                        failedEvents.add(event);
+                                }
                             }
-                            switch (event.getType()) {
-                                case Event.NODE_ADDED:
-                                    if (!addNodes.remove(path)) {
-                                        failedEvents.add(event);
-                                    }
-                                    break;
-                                case Event.NODE_REMOVED:
-                                    if (!removeNodes.remove(path)) {
-                                        failedEvents.add(event);
-                                    }
-                                    break;
-                                case Event.PROPERTY_ADDED:
-                                    if (!addProperties.remove(path)) {
-                                        failedEvents.add(event);
-                                    }
-                                    break;
-                                case Event.PROPERTY_REMOVED:
-                                    if (!removeProperties.remove(path)) {
-                                        failedEvents.add(event);
-                                    }
-                                    break;
-                                default:
-                                    failedEvents.add(event);
+                            catch (RepositoryException e) {
+                                failedEvents.add(event);
                             }
+                            eventCount.get().countDown();
                         }
-                        catch (RepositoryException e) {
-                            failedEvents.add(event);
-                        }
-                        eventCount.get().countDown();
                     }
-                }
-            },
-            Event.NODE_ADDED | Event.NODE_REMOVED | Event.NODE_MOVED | Event.PROPERTY_ADDED |
-            Event.PROPERTY_REMOVED | Event.PROPERTY_CHANGED | Event.PERSIST, "/", true, null, null, false);
+                },
+                Event.NODE_ADDED | Event.NODE_REMOVED | Event.NODE_MOVED | Event.PROPERTY_ADDED |
+                Event.PROPERTY_REMOVED | Event.PROPERTY_CHANGED | Event.PERSIST, "/", true, null, null, false);
 
-        eventCount.set(new CountDownLatch(2));
-        Node n = getNode(TEST_PATH);
-        n.addNode("1");
-        getSession().save();
-        assertTrue(eventCount.get().await(2, TimeUnit.SECONDS));
+            eventCount.set(new CountDownLatch(2));
+            Node n = getNode(TEST_PATH);
+            n.addNode("1");
+            getSession().save();
+            assertTrue(eventCount.get().await(2, TimeUnit.SECONDS));
 
-        eventCount.set(new CountDownLatch(4));
-        n.addNode("2");
-        n.getNode("1").remove();
-        getSession().save();
-        assertTrue(eventCount.get().await(2, TimeUnit.SECONDS));
+            eventCount.set(new CountDownLatch(4));
+            n.addNode("2");
+            n.getNode("1").remove();
+            getSession().save();
+            assertTrue(eventCount.get().await(2, TimeUnit.SECONDS));
 
-        assertTrue("failedEvents not empty: " + failedEvents, failedEvents.isEmpty());
-        assertTrue("addNodes not empty: " + addNodes, addNodes.isEmpty());
-        assertTrue("removeNodes not empty: " + removeNodes, removeNodes.isEmpty());
-        assertTrue("addProperties not empty: " + addProperties, addProperties.isEmpty());
-        assertTrue("removeProperties not empty: " + removeProperties, removeProperties.isEmpty());
+            assertTrue("failedEvents not empty: " + failedEvents, failedEvents.isEmpty());
+            assertTrue("addNodes not empty: " + addNodes, addNodes.isEmpty());
+            assertTrue("removeNodes not empty: " + removeNodes, removeNodes.isEmpty());
+            assertTrue("addProperties not empty: " + addProperties, addProperties.isEmpty());
+            assertTrue("removeProperties not empty: " + removeProperties, removeProperties.isEmpty());
+        }
+        finally {
+            observingSession.logout();
+        }
     }
 
     @Test
