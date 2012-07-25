@@ -76,6 +76,11 @@ public class MemoryNodeState extends AbstractNodeState {
     }
 
     @Override
+    public boolean hasChildNode(String name) {
+        return nodes.containsKey(name);
+    }
+
+    @Override
     public NodeState getChildNode(String name) {
         return nodes.get(name);
     }
