@@ -28,8 +28,9 @@ class KernelRootStateBuilder extends MemoryNodeStateBuilder {
     }
 
     @Override
-    protected MemoryNodeStateBuilder createChildBuilder(NodeState child) {
-        return new KernelNodeStateBuilder(child, this);
+    protected MemoryNodeStateBuilder createChildBuilder(
+            String name, NodeState child) {
+        return new KernelNodeStateBuilder(this, name, child, this);
     }
 
     @Override

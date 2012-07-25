@@ -23,14 +23,17 @@ class KernelNodeStateBuilder extends MemoryNodeStateBuilder {
 
     private final KernelRootStateBuilder root;
 
-    public KernelNodeStateBuilder(NodeState base, KernelRootStateBuilder root) {
-        super(base);
+    public KernelNodeStateBuilder(
+            MemoryNodeStateBuilder parent, String name,
+            NodeState base, KernelRootStateBuilder root) {
+        super(parent, name, base);
         this.root = root;
     }
 
     @Override
-    protected MemoryNodeStateBuilder createChildBuilder(NodeState child) {
-        return new KernelNodeStateBuilder(child, root);
+    protected MemoryNodeStateBuilder createChildBuilder(
+            String name, NodeState child) {
+        return new KernelNodeStateBuilder(this, name, child, root);
     }
 
     @Override
