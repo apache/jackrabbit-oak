@@ -16,60 +16,128 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import java.util.Collections;
-import java.util.HashMap;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateBuilder;
 
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
+
 /**
- * Basic in-memory node state builder.
+ * In-memory node state builder. 
  */
 public class MemoryNodeStateBuilder implements NodeStateBuilder {
 
-    private final NodeState base;
+    private static final NodeState NULL_STATE = new MemoryNodeState(
+            ImmutableMap.<String, PropertyState>of(),
+            ImmutableMap.<String, NodeState>of());
+
+    /**
+     * Parent state builder reference, or {@code null} for a connected
+     * builder.
+     */
+    private MemoryNodeStateBuilder parent;
+
+    /**
+     * Name of this child node within the parent builder, or {@code null}
+     * for a connected builder.
+     */
+    private String name;
+
+    // TODO: (Atomic)Reference for use with connect?
+    private NodeState base;
 
     /**
      * Set of added, modified or removed ({@code null} value) property states.
      */
-    private Map<String, PropertyState> properties = Maps.newHashMap();
+    private Map<String, PropertyState> properties;
 
     /**
      * Set of builders for added, modified or removed ({@code null} value)
      * child nodes.
      */
-    private final Map<String, NodeStateBuilder> builders = Maps.newHashMap();
-
-    /**
-     * Flag to indicate that the current {@link #properties} map is being
-     * referenced by a {@link ModifiedNodeState} instance returned by a
-     * previous {@link #getNodeState()} call, and thus should not be
-     * modified unless first explicitly {@link #unfreeze() unfrozen}.
-     */
-    private boolean frozen;
+    private Map<String, MemoryNodeStateBuilder> builders;
 
     /**
      * Creates a new in-memory node state builder.
      *
-     * @param base base state of the new builder, or {@code null}
+     * @param parent parent node state builder
+     * @param name name of this node
+     * @param base base state of this node
+     */
+    protected MemoryNodeStateBuilder(
+            MemoryNodeStateBuilder parent, String name, NodeState base) {
+        this.parent = parent;
+        this.name = name;
+        this.properties = ImmutableMap.of();
+        this.builders = ImmutableMap.of();
+        this.base = base;
+    }
+
+    /**
+     * Creates a new in-memory node state builder.
+     *
+     * @param base base state of the new builder
      */
     public MemoryNodeStateBuilder(NodeState base) {
-        if (base != null) {
-            this.base = base;
-        } else {
-            this.base = MemoryNodeState.EMPTY_NODE;
+        this.parent = null;
+        this.name = null;
+        this.properties = Maps.newHashMap();
+        this.builders = Maps.newHashMap();
+        this.base = base;
+    }
+
+    private void connect(boolean modify) {
+        if (parent != null) {
+            parent.connect(modify);
+
+            MemoryNodeStateBuilder existing = parent.builders.get(name);
+            if (existing != null) {
+                properties = existing.properties;
+                builders = existing.builders;
+                parent = null;
+                name = null;
+            } else if (modify) {
+                parent.builders.put(name, this);
+                properties = Maps.newHashMap();
+                builders = Maps.newHashMap();
+                parent = null;
+                name = null;
+            }
+        }
+    }
+
+    private void reset(NodeState newBase) {
+        base = newBase;
+
+        properties.clear();
+
+        Iterator<Map.Entry<String, MemoryNodeStateBuilder>> iterator =
+                builders.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<String, MemoryNodeStateBuilder> entry = iterator.next();
+            MemoryNodeStateBuilder childBuilder = entry.getValue();
+            NodeState childBase = base.getChildNode(entry.getKey());
+            if (childBase == null || childBuilder == null) {
+                iterator.remove();
+            } else {
+                childBuilder.reset(childBase);
+            }
         }
     }
 
@@ -80,8 +148,9 @@ public class MemoryNodeStateBuilder implements NodeStateBuilder {
      * @param child base state of the new builder, or {@code null}
      * @return new builder
      */
-    protected MemoryNodeStateBuilder createChildBuilder(NodeState child) {
-        return new MemoryNodeStateBuilder(child);
+    protected MemoryNodeStateBuilder createChildBuilder(
+            String name, NodeState child) {
+        return new MemoryNodeStateBuilder(this, name, child);
     }
 
     /**
@@ -95,74 +164,66 @@ public class MemoryNodeStateBuilder implements NodeStateBuilder {
         // do nothing
     }
 
-    /**
-     * Ensures that the current {@link #properties} map is not {@link #frozen}.
-     */
-    private void unfreeze() {
-        if (frozen) {
-            properties = new HashMap<String, PropertyState>(properties);
-            frozen = false;
-        }
-    }
-
     @Override
     public NodeState getNodeState() {
-        Map<String, PropertyState> props = Collections.emptyMap();
-        if (!properties.isEmpty()) {
-            frozen = true;
-            props = properties;
+        connect(false);
+
+        if (parent != null) {
+            return base; // shortcut
         }
 
-        Map<String, NodeState> nodes = Collections.emptyMap();
-        if (!builders.isEmpty()) {
-            nodes = new HashMap<String, NodeState>(builders.size() * 2);
-            for (Map.Entry<String, NodeStateBuilder> entry
-                    : builders.entrySet()) {
-                NodeStateBuilder builder = entry.getValue();
-                if (builder != null) {
-                    nodes.put(entry.getKey(), builder.getNodeState());
-                } else {
-                    nodes.put(entry.getKey(), null);
-                }
+        Map<String, PropertyState> props = Maps.newHashMap(properties);
+        Map<String, NodeState> nodes = Maps.newHashMap();
+        for (Map.Entry<String, MemoryNodeStateBuilder> entry
+                : builders.entrySet()) {
+            NodeStateBuilder builder = entry.getValue();
+            if (builder != null) {
+                nodes.put(entry.getKey(), builder.getNodeState());
+            } else {
+                nodes.put(entry.getKey(), null);
             }
         }
 
-        if (props.isEmpty() && nodes.isEmpty()) {
-            return base;
-        } else {
-            return new ModifiedNodeState(base, props, nodes);
-        }
+        return new ModifiedNodeState(base, props, nodes);
     }
 
     @Override
     public long getChildNodeCount() {
+        connect(false);
+
         long count = base.getChildNodeCount();
-        for (Map.Entry<String, NodeStateBuilder> entry : builders.entrySet()) {
-            NodeState before = base.getChildNode(entry.getKey());
-            NodeStateBuilder after = entry.getValue();
-            if (before == null && after != null) {
-                count++;
-            } else if (before != null && after == null) {
+
+        for (Map.Entry<String, MemoryNodeStateBuilder> entry
+                : builders.entrySet()) {
+            if (base.getChildNode(entry.getKey()) != null) {
                 count--;
             }
+            if (entry.getValue() != null) {
+                count++;
+            }
         }
+
         return count;
     }
 
     @Override
     public boolean hasChildNode(String name) {
+        connect(false);
+
         NodeStateBuilder builder = builders.get(name);
         if (builder != null) {
             return true;
         } else if (builders.containsKey(name)) {
             return false;
-        } else {
-            return base.getChildNode(name) != null;
         }
+
+        return base.getChildNode(name) != null;
     }
 
     @Override
     public Iterable<String> getChildNodeNames() {
+        connect(false);
+
         Iterable<String> unmodified = Iterables.transform(
                 base.getChildNodeEntries(),
                 new Function<ChildNodeEntry, String>() {
@@ -171,6 +232,10 @@ public class MemoryNodeStateBuilder implements NodeStateBuilder {
                         return input.getName();
                     }
                 });
+        if (parent != null) {
+            return unmodified; // shortcut
+        }
+
         Predicate<String> unmodifiedFilter = Predicates.not(Predicates.in(
                 ImmutableSet.copyOf(builders.keySet())));
         Set<String> modified = ImmutableSet.copyOf(
@@ -181,107 +246,136 @@ public class MemoryNodeStateBuilder implements NodeStateBuilder {
     }
 
     @Override
-    public void setNode(String name, NodeState nodeState) {
-        if (nodeState == null) {
-            removeNode(name);
+    public void setNode(String name, NodeState state) {
+        connect(true);
+
+        MemoryNodeStateBuilder builder = builders.get(name);
+        if (builder != null) {
+            builder.reset(state);
         } else {
-            if (nodeState.equals(base.getChildNode(name))) {
-                builders.remove(name);
-            } else {
-                builders.put(name, createChildBuilder(nodeState));
-            }
-            updated();
+            createChildBuilder(name, state).connect(true);
         }
+
+        updated();
     }
 
     @Override
     public void removeNode(String name) {
+        connect(true);
+
         if (base.getChildNode(name) != null) {
             builders.put(name, null);
         } else {
             builders.remove(name);
         }
+
         updated();
     }
 
     @Override
     public long getPropertyCount() {
+        connect(false);
+
         long count = base.getPropertyCount();
+
         for (Map.Entry<String, PropertyState> entry : properties.entrySet()) {
-            PropertyState before = base.getProperty(entry.getKey());
-            PropertyState after = entry.getValue();
-            if (before == null && after != null) {
-                count++;
-            } else if (before != null && after == null) {
+            if (base.getProperty(entry.getKey()) != null) {
                 count--;
             }
+            if (entry.getValue() != null) {
+                count++;
+            }
         }
+
         return count;
     }
 
     @Override
     public Iterable<? extends PropertyState> getProperties() {
-        frozen = true;
-        final Set<String> names = properties.keySet();
-        Predicate<PropertyState> predicate = new Predicate<PropertyState>() {
+        connect(false);
+
+        Iterable<? extends PropertyState> unmodified = base.getProperties();
+        if (parent != null) {
+            return unmodified; // shortcut
+        }
+
+        final Set<String> names = ImmutableSet.copyOf(properties.keySet());
+        Predicate<PropertyState> filter = new Predicate<PropertyState>() {
             @Override
             public boolean apply(PropertyState input) {
                 return !names.contains(input.getName());
             }
         };
+        Collection<PropertyState> modified = ImmutableList.copyOf(
+                Collections2.filter(properties.values(), Predicates.notNull()));
         return Iterables.concat(
-                Iterables.filter(properties.values(), Predicates.notNull()),
-                Iterables.filter(base.getProperties(), predicate));
+                Iterables.filter(unmodified, filter),
+                modified);
     }
 
 
     @Override
     public PropertyState getProperty(String name) {
+        connect(false);
+
         PropertyState property = properties.get(name);
         if (property != null || properties.containsKey(name)) {
             return property;
-        } else {
-            return base.getProperty(name);
         }
+
+        return base.getProperty(name);
     }
 
     @Override
     public void setProperty(String name, CoreValue value) {
-        unfreeze();
+        connect(true);
+
         properties.put(name, new SinglePropertyState(name, value));
+
         updated();
     }
 
     @Override
     public void setProperty(String name, List<CoreValue> values) {
-        unfreeze();
+        connect(true);
+
         if (values.isEmpty()) {
             properties.put(name, new EmptyPropertyState(name));
         } else {
             properties.put(name, new MultiPropertyState(name, values));
         }
+
         updated();
     }
 
     @Override
     public void removeProperty(String name) {
-        unfreeze();
+        connect(true);
+
         if (base.getProperty(name) != null) {
             properties.put(name, null);
         } else {
             properties.remove(name);
         }
+
         updated();
     }
 
     @Override
     public NodeStateBuilder getChildBuilder(String name) {
-        NodeStateBuilder builder = builders.get(name);
+        connect(true);
+
+        MemoryNodeStateBuilder builder = builders.get(name);
         if (builder == null) {
             NodeState baseState = base.getChildNode(name);
-            builder = createChildBuilder(baseState);
+            if (baseState == null) {
+                baseState = NULL_STATE;
+            }
+            builder = createChildBuilder(name, baseState);
+            builder.connect(true);
             builders.put(name, builder);
         }
+
         return builder;
     }
 
