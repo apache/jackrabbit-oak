@@ -16,15 +16,31 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
+import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStateBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 class KernelRootStateBuilder extends MemoryNodeStateBuilder {
 
+    /**
+     * Number of content updates that need to happen before the updates
+     * are automatically committed to a branch in the MicroKernel.
+     */
+    private static final int UPDATE_LIMIT = 10000;
+
+    private final MicroKernel kernel;
+
+    private String baseRevision;
+
+    private String branchRevision;
+
     private int updates = 0;
 
-    public KernelRootStateBuilder(NodeState base) {
-        super(base);
+    public KernelRootStateBuilder(MicroKernel kernel, String revision) {
+        super(new KernelNodeState(kernel, "/", revision));
+        this.kernel = kernel;
+        this.baseRevision = revision;
+        this.branchRevision = null;
     }
 
     @Override
@@ -35,7 +51,13 @@ class KernelRootStateBuilder extends MemoryNodeStateBuilder {
 
     @Override
     protected void updated() {
-        updates++;
+        if (updates++ > UPDATE_LIMIT) {
+            if (branchRevision == null) {
+                branchRevision = kernel.branch(baseRevision);
+            }
+
+            updates = 0;
+        }
     }
 
 }
