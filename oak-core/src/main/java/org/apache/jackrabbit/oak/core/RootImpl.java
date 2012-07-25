@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.core;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
+
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.ChangeExtractor;
@@ -84,12 +84,6 @@ public class RootImpl implements Root {
     }
 
     /**
-     * Reference to a {@code NodeState} of the revision up to which
-     * observation events are generated.
-     */
-    private final AtomicReference<NodeState> observationLimit;
-
-    /**
      * New instance bases on a given {@link NodeStore} and a workspace
      * @param store  node store
      * @param workspaceName  name of the workspace
@@ -98,7 +92,6 @@ public class RootImpl implements Root {
     @SuppressWarnings("UnusedParameters")
     public RootImpl(NodeStore store, String workspaceName) {
         this.store = store;
-        this.observationLimit = new AtomicReference<NodeState>(store.getRoot());
         branch = store.branch();
         rootTree = TreeImpl.createRoot(this);
     }
@@ -149,10 +142,6 @@ public class RootImpl implements Root {
 
     @Override
     public void refresh() {
-        // There is a small race here and we risk to get an "earlier" revision for the
-        // observation limit than for the branch. This is not a problem though since
-        // observation will catch up later on with the next call to ChangeExtractor.getChanges()
-        observationLimit.set(store.getRoot());
         branch = store.branch();
         rootTree = TreeImpl.createRoot(this);
     }
@@ -174,11 +163,11 @@ public class RootImpl implements Root {
     @Nonnull
     public ChangeExtractor getChangeExtractor() {
         return new ChangeExtractor() {
-            private NodeState baseLine = observationLimit.get();
+            private NodeState baseLine = store.getRoot();
 
             @Override
             public void getChanges(NodeStateDiff diff) {
-                NodeState head = observationLimit.get();
+                NodeState head = store.getRoot();
                 head.compareAgainstBaseState(baseLine, diff);
                 baseLine = head;
             }

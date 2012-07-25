@@ -54,9 +54,14 @@ abstract class ItemImpl<T extends ItemDelegate> extends AbstractItem {
     @Override
     @Nonnull
     public String getName() throws RepositoryException {
-        String oakName = dlg.getName();
-        // special case name of root node
-        return oakName.isEmpty() ? "" : toJcrPath(dlg.getName());
+        return sessionDelegate.perform(new SessionOperation<String>() {
+            @Override
+            public String perform() throws RepositoryException {
+                String oakName = dlg.getName();
+                // special case name of root node
+                return oakName.isEmpty() ? "" : toJcrPath(dlg.getName());
+            }
+        });
     }
 
     /**
@@ -65,7 +70,12 @@ abstract class ItemImpl<T extends ItemDelegate> extends AbstractItem {
     @Override
     @Nonnull
     public String getPath() throws RepositoryException {
-        return toJcrPath(dlg.getPath());
+        return sessionDelegate.perform(new SessionOperation<String>() {
+            @Override
+            public String perform() throws RepositoryException {
+                return toJcrPath(dlg.getPath());
+            }
+        });
     }
 
     @Override

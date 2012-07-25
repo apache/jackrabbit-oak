@@ -76,6 +76,7 @@ public class SessionDelegate {
 
     private ObservationManagerImpl observationManager;
     private boolean isAlive = true;
+    private int sessionOpCount;
 
     SessionDelegate(Repository repository, LazyValue<Timer> observationTimer, ContentSession contentSession)
             throws RepositoryException {
@@ -90,6 +91,36 @@ public class SessionDelegate {
         this.session = new SessionImpl(this);
         this.root = contentSession.getCurrentRoot();
         this.conflictHandler = new AnnotatingConflictHandler(contentSession.getCoreValueFactory());
+    }
+
+    /**
+     * Performs the passed {@code SessionOperation} in a safe execution context. This
+     * context ensures that the session is refreshed if necessary and that refreshing
+     * occurs before the session operation is performed and the refreshing is done only
+     * once.
+     *
+     * @param sessionOperation  the {@code SessionOperation} to perform
+     * @param <T>  return type of {@code sessionOperation}
+     * @return  the result of {@code sessionOperation.perform()}
+     * @throws RepositoryException
+     */
+    public <T> T perform(SessionOperation<T> sessionOperation) throws RepositoryException {
+        try {
+            sessionOpCount++;
+            if (refreshNeeded()) {
+                refresh(true);
+            }
+            return sessionOperation.perform();
+        }
+        finally {
+            sessionOpCount--;
+        }
+    }
+
+    private boolean refreshNeeded() {
+        // Refresh is needed only for non re-entrant session operations and only if
+        // observation events have actually been delivered
+        return sessionOpCount <= 1 && observationManager != null && observationManager.hasEvents();
     }
 
     public boolean isAlive() {

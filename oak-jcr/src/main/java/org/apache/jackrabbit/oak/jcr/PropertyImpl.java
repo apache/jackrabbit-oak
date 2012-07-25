@@ -24,7 +24,6 @@ import java.util.List;
 
 import javax.annotation.Nonnull;
 import javax.jcr.Binary;
-import javax.jcr.InvalidItemStateException;
 import javax.jcr.ItemNotFoundException;
 import javax.jcr.ItemVisitor;
 import javax.jcr.Node;
@@ -71,7 +70,12 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     @Override
     @Nonnull
     public Node getParent() throws RepositoryException {
-        return new NodeImpl(dlg.getParent());
+        return sessionDelegate.perform(new SessionOperation<NodeImpl>() {
+            @Override
+            public NodeImpl perform() throws RepositoryException {
+                return new NodeImpl(dlg.getParent());
+            }
+        });
     }
 
     /**
@@ -80,9 +84,14 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     @Override
     public boolean isNew() {
         try {
-            return dlg.getStatus() == Status.NEW;
+            return sessionDelegate.perform(new SessionOperation<Boolean>() {
+                @Override
+                public Boolean perform() throws RepositoryException {
+                    return dlg.getStatus() == Status.NEW;
+                }
+            });
         }
-        catch (InvalidItemStateException e) {
+        catch (RepositoryException e) {
             return false;
         }
     }
@@ -93,9 +102,14 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     @Override
     public boolean isModified() {
         try {
-            return dlg.getStatus() == Status.MODIFIED;
+            return sessionDelegate.perform(new SessionOperation<Boolean>() {
+                @Override
+                public Boolean perform() throws RepositoryException {
+                    return dlg.getStatus() == Status.MODIFIED;
+                }
+            });
         }
-        catch (InvalidItemStateException e) {
+        catch (RepositoryException e) {
             return false;
         }
     }
@@ -106,7 +120,14 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     @Override
     public void remove() throws RepositoryException {
         checkStatus();
-        dlg.remove();
+
+        sessionDelegate.perform(new SessionOperation<Void>() {
+            @Override
+            public Void perform() throws RepositoryException {
+                dlg.remove();
+                return null;
+            }
+        });
     }
 
     /**
@@ -135,30 +156,36 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
      * @see Property#setValue(Value[])
      */
     @Override
-    public void setValue(Value[] values) throws RepositoryException {
+    public void setValue(final Value[] values) throws RepositoryException {
         checkStatus();
 
-        // assert equal types for all values entries
-        int valueType = PropertyType.UNDEFINED;
-        if (values != null) {
-            for (Value value : values) {
-                if (value == null) {
-                    // skip null values as those will be purged later
-                    continue;
+        sessionDelegate.perform(new SessionOperation<Void>() {
+            @Override
+            public Void perform() throws RepositoryException {
+                // assert equal types for all values entries
+                int valueType = PropertyType.UNDEFINED;
+                if (values != null) {
+                    for (Value value : values) {
+                        if (value == null) {
+                            // skip null values as those will be purged later
+                            continue;
+                        }
+                        if (valueType == PropertyType.UNDEFINED) {
+                            valueType = value.getType();
+                        }
+                        else if (valueType != value.getType()) {
+                            String msg = "Inhomogeneous type of values (" + this + ')';
+                            log.debug(msg);
+                            throw new ValueFormatException(msg);
+                        }
+                    }
                 }
-                if (valueType == PropertyType.UNDEFINED) {
-                    valueType = value.getType();
-                }
-                else if (valueType != value.getType()) {
-                    String msg = "Inhomogeneous type of values (" + this + ')';
-                    log.debug(msg);
-                    throw new ValueFormatException(msg);
-                }
-            }
-        }
 
-        int reqType = getRequiredType(valueType);
-        setValues(values, reqType);
+                int reqType = getRequiredType(valueType);
+                setValues(values, reqType);
+                return null;
+            }
+        });
     }
 
     /**
@@ -310,22 +337,34 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     @Nonnull
     public Value getValue() throws RepositoryException {
         checkStatus();
-        if (isMultiple()) {
-            throw new ValueFormatException(this + " is multi-valued.");
-        }
 
-        return ValueConverter.toValue(dlg.getValue(), sessionDelegate);
+        return sessionDelegate.perform(new SessionOperation<Value>() {
+            @Override
+            public Value perform() throws RepositoryException {
+                if (isMultiple()) {
+                    throw new ValueFormatException(this + " is multi-valued.");
+                }
+
+                return ValueConverter.toValue(dlg.getValue(), sessionDelegate);
+            }
+        });
     }
 
     @Override
     @Nonnull
     public Value[] getValues() throws RepositoryException {
         checkStatus();
-        if (!isMultiple()) {
-            throw new ValueFormatException(this + " is not multi-valued.");
-        }
 
-        return ValueConverter.toValues(dlg.getValues(), sessionDelegate);
+        return sessionDelegate.perform(new SessionOperation<Value[]>() {
+            @Override
+            public Value[] perform() throws RepositoryException {
+                if (!isMultiple()) {
+                    throw new ValueFormatException(this + " is not multi-valued.");
+                }
+
+                return ValueConverter.toValues(dlg.getValues(), sessionDelegate);
+            }
+        });
     }
 
     /**
@@ -404,48 +443,53 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     @Override
     @Nonnull
     public Node getNode() throws RepositoryException {
-        Value value = getValue();
-        switch (value.getType()) {
-            case PropertyType.REFERENCE:
-            case PropertyType.WEAKREFERENCE:
-                return getSession().getNodeByIdentifier(value.getString());
+        return sessionDelegate.perform(new SessionOperation<Node>() {
+            @Override
+            public Node perform() throws RepositoryException {
+                Value value = getValue();
+                switch (value.getType()) {
+                    case PropertyType.REFERENCE:
+                    case PropertyType.WEAKREFERENCE:
+                        return getSession().getNodeByIdentifier(value.getString());
 
-            case PropertyType.PATH:
-            case PropertyType.NAME:
-                String path = value.getString();
-                if (path.startsWith("[") && path.endsWith("]")) {
-                    // TODO OAK-23
-                    // TODO correct for NAME?
-                    return getSession().getNodeByIdentifier(path.substring(1, path.length() - 1));
-                }
-                else {
-                    try {
-                        return (path.charAt(0) == '/') ? getSession().getNode(path) : getParent().getNode(path);
-                    } catch (PathNotFoundException e) {
-                        throw new ItemNotFoundException(path);
-                    }
-                }
+                    case PropertyType.PATH:
+                    case PropertyType.NAME:
+                        String path = value.getString();
+                        if (path.startsWith("[") && path.endsWith("]")) {
+                            // TODO OAK-23
+                            // TODO correct for NAME?
+                            return getSession().getNodeByIdentifier(path.substring(1, path.length() - 1));
+                        }
+                        else {
+                            try {
+                                return (path.charAt(0) == '/') ? getSession().getNode(path) : getParent().getNode(path);
+                            } catch (PathNotFoundException e) {
+                                throw new ItemNotFoundException(path);
+                            }
+                        }
 
-            case PropertyType.STRING:
-                try {
-                    Value refValue = ValueHelper.convert(value, PropertyType.REFERENCE, getValueFactory());
-                    return getSession().getNodeByIdentifier(refValue.getString());
-                } catch (ItemNotFoundException e) {
-                    throw e;
-                } catch (RepositoryException e) {
-                    // try if STRING value can be interpreted as PATH value
-                    Value pathValue = ValueHelper.convert(value, PropertyType.PATH, getValueFactory());
-                    path = pathValue.getString();
-                    try {
-                        return (path.charAt(0) == '/') ? getSession().getNode(path) : getParent().getNode(path);
-                    } catch (PathNotFoundException e1) {
-                        throw new ItemNotFoundException(pathValue.getString());
-                    }
-                }
+                    case PropertyType.STRING:
+                        try {
+                            Value refValue = ValueHelper.convert(value, PropertyType.REFERENCE, getValueFactory());
+                            return getSession().getNodeByIdentifier(refValue.getString());
+                        } catch (ItemNotFoundException e) {
+                            throw e;
+                        } catch (RepositoryException e) {
+                            // try if STRING value can be interpreted as PATH value
+                            Value pathValue = ValueHelper.convert(value, PropertyType.PATH, getValueFactory());
+                            path = pathValue.getString();
+                            try {
+                                return (path.charAt(0) == '/') ? getSession().getNode(path) : getParent().getNode(path);
+                            } catch (PathNotFoundException e1) {
+                                throw new ItemNotFoundException(pathValue.getString());
+                            }
+                        }
 
-            default:
-                throw new ValueFormatException("Property value cannot be converted to a PATH, REFERENCE or WEAKREFERENCE");
-        }
+                    default:
+                        throw new ValueFormatException("Property value cannot be converted to a PATH, REFERENCE or WEAKREFERENCE");
+                }
+            }
+        });
     }
 
     /**
@@ -454,14 +498,19 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     @Override
     @Nonnull
     public Property getProperty() throws RepositoryException {
-        Value value = getValue();
-        Value pathValue = ValueHelper.convert(value, PropertyType.PATH, getValueFactory());
-        String path = pathValue.getString();
-        try {
-            return (path.charAt(0) == '/') ? getSession().getProperty(path) : getParent().getProperty(path);
-        } catch (PathNotFoundException e) {
-            throw new ItemNotFoundException(path);
-        }
+        return sessionDelegate.perform(new SessionOperation<Property>() {
+            @Override
+            public Property perform() throws RepositoryException {
+                Value value = getValue();
+                Value pathValue = ValueHelper.convert(value, PropertyType.PATH, getValueFactory());
+                String path = pathValue.getString();
+                try {
+                    return (path.charAt(0) == '/') ? getSession().getProperty(path) : getParent().getProperty(path);
+                } catch (PathNotFoundException e) {
+                    throw new ItemNotFoundException(path);
+                }
+            }
+        });
     }
 
     /**
@@ -490,7 +539,12 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     @Override
     @Nonnull
     public PropertyDefinition getDefinition() throws RepositoryException {
-        return dlg.getDefinition();
+        return sessionDelegate.perform(new SessionOperation<PropertyDefinition>() {
+            @Override
+            public PropertyDefinition perform() {
+                return dlg.getDefinition();
+            }
+        });
     }
 
     /**
@@ -498,23 +552,34 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
      */
     @Override
     public int getType() throws RepositoryException {
-        if (isMultiple()) {
-            Value[] values = getValues();
-            if (values.length == 0) {
-                // retrieve the type from the property definition
-                return getRequiredType(PropertyType.UNDEFINED);
-            } else {
-                return values[0].getType();
+        return sessionDelegate.perform(new SessionOperation<Integer>() {
+            @Override
+            public Integer perform() throws RepositoryException {
+                if (isMultiple()) {
+                    Value[] values = getValues();
+                    if (values.length == 0) {
+                        // retrieve the type from the property definition
+                        return getRequiredType(PropertyType.UNDEFINED);
+                    } else {
+                        return values[0].getType();
+                    }
+                } else {
+                    return getValue().getType();
+                }
             }
-        } else {
-            return getValue().getType();
-        }
+        });
     }
 
     @Override
     public boolean isMultiple() throws RepositoryException {
         checkStatus();
-        return dlg.isMultivalue();
+
+        return sessionDelegate.perform(new SessionOperation<Boolean>() {
+            @Override
+            public Boolean perform() throws RepositoryException {
+                return dlg.isMultivalue();
+            }
+        });
     }
 
     //------------------------------------------------------------< private >---
