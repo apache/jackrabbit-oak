@@ -73,13 +73,14 @@ public class SessionDelegate {
     private final Session session;
     private final Root root;
     private final ConflictHandler conflictHandler;
+    private final boolean autoRefresh;
 
     private ObservationManagerImpl observationManager;
     private boolean isAlive = true;
     private int sessionOpCount;
 
-    SessionDelegate(Repository repository, LazyValue<Timer> observationTimer, ContentSession contentSession)
-            throws RepositoryException {
+    SessionDelegate(Repository repository, LazyValue<Timer> observationTimer, ContentSession contentSession,
+            boolean autoRefresh) throws RepositoryException {
         assert repository != null;
         assert contentSession != null;
 
@@ -91,6 +92,7 @@ public class SessionDelegate {
         this.session = new SessionImpl(this);
         this.root = contentSession.getCurrentRoot();
         this.conflictHandler = new AnnotatingConflictHandler(contentSession.getCoreValueFactory());
+        this.autoRefresh = autoRefresh;
     }
 
     /**
@@ -118,9 +120,11 @@ public class SessionDelegate {
     }
 
     private boolean needsRefresh() {
-        // Refresh is needed only for non re-entrant session operations and only if
+        // Refresh is always needed if this is an auto refresh session. Otherwise
+        // refresh in only needed for non re-entrant session operations and only if
         // observation events have actually been delivered
-        return sessionOpCount <= 1 && observationManager != null && observationManager.hasEvents();
+        return autoRefresh ||
+                (sessionOpCount <= 1 && observationManager != null && observationManager.hasEvents());
     }
 
     public boolean isAlive() {
