@@ -1364,25 +1364,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
         }
     }
 
-    @Ignore // TODO implement orderBefore, orderable child nodes
-    @Test
-    public void reorderTest() throws RepositoryException {
-        Node testNode = getNode(TEST_PATH);
-        testNode.addNode("a");
-        testNode.addNode("b");
-        testNode.addNode("c");
-        getSession().save();
-
-        NodeIterator it = testNode.getNodes();
-        // todo: check order
-
-        testNode.orderBefore("a", "c");
-        getSession().save();
-
-        it = testNode.getNodes();
-        // todo: check order
-    }
-
     @Ignore // TODO implement node type support
     @Test
     public void nodeTypeRegistry() throws RepositoryException {
