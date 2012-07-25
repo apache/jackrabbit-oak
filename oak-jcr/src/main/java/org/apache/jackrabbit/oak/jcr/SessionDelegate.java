@@ -107,7 +107,7 @@ public class SessionDelegate {
     public <T> T perform(SessionOperation<T> sessionOperation) throws RepositoryException {
         try {
             sessionOpCount++;
-            if (refreshNeeded()) {
+            if (needsRefresh()) {
                 refresh(true);
             }
             return sessionOperation.perform();
@@ -117,7 +117,7 @@ public class SessionDelegate {
         }
     }
 
-    private boolean refreshNeeded() {
+    private boolean needsRefresh() {
         // Refresh is needed only for non re-entrant session operations and only if
         // observation events have actually been delivered
         return sessionOpCount <= 1 && observationManager != null && observationManager.hasEvents();
