@@ -18,6 +18,9 @@ package org.apache.jackrabbit.oak.spi.state;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
+
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -54,6 +57,11 @@ public abstract class AbstractNodeState implements NodeState {
     }
 
     @Override
+    public boolean hasChildNode(String name) {
+        return getChildNode(name) != null;
+    }
+
+    @Override
     public NodeState getChildNode(String name) {
         for (ChildNodeEntry entry : getChildNodeEntries()) {
             if (name.equals(entry.getName())) {
@@ -66,6 +74,18 @@ public abstract class AbstractNodeState implements NodeState {
     @Override
     public long getChildNodeCount() {
         return count(getChildNodeEntries());
+    }
+
+    @Override
+    public Iterable<String> getChildNodeNames() {
+        return Iterables.transform(
+                getChildNodeEntries(),
+                new Function<ChildNodeEntry, String>() {
+                    @Override
+                    public String apply(ChildNodeEntry input) {
+                        return input.getName();
+                    }
+                });
     }
 
     /**

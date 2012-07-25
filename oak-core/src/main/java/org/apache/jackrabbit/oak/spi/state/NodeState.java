@@ -128,6 +128,15 @@ public interface NodeState {
     Iterable<? extends PropertyState> getProperties();
 
     /**
+     * Checks whether the named child node exists.
+     *
+     * @param name name of the child node
+     * @return {@code true} if the named child node exists,
+     *         {@code false} otherwise
+     */
+    boolean hasChildNode(String name);
+
+    /**
      * Returns the named child node. The name is an opaque string and
      * is not parsed or otherwise interpreted by this method.
      * <p>
@@ -148,6 +157,13 @@ public interface NodeState {
      * @return number of child nodes
      */
     long getChildNodeCount();
+
+    /**
+     * Returns the names of all child nodes.
+     *
+     * @return child node names in some stable order
+     */
+    Iterable<String> getChildNodeNames();
 
     /**
      * Returns an iterable of the child node entries of this instance.
