@@ -53,6 +53,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
+import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.NodeTypeTemplate;
@@ -1390,7 +1391,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertFalse(asList(nsReg.getURIs()).contains("file:///foo"));
     }
 
-    @Ignore // TODO implement node type support
     @Test
     public void mixin() throws RepositoryException {
         NodeTypeManager ntMgr = getSession().getWorkspace().getNodeTypeManager();
@@ -1416,16 +1416,11 @@ public class RepositoryTest extends AbstractRepositoryTest {
             session2.logout();
         }
 
-        testNode.removeMixin("mix:test");
-        testNode.getSession().save();
-
-        session2 = createAnonymousSession();
         try {
-            mix = session2.getNode(TEST_PATH).getMixinNodeTypes();
-            assertEquals(0, mix.length);
+            testNode.removeMixin("mix:test");
+            fail("Expected ConstraintViolationException");
         }
-        finally {
-            session2.logout();
+        catch (ConstraintViolationException expected) {
         }
     }
 
