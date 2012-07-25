@@ -164,6 +164,10 @@ public class MemoryNodeStateBuilder implements NodeStateBuilder {
         // do nothing
     }
 
+    protected NodeState getBaseState() {
+        return base;
+    }
+
     @Override
     public NodeState getNodeState() {
         connect(false);

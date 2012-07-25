@@ -55,7 +55,10 @@ class KernelRootStateBuilder extends MemoryNodeStateBuilder {
             if (branchRevision == null) {
                 branchRevision = kernel.branch(baseRevision);
             }
-
+            JsopDiff diff = new JsopDiff();
+            getNodeState().compareAgainstBaseState(getBaseState(), diff);
+            branchRevision = kernel.commit(
+                    "/", diff.toString(), branchRevision, null);
             updates = 0;
         }
     }
