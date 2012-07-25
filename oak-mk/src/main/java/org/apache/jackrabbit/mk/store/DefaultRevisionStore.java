@@ -101,7 +101,7 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
     /**
      * Active branches (Key: branch root id, Value: branch head).
      */
-    private final Map<Id,Id> branches = Collections.synchronizedMap(new TreeMap<Id, Id>());
+    private final TreeMap<Id,Id> branches = new TreeMap<Id, Id>();
 
     public DefaultRevisionStore(Persistence pm) {
         this(pm, (pm instanceof GCPersistence) ? (GCPersistence) pm : null);
@@ -305,7 +305,9 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
         
         putTokens.remove(token);
         if (branchRootId != null) {
-            branches.remove(branchRootId);
+            synchronized (branches) {
+                branches.remove(branchRootId);
+            }
         }
         return id;
     }
@@ -318,7 +320,9 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
 
         Id branchRootId = commit.getBranchRootId();
         if (branchRootId != null) {
-            branches.put(branchRootId, commitId);
+            synchronized (branches) {
+                branches.put(branchRootId, commitId);
+            }
         }
         
         return commitId;
@@ -557,9 +561,16 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
      * @throws Exception
      *             if an error occurs
      */
+    @SuppressWarnings("unchecked")
     private Id markBranches() throws Exception {
+        Map<Id,Id> tmpBranches;
+        
+        synchronized (branches) {
+            tmpBranches = (Map<Id,Id>) branches.clone();
+        }
+        
         /* Mark all branch commits */
-        for (Entry<Id, Id> entry : branches.entrySet()) {
+        for (Entry<Id, Id> entry : tmpBranches.entrySet()) {
             Id branchRootId = entry.getKey();
             Id branchHeadId = entry.getValue();
             while (!branchHeadId.equals(branchRootId)) {
@@ -569,8 +580,8 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
             }
         }
         /* Mark all master commits till the first branch root id */
-        if (!branches.isEmpty()) {
-            Id firstBranchRootId = branches.keySet().iterator().next();
+        if (!tmpBranches.isEmpty()) {
+            Id firstBranchRootId = tmpBranches.keySet().iterator().next();
             StoredCommit commit = getHeadCommit();
 
             for (;;) {
