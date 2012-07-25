@@ -131,7 +131,7 @@ public class RepositoryImpl implements Repository {
         // TODO: needs complete refactoring
         try {
             ContentSession contentSession = contentRepository.login(credentials, workspaceName);
-            return new SessionDelegate(this, observationTimer, contentSession).getSession();
+            return new SessionDelegate(this, observationTimer, contentSession, true).getSession();
         } catch (LoginException e) {
             throw new javax.jcr.LoginException(e.getMessage());
         }
