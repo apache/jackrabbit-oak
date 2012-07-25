@@ -47,7 +47,7 @@ public class TreeImpl implements Tree, PurgeListener {
     /** Underlying {@code Root} of this {@code Tree} instance */
     private final RootImpl root;
 
-    /** Parent of this tree */
+    /** Parent of this tree. Null for the root and this for removed trees. */
     private TreeImpl parent;
 
     /** Name of this tree */
@@ -197,6 +197,10 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public Status getStatus() {
+        if (isRemoved()) {
+            return Status.REMOVED;
+        }
+
         NodeState baseState = getBaseState();
         if (baseState == null) {
             // Did not exist before, so its NEW
@@ -255,11 +259,16 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public boolean remove() {
+        if (isRemoved()) {
+            throw new IllegalStateException("Cannot remove removed tree");
+        }
+
         if (!isRoot() && parent.hasChild(name)) {
             NodeStateBuilder builder = parent.getNodeStateBuilder();
             builder.removeNode(name);
             parent.children.remove(name);
-            parent.root.purge();
+            parent = this;
+            root.purge();
             return true;
         } else {
             return false;
@@ -304,6 +313,10 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @CheckForNull
     protected NodeState getBaseState() {
+        if (isRemoved()) {
+            throw new IllegalStateException("Cannot get the base state of a removed tree");
+        }
+
         NodeState parentBaseState = parent.getBaseState();
         return parentBaseState == null
             ? null
@@ -312,6 +325,10 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Nonnull
     protected synchronized NodeStateBuilder getNodeStateBuilder() {
+        if (isRemoved()) {
+            throw new IllegalStateException("Cannot get a builder for a removed tree");
+        }
+
         if (nodeStateBuilder == null) {
             nodeStateBuilder = parent.getNodeStateBuilder().getChildBuilder(name);
             root.addListener(this);
@@ -329,6 +346,10 @@ public class TreeImpl implements Tree, PurgeListener {
      * @param destName  new name for this tree
      */
     void moveTo(TreeImpl destParent, String destName) {
+        if (isRemoved()) {
+            throw new IllegalStateException("Cannot move removed tree");
+        }
+
         parent.children.remove(name);
         destParent.children.put(destName, this);
 
@@ -343,7 +364,15 @@ public class TreeImpl implements Tree, PurgeListener {
 
     //------------------------------------------------------------< private >---
 
+    private boolean isRemoved() {
+        return parent == this;
+    }
+
     private void buildPath(StringBuilder sb) {
+        if (isRemoved()) {
+            throw new IllegalStateException("Cannot build the path of a removed tree");
+        }
+
         if (parent != null) {
             parent.buildPath(sb);
             if (sb.length() > 0) {

@@ -175,11 +175,11 @@ public class NodeDelegate extends ItemDelegate {
 
     /**
      * Returns an iterator for traversing all the children of this node.
-     * If the node is orderable (there is an "<code>oak:childOrder</code>"
+     * If the node is orderable (there is an "{@code oak:childOrder}"
      * property) then the iterator will return child nodes in the specified
      * order. Otherwise the ordering of the iterator is undefined.
      *
-     * @return  child nodes of the node
+     * @return child nodes of the node
      */
     @Nonnull
     public Iterator<NodeDelegate> getChildren() throws InvalidItemStateException {
@@ -346,7 +346,9 @@ public class NodeDelegate extends ItemDelegate {
 
     private synchronized void resolve() {
         if (tree != null) {
-            tree = sessionDelegate.getTree(tree.getPath());
+            tree = tree.getStatus() == Status.REMOVED
+                ? null
+                : sessionDelegate.getTree(tree.getPath());
         }
     }
 

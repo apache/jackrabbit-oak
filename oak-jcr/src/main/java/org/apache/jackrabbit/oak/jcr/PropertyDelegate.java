@@ -278,7 +278,9 @@ public class PropertyDelegate extends ItemDelegate {
 
     private synchronized void resolve() {
         if (parent != null) {
-            parent = sessionDelegate.getTree(parent.getPath());
+            parent = parent.getStatus() == Status.REMOVED
+                ? null
+                : sessionDelegate.getTree(parent.getPath());
 
             if (parent == null) {
                 propertyState = null;
