@@ -709,7 +709,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
         }
     }
 
-    @Ignore // TODO implement node type support
     @Test
     public void addReferenceProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
@@ -720,7 +719,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
         addProperty(parentNode, "reference", getSession().getValueFactory().createValue(referee));
     }
 
-    @Ignore // TODO implement node type support
     @Test
     public void addMultiValuedReference() throws RepositoryException {
         Node parentNode = getNode(TEST_PATH);
@@ -750,7 +748,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
         }
     }
 
-    @Ignore // TODO implement node type support
     @Test
     public void addWeakReferenceProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
@@ -761,7 +758,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
         addProperty(parentNode, "weak reference", getSession().getValueFactory().createValue(referee, true));
     }
 
-    @Ignore // TODO implement node type support
     @Test
     public void addMultiValuedWeakReference() throws RepositoryException {
         Node parentNode = getNode(TEST_PATH);
@@ -1364,7 +1360,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
         }
     }
 
-    @Ignore // TODO implement node type support
     @Test
     public void nodeTypeRegistry() throws RepositoryException {
         NodeTypeManager ntMgr = getSession().getWorkspace().getNodeTypeManager();
