@@ -106,7 +106,7 @@ public class KernelNodeStore implements NodeStore {
         if (base instanceof KernelNodeState) {
             KernelNodeState kbase = (KernelNodeState) base;
             if ("/".equals(kbase.getPath())) {
-                return new KernelRootStateBuilder(kernel, kbase.getRevision());
+                return new KernelRootBuilder(kernel, kbase.getRevision());
             }
         }
         return new MemoryNodeBuilder(base);
