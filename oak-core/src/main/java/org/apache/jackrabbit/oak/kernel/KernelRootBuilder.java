@@ -29,7 +29,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-class KernelRootStateBuilder extends MemoryNodeBuilder {
+class KernelRootBuilder extends MemoryNodeBuilder {
 
     /**
      * Number of content updates that need to happen before the updates
@@ -45,7 +45,7 @@ class KernelRootStateBuilder extends MemoryNodeBuilder {
 
     private int updates = 0;
 
-    public KernelRootStateBuilder(MicroKernel kernel, String revision) {
+    public KernelRootBuilder(MicroKernel kernel, String revision) {
         super(new KernelNodeState(kernel, "/", revision));
         this.kernel = checkNotNull(kernel);
         this.baseRevision = checkNotNull(revision);
@@ -57,7 +57,7 @@ class KernelRootStateBuilder extends MemoryNodeBuilder {
     @Override
     protected MemoryNodeBuilder createChildBuilder(
             String name, NodeState child) {
-        return new KernelNodeStateBuilder(this, name, child, this);
+        return new KernelNodeBuilder(this, name, child, this);
     }
 
     @Override
