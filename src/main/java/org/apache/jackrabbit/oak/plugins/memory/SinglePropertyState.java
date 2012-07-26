@@ -18,24 +18,42 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.Collections;
 import java.util.List;
 
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.PropertyState;
 
 /**
  * Single-valued property state.
  */
 public class SinglePropertyState extends EmptyPropertyState {
 
+    public static PropertyState create(String name, boolean value) {
+        return new SinglePropertyState(name, BooleanValue.create(value));
+    }
+
+    public static PropertyState create(String name, double value) {
+        return new SinglePropertyState(name, new DoubleValue(value));
+    }
+
+    public static PropertyState create(String name, long value) {
+        return new SinglePropertyState(name, new LongValue(value));
+    }
+
+    public static PropertyState create(String name, String value) {
+        return new SinglePropertyState(name, new StringValue(value));
+    }
+
     private final CoreValue value;
 
     public SinglePropertyState(String name, CoreValue value) {
         super(name);
-        assert value != null;
-        this.value = value;
+        this.value = checkNotNull(value);
     }
 
     @Override
