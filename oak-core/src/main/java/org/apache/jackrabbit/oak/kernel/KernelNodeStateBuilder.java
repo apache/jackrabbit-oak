@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStateBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -27,8 +29,10 @@ class KernelNodeStateBuilder extends MemoryNodeStateBuilder {
             MemoryNodeStateBuilder parent, String name,
             NodeState base, KernelRootStateBuilder root) {
         super(parent, name, base);
-        this.root = root;
+        this.root = checkNotNull(root);
     }
+
+    //--------------------------------------------< MemoryNodeStateBuilder >--
 
     @Override
     protected MemoryNodeStateBuilder createChildBuilder(
