@@ -18,21 +18,31 @@ package org.apache.jackrabbit.oak.plugins.memory;
 
 import javax.jcr.PropertyType;
 
+import org.apache.jackrabbit.oak.api.CoreValue;
+
 abstract class BooleanValue extends MemoryValue {
 
-    public static final BooleanValue TRUE = new BooleanValue() {
+    public static final CoreValue TRUE = new BooleanValue() {
         @Override
         public boolean getBoolean() {
             return true;
         }
     };
 
-    public static final BooleanValue FALSE = new BooleanValue() {
+    public static final CoreValue FALSE = new BooleanValue() {
         @Override
         public boolean getBoolean() {
             return false;
         }
     };
+
+    public static CoreValue create(boolean value) {
+        if (value) {
+            return TRUE;
+        } else {
+            return FALSE;
+        }
+    }
 
     @Override
     public int getType() {
