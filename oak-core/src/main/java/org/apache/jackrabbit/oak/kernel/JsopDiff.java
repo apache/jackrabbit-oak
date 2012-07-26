@@ -30,9 +30,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
 class JsopDiff implements NodeStateDiff {
 
-    private final JsopBuilder jsop;
+    protected final JsopBuilder jsop;
 
-    private final String path;
+    protected final String path;
 
     public JsopDiff(JsopBuilder jsop, String path) {
         this.jsop = jsop;
@@ -47,6 +47,10 @@ class JsopDiff implements NodeStateDiff {
             NodeState before, NodeState after,
             String path, JsopBuilder jsop) {
         after.compareAgainstBaseState(before, new JsopDiff(jsop, path));
+    }
+
+    protected JsopDiff createChildDiff(JsopBuilder jsop, String path) {
+        return new JsopDiff(jsop, path);
     }
 
     //-----------------------------------------------------< NodeStateDiff >--
@@ -81,8 +85,8 @@ class JsopDiff implements NodeStateDiff {
 
     @Override
     public void childNodeChanged(String name, NodeState before, NodeState after) {
-        after.compareAgainstBaseState(
-                before, new JsopDiff(jsop, PathUtils.concat(path, name)));
+        String path = buildPath(name);
+        after.compareAgainstBaseState(before, createChildDiff(jsop, path));
     }
 
     //------------------------------------------------------------< Object >--
@@ -93,7 +97,7 @@ class JsopDiff implements NodeStateDiff {
 
     //-----------------------------------------------------------< private >--
 
-    private String buildPath(String name) {
+    protected String buildPath(String name) {
         return PathUtils.concat(path, name);
     }
 

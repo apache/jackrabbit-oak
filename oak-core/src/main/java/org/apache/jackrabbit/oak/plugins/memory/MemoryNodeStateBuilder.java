@@ -194,14 +194,14 @@ public class MemoryNodeStateBuilder implements NodeStateBuilder {
         // do nothing
     }
 
-    protected NodeState getBaseState() {
+    protected void compareAgainstBaseState(NodeStateDiff diff) {
         NodeState state = read();
         if (writeState != null) {
-            return writeState.base;
-        } else {
-            return state;
+            writeState.compareAgainstBaseState(state, diff);
         }
     }
+
+    //-------------------------------------------------< NodeStateBuilder >--
 
     @Override
     public NodeState getNodeState() {
@@ -375,7 +375,7 @@ public class MemoryNodeStateBuilder implements NodeStateBuilder {
      * so it's not a problem that we intentionally break the immutability
      * assumption of the {@link NodeState} interface.
      */
-    private static class MutableNodeState extends AbstractNodeState {
+    protected static class MutableNodeState extends AbstractNodeState {
 
         /**
          * The immutable base state.
@@ -416,6 +416,10 @@ public class MemoryNodeStateBuilder implements NodeStateBuilder {
                     cstate.reset(cbase);
                 }
             }
+        }
+
+        public NodeState getBaseState() {
+            return base;
         }
 
         //-----------------------------------------------------< NodeState >--
@@ -629,7 +633,7 @@ public class MemoryNodeStateBuilder implements NodeStateBuilder {
     /**
      * Immutable snapshot of a mutable node state.
      */
-    private static class ModifiedNodeState extends MutableNodeState {
+    protected static class ModifiedNodeState extends MutableNodeState {
 
         public ModifiedNodeState(MutableNodeState mstate) {
             super(mstate.base);
