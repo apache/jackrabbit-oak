@@ -20,13 +20,13 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStateBuilder;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CommitEditor;
 import org.apache.jackrabbit.oak.spi.commit.EmptyEditor;
 import org.apache.jackrabbit.oak.spi.commit.EmptyObserver;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStateBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 
@@ -102,14 +102,14 @@ public class KernelNodeStore implements NodeStore {
     }
 
     @Override
-    public NodeStateBuilder getBuilder(NodeState base) {
+    public NodeBuilder getBuilder(NodeState base) {
         if (base instanceof KernelNodeState) {
             KernelNodeState kbase = (KernelNodeState) base;
             if ("/".equals(kbase.getPath())) {
                 return new KernelRootStateBuilder(kernel, kbase.getRevision());
             }
         }
-        return new MemoryNodeStateBuilder(base);
+        return new MemoryNodeBuilder(base);
     }
 
     @Override

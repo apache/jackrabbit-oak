@@ -29,7 +29,7 @@ import org.apache.jackrabbit.oak.api.ConflictHandler;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStateBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
@@ -69,7 +69,7 @@ public class RootImpl implements Root {
      * notifications are required, they need to explicitly re-register.
      *
      * The {@link TreeImpl} instances us this mechanism to dispose of its associated
-     * {@link NodeStateBuilder} on purge. Keeping a reference on those {@code TreeImpl}
+     * {@link NodeBuilder} on purge. Keeping a reference on those {@code TreeImpl}
      * instances {@code NodeStateBuilder} (i.e. those which are modified) prevents them
      * from being prematurely garbage collected.
      */
@@ -185,7 +185,7 @@ public class RootImpl implements Root {
         return branch.getBase();
     }
 
-    NodeStateBuilder createRootBuilder() {
+    NodeBuilder createRootBuilder() {
         return store.getBuilder(branch.getRoot());
     }
 

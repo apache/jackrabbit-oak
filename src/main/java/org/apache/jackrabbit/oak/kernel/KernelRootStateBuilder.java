@@ -23,13 +23,13 @@ import java.util.Set;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStateBuilder;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-class KernelRootStateBuilder extends MemoryNodeStateBuilder {
+class KernelRootStateBuilder extends MemoryNodeBuilder {
 
     /**
      * Number of content updates that need to happen before the updates
@@ -55,7 +55,7 @@ class KernelRootStateBuilder extends MemoryNodeStateBuilder {
     //--------------------------------------------< MemoryNodeStateBuilder >--
 
     @Override
-    protected MemoryNodeStateBuilder createChildBuilder(
+    protected MemoryNodeBuilder createChildBuilder(
             String name, NodeState child) {
         return new KernelNodeStateBuilder(this, name, child, this);
     }

@@ -21,7 +21,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStateBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 
@@ -40,8 +40,8 @@ public class MemoryNodeStore implements NodeStore {
     }
 
     @Override
-    public NodeStateBuilder getBuilder(NodeState base) {
-        return new MemoryNodeStateBuilder(base);
+    public NodeBuilder getBuilder(NodeState base) {
+        return new MemoryNodeBuilder(base);
     }
 
     @Override

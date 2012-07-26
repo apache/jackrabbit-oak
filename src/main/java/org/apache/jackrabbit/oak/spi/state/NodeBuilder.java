@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 /**
  * Builder interface for constructing new {@link NodeState node states}.
  */
-public interface NodeStateBuilder {
+public interface NodeBuilder {
 
     /**
      * Returns an immutable node state that matches the current state of
@@ -141,6 +141,6 @@ public interface NodeStateBuilder {
      * @return child builder
      */
     @Nonnull
-    NodeStateBuilder getChildBuilder(String name);
+    NodeBuilder getChildBuilder(String name);
 
 }

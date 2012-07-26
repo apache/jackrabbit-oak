@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStateBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.IOContext;
@@ -45,16 +45,16 @@ class OakDirectory extends Directory {
 
     private final CoreValueFactory factory;
 
-    private final NodeStateBuilder rootBuilder;
+    private final NodeBuilder rootBuilder;
 
-    private final NodeStateBuilder directoryBuilder;
+    private final NodeBuilder directoryBuilder;
 
     public OakDirectory(NodeStore store, NodeState root, String... path) {
         this.lockFactory = NoLockFactory.getNoLockFactory();
         this.factory = store.getValueFactory();
         this.rootBuilder = store.getBuilder(root);
 
-        NodeStateBuilder builder = rootBuilder;
+        NodeBuilder builder = rootBuilder;
         for (String name : path) {
             builder = builder.getChildBuilder(name);
         }
@@ -88,7 +88,7 @@ class OakDirectory extends Directory {
             return 0;
         }
 
-        NodeStateBuilder fileBuilder = directoryBuilder.getChildBuilder(name);
+        NodeBuilder fileBuilder = directoryBuilder.getChildBuilder(name);
         PropertyState property = fileBuilder.getProperty("jcr:data");
         if (property == null || property.isArray()) {
             return 0;
@@ -125,7 +125,7 @@ class OakDirectory extends Directory {
             return new byte[0];
         }
 
-        NodeStateBuilder fileBuilder = directoryBuilder.getChildBuilder(name);
+        NodeBuilder fileBuilder = directoryBuilder.getChildBuilder(name);
         PropertyState property = fileBuilder.getProperty("jcr:data");
         if (property == null || property.isArray()) {
             return new byte[0];
@@ -216,7 +216,7 @@ class OakDirectory extends Directory {
                 System.arraycopy(buffer, 0, data, 0, size);
             }
 
-            NodeStateBuilder fileBuilder =
+            NodeBuilder fileBuilder =
                     directoryBuilder.getChildBuilder(name);
             fileBuilder.setProperty(
                     "jcr:lastModified",
