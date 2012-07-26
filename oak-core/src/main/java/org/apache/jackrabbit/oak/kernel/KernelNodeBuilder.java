@@ -21,13 +21,13 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-class KernelNodeStateBuilder extends MemoryNodeBuilder {
+class KernelNodeBuilder extends MemoryNodeBuilder {
 
-    private final KernelRootStateBuilder root;
+    private final KernelRootBuilder root;
 
-    public KernelNodeStateBuilder(
+    public KernelNodeBuilder(
             MemoryNodeBuilder parent, String name,
-            NodeState base, KernelRootStateBuilder root) {
+            NodeState base, KernelRootBuilder root) {
         super(parent, name, base);
         this.root = checkNotNull(root);
     }
@@ -37,7 +37,7 @@ class KernelNodeStateBuilder extends MemoryNodeBuilder {
     @Override
     protected MemoryNodeBuilder createChildBuilder(
             String name, NodeState child) {
-        return new KernelNodeStateBuilder(this, name, child, root);
+        return new KernelNodeBuilder(this, name, child, root);
     }
 
     @Override
