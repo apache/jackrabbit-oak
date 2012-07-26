@@ -19,9 +19,9 @@
 package org.apache.jackrabbit.oak.kernel;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.core.AbstractOakTest;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.spi.commit.CommitEditor;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
@@ -29,24 +29,28 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
+import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
-public class KernelNodeStoreTest extends AbstractOakTest {
+public class KernelNodeStoreTest {
+
+    private KernelNodeStore store;
 
     private NodeState root;
 
-    @Override
-    protected NodeState createInitialState(MicroKernel microKernel) {
+    @Before
+    public void setUp() {
+        MicroKernel kernel = new MicroKernelImpl();
         String jsop =
                 "+\"test\":{\"a\":1,\"b\":2,\"c\":3,"
-                        + "\"x\":{},\"y\":{},\"z\":{}}";
-        microKernel.commit("/", jsop, null, "test data");
+                + "\"x\":{},\"y\":{},\"z\":{}}";
+        kernel .commit("/", jsop, null, "test data");
+        store = new KernelNodeStore(kernel);
         root = store.getRoot();
-        return root;
     }
 
     @Test
