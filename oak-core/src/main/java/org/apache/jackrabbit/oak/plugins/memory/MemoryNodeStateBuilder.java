@@ -41,7 +41,31 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 
 /**
- * In-memory node state builder. 
+ * In-memory node state builder. The following two builder states are used
+ * to properly track uncommitted chances without relying on weak references
+ * or requiring hard references on the entire accessed subtree:
+ * <dl>
+ *   <dt>unmodified</dt>
+ *   <dd>
+ *     A child builder with no content changes starts in this state.
+ *     It keeps a reference to the parent builder and knows it's name for
+ *     use when connecting. Before each access the unconnected builder
+ *     checks the parent for relevant changes to connect to. As long as
+ *     there are no such changes, the builder remains unconnected and
+ *     uses the immutable base state to respond to any content accesses.
+ *   </dd>
+ *   <dt>connected</dt>
+ *   <dd>
+ *     Once a child node is first modified, it switches it's internal
+ *     state from the immutable base state to a mutable one and records
+ *     a hard reference to that state in the mutable parent state. After
+ *     that the parent reference is cleared and no more state checks are
+ *     made. Any other builder instances that refer to the same child node
+ *     will update their internal states to point to that same mutable
+ *     state instance and thus become connected at next access.
+ *     A root state builder is always connected.
+ *   </dd>
+ * </dl>
  */
 public class MemoryNodeStateBuilder implements NodeStateBuilder {
 
@@ -50,24 +74,29 @@ public class MemoryNodeStateBuilder implements NodeStateBuilder {
             ImmutableMap.<String, NodeState>of());
 
     /**
-     * Parent state builder reference, or {@code null} for a connected
-     * builder.
+     * Parent state builder reference, or {@code null} once this builder
+     * has been connected.
      */
     private MemoryNodeStateBuilder parent;
 
     /**
      * Name of this child node within the parent builder, or {@code null}
-     * for a connected builder.
+     * once this builder has been connected.
      */
     private String name;
 
     /**
-     * The current state of this builder. Initially set to the immutable
-     * base state until this builder gets <em>connected</em>, after which
-     * this reference will point to the {@link MutableNodeState} instance
-     * that records all the changes to this node.
+     * The read state of this builder. Originally the immutable base state
+     * in an unconnected builder, or the shared mutable state
+     * (see {@link #writeState}) once the this builder has been connected.
      */
-    private NodeState state;
+    private NodeState readState;
+
+    /**
+     * The shared mutable state of connected builder instances, or
+     * {@code null} until this builder has been connected.
+     */
+    private MutableNodeState writeState;
 
     /**
      * Creates a new in-memory node state builder.
@@ -80,7 +109,8 @@ public class MemoryNodeStateBuilder implements NodeStateBuilder {
             MemoryNodeStateBuilder parent, String name, NodeState base) {
         this.parent = checkNotNull(parent);
         this.name = checkNotNull(name);
-        this.state = checkNotNull(base);
+        this.readState = checkNotNull(base);
+        this.writeState = null;
     }
 
     /**
@@ -91,60 +121,53 @@ public class MemoryNodeStateBuilder implements NodeStateBuilder {
     public MemoryNodeStateBuilder(NodeState base) {
         this.parent = null;
         this.name = null;
-        this.state = new MutableNodeState(checkNotNull(base));
+        MutableNodeState mstate = new MutableNodeState(checkNotNull(base));
+        this.readState = mstate;
+        this.writeState = mstate;
     }
 
     private NodeState read() {
-        if (parent != null) {
-            NodeState pstate = parent.read();
-            if (pstate instanceof MutableNodeState) {
-                MutableNodeState mstate = (MutableNodeState) pstate;
-                MemoryNodeStateBuilder existing = mstate.builders.get(name);
-                if (existing != null) {
-                    state = existing.state;
+        if (writeState == null) {
+            parent.read();
+            MutableNodeState pstate = parent.writeState;
+            if (pstate != null) {
+                MutableNodeState mstate = pstate.nodes.get(name);
+                if (mstate == null && pstate.nodes.containsKey(name)) {
+                    mstate = new MutableNodeState(NULL_STATE);
+                }
+                if (mstate != null) {
                     parent = null;
                     name = null;
+                    readState = mstate;
+                    writeState = mstate;
                 }
             }
         }
-        return state;
+        return readState;
     }
 
     private MutableNodeState write() {
-        if (parent != null) {
-            MutableNodeState mstate = parent.write();
-            MemoryNodeStateBuilder existing = mstate.builders.get(name);
-            if (existing != null) {
-                state = existing.state;
-            } else {
-                state = new MutableNodeState(state);
-                mstate.builders.put(name, this);
+        if (writeState == null) {
+            MutableNodeState pstate = parent.write();
+            MutableNodeState mstate = pstate.nodes.get(name);
+            if (mstate == null) {
+                if (pstate.nodes.containsKey(name)) {
+                    mstate = new MutableNodeState(NULL_STATE);
+                } else {
+                    mstate = new MutableNodeState(readState);
+                    pstate.nodes.put(name, mstate);
+                }
             }
             parent = null;
             name = null;
+            readState = mstate;
+            writeState = mstate;
         }
-        return (MutableNodeState) state;
+        return writeState;
     }
 
-    private void reset(NodeState newBase) {
-        MutableNodeState mstate = write();
-
-        mstate.base = newBase;
-
-        mstate.properties.clear();
-
-        Iterator<Map.Entry<String, MemoryNodeStateBuilder>> iterator =
-                mstate.builders.entrySet().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<String, MemoryNodeStateBuilder> entry = iterator.next();
-            MemoryNodeStateBuilder childBuilder = entry.getValue();
-            NodeState childBase = newBase.getChildNode(entry.getKey());
-            if (childBase == null || childBuilder == null) {
-                iterator.remove();
-            } else {
-                childBuilder.reset(childBase);
-            }
-        }
+    protected void reset(NodeState newBase) {
+        write().reset(newBase);
     }
 
     /**
@@ -172,8 +195,8 @@ public class MemoryNodeStateBuilder implements NodeStateBuilder {
 
     protected NodeState getBaseState() {
         NodeState state = read();
-        if (state instanceof MutableNodeState) { 
-            return ((MutableNodeState) state).base;
+        if (writeState != null) {
+            return writeState.base;
         } else {
             return state;
         }
@@ -182,8 +205,8 @@ public class MemoryNodeStateBuilder implements NodeStateBuilder {
     @Override
     public NodeState getNodeState() {
         NodeState state = read();
-        if (state instanceof MutableNodeState) {
-            return ((MutableNodeState) state).snapshot();
+        if (writeState != null) {
+            return writeState.snapshot();
         } else {
             return state;
         }
@@ -208,10 +231,11 @@ public class MemoryNodeStateBuilder implements NodeStateBuilder {
     public void setNode(String name, NodeState state) {
         MutableNodeState mstate = write();
 
-        MemoryNodeStateBuilder builder = mstate.builders.get(name);
-        if (builder != null) {
-            builder.reset(state);
+        MutableNodeState cstate = mstate.nodes.get(name);
+        if (cstate != null) {
+            cstate.reset(state);
         } else {
+            mstate.nodes.remove(name);
             createChildBuilder(name, state).write();
         }
 
@@ -223,9 +247,9 @@ public class MemoryNodeStateBuilder implements NodeStateBuilder {
         MutableNodeState mstate = write();
 
         if (mstate.base.getChildNode(name) != null) {
-            mstate.builders.put(name, null);
+            mstate.nodes.put(name, null);
         } else {
-            mstate.builders.remove(name);
+            mstate.nodes.remove(name);
         }
 
         updated();
@@ -286,27 +310,25 @@ public class MemoryNodeStateBuilder implements NodeStateBuilder {
     public NodeStateBuilder getChildBuilder(String name) {
         NodeState state = read();
 
-        if (!(state instanceof MutableNodeState)) {
+        if (writeState == null) {
             NodeState base = state.getChildNode(name);
             if (base != null) {
                 return createChildBuilder(name, base); // shortcut
             }
         }
 
+        NodeState cbase = NULL_STATE;
         MutableNodeState mstate = write();
-        MemoryNodeStateBuilder builder = mstate.builders.get(name);
-        if (builder == null) {
-            if (mstate.builders.containsKey(name)) {
-                builder = createChildBuilder(name, NULL_STATE);
-                builder.write();
-            } else {
-                NodeState base = mstate.base.getChildNode(name);
-                if (base == null) {
-                    base = NULL_STATE;
-                }
-                builder = createChildBuilder(name, base);
-            }
+        MutableNodeState cstate = mstate.nodes.get(name);
+        if (cstate != null) {
+            cbase = cstate.base;
+        } else if (!mstate.nodes.containsKey(name)
+                && mstate.base.hasChildNode(name)) {
+            return createChildBuilder(name, mstate.base.getChildNode(name));
         }
+
+        MemoryNodeStateBuilder builder = createChildBuilder(name, cbase);
+        builder.write();
         return builder;
     }
 
@@ -331,29 +353,47 @@ public class MemoryNodeStateBuilder implements NodeStateBuilder {
                 Maps.newHashMap();
 
         /**
-         * Set of builders for added, modified or removed
-         * ({@code null} value) child nodes.
+         * Set of added, modified or removed ({@code null} value)
+         * child nodes.
          */
-        private final Map<String, MemoryNodeStateBuilder> builders =
+        private final Map<String, MutableNodeState> nodes =
                 Maps.newHashMap();
 
         public MutableNodeState(NodeState base) {
-            this.base = base;
+            this.base = checkNotNull(base);
         }
 
-        public NodeState snapshot() {
+        private NodeState snapshot() {
             Map<String, PropertyState> props = Maps.newHashMap(properties);
-            Map<String, NodeState> nodes = Maps.newHashMap();
-            for (Map.Entry<String, MemoryNodeStateBuilder> entry
-                    : builders.entrySet()) {
-                NodeStateBuilder builder = entry.getValue();
-                if (builder != null) {
-                    nodes.put(entry.getKey(), builder.getNodeState());
+            Map<String, NodeState> snapshots = Maps.newHashMap();
+            for (Map.Entry<String, MutableNodeState> entry : nodes.entrySet()) {
+                String name = entry.getKey();
+                MutableNodeState node = entry.getValue();
+                if (node != null) {
+                    snapshots.put(name, node.snapshot());
                 } else {
-                    nodes.put(entry.getKey(), null);
+                    snapshots.put(name, null);
                 }
             }
-            return new ModifiedNodeState(base, props, nodes);
+            return new ModifiedNodeState(base, props, snapshots);
+        }
+
+        private void reset(NodeState newBase) {
+            base = newBase;
+            properties.clear();
+
+            Iterator<Map.Entry<String, MutableNodeState>> iterator =
+                    nodes.entrySet().iterator();
+            while (iterator.hasNext()) {
+                Map.Entry<String, MutableNodeState> entry = iterator.next();
+                MutableNodeState cstate = entry.getValue();
+                NodeState cbase = newBase.getChildNode(entry.getKey());
+                if (cbase == null || cstate == null) {
+                    iterator.remove();
+                } else {
+                    cstate.reset(cbase);
+                }
+            }
         }
 
         //-----------------------------------------------------< NodeState >--
@@ -405,8 +445,7 @@ public class MemoryNodeStateBuilder implements NodeStateBuilder {
         public long getChildNodeCount() {
             long count = base.getChildNodeCount();
 
-            for (Map.Entry<String, MemoryNodeStateBuilder> entry
-                    : builders.entrySet()) {
+            for (Map.Entry<String, MutableNodeState> entry : nodes.entrySet()) {
                 if (base.getChildNode(entry.getKey()) != null) {
                     count--;
                 }
@@ -420,23 +459,23 @@ public class MemoryNodeStateBuilder implements NodeStateBuilder {
 
         @Override
         public boolean hasChildNode(String name) {
-            NodeStateBuilder builder = builders.get(name);
-            if (builder != null) {
+            MutableNodeState node = nodes.get(name);
+            if (node != null) {
                 return true;
-            } else if (builders.containsKey(name)) {
+            } else if (nodes.containsKey(name)) {
                 return false;
             }
 
-            return base.getChildNode(name) != null;
+            return base.hasChildNode(name);
         }
 
         @Override
         public Iterable<String> getChildNodeNames() {
             Iterable<String> unmodified = base.getChildNodeNames();
             Predicate<String> unmodifiedFilter = Predicates.not(Predicates.in(
-                    ImmutableSet.copyOf(builders.keySet())));
+                    ImmutableSet.copyOf(nodes.keySet())));
             Set<String> modified = ImmutableSet.copyOf(
-                    Maps.filterValues(builders, Predicates.notNull()).keySet());
+                    Maps.filterValues(nodes, Predicates.notNull()).keySet());
             return Iterables.concat(
                     Iterables.filter(unmodified, unmodifiedFilter),
                     modified);
