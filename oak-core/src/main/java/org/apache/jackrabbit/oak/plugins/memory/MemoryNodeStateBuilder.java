@@ -136,7 +136,7 @@ public class MemoryNodeStateBuilder implements NodeStateBuilder {
                 if (mstate == null && pstate.nodes.containsKey(name)) {
                     throw new IllegalStateException(
                             "This builder refers to a node that has"
-                            + " been removed from it's parent.");
+                            + " been removed from its parent.");
                 }
                 if (mstate != null) {
                     parent = null;
@@ -157,7 +157,7 @@ public class MemoryNodeStateBuilder implements NodeStateBuilder {
                 if (pstate.nodes.containsKey(name)) {
                     throw new IllegalStateException(
                             "This builder refers to a node that has"
-                            + " been removed from it's parent.");
+                            + " been removed from its parent.");
                 }
                 mstate = new MutableNodeState(readState);
                 pstate.nodes.put(name, mstate);
