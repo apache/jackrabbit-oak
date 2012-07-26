@@ -32,20 +32,22 @@ import com.google.common.collect.Iterables;
  * Basic JavaBean implementation of a child node entry.
  */
 public class MemoryChildNodeEntry extends AbstractChildNodeEntry {
-    private final String name;
-    private final NodeState node;
 
-    public static Iterable<ChildNodeEntry> iterable(
-            final Iterable<Entry<String, NodeState>> iterable) {
+    public static <T extends NodeState> Iterable<ChildNodeEntry> iterable(
+            Iterable<Entry<String, T>> set) {
         return Iterables.transform(
-                iterable,
-                new Function<Entry<String, NodeState>, ChildNodeEntry>() {
+                set,
+                new Function<Entry<String, T>, ChildNodeEntry>() {
                     @Override
-                    public ChildNodeEntry apply(Entry<String, NodeState> input) {
+                    public ChildNodeEntry apply(Entry<String, T> input) {
                         return new MemoryChildNodeEntry(input);
                     }
                 });
-    }
+   }
+
+    private final String name;
+
+    private final NodeState node;
 
     /**
      * Creates a child node entry with the given name and referenced
@@ -68,7 +70,7 @@ public class MemoryChildNodeEntry extends AbstractChildNodeEntry {
      *
      * @param entry map entry
      */
-    public MemoryChildNodeEntry(Map.Entry<String, NodeState> entry) {
+    public MemoryChildNodeEntry(Map.Entry<String, ? extends NodeState> entry) {
         this(entry.getKey(), entry.getValue());
     }
 
