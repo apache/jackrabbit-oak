@@ -33,7 +33,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.RootImpl.PurgeListener;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStateBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
 import com.google.common.base.Function;
@@ -54,7 +54,7 @@ public class TreeImpl implements Tree, PurgeListener {
     private String name;
 
     /** Lazily initialised {@code NodeStateBuilder} for the underlying node state */
-    NodeStateBuilder nodeStateBuilder;
+    NodeBuilder nodeBuilder;
 
     /**
      * Cache for child trees that have been accessed before.
@@ -79,12 +79,12 @@ public class TreeImpl implements Tree, PurgeListener {
             }
 
             @Override
-            protected synchronized NodeStateBuilder getNodeStateBuilder() {
-                if (nodeStateBuilder == null) {
-                    nodeStateBuilder = root.createRootBuilder();
+            protected synchronized NodeBuilder getNodeBuilder() {
+                if (nodeBuilder == null) {
+                    nodeBuilder = root.createRootBuilder();
                     root.addListener(this);
                 }
-                return nodeStateBuilder;
+                return nodeBuilder;
             }
         };
     }
@@ -118,7 +118,7 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public PropertyState getProperty(String name) {
-        return getNodeStateBuilder().getProperty(name);
+        return getNodeBuilder().getProperty(name);
     }
 
     @Override
@@ -171,12 +171,12 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public long getPropertyCount() {
-        return getNodeStateBuilder().getPropertyCount();
+        return getNodeBuilder().getPropertyCount();
     }
 
     @Override
     public Iterable<? extends PropertyState> getProperties() {
-        return getNodeStateBuilder().getProperties();
+        return getNodeBuilder().getProperties();
     }
 
     @Override
@@ -219,18 +219,18 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public boolean hasChild(String name) {
-        return getNodeStateBuilder().hasChildNode(name);
+        return getNodeBuilder().hasChildNode(name);
     }
 
     @Override
     public long getChildrenCount() {
-        return getNodeStateBuilder().getChildNodeCount();
+        return getNodeBuilder().getChildNodeCount();
     }
 
     @Override
     public Iterable<Tree> getChildren() {
         return Iterables.transform(
-                getNodeStateBuilder().getChildNodeNames(),
+                getNodeBuilder().getChildNodeNames(),
                 new Function<String, Tree>() {
                     @Override
                     public Tree apply(String input) {
@@ -247,7 +247,7 @@ public class TreeImpl implements Tree, PurgeListener {
     @Override
     public Tree addChild(String name) {
         if (!hasChild(name)) {
-            NodeStateBuilder builder = getNodeStateBuilder();
+            NodeBuilder builder = getNodeBuilder();
             builder.setNode(name, EMPTY_NODE);
             root.purge();
         }
@@ -264,7 +264,7 @@ public class TreeImpl implements Tree, PurgeListener {
         }
 
         if (!isRoot() && parent.hasChild(name)) {
-            NodeStateBuilder builder = parent.getNodeStateBuilder();
+            NodeBuilder builder = parent.getNodeBuilder();
             builder.removeNode(name);
             parent.children.remove(name);
             parent = this;
@@ -277,7 +277,7 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public PropertyState setProperty(String name, CoreValue value) {
-        NodeStateBuilder builder = getNodeStateBuilder();
+        NodeBuilder builder = getNodeBuilder();
         builder.setProperty(name, value);
         root.purge();
         PropertyState property = getProperty(name);
@@ -287,7 +287,7 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public PropertyState setProperty(String name, List<CoreValue> values) {
-        NodeStateBuilder builder = getNodeStateBuilder();
+        NodeBuilder builder = getNodeBuilder();
         builder.setProperty(name, values);
         root.purge();
         PropertyState property = getProperty(name);
@@ -297,7 +297,7 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public void removeProperty(String name) {
-        NodeStateBuilder builder = getNodeStateBuilder();
+        NodeBuilder builder = getNodeBuilder();
         builder.removeProperty(name);
         root.purge();
     }
@@ -306,7 +306,7 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public void purged() {
-        nodeStateBuilder = null;
+        nodeBuilder = null;
     }
 
     //----------------------------------------------------------< protected >---
@@ -324,16 +324,16 @@ public class TreeImpl implements Tree, PurgeListener {
     }
 
     @Nonnull
-    protected synchronized NodeStateBuilder getNodeStateBuilder() {
+    protected synchronized NodeBuilder getNodeBuilder() {
         if (isRemoved()) {
             throw new IllegalStateException("Cannot get a builder for a removed tree");
         }
 
-        if (nodeStateBuilder == null) {
-            nodeStateBuilder = parent.getNodeStateBuilder().getChildBuilder(name);
+        if (nodeBuilder == null) {
+            nodeBuilder = parent.getNodeBuilder().getChildBuilder(name);
             root.addListener(this);
         }
-        return nodeStateBuilder;
+        return nodeBuilder;
     }
 
     //-----------------------------------------------------------< internal >---
@@ -359,7 +359,7 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Nonnull
     NodeState getNodeState() {
-        return getNodeStateBuilder().getNodeState();
+        return getNodeBuilder().getNodeState();
     }
 
     //------------------------------------------------------------< private >---

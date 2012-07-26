@@ -28,7 +28,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStateBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
 import com.google.common.base.Predicate;
@@ -68,7 +68,7 @@ import com.google.common.collect.Maps;
  *   </dd>
  * </dl>
  */
-public class MemoryNodeStateBuilder implements NodeStateBuilder {
+public class MemoryNodeBuilder implements NodeBuilder {
 
     private static final NodeState NULL_STATE = new MemoryNodeState(
             ImmutableMap.<String, PropertyState>of(),
@@ -78,7 +78,7 @@ public class MemoryNodeStateBuilder implements NodeStateBuilder {
      * Parent state builder reference, or {@code null} once this builder
      * has been connected.
      */
-    private MemoryNodeStateBuilder parent;
+    private MemoryNodeBuilder parent;
 
     /**
      * Name of this child node within the parent builder, or {@code null}
@@ -106,8 +106,8 @@ public class MemoryNodeStateBuilder implements NodeStateBuilder {
      * @param name name of this node
      * @param base base state of this node
      */
-    protected MemoryNodeStateBuilder(
-            MemoryNodeStateBuilder parent, String name, NodeState base) {
+    protected MemoryNodeBuilder(
+            MemoryNodeBuilder parent, String name, NodeState base) {
         this.parent = checkNotNull(parent);
         this.name = checkNotNull(name);
         this.readState = checkNotNull(base);
@@ -119,7 +119,7 @@ public class MemoryNodeStateBuilder implements NodeStateBuilder {
      *
      * @param base base state of the new builder
      */
-    public MemoryNodeStateBuilder(NodeState base) {
+    public MemoryNodeBuilder(NodeState base) {
         this.parent = null;
         this.name = null;
         MutableNodeState mstate = new MutableNodeState(checkNotNull(base));
@@ -181,9 +181,9 @@ public class MemoryNodeStateBuilder implements NodeStateBuilder {
      * @param child base state of the new builder, or {@code null}
      * @return new builder
      */
-    protected MemoryNodeStateBuilder createChildBuilder(
+    protected MemoryNodeBuilder createChildBuilder(
             String name, NodeState child) {
-        return new MemoryNodeStateBuilder(this, name, child);
+        return new MemoryNodeBuilder(this, name, child);
     }
 
     /**
@@ -311,7 +311,7 @@ public class MemoryNodeStateBuilder implements NodeStateBuilder {
     }
 
     @Override
-    public NodeStateBuilder getChildBuilder(String name) {
+    public NodeBuilder getChildBuilder(String name) {
         NodeState state = read();
 
         if (writeState == null) {
@@ -331,7 +331,7 @@ public class MemoryNodeStateBuilder implements NodeStateBuilder {
             return createChildBuilder(name, mstate.base.getChildNode(name));
         }
 
-        MemoryNodeStateBuilder builder = createChildBuilder(name, cbase);
+        MemoryNodeBuilder builder = createChildBuilder(name, cbase);
         builder.write();
         return builder;
     }

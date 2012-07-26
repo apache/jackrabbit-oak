@@ -18,15 +18,15 @@ package org.apache.jackrabbit.oak.kernel;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStateBuilder;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-class KernelNodeStateBuilder extends MemoryNodeStateBuilder {
+class KernelNodeStateBuilder extends MemoryNodeBuilder {
 
     private final KernelRootStateBuilder root;
 
     public KernelNodeStateBuilder(
-            MemoryNodeStateBuilder parent, String name,
+            MemoryNodeBuilder parent, String name,
             NodeState base, KernelRootStateBuilder root) {
         super(parent, name, base);
         this.root = checkNotNull(root);
@@ -35,7 +35,7 @@ class KernelNodeStateBuilder extends MemoryNodeStateBuilder {
     //--------------------------------------------< MemoryNodeStateBuilder >--
 
     @Override
-    protected MemoryNodeStateBuilder createChildBuilder(
+    protected MemoryNodeBuilder createChildBuilder(
             String name, NodeState child) {
         return new KernelNodeStateBuilder(this, name, child, root);
     }

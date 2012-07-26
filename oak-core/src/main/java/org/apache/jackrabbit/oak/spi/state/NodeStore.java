@@ -55,7 +55,7 @@ public interface NodeStore {
      * @return  builder instance
      */
     @Nonnull
-    NodeStateBuilder getBuilder(NodeState base);
+    NodeBuilder getBuilder(NodeState base);
 
     /**
      * Returns the factory for creating values used for building node states.

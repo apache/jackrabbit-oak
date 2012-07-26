@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.spi.commit.CommitEditor;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStateBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.junit.Before;
@@ -71,9 +71,9 @@ public class KernelNodeStoreTest {
     public void branch() throws CommitFailedException {
         NodeStoreBranch branch = store.branch();
 
-        NodeStateBuilder rootBuilder = store.getBuilder(branch.getRoot());
-        NodeStateBuilder testBuilder = rootBuilder.getChildBuilder("test");
-        NodeStateBuilder newNodeBuilder = testBuilder.getChildBuilder("newNode");
+        NodeBuilder rootBuilder = store.getBuilder(branch.getRoot());
+        NodeBuilder testBuilder = rootBuilder.getChildBuilder("test");
+        NodeBuilder newNodeBuilder = testBuilder.getChildBuilder("newNode");
 
         testBuilder.removeNode("x");
 
@@ -126,9 +126,9 @@ public class KernelNodeStoreTest {
         });
 
         NodeState root = store.getRoot();
-        NodeStateBuilder rootBuilder= store.getBuilder(root);
-        NodeStateBuilder testBuilder = rootBuilder.getChildBuilder("test");
-        NodeStateBuilder newNodeBuilder = testBuilder.getChildBuilder("newNode");
+        NodeBuilder rootBuilder= store.getBuilder(root);
+        NodeBuilder testBuilder = rootBuilder.getChildBuilder("test");
+        NodeBuilder newNodeBuilder = testBuilder.getChildBuilder("newNode");
 
         CoreValue fortyTwo = store.getValueFactory().createValue(42);
         newNodeBuilder.setProperty("n", fortyTwo);
@@ -160,8 +160,8 @@ public class KernelNodeStoreTest {
             @Override
             public NodeState editCommit(
                     NodeStore store, NodeState before, NodeState after) {
-                NodeStateBuilder rootBuilder = store.getBuilder(after);
-                NodeStateBuilder testBuilder = store.getBuilder(after.getChildNode("test"));
+                NodeBuilder rootBuilder = store.getBuilder(after);
+                NodeBuilder testBuilder = store.getBuilder(after.getChildNode("test"));
                 testBuilder.setNode("fromHook", MemoryNodeState.EMPTY_NODE);
                 rootBuilder.setNode("test", testBuilder.getNodeState());
                 return rootBuilder.getNodeState();
@@ -169,9 +169,9 @@ public class KernelNodeStoreTest {
         });
 
         NodeState root = store.getRoot();
-        NodeStateBuilder rootBuilder = store.getBuilder(root);
-        NodeStateBuilder testBuilder = rootBuilder.getChildBuilder("test");
-        NodeStateBuilder newNodeBuilder = testBuilder.getChildBuilder("newNode");
+        NodeBuilder rootBuilder = store.getBuilder(root);
+        NodeBuilder testBuilder = rootBuilder.getChildBuilder("test");
+        NodeBuilder newNodeBuilder = testBuilder.getChildBuilder("newNode");
 
         final CoreValue fortyTwo = store.getValueFactory().createValue(42);
         newNodeBuilder.setProperty("n", fortyTwo);
