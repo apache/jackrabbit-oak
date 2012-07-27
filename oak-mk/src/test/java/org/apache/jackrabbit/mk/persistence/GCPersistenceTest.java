@@ -78,7 +78,7 @@ public class GCPersistenceTest {
 
     @Test
     public void testOldNodeIsSwept() throws Exception {
-        MutableNode node = new MutableNode(null, "/");
+        MutableNode node = new MutableNode(null);
         Id id = pm.writeNode(node);
 
         Thread.sleep(1);
@@ -95,7 +95,7 @@ public class GCPersistenceTest {
 
     @Test
     public void testMarkedNodeIsNotSwept() throws Exception {
-        MutableNode node = new MutableNode(null, "/");
+        MutableNode node = new MutableNode(null);
         Id id = pm.writeNode(node);
 
         // small delay needed
@@ -114,7 +114,7 @@ public class GCPersistenceTest {
     public void testNewNodeIsNotSwept() throws Exception {
         pm.start();
         
-        MutableNode node = new MutableNode(null, "/");
+        MutableNode node = new MutableNode(null);
         Id id = pm.writeNode(node);
         
         // new node must already be marked 

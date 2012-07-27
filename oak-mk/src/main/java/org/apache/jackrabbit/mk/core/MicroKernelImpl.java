@@ -23,8 +23,8 @@ import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.mk.model.Commit;
 import org.apache.jackrabbit.mk.model.CommitBuilder;
-import org.apache.jackrabbit.mk.model.CommitBuilder.NodeTree;
 import org.apache.jackrabbit.mk.model.Id;
+import org.apache.jackrabbit.mk.json.JsonObject;
 import org.apache.jackrabbit.mk.model.StoredCommit;
 import org.apache.jackrabbit.mk.model.tree.ChildNode;
 import org.apache.jackrabbit.mk.model.tree.DiffBuilder;
@@ -380,7 +380,7 @@ public class MicroKernelImpl implements MicroKernel {
                             }
                             String parentPath = PathUtils.getParentPath(nodePath);
                             String nodeName = PathUtils.getName(nodePath);
-                            cb.addNode(parentPath, nodeName, parseNode(t));
+                            cb.addNode(parentPath, nodeName, JsonObject.create(t));
                         } else {
                             String value;
                             if (t.matches(JsopReader.NULL)) {
@@ -628,23 +628,6 @@ public class MicroKernelImpl implements MicroKernel {
                 }
             }
         }
-    }
-
-    NodeTree parseNode(JsopTokenizer t) throws Exception {
-        NodeTree node = new NodeTree();
-        if (!t.matches('}')) {
-            do {
-                String key = t.readString();
-                t.read(':');
-                if (t.matches('{')) {
-                    node.nodes.put(key, parseNode(t));
-                } else {
-                    node.props.put(key, t.readRawValue().trim());
-                }
-            } while (t.matches(','));
-            t.read('}');
-        }
-        return node;
     }
 
     //-------------------------------------------------------< inner classes >

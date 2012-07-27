@@ -135,7 +135,7 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
                     .getBytes();
             head = new Id(rawHead);
 
-            Id rootNodeId = pm.writeNode(new MutableNode(this, "/"));
+            Id rootNodeId = pm.writeNode(new MutableNode(this));
             MutableCommit initialCommit = new MutableCommit();
             initialCommit.setCommitTS(System.currentTimeMillis());
             initialCommit.setRootNodeId(rootNodeId);
