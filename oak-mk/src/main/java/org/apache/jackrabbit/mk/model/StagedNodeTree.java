@@ -29,7 +29,7 @@ import java.util.Map;
 /**
  * A {@code StagedNodeTree} provides methods to manipulate a specific revision
  * of the tree. The changes are recorded and can be persisted by calling
- {@link #persist(RevisionStore.PutToken)}.
+ * {@link #persist(RevisionStore.PutToken)}.
  */
 public class StagedNodeTree {
 
@@ -41,7 +41,7 @@ public class StagedNodeTree {
     /**
      * Creates a new {@code StagedNodeTree} instance.
      *
-     * @param store revision store used to read from and persist changes
+     * @param store          revision store used to read from and persist changes
      * @param baseRevisionId id of revision the changes should be based upon
      */
     public StagedNodeTree(RevisionStore store, Id baseRevisionId) {
@@ -62,6 +62,7 @@ public class StagedNodeTree {
 
     /**
      * Returns {@code true} if there are no staged changes, otherwise returns {@code false}.
+     *
      * @return {@code true} if there are no staged changes, otherwise returns {@code false}.
      */
     public boolean isEmpty() {
@@ -69,11 +70,11 @@ public class StagedNodeTree {
     }
 
     /**
-     * Persists the staged nodes and returns the {@code Id} of new root node.
+     * Persists the staged nodes and returns the {@code Id} of the new root node.
      *
      * @param token
-     * @return {@code Id} of new root node
-     * @throws Exception
+     * @return {@code Id} of new root node or {@code null} if there are no changes to persist.
+     * @throws Exception if an error occurs
      */
     public Id /* new id of root node */ persist(RevisionStore.PutToken token) throws Exception {
         return root != null ? root.persist(token) : null;
@@ -85,7 +86,7 @@ public class StagedNodeTree {
      * using the common ancestor revision {@code commonAncestorRevisionId} as
      * base reference.
      * <p/>
-     * This instance will be initially reset to {@code newBaseRevisionId}, discarding
+     * <I>This</I> instance will be initially reset to {@code newBaseRevisionId}, discarding
      * all currently staged changes.
      *
      * @param ourRoot
@@ -95,10 +96,10 @@ public class StagedNodeTree {
      * @return {@code Id} of new root node
      * @throws Exception
      */
-    public Id /* new id of merged root node */ merge(StoredNode ourRoot,
-                                                 Id newBaseRevisionId,
-                                                 Id commonAncestorRevisionId,
-                                                 RevisionStore.PutToken token) throws Exception {
+    public Id merge(StoredNode ourRoot,
+                    Id newBaseRevisionId,
+                    Id commonAncestorRevisionId,
+                    RevisionStore.PutToken token) throws Exception {
         // reset staging area to new base revision
         reset(newBaseRevisionId);
 
@@ -114,14 +115,30 @@ public class StagedNodeTree {
 
     //-----------------------------------------< tree manipulation operations >
 
-    public void add(String parentNodePath, String nodeName, JsonObject node) throws Exception {
+    /**
+     * Creates a new node named {@code nodeName} at {@code parentNodePath}.
+     *
+     * @param parentNodePath parent node path
+     * @param nodeName name of new node
+     * @param nodeData {@code JsonObject} representation of the node to be added
+     * @throws NotFoundException if there's no node at {@code parentNodePath}
+     * @throws Exception if a node named {@code nodeName} already exists at {@code parentNodePath}
+     *                   or if another error occurs
+     */
+    public void add(String parentNodePath, String nodeName, JsonObject nodeData) throws Exception {
         StagedNode parent = getStagedNode(parentNodePath, true);
         if (parent.getChildNodeEntry(nodeName) != null) {
             throw new Exception("there's already a child node with name '" + nodeName + "'");
         }
-        parent.add(nodeName, node);
+        parent.add(nodeName, nodeData);
     }
 
+    /**
+     * Removes the node at {@code nodePath}.
+     *
+     * @param nodePath node path
+     * @throws Exception
+     */
     public void remove(String nodePath) throws Exception {
         String parentPath = PathUtils.getParentPath(nodePath);
         String nodeName = PathUtils.getName(nodePath);
@@ -135,6 +152,17 @@ public class StagedNodeTree {
         unstageNode(nodePath);
     }
 
+    /**
+     * Creates or updates the property named {@code propName} of the specified node.
+     * <p/>
+     * if {@code propValue == null} the specified property will be removed.
+     *
+     * @param nodePath node path
+     * @param propName property name
+     * @param propValue property value
+     * @throws NotFoundException if there's no node at {@code nodePath}
+     * @throws Exception if another error occurs
+     */
     public void setProperty(String nodePath, String propName, String propValue) throws Exception {
         StagedNode node = getStagedNode(nodePath, true);
 
@@ -146,6 +174,17 @@ public class StagedNodeTree {
         }
     }
 
+    /**
+     * Moves the subtree rooted at {@code srcPath} to {@code destPath}.
+     *
+     * @param srcPath path of node to be moved
+     * @param destPath destination path
+     * @throws NotFoundException if either the node at {@code srcPath} or the parent
+     *                           node of {@code destPath} doesn't exist
+     * @throws Exception if a node already exists at {@code destPath},
+     *                   if {@code srcPath} denotes an ancestor of {@code destPath}
+     *                   or if another error occurs
+     */
     public void move(String srcPath, String destPath) throws Exception {
         if (PathUtils.isAncestor(srcPath, destPath)) {
             throw new Exception("target path cannot be descendant of source path: " + destPath);
@@ -175,6 +214,16 @@ public class StagedNodeTree {
         }
     }
 
+    /**
+     * Copies the subtree rooted at {@code srcPath} to {@code destPath}.
+     *
+     * @param srcPath path of node to be copied
+     * @param destPath destination path
+     * @throws NotFoundException if either the node at {@code srcPath} or the parent
+     *                           node of {@code destPath} doesn't exist
+     * @throws Exception if a node already exists at {@code destPath}
+     *                   or if another error occurs
+     */
     public void copy(String srcPath, String destPath) throws Exception {
         String srcParentPath = PathUtils.getParentPath(srcPath);
         String srcNodeName = PathUtils.getName(srcPath);
@@ -214,6 +263,22 @@ public class StagedNodeTree {
 
     //-------------------------------------------------------< implementation >
 
+    /**
+     * Returns a {@code StagedNode} representation of the specified node.
+     * If a {@code StagedNode} representation doesn't exist yet a new
+     * {@code StagedNode} instance will be returned if {@code createIfNotStaged == true},
+     * otherwise {@code null} will be returned.
+     * <p/>
+     * A {@code NotFoundException} will be thrown if there's no node at {@code path}.
+     *
+     * @param path              node path
+     * @param createIfNotStaged flag controlling whether a new {@code StagedNode}
+     *                          instance should be created on demand
+     * @return a {@code StagedNode} instance or {@code null} if there's no {@code StagedNode}
+     *         representation of the specified node and {@code createIfNotStaged == false}
+     * @throws NotFoundException if there's no child node with the given name
+     * @throws Exception         if another error occurs
+     */
     private StagedNode getStagedNode(String path, boolean createIfNotStaged) throws Exception {
         assert PathUtils.isAbsolute(path);
 
@@ -239,6 +304,14 @@ public class StagedNodeTree {
         return node;
     }
 
+    /**
+     * Discards all staged changes affecting the subtree rooted at {@code path}.
+     *
+     * @param path node path
+     * @return the discarded {@code StagedNode} representation or {@code null} if there wasn't any
+     * @throws NotFoundException if there's no node at the specified {@code path}
+     * @throws Exception if another error occurs
+     */
     private StagedNode unstageNode(String path) throws Exception {
         assert PathUtils.isAbsolute(path);
 
@@ -259,6 +332,14 @@ public class StagedNodeTree {
         return parent.unstageChildNode(name);
     }
 
+    /**
+     * Returns the {@code StoredNode} at {@code path}.
+     *
+     * @param path node path
+     * @return the {@code StoredNode} at {@code path}
+     * @throws NotFoundException if there's no node at the specified {@code path}
+     * @throws Exception if another error occurs
+     */
     private StoredNode getStoredNode(String path) throws Exception {
         assert PathUtils.isAbsolute(path);
 
@@ -300,10 +381,10 @@ public class StagedNodeTree {
             stagedNode.getProperties().remove(name);
         }
 
-        for (Map.Entry<String, Id> entry : ourChanges.getAddedChildNodes ().entrySet()) {
+        for (Map.Entry<String, Id> entry : ourChanges.getAddedChildNodes().entrySet()) {
             stagedNode.add(new ChildNodeEntry(entry.getKey(), entry.getValue()));
         }
-        for (Map.Entry<String, Id> entry : ourChanges.getChangedChildNodes ().entrySet()) {
+        for (Map.Entry<String, Id> entry : ourChanges.getChangedChildNodes().entrySet()) {
             stagedNode.add(new ChildNodeEntry(entry.getKey(), entry.getValue()));
         }
         for (String name : ourChanges.getRemovedChildNodes().keySet()) {
@@ -366,7 +447,7 @@ public class StagedNodeTree {
         }
 
         /**
-         * Returns a {@code StagedNode} representation of the given child node.
+         * Returns a {@code StagedNode} representation of the specified child node.
          * If a {@code StagedNode} representation doesn't exist yet a new
          * {@code StagedNode} instance will be returned if {@code createIfNotStaged == true},
          * otherwise {@code null} will be returned.
@@ -374,13 +455,13 @@ public class StagedNodeTree {
          * A {@code NotFoundException} will be thrown if there's no child node
          * with the given name.
          *
-         * @param name child node name
+         * @param name              child node name
          * @param createIfNotStaged flag controlling whether a new {@code StagedNode}
          *                          instance should be created on demand
-         * @return a {@code StagedNode} instance or null if there's no {@code StagedNode}
-         *         representation of the given child node and {@code createIfNotStaged == false}
+         * @return a {@code StagedNode} instance or {@code null} if there's no {@code StagedNode}
+         *         representation of the specified child node and {@code createIfNotStaged == false}
          * @throws NotFoundException if there's no child node with the given name
-         * @throws Exception if another error occurs
+         * @throws Exception         if another error occurs
          */
         StagedNode getStagedChildNode(String name, boolean createIfNotStaged) throws Exception {
             StagedNode child = stagedChildNodes.get(name);
@@ -398,6 +479,12 @@ public class StagedNodeTree {
             return child;
         }
 
+        /**
+         * Removes the {@code StagedNode} representation of the specified child node if there is one.
+         *
+         * @param name child node name
+         * @return the removed {@code StagedNode} representation or {@code null} if there wasn't any
+         */
         StagedNode unstageChildNode(String name) {
             return stagedChildNodes.remove(name);
         }
