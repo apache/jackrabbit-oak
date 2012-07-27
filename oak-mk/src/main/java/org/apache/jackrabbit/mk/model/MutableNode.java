@@ -27,21 +27,12 @@ import java.util.Iterator;
  */
 public class MutableNode extends AbstractNode implements PersistHook {
 
-    /**
-     * Node path, for informational purpose only.
-     */
-    private final transient String path;
-    
-    public MutableNode(RevisionProvider provider, String path) {
+    public MutableNode(RevisionProvider provider) {
         super(provider);
-        
-        this.path = path;
     }
 
-    public MutableNode(Node other, RevisionProvider provider, String path) {
+    public MutableNode(Node other, RevisionProvider provider) {
         super(other, provider);
-
-        this.path = path;
     }
 
     public ChildNodeEntry add(ChildNodeEntry newEntry) {
@@ -79,10 +70,5 @@ public class MutableNode extends AbstractNode implements PersistHook {
     @Override
     public void postPersist(RevisionStore store, RevisionStore.PutToken token) throws Exception {
         // there's nothing to do
-    }
-
-    @Override
-    public String toString() {
-        return path;
     }
 }
