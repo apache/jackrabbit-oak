@@ -16,12 +16,15 @@
  */
 package org.apache.jackrabbit.oak.jcr.value;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Charsets;
+import com.google.common.io.CharStreams;
+import com.google.common.io.InputSupplier;
 
 import javax.jcr.Binary;
 import javax.jcr.PropertyType;
@@ -31,7 +34,6 @@ import javax.jcr.ValueFormatException;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.util.Calendar;
 import java.util.TimeZone;
@@ -184,13 +186,17 @@ class ValueImpl implements Value {
                     throw new IllegalStateException("getStream has previously been called on this Value instance. " +
                             "In this case a new Value instance must be acquired in order to successfully call this method.");
                 }
-                InputStream in = getNewStream();
                 try {
-                    return IOUtils.toString(in, "UTF-8");
+                    stream = getNewStream();
+                    return CharStreams.toString(CharStreams.newReaderSupplier(
+                            new InputSupplier<InputStream>() {
+                                @Override
+                                public InputStream getInput() {
+                                    return stream;
+                                }
+                            }, Charsets.UTF_8));
                 } catch (IOException e) {
                     throw new RepositoryException("conversion from stream to string failed", e);
-                } finally {
-                    IOUtils.closeQuietly(stream);
                 }
             default:
                 return value.toString();
@@ -212,11 +218,8 @@ class ValueImpl implements Value {
         switch (getType()) {
         case PropertyType.NAME:
         case PropertyType.PATH:
-            try {
-                return new ByteArrayInputStream(getString().getBytes("UTF-8"));
-            } catch (UnsupportedEncodingException ex) {
-                throw new RepositoryException("UTF-8 is not supported", ex);
-            }
+            return new ByteArrayInputStream(
+                    getString().getBytes(Charsets.UTF_8));
         }
         return value.getNewStream();
     }
@@ -230,6 +233,7 @@ class ValueImpl implements Value {
     }
 
     //-------------------------------------------------------------< Object >---
+
     /**
      * @see Object#equals(Object)
      */

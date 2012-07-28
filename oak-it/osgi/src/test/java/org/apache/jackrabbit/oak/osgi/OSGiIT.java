@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.osgi;
 
+import static junit.framework.Assert.assertNotNull;
+import static junit.framework.Assert.assertTrue;
 import static org.ops4j.pax.exam.CoreOptions.bundle;
 import static org.ops4j.pax.exam.CoreOptions.junitBundles;
 import static org.ops4j.pax.exam.CoreOptions.mavenBundle;
@@ -23,6 +25,7 @@ import static org.ops4j.pax.exam.CoreOptions.mavenBundle;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.util.regex.Pattern;
 
 import javax.inject.Inject;
 import javax.jcr.Repository;
@@ -48,7 +51,6 @@ public class OSGiIT {
                 junitBundles(),
                 mavenBundle("org.apache.felix", "org.apache.felix.scr", "1.6.0"),
                 bundle(new File(base, "jcr.jar").toURI().toURL().toString()),
-                bundle(new File(base, "commons-io.jar").toURI().toURL().toString()),
                 bundle(new File(base, "guava.jar").toURI().toURL().toString()),
                 bundle(new File(base, "jackrabbit-api.jar").toURI().toURL().toString()),
                 bundle(new File(base, "jackrabbit-jcr-commons.jar").toURI().toURL().toString()),
@@ -65,8 +67,8 @@ public class OSGiIT {
 
     @Test
     public void testMicroKernel() {
-        System.out.println(kernel);
-        System.out.println(kernel.getHeadRevision());
+        assertNotNull(kernel);
+        assertTrue(Pattern.matches("[0-9a-f]+", kernel.getHeadRevision()));
     }
 
     @Inject
@@ -74,7 +76,8 @@ public class OSGiIT {
 
     @Test
     public void testOakRepository() {
-        System.out.println(oakRepository);
+        assertNotNull(oakRepository);
+        // TODO: try something with oakRepository
     }
 
     @Inject
@@ -82,7 +85,8 @@ public class OSGiIT {
 
     @Test
     public void testJcrRepository() {
-        System.out.println(jcrRepository);
+        assertNotNull(jcrRepository);
+        // TODO: try something with jcrRepository
     }
 
 }
