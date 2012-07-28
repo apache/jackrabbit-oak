@@ -192,11 +192,6 @@ org.apache.jackrabbit.test.api.observation.GetUserDataTest#testWorkspaceOperatio
         <version>${guava.version}</version>
     </dependency>
     <dependency>
-      <groupId>commons-io</groupId>
-      <artifactId>commons-io</artifactId>
-      <version>1.4</version>
-    </dependency>
-    <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
       <version>1.6.4</version>

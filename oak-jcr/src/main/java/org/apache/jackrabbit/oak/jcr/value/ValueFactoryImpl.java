@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.value;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -136,9 +135,6 @@ public class ValueFactoryImpl implements ValueFactory {
             return new ValueImpl(cv, namePathMapper);
         } catch (IOException ex) {
             throw new RuntimeException(ex);
-        } finally {
-            // JCR-2903
-            IOUtils.closeQuietly(value);
         }
     }
 
