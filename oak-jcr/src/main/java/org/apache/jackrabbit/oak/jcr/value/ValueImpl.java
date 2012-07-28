@@ -187,12 +187,11 @@ class ValueImpl implements Value {
                             "In this case a new Value instance must be acquired in order to successfully call this method.");
                 }
                 try {
-                    stream = getNewStream();
                     return CharStreams.toString(CharStreams.newReaderSupplier(
                             new InputSupplier<InputStream>() {
                                 @Override
                                 public InputStream getInput() {
-                                    return stream;
+                                    return value.getNewStream();
                                 }
                             }, Charsets.UTF_8));
                 } catch (IOException e) {
