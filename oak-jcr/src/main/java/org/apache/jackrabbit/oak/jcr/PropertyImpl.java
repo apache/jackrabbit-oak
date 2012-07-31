@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import javax.annotation.Nonnull;
+import javax.jcr.AccessDeniedException;
 import javax.jcr.Binary;
 import javax.jcr.ItemNotFoundException;
 import javax.jcr.ItemVisitor;
@@ -73,7 +74,12 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
         return sessionDelegate.perform(new SessionOperation<NodeImpl>() {
             @Override
             public NodeImpl perform() throws RepositoryException {
-                return new NodeImpl(dlg.getParent());
+                NodeDelegate parent = dlg.getParent();
+                if (parent == null) {
+                    throw new AccessDeniedException();
+                } else {
+                    return new NodeImpl(dlg.getParent());
+                }
             }
         });
     }

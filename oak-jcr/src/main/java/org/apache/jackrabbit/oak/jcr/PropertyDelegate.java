@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.jcr;
 
 import java.util.List;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.Value;
@@ -77,7 +78,7 @@ public class PropertyDelegate extends ItemDelegate {
     }
 
     @Override
-    @Nonnull
+    @CheckForNull
     public NodeDelegate getParent() throws InvalidItemStateException {
         return new NodeDelegate(sessionDelegate, getParentTree());
     }
