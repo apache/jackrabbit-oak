@@ -52,7 +52,7 @@ class KernelRootBuilder extends MemoryNodeBuilder {
         this.branchRevision = null;
     }
 
-    //--------------------------------------------< MemoryNodeStateBuilder >--
+    //--------------------------------------------------< MemoryNodeBuilder >---
 
     @Override
     protected MemoryNodeBuilder createChildBuilder(
