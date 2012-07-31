@@ -30,7 +30,7 @@ import javax.annotation.Nonnull;
  */
 public class UserManagerConfig {
 
-    private static final Logger log = LoggerFactory.getLogger(UserManagerImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(UserManagerConfig.class);
 
     /**
      * Configuration option to define the path underneath which user nodes
