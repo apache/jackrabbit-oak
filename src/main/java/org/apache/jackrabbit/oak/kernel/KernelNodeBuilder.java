@@ -32,7 +32,7 @@ class KernelNodeBuilder extends MemoryNodeBuilder {
         this.root = checkNotNull(root);
     }
 
-    //--------------------------------------------< MemoryNodeStateBuilder >--
+    //--------------------------------------------------< MemoryNodeBuilder >---
 
     @Override
     protected MemoryNodeBuilder createChildBuilder(

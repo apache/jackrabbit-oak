@@ -53,7 +53,7 @@ public class TreeImpl implements Tree, PurgeListener {
     /** Name of this tree */
     private String name;
 
-    /** Lazily initialised {@code NodeStateBuilder} for the underlying node state */
+    /** Lazily initialised {@code NodeBuilder} for the underlying node state */
     NodeBuilder nodeBuilder;
 
     /**
