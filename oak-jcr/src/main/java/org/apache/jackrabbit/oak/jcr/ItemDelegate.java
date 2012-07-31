@@ -51,8 +51,9 @@ public abstract class ItemDelegate {
     public abstract String getPath() throws InvalidItemStateException;
 
     /**
-     * Get the parent of this item
-     * @return  parent of this item or {@code null} for root
+     * Get the parent of this item or {@code null}.
+     * @return  parent of this item or {@code null} for root or if the parent
+     * is not accessible.
      */
     @CheckForNull
     public abstract NodeDelegate getParent() throws InvalidItemStateException;
