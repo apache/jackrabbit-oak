@@ -27,6 +27,7 @@ import java.util.UUID;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.jcr.AccessDeniedException;
 import javax.jcr.Binary;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.Item;
@@ -111,16 +112,20 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
     public Node getParent() throws RepositoryException {
         checkStatus();
 
-        return sessionDelegate.perform(new SessionOperation<NodeImpl>() {
-            @Override
-            public NodeImpl perform() throws RepositoryException {
-                NodeDelegate parent = dlg.getParent();
-                if (parent == null) {
-                    throw new ItemNotFoundException("Root has no parent");
+        if (dlg.isRoot()) {
+            throw new ItemNotFoundException("Root has no parent");
+        } else {
+            return sessionDelegate.perform(new SessionOperation<NodeImpl>() {
+                @Override
+                public NodeImpl perform() throws RepositoryException {
+                    NodeDelegate parent = dlg.getParent();
+                    if (parent == null) {
+                        throw new AccessDeniedException();
+                    }
+                    return new NodeImpl(parent);
                 }
-                return new NodeImpl(parent);
-            }
-        });
+            });
+        }
     }
 
     /**
