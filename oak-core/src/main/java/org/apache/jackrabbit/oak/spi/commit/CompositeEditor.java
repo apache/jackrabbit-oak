@@ -45,12 +45,9 @@ public class CompositeEditor implements CommitEditor {
             NodeStore store, NodeState before, NodeState after)
             throws CommitFailedException {
 
-        NodeState oldState = before;
         NodeState newState = after;
         for (CommitEditor editor : editors) {
-            NodeState newOldState = newState;
-            newState = editor.editCommit(store, oldState, newState);
-            oldState = newOldState;
+            newState = editor.editCommit(store, before, newState);
         }
 
         return newState;
