@@ -16,12 +16,10 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import org.apache.jackrabbit.commons.JcrUtils;
 import org.junit.After;
 
 import javax.jcr.GuestCredentials;
 import javax.jcr.Node;
-import javax.jcr.NodeIterator;
 import javax.jcr.Property;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
