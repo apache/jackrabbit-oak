@@ -21,7 +21,6 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
-
 import javax.annotation.Nonnull;
 import javax.jcr.Binary;
 import javax.jcr.ItemNotFoundException;
@@ -56,6 +55,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     }
 
     //---------------------------------------------------------------< Item >---
+
     /**
      * @see javax.jcr.Item#isNode()
      */
@@ -90,8 +90,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
                     return dlg.getStatus() == Status.NEW;
                 }
             });
-        }
-        catch (RepositoryException e) {
+        } catch (RepositoryException e) {
             return false;
         }
     }
@@ -108,8 +107,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
                     return dlg.getStatus() == Status.MODIFIED;
                 }
             });
-        }
-        catch (RepositoryException e) {
+        } catch (RepositoryException e) {
             return false;
         }
     }
@@ -140,6 +138,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     }
 
     //-----------------------------------------------------------< Property >---
+
     /**
      * @see Property#setValue(Value)
      */
@@ -172,8 +171,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
                         }
                         if (valueType == PropertyType.UNDEFINED) {
                             valueType = value.getType();
-                        }
-                        else if (valueType != value.getType()) {
+                        } else if (valueType != value.getType()) {
                             String msg = "Inhomogeneous type of values (" + this + ')';
                             log.debug(msg);
                             throw new ValueFormatException(msg);
@@ -459,8 +457,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
                             // TODO OAK-23
                             // TODO correct for NAME?
                             return getSession().getNodeByIdentifier(path.substring(1, path.length() - 1));
-                        }
-                        else {
+                        } else {
                             try {
                                 return (path.charAt(0) == '/') ? getSession().getNode(path) : getParent().getNode(path);
                             } catch (PathNotFoundException e) {
@@ -594,18 +591,16 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     private static long getLength(Value value) throws RepositoryException {
         if (value.getType() == PropertyType.BINARY) {
             return value.getBinary().getSize();
-        }
-        else {
+        } else {
             return value.getString().length();
         }
     }
 
     /**
-    *
-    * @param defaultType
-    * @return the required type for this property.
-    * @throws javax.jcr.RepositoryException
-    */
+     * @param defaultType
+     * @return the required type for this property.
+     * @throws javax.jcr.RepositoryException
+     */
     private int getRequiredType(int defaultType) throws RepositoryException {
         // check type according to definition of this property
         int reqType = getDefinition().getRequiredType();
@@ -620,13 +615,12 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     }
 
     /**
-    *
-    * @param value
-    * @param requiredType
-    * @throws RepositoryException
-    */
+     * @param value
+     * @param requiredType
+     * @throws RepositoryException
+     */
     private void setValue(Value value, int requiredType) throws RepositoryException {
-        assert(requiredType != PropertyType.UNDEFINED);
+        assert (requiredType != PropertyType.UNDEFINED);
 
         // TODO check again if definition validation should be respected here.
         if (isMultiple()) {
@@ -641,13 +635,12 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     }
 
     /**
-   *
-   * @param values
-   * @param requiredType
-   * @throws RepositoryException
-   */
+     * @param values
+     * @param requiredType
+     * @throws RepositoryException
+     */
     private void setValues(Value[] values, int requiredType) throws RepositoryException {
-        assert(requiredType != PropertyType.UNDEFINED);
+        assert (requiredType != PropertyType.UNDEFINED);
 
         // TODO check again if definition validation should be respected here.
         if (!isMultiple()) {
