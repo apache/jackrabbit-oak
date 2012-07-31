@@ -70,7 +70,7 @@ public class RootImpl implements Root {
      *
      * The {@link TreeImpl} instances us this mechanism to dispose of its associated
      * {@link NodeBuilder} on purge. Keeping a reference on those {@code TreeImpl}
-     * instances {@code NodeStateBuilder} (i.e. those which are modified) prevents them
+     * instances {@code NodeBuilder} (i.e. those which are modified) prevents them
      * from being prematurely garbage collected.
      */
     private List<PurgeListener> purgePurgeListeners = new ArrayList<PurgeListener>();

@@ -204,7 +204,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
         }
     }
 
-    //-------------------------------------------------< NodeStateBuilder >--
+    //--------------------------------------------------------< NodeBuilder >---
 
     @Override
     public NodeState getNodeState() {
@@ -374,7 +374,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
     /**
      * The <em>mutable</em> state being built. Instances of this class
-     * are never passed beyond the containing MemoryNodeStateBuilder,
+     * are never passed beyond the containing {@code MemoryNodeBuilder},
      * so it's not a problem that we intentionally break the immutability
      * assumption of the {@link NodeState} interface.
      */
