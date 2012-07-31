@@ -30,6 +30,7 @@ import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.ItemNotFoundException;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -96,12 +97,13 @@ public class NodeDelegate extends ItemDelegate {
 
     @Nonnull
     public String getIdentifier() throws InvalidItemStateException {
-        PropertyDelegate pd = getProperty("jcr:uuid");
+        PropertyDelegate pd = getProperty(JcrConstants.JCR_UUID);
         if (pd == null) {
-            // TODO should find the closest referenceable parent, and build an identifier based on that and the relative path
+            // TODO delegated to the OAK-API to calculate the identifier
+            // TODO consisting of closest referenceable parent and a relative path
+            // TODO irrespective of the accessibility of the parent node(s)
             return getPath();
-        }
-        else {
+        } else {
             return pd.getValue().toString();
         }
     }
