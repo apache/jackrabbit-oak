@@ -37,7 +37,6 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.TreeMap;
 import java.util.WeakHashMap;
 import java.util.concurrent.Executors;
@@ -160,7 +159,7 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
                         gc();
                     }
                 }
-            }, 60, 60, TimeUnit.SECONDS);
+            }, 60, 1, TimeUnit.MINUTES); // FIXME, see OAK-216
         }
 
         initialized = true;
