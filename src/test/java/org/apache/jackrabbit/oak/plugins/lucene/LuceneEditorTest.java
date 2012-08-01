@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.plugins.lucene;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
+import static org.apache.jackrabbit.oak.plugins.lucene.LuceneIndexUtils.DEFAULT_INDEX_NAME;
+import static org.apache.jackrabbit.oak.plugins.lucene.LuceneIndexUtils.DEFAULT_INDEX_PATH;
 
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.Root;
@@ -38,15 +40,18 @@ public class LuceneEditorTest {
 
     @Test
     public void testLucene() throws Exception {
+        LuceneIndexInfo indexInfo = new LuceneIndexInfo(DEFAULT_INDEX_NAME,
+                DEFAULT_INDEX_PATH);
+
         KernelNodeStore store = new KernelNodeStore(new MicroKernelImpl());
-        store.setEditor(new LuceneEditor("jcr:system", "oak:lucene"));
+        store.setEditor(new LuceneEditor(indexInfo.getPath()));
         Root root = new RootImpl(store, "");
         Tree tree = root.getTree("/");
 
         tree.setProperty("foo", MemoryValueFactory.INSTANCE.createValue("bar"));
         root.commit(DefaultConflictHandler.OURS);
 
-        QueryIndex index = new LuceneIndex(store, "jcr:system", "oak:lucene");
+        QueryIndex index = new LuceneIndex(store, indexInfo);
         FilterImpl filter = new FilterImpl(null);
         filter.restrictPath("/", Filter.PathRestriction.EXACT);
         filter.restrictProperty(

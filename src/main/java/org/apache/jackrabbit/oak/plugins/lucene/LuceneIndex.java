@@ -53,16 +53,16 @@ public class LuceneIndex implements QueryIndex {
 
     private final NodeStore store;
 
-    private final String[] path;
+    private final LuceneIndexInfo index;
 
-    public LuceneIndex(NodeStore store, String... path) {
+    public LuceneIndex(NodeStore store, LuceneIndexInfo index) {
         this.store = store;
-        this.path = path;
+        this.index = index;
     }
 
     @Override
     public String getIndexName() {
-        return "lucene";
+        return index.getName();
     }
 
     @Override
@@ -78,7 +78,7 @@ public class LuceneIndex implements QueryIndex {
     @Override
     public Cursor query(Filter filter, String revisionId) {
         try {
-            Directory directory = new OakDirectory(store, store.getRoot(), path);
+            Directory directory = new OakDirectory(store, store.getRoot(), index.getPath());
             try {
                 IndexReader reader = DirectoryReader.open(directory);
                 try {
@@ -142,8 +142,16 @@ public class LuceneIndex implements QueryIndex {
 
         for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
             String name = pr.propertyName;
-            String first = pr.first.getString();
-            String last = pr.last.getString();
+            String first = null;
+            String last = null;
+
+            if (pr.first != null) {
+                first = pr.first.getString();
+            }
+            if (pr.last != null) {
+                last = pr.last.getString();
+            }
+
             if (first .equals(last) && pr.firstIncluding && pr.lastIncluding) {
                 qs.add(new TermQuery(new Term(name, first)));
             } else {
@@ -159,7 +167,7 @@ public class LuceneIndex implements QueryIndex {
             }
             return bq;
         } else {
-            return qs.get(1);
+            return qs.get(0);
         }
     }
 
