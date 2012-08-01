@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.lucene;
 
-import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.plugins.lucene.FieldFactory.newPathField;
 import static org.apache.jackrabbit.oak.plugins.lucene.FieldFactory.newPropertyField;
 import static org.apache.jackrabbit.oak.plugins.lucene.TermFactory.newPathTerm;
@@ -76,7 +75,7 @@ public class LuceneEditor implements CommitEditor {
 
             IndexWriter writer = new IndexWriter(directory, config);
             try {
-                LuceneDiff diff = new LuceneDiff(writer, "/");
+                LuceneDiff diff = new LuceneDiff(writer, "");
                 after.compareAgainstBaseState(before, diff);
                 diff.postProcess(after);
                 writer.commit();
@@ -139,7 +138,7 @@ public class LuceneEditor implements CommitEditor {
             }
             if (exception == null) {
                 try {
-                    addSubtree(concat(path, name), after);
+                    addSubtree(path + "/" + name, after);
                 } catch (IOException e) {
                     exception = e;
                 }
@@ -154,7 +153,7 @@ public class LuceneEditor implements CommitEditor {
             }
             if (exception == null) {
                 try {
-                    LuceneDiff diff = new LuceneDiff(writer, concat(path, name));
+                    LuceneDiff diff = new LuceneDiff(writer, path + "/" + name);
                     after.compareAgainstBaseState(before, diff);
                     diff.postProcess(after);
                 } catch (IOException e) {
@@ -170,7 +169,7 @@ public class LuceneEditor implements CommitEditor {
             }
             if (exception == null) {
                 try {
-                    deleteSubtree(concat(path, name), before);
+                    deleteSubtree(path + "/" + name, before);
                 } catch (IOException e) {
                     exception = e;
                 }
@@ -181,7 +180,7 @@ public class LuceneEditor implements CommitEditor {
                 throws IOException {
             writer.addDocument(makeDocument(path, state));
             for (ChildNodeEntry entry : state.getChildNodeEntries()) {
-                addSubtree(concat(path, entry.getName()), entry.getNodeState());
+                addSubtree(path + "/" + entry.getName(), entry.getNodeState());
             }
         }
 
@@ -189,7 +188,7 @@ public class LuceneEditor implements CommitEditor {
                 throws IOException {
             writer.deleteDocuments(newPathTerm(path));
             for (ChildNodeEntry entry : state.getChildNodeEntries()) {
-                deleteSubtree(concat(path, entry.getName()), entry.getNodeState());
+                deleteSubtree(path + "/" + entry.getName(), entry.getNodeState());
             }
         }
 
