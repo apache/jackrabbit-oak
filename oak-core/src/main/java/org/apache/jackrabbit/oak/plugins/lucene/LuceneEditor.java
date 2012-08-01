@@ -16,6 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.lucene;
 
+import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
+import static org.apache.jackrabbit.oak.plugins.lucene.FieldFactory.newPathField;
+import static org.apache.jackrabbit.oak.plugins.lucene.FieldFactory.newPropertyField;
+import static org.apache.jackrabbit.oak.plugins.lucene.TermFactory.newPathTerm;
+
 import java.io.IOException;
 
 import javax.jcr.PropertyType;
@@ -38,10 +43,6 @@ import org.apache.lucene.util.Version;
 import org.apache.tika.Tika;
 import org.apache.tika.exception.TikaException;
 
-import static org.apache.jackrabbit.oak.plugins.lucene.FieldFactory.newPathField;
-import static org.apache.jackrabbit.oak.plugins.lucene.FieldFactory.newPropertyField;
-import static org.apache.jackrabbit.oak.plugins.lucene.TermFactory.newPathTerm;
-
 /**
  * This class updates a Lucene index when node content is changed.
  */
@@ -53,10 +54,17 @@ public class LuceneEditor implements CommitEditor {
 
     private static final Analyzer ANALYZER = new StandardAnalyzer(VERSION);
 
+    private static final IndexWriterConfig config = new IndexWriterConfig(VERSION,
+            ANALYZER);
+
     private final String[] path;
 
     public LuceneEditor(String... path) {
         this.path = path;
+    }
+
+    public LuceneEditor() {
+        this(LuceneIndexUtils.DEFAULT_INDEX_PATH);
     }
 
     @Override
@@ -66,10 +74,9 @@ public class LuceneEditor implements CommitEditor {
         try {
             OakDirectory directory = new OakDirectory(store, after, path);
 
-            IndexWriter writer = new IndexWriter(
-                    directory, new IndexWriterConfig(VERSION, ANALYZER));
+            IndexWriter writer = new IndexWriter(directory, config);
             try {
-                LuceneDiff diff = new LuceneDiff(writer, "");
+                LuceneDiff diff = new LuceneDiff(writer, "/");
                 after.compareAgainstBaseState(before, diff);
                 diff.postProcess(after);
                 writer.commit();
@@ -132,7 +139,7 @@ public class LuceneEditor implements CommitEditor {
             }
             if (exception == null) {
                 try {
-                    addSubtree(path + "/" + name, after);
+                    addSubtree(concat(path, name), after);
                 } catch (IOException e) {
                     exception = e;
                 }
@@ -147,7 +154,7 @@ public class LuceneEditor implements CommitEditor {
             }
             if (exception == null) {
                 try {
-                    LuceneDiff diff = new LuceneDiff(writer, path + "/" + name);
+                    LuceneDiff diff = new LuceneDiff(writer, concat(path, name));
                     after.compareAgainstBaseState(before, diff);
                     diff.postProcess(after);
                 } catch (IOException e) {
@@ -163,7 +170,7 @@ public class LuceneEditor implements CommitEditor {
             }
             if (exception == null) {
                 try {
-                    deleteSubtree(path + "/" + name, before);
+                    deleteSubtree(concat(path, name), before);
                 } catch (IOException e) {
                     exception = e;
                 }
@@ -174,7 +181,7 @@ public class LuceneEditor implements CommitEditor {
                 throws IOException {
             writer.addDocument(makeDocument(path, state));
             for (ChildNodeEntry entry : state.getChildNodeEntries()) {
-                addSubtree(path + "/" + entry.getName(), entry.getNodeState());
+                addSubtree(concat(path, entry.getName()), entry.getNodeState());
             }
         }
 
@@ -182,7 +189,7 @@ public class LuceneEditor implements CommitEditor {
                 throws IOException {
             writer.deleteDocuments(newPathTerm(path));
             for (ChildNodeEntry entry : state.getChildNodeEntries()) {
-                deleteSubtree(path + "/" + entry.getName(), entry.getNodeState());
+                deleteSubtree(concat(path, entry.getName()), entry.getNodeState());
             }
         }
 
