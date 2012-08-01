@@ -53,8 +53,19 @@ public class LuceneEditor implements CommitEditor {
 
     private static final Analyzer ANALYZER = new StandardAnalyzer(VERSION);
 
-    private static final IndexWriterConfig config = new IndexWriterConfig(VERSION,
-            ANALYZER);
+    private static final IndexWriterConfig config = getIndexWriterConfig();
+
+    private static IndexWriterConfig getIndexWriterConfig() {
+        // FIXME: Hack needed to make Lucene work in an OSGi environment
+        Thread thread = Thread.currentThread();
+        ClassLoader loader = thread.getContextClassLoader();
+        thread.setContextClassLoader(IndexWriterConfig.class.getClassLoader());
+        try {
+            return new IndexWriterConfig(VERSION, ANALYZER);
+        } finally {
+            thread.setContextClassLoader(loader);
+        }
+    }
 
     private final String[] path;
 
