@@ -34,9 +34,14 @@ public class TODO {
 
     private static final String mode = System.getProperty("todo", "strict");
 
-    private static final boolean strict = "strict".equals(mode);
+    private static boolean strict = "strict".equals(mode);
 
-    private static final boolean log = "log".equals(mode);
+    private static boolean log = "log".equals(mode);
+
+    public static void relax() {
+        strict = false;
+        log = true;
+    }
 
     public static TODO unimplemented() {
         return new TODO("unimplemented");
@@ -74,6 +79,16 @@ public class TODO {
         } else if (log) {
             logger.warn(message, exception);
         }
+    }
+
+    public <T> T returnValue(final T value)
+            throws UnsupportedRepositoryOperationException {
+        return call(new Callable<T>() {
+            @Override
+            public T call() {
+                return value;
+            }
+        });
     }
 
     public <T> T call(Callable<T> callable)
