@@ -41,8 +41,13 @@ import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.AbstractSession;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.jcr.security.principal.PrincipalManagerImpl;
+import org.apache.jackrabbit.oak.jcr.security.user.UserManagerConfig;
+import org.apache.jackrabbit.oak.jcr.security.user.UserManagerImpl;
 import org.apache.jackrabbit.oak.jcr.xml.XmlImportHandler;
+import org.apache.jackrabbit.oak.security.principal.KernelPrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
+import org.apache.jackrabbit.oak.util.TODO;
 import org.apache.jackrabbit.util.XMLChar;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -411,15 +416,15 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     @Override
     @Nonnull
     public PrincipalManager getPrincipalManager() throws RepositoryException {
-        // TODO
-        throw new UnsupportedOperationException("Implementation missing");
+        return TODO.unimplemented().returnValue(new PrincipalManagerImpl(
+                new KernelPrincipalProvider()));
     }
 
     @Override
     @Nonnull
     public UserManager getUserManager() throws RepositoryException {
-        // TODO
-        throw new UnsupportedOperationException("Implementation missing");
+        return TODO.unimplemented().returnValue(new UserManagerImpl(
+                dlg, new UserManagerConfig("admin", null, null)));
     }
 
     //------------------------------------------------------------< private >---
