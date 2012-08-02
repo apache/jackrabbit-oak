@@ -52,7 +52,7 @@ public class RootImplTest extends AbstractOakTest {
 
     @Test
     public void getChild() {
-        RootImpl root = new RootImpl(store, null);
+        RootImpl root = createRootImpl(null);
         Tree tree = root.getTree("/");
 
         Tree child = tree.getChild("any");
@@ -64,7 +64,7 @@ public class RootImplTest extends AbstractOakTest {
 
     @Test
     public void getProperty() {
-        RootImpl root = new RootImpl(store, "test");
+        RootImpl root = createRootImpl("test");
         Tree tree = root.getTree("/");
 
         PropertyState propertyState = tree.getProperty("any");
@@ -79,7 +79,7 @@ public class RootImplTest extends AbstractOakTest {
 
     @Test
     public void getChildren() {
-        RootImpl root = new RootImpl(store, "test");
+        RootImpl root = createRootImpl("test");
         Tree tree = root.getTree("/");
 
         Iterable<Tree> children = tree.getChildren();
@@ -97,7 +97,7 @@ public class RootImplTest extends AbstractOakTest {
 
     @Test
     public void getProperties() {
-        RootImpl root = new RootImpl(store, null);
+        RootImpl root = createRootImpl(null);
         Tree tree = root.getTree("/");
 
         Map<String, CoreValue> expectedProperties = new HashMap<String, CoreValue>();
@@ -120,7 +120,7 @@ public class RootImplTest extends AbstractOakTest {
 
     @Test
     public void addChild() throws CommitFailedException {
-        RootImpl root = new RootImpl(store, null);
+        RootImpl root = createRootImpl(null);
         Tree tree = root.getTree("/");
 
         assertFalse(tree.hasChild("new"));
@@ -140,7 +140,7 @@ public class RootImplTest extends AbstractOakTest {
 
     @Test
     public void addExistingChild() throws CommitFailedException {
-        RootImpl root = new RootImpl(store, null);
+        RootImpl root = createRootImpl(null);
         Tree tree = root.getTree("/");
 
         assertFalse(tree.hasChild("new"));
@@ -157,7 +157,7 @@ public class RootImplTest extends AbstractOakTest {
 
     @Test
     public void removeChild() throws CommitFailedException {
-        RootImpl root = new RootImpl(store, null);
+        RootImpl root = createRootImpl(null);
         Tree tree = root.getTree("/");
 
         assertTrue(tree.hasChild("x"));
@@ -172,7 +172,7 @@ public class RootImplTest extends AbstractOakTest {
 
     @Test
     public void setProperty() throws CommitFailedException {
-        RootImpl root = new RootImpl(store, null);
+        RootImpl root = createRootImpl(null);
         Tree tree = root.getTree("/");
 
         assertFalse(tree.hasProperty("new"));
@@ -194,7 +194,7 @@ public class RootImplTest extends AbstractOakTest {
 
     @Test
     public void removeProperty() throws CommitFailedException {
-        RootImpl root = new RootImpl(store, null);
+        RootImpl root = createRootImpl(null);
         Tree tree = root.getTree("/");
 
         assertTrue(tree.hasProperty("a"));
@@ -209,7 +209,7 @@ public class RootImplTest extends AbstractOakTest {
 
     @Test
     public void move() throws CommitFailedException {
-        RootImpl root = new RootImpl(store, null);
+        RootImpl root = createRootImpl(null);
         Tree tree = root.getTree("/");
 
         Tree y = tree.getChild("y");
@@ -229,7 +229,7 @@ public class RootImplTest extends AbstractOakTest {
 
     @Test
     public void move2() {
-        RootImpl root = new RootImpl(store, null);
+        RootImpl root = createRootImpl(null);
         Tree r = root.getTree("");
         Tree x = r.getChild("x");
         Tree y = r.getChild("y");
@@ -246,7 +246,7 @@ public class RootImplTest extends AbstractOakTest {
      * Regression test for OAK-208
      */
     public void removeMoved() throws CommitFailedException {
-        RootImpl root = new RootImpl(store, null);
+        RootImpl root = createRootImpl(null);
         Tree r = root.getTree("");
         r.addChild("a");
         r.addChild("b");
@@ -266,7 +266,7 @@ public class RootImplTest extends AbstractOakTest {
 
     @Test
     public void rename() throws CommitFailedException {
-        RootImpl root = new RootImpl(store, null);
+        RootImpl root = createRootImpl(null);
         Tree tree = root.getTree("/");
 
         assertTrue(tree.hasChild("x"));
@@ -283,7 +283,7 @@ public class RootImplTest extends AbstractOakTest {
 
     @Test
     public void copy() throws CommitFailedException {
-        RootImpl root = new RootImpl(store, null);
+        RootImpl root = createRootImpl(null);
         Tree tree = root.getTree("/");
 
         Tree y = tree.getChild("y");
@@ -303,7 +303,7 @@ public class RootImplTest extends AbstractOakTest {
 
     @Test
     public void deepCopy() throws CommitFailedException {
-        RootImpl root = new RootImpl(store, null);
+        RootImpl root = createRootImpl(null);
         Tree tree = root.getTree("/");
 
         Tree y = tree.getChild("y");
@@ -328,7 +328,7 @@ public class RootImplTest extends AbstractOakTest {
 
     @Test
     public void getChildrenCount() {
-        RootImpl root = new RootImpl(store, null);
+        RootImpl root = createRootImpl(null);
         Tree tree = root.getTree("/");
 
         assertEquals(3, tree.getChildrenCount());
@@ -345,7 +345,7 @@ public class RootImplTest extends AbstractOakTest {
 
     @Test
     public void getPropertyCount() {
-        RootImpl root = new RootImpl(store, null);
+        RootImpl root = createRootImpl(null);
         Tree tree = root.getTree("/");
 
         assertEquals(3, tree.getPropertyCount());
@@ -366,7 +366,7 @@ public class RootImplTest extends AbstractOakTest {
 
     @Test
     public void addAndRemoveProperty() throws CommitFailedException {
-        RootImpl root = new RootImpl(store, null);
+        RootImpl root = createRootImpl(null);
         Tree tree = root.getTree("/");
 
         tree.setProperty("P0", valueFactory.createValue("V1"));
@@ -382,7 +382,7 @@ public class RootImplTest extends AbstractOakTest {
 
     @Test
     public void nodeStatus() throws CommitFailedException {
-        RootImpl root = new RootImpl(store, null);
+        RootImpl root = createRootImpl(null);
         Tree tree = root.getTree("/");
 
         tree.addChild("new");
@@ -409,7 +409,7 @@ public class RootImplTest extends AbstractOakTest {
 
     @Test
     public void propertyStatus() throws CommitFailedException {
-        RootImpl root = new RootImpl(store, null);
+        RootImpl root = createRootImpl(null);
         Tree tree = root.getTree("/");
         CoreValue value1 = valueFactory.createValue("V1");
         CoreValue value2 = valueFactory.createValue("V2");
@@ -436,7 +436,7 @@ public class RootImplTest extends AbstractOakTest {
 
     @Test
     public void noTransitiveModifiedStatus() throws CommitFailedException {
-        RootImpl root = new RootImpl(store, null);
+        RootImpl root = createRootImpl(null);
         Tree tree = root.getTree("/");
         tree.addChild("one").addChild("two");
         root.commit(DefaultConflictHandler.OURS);
@@ -449,8 +449,8 @@ public class RootImplTest extends AbstractOakTest {
 
     @Test
     public void rebase() throws CommitFailedException {
-        RootImpl root1 = new RootImpl(store, null);
-        RootImpl root2 = new RootImpl(store, null);
+        RootImpl root1 = createRootImpl(null);
+        RootImpl root2 = createRootImpl(null);
 
         checkEqual(root1.getTree("/"), root2.getTree("/"));
 
@@ -473,7 +473,7 @@ public class RootImplTest extends AbstractOakTest {
 
     @Test
     public void largeChildList() throws CommitFailedException {
-        RootImpl root = new RootImpl(store, null);
+        RootImpl root = createRootImpl(null);
         Tree tree = root.getTree("/");
 
         Set<String> added = new HashSet<String>();
