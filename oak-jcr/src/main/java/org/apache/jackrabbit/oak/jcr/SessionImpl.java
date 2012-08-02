@@ -29,6 +29,7 @@ import javax.jcr.Item;
 import javax.jcr.ItemNotFoundException;
 import javax.jcr.NamespaceException;
 import javax.jcr.Node;
+import javax.jcr.PathNotFoundException;
 import javax.jcr.Property;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -160,26 +161,50 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
 
     @Override
     public Item getItem(String absPath) throws RepositoryException {
-        // FIXME OAK-218
-        return super.getItem(absPath);
+        if (nodeExists(absPath)) {
+            return getNode(absPath);
+        } else {
+            return getProperty(absPath);
+        }
     }
 
     @Override
     public boolean itemExists(String absPath) throws RepositoryException {
-        // FIXME OAK-218
-        return super.itemExists(absPath);
+        return nodeExists(absPath) || propertyExists(absPath);
     }
 
     @Override
-    public Node getNode(String absPath) throws RepositoryException {
-        // FIXME OAK-218
-        return super.getNode(absPath);
+    public Node getNode(final String absPath) throws RepositoryException {
+        ensureIsAlive();
+
+        // FIXME: deal with identifier path (OAK-23)
+
+        return dlg.perform(new SessionOperation<NodeImpl>() {
+            @Override
+            public NodeImpl perform() throws RepositoryException {
+                String oakPath = dlg.getOakPathOrThrow(absPath);
+                NodeDelegate d = dlg.getNode(oakPath);
+                if (d == null) {
+                    throw new PathNotFoundException("Node with path " + absPath + " does not exist.");
+                }
+                return new NodeImpl(d);
+            }
+        });
     }
 
     @Override
-    public boolean nodeExists(String absPath) throws RepositoryException {
-        // FIXME OAK-218
-        return super.nodeExists(absPath);
+    public boolean nodeExists(final String absPath) throws RepositoryException {
+        ensureIsAlive();
+
+        // FIXME: deal with identifier path (OAK-23)
+
+        return dlg.perform(new SessionOperation<Boolean>() {
+            @Override
+            public Boolean perform() throws RepositoryException {
+                String oakPath = dlg.getOakPathOrThrow(absPath);
+                return dlg.getNode(oakPath) != null;
+            }
+        });
     }
 
     @Override
