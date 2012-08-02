@@ -47,10 +47,10 @@ public abstract class AbstractBlobStoreTest extends TestCase {
     public abstract void setUp() throws Exception;
 
     public void tearDown() throws Exception {
-        store.close();
+        store = null;
     }
 
-    public void testAddFile() throws Exception {
+    public void testWriteFile() throws Exception {
         store.setBlockSize(1024 * 1024);
         byte[] data = new byte[4 * 1024 * 1024];
         Random r = new Random(0);
@@ -274,7 +274,6 @@ public abstract class AbstractBlobStoreTest extends TestCase {
         String id = addFiles(store, "~/temp/ds");
         extractFiles(store, id, "target/test");
 
-        store.close();
     }
 
     public static void extractFiles(AbstractBlobStore store, String listingId, String target) throws IOException {

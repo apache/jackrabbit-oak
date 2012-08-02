@@ -24,16 +24,6 @@ import java.io.InputStream;
 public interface BlobStore {
 
     /**
-     * Write a blob from a temporary file. The temporary file is removed
-     * afterwards. A file based blob stores might simply rename the file, so
-     * that no additional writes are necessary.
-     *
-     * @param tempFilePath the temporary file
-     * @return the blob id
-     */
-    String writeBlob(String tempFilePath) throws Exception;
-
-    /**
      * Write a blob from an input stream.
      * This method closes the input stream.
      *
@@ -61,12 +51,5 @@ public interface BlobStore {
      * @return the length
      */
     long getBlobLength(String blobId) throws Exception;
-
-    /**
-     * Close all internally used resources, such as file handles. This method
-     * should be called at the end of the components lifecycle. After calling
-     * this method, the blob store should no longer be used.
-     */
-    void close();
 
 }
