@@ -229,5 +229,26 @@ org.apache.jackrabbit.test.api.observation.GetUserDataTest#testWorkspaceOperatio
       <version>${jackrabbit.version}</version>
       <scope>test</scope>
     </dependency>
+
+    <!-- FIXME, OAK-154 -->
+    <dependency>
+      <groupId>org.apache.lucene</groupId>
+      <artifactId>lucene-core</artifactId>
+      <version>4.0.0-ALPHA</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.lucene</groupId>
+      <artifactId>lucene-analyzers-common</artifactId>
+      <version>4.0.0-ALPHA</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.tika</groupId>
+      <artifactId>tika-core</artifactId>
+      <version>1.2</version>
+      <scope>test</scope>
+    </dependency>
+
   </dependencies>
 </project>
