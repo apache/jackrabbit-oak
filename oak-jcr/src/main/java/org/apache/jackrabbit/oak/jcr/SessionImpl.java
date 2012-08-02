@@ -24,9 +24,11 @@ import java.util.Set;
 
 import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
+import javax.jcr.Item;
 import javax.jcr.ItemNotFoundException;
 import javax.jcr.NamespaceException;
 import javax.jcr.Node;
+import javax.jcr.Property;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -148,6 +150,42 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
                 return new NodeImpl(d);
             }
         });
+    }
+
+    @Override
+    public Item getItem(String absPath) throws RepositoryException {
+        // FIXME OAK-218
+        return super.getItem(absPath);
+    }
+
+    @Override
+    public boolean itemExists(String absPath) throws RepositoryException {
+        // FIXME OAK-218
+        return super.itemExists(absPath);
+    }
+
+    @Override
+    public Node getNode(String absPath) throws RepositoryException {
+        // FIXME OAK-218
+        return super.getNode(absPath);
+    }
+
+    @Override
+    public boolean nodeExists(String absPath) throws RepositoryException {
+        // FIXME OAK-218
+        return super.nodeExists(absPath);
+    }
+
+    @Override
+    public Property getProperty(String absPath) throws RepositoryException {
+        // FIXME OAK-218
+        return super.getProperty(absPath);
+    }
+
+    @Override
+    public boolean propertyExists(String absPath) throws RepositoryException {
+        // FIXME OAK-218
+        return super.propertyExists(absPath);
     }
 
     @Override
