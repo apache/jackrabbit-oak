@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContext;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,9 +44,11 @@ class ContentSessionImpl implements ContentSession {
     private final String workspaceName;
     private final NodeStore store;
     private final QueryEngine queryEngine;
+    private final AccessControlContext accessControlContext;
 
     public ContentSessionImpl(LoginContext loginContext, String workspaceName,
-                              NodeStore store, QueryEngine queryEngine) {
+                              NodeStore store, QueryEngine queryEngine,
+                              AccessControlContext accessControlContext) {
 
         assert queryEngine != null;
 
@@ -53,6 +56,9 @@ class ContentSessionImpl implements ContentSession {
         this.workspaceName = workspaceName;
         this.store = store;
         this.queryEngine = queryEngine;
+
+        this.accessControlContext = accessControlContext;
+        this.accessControlContext.initialize(getAuthInfo().getPrincipals());
     }
 
     @Nonnull
@@ -69,7 +75,7 @@ class ContentSessionImpl implements ContentSession {
     @Nonnull
     @Override
     public Root getCurrentRoot() {
-        return new RootImpl(store, workspaceName);
+        return new RootImpl(store, workspaceName, accessControlContext);
     }
 
     @Override
