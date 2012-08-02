@@ -20,7 +20,8 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.util.Collections;
 import java.util.Map;
-import java.util.Timer;
+import java.util.concurrent.ScheduledExecutorService;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.ItemExistsException;
@@ -51,7 +52,6 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
 import org.apache.jackrabbit.oak.jcr.observation.ObservationManagerImpl;
-import org.apache.jackrabbit.oak.jcr.util.LazyValue;
 import org.apache.jackrabbit.oak.jcr.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.namepath.AbstractNameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -65,7 +65,7 @@ public class SessionDelegate {
 
     private final NamePathMapper namePathMapper = new NamePathMapperImpl(new SessionNameMapper());
     private final Repository repository;
-    private final LazyValue<Timer> observationTimer;
+    private final ScheduledExecutorService executor;
     private final ContentSession contentSession;
     private final ValueFactoryImpl valueFactory;
     private final Workspace workspace;
@@ -78,13 +78,15 @@ public class SessionDelegate {
     private boolean isAlive = true;
     private int sessionOpCount;
 
-    SessionDelegate(Repository repository, LazyValue<Timer> observationTimer, ContentSession contentSession,
-            boolean autoRefresh) throws RepositoryException {
+    SessionDelegate(
+            Repository repository, ScheduledExecutorService executor,
+            ContentSession contentSession, boolean autoRefresh)
+            throws RepositoryException {
         assert repository != null;
         assert contentSession != null;
 
         this.repository = repository;
-        this.observationTimer = observationTimer;
+        this.executor = executor;
         this.contentSession = contentSession;
         this.valueFactory = new ValueFactoryImpl(contentSession.getCoreValueFactory(), namePathMapper);
         this.workspace = new WorkspaceImpl(this);
@@ -431,7 +433,7 @@ public class SessionDelegate {
     @Nonnull
     public ObservationManager getObservationManager() {
         if (observationManager == null) {
-            observationManager = new ObservationManagerImpl(this, observationTimer);
+            observationManager = new ObservationManagerImpl(this, executor);
         }
         return observationManager;
     }

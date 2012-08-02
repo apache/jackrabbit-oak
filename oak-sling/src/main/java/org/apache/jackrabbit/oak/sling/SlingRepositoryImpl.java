@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.sling;
 
+import java.util.concurrent.ScheduledExecutorService;
+
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
@@ -26,8 +28,9 @@ import org.apache.sling.jcr.api.SlingRepository;
 public class SlingRepositoryImpl
         extends RepositoryImpl implements SlingRepository {
 
-    public SlingRepositoryImpl(ContentRepository repository) {
-        super(repository);
+    public SlingRepositoryImpl(
+            ContentRepository repository, ScheduledExecutorService executor) {
+        super(repository, executor);
     }
 
     @Override

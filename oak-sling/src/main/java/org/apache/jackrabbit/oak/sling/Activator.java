@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.sling;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 import javax.jcr.Repository;
 
@@ -35,6 +37,8 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
 
     private BundleContext context;
 
+    private ScheduledExecutorService executor;
+
     private ServiceTracker tracker;
 
     private final Map<ServiceReference, ServiceRegistration> jcrRepositories =
@@ -48,6 +52,7 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
     @Override
     public void start(BundleContext bundleContext) throws Exception {
         context = bundleContext;
+        executor = Executors.newScheduledThreadPool(1);
         tracker = new ServiceTracker(
                 context, ContentRepository.class.getName(), this);
         tracker.open();
@@ -55,7 +60,8 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
 
     @Override
     public void stop(BundleContext bundleContext) throws Exception {
-        tracker.open();
+        tracker.close();
+        executor.shutdown();
     }
 
     //--------------------------------------------< ServiceTrackerCustomizer >--
@@ -64,8 +70,8 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
     public Object addingService(ServiceReference reference) {
         Object service = context.getService(reference);
         if (service instanceof ContentRepository) {
-            SlingRepository repository =
-                    new SlingRepositoryImpl((ContentRepository) service);
+            SlingRepository repository = new SlingRepositoryImpl(
+                    (ContentRepository) service, executor);
             jcrRepositories.put(reference, context.registerService(
                     Repository.class.getName(),
                     repository, new Properties()));

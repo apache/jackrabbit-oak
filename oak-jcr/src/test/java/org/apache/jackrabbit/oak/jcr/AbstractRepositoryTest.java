@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+
+import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.junit.After;
 
 import javax.jcr.GuestCredentials;
@@ -33,6 +37,9 @@ import javax.jcr.Session;
  * this instance and clean up the repository when done.
  */
 public abstract class AbstractRepositoryTest {
+
+    private ScheduledExecutorService executor = null;
+
     private Repository repository = null;
     private Session session = null;
 
@@ -45,11 +52,18 @@ public abstract class AbstractRepositoryTest {
         }
         // release repository field
         repository = null;
+
+        if (executor != null) {
+            executor.shutdown();
+            executor = null;
+        }
     }
 
     protected Repository getRepository() throws RepositoryException {
         if (repository == null) {
-            repository = new RepositoryImpl();
+            executor = Executors.newScheduledThreadPool(1);
+            repository =
+                    new RepositoryImpl(new ContentRepositoryImpl(), executor);
         }
         return repository;
     }
