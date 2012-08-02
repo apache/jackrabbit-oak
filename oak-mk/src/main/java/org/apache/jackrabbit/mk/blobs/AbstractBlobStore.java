@@ -65,11 +65,13 @@ import java.util.WeakHashMap;
  */
 public abstract class AbstractBlobStore implements Closeable, BlobStore, Cache.Backend<AbstractBlobStore.BlockId, AbstractBlobStore.Data> {
 
-    protected static final String HASH_ALGORITHM = "SHA-1";
+    protected static final String HASH_ALGORITHM = "SHA-256";
 
     protected static final int TYPE_DATA = 0;
     protected static final int TYPE_HASH = 1;
     protected static final int TYPE_HASH_COMPRESSED = 2;
+    
+    protected static final int BLOCK_SIZE_LIMIT = 48;
 
     protected Map<String, WeakReference<String>> inUse =
         Collections.synchronizedMap(new WeakHashMap<String, WeakReference<String>>());
@@ -78,7 +80,7 @@ public abstract class AbstractBlobStore implements Closeable, BlobStore, Cache.B
      * The minimum size of a block. Smaller blocks are inlined (the data store id
      * is the data itself).
      */
-    private int blockSizeMin = 256;
+    private int blockSizeMin = 4096;
 
     /**
      * The size of a block. 128 KB has been found to be as fast as larger
@@ -89,6 +91,7 @@ public abstract class AbstractBlobStore implements Closeable, BlobStore, Cache.B
     private Cache<AbstractBlobStore.BlockId, Data> cache = Cache.newInstance(this, 8 * 1024 * 1024);
 
     public void setBlockSizeMin(int x) {
+        validateBlockSize(x);
         this.blockSizeMin = x;
     }
 
@@ -97,14 +100,23 @@ public abstract class AbstractBlobStore implements Closeable, BlobStore, Cache.B
     }
 
     public void setBlockSize(int x) {
+        validateBlockSize(x);
         this.blockSize = x;
+    }
+    
+    private static void validateBlockSize(int x) {
+        if (x < BLOCK_SIZE_LIMIT) {
+            throw new IllegalArgumentException(
+                    "The minimum size must be bigger " + 
+                    "than a content hash itself; limit = " + BLOCK_SIZE_LIMIT);
+        }
     }
 
     public int getBlockSize() {
         return blockSize;
     }
 
-    public String addBlob(String tempFilePath) throws Exception {
+    public String writeBlob(String tempFilePath) throws Exception {
         File file = new File(tempFilePath);
         InputStream in = null;
         try {
@@ -273,13 +285,25 @@ public abstract class AbstractBlobStore implements Closeable, BlobStore, Cache.B
     }
 
     public Data load(BlockId id) {
+        byte[] data;
         try {
-            return new Data(readBlockFromBackend(id));
+            data = readBlockFromBackend(id);
         } catch (Exception e) {
-            throw new RuntimeException("failed to read block from backend", e);
+            throw new RuntimeException("failed to read block from backend, id " + id, e);
         }
+        if (data == null) {
+            throw new IllegalArgumentException("The block with id " + id + " was not found");
+        }
+        return new Data(data);
     }
 
+    /**
+     * Load the block from the storage backend. Returns null if the block was
+     * not found.
+     * 
+     * @param id the block id
+     * @return the block data, or null
+     */
     protected abstract byte[] readBlockFromBackend(BlockId id) throws Exception;
 
     public long getBlobLength(String blobId) throws IOException {

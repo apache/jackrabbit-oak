@@ -35,7 +35,7 @@ public class DbBlobStoreTest extends AbstractBlobStoreTest {
         DbBlobStore blobStore = new DbBlobStore();
         blobStore.setConnectionPool(cp);
         blobStore.setBlockSize(128);
-        blobStore.setBlockSizeMin(32);
+        blobStore.setBlockSizeMin(48);
         this.store = blobStore;
     }
 
