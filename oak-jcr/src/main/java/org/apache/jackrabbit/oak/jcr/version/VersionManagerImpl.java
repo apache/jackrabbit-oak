@@ -29,9 +29,17 @@ import javax.jcr.version.VersionHistory;
 import javax.jcr.version.VersionManager;
 
 import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
+import org.apache.jackrabbit.oak.jcr.NodeDelegate;
+import org.apache.jackrabbit.oak.jcr.SessionDelegate;
 import org.apache.jackrabbit.oak.util.TODO;
 
 public class VersionManagerImpl implements VersionManager {
+
+    private final SessionDelegate sessionDelegate;
+
+    public VersionManagerImpl(SessionDelegate sessionDelegate) {
+        this.sessionDelegate = sessionDelegate;
+    }
 
     @Override
     public Node setActivity(Node activity) throws RepositoryException {
@@ -107,17 +115,17 @@ public class VersionManagerImpl implements VersionManager {
     @Override
     public VersionHistory getVersionHistory(String absPath)
             throws RepositoryException {
-        throw new UnsupportedRepositoryOperationException();
+        return TODO.unimplemented().returnValue(null);
     }
 
     @Override
     public Version getBaseVersion(String absPath) throws RepositoryException {
-        throw new UnsupportedRepositoryOperationException();
+        return TODO.unimplemented().returnValue(null);
     }
 
     @Override
     public Node getActivity() throws RepositoryException {
-        throw new UnsupportedRepositoryOperationException();
+        return TODO.unimplemented().returnValue(null);
     }
 
     @Override
@@ -128,17 +136,17 @@ public class VersionManagerImpl implements VersionManager {
 
     @Override
     public Node createConfiguration(String absPath) throws RepositoryException {
-        throw TODO.unimplemented().exception();
+        return TODO.unimplemented().returnValue(null);
     }
 
     @Override
     public Node createActivity(String title) throws RepositoryException {
-        throw TODO.unimplemented().exception();
+        return TODO.unimplemented().returnValue(null);
     }
 
     @Override
     public Version checkpoint(String absPath) throws RepositoryException {
-        throw TODO.unimplemented().exception();
+        return TODO.unimplemented().returnValue(null);
     }
 
     @Override
@@ -148,7 +156,10 @@ public class VersionManagerImpl implements VersionManager {
 
     @Override
     public Version checkin(String absPath) throws RepositoryException {
-        throw TODO.unimplemented().exception();
+        String oakPath = sessionDelegate.getOakPathOrThrowNotFound(absPath);
+        NodeDelegate nodeDelegate = sessionDelegate.getNode(oakPath);
+        return TODO.dummyImplementation().returnValue(
+                new VersionImpl(nodeDelegate));
     }
 
     @Override

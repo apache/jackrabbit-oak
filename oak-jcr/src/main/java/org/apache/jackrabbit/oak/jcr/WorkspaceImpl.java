@@ -170,7 +170,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
 
     @Override
     public VersionManager getVersionManager() {
-        return new VersionManagerImpl();
+        return new VersionManagerImpl(sessionDelegate);
     }
 
     @Override
