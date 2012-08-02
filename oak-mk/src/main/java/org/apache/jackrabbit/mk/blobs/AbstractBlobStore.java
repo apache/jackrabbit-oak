@@ -22,7 +22,6 @@ import org.apache.jackrabbit.mk.util.StringUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -63,7 +62,7 @@ import java.util.WeakHashMap;
  * long), size of data store id (variable size long), hash code length (variable
  * size int), hash code.
  */
-public abstract class AbstractBlobStore implements Closeable, BlobStore, Cache.Backend<AbstractBlobStore.BlockId, AbstractBlobStore.Data> {
+public abstract class AbstractBlobStore implements BlobStore, Cache.Backend<AbstractBlobStore.BlockId, AbstractBlobStore.Data> {
 
     protected static final String HASH_ALGORITHM = "SHA-256";
 
@@ -116,6 +115,14 @@ public abstract class AbstractBlobStore implements Closeable, BlobStore, Cache.B
         return blockSize;
     }
 
+    /**
+     * Write a blob from a temporary file. The temporary file is removed
+     * afterwards. A file based blob stores might simply rename the file, so
+     * that no additional writes are necessary.
+     *
+     * @param tempFilePath the temporary file
+     * @return the blob id
+     */
     public String writeBlob(String tempFilePath) throws Exception {
         File file = new File(tempFilePath);
         InputStream in = null;
@@ -378,10 +385,6 @@ public abstract class AbstractBlobStore implements Closeable, BlobStore, Cache.B
                 throw new IOException("Unknown blobs id type " + type);
             }
         }
-    }
-
-    public void close() {
-        // ignore
     }
 
     /**
