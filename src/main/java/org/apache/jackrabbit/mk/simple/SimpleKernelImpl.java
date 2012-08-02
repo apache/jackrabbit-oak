@@ -592,7 +592,6 @@ public class SimpleKernelImpl extends MicroKernelWrapperBase implements MicroKer
             disposed = true;
             gate.commit("end");
             nodeMap.close();
-            ds.close();
             if (server != null) {
                 server.stop();
                 server = null;
