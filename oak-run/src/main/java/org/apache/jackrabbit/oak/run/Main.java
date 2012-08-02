@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.run;
 
 import java.io.InputStream;
 import java.util.Properties;
+import java.util.concurrent.Executors;
 
 import javax.jcr.Repository;
 import javax.servlet.Servlet;
@@ -137,7 +138,8 @@ public class Main {
                     new ServletHolder(new OakServlet(repository));
             context.addServlet(oak, path + "/*");
 
-            final Repository jcrRepository = new RepositoryImpl(repository);
+            final Repository jcrRepository = new RepositoryImpl(
+                    repository, Executors.newScheduledThreadPool(1));
 
             ServletHolder webdav =
                     new ServletHolder(new SimpleWebdavServlet() {

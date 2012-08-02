@@ -19,14 +19,11 @@ package org.apache.jackrabbit.oak.jcr.observation;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.jcr.observation.Event;
 import javax.jcr.observation.EventListener;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.commons.iterator.EventIteratorAdapter;
 import org.apache.jackrabbit.oak.api.ChangeExtractor;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -37,14 +34,16 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
-class ChangeProcessor extends TimerTask {
+import com.google.common.base.Function;
+import com.google.common.collect.Iterators;
+
+class ChangeProcessor implements Runnable {
+
     private final ObservationManagerImpl observationManager;
     private final NamePathMapper namePathMapper;
     private final ChangeExtractor changeExtractor;
     private final EventListener listener;
     private final AtomicReference<ChangeFilter> filterRef;
-
-    private volatile boolean stopped;
 
     public ChangeProcessor(ObservationManagerImpl observationManager, EventListener listener, ChangeFilter filter) {
         this.observationManager = observationManager;
@@ -56,11 +55,6 @@ class ChangeProcessor extends TimerTask {
 
     public void setFilter(ChangeFilter filter) {
         filterRef.set(filter);
-    }
-
-    public void stop() {
-        cancel();
-        stopped = true;
     }
 
     @Override
@@ -106,7 +100,7 @@ class ChangeProcessor extends TimerTask {
 
         @Override
         public void propertyAdded(PropertyState after) {
-            if (!stopped && filterRef.get().include(Event.PROPERTY_ADDED, jcrPath(), associatedParentNode)) {
+            if (filterRef.get().include(Event.PROPERTY_ADDED, jcrPath(), associatedParentNode)) {
                 Event event = generatePropertyEvent(Event.PROPERTY_ADDED, path, after);
                 events.add(Iterators.singletonIterator(event));
             }
@@ -114,7 +108,7 @@ class ChangeProcessor extends TimerTask {
 
         @Override
         public void propertyChanged(PropertyState before, PropertyState after) {
-            if (!stopped && filterRef.get().include(Event.PROPERTY_CHANGED, jcrPath(), associatedParentNode)) {
+            if (filterRef.get().include(Event.PROPERTY_CHANGED, jcrPath(), associatedParentNode)) {
                 Event event = generatePropertyEvent(Event.PROPERTY_CHANGED, path, after);
                 events.add(Iterators.singletonIterator(event));
             }
@@ -122,7 +116,7 @@ class ChangeProcessor extends TimerTask {
 
         @Override
         public void propertyDeleted(PropertyState before) {
-            if (!stopped && filterRef.get().include(Event.PROPERTY_REMOVED, jcrPath(), associatedParentNode)) {
+            if (filterRef.get().include(Event.PROPERTY_REMOVED, jcrPath(), associatedParentNode)) {
                 Event event = generatePropertyEvent(Event.PROPERTY_REMOVED, path, before);
                 events.add(Iterators.singletonIterator(event));
             }
@@ -133,7 +127,7 @@ class ChangeProcessor extends TimerTask {
             if (NodeStateUtils.isHidden(name)) {
                 return;
             }
-            if (!stopped && filterRef.get().includeChildren(jcrPath())) {
+            if (filterRef.get().includeChildren(jcrPath())) {
                 Iterator<Event> events = generateNodeEvents(Event.NODE_ADDED, path, name, after);
                 this.events.add(events);
                 if (++childNodeCount > PURGE_LIMIT) {
@@ -147,7 +141,7 @@ class ChangeProcessor extends TimerTask {
             if (NodeStateUtils.isHidden(name)) {
                 return;
             }
-            if (!stopped && filterRef.get().includeChildren(jcrPath())) {
+            if (filterRef.get().includeChildren(jcrPath())) {
                 Iterator<Event> events = generateNodeEvents(Event.NODE_REMOVED, path, name, before);
                 this.events.add(events);
             }
@@ -158,7 +152,7 @@ class ChangeProcessor extends TimerTask {
             if (NodeStateUtils.isHidden(name)) {
                 return;
             }
-            if (!stopped && filterRef.get().includeChildren(jcrPath())) {
+            if (filterRef.get().includeChildren(jcrPath())) {
                 EventGeneratingNodeStateDiff diff = new EventGeneratingNodeStateDiff(
                         PathUtils.concat(path, name), events, after);
                 after.compareAgainstBaseState(before, diff);
@@ -208,7 +202,7 @@ class ChangeProcessor extends TimerTask {
                 propertyEvents = Iterators.emptyIterator();
             }
 
-            Iterator<Event> childNodeEvents = !stopped && filter.includeChildren(jcrPath)
+            Iterator<Event> childNodeEvents = filter.includeChildren(jcrPath)
                     ? Iterators.concat(generateChildEvents(eventType, path, node))
                     : Iterators.<Event>emptyIterator();
 

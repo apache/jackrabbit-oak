@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.jcr;
 import java.io.IOException;
 import java.security.Principal;
 import java.util.Properties;
+import java.util.concurrent.Executors;
 
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -48,7 +49,7 @@ public class OakRepositoryStub extends RepositoryStub {
 
         MicroKernel microkernel = new MicroKernelImpl("target/mk-tck-" + System.currentTimeMillis());
         ContentRepository contentRepository = new ContentRepositoryImpl(microkernel, null, null);
-        repository = new RepositoryImpl(contentRepository);
+        repository = new RepositoryImpl(contentRepository, Executors.newScheduledThreadPool(1));
 
         Session session = repository.login(superuser);
         try {

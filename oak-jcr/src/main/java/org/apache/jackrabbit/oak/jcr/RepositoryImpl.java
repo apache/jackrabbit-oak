@@ -16,7 +16,10 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import java.util.Timer;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import javax.jcr.Credentials;
 import javax.jcr.Repository;
@@ -29,7 +32,6 @@ import org.apache.jackrabbit.commons.SimpleValueFactory;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
-import org.apache.jackrabbit.oak.jcr.util.LazyValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,23 +48,24 @@ public class RepositoryImpl implements Repository {
     private final Descriptors descriptors = new Descriptors(new SimpleValueFactory());
     private final ContentRepository contentRepository;
 
-    private final LazyValue<Timer> observationTimer = new LazyValue<Timer>() {
-        @Override
-        protected Timer create() {
-            return new Timer("Observation", true);
-        }
-    };
+    private final ScheduledExecutorService executor;
 
-    public RepositoryImpl(ContentRepository contentRepository) {
+    public RepositoryImpl(
+            ContentRepository contentRepository,
+            ScheduledExecutorService executor) {
         this.contentRepository = contentRepository;
+        this.executor = executor;
     }
 
     /**
      * Utility constructor that creates a new in-memory repository for use
-     * mostly in test cases.
+     * mostly in test cases. The executor service is initialized with an
+     * empty thread pool, so things like observation won't work by default.
+     * Use the other constructor with a properly managed executor service
+     * if such features are needed.
      */
     public RepositoryImpl() {
-        this(new ContentRepositoryImpl());
+        this(new ContentRepositoryImpl(), Executors.newScheduledThreadPool(0));
     }
 
     //---------------------------------------------------------< Repository >---
@@ -131,7 +134,7 @@ public class RepositoryImpl implements Repository {
         // TODO: needs complete refactoring
         try {
             ContentSession contentSession = contentRepository.login(credentials, workspaceName);
-            return new SessionDelegate(this, observationTimer, contentSession, false).getSession();
+            return new SessionDelegate(this, executor, contentSession, false).getSession();
         } catch (LoginException e) {
             throw new javax.jcr.LoginException(e.getMessage());
         }

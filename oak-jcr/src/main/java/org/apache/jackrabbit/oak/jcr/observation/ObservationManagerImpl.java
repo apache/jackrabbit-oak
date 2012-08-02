@@ -18,7 +18,9 @@ package org.apache.jackrabbit.oak.jcr.observation;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Timer;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.jcr.RepositoryException;
@@ -31,25 +33,38 @@ import javax.jcr.observation.ObservationManager;
 import org.apache.jackrabbit.commons.iterator.EventListenerIteratorAdapter;
 import org.apache.jackrabbit.oak.api.ChangeExtractor;
 import org.apache.jackrabbit.oak.jcr.SessionDelegate;
-import org.apache.jackrabbit.oak.jcr.util.LazyValue;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 
 public class ObservationManagerImpl implements ObservationManager {
+
     private final SessionDelegate sessionDelegate;
+
+    private final ScheduledExecutorService executor;
+
+    private ScheduledFuture<?> future = null;
+
     private final Map<EventListener, ChangeProcessor> processors =
             new HashMap<EventListener, ChangeProcessor>();
 
-    private final LazyValue<Timer> timer;
     private final AtomicBoolean hasEvents = new AtomicBoolean(false);
 
-    public ObservationManagerImpl(SessionDelegate sessionDelegate, LazyValue<Timer> timer) {
+    public ObservationManagerImpl(
+            SessionDelegate sessionDelegate,
+            ScheduledExecutorService executor) {
         this.sessionDelegate = sessionDelegate;
-        this.timer = timer;
+        this.executor = executor;
     }
 
-    public void dispose() {
+    private synchronized void sendEvents() {
         for (ChangeProcessor processor : processors.values()) {
-            processor.stop();
+            processor.run();
+        }
+    }
+
+    public synchronized void dispose() {
+        if (future != null) {
+            future.cancel(false);
+            future = null;
         }
     }
 
@@ -63,28 +78,37 @@ public class ObservationManagerImpl implements ObservationManager {
     }
 
     @Override
-    public void addEventListener(EventListener listener, int eventTypes, String absPath,
-            boolean isDeep, String[] uuid, String[] nodeTypeName, boolean noLocal)
-            throws RepositoryException {
+    public synchronized void addEventListener(
+            EventListener listener, int eventTypes, String absPath,
+            boolean isDeep, String[] uuid, String[] nodeTypeName,
+            boolean noLocal) throws RepositoryException {
+        if (future == null) {
+            future = executor.scheduleWithFixedDelay(new Runnable() {
+                @Override
+                public void run() {
+                    sendEvents();
+                }
+            }, 100, 1000, TimeUnit.MILLISECONDS);
+        }
 
+        ChangeFilter filter = new ChangeFilter(
+                eventTypes, absPath, isDeep, uuid, nodeTypeName, noLocal);
         ChangeProcessor processor = processors.get(listener);
         if (processor == null) {
-            ChangeFilter filter = new ChangeFilter(eventTypes, absPath, isDeep, uuid, nodeTypeName, noLocal);
-            ChangeProcessor changeProcessor = new ChangeProcessor(this, listener, filter);
-            processors.put(listener, changeProcessor);
-            timer.get().schedule(changeProcessor, 100, 1000);
-        }
-        else {
-            ChangeFilter filter = new ChangeFilter(eventTypes, absPath, isDeep, uuid, nodeTypeName, noLocal);
+            processor = new ChangeProcessor(this, listener, filter);
+            processors.put(listener, processor);
+        } else {
             processor.setFilter(filter);
         }
     }
 
     @Override
-    public void removeEventListener(EventListener listener) throws RepositoryException {
-        ChangeProcessor processor = processors.remove(listener);
-        if (processor != null) {
-            processor.stop();
+    public synchronized void removeEventListener(EventListener listener) {
+        processors.remove(listener);
+
+        if (processors.isEmpty()) {
+            future.cancel(false);
+            future = null;
         }
     }
 
