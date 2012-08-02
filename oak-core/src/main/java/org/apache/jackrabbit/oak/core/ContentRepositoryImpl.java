@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.lucene.LuceneEditor;
 import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceValidatorProvider;
+import org.apache.jackrabbit.oak.plugins.type.DefaultTypeEditor;
 import org.apache.jackrabbit.oak.plugins.type.TypeValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.value.ConflictValidatorProvider;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
@@ -97,6 +98,7 @@ public class ContentRepositoryImpl implements ContentRepository {
         nodeStore = new KernelNodeStore(microKernel);
  
         List<CommitEditor> editors = new ArrayList<CommitEditor>();
+        editors.add(new DefaultTypeEditor());
         editors.add(new ValidatingEditor(validatorProvider));
         editors.add(new LuceneEditor());
         nodeStore.setEditor(new CompositeEditor(editors));
