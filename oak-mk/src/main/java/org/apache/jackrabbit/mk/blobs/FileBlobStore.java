@@ -48,7 +48,7 @@ public class FileBlobStore extends AbstractBlobStore {
     }
 
     @Override
-    public String addBlob(String tempFilePath) throws Exception {
+    public String writeBlob(String tempFilePath) throws Exception {
         File file = new File(tempFilePath);
         InputStream in = new FileInputStream(file);
         MessageDigest messageDigest = MessageDigest.getInstance(HASH_ALGORITHM);
@@ -106,11 +106,12 @@ public class FileBlobStore extends AbstractBlobStore {
 
     private File getFile(byte[] digest, boolean old) {
         String id = StringUtils.convertBytesToHex(digest);
-        String sub = id.substring(id.length() - 2);
+        String sub1 = id.substring(id.length() - 2);
+        String sub2 = id.substring(id.length() - 4, id.length() - 2);
         if (old) {
-            sub += OLD_SUFFIX;
+            sub2 += OLD_SUFFIX;
         }
-        return new File(new File(baseDir, sub), id + ".dat");
+        return new File(new File(new File(baseDir, sub1), sub2), id + ".dat");
     }
 
     @Override
@@ -137,19 +138,23 @@ public class FileBlobStore extends AbstractBlobStore {
     @Override
     public void startMark() throws Exception {
         mark = true;
-        for (int i = 0; i < 256; i++) {
-            String sub = StringUtils.convertBytesToHex(new byte[] { (byte) i });
-            File d = new File(baseDir, sub);
-            File old = new File(baseDir, sub + OLD_SUFFIX);
-            if (d.exists()) {
-                if (old.exists()) {
-                    for (File p : d.listFiles()) {
-                        String name = p.getName();
-                        File newName = new File(old, name);
-                        p.renameTo(newName);
+        for (int j = 0; j < 256; j++) {
+            String sub1 = StringUtils.convertBytesToHex(new byte[] { (byte) j });
+            File x = new File(baseDir, sub1);
+            for (int i = 0; i < 256; i++) {
+                String sub2 = StringUtils.convertBytesToHex(new byte[] { (byte) i });
+                File d = new File(x, sub2);
+                File old = new File(x, sub2 + OLD_SUFFIX);
+                if (d.exists()) {
+                    if (old.exists()) {
+                        for (File p : d.listFiles()) {
+                            String name = p.getName();
+                            File newName = new File(old, name);
+                            p.renameTo(newName);
+                        }
+                    } else {
+                        d.renameTo(old);
                     }
-                } else {
-                    d.renameTo(old);
                 }
             }
         }
@@ -175,17 +180,21 @@ public class FileBlobStore extends AbstractBlobStore {
     @Override
     public int sweep() throws IOException {
         int count = 0;
-        for (int i = 0; i < 256; i++) {
-            String sub = StringUtils.convertBytesToHex(new byte[] { (byte) i });
-            File old = new File(baseDir, sub + OLD_SUFFIX);
-            if (old.exists()) {
-                for (File p : old.listFiles()) {
-                    String name = p.getName();
-                    File file = new File(old, name);
-                    file.delete();
-                    count++;
+        for (int j = 0; j < 256; j++) {
+            String sub1 = StringUtils.convertBytesToHex(new byte[] { (byte) j });
+            File x = new File(baseDir, sub1);
+            for (int i = 0; i < 256; i++) {
+                String sub = StringUtils.convertBytesToHex(new byte[] { (byte) i });
+                File old = new File(x, sub + OLD_SUFFIX);
+                if (old.exists()) {
+                    for (File p : old.listFiles()) {
+                        String name = p.getName();
+                        File file = new File(old, name);
+                        file.delete();
+                        count++;
+                    }
+                    old.delete();
                 }
-                old.delete();
             }
         }
         mark = false;

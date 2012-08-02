@@ -61,7 +61,7 @@ public abstract class AbstractBlobStoreTest extends TestCase {
         OutputStream out = new FileOutputStream(tempFile, false);
         out.write(data);
         out.close();
-        String s = store.addBlob(tempFileName);
+        String s = store.writeBlob(tempFileName);
         assertEquals(data.length, store.getBlobLength(s));
         byte[] buff = new byte[1];
         for (int i = 0; i < data.length; i += 1024) {
@@ -69,7 +69,7 @@ public abstract class AbstractBlobStoreTest extends TestCase {
             assertEquals(data[i], buff[0]);
         }
         try {
-            store.addBlob(tempFileName + "_wrong");
+            store.writeBlob(tempFileName + "_wrong");
             fail();
         } catch (Exception e) {
             // expected
@@ -162,7 +162,7 @@ public abstract class AbstractBlobStoreTest extends TestCase {
         HashMap<String, byte[]> map = new HashMap<String, byte[]>();
         ArrayList<String> mem = new ArrayList<String>();
         int count;
-        for (int i = 1; i < 10000; i += (i + 1) * 10) {
+        for (int i = 1; i <= 1000; i *= 10) {
             byte[] data = new byte[i];
             String id;
             id = store.writeBlob(new ByteArrayInputStream(data));
@@ -194,7 +194,7 @@ public abstract class AbstractBlobStoreTest extends TestCase {
             }
             store.mark(id);
         }
-        store.sweep();
+        count = store.sweep();
 
         store.clearInUse();
         store.clearCache();

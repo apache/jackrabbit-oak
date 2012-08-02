@@ -31,7 +31,7 @@ public interface BlobStore {
      * @param tempFilePath the temporary file
      * @return the blob id
      */
-    String addBlob(String tempFilePath) throws Exception;
+    String writeBlob(String tempFilePath) throws Exception;
 
     /**
      * Write a blob from an input stream.
@@ -42,10 +42,31 @@ public interface BlobStore {
      */
     String writeBlob(InputStream in) throws Exception;
 
+    /**
+     * Read a number of bytes from a blob.
+     * 
+     * @param blobId the blob id
+     * @param pos the position within the blob
+     * @param buff the target byte array
+     * @param off the offset within the target array
+     * @param length the number of bytes to read
+     * @return the number of bytes read
+     */
     int readBlob(String blobId, long pos, byte[] buff, int off, int length) throws Exception;
 
+    /**
+     * Get the length of the blob.
+     * 
+     * @param blobId the blob id
+     * @return the length
+     */
     long getBlobLength(String blobId) throws Exception;
 
+    /**
+     * Close all internally used resources, such as file handles. This method
+     * should be called at the end of the components lifecycle. After calling
+     * this method, the blob store should no longer be used.
+     */
     void close();
 
 }

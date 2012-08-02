@@ -23,6 +23,8 @@ public class MemoryBlobStoreTest extends AbstractBlobStoreTest {
 
     public void setUp() throws Exception {
         store = new MemoryBlobStore();
-    }
+        store.setBlockSize(128);
+        store.setBlockSizeMin(48);
+    }    
 
 }

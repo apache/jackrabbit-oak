@@ -24,7 +24,7 @@ public class FileBlobStoreTest extends AbstractBlobStoreTest {
     public void setUp() throws Exception {
         FileBlobStore store = new FileBlobStore("target/temp");
         store.setBlockSize(128);
-        store.setBlockSizeMin(32);
+        store.setBlockSizeMin(48);
         this.store = store;
     }
 

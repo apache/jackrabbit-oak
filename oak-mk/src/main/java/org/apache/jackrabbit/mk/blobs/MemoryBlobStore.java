@@ -29,7 +29,11 @@ public class MemoryBlobStore extends AbstractBlobStore {
 
     @Override
     protected byte[] readBlockFromBackend(BlockId id) {
-        return map.get(id);
+        byte[] result = map.get(id);
+        if (result == null) {
+            result = old.get(id);
+        }
+        return result;
     }
 
     @Override
