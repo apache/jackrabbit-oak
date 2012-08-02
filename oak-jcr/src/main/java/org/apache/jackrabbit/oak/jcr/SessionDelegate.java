@@ -21,7 +21,6 @@ import java.text.ParseException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Timer;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.ItemExistsException;
@@ -165,14 +164,14 @@ public class SessionDelegate {
         }
     }
 
-    @Nonnull
+    @CheckForNull
     public NodeDelegate getRoot() {
         Tree root = getTree("");
         if (root == null) {
-            throw new IllegalStateException("No root node");
+            return null;
+        } else {
+            return new NodeDelegate(this, root);
         }
-
-        return new NodeDelegate(this, root);
     }
 
     @CheckForNull

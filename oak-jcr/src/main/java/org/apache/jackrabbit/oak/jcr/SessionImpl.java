@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
+import javax.jcr.AccessDeniedException;
 import javax.jcr.Credentials;
 import javax.jcr.Item;
 import javax.jcr.ItemNotFoundException;
@@ -123,8 +124,13 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
 
         return dlg.perform(new SessionOperation<NodeImpl>() {
             @Override
-            public NodeImpl perform() {
-                return new NodeImpl(dlg.getRoot());
+            public NodeImpl perform() throws AccessDeniedException {
+                NodeDelegate nd = dlg.getRoot();
+                if (nd == null) {
+                    throw new AccessDeniedException("Root node is not accessible.");
+                } else {
+                    return new NodeImpl(dlg.getRoot());
+                }
             }
         });
     }
