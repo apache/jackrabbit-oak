@@ -20,7 +20,6 @@ import java.util.concurrent.Callable;
 
 import javax.jcr.UnsupportedRepositoryOperationException;
 
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,11 +73,14 @@ public class TODO {
 
     public void doNothing() throws UnsupportedRepositoryOperationException {
         if (strict) {
-            throw new UnsupportedRepositoryOperationException(
-                    message, exception);
+            throw exception();
         } else if (log) {
             logger.warn(message, exception);
         }
+    }
+
+    public UnsupportedRepositoryOperationException exception() {
+        return new UnsupportedRepositoryOperationException(message, exception);
     }
 
     public <T> T returnValue(final T value)
@@ -94,8 +96,7 @@ public class TODO {
     public <T> T call(Callable<T> callable)
             throws UnsupportedRepositoryOperationException {
         if (strict) {
-            throw new UnsupportedRepositoryOperationException(
-                    message, exception);
+            throw exception();
         } else if (log) {
             logger.warn(message, exception);
         }
