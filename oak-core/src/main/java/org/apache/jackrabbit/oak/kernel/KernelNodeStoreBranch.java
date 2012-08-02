@@ -125,7 +125,7 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
         MicroKernel kernel = store.getKernel();
         CommitEditor editor = store.getEditor();
 
-        NodeState oldRoot = store.getRoot();
+        NodeState oldRoot = base;
         NodeState toCommit = editor.editCommit(store, oldRoot, currentRoot);
         setRoot(toCommit);
 
