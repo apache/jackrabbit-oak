@@ -78,12 +78,12 @@ public class RootImplFuzzIT {
         store1 = new KernelNodeStore(mk1);
         vf = store1.getValueFactory();
         mk1.commit("", "+\"/root\":{}", mk1.getHeadRevision(), "");
-        root1 = new RootImpl(store1, null);
+        root1 = new RootImpl(store1, null, new TestAcContext());
 
         MicroKernel mk2 = new MicroKernelImpl("./target/mk2/" + random.nextInt());
         store2 = new KernelNodeStore(mk2);
         mk2.commit("", "+\"/root\":{}", mk2.getHeadRevision(), "");
-        root2 = new RootImpl(store2, null);
+        root2 = new RootImpl(store2, null, new TestAcContext());
     }
 
     @Test

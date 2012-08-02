@@ -42,8 +42,8 @@ public class DefaultConflictHandlerTest extends AbstractOakTest {
         String jsop = "^\"a\":1 ^\"b\":2 ^\"c\":3 +\"x\":{} +\"y\":{} +\"z\":{}";
         microKernel.commit("/", jsop, microKernel.getHeadRevision(), "test data");
 
-        ourRoot = new RootImpl(store, "");
-        theirRoot = new RootImpl(store, "");
+        ourRoot = createRootImpl("");
+        theirRoot = createRootImpl("");
 
         ourValue = valueFactory.createValue("foo");
         theirValue = valueFactory.createValue("bar");

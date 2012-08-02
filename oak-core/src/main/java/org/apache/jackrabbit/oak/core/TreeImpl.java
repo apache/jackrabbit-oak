@@ -37,9 +37,12 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
 import com.google.common.base.Function;
+import com.google.common.base.Predicate;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Iterables;
 
+
+import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState.EMPTY_NODE;
 
 public class TreeImpl implements Tree, PurgeListener {
@@ -113,20 +116,34 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public Tree getParent() {
-        return parent;
+        if (parent != null && canRead(parent.getPath())) {
+            return parent;
+        } else {
+            return null;
+        }
     }
 
     @Override
     public PropertyState getProperty(String name) {
-        return getNodeBuilder().getProperty(name);
+        if (canReadProperty(buildChildPath(name))) {
+            return internalGetProperty(name);
+        } else {
+            return null;
+        }
     }
 
     @Override
     public Status getPropertyStatus(String name) {
+        // TODO: see OAK-212
+        if (!canReadProperty(buildChildPath(name))) {
+            return null;
+        }
+
         NodeState baseState = getBaseState();
+        boolean exists = internalGetProperty(name) != null;
         if (baseState == null) {
             // This instance is NEW...
-            if (hasProperty(name)) {
+            if (exists) {
                 // ...so all children are new
                 return Status.NEW;
             } else {
@@ -134,7 +151,7 @@ public class TreeImpl implements Tree, PurgeListener {
                 return null;
             }
         } else {
-            if (hasProperty(name)) {
+            if (exists) {
                 // We have the property...
                 if (baseState.getProperty(name) == null) {
                     // ...but didn't have it before. So its NEW.
@@ -171,28 +188,32 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public long getPropertyCount() {
+        // TODO: make sure cnt respects access control
         return getNodeBuilder().getPropertyCount();
     }
 
     @Override
     public Iterable<? extends PropertyState> getProperties() {
-        return getNodeBuilder().getProperties();
+        return Iterables.filter(getNodeBuilder().getProperties(),
+                new Predicate<PropertyState>() {
+                    @Override
+                    public boolean apply(PropertyState propertyState) {
+                        if (propertyState != null) {
+                            return canReadProperty(buildChildPath(propertyState.getName()));
+                        } else {
+                            return false;
+                        }
+                    }
+                });
     }
 
     @Override
     public TreeImpl getChild(String name) {
-        TreeImpl child = children.get(name);
-        if (child != null) {
-            return child;
-        }
-
-        if (!hasChild(name)) {
+        if (canRead(buildChildPath(name))) {
+            return internalGetChild(name);
+        } else {
             return null;
         }
-
-        child = new TreeImpl(root, this, name);
-        children.put(name, child);
-        return child;
     }
 
     @Override
@@ -219,17 +240,18 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public boolean hasChild(String name) {
-        return getNodeBuilder().hasChildNode(name);
+        return getChild(name) != null;
     }
 
     @Override
     public long getChildrenCount() {
+        // TODO: make sure cnt respects access control
         return getNodeBuilder().getChildNodeCount();
     }
 
     @Override
     public Iterable<Tree> getChildren() {
-        return Iterables.transform(
+        return Iterables.filter(Iterables.transform(
                 getNodeBuilder().getChildNodeNames(),
                 new Function<String, Tree>() {
                     @Override
@@ -240,6 +262,16 @@ public class TreeImpl implements Tree, PurgeListener {
                             children.put(input, child);
                         }
                         return  child;
+                    }
+                }),
+                new Predicate<Tree>() {
+                    @Override
+                    public boolean apply(Tree tree) {
+                        if (tree != null) {
+                            return canRead(tree.getPath());
+                        } else {
+                            return false;
+                        }
                     }
                 });
     }
@@ -362,7 +394,43 @@ public class TreeImpl implements Tree, PurgeListener {
         return getNodeBuilder().getNodeState();
     }
 
+    /**
+     * Get a tree for the tree identified by {@code path}.
+     *
+     * @param path the path to the child
+     * @return a {@link Tree} instance for the child at {@code path} or
+     * {@code null} if no such tree exits or if the tree is not accessible.
+     */
+    @CheckForNull
+    TreeImpl getTree(String path) {
+        TreeImpl tree = null;
+        if (canRead(buildChildPath(path))) {
+            TreeImpl child = this;
+            for (String name : elements(path)) {
+                child = child.internalGetChild(name);
+                if (child == null) {
+                    return null;
+                }
+            }
+            tree = child;
+        }
+        return tree;
+    }
+
     //------------------------------------------------------------< private >---
+
+    private TreeImpl internalGetChild(String childName) {
+        TreeImpl child = children.get(childName);
+        if (child == null && getNodeBuilder().hasChildNode(childName)) {
+            child = new TreeImpl(root, this, childName);
+            children.put(childName, child);
+        }
+        return child;
+    }
+
+    private PropertyState internalGetProperty(String propertyName) {
+        return getNodeBuilder().getProperty(propertyName);
+    }
 
     private boolean isRemoved() {
         return parent == this;
@@ -380,6 +448,22 @@ public class TreeImpl implements Tree, PurgeListener {
             }
             sb.append(name);
         }
+    }
+
+    private String buildChildPath(String relPath) {
+        StringBuilder sb = new StringBuilder();
+        buildPath(sb);
+        sb.append('/');
+        sb.append(relPath);
+        return sb.toString();
+    }
+
+    private boolean canRead(String path) {
+        return root.getPermissions().canRead(path, false);
+    }
+
+    private boolean canReadProperty(String path) {
+        return root.getPermissions().canRead(path, true);
     }
 
     private static boolean isSame(NodeState state1, NodeState state2) {

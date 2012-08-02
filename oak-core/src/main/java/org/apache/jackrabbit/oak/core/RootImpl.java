@@ -28,6 +28,8 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ConflictHandler;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContext;
+import org.apache.jackrabbit.oak.spi.security.authorization.CompiledPermissions;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
@@ -36,7 +38,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 
@@ -56,6 +57,9 @@ public class RootImpl implements Root {
 
     /** Current root {@code Tree} */
     private TreeImpl rootTree;
+
+    private final AccessControlContext accessControlContext;
+    private CompiledPermissions permissions;
 
     /**
      * Number of {@link #purge()} occurred so since the lase
@@ -87,23 +91,28 @@ public class RootImpl implements Root {
      * New instance bases on a given {@link NodeStore} and a workspace
      * @param store  node store
      * @param workspaceName  name of the workspace
+     * @param accessControlContext
      * TODO: add support for multiple workspaces. See OAK-118
      */
     @SuppressWarnings("UnusedParameters")
-    public RootImpl(NodeStore store, String workspaceName) {
+    public RootImpl(NodeStore store, String workspaceName, AccessControlContext accessControlContext) {
         this.store = store;
+        this.accessControlContext = accessControlContext;
+
         branch = store.branch();
         rootTree = TreeImpl.createRoot(this);
+        // TODO: define how permissions are bound to the current branch
+        permissions = accessControlContext.getPermissions();
     }
 
     //---------------------------------------------------------------< Root >---
     @Override
     public boolean move(String sourcePath, String destPath) {
-        TreeImpl source = getChild(sourcePath);
+        TreeImpl source = rootTree.getTree(sourcePath);
         if (source == null) {
             return false;
         }
-        TreeImpl destParent = getChild(getParentPath(destPath));
+        TreeImpl destParent = rootTree.getTree(getParentPath(destPath));
         if (destParent == null) {
             return false;
         }
@@ -126,7 +135,7 @@ public class RootImpl implements Root {
 
     @Override
     public Tree getTree(String path) {
-        return getChild(path);
+        return rootTree.getTree(path);
     }
 
     @Override
@@ -144,6 +153,7 @@ public class RootImpl implements Root {
     public void refresh() {
         branch = store.branch();
         rootTree = TreeImpl.createRoot(this);
+        permissions = this.accessControlContext.getPermissions();
     }
 
     @Override
@@ -207,6 +217,10 @@ public class RootImpl implements Root {
         }
     }
 
+    CompiledPermissions getPermissions() {
+        return permissions;
+    }
+
     //------------------------------------------------------------< private >---
 
     /**
@@ -225,22 +239,5 @@ public class RootImpl implements Root {
         for (PurgeListener purgeListener : purgeListeners) {
             purgeListener.purged();
         }
-    }
-
-    /**
-     * Get a tree for the child identified by {@code path}
-     * @param path  the path to the child
-     * @return  a {@link Tree} instance for the child
-     *          at {@code path} or {@code null} if no such item exits.
-     */
-    private TreeImpl getChild(String path) {
-        TreeImpl child = rootTree;
-        for (String name : elements(path)) {
-            child = child.getChild(name);
-            if (child == null) {
-                return null;
-            }
-        }
-        return child;
     }
 }

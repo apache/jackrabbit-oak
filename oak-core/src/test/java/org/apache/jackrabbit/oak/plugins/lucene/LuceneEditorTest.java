@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
 import org.apache.jackrabbit.oak.core.RootImpl;
+import org.apache.jackrabbit.oak.core.TestAcContext;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryValueFactory;
 import org.apache.jackrabbit.oak.query.ast.Operator;
@@ -45,7 +46,7 @@ public class LuceneEditorTest {
 
         KernelNodeStore store = new KernelNodeStore(new MicroKernelImpl());
         store.setEditor(new LuceneEditor(indexInfo.getPath()));
-        Root root = new RootImpl(store, "");
+        Root root = new RootImpl(store, "", new TestAcContext());
         Tree tree = root.getTree("/");
 
         tree.setProperty("foo", MemoryValueFactory.INSTANCE.createValue("bar"));
