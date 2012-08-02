@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.lock.LockManagerImpl;
 import org.apache.jackrabbit.oak.jcr.query.QueryManagerImpl;
 import org.apache.jackrabbit.oak.jcr.security.privilege.PrivilegeManagerImpl;
+import org.apache.jackrabbit.oak.jcr.version.VersionManagerImpl;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceRegistryImpl;
 import org.apache.jackrabbit.oak.plugins.type.NodeTypeManagerImpl;
 import org.slf4j.Logger;
@@ -168,11 +169,8 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     }
 
     @Override
-    public VersionManager getVersionManager() throws RepositoryException {
-        ensureIsAlive();
-
-        // TODO
-        throw new UnsupportedRepositoryOperationException("TODO: Workspace.getVersionManager");
+    public VersionManager getVersionManager() {
+        return new VersionManagerImpl();
     }
 
     @Override
