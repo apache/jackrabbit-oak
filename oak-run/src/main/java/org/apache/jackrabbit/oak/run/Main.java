@@ -17,11 +17,12 @@
 package org.apache.jackrabbit.oak.run;
 
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.Executors;
 
 import javax.jcr.Repository;
-import javax.servlet.Servlet;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
@@ -29,6 +30,17 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.http.OakServlet;
 import org.apache.jackrabbit.oak.jcr.RepositoryImpl;
+import org.apache.jackrabbit.oak.plugins.lucene.LuceneEditor;
+import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
+import org.apache.jackrabbit.oak.plugins.name.NamespaceValidatorProvider;
+import org.apache.jackrabbit.oak.plugins.type.DefaultTypeEditor;
+import org.apache.jackrabbit.oak.plugins.type.TypeValidatorProvider;
+import org.apache.jackrabbit.oak.plugins.value.ConflictValidatorProvider;
+import org.apache.jackrabbit.oak.spi.commit.CommitEditor;
+import org.apache.jackrabbit.oak.spi.commit.CompositeEditor;
+import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
+import org.apache.jackrabbit.oak.spi.commit.ValidatingEditor;
+import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.webdav.jcr.JCRWebdavServerServlet;
 import org.apache.jackrabbit.webdav.simple.SimpleWebdavServlet;
 import org.eclipse.jetty.server.Server;
@@ -132,7 +144,7 @@ public class Main {
 
         private void addServlets(MicroKernel kernel, String path) {
             ContentRepository repository =
-                    new ContentRepositoryImpl(kernel, null, null);
+                    new ContentRepositoryImpl(kernel, null, buildDefaultCommitEditor());
 
             ServletHolder oak =
                     new ServletHolder(new OakServlet(repository));
@@ -170,6 +182,23 @@ public class Main {
                     JCRWebdavServerServlet.INIT_PARAM_MISSING_AUTH_MAPPING,
                     "admin:admin");
             context.addServlet(davex, path + "/davex/*");
+        }
+
+        private static CommitEditor buildDefaultCommitEditor() {
+            List<CommitEditor> editors = new ArrayList<CommitEditor>();
+            editors.add(new DefaultTypeEditor());
+            editors.add(new ValidatingEditor(createDefaultValidatorProvider()));
+            editors.add(new LuceneEditor());
+            return new CompositeEditor(editors);
+        }
+
+        private static ValidatorProvider createDefaultValidatorProvider() {
+            List<ValidatorProvider> providers = new ArrayList<ValidatorProvider>();
+            providers.add(new NameValidatorProvider());
+            providers.add(new NamespaceValidatorProvider());
+            providers.add(new TypeValidatorProvider());
+            providers.add(new ConflictValidatorProvider());
+            return new CompositeValidatorProvider(providers);
         }
 
     }

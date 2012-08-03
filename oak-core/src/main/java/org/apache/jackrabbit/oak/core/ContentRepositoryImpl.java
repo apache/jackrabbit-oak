@@ -16,8 +16,7 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Collections;
 
 import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
@@ -32,18 +31,11 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
-import org.apache.jackrabbit.oak.plugins.lucene.LuceneEditor;
-import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
-import org.apache.jackrabbit.oak.plugins.name.NamespaceValidatorProvider;
-import org.apache.jackrabbit.oak.plugins.type.DefaultTypeEditor;
-import org.apache.jackrabbit.oak.plugins.type.TypeValidatorProvider;
-import org.apache.jackrabbit.oak.plugins.value.ConflictValidatorProvider;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
 import org.apache.jackrabbit.oak.security.authentication.LoginContextProviderImpl;
 import org.apache.jackrabbit.oak.security.authorization.AccessControlContextImpl;
 import org.apache.jackrabbit.oak.spi.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitEditor;
-import org.apache.jackrabbit.oak.spi.commit.CompositeEditor;
 import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
 import org.apache.jackrabbit.oak.spi.commit.ValidatingEditor;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
@@ -75,8 +67,32 @@ public class ContentRepositoryImpl implements ContentRepository {
      * test cases only.
      */
     public ContentRepositoryImpl() {
-        this(new MicroKernelImpl(), null, createDefaultValidatorProvider());
+        this(new MicroKernelImpl(), null, new ValidatingEditor(
+                new CompositeValidatorProvider(
+                        Collections.<ValidatorProvider> emptyList())));
         // this(new IndexWrapper(new MicroKernelImpl()), null, null);
+    }
+
+    /**
+     * Utility constructor, intended to be used within test cases only.
+     * 
+     * Creates an Oak repository instance based on the given, already
+     * initialized components.
+     * 
+     * @param microKernel
+     *            underlying kernel instance
+     * @param indexProvider
+     *            index provider
+     * @param validatorProvider
+     *            the validation provider
+     */
+    public ContentRepositoryImpl(MicroKernel microKernel,
+            QueryIndexProvider indexProvider,
+            ValidatorProvider validatorProvider) {
+        this(microKernel, indexProvider, new ValidatingEditor(
+                validatorProvider != null ? validatorProvider
+                        : new CompositeValidatorProvider(
+                                Collections.<ValidatorProvider> emptyList())));
     }
 
     /**
@@ -85,23 +101,13 @@ public class ContentRepositoryImpl implements ContentRepository {
      *
      * @param microKernel underlying kernel instance
      * @param indexProvider index provider
-     * @param validatorProvider the validation provider
+     * @param commitEditor the commit editor
      */
     public ContentRepositoryImpl(MicroKernel microKernel, QueryIndexProvider indexProvider,
-            ValidatorProvider validatorProvider) {
-
-        if (validatorProvider == null) {
-            validatorProvider = createDefaultValidatorProvider();
-        }
-
+            CommitEditor commitEditor) {
 
         nodeStore = new KernelNodeStore(microKernel);
- 
-        List<CommitEditor> editors = new ArrayList<CommitEditor>();
-        editors.add(new DefaultTypeEditor());
-        editors.add(new ValidatingEditor(validatorProvider));
-        editors.add(new LuceneEditor());
-        nodeStore.setEditor(new CompositeEditor(editors));
+        nodeStore.setEditor(commitEditor);
 
         QueryIndexProvider qip = (indexProvider == null) ? getDefaultIndexProvider(microKernel) : indexProvider;
         queryEngine = new QueryEngineImpl(nodeStore, microKernel, qip);
@@ -116,15 +122,6 @@ public class ContentRepositoryImpl implements ContentRepository {
         microKernel.commit("/",
                 "^\"jcr:primaryType\":\"" + ntUnstructured + "\" ",
                 null, null);
-    }
-
-    private static ValidatorProvider createDefaultValidatorProvider() {
-        List<ValidatorProvider> providers = new ArrayList<ValidatorProvider>();
-        providers.add(new NameValidatorProvider());
-        providers.add(new NamespaceValidatorProvider());
-        providers.add(new TypeValidatorProvider());
-        providers.add(new ConflictValidatorProvider());
-        return new CompositeValidatorProvider(providers);
     }
 
     private static QueryIndexProvider getDefaultIndexProvider(MicroKernel mk) {
