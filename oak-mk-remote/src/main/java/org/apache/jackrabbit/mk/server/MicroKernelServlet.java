@@ -175,9 +175,10 @@ class MicroKernelServlet {
             String fromRevisionId = request.getParameter("from_revision_id", headRevision);
             String toRevisionId = request.getParameter("to_revision_id", headRevision);
             String path = request.getParameter("path", "");
+            int depth = request.getParameter("depth", 1);
 
             response.setContentType("application/json");
-            String json = mk.diff(fromRevisionId, toRevisionId, path);
+            String json = mk.diff(fromRevisionId, toRevisionId, path, depth);
             if (request.getHeaders().containsKey("User-Agent")) {
                 json = JsopBuilder.prettyPrint(json);
             }

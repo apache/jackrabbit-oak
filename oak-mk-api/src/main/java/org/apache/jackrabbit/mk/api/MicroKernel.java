@@ -103,7 +103,7 @@ public interface MicroKernel {
      * @param maxEntries maximum #entries to be returned;
      *                   if < 0, no limit will be applied.
      * @param path       optional path filter; if {@code null} or {@code ""} the
-     *                   default ({@code"/"}) will be assumed, i.e. no filter
+     *                   default ({@code "/"}) will be assumed, i.e. no filter
      *                   will be applied
      * @return a list of revisions in chronological order in JSON format.
      * @throws MicroKernelException if an error occurs
@@ -165,7 +165,7 @@ public interface MicroKernel {
      * @param toRevisionId   id of last revision to be returned in journal,
      *                       if {@code null} the current head revision is assumed
      * @param path           optional path filter; if {@code null} or {@code ""}
-     *                       the default ({@code"/"}) will be assumed, i.e. no
+     *                       the default ({@code "/"}) will be assumed, i.e. no
      *                       filter will be applied
      * @return a chronological list of revisions in JSON format
      * @throws MicroKernelException if an error occurs
@@ -183,17 +183,41 @@ public interface MicroKernel {
      * The {@code path} parameter allows to filter the changes included in the
      * JSON diff, i.e. only those changes that affected the subtree rooted at
      * {@code path} will be included.
+     * <p/>
+     * The {@code depth} limit applies to the subtree rooted at {@code path}.
+     * It allows to limit the depth of the diff, i.e. only changes up to the
+     * specified depth will be included in full detail. changes at paths exceeding
+     * the specified depth limit will be reported as {@code ^"/some/path"},
+     * indicating that there are unspecified changes below that path.
+     * <table border="1">
+     *   <tr>
+     *     <th>{@code depth} value</th><th>scope of detailed diff</th>
+     *    </tr>
+     *    <tr>
+     *      <td>-1</td><td>no limit will be applied</td>
+     *    </tr>
+     *    <tr>
+     *      <td>0</td><td>changes affecting the properties and child node names of the node at {@code path}</td>
+     *    </tr>
+     *    <tr>
+     *      <td>1</td><td>changes affecting the properties and child node names of the node at {@code path} and its direct descendants</td>
+     *    </tr>
+     *    <tr>
+     *      <td>...</td><td>...</td>
+     *    </tr>
+     * </table>
      *
      * @param fromRevisionId a revision id, if {@code null} the current head revision is assumed
      * @param toRevisionId   another revision id, if {@code null} the current head revision is assumed
      * @param path           optional path filter; if {@code null} or {@code ""}
-     *                       the default ({@code"/"}) will be assumed, i.e. no
+     *                       the default ({@code "/"}) will be assumed, i.e. no
      *                       filter will be applied
+     * @param depth          depth  limit; if {@code -1} no limit will be applied
      * @return JSON diff representation of the changes
      * @throws MicroKernelException if an error occurs
      */
     String /* JSON diff */ diff(String fromRevisionId, String toRevisionId,
-                                String path)
+                                String path, int depth)
             throws MicroKernelException;
 
     //-------------------------------------------------------------< READ ops >
@@ -287,7 +311,7 @@ public interface MicroKernel {
      * specified.
      * <p/>
      * The order of the child nodes is stable for any given {@code revisionId},
-     * i.e. calling {@link #getNodes} repeatedly with the same {@code revisionId}
+     * i.e. calling {@code getNodes} repeatedly with the same {@code revisionId}
      * is guaranteed to return the child nodes in the same order, but the
      * specific order used is implementation-dependent and may change across
      * different revisions of the same node.

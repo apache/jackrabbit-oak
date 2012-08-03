@@ -30,17 +30,18 @@ public class DiffBuilder {
     private final NodeState before;
     private final NodeState after;
     private final String path;
+    private final int depth;
     private final String pathFilter;
     private final NodeStore store;
 
-    public DiffBuilder(NodeState before, NodeState after, String path,
+    public DiffBuilder(NodeState before, NodeState after, String path, int depth,
                        NodeStore store, String pathFilter) {
         this.before = before;
         this.after = after;
         this.path = path;
+        this.depth = depth;
         this.store = store;
         this.pathFilter = (pathFilter == null || "".equals(pathFilter)) ? "/" : pathFilter;
-
     }
 
     public String build() throws Exception {
@@ -72,6 +73,7 @@ public class DiffBuilder {
         }
 
         TraversingNodeDiffHandler diffHandler = new TraversingNodeDiffHandler(store) {
+            int levels = depth < 0 ? Integer.MAX_VALUE : depth;
             @Override
             public void propertyAdded(PropertyState after) {
                 String p = PathUtils.concat(getCurrentPath(), after.getName());
@@ -136,7 +138,16 @@ public class DiffBuilder {
                 String p = PathUtils.concat(getCurrentPath(), name);
                 if (PathUtils.isAncestor(p, pathFilter)
                         || p.startsWith(pathFilter)) {
-                    super.childNodeChanged(name, before, after);
+                    --levels;
+                    if (levels >= 0) {
+                        // recurse
+                        super.childNodeChanged(name, before, after);
+                    } else {
+                        buff.tag('^');
+                        buff.value(p);
+                        buff.newline();
+                    }
+                    ++levels;
                 }
             }
         };
@@ -156,6 +167,7 @@ public class DiffBuilder {
             // TODO refactor code, avoid duplication
 
             diffHandler = new TraversingNodeDiffHandler(store) {
+                int levels = depth < 0 ? Integer.MAX_VALUE : depth;
                 @Override
                 public void propertyAdded(PropertyState after) {
                     String p = PathUtils.concat(getCurrentPath(), after.getName());
@@ -226,7 +238,16 @@ public class DiffBuilder {
                     String p = PathUtils.concat(getCurrentPath(), name);
                     if (PathUtils.isAncestor(p, pathFilter)
                             || p.startsWith(pathFilter)) {
-                        super.childNodeChanged(name, before, after);
+                        --levels;
+                        if (levels >= 0) {
+                            // recurse
+                            super.childNodeChanged(name, before, after);
+                        } else {
+                            buff.tag('^');
+                            buff.value(p);
+                            buff.newline();
+                        }
+                        ++levels;
                     }
                 }
             };

@@ -453,7 +453,7 @@ public class SimpleKernelImpl extends MicroKernelWrapperBase implements MicroKer
 
 
     @Override
-    public JsopReader diffStream(String fromRevisionId, String toRevisionId, String path) {
+    public JsopReader diffStream(String fromRevisionId, String toRevisionId, String path, int depth) {
         fromRevisionId = fromRevisionId == null ? headRevision : fromRevisionId;
         toRevisionId = toRevisionId == null ? headRevision : toRevisionId;
         // TODO implement if required
@@ -470,11 +470,6 @@ public class SimpleKernelImpl extends MicroKernelWrapperBase implements MicroKer
      * @param revisionId the revision
      * @return the json string
      */
-    @Override
-    public JsopReader getNodesStream(String path, String revisionId) {
-        return getNodesStream(path, revisionId, 1, 0, -1, null);
-    }
-
     @Override
     public JsopReader getNodesStream(String path, String revisionId, int depth, long offset, int count, String filter) {
         revisionId = revisionId == null ? headRevision : revisionId;

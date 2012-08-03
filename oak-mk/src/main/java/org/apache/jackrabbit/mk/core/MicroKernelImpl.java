@@ -130,7 +130,7 @@ public class MicroKernelImpl implements MicroKernel {
                         String diff = new DiffBuilder(
                                 rep.getNodeState(commit.getParentId(), "/"),
                                 rep.getNodeState(commit.getId(), "/"),
-                                "/", rep.getRevisionStore(), path).build();
+                                "/", -1, rep.getRevisionStore(), path).build();
                         if (!diff.isEmpty()) {
                             history.add(commit);
                         }
@@ -237,7 +237,7 @@ public class MicroKernelImpl implements MicroKernel {
                     diff = new DiffBuilder(
                             rep.getNodeState(commit.getParentId(), "/"),
                             rep.getNodeState(commit.getId(), "/"),
-                            "/", rep.getRevisionStore(), path).build();
+                            "/", -1, rep.getRevisionStore(), path).build();
                     if (diff.isEmpty()) {
                         continue;
                     }
@@ -254,8 +254,12 @@ public class MicroKernelImpl implements MicroKernel {
         return commitBuff.endArray().toString();
     }
 
-    public String diff(String fromRevision, String toRevision, String path) throws MicroKernelException {
+    public String diff(String fromRevision, String toRevision, String path, int depth) throws MicroKernelException {
         path = (path == null || "".equals(path)) ? "/" : path;
+
+        if (depth < -1) {
+            throw new IllegalArgumentException("depth");
+        }
 
         Id fromRevisionId, toRevisionId;
         if (fromRevision == null || toRevision == null) {
@@ -283,7 +287,7 @@ public class MicroKernelImpl implements MicroKernel {
             NodeState before = rep.getNodeState(fromRevisionId, path);
             NodeState after = rep.getNodeState(toRevisionId, path);
 
-            return new DiffBuilder(before, after, path, rep.getRevisionStore(), path).build();
+            return new DiffBuilder(before, after, path, depth, rep.getRevisionStore(), path).build();
         } catch (Exception e) {
             throw new MicroKernelException(e);
         }
