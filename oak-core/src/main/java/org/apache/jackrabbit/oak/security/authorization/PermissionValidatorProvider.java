@@ -14,44 +14,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.core;
+package org.apache.jackrabbit.oak.security.authorization;
 
-import java.security.Principal;
-import java.util.Set;
+import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.core.ReadOnlyTree;
+import org.apache.jackrabbit.oak.spi.commit.Validator;
+import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContext;
-import org.apache.jackrabbit.oak.spi.security.authorization.CompiledPermissions;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Dummy implementation that omits any permission checks
+ * PermissionValidatorProvider... TODO
  */
-public class TestAcContext implements AccessControlContext {
+public class PermissionValidatorProvider implements ValidatorProvider {
 
     /**
      * logger instance
      */
-    private static final Logger log = LoggerFactory.getLogger(TestAcContext.class);
+    private static final Logger log = LoggerFactory.getLogger(PermissionValidatorProvider.class);
 
+    private final AccessControlContext acContext = null; // TODO
+
+    //--------------------------------------------------< ValidatorProvider >---
+    @Nonnull
     @Override
-    public void initialize(Set<Principal> principals) {
-        // nop
-
-    }
-
-    @Override
-    public CompiledPermissions getPermissions() {
-        return new CompiledPermissions() {
-            @Override
-            public boolean canRead(String path, boolean isProperty) {
-                return true;
-            }
-
-            @Override
-            public boolean isGranted(String path, int permissions) {
-                return true;
-            }
-        };
+    public Validator getRootValidator(NodeState before, NodeState after) {
+        return new PermissionValidator(acContext.getPermissions(), new ReadOnlyTree(before), new ReadOnlyTree(after));
     }
 }

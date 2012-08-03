@@ -38,17 +38,21 @@ public class ReadOnlyTree implements Tree {
     /** Underlying node state */
     private final NodeState state;
 
+    private final String path;
+
     public ReadOnlyTree(NodeState root) {
         this(null, "", root);
     }
 
-    private ReadOnlyTree(Tree parent, String name, NodeState state) {
+    public ReadOnlyTree(ReadOnlyTree parent, String name, NodeState state) {
         assert name != null;
         assert !name.isEmpty() || parent == null;
         assert state != null;
+
         this.parent = parent;
         this.name = name;
         this.state = state;
+        this.path = (parent == null) ? "" : parent.getPath() + '/' + name;
     }
 
     @Override
@@ -63,11 +67,7 @@ public class ReadOnlyTree implements Tree {
 
     @Override
     public String getPath() {
-        if (parent == null) {
-            return "";
-        } else {
-            return parent.getPath() + '/' + name;
-        }
+        return path;
     }
 
     @Override
