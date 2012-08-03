@@ -372,7 +372,7 @@ public class UserManagerImpl implements UserManager {
                 log.warn("Invalid value {} for {}. Expected integer >= 4", splitSize, UserManagerConfig.PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE);
                 splitSize = 0;
             }
-            membershipManager = new MembershipManager(this, splitSize, sessionDelegate);
+            membershipManager = new MembershipManager(this, splitSize, sessionDelegate.getValueFactory());
         }
         return membershipManager;
     }
