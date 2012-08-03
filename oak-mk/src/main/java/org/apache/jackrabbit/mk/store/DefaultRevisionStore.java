@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.mk.store;
 
+import org.apache.jackrabbit.mk.model.ChildNodeEntries;
 import org.apache.jackrabbit.mk.model.ChildNodeEntriesMap;
 import org.apache.jackrabbit.mk.model.ChildNodeEntry;
 import org.apache.jackrabbit.mk.model.Id;
@@ -266,7 +267,7 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
         }
     }
 
-    public Id putCNEMap(PutToken token, ChildNodeEntriesMap map)
+    public Id putCNEMap(PutToken token, ChildNodeEntries map)
             throws Exception {
         verifyInitialized();
 

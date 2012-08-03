@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.mk.persistence;
 
+import org.apache.jackrabbit.mk.model.ChildNodeEntries;
 import org.apache.jackrabbit.mk.model.ChildNodeEntriesMap;
 import org.apache.jackrabbit.mk.model.Commit;
 import org.apache.jackrabbit.mk.model.Id;
@@ -52,7 +53,7 @@ public interface Persistence extends Closeable {
 
     ChildNodeEntriesMap readCNEMap(Id id) throws NotFoundException, Exception;
 
-    Id writeCNEMap(ChildNodeEntriesMap map) throws Exception;
+    Id writeCNEMap(ChildNodeEntries map) throws Exception;
 
     StoredCommit readCommit(Id id) throws NotFoundException, Exception;
 
