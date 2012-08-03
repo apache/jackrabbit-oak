@@ -22,6 +22,9 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
+import org.apache.jackrabbit.oak.plugins.lucene.LuceneIndexProvider;
+import org.apache.jackrabbit.oak.plugins.lucene.LuceneIndexUtils;
+import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 
 import javax.jcr.GuestCredentials;
 
@@ -38,7 +41,7 @@ public abstract class AbstractQueryTest {
 
     {
         mk = new IndexWrapper(new MicroKernelImpl());
-        rep = new ContentRepositoryImpl(mk, null, null);
+        rep = new ContentRepositoryImpl(mk, null, (ValidatorProvider) null);
         try {
             session = rep.login(new GuestCredentials(), "default");
             vf = session.getCoreValueFactory();
