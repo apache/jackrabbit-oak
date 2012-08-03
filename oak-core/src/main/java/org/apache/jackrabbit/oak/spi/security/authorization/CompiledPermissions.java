@@ -23,6 +23,6 @@ public interface CompiledPermissions {
 
     boolean canRead(String path, boolean isProperty);
 
-    boolean isGranted(String path, boolean isProperty, int permissions);
+    boolean isGranted(String path, int permissions);
 
 }

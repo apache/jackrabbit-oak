@@ -38,7 +38,7 @@ class CompiledPermissionImpl implements CompiledPermissions {
     }
 
     @Override
-    public boolean isGranted(String path, boolean isProperty, int permissions) {
+    public boolean isGranted(String path, int permissions) {
         // TODO
         return (permissions == Permissions.READ);
     }

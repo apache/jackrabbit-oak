@@ -68,7 +68,7 @@ public class AccessControlContextImpl implements AccessControlContext {
         }
 
         @Override
-        public boolean isGranted(String path, boolean isProperty, int permissions) {
+        public boolean isGranted(String path, int permissions) {
             return allowed;
         }
 
