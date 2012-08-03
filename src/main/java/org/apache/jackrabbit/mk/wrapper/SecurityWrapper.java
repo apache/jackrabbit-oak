@@ -150,9 +150,9 @@ public class SecurityWrapper extends MicroKernelWrapperBase implements MicroKern
     }
 
     @Override
-    public JsopReader diffStream(String fromRevisionId, String toRevisionId, String path) {
+    public JsopReader diffStream(String fromRevisionId, String toRevisionId, String path, int depth) {
         rightsRevision = getHeadRevision();
-        JsopReader diff = mk.diffStream(fromRevisionId, toRevisionId, path);
+        JsopReader diff = mk.diffStream(fromRevisionId, toRevisionId, path, depth);
         if (admin) {
             return diff;
         }
@@ -282,11 +282,6 @@ public class SecurityWrapper extends MicroKernelWrapperBase implements MicroKern
     @Override
     public long getLength(String blobId) {
         return mk.getLength(blobId);
-    }
-
-    @Override
-    public JsopReader getNodesStream(String path, String revisionId) {
-        return getNodesStream(path, revisionId, 1, 0, -1, null);
     }
 
     @Override

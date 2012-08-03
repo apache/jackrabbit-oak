@@ -261,18 +261,13 @@ public class VirtualRepositoryWrapper extends MicroKernelWrapperBase implements 
     }
 
     @Override
-    public JsopReader diffStream(String fromRevisionId, String toRevisionId, String path) throws MicroKernelException {
-        return mk.diffStream(fromRevisionId, toRevisionId, path);
+    public JsopReader diffStream(String fromRevisionId, String toRevisionId, String path, int depth) throws MicroKernelException {
+        return mk.diffStream(fromRevisionId, toRevisionId, path, depth);
     }
 
     @Override
     public long getLength(String blobId) {
         return mk.getLength(blobId);
-    }
-
-    @Override
-    public JsopReader getNodesStream(String path, String revisionId) {
-        return getNodesStream(path, revisionId, 1, 0, -1, null);
     }
 
     @Override

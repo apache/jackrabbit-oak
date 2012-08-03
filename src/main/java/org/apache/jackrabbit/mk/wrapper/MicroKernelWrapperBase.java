@@ -50,8 +50,8 @@ public abstract class MicroKernelWrapperBase implements MicroKernel, MicroKernel
     }
 
     @Override
-    public final String diff(String fromRevisionId, String toRevisionId, String path) {
-        return diffStream(fromRevisionId, toRevisionId, path).toString();
+    public final String diff(String fromRevisionId, String toRevisionId, String path, int depth) {
+        return diffStream(fromRevisionId, toRevisionId, path, depth).toString();
     }
 
     @Override
@@ -115,16 +115,6 @@ public abstract class MicroKernelWrapperBase implements MicroKernel, MicroKernel
         }
 
         @Override
-        public JsopReader getNodesStream(String path, String revisionId) {
-            String json = wrapped.getNodes(path, revisionId, 1, 0, -1, null);
-            if (json != null) {
-                return new JsopTokenizer(json);
-            } else {
-                return null;
-            }
-        }
-
-        @Override
         public JsopReader getNodesStream(String path, String revisionId, int depth, long offset, int count, String filter) {
             String json = wrapped.getNodes(
                     path, revisionId, depth, offset, count, filter);
@@ -141,8 +131,8 @@ public abstract class MicroKernelWrapperBase implements MicroKernel, MicroKernel
         }
 
         @Override
-        public JsopReader diffStream(String fromRevisionId, String toRevisionId, String path) {
-            return new JsopTokenizer(wrapped.diff(fromRevisionId, toRevisionId, path));
+        public JsopReader diffStream(String fromRevisionId, String toRevisionId, String path, int depth) {
+            return new JsopTokenizer(wrapped.diff(fromRevisionId, toRevisionId, path, depth));
         }
 
         @Override
@@ -161,8 +151,8 @@ public abstract class MicroKernelWrapperBase implements MicroKernel, MicroKernel
         }
 
         @Override
-        public String diff(String fromRevisionId, String toRevisionId, String path) {
-            return wrapped.diff(fromRevisionId, toRevisionId, path);
+        public String diff(String fromRevisionId, String toRevisionId, String path, int depth) {
+            return wrapped.diff(fromRevisionId, toRevisionId, path, depth);
         }
 
         @Override
