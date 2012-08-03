@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.mk.persistence;
 
+import org.apache.jackrabbit.mk.model.ChildNodeEntries;
 import org.apache.jackrabbit.mk.model.ChildNodeEntriesMap;
 import org.apache.jackrabbit.mk.model.Commit;
 import org.apache.jackrabbit.mk.model.Id;
@@ -225,7 +226,7 @@ public class H2Persistence implements GCPersistence {
         }
     }
 
-    public Id writeCNEMap(ChildNodeEntriesMap map) throws Exception {
+    public Id writeCNEMap(ChildNodeEntries map) throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         map.serialize(new BinaryBinding(out));
         byte[] bytes = out.toByteArray();

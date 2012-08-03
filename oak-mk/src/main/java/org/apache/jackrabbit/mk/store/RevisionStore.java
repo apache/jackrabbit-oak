@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.mk.store;
 
+import org.apache.jackrabbit.mk.model.ChildNodeEntries;
 import org.apache.jackrabbit.mk.model.ChildNodeEntriesMap;
 import org.apache.jackrabbit.mk.model.Id;
 import org.apache.jackrabbit.mk.model.MutableCommit;
@@ -43,7 +44,7 @@ public interface RevisionStore extends RevisionProvider {
     PutToken createPutToken();
     
     Id /*id*/ putNode(PutToken token, MutableNode node) throws Exception;
-    Id /*id*/ putCNEMap(PutToken token, ChildNodeEntriesMap map) throws Exception;
+    Id /*id*/ putCNEMap(PutToken token, ChildNodeEntries map) throws Exception;
     
     /**
      * Lock the head. Must be called prior to putting a new head commit.

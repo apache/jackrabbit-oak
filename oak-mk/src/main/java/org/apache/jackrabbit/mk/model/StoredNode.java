@@ -36,15 +36,6 @@ public class StoredNode extends AbstractNode {
         this.id = id;
     }
     
-    public StoredNode(Id id, RevisionProvider provider, Map<String, String> properties, Iterator<ChildNodeEntry> cneIt) {
-        super(provider);
-        this.id = id;
-        this.properties.putAll(properties);
-        while (cneIt.hasNext()) {
-            childEntries.add(cneIt.next());
-        }
-    }
-
     public StoredNode(Id id, Node node, RevisionProvider provider) {
         super(node, provider);
         this.id = id;

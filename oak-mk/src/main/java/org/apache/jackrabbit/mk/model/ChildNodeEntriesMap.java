@@ -35,10 +35,10 @@ public class ChildNodeEntriesMap implements ChildNodeEntries {
     
     protected HashMap<String, ChildNodeEntry> entries = new HashMap<String, ChildNodeEntry>();
 
-    ChildNodeEntriesMap() {
+    public ChildNodeEntriesMap() {
     }
 
-    ChildNodeEntriesMap(ChildNodeEntriesMap other) {
+    public ChildNodeEntriesMap(ChildNodeEntriesMap other) {
         entries = (HashMap<String, ChildNodeEntry>) other.entries.clone();
     }
 
