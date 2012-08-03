@@ -210,7 +210,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         assertTrue(mk.nodeExists("/test/target", null));
 
         // get reverse diff
-        String reverseDiff = mk.diff(rev1, rev0, null);
+        String reverseDiff = mk.diff(rev1, rev0, null, -1);
         assertNotNull(reverseDiff);
         assertTrue(reverseDiff.length() > 0);
 
@@ -219,7 +219,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         assertFalse(mk.nodeExists("/test/target", null));
 
         // diff of rev0->rev2 should be empty
-        assertEquals("", mk.diff(rev0, rev2, null));
+        assertEquals("", mk.diff(rev0, rev2, null, -1));
     }
 
     @Test
@@ -230,7 +230,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         String rev2 = mk.commit("/test/bar", "^\"p2\":456", null, "");
 
         // test with path filter
-        String diff = mk.diff(rev0, rev2, "/test");
+        String diff = mk.diff(rev0, rev2, "/test", -1);
         assertNotNull(diff);
         assertFalse(diff.isEmpty());
         assertTrue(diff.contains("foo"));
@@ -238,7 +238,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         assertTrue(diff.contains("123"));
         assertTrue(diff.contains("456"));
 
-        diff = mk.diff(rev0, rev2, "/test/foo");
+        diff = mk.diff(rev0, rev2, "/test/foo", -1);
         assertNotNull(diff);
         assertFalse(diff.isEmpty());
         assertTrue(diff.contains("foo"));
@@ -247,9 +247,52 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         assertFalse(diff.contains("456"));
 
         // non-matching filter
-        diff = mk.diff(rev0, rev2, "/blah");
+        diff = mk.diff(rev0, rev2, "/blah", -1);
         assertNotNull(diff);
         assertTrue(diff.isEmpty());
+    }
+
+    @Test
+    public void diffDepthLimited() {
+        // initial content (/test/foo)
+        String rev0 = mk.commit("/test", "+\"foo\":{}", null, "");
+
+        // add /test/foo/bar
+        String rev1 = mk.commit("/test/foo", "+\"bar\":{\"p1\":123}", null, "");
+
+        // modify property /test/foo/bar/p1
+        String rev2 = mk.commit("/test/foo/bar", "^\"p1\":456", null, "");
+
+        // diff with depth -1
+        assertEquals(mk.diff(rev0, rev2, "/", Integer.MAX_VALUE), mk.diff(rev0, rev2, "/", -1));
+
+        // diff with depth 5
+        String diff = mk.diff(rev0, rev2, "/", 5);
+        // returned +"/test/foo/bar":{"p1":456}
+        assertNotNull(diff);
+        assertFalse(diff.isEmpty());
+        assertTrue(diff.contains("/test/foo/bar"));
+        assertTrue(diff.contains("456"));
+
+        // diff with depth 0
+        diff = mk.diff(rev0, rev2, "/", 0);
+        // returned ^"/test", indicating that there are changes below /test
+        assertNotNull(diff);
+        assertFalse(diff.isEmpty());
+        assertFalse(diff.contains("/test/foo"));
+        assertFalse(diff.contains("456"));
+        assertTrue(diff.contains("/test"));
+        assertTrue(diff.startsWith("^"));
+
+        // diff with depth 1
+        diff = mk.diff(rev0, rev2, "/", 1);
+        // returned ^"/test/foo", indicating that there are changes below /test/foo
+        assertNotNull(diff);
+        assertFalse(diff.isEmpty());
+        assertFalse(diff.contains("/test/foo/bar"));
+        assertFalse(diff.contains("456"));
+        assertTrue(diff.contains("/test/foo"));
+        assertTrue(diff.startsWith("^"));
     }
 
     @Test

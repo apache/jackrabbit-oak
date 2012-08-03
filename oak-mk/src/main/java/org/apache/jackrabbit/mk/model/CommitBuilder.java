@@ -224,7 +224,7 @@ public class CommitBuilder {
             String diff = new DiffBuilder(
                     store.getNodeState(store.getRootNode(currentHead)),
                     store.getNodeState(store.getNode(rootNodeId)),
-                    "/", store, "").build();
+                    "/", -1, store, "").build();
             newCommit.setChanges(diff);
             newCommit.setRootNodeId(rootNodeId);
             newCommit.setBranchRootId(null);

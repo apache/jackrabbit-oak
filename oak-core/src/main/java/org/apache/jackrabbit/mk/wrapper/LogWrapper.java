@@ -82,10 +82,10 @@ public class LogWrapper implements MicroKernel {
     }
 
     @Override
-    public String diff(String fromRevisionId, String toRevisionId, String path) {
+    public String diff(String fromRevisionId, String toRevisionId, String path, int depth) {
         try {
             logMethod("diff", fromRevisionId, toRevisionId, path);
-            String result = mk.diff(fromRevisionId, toRevisionId, path);
+            String result = mk.diff(fromRevisionId, toRevisionId, path, depth);
             logResult(result);
             return result;
         } catch (Exception e) {

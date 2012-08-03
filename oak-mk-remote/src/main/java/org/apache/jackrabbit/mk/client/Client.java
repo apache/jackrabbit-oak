@@ -166,7 +166,7 @@ public class Client implements MicroKernel {
     }
 
     @Override
-    public String diff(String fromRevisionId, String toRevisionId, String path)
+    public String diff(String fromRevisionId, String toRevisionId, String path, int depth)
             throws MicroKernelException {
         Request request = null;
 
@@ -175,6 +175,7 @@ public class Client implements MicroKernel {
             request.addParameter("from_revision_id", fromRevisionId);
             request.addParameter("to_revision_id", toRevisionId);
             request.addParameter("path", path);
+            request.addParameter("depth", depth);
             return request.getString();
         } catch (IOException e) {
             throw toMicroKernelException(e);
