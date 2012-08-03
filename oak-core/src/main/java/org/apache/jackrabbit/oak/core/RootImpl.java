@@ -99,10 +99,7 @@ public class RootImpl implements Root {
         this.store = store;
         this.accessControlContext = accessControlContext;
 
-        branch = store.branch();
-        rootTree = TreeImpl.createRoot(this);
-        // TODO: define how permissions are bound to the current branch
-        permissions = accessControlContext.getPermissions();
+        refresh();
     }
 
     //---------------------------------------------------------------< Root >---
