@@ -177,7 +177,7 @@ public class NodeDelegate extends ItemDelegate {
 
     /**
      * Returns an iterator for traversing all the children of this node.
-     * If the node is orderable (there is an "{@code oak:childOrder}"
+     * If the node is orderable (there is an {@link PropertyState#OAK_CHILD_ORDER}
      * property) then the iterator will return child nodes in the specified
      * order. Otherwise the ordering of the iterator is undefined.
      *
@@ -200,8 +200,7 @@ public class NodeDelegate extends ItemDelegate {
                 return Collections.<NodeDelegate>emptySet().iterator();
             }
         } else {
-            // TODO: Use a proper namespace for this property?
-            PropertyState order = tree.getProperty("childOrder");
+            PropertyState order = tree.getProperty(PropertyState.OAK_CHILD_ORDER);
             if (order == null || !order.isArray()) {
                 // No specified ordering
                 return nodeDelegateIterator(tree.getChildren().iterator());
@@ -255,7 +254,7 @@ public class NodeDelegate extends ItemDelegate {
             CoreValueFactory factory =
                     sessionDelegate.getContentSession().getCoreValueFactory();
 
-            PropertyState property = tree.getProperty("childOrder");
+            PropertyState property = tree.getProperty(PropertyState.OAK_CHILD_ORDER);
             if (property != null) {
                 for (CoreValue value : property.getValues()) {
                     String name = value.getString();
@@ -278,7 +277,7 @@ public class NodeDelegate extends ItemDelegate {
                 order.add(factory.createValue(source));
             }
 
-            tree.setProperty("childOrder", order);
+            tree.setProperty(PropertyState.OAK_CHILD_ORDER, order);
         }
     }
 
