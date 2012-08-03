@@ -25,7 +25,6 @@ import org.apache.jackrabbit.commons.flat.PropertySequence;
 import org.apache.jackrabbit.commons.flat.Rank;
 import org.apache.jackrabbit.commons.flat.TreeManager;
 import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
-import org.apache.jackrabbit.oak.jcr.SessionDelegate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,6 +35,7 @@ import javax.jcr.Property;
 import javax.jcr.PropertyIterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
+import javax.jcr.ValueFactory;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -50,14 +50,14 @@ class MembershipManager {
     private static final Logger log = LoggerFactory.getLogger(MembershipManager.class);
 
     private final UserManagerImpl userManager;
-    private final SessionDelegate sessionDelegate;
+    private final ValueFactory valueFactory;
     private final int memberSplitSize;
 
     private final String repMembers;
 
-    MembershipManager(UserManagerImpl userManager, int memberSplitSize, SessionDelegate sessionDelegate) {
+    MembershipManager(UserManagerImpl userManager, int memberSplitSize, ValueFactory valueFactory) {
         this.userManager = userManager;
-        this.sessionDelegate = sessionDelegate;
+        this.valueFactory = valueFactory;
         this.memberSplitSize = memberSplitSize;
 
         repMembers = userManager.getJcrName(UserConstants.REP_MEMBERS);
@@ -153,7 +153,7 @@ class MembershipManager {
         } else {
             Node memberNode = authorizable.getNode();
             Value[] values;
-            Value toAdd = sessionDelegate.getValueFactory().createValue(memberNode, true);
+            Value toAdd = valueFactory.createValue(memberNode, true);
             if (node.hasProperty(repMembers)) {
                 Value[] old = node.getProperty(repMembers).getValues();
                 values = new Value[old.length + 1];
@@ -185,7 +185,7 @@ class MembershipManager {
             }
         } else {
             if (node.hasProperty(repMembers)) {
-                Value toRemove = sessionDelegate.getValueFactory().createValue((authorizable).getNode(), true);
+                Value toRemove = valueFactory.createValue((authorizable).getNode(), true);
                 Property property = node.getProperty(repMembers);
                 List<Value> valList = new ArrayList<Value>(Arrays.asList(property.getValues()));
 
