@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import static org.apache.jackrabbit.oak.jcr.RepositoryTestUtils.buildDefaultCommitEditor;
+
 import java.io.IOException;
 import java.security.Principal;
 import java.util.Properties;
@@ -48,7 +50,7 @@ public class OakRepositoryStub extends RepositoryStub {
         super(settings);
 
         MicroKernel microkernel = new MicroKernelImpl("target/mk-tck-" + System.currentTimeMillis());
-        ContentRepository contentRepository = new ContentRepositoryImpl(microkernel, null, null);
+        ContentRepository contentRepository = new ContentRepositoryImpl(microkernel, null, buildDefaultCommitEditor());
         repository = new RepositoryImpl(contentRepository, Executors.newScheduledThreadPool(1));
 
         Session session = repository.login(superuser);
@@ -59,6 +61,7 @@ public class OakRepositoryStub extends RepositoryStub {
             session.logout();
         }
     }
+
 
     /**
      * Returns the configured repository instance.

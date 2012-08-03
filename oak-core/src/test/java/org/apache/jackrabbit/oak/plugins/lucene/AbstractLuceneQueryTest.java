@@ -21,6 +21,8 @@ import static org.apache.jackrabbit.oak.plugins.lucene.LuceneIndexUtils.DEFAULT_
 import static org.apache.jackrabbit.oak.plugins.lucene.LuceneIndexUtils.createIndexNode;
 
 import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.jcr.GuestCredentials;
 
@@ -34,6 +36,16 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
+import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
+import org.apache.jackrabbit.oak.plugins.name.NamespaceValidatorProvider;
+import org.apache.jackrabbit.oak.plugins.type.DefaultTypeEditor;
+import org.apache.jackrabbit.oak.plugins.type.TypeValidatorProvider;
+import org.apache.jackrabbit.oak.plugins.value.ConflictValidatorProvider;
+import org.apache.jackrabbit.oak.spi.commit.CommitEditor;
+import org.apache.jackrabbit.oak.spi.commit.CompositeEditor;
+import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
+import org.apache.jackrabbit.oak.spi.commit.ValidatingEditor;
+import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.junit.Before;
 
 /**
@@ -54,13 +66,31 @@ public abstract class AbstractLuceneQueryTest {
     @Before
     public void before() throws Exception {
         repository = new ContentRepositoryImpl(new MicroKernelImpl(),
-                new LuceneIndexProvider(DEFAULT_INDEX_HOME), null);
+                new LuceneIndexProvider(DEFAULT_INDEX_HOME),
+                buildDefaultCommitEditor());
         session = repository.login(new GuestCredentials(), null);
         cleanupIndexNode();
 
         vf = session.getCoreValueFactory();
         qe = session.getQueryEngine();
 
+    }
+
+    private static CommitEditor buildDefaultCommitEditor() {
+        List<CommitEditor> editors = new ArrayList<CommitEditor>();
+        editors.add(new DefaultTypeEditor());
+        editors.add(new ValidatingEditor(createDefaultValidatorProvider()));
+        editors.add(new LuceneEditor());
+        return new CompositeEditor(editors);
+    }
+
+    private static ValidatorProvider createDefaultValidatorProvider() {
+        List<ValidatorProvider> providers = new ArrayList<ValidatorProvider>();
+        providers.add(new NameValidatorProvider());
+        providers.add(new NamespaceValidatorProvider());
+        providers.add(new TypeValidatorProvider());
+        providers.add(new ConflictValidatorProvider());
+        return new CompositeValidatorProvider(providers);
     }
 
     /**
