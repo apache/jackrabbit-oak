@@ -44,7 +44,7 @@
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-jcr</artifactId>
-      <version>0.4-SNAPSHOT</version>
+      <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
