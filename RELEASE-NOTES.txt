@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 0.3
+Release Notes -- Apache Jackrabbit Oak -- Version 0.4
 
 Introduction
 ------------
@@ -10,8 +10,61 @@ other demanding content applications.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Jackrabbit Oak 0.3 is to be considered alpha-level software. Use at your own risk 
+Jackrabbit Oak 0.4 is to be considered alpha-level software. Use at your own risk 
 with no stability or compatibility guarantees.
+
+Changes in Oak 0.4
+------------------
+
+New Features
+
+  [OAK-182] - Support for "invisible" internal content
+  [OAK-193] - TODO class for partially implemented features
+  [OAK-227] - MicroKernel API: add depth parameter to diff method
+
+Improvements
+
+  [OAK-153] - Split the CommitHook interface
+  [OAK-156] - Observation events need Session.refresh
+  [OAK-158] - Specify fixed memory settings for unit and integration tests
+  [OAK-161] - Refactor Tree#getChildStatus
+  [OAK-163] - Move the JCR TCK back to the integrationTesting profile
+  [OAK-164] - Replace Tree.remove(String) with Tree.remove()
+  [OAK-165] - NodeDelegate should not use Tree.getChild() but rather Root.getTree()
+  [OAK-166] - Add Tree.isRoot() method instead of relying on Tree.getParent() == null
+  [OAK-171] - Add NodeState.compareAgainstBaseState()
+  [OAK-172] - Optimize KernelNodeState equality checks
+  [OAK-174] - Refactor RootImpl and TreeImpl to take advantage of the child node state builder introduced with OAK-170
+  [OAK-176] - Reduce CoreValueFactoryImpl footprint
+  [OAK-183] - Remove duplicate fields from NodeImpl and PropertyImpl which are already in the ItemImpl super class
+  [OAK-184] - Allow PropertyState.getValues() to work on single-valued properties
+  [OAK-186] - Avoid unnecessary rebase operations
+  [OAK-192] - Define behavior of Tree#getParent() if the parent is not accessible
+  [OAK-194] - Define behavior of Tree#getProperty(String) in case of lack of access
+  [OAK-195] - State that Tree#hasProperty returns false of the property is not accessible
+  [OAK-196] - Make Root interface permission aware
+  [OAK-198] - Refactor RootImpl#merge
+  [OAK-199] - KernelNodeStore defines 2 access methods for the CommitEditor
+  [OAK-200] - Replace Commons Collections with Guava
+  [OAK-232] - Hardcoded "childOrder" in NodeDelegate
+
+Bug fixes
+
+  [OAK-155] - Query: limited support for the deprecated JCR 1.0 query language Query.SQL
+  [OAK-173] - MicroKernel filter syntax is not proper JSON
+  [OAK-177] - Too fast timeout in MicroKernelIT.waitForCommit
+  [OAK-179] - Tests should not fail if there is a jcr:system node
+  [OAK-185] - Trying to remove a missing property throws PathNotFoundException
+  [OAK-187] - ConcurrentModificationException during gc run
+  [OAK-188] - Invalid JSOP encoding in CommitBuilder and KernelNodeStoreBranch
+  [OAK-207] - TreeImpl#getStatus() never returns REMOVED
+  [OAK-208] - RootImplFuzzIT test failures
+  [OAK-209] - BlobStore: use SHA-256 instead of SHA-1, and use two directory levels for FileBlobStore
+  [OAK-211] - CompositeEditor should keep the base node state stable
+  [OAK-213] - Misleading exception message in NodeImpl#getParent
+  [OAK-215] - Make definition of ItemDelegate#getParent permission aware
+  [OAK-219] - SessionDelegate#getRoot throws IllegalStateException if the root node is not accessible
+  [OAK-224] - Allow the ContentRepositoryImpl to receive a CommitEditor in the constructor
 
 Changes in Oak 0.3
 ------------------
