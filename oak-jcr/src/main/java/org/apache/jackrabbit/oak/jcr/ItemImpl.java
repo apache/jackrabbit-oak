@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import java.util.Arrays;
+import java.util.Map;
+import java.util.Queue;
+
 import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.Item;
@@ -23,10 +27,14 @@ import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.ValueFactory;
+import javax.jcr.nodetype.NodeType;
 
 import org.apache.jackrabbit.commons.AbstractItem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Maps;
+import com.google.common.collect.Queues;
 
 /**
  * {@code ItemImpl}...
@@ -146,6 +154,37 @@ abstract class ItemImpl<T extends ItemDelegate> extends AbstractItem {
     }
 
     //------------------------------------------------------------< internal >---
+
+    /**
+     * Returns all the node types of the given node, in a breadth-first
+     * traversal order of the type hierarchy.
+     * <p>
+     * This utility method used by the getDefinition() methods in the
+     * {@link PropertyImpl} and {@link NodeImpl} subclasses.
+     *
+     * @param node node instance
+     * @return all types of the given node
+     * @throws RepositoryException if the type information can not be accessed
+     */
+    protected static Iterable<NodeType> getAllNodeTypes(Node node)
+            throws RepositoryException {
+        Map<String, NodeType> types = Maps.newHashMap();
+
+        Queue<NodeType> queue = Queues.newArrayDeque();
+        queue.add(node.getPrimaryNodeType());
+        queue.addAll(Arrays.asList(node.getMixinNodeTypes()));
+        while (!queue.isEmpty()) {
+            NodeType type = queue.remove();
+            String name = type.getName();
+            if (!types.containsKey(name)) {
+                types.put(name, type);
+                queue.addAll(Arrays.asList(type.getDeclaredSupertypes()));
+            }
+        }
+
+        return types.values();
+    }
+
 
     /**
      * Performs a sanity check on this item and the associated session.

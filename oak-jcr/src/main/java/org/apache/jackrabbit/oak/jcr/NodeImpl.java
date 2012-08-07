@@ -50,7 +50,6 @@ import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeManager;
-import javax.jcr.version.OnParentVersionAction;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionHistory;
 
@@ -1013,71 +1012,33 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
     @Override
     @Nonnull
     public NodeDefinition getDefinition() throws RepositoryException {
-        checkStatus();
+        if (getDepth() == 0) {
+            // TODO: What should be the root node definition?
+            return getPrimaryNodeType().getChildNodeDefinitions()[0];
+        }
 
-
-        // TODO
-        return new NodeDefinition() {
-
-            // This is a workaround to make AbstractJCRTest.cleanup happy
-
-            @Override
-            public boolean isProtected() {
-                return false;
+        String name = getName();
+        // TODO: This may need to be optimized
+        for (NodeType nt : getAllNodeTypes(getParent())) {
+            for (NodeDefinition def : nt.getDeclaredChildNodeDefinitions()) {
+                String defName = def.getName();
+                if (name.equals(defName) || "*".equals(defName)) {
+                    boolean match = true;
+                    for (String type : def.getRequiredPrimaryTypeNames()) {
+                        if (!isNodeType(type)) {
+                            match = false;
+                        }
+                    }
+                    if (match) {
+                        return def;
+                    }
+                }
             }
+        }
 
-            @Override
-            public boolean isMandatory() {
-                return false;
-            }
-
-            @Override
-            public boolean isAutoCreated() {
-                return false;
-            }
-
-            @Override
-            public int getOnParentVersion() {
-                return OnParentVersionAction.COPY;
-            }
-
-            @Override
-            public String getName() {
-                return "default";
-            }
-
-            @Override
-            public NodeType getDeclaringNodeType() {
-                return null;
-            }
-
-            @Override
-            public NodeType[] getRequiredPrimaryTypes() {
-                return null;
-            }
-
-            @Override
-            public String[] getRequiredPrimaryTypeNames() {
-                return null;
-            }
-
-            @Override
-            public String getDefaultPrimaryTypeName() {
-                return null;
-            }
-
-            @Override
-            public NodeType getDefaultPrimaryType() {
-                return null;
-            }
-
-            @Override
-            public boolean allowsSameNameSiblings() {
-                return false;
-            }
-        };
+        throw new RepositoryException(
+                "No matching node definition found for " + this);
     }
-
 
     @Override
     @Nonnull
