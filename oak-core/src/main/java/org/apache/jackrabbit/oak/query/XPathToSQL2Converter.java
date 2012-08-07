@@ -381,10 +381,20 @@ public class XPathToSQL2Converter {
             Cast c = new Cast(expr, "date");
             read(")");
             return c;
+        } else if ("fn:lower-case".equals(functionName)) {
+            Function f = new Function("lower");
+            f.params.add(parseExpression());
+            read(")");
+            return f;
+        } else if ("fn:upper-case".equals(functionName)) {
+            Function f = new Function("upper");
+            f.params.add(parseExpression());
+            read(")");
+            return f;
         // } else if ("jcr:deref".equals(functionName)) {
             // TODO support jcr:deref?
         } else {
-            throw getSyntaxError("jcr:like | jcr:contains | jcr:score | jcr:deref");
+            throw getSyntaxError("jcr:like | jcr:contains | jcr:score | jcr:deref | fn:lower-case | fn:upper-case");
         }
     }
 
@@ -537,7 +547,9 @@ public class XPathToSQL2Converter {
         case CHAR_NAME:
             while (true) {
                 type = types[i];
-                if (type != CHAR_NAME && type != CHAR_VALUE) {
+                // the '-' can be part of a name, 
+                // for example in "fn:lower-case"
+                if (type != CHAR_NAME && type != CHAR_VALUE && chars[i] != '-') {
                     c = chars[i];
                     break;
                 }
