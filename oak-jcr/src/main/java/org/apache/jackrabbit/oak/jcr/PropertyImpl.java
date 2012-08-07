@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import static javax.jcr.PropertyType.UNDEFINED;
+
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -33,6 +35,7 @@ import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFormatException;
+import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.PropertyDefinition;
 
 import org.apache.jackrabbit.oak.api.Tree.Status;
@@ -542,12 +545,33 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     @Override
     @Nonnull
     public PropertyDefinition getDefinition() throws RepositoryException {
-        return sessionDelegate.perform(new SessionOperation<PropertyDefinition>() {
-            @Override
-            public PropertyDefinition perform() {
-                return dlg.getDefinition();
+        String name = getName();
+        int type = UNDEFINED;
+        if (isMultiple()) {
+            Value[] values = getValues();
+            if (values.length > 0) {
+                type = values[0].getType();
             }
-        });
+        } else {
+            type = getValue().getType();
+        }
+
+        // TODO: This may need to be optimized
+        for (NodeType nt : getAllNodeTypes(getParent())) {
+            for (PropertyDefinition def : nt.getDeclaredPropertyDefinitions()) {
+                String defName = def.getName();
+                int defType = def.getRequiredType();
+                if ((name.equals(defName) || "*".equals(defName))
+                        && (type == defType
+                            || UNDEFINED == type || UNDEFINED == defType)
+                        && isMultiple() == def.isMultiple()) {
+                    return def;
+                }
+            }
+        }
+
+        throw new RepositoryException(
+                "No matching property definition found for " + this);
     }
 
     /**
