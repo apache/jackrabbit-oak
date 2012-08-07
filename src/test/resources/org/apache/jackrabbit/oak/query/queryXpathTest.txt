@@ -18,6 +18,14 @@
 # * lines starting with "xpath" are xpath queries, followed by expected sql2 query
 # * use ascii character only
 
+# sling queries
+
+xpath //element(*,mix:language)[fn:lower-case(@jcr:language)='en']//element(*,sling:Message)[@sling:message]/(@sling:key|@sling:message)
+select [jcr:path], [jcr:score], [sling:key], [sling:message] from [sling:Message] where (lower([jcr:language]) = 'en') and ([sling:message] is not null)
+
+xpath //element(*,mix:language)[fn:upper-case(@jcr:language)='en']//element(*,sling:Message)[@sling:message]/(@sling:key|@sling:message)
+select [jcr:path], [jcr:score], [sling:key], [sling:message] from [sling:Message] where (upper([jcr:language]) = 'en') and ([sling:message] is not null)
+
 # jboss example queries
 
 xpath //*
@@ -229,7 +237,7 @@ xpath //element(*, my:type)[@my:value = ['x']
 invalid: Query: //element(*, my:type)[@my:value = [(*)'x']; expected: @, true, false, -, +
 
 xpath //element(*, my:type)[jcr:strike(@title,'%Java%')]
-invalid: Query: //element(*, my:type)[jcr:strike(@(*)title,'%Java%')]; expected: jcr:like | jcr:contains | jcr:score | jcr:deref
+invalid: Query: //element(*, my:type)[jcr:strike(@(*)title,'%Java%')]; expected: jcr:like | jcr:contains | jcr:score | jcr:deref | fn:lower-case | fn:upper-case
 
 xpath //element(*, my:type)[
 invalid: Query: //element(*, my:type)(*)[; expected: not, (, @, true, false, -, +
