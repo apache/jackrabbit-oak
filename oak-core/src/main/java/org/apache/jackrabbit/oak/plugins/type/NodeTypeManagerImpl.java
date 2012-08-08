@@ -264,6 +264,7 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
 
         CoreValueFactory factory = session.getCoreValueFactory();
         NodeUtil node = new NodeUtil(factory, mapper, type);
+        node.setName(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_NODETYPE);
         node.setName(JcrConstants.JCR_NODETYPENAME, jcrName);
         node.setNames(JcrConstants.JCR_SUPERTYPES, ntd.getDeclaredSupertypeNames());
         node.setBoolean("jcr:isAbstract", ntd.isAbstract());
@@ -307,8 +308,8 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
     }
 
     private void internalRegisterPropertyDefinition(
-            NodeUtil node, PropertyDefinition def)
-            throws RepositoryException {
+            NodeUtil node, PropertyDefinition def) {
+        node.setName(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_PROPERTYDEFINITION);
         internalRegisterItemDefinition(node, def);
 
         node.setString(
@@ -330,8 +331,8 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
         }
     }
 
-    private void internalRegisterNodeDefinition(
-            NodeUtil node, NodeDefinition def) {
+    private void internalRegisterNodeDefinition(NodeUtil node, NodeDefinition def) {
+        node.setName(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_CHILDNODEDEFINITION);
         internalRegisterItemDefinition(node, def);
 
         node.setBoolean(JcrConstants.JCR_SAMENAMESIBLINGS, def.allowsSameNameSiblings());
