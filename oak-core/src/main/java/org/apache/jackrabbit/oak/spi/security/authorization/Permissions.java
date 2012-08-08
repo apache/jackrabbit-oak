@@ -107,10 +107,9 @@ public final class Permissions {
         PERMISSION_NAMES.put(WORKSPACE_MANAGEMENT, "WORKSPACE_MANAGEMENT");
         PERMISSION_NAMES.put(PRIVILEGE_MANAGEMENT, "PRIVILEGE_MANAGEMENT");
         PERMISSION_NAMES.put(USER_MANAGEMENT, "USER_MANAGEMENT");
-
     }
 
-    public String getString(int permissions) {
+    public static String getString(int permissions) {
         if (PERMISSION_NAMES.containsKey(permissions)) {
             return PERMISSION_NAMES.get(permissions);
         } else {
@@ -123,6 +122,12 @@ public final class Permissions {
             }
             return sb.toString();
         }
+    }
 
+    public static boolean isRepositoryPermissions(int permissions) {
+        return permissions == NAMESPACE_MANAGEMENT ||
+               permissions == NODE_TYPE_DEFINITION_MANAGEMENT ||
+               permissions == PRIVILEGE_MANAGEMENT ||
+               permissions == WORKSPACE_MANAGEMENT;
     }
 }
