@@ -39,6 +39,7 @@ import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
 import javax.jcr.version.OnParentVersionAction;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.cnd.CompactNodeTypeDefReader;
 import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -54,6 +55,8 @@ import com.google.common.collect.Maps;
 
 public class NodeTypeManagerImpl implements NodeTypeManager {
 
+    private static final String NODE_TYPES_PATH = "/jcr:system/jcr:nodeTypes";
+    
     private final ContentSession session;
 
     private final NameMapper mapper;
@@ -66,7 +69,7 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
         this.mapper = mapper;
         this.factory = factory;
 
-        if (session.getCurrentRoot().getTree("/jcr:system/jcr:nodeTypes") == null) {
+        if (session.getCurrentRoot().getTree(NODE_TYPES_PATH) == null) {
             try {
                 InputStream stream = NodeTypeManagerImpl.class.getResourceAsStream(
                         "builtin_nodetypes.cnd");
@@ -85,7 +88,7 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
                                     template.getDeclaredSupertypeNames();
                             if (supertypes.length == 0) {
                                 template.setDeclaredSuperTypeNames(
-                                        new String[] { "nt:base" });
+                                        new String[] {JcrConstants.NT_BASE});
                             } else {
                                 // Check whether we need to add the implicit "nt:base" supertype
                                 boolean needsNtBase = true;
@@ -96,7 +99,7 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
                                 }
                                 if (needsNtBase) {
                                     String[] withBase = new String[supertypes.length + 1];
-                                    withBase[0] = "nt:base";
+                                    withBase[0] = JcrConstants.NT_BASE;
                                     System.arraycopy(supertypes, 0, withBase, 1, supertypes.length);
                                     template.setDeclaredSuperTypeNames(withBase);
                                 }
@@ -134,15 +137,13 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
 
     @Override
     public boolean hasNodeType(String name) throws RepositoryException {
-        Tree types = session.getCurrentRoot().getTree(
-                "/jcr:system/jcr:nodeTypes");
+        Tree types = session.getCurrentRoot().getTree(NODE_TYPES_PATH);
         return types != null && types.hasChild(mapper.getOakName(name));
     }
 
     @Override
     public NodeType getNodeType(String name) throws RepositoryException {
-        Tree types = session.getCurrentRoot().getTree(
-                "/jcr:system/jcr:nodeTypes");
+        Tree types = session.getCurrentRoot().getTree(NODE_TYPES_PATH);
         if (types != null) {
             Tree type = types.getChild(mapper.getOakName(name));
             if (type != null) {
@@ -156,8 +157,7 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
     @Override
     public NodeTypeIterator getAllNodeTypes() throws RepositoryException {
         List<NodeType> list = Lists.newArrayList();
-        Tree types = session.getCurrentRoot().getTree(
-                "/jcr:system/jcr:nodeTypes");
+        Tree types = session.getCurrentRoot().getTree(NODE_TYPES_PATH);
         if (types != null) {
             for (Tree type : types.getChildren()) {
                 list.add(new NodeTypeImpl(this, factory, new NodeUtil(
@@ -264,27 +264,27 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
 
         CoreValueFactory factory = session.getCoreValueFactory();
         NodeUtil node = new NodeUtil(factory, mapper, type);
-        node.setName("jcr:nodeTypeName", jcrName);
-        node.setNames("jcr:supertypes", ntd.getDeclaredSupertypeNames());
+        node.setName(JcrConstants.JCR_NODETYPENAME, jcrName);
+        node.setNames(JcrConstants.JCR_SUPERTYPES, ntd.getDeclaredSupertypeNames());
         node.setBoolean("jcr:isAbstract", ntd.isAbstract());
         node.setBoolean("jcr:isQueryable", ntd.isQueryable());
-        node.setBoolean("jcr:isMixin", ntd.isMixin());
-        node.setBoolean("jcr:hasOrderableChildNodes", ntd.hasOrderableChildNodes());
+        node.setBoolean(JcrConstants.JCR_ISMIXIN, ntd.isMixin());
+        node.setBoolean(JcrConstants.JCR_HASORDERABLECHILDNODES, ntd.hasOrderableChildNodes());
         String primaryItemName = ntd.getPrimaryItemName();
         if (primaryItemName != null) {
-            node.setName("jcr:primaryItemName", primaryItemName);
+            node.setName(JcrConstants.JCR_PRIMARYITEMNAME, primaryItemName);
         }
 
         int pdn = 1;
         for (PropertyDefinition pd : ntd.getDeclaredPropertyDefinitions()) {
-            Tree def = type.addChild("jcr:propertyDefinition" + pdn++);
+            Tree def = type.addChild(JcrConstants.JCR_PROPERTYDEFINITION + pdn++);
             internalRegisterPropertyDefinition(
                     new NodeUtil(factory, mapper, def), pd);
         }
 
         int ndn = 1;
         for (NodeDefinition nd : ntd.getDeclaredChildNodeDefinitions()) {
-            Tree def = type.addChild("jcr:childNodeDefinition" + ndn++);
+            Tree def = type.addChild(JcrConstants.JCR_CHILDNODEDEFINITION + ndn++);
             internalRegisterNodeDefinition(
                     new NodeUtil(factory, mapper, def), nd);
         }
@@ -296,13 +296,13 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
             NodeUtil node, ItemDefinition def) {
         String name = def.getName();
         if (!"*".equals(name)) {
-            node.setName("jcr:name", name);
+            node.setName(JcrConstants.JCR_NAME, name);
         }
-        node.setBoolean("jcr:autoCreated", def.isAutoCreated());
-        node.setBoolean("jcr:mandatory", def.isMandatory());
-        node.setBoolean("jcr:protected", def.isProtected());
+        node.setBoolean(JcrConstants.JCR_AUTOCREATED, def.isAutoCreated());
+        node.setBoolean(JcrConstants.JCR_MANDATORY, def.isMandatory());
+        node.setBoolean(JcrConstants.JCR_PROTECTED, def.isProtected());
         node.setString(
-                "jcr:onParentVersion",
+                JcrConstants.JCR_ONPARENTVERSION,
                 OnParentVersionAction.nameFromValue(def.getOnParentVersion()));
     }
 
@@ -312,21 +312,21 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
         internalRegisterItemDefinition(node, def);
 
         node.setString(
-                "jcr:requiredType",
+                JcrConstants.JCR_REQUIREDTYPE,
                 PropertyType.nameFromValue(def.getRequiredType()));
-        node.setBoolean("jcr:multiple", def.isMultiple());
+        node.setBoolean(JcrConstants.JCR_MULTIPLE, def.isMultiple());
         node.setBoolean("jcr:isFullTextSearchable", def.isFullTextSearchable());
         node.setBoolean("jcr:isQueryOrderable", def.isQueryOrderable());
         node.setStrings("jcr:availableQueryOperators", def.getAvailableQueryOperators());
 
         String[] constraints = def.getValueConstraints();
         if (constraints != null) {
-            node.setStrings("jcr:valueConstraints", constraints);
+            node.setStrings(JcrConstants.JCR_VALUECONSTRAINTS, constraints);
         }
 
         Value[] values = def.getDefaultValues();
         if (values != null) {
-            node.setValues("jcr:defaultValues", values);
+            node.setValues(JcrConstants.JCR_DEFAULTVALUES, values);
         }
     }
 
@@ -334,18 +334,18 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
             NodeUtil node, NodeDefinition def) {
         internalRegisterItemDefinition(node, def);
 
-        node.setBoolean("jcr:sameNameSiblings", def.allowsSameNameSiblings());
+        node.setBoolean(JcrConstants.JCR_SAMENAMESIBLINGS, def.allowsSameNameSiblings());
         node.setNames(
-                "jcr:requiredPrimaryTypes",
+                JcrConstants.JCR_REQUIREDPRIMARYTYPES,
                 def.getRequiredPrimaryTypeNames());
         String defaultPrimaryType = def.getDefaultPrimaryTypeName();
         if (defaultPrimaryType != null) {
-            node.setName("jcr:defaultPrimaryType", defaultPrimaryType);
+            node.setName(JcrConstants.JCR_DEFAULTPRIMARYTYPE, defaultPrimaryType);
         }
     }
 
     private Tree getOrCreateNodeTypes(Root root) {
-        Tree types = root.getTree("/jcr:system/jcr:nodeTypes");
+        Tree types = root.getTree(NODE_TYPES_PATH);
         if (types == null) {
             Tree system = root.getTree("/jcr:system");
             if (system == null) {
@@ -360,14 +360,12 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
     public void unregisterNodeType(String name) throws RepositoryException {
         Tree type = null;
         Root root = session.getCurrentRoot();
-        Tree types = root.getTree("/jcr:system/jcr:nodeTypes");
+        Tree types = root.getTree(NODE_TYPES_PATH);
         if (types != null) {
             type = types.getChild(mapper.getOakName(name));
         }
         if (type == null) {
-            // TODO: Degrade gracefully? Or throw NoSuchNodeTypeException?
-            throw new RepositoryException(
-                    "Node type " + name + " can not be unregistered");
+            throw new NoSuchNodeTypeException("Node type " + name + " can not be unregistered.");
         }
 
         try {
@@ -375,35 +373,30 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
             root.commit(DefaultConflictHandler.OURS);
             refresh();
         } catch (CommitFailedException e) {
-            throw new RepositoryException(
-                    "Failed to unregister node type " + name, e);
+            throw new RepositoryException("Failed to unregister node type " + name, e);
         }
     }
 
     @Override
     public void unregisterNodeTypes(String[] names) throws RepositoryException {
         Root root = session.getCurrentRoot();
-        Tree types = root.getTree("/jcr:system/jcr:nodeTypes");
+        Tree types = root.getTree(NODE_TYPES_PATH);
         if (types == null) {
-            // TODO: Degrade gracefully? Or throw NoSuchNodeTypeException?
-            throw new RepositoryException("Node types can not be unregistered");
+            throw new NoSuchNodeTypeException("Node types can not be unregistered.");
         }
 
         try {
             for (String name : names) {
                 Tree type = types.getChild(mapper.getOakName(name));
                 if (type == null) {
-                    // TODO: Degrade gracefully? Or throw NoSuchNodeTypeException?
-                    throw new RepositoryException(
-                            "Node type " + name + " can not be unregistered");
+                    throw new NoSuchNodeTypeException("Node type " + name + " can not be unregistered.");
                 }
                 type.remove();
             }
             root.commit(DefaultConflictHandler.OURS);
             refresh();
         } catch (CommitFailedException e) {
-            throw new RepositoryException(
-                    "Failed to unregister node types", e);
+            throw new RepositoryException("Failed to unregister node types", e);
         }
     }
 
