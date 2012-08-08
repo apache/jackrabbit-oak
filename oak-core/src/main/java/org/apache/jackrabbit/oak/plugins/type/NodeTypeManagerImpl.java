@@ -53,10 +53,8 @@ import org.apache.jackrabbit.oak.namepath.NameMapper;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-public class NodeTypeManagerImpl implements NodeTypeManager {
+public class NodeTypeManagerImpl implements NodeTypeManager, NodeTypeConstants {
 
-    private static final String NODE_TYPES_PATH = "/jcr:system/jcr:nodeTypes";
-    
     private final ContentSession session;
 
     private final NameMapper mapper;
@@ -83,7 +81,7 @@ public class NodeTypeManagerImpl implements NodeTypeManager {
                     }
                     for (NodeTypeTemplate template : templates.values()) {
                         if (!template.isMixin()
-                                && !"nt:base".equals(template.getName())) {
+                                && !JcrConstants.NT_BASE.equals(template.getName())) {
                             String[] supertypes =
                                     template.getDeclaredSupertypeNames();
                             if (supertypes.length == 0) {
