@@ -16,10 +16,15 @@
  */
 package org.apache.jackrabbit.oak.security.privilege;
 
+import org.apache.jackrabbit.JcrConstants;
+
 /**
  * PrivilegeConstants... TODO
  */
-interface PrivilegeConstants {
+public interface PrivilegeConstants {
+
+    String REP_PRIVILEGES = "rep:privileges";
+    String PRIVILEGES_PATH = '/' + JcrConstants.JCR_SYSTEM + '/' + REP_PRIVILEGES;
     
     String JCR_READ = "jcr:read";
     String JCR_MODIFY_PROPERTIES = "jcr:modifyProperties";
