@@ -19,11 +19,15 @@ package org.apache.jackrabbit.oak.plugins.type;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
+@Component
+@Service(ValidatorProvider.class)
 public class TypeValidatorProvider implements ValidatorProvider {
 
     @Override
