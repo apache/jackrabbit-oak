@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.jcr.security.user;
+package org.apache.jackrabbit.oak.spi.security.user;
 
-import org.apache.jackrabbit.oak.jcr.security.user.action.AuthorizableAction;
+import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,7 +26,9 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 
 /**
- * UserManagerConfig...
+ * UserManagerConfig provides utilities to retrieve configuration options
+ * related to user management. In addition it defines some constants that
+ * have been used in Jackrabbit 2.0 default user management implementation.
  */
 public class UserManagerConfig {
 
@@ -51,11 +53,15 @@ public class UserManagerConfig {
     public static final String PARAM_DEFAULT_DEPTH = "defaultDepth";
 
     /**
-     * If this parameter is present group members are collected in a node
-     * structure below a {@link UserConstants#REP_MEMBERS} node instead of the
-     * default multi valued property {@link UserConstants#REP_MEMBERS}.
-     * Its value determines the maximum number of member properties until
-     * additional intermediate nodes are inserted.
+     * Its value determines the maximum number of members within a given
+     * content structure until additional intermediate structuring is being
+     * added. This may for example be used to
+     * <ul>
+     *     <li>switch storing group members in JCR properties or nodes</li>
+     *     <li>define maximum number of members is a multivalued property</li>
+     *     <li>define maximum number of member properties within a given
+     *     node structure</li>
+     * </ul>
      */
     public static final String PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE = "groupMembershipSplitSize";
 
@@ -80,6 +86,10 @@ public class UserManagerConfig {
     private final String adminId;
     private final Map<String, Object> options;
     private final Set<AuthorizableAction> actions;
+
+    public UserManagerConfig(String adminId) {
+        this(adminId, null, null);
+    }
 
     public UserManagerConfig(String adminId, Map<String, Object> options, Set<AuthorizableAction> actions) {
         assert adminId != null;

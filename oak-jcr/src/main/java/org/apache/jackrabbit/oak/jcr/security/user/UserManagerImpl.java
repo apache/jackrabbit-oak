@@ -16,6 +16,20 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.user;
 
+import java.io.UnsupportedEncodingException;
+import java.security.NoSuchAlgorithmException;
+import java.security.Principal;
+import java.util.Iterator;
+import java.util.List;
+import javax.jcr.ItemNotFoundException;
+import javax.jcr.Node;
+import javax.jcr.PathNotFoundException;
+import javax.jcr.PropertyType;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.UnsupportedRepositoryOperationException;
+import javax.jcr.Value;
+
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
@@ -26,26 +40,13 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.jcr.PropertyDelegate;
 import org.apache.jackrabbit.oak.jcr.SessionDelegate;
-import org.apache.jackrabbit.oak.jcr.security.user.action.AuthorizableAction;
 import org.apache.jackrabbit.oak.jcr.value.ValueConverter;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.PasswordUtility;
+import org.apache.jackrabbit.oak.spi.security.user.UserManagerConfig;
+import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.jcr.ItemNotFoundException;
-import javax.jcr.Node;
-import javax.jcr.PathNotFoundException;
-import javax.jcr.PropertyType;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.UnsupportedRepositoryOperationException;
-import javax.jcr.Value;
-import java.io.UnsupportedEncodingException;
-import java.security.NoSuchAlgorithmException;
-import java.security.Principal;
-import java.util.Iterator;
-import java.util.List;
 
 /**
  * UserManagerImpl...
@@ -62,7 +63,7 @@ public class UserManagerImpl implements UserManager {
     
     public UserManagerImpl(SessionDelegate sessionDelegate, UserManagerConfig config) {
         this.sessionDelegate = sessionDelegate;
-        this.config = config;
+        this.config = (config == null) ? new UserManagerConfig("admin") : config;
         nodeCreator = new AuthorizableNodeCreator(sessionDelegate, this.config);
     }
 
