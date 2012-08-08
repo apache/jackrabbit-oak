@@ -50,7 +50,6 @@ import org.apache.jackrabbit.commons.AbstractSession;
 import org.apache.jackrabbit.commons.iterator.AccessControlPolicyIteratorAdapter;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.security.principal.PrincipalManagerImpl;
-import org.apache.jackrabbit.oak.jcr.security.user.UserManagerConfig;
 import org.apache.jackrabbit.oak.jcr.security.user.UserManagerImpl;
 import org.apache.jackrabbit.oak.jcr.xml.XmlImportHandler;
 import org.apache.jackrabbit.oak.security.principal.KernelPrincipalProvider;
@@ -534,8 +533,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     @Override
     @Nonnull
     public UserManager getUserManager() throws RepositoryException {
-        return TODO.unimplemented().returnValue(new UserManagerImpl(
-                dlg, new UserManagerConfig("admin", null, null)));
+        return TODO.unimplemented().returnValue(new UserManagerImpl(dlg, null));
     }
 
     //------------------------------------------------------------< private >---

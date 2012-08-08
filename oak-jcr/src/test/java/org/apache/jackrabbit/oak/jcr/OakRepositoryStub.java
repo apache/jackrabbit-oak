@@ -23,6 +23,8 @@ import java.security.Principal;
 import java.util.Properties;
 import java.util.concurrent.Executors;
 
+import javax.jcr.Credentials;
+import javax.jcr.GuestCredentials;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -71,6 +73,11 @@ public class OakRepositoryStub extends RepositoryStub {
     @Override
     public synchronized Repository getRepository() {
         return repository;
+    }
+
+    @Override
+    public Credentials getReadOnlyCredentials() {
+        return new GuestCredentials();
     }
 
     @Override
