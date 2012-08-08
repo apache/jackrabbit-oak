@@ -24,6 +24,7 @@ import javax.jcr.NamespaceException;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.RepositoryException;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
@@ -33,7 +34,7 @@ import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
 /**
  * Implementation of {@link NamespaceRegistry}.
  */
-public class NamespaceRegistryImpl implements NamespaceRegistry {
+public class NamespaceRegistryImpl implements NamespaceRegistry, NamespaceConstants {
 
     private final ContentSession session;
 
@@ -59,7 +60,7 @@ public class NamespaceRegistryImpl implements NamespaceRegistry {
             throws RepositoryException {
         try {
             Root root = session.getCurrentRoot();
-            Tree namespaces = getOrCreate(root, "jcr:system", Namespaces.NSMAPNODENAME);
+            Tree namespaces = getOrCreate(root, JcrConstants.JCR_SYSTEM, REP_NAMESPACES);
             namespaces.setProperty(
                     prefix, session.getCoreValueFactory().createValue(uri));
             root.commit(DefaultConflictHandler.OURS);
@@ -76,7 +77,7 @@ public class NamespaceRegistryImpl implements NamespaceRegistry {
     @Override
     public void unregisterNamespace(String prefix) throws RepositoryException {
         Root root = session.getCurrentRoot();
-        Tree namespaces = root.getTree("/jcr:system/jcr:namespaces");
+        Tree namespaces = root.getTree(NAMESPACES_PATH);
         if (namespaces == null || !namespaces.hasProperty(prefix)) {
             throw new NamespaceException(
                     "Namespace mapping from " + prefix + " to "
