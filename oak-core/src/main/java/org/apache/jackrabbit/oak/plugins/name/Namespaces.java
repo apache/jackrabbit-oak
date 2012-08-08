@@ -30,12 +30,9 @@ import org.apache.jackrabbit.oak.api.Tree;
 /**
  * Internal static utility class for managing the persisted namespace registry.
  */
-class Namespaces {
+class Namespaces implements NamespaceConstants {
 
     private static final Map<String, String> defaults = new HashMap<String, String>();
-
-    // TODO: this should not use the "jcr" prefix
-    public static final String NSMAPNODENAME = "jcr:namespaces";
 
     private Namespaces() {
     }
@@ -61,7 +58,7 @@ class Namespaces {
 
         Tree system = root.getChild(JcrConstants.JCR_SYSTEM);
         if (system != null) {
-            Tree namespaces = system.getChild(NSMAPNODENAME);
+            Tree namespaces = system.getChild(REP_NAMESPACES);
             if (namespaces != null) {
                 for (PropertyState property : namespaces.getProperties()) {
                     String prefix = property.getName();
