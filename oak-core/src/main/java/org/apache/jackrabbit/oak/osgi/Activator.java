@@ -16,19 +16,25 @@
  */
 package org.apache.jackrabbit.oak.osgi;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
+import org.apache.jackrabbit.oak.plugins.type.DefaultTypeEditor;
+import org.apache.jackrabbit.oak.spi.commit.CommitEditor;
+import org.apache.jackrabbit.oak.spi.commit.CompositeEditor;
+import org.apache.jackrabbit.oak.spi.commit.ValidatingEditor;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.util.tracker.ServiceTracker;
 import org.osgi.util.tracker.ServiceTrackerCustomizer;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
 
 public class Activator implements BundleActivator, ServiceTrackerCustomizer {
 
@@ -71,10 +77,16 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
     public Object addingService(ServiceReference reference) {
         Object service = context.getService(reference);
         if (service instanceof MicroKernel) {
+            List<CommitEditor> editors = new ArrayList<CommitEditor>();
+            editors.add(new DefaultTypeEditor());
+            editors.add(new ValidatingEditor(validatorProvider));
+            // editors.add(new LuceneEditor());
+
             MicroKernel kernel = (MicroKernel) service;
             services.put(reference, context.registerService(
                     ContentRepository.class.getName(),
-                    new ContentRepositoryImpl(kernel, indexProvider, validatorProvider),
+                    new ContentRepositoryImpl(
+                            kernel, indexProvider, new CompositeEditor(editors)),
                     new Properties()));
             return service;
         } else {
