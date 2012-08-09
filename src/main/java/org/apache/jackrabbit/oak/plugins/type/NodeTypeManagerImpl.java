@@ -39,7 +39,6 @@ import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
 import javax.jcr.version.OnParentVersionAction;
 
-import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.cnd.CompactNodeTypeDefReader;
 import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -81,12 +80,12 @@ public class NodeTypeManagerImpl implements NodeTypeManager, NodeTypeConstants {
                     }
                     for (NodeTypeTemplate template : templates.values()) {
                         if (!template.isMixin()
-                                && !JcrConstants.NT_BASE.equals(template.getName())) {
+                                && !NT_BASE.equals(template.getName())) {
                             String[] supertypes =
                                     template.getDeclaredSupertypeNames();
                             if (supertypes.length == 0) {
                                 template.setDeclaredSuperTypeNames(
-                                        new String[] {JcrConstants.NT_BASE});
+                                        new String[] {NT_BASE});
                             } else {
                                 // Check whether we need to add the implicit "nt:base" supertype
                                 boolean needsNtBase = true;
@@ -97,7 +96,7 @@ public class NodeTypeManagerImpl implements NodeTypeManager, NodeTypeConstants {
                                 }
                                 if (needsNtBase) {
                                     String[] withBase = new String[supertypes.length + 1];
-                                    withBase[0] = JcrConstants.NT_BASE;
+                                    withBase[0] = NT_BASE;
                                     System.arraycopy(supertypes, 0, withBase, 1, supertypes.length);
                                     template.setDeclaredSuperTypeNames(withBase);
                                 }
@@ -262,28 +261,28 @@ public class NodeTypeManagerImpl implements NodeTypeManager, NodeTypeConstants {
 
         CoreValueFactory factory = session.getCoreValueFactory();
         NodeUtil node = new NodeUtil(factory, mapper, type);
-        node.setName(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_NODETYPE);
-        node.setName(JcrConstants.JCR_NODETYPENAME, jcrName);
-        node.setNames(JcrConstants.JCR_SUPERTYPES, ntd.getDeclaredSupertypeNames());
-        node.setBoolean("jcr:isAbstract", ntd.isAbstract());
-        node.setBoolean("jcr:isQueryable", ntd.isQueryable());
-        node.setBoolean(JcrConstants.JCR_ISMIXIN, ntd.isMixin());
-        node.setBoolean(JcrConstants.JCR_HASORDERABLECHILDNODES, ntd.hasOrderableChildNodes());
+        node.setName(JCR_PRIMARYTYPE, NT_NODETYPE);
+        node.setName(JCR_NODETYPENAME, jcrName);
+        node.setNames(JCR_SUPERTYPES, ntd.getDeclaredSupertypeNames());
+        node.setBoolean(JCR_IS_ABSTRACT, ntd.isAbstract());
+        node.setBoolean(JCR_IS_QUERYABLE, ntd.isQueryable());
+        node.setBoolean(JCR_ISMIXIN, ntd.isMixin());
+        node.setBoolean(JCR_HASORDERABLECHILDNODES, ntd.hasOrderableChildNodes());
         String primaryItemName = ntd.getPrimaryItemName();
         if (primaryItemName != null) {
-            node.setName(JcrConstants.JCR_PRIMARYITEMNAME, primaryItemName);
+            node.setName(JCR_PRIMARYITEMNAME, primaryItemName);
         }
 
         int pdn = 1;
         for (PropertyDefinition pd : ntd.getDeclaredPropertyDefinitions()) {
-            Tree def = type.addChild(JcrConstants.JCR_PROPERTYDEFINITION + pdn++);
+            Tree def = type.addChild(JCR_PROPERTYDEFINITION + pdn++);
             internalRegisterPropertyDefinition(
                     new NodeUtil(factory, mapper, def), pd);
         }
 
         int ndn = 1;
         for (NodeDefinition nd : ntd.getDeclaredChildNodeDefinitions()) {
-            Tree def = type.addChild(JcrConstants.JCR_CHILDNODEDEFINITION + ndn++);
+            Tree def = type.addChild(JCR_CHILDNODEDEFINITION + ndn++);
             internalRegisterNodeDefinition(
                     new NodeUtil(factory, mapper, def), nd);
         }
@@ -295,62 +294,62 @@ public class NodeTypeManagerImpl implements NodeTypeManager, NodeTypeConstants {
             NodeUtil node, ItemDefinition def) {
         String name = def.getName();
         if (!"*".equals(name)) {
-            node.setName(JcrConstants.JCR_NAME, name);
+            node.setName(JCR_NAME, name);
         }
-        node.setBoolean(JcrConstants.JCR_AUTOCREATED, def.isAutoCreated());
-        node.setBoolean(JcrConstants.JCR_MANDATORY, def.isMandatory());
-        node.setBoolean(JcrConstants.JCR_PROTECTED, def.isProtected());
+        node.setBoolean(JCR_AUTOCREATED, def.isAutoCreated());
+        node.setBoolean(JCR_MANDATORY, def.isMandatory());
+        node.setBoolean(JCR_PROTECTED, def.isProtected());
         node.setString(
-                JcrConstants.JCR_ONPARENTVERSION,
+                JCR_ONPARENTVERSION,
                 OnParentVersionAction.nameFromValue(def.getOnParentVersion()));
     }
 
     private void internalRegisterPropertyDefinition(
             NodeUtil node, PropertyDefinition def) {
-        node.setName(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_PROPERTYDEFINITION);
+        node.setName(JCR_PRIMARYTYPE, NT_PROPERTYDEFINITION);
         internalRegisterItemDefinition(node, def);
 
         node.setString(
-                JcrConstants.JCR_REQUIREDTYPE,
+                JCR_REQUIREDTYPE,
                 PropertyType.nameFromValue(def.getRequiredType()));
-        node.setBoolean(JcrConstants.JCR_MULTIPLE, def.isMultiple());
-        node.setBoolean("jcr:isFullTextSearchable", def.isFullTextSearchable());
-        node.setBoolean("jcr:isQueryOrderable", def.isQueryOrderable());
-        node.setStrings("jcr:availableQueryOperators", def.getAvailableQueryOperators());
+        node.setBoolean(JCR_MULTIPLE, def.isMultiple());
+        node.setBoolean(JCR_IS_FULLTEXT_SEARCHABLE, def.isFullTextSearchable());
+        node.setBoolean(JCR_IS_QUERY_ORDERABLE, def.isQueryOrderable());
+        node.setStrings(JCR_AVAILABLE_QUERY_OPERATORS, def.getAvailableQueryOperators());
 
         String[] constraints = def.getValueConstraints();
         if (constraints != null) {
-            node.setStrings(JcrConstants.JCR_VALUECONSTRAINTS, constraints);
+            node.setStrings(JCR_VALUECONSTRAINTS, constraints);
         }
 
         Value[] values = def.getDefaultValues();
         if (values != null) {
-            node.setValues(JcrConstants.JCR_DEFAULTVALUES, values);
+            node.setValues(JCR_DEFAULTVALUES, values);
         }
     }
 
     private void internalRegisterNodeDefinition(NodeUtil node, NodeDefinition def) {
-        node.setName(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_CHILDNODEDEFINITION);
+        node.setName(JCR_PRIMARYTYPE, NT_CHILDNODEDEFINITION);
         internalRegisterItemDefinition(node, def);
 
-        node.setBoolean(JcrConstants.JCR_SAMENAMESIBLINGS, def.allowsSameNameSiblings());
+        node.setBoolean(JCR_SAMENAMESIBLINGS, def.allowsSameNameSiblings());
         node.setNames(
-                JcrConstants.JCR_REQUIREDPRIMARYTYPES,
+                JCR_REQUIREDPRIMARYTYPES,
                 def.getRequiredPrimaryTypeNames());
         String defaultPrimaryType = def.getDefaultPrimaryTypeName();
         if (defaultPrimaryType != null) {
-            node.setName(JcrConstants.JCR_DEFAULTPRIMARYTYPE, defaultPrimaryType);
+            node.setName(JCR_DEFAULTPRIMARYTYPE, defaultPrimaryType);
         }
     }
 
     private Tree getOrCreateNodeTypes(Root root) {
         Tree types = root.getTree(NODE_TYPES_PATH);
         if (types == null) {
-            Tree system = root.getTree("/jcr:system");
+            Tree system = root.getTree("/jcr:system");  // FIXME: OAK-221
             if (system == null) {
-                system = root.getTree("/").addChild("jcr:system");
+                system = root.getTree("/").addChild(JCR_SYSTEM);
             }
-            types = system.addChild("jcr:nodeTypes");
+            types = system.addChild(JCR_NODE_TYPES);
         }
         return types;
     }
