@@ -14,17 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.type;
+package org.apache.jackrabbit.oak.util;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 
 import com.google.common.collect.Lists;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -34,9 +37,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Utility class for accessing typed content of a node.
+ * Utility class for accessing and writing typed content of a tree.
  */
-class NodeUtil {
+public class NodeUtil {
 
     private static final Logger log = LoggerFactory.getLogger(NodeUtil.class);
 
@@ -52,12 +55,45 @@ class NodeUtil {
         this.tree = tree;
     }
 
-    public void remove(String name) {
-        tree.removeProperty(name);
+    @Nonnull
+    public Tree getTree() {
+        return tree;
     }
 
+    @Nonnull
     public String getName() {
         return mapper.getJcrName(tree.getName());
+    }
+
+    public boolean hasChild(String name) {
+        return tree.getChild(name) != null;
+    }
+
+    @CheckForNull
+    public NodeUtil getChild(String name) {
+        Tree child = tree.getChild(name);
+        return (child == null) ? null : new NodeUtil(factory, mapper, child);
+    }
+
+    @Nonnull
+    public NodeUtil addChild(String name, String primaryNodeTypeName) {
+        Tree child = tree.addChild(name);
+        NodeUtil childUtil = new NodeUtil(factory, mapper, child);
+        childUtil.setName(JcrConstants.JCR_PRIMARYTYPE, primaryNodeTypeName);
+        return childUtil;
+    }
+
+    public NodeUtil getOrAddChild(String name, String primaryTypeName) {
+        NodeUtil child = getChild(name);
+        return (child != null) ? child : addChild(name, primaryTypeName);
+    }
+
+    public boolean hasPrimaryNodeTypeName(String ntName) {
+        return ntName.equals(getString(JcrConstants.JCR_PRIMARYTYPE, null));
+    }
+
+    public void removeProperty(String name) {
+        tree.removeProperty(name);
     }
 
     public boolean getBoolean(String name) {

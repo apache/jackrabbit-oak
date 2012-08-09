@@ -20,6 +20,7 @@ import javax.jcr.nodetype.ItemDefinition;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.version.OnParentVersionAction;
 
+import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
