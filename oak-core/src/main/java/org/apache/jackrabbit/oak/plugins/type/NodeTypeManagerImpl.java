@@ -21,6 +21,7 @@ import java.io.InputStreamReader;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
@@ -116,8 +117,21 @@ public class NodeTypeManagerImpl implements NodeTypeManager, NodeTypeConstants {
         }
     }
 
+    /**
+     * Returns the internal name for the specified JCR name.
+     *
+     * @param jcrName JCR node type name.
+     * @return the internal representation of the given JCR name.
+     * @throws RepositoryException If there is no valid internal representation
+     * of the specified JCR name.
+     */
+    @Nonnull
     protected String getOakName(String jcrName) throws RepositoryException {
-        return mapper.getOakName(jcrName);
+        String oakName = mapper.getOakName(jcrName);
+        if (oakName == null) {
+            throw new RepositoryException("Invalid JCR name " + jcrName);
+        }
+        return oakName;
     }
 
     /**
@@ -131,7 +145,7 @@ public class NodeTypeManagerImpl implements NodeTypeManager, NodeTypeConstants {
     protected void refresh() throws RepositoryException {
     }
 
-    //---------------------------------------------------< NodeTypeManager >--
+    //----------------------------------------------------< NodeTypeManager >---
 
     @Override
     public boolean hasNodeType(String name) throws RepositoryException {
@@ -160,7 +174,7 @@ public class NodeTypeManagerImpl implements NodeTypeManager, NodeTypeConstants {
             for (Tree type : types.getChildren()) {
                 list.add(new NodeTypeImpl(this, factory, new NodeUtil(
                         session.getCoreValueFactory(), mapper, type)));
-                
+
             }
         }
         return new NodeTypeIteratorAdapter(list);
