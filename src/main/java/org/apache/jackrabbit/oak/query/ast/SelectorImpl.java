@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -125,6 +126,14 @@ public class SelectorImpl extends SourceImpl {
             // TODO node type matching
             if (nodeTypeName.equals(v.getString())) {
                 return true;
+            }
+            PropertyState m = tree.getProperty(JcrConstants.JCR_MIXINTYPES);
+            if (m != null) {
+                for (CoreValue value : m.getValues()) {
+                    if (nodeTypeName.equals(value.getString())) {
+                        return true;
+                    }
+                }
             }
         }
     }
