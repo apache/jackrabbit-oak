@@ -23,8 +23,14 @@ import org.slf4j.LoggerFactory;
 /**
  * NodeTypeConstants... TODO
  */
-public interface NodeTypeConstants {
+public interface NodeTypeConstants extends JcrConstants {
 
     String JCR_NODE_TYPES = "jcr:nodeTypes";
     String NODE_TYPES_PATH = '/' + JcrConstants.JCR_SYSTEM + '/' + JCR_NODE_TYPES;
+
+    String JCR_IS_ABSTRACT = "jcr:isAbstract";
+    String JCR_IS_QUERYABLE = "jcr:isQueryable";
+    String JCR_IS_FULLTEXT_SEARCHABLE = "jcr:isFullTextSearchable";
+    String JCR_IS_QUERY_ORDERABLE = "jcr:isQueryOrderable";
+    String JCR_AVAILABLE_QUERY_OPERATORS = "jcr:availableQueryOperators";
 }
