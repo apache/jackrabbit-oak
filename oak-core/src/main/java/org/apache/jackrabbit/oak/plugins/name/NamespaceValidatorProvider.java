@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.name;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
+import static org.apache.jackrabbit.oak.plugins.name.NamespaceConstants.REP_NAMESPACES;
+
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
@@ -37,7 +40,7 @@ public class NamespaceValidatorProvider implements ValidatorProvider {
     public Validator getRootValidator(NodeState before, NodeState after) {
         Validator validator = new NamespaceValidator(
                 Namespaces.getNamespaceMap(new ReadOnlyTree(before)));
-        return new SubtreeValidator(validator, "jcr:system", "jcr:namespaces");
+        return new SubtreeValidator(validator, JCR_SYSTEM, REP_NAMESPACES);
     }
 
 }
