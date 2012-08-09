@@ -51,6 +51,7 @@ import org.apache.jackrabbit.oak.namepath.NameMapper;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import org.apache.jackrabbit.oak.util.NodeUtil;
 
 public class NodeTypeManagerImpl implements NodeTypeManager, NodeTypeConstants {
 
@@ -115,8 +116,8 @@ public class NodeTypeManagerImpl implements NodeTypeManager, NodeTypeConstants {
         }
     }
 
-    protected String getOakName(String name) throws RepositoryException {
-        return name; // TODO
+    protected String getOakName(String jcrName) throws RepositoryException {
+        return mapper.getOakName(jcrName);
     }
 
     /**
@@ -135,14 +136,14 @@ public class NodeTypeManagerImpl implements NodeTypeManager, NodeTypeConstants {
     @Override
     public boolean hasNodeType(String name) throws RepositoryException {
         Tree types = session.getCurrentRoot().getTree(NODE_TYPES_PATH);
-        return types != null && types.hasChild(mapper.getOakName(name));
+        return types != null && types.hasChild(getOakName(name));
     }
 
     @Override
     public NodeType getNodeType(String name) throws RepositoryException {
         Tree types = session.getCurrentRoot().getTree(NODE_TYPES_PATH);
         if (types != null) {
-            Tree type = types.getChild(mapper.getOakName(name));
+            Tree type = types.getChild(getOakName(name));
             if (type != null) {
                 return new NodeTypeImpl(this, factory, new NodeUtil(
                         session.getCoreValueFactory(), mapper, type));
@@ -246,7 +247,7 @@ public class NodeTypeManagerImpl implements NodeTypeManager, NodeTypeConstants {
             Tree types, NodeTypeDefinition ntd, boolean allowUpdate)
             throws RepositoryException {
         String jcrName = ntd.getName();
-        String oakName = mapper.getOakName(jcrName);
+        String oakName = getOakName(jcrName);
 
         Tree type = types.getChild(oakName);
         if (type != null) {
@@ -275,16 +276,14 @@ public class NodeTypeManagerImpl implements NodeTypeManager, NodeTypeConstants {
 
         int pdn = 1;
         for (PropertyDefinition pd : ntd.getDeclaredPropertyDefinitions()) {
-            Tree def = type.addChild(JCR_PROPERTYDEFINITION + pdn++);
-            internalRegisterPropertyDefinition(
-                    new NodeUtil(factory, mapper, def), pd);
+            NodeUtil def = node.addChild(JCR_PROPERTYDEFINITION + pdn++, NT_PROPERTYDEFINITION);
+            internalRegisterPropertyDefinition(def, pd);
         }
 
         int ndn = 1;
         for (NodeDefinition nd : ntd.getDeclaredChildNodeDefinitions()) {
-            Tree def = type.addChild(JCR_CHILDNODEDEFINITION + ndn++);
-            internalRegisterNodeDefinition(
-                    new NodeUtil(factory, mapper, def), nd);
+            NodeUtil def = node.addChild(JCR_CHILDNODEDEFINITION + ndn++, NT_CHILDNODEDEFINITION);
+            internalRegisterNodeDefinition(def, nd);
         }
 
         return new NodeTypeImpl(this, this.factory, node);
@@ -306,7 +305,6 @@ public class NodeTypeManagerImpl implements NodeTypeManager, NodeTypeConstants {
 
     private void internalRegisterPropertyDefinition(
             NodeUtil node, PropertyDefinition def) {
-        node.setName(JCR_PRIMARYTYPE, NT_PROPERTYDEFINITION);
         internalRegisterItemDefinition(node, def);
 
         node.setString(
@@ -329,7 +327,6 @@ public class NodeTypeManagerImpl implements NodeTypeManager, NodeTypeConstants {
     }
 
     private void internalRegisterNodeDefinition(NodeUtil node, NodeDefinition def) {
-        node.setName(JCR_PRIMARYTYPE, NT_CHILDNODEDEFINITION);
         internalRegisterItemDefinition(node, def);
 
         node.setBoolean(JCR_SAMENAMESIBLINGS, def.allowsSameNameSiblings());
@@ -360,7 +357,7 @@ public class NodeTypeManagerImpl implements NodeTypeManager, NodeTypeConstants {
         Root root = session.getCurrentRoot();
         Tree types = root.getTree(NODE_TYPES_PATH);
         if (types != null) {
-            type = types.getChild(mapper.getOakName(name));
+            type = types.getChild(getOakName(name));
         }
         if (type == null) {
             throw new NoSuchNodeTypeException("Node type " + name + " can not be unregistered.");
@@ -385,7 +382,7 @@ public class NodeTypeManagerImpl implements NodeTypeManager, NodeTypeConstants {
 
         try {
             for (String name : names) {
-                Tree type = types.getChild(mapper.getOakName(name));
+                Tree type = types.getChild(getOakName(name));
                 if (type == null) {
                     throw new NoSuchNodeTypeException("Node type " + name + " can not be unregistered.");
                 }
