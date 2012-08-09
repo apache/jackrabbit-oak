@@ -67,7 +67,6 @@ import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
 import org.apache.jackrabbit.oak.jcr.value.ValueConverter;
-import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.value.ValueHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -874,37 +873,24 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
     public boolean isNodeType(final String nodeTypeName) throws RepositoryException {
         checkStatus();
 
-        return sessionDelegate.perform(new SessionOperation<Boolean>() {
-            @Override
-            public Boolean perform() throws RepositoryException {
-                // TODO: might be expanded, need a better way for this
-                NameMapper mapper = sessionDelegate.getNamePathMapper();
-                String oakName = mapper.getOakName(nodeTypeName);
-                if (oakName == null) {
-                    return false; // An unknown name can't belong to a valid type
-                }
-                String jcrName = mapper.getJcrName(oakName);
+        // TODO: figure out the right place for this check
+        NodeTypeManager ntm = sessionDelegate.getNodeTypeManager();
+        NodeType ntToCheck = ntm.getNodeType(nodeTypeName); // throws on not found
+        String nameToCheck = ntToCheck.getName();
 
-                // TODO: figure out the right place for this check
-                NodeTypeManager ntm = sessionDelegate.getNodeTypeManager();
-                NodeType ntToCheck = ntm.getNodeType(jcrName); // throws on not found
-                String nameToCheck = ntToCheck.getName();
+        NodeType currentPrimaryType = getPrimaryNodeType();
+        if (currentPrimaryType.isNodeType(nameToCheck)) {
+            return true;
+        }
 
-                NodeType currentPrimaryType = getPrimaryNodeType();
-                if (currentPrimaryType.isNodeType(nameToCheck)) {
-                    return true;
-                }
-
-                for (NodeType mixin : getMixinNodeTypes()) {
-                    if (mixin.isNodeType(nameToCheck)) {
-                        return true;
-                    }
-                }
-                // TODO: END
-
-                return false;
+        for (NodeType mixin : getMixinNodeTypes()) {
+            if (mixin.isNodeType(nameToCheck)) {
+                return true;
             }
-        });
+        }
+        // TODO: END
+
+        return false;
     }
 
     @Override
