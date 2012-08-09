@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.query.ast;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.query.Query;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * The base class of a selector and a join.
@@ -92,8 +93,9 @@ public abstract class SourceImpl extends AstElement {
      * Execute the query. The current node is set to before the first row.
      *
      * @param revisionId the revision to use
+     * @param root root state of the given revision
      */
-    public abstract void execute(String revisionId);
+    public abstract void execute(String revisionId, NodeState root);
 
     /**
      * Go to the next node for the given source. This will also filter the

@@ -53,6 +53,7 @@ import org.apache.jackrabbit.oak.query.ast.SourceImpl;
 import org.apache.jackrabbit.oak.query.ast.UpperCaseImpl;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.QueryIndex;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * Represents a parsed query. Lifecycle: use the constructor to create a new
@@ -286,11 +287,11 @@ public class Query {
         this.explain = explain;
     }
 
-    public ResultImpl executeQuery(String revisionId) {
-        return new ResultImpl(this, revisionId);
+    public ResultImpl executeQuery(String revisionId, NodeState root) {
+        return new ResultImpl(this, revisionId, root);
     }
 
-    Iterator<ResultRowImpl> getRows(String revisionId) {
+    Iterator<ResultRowImpl> getRows(String revisionId, NodeState root) {
         prepare();
         Iterator<ResultRowImpl> it;
         if (explain) {
@@ -299,7 +300,7 @@ public class Query {
             ResultRowImpl r = new ResultRowImpl(this, new String[0], new CoreValue[] { getValueFactory().createValue(plan) }, null);
             it = Arrays.asList(r).iterator();
         } else {
-            it = new RowIterator(revisionId, limit, offset);
+            it = new RowIterator(revisionId, root, limit, offset);
             if (orderings != null) {
                 // TODO "order by" is not necessary if the used index returns
                 // rows in the same order
@@ -355,12 +356,14 @@ public class Query {
     class RowIterator implements Iterator<ResultRowImpl> {
 
         private final String revisionId;
+        private final NodeState root;
         private ResultRowImpl current;
         private boolean started, end;
         private long limit, offset, rowIndex;
 
-        RowIterator(String revisionId, long limit, long offset) {
+        RowIterator(String revisionId, NodeState root, long limit, long offset) {
             this.revisionId = revisionId;
+            this.root = root;
             this.limit = limit;
             this.offset = offset;
         }
@@ -374,7 +377,7 @@ public class Query {
                 return;
             }
             if (!started) {
-                source.execute(revisionId);
+                source.execute(revisionId, root);
                 started = true;
             }
             while (true) {

@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.QueryEngine;
+import org.apache.jackrabbit.oak.kernel.KernelNodeState;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.query.index.TraversingIndex;
@@ -109,7 +110,8 @@ public class QueryEngineImpl implements QueryEngine {
         }
         q.setQueryEngine(this);
         q.prepare();
-        return q.executeQuery(mk.getHeadRevision());
+        String revision = mk.getHeadRevision();
+        return q.executeQuery(revision, new KernelNodeState(mk, "/", revision));
     }
 
     public QueryIndex getBestIndex(FilterImpl filter) {
@@ -122,7 +124,7 @@ public class QueryEngineImpl implements QueryEngine {
             }
         }
         if (best == null) {
-            best = new TraversingIndex(mk);
+            best = new TraversingIndex();
         }
         return best;
     }

@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.query.Query;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.Cursor;
 import org.apache.jackrabbit.oak.spi.QueryIndex;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * A selector within a query.
@@ -77,8 +78,8 @@ public class SelectorImpl extends SourceImpl {
     }
 
     @Override
-    public void execute(String revisionId) {
-        cursor = index.query(createFilter(), revisionId);
+    public void execute(String revisionId, NodeState root) {
+        cursor = index.query(createFilter(), revisionId, root);
     }
 
     @Override

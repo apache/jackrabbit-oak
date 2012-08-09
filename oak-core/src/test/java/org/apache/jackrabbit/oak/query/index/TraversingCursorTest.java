@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.List;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
+import org.apache.jackrabbit.oak.kernel.KernelNodeState;
 import org.apache.jackrabbit.oak.spi.Cursor;
 import org.junit.Test;
 
@@ -34,22 +35,11 @@ import org.junit.Test;
  */
 public class TraversingCursorTest {
 
-    private final MicroKernel mk = new MicroKernelImpl();
-
     @Test
     public void traverse() throws Exception {
-        TraversingIndex t = new TraversingIndex(mk);
-        traverse(t);
-    }
+        TraversingIndex t = new TraversingIndex();
 
-    @Test
-    public void traverseBlockwise() throws Exception {
-        TraversingIndex t = new TraversingIndex(mk);
-        t.setChildBlockSize(2);
-        traverse(t);
-    }
-
-    private void traverse(TraversingIndex t) {
+        MicroKernel mk = new MicroKernelImpl();
         String head = mk.getHeadRevision();
         head = mk.commit("/", "+ \"parents\": { \"p0\": {\"id\": \"0\"}, \"p1\": {\"id\": \"1\"}, \"p2\": {\"id\": \"2\"}}", head, "");
         head = mk.commit("/", "+ \"children\": { \"c1\": {\"p\": \"1\"}, \"c2\": {\"p\": \"1\"}, \"c3\": {\"p\": \"2\"}, \"c4\": {\"p\": \"3\"}}", head, "");
@@ -57,7 +47,7 @@ public class TraversingCursorTest {
 
         f.setPath("/");
         List<String> paths = new ArrayList<String>();
-        Cursor c = t.query(f, head);
+        Cursor c = t.query(f, head, new KernelNodeState(mk, "/", head));
         while (c.next()) {
             paths.add(c.currentPath());
         }
@@ -72,7 +62,7 @@ public class TraversingCursorTest {
         assertFalse(c.next());
 
         f.setPath("/nowhere");
-        c = t.query(f, head);
+        c = t.query(f, head, new KernelNodeState(mk, "/", head));
         assertFalse(c.next());
         // endure it stays false
         assertFalse(c.next());
