@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.spi.Cursor;
 import org.apache.jackrabbit.oak.spi.Filter;
 import org.apache.jackrabbit.oak.spi.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.QueryIndex;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
@@ -76,9 +77,9 @@ public class LuceneIndex implements QueryIndex {
     }
 
     @Override
-    public Cursor query(Filter filter, String revisionId) {
+    public Cursor query(Filter filter, String revisionId, NodeState root) {
         try {
-            Directory directory = new OakDirectory(store, store.getRoot(), index.getPath());
+            Directory directory = new OakDirectory(store, root, index.getPath());
             try {
                 IndexReader reader = DirectoryReader.open(directory);
                 try {

@@ -48,7 +48,7 @@ import com.google.common.collect.Lists;
  * Basic {@link NodeState} implementation based on the {@link MicroKernel}
  * interface. This class makes an attempt to load data lazily.
  */
-final class KernelNodeState extends AbstractNodeState {
+public final class KernelNodeState extends AbstractNodeState {
 
     /**
      * Maximum number of child nodes kept in memory.

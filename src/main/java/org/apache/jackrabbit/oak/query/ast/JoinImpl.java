@@ -15,6 +15,7 @@ package org.apache.jackrabbit.oak.query.ast;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.query.Query;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * A join.
@@ -30,6 +31,7 @@ public class JoinImpl extends SourceImpl {
     private boolean leftNeedNext;
     private boolean foundJoinedRow;
     private boolean end;
+    private NodeState root;
     private String revisionId;
 
     public JoinImpl(SourceImpl left, SourceImpl right, JoinType joinType,
@@ -123,7 +125,8 @@ public class JoinImpl extends SourceImpl {
     }
 
     @Override
-    public void execute(String revisionId) {
+    public void execute(String revisionId, NodeState root) {
+        this.root = root;
         this.revisionId = revisionId;
         leftNeedExecute = true;
         end = false;
@@ -135,7 +138,7 @@ public class JoinImpl extends SourceImpl {
             return false;
         }
         if (leftNeedExecute) {
-            left.execute(revisionId);
+            left.execute(revisionId, root);
             leftNeedExecute = false;
             leftNeedNext = true;
         }
@@ -149,7 +152,7 @@ public class JoinImpl extends SourceImpl {
                 rightNeedExecute = true;
             }
             if (rightNeedExecute) {
-                right.execute(revisionId);
+                right.execute(revisionId, root);
                 foundJoinedRow = false;
                 rightNeedExecute = false;
             }
