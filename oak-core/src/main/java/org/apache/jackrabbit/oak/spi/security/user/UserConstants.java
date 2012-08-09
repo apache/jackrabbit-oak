@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.jcr.security.user;
+package org.apache.jackrabbit.oak.spi.security.user;
 
 /**
  * UserConstants...
  */
-interface UserConstants {
+public interface UserConstants {
 
     String NT_REP_AUTHORIZABLE = "rep:Authorizable";
     String NT_REP_AUTHORIZABLE_FOLDER = "rep:AuthorizableFolder";

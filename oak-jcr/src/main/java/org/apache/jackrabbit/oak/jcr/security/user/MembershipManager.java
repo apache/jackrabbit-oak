@@ -25,6 +25,7 @@ import org.apache.jackrabbit.commons.flat.PropertySequence;
 import org.apache.jackrabbit.commons.flat.Rank;
 import org.apache.jackrabbit.commons.flat.TreeManager;
 import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
