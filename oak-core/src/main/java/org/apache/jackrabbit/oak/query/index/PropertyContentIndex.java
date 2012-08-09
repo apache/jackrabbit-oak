@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.spi.Cursor;
 import org.apache.jackrabbit.oak.spi.Filter;
 import org.apache.jackrabbit.oak.spi.QueryIndex;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * An index that stores the index data in a {@code MicroKernel}.
@@ -59,7 +60,7 @@ public class PropertyContentIndex implements QueryIndex {
     }
 
     @Override
-    public Cursor query(Filter filter, String revisionId) {
+    public Cursor query(Filter filter, String revisionId, NodeState root) {
         String propertyName = index.getPropertyName();
         Filter.PropertyRestriction restriction = filter.getPropertyRestriction(propertyName);
         if (restriction == null) {

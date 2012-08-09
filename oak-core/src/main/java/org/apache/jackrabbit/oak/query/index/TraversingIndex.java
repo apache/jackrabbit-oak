@@ -18,31 +18,20 @@
  */
 package org.apache.jackrabbit.oak.query.index;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.Cursor;
 import org.apache.jackrabbit.oak.spi.Filter;
 import org.apache.jackrabbit.oak.spi.QueryIndex;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * An index that traverses over a given subtree.
  */
 public class TraversingIndex implements QueryIndex {
 
-    private final MicroKernel mk;
-    private int childBlockSize = 2000;
-
-    public TraversingIndex(MicroKernel mk) {
-        this.mk = mk;
-    }
-
-    public void setChildBlockSize(int childBlockSize) {
-        this.childBlockSize = childBlockSize;
-    }
-
     @Override
-    public Cursor query(Filter filter, String revisionId) {
-        return new TraversingCursor(mk, revisionId, childBlockSize, filter.getPath());
+    public Cursor query(Filter filter, String revisionId, NodeState root) {
+        return new TraversingCursor(filter, root);
     }
 
     @Override

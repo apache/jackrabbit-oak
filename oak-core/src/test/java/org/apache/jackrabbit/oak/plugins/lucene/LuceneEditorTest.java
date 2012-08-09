@@ -59,7 +59,7 @@ public class LuceneEditorTest {
                 "foo",
                 Operator.EQUAL,
                 MemoryValueFactory.INSTANCE.createValue("bar"));
-        Cursor cursor = index.query(filter, null);
+        Cursor cursor = index.query(filter, null, store.getRoot());
         assertTrue(cursor.next());
         assertEquals("/", cursor.currentPath());
         assertFalse(cursor.next());

@@ -22,6 +22,7 @@ import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.query.ast.ColumnImpl;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * A query result.
@@ -30,10 +31,12 @@ public class ResultImpl implements Result {
 
     protected final Query query;
     protected final String revisionId;
+    protected final NodeState root;
 
-    ResultImpl(Query query, String revisionId) {
+    ResultImpl(Query query, String revisionId, NodeState root) {
         this.query = query;
         this.revisionId = revisionId;
+        this.root = root;
     }
 
     @Override
@@ -62,7 +65,7 @@ public class ResultImpl implements Result {
 
             @Override
             public Iterator<ResultRowImpl> iterator() {
-                return query.getRows(revisionId);
+                return query.getRows(revisionId, root);
             }
         };
     }

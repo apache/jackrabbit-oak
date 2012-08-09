@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.spi;
 
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+
 /**
  * Represents an index. The index should use the data in the filter if possible
  * to speed up reading.
@@ -39,9 +41,10 @@ public interface QueryIndex {
      *
      * @param filter the filter
      * @param revisionId the revision
+     * @param root root state of the given revision
      * @return a cursor to iterate over the result
      */
-    Cursor query(Filter filter, String revisionId);
+    Cursor query(Filter filter, String revisionId, NodeState root);
 
     /**
      * Get the query plan for the given filter.

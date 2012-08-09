@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.plugins.memory;
 
 import javax.jcr.PropertyType;
 
-final class StringValue extends MemoryValue {
+public final class StringValue extends MemoryValue {
 
     private final String value;
 
