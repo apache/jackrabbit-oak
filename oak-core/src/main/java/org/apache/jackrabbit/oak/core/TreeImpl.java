@@ -116,7 +116,7 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public Tree getParent() {
-        if (parent != null && canRead(parent.getPath())) {
+        if (parent != null && canRead(parent)) {
             return parent;
         } else {
             return null;
@@ -125,7 +125,7 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public PropertyState getProperty(String name) {
-        if (canReadProperty(buildChildPath(name))) {
+        if (canReadProperty(name)) {
             return internalGetProperty(name);
         } else {
             return null;
@@ -135,7 +135,7 @@ public class TreeImpl implements Tree, PurgeListener {
     @Override
     public Status getPropertyStatus(String name) {
         // TODO: see OAK-212
-        if (!canReadProperty(buildChildPath(name))) {
+        if (!canReadProperty(name)) {
             return null;
         }
 
@@ -199,7 +199,7 @@ public class TreeImpl implements Tree, PurgeListener {
                     @Override
                     public boolean apply(PropertyState propertyState) {
                         if (propertyState != null) {
-                            return canReadProperty(buildChildPath(propertyState.getName()));
+                            return canReadProperty(propertyState.getName());
                         } else {
                             return false;
                         }
@@ -209,8 +209,9 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public TreeImpl getChild(String name) {
-        if (canRead(buildChildPath(name))) {
-            return internalGetChild(name);
+        TreeImpl child = internalGetChild(name);
+        if (child != null && canRead(child)) {
+            return child;
         } else {
             return null;
         }
@@ -268,7 +269,7 @@ public class TreeImpl implements Tree, PurgeListener {
                     @Override
                     public boolean apply(Tree tree) {
                         if (tree != null) {
-                            return canRead(tree.getPath());
+                            return canRead(tree);
                         } else {
                             return false;
                         }
@@ -403,18 +404,14 @@ public class TreeImpl implements Tree, PurgeListener {
      */
     @CheckForNull
     TreeImpl getTree(String path) {
-        TreeImpl tree = null;
-        if (canRead(buildChildPath(path))) {
-            TreeImpl child = this;
-            for (String name : elements(path)) {
-                child = child.internalGetChild(name);
-                if (child == null) {
-                    return null;
-                }
+        TreeImpl child = this;
+        for (String name : elements(path)) {
+            child = child.internalGetChild(name);
+            if (child == null) {
+                return null;
             }
-            tree = child;
         }
-        return tree;
+        return (canRead(child)) ? child : null;
     }
 
     //------------------------------------------------------------< private >---
@@ -450,20 +447,17 @@ public class TreeImpl implements Tree, PurgeListener {
         }
     }
 
-    private String buildChildPath(String relPath) {
-        StringBuilder sb = new StringBuilder();
-        buildPath(sb);
-        sb.append('/');
-        sb.append(relPath);
-        return sb.toString();
+    private boolean canRead(Tree tree) {
+        // FIXME: special handling for access control item and version content
+        return root.getPermissions().canRead(tree.getPath(), false);
     }
 
-    private boolean canRead(String path) {
-        return root.getPermissions().canRead(path, false);
-    }
+    private boolean canReadProperty(String name) {
+        StringBuilder path = new StringBuilder();
+        path.append(getPath()).append(name);
 
-    private boolean canReadProperty(String path) {
-        return root.getPermissions().canRead(path, true);
+        // FIXME: special handling for access control item and version content
+        return root.getPermissions().canRead(path.toString(), true);
     }
 
     private static boolean isSame(NodeState state1, NodeState state2) {
