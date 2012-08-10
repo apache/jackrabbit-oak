@@ -31,7 +31,7 @@ public class JsopTest extends TestCase {
             String s = "Hello \"World\" Hello \"World\" Hello \"World\" Hello \"World\" Hello \"World\" Hello \"World\" ";
             StopWatch timer = new StopWatch();
             int t2 = 0;
-            for (int i = 0; i < 10000000; i++) {
+            for (int i = 0; i < 1000000; i++) {
                 t2 += JsopBuilder.encode(s).length();
             }
             System.out.println(timer.seconds() + " dummy: " + t2);
@@ -61,8 +61,9 @@ public class JsopTest extends TestCase {
         assertEquals("\\/Date(0)\\/", t.getEscapedToken());
     }
 
-    public void testNull() {
-        JsopTokenizer t = new JsopTokenizer("null, 1, null, true, false");
+    public void testNullTrueFalse() {
+        JsopTokenizer t;
+        t = new JsopTokenizer("null, 1, null, true, false");
         assertEquals(null, t.read(JsopReader.NULL));
         assertEquals(",", t.read(','));
         assertEquals("1", t.read(JsopReader.NUMBER));
@@ -72,6 +73,14 @@ public class JsopTest extends TestCase {
         assertEquals("true", t.read(JsopReader.TRUE));
         assertEquals(",", t.read(','));
         assertEquals("false", t.read(JsopReader.FALSE));
+        t = new JsopTokenizer("true, false");
+        assertEquals("true", t.read(JsopReader.TRUE));
+        assertEquals(",", t.read(','));
+        assertEquals("false", t.read(JsopReader.FALSE));
+        t = new JsopTokenizer("false, true");
+        assertEquals("false", t.read(JsopReader.FALSE));
+        assertEquals(",", t.read(','));
+        assertEquals("true", t.read(JsopReader.TRUE));
     }
 
     public void testLineLength() {
@@ -103,7 +112,22 @@ public class JsopTest extends TestCase {
     }
 
     public void testRawValue() {
-        JsopTokenizer t = new JsopTokenizer("{\"x\": [1], null, true, {\"y\": 1}, error}");
+        JsopTokenizer t;
+        t = new JsopTokenizer("");
+        try {
+            t.readRawValue();
+            fail();
+        } catch (IllegalArgumentException e) {
+            // expected
+        }
+        t = new JsopTokenizer("[unclosed");
+        try {
+            t.readRawValue();
+            fail();
+        } catch (IllegalArgumentException e) {
+            // expected
+        }
+        t = new JsopTokenizer("{\"x\": [1], null, true, {\"y\": 1}, [1, 2], [], [[1]], +error+}");
         t.read('{');
         assertEquals("x", t.readString());
         t.read(':');
@@ -114,6 +138,13 @@ public class JsopTest extends TestCase {
         assertEquals("true", t.readRawValue());
         t.read(',');
         assertEquals("{\"y\": 1}", t.readRawValue());
+        t.read(',');
+        assertEquals("[1, 2]", t.readRawValue());
+        t.read(',');
+        assertEquals("[]", t.readRawValue());
+        t.read(',');
+        assertEquals("[[1]]", t.readRawValue());
+        t.read(',');
         try {
             t.readRawValue();
             fail();
