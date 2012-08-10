@@ -23,18 +23,11 @@ import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContext;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * PermissionValidatorProvider... TODO
  */
 public class PermissionValidatorProvider implements ValidatorProvider {
-
-    /**
-     * logger instance
-     */
-    private static final Logger log = LoggerFactory.getLogger(PermissionValidatorProvider.class);
 
     private final AccessControlContext acContext = null; // TODO
 
