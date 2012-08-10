@@ -373,7 +373,7 @@ public class JsopTokenizer implements JsopReader {
      * Add an asterisk ('[*]') at the given position. This format is used to
      * show where parsing failed in a statement.
      *
-     * @param s     the text
+     * @param s the text
      * @param index the position
      * @return the text with asterisk
      */
@@ -386,13 +386,14 @@ public class JsopTokenizer implements JsopReader {
     }
 
     /**
-     * Read a value and return the raw Json representation.
+     * Read a value and return the raw Json representation. This includes arrays
+     * and nested arrays.
      *
      * @return the Json representation of the value
      */
     public String readRawValue() {
         int start = lastPos;
-        while (jsop.charAt(start) <= ' ') {
+        while (start < length && jsop.charAt(start) <= ' ') {
             start++;
         }
         skipRawValue();
@@ -402,13 +403,16 @@ public class JsopTokenizer implements JsopReader {
     private void skipRawValue() {
         switch (currentType) {
             case '[': {
-                read();
                 int level = 0;
                 while (true) {
-                    if (matches(']') && level-- == 0) {
-                        break;
+                    if (matches(']')) {
+                        if (--level == 0) {
+                            break;
+                        }
                     } else if (matches('[')) {
                         level++;
+                    } else if (matches(JsopReader.END)) {
+                        throw getFormatException(jsop, pos, "value");
                     } else {
                         read();
                     }
