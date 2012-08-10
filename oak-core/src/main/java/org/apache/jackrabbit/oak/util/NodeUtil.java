@@ -65,6 +65,10 @@ public class NodeUtil {
         return mapper.getJcrName(tree.getName());
     }
 
+    public NodeUtil getParent() {
+        return new NodeUtil(factory, mapper, tree.getParent());
+    }
+
     public boolean hasChild(String name) {
         return tree.getChild(name) != null;
     }
@@ -160,8 +164,7 @@ public class NodeUtil {
             throw new IllegalArgumentException("Invalid name:" + name);
         }
 
-        tree.setProperty(name, factory.createValue(
-                oakName, PropertyType.NAME));
+        tree.setProperty(name, factory.createValue(oakName, PropertyType.NAME));
     }
 
     public String[] getNames(String name, String... defaultValues) {
@@ -183,8 +186,7 @@ public class NodeUtil {
                 throw new IllegalArgumentException("Invalid name:" + name);
             }
 
-            cvs.add(factory.createValue(
-                    oakName, PropertyType.NAME));
+            cvs.add(factory.createValue(oakName, PropertyType.NAME));
         }
         tree.setProperty(name, cvs);
     }

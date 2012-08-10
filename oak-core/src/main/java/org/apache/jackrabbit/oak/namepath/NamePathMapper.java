@@ -16,8 +16,49 @@
  */
 package org.apache.jackrabbit.oak.namepath;
 
+import javax.annotation.Nonnull;
+
 /**
- * NamePathMapper...
+ * The {@code NamePathMapper} interface combines {@code NameMapper} and
+ * {@code PathMapper}.
  */
 public interface NamePathMapper extends NameMapper, PathMapper {
+
+    /**
+     * Default implementation that doesn't perform any conversions for cases
+     * where a mapper object only deals with oak internal names and paths.
+     */
+    public class Default implements NamePathMapper {
+
+        @Override
+        public String getOakName(String jcrName) {
+            return jcrName;
+        }
+
+        @Override
+        public boolean hasSessionLocalMappings() {
+            return false;
+        }
+
+        @Override
+        public String getJcrName(String oakName) {
+            return oakName;
+        }
+
+        @Override
+        public String getOakPath(String jcrPath) {
+            return jcrPath;
+        }
+
+        @Override
+        public String getOakPathKeepIndex(String jcrPath) {
+            return jcrPath;
+        }
+
+        @Nonnull
+        @Override
+        public String getJcrPath(String oakPath) {
+            return oakPath;
+        }
+    }
 }

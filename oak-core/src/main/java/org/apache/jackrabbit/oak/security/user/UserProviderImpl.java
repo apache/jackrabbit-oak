@@ -138,8 +138,8 @@ public class UserProviderImpl implements UserProvider {
 
         defaultDepth = config.getConfigValue(UserManagerConfig.PARAM_DEFAULT_DEPTH, DEFAULT_DEPTH);
 
-        groupPath = config.getConfigValue(UserManagerConfig.PARAM_GROUP_PATH, "/rep:security/rep:authorizables/rep:groups");
-        userPath = config.getConfigValue(UserManagerConfig.PARAM_USER_PATH, "/rep:security/rep:authorizables/rep:users");
+        groupPath = config.getConfigValue(UserManagerConfig.PARAM_GROUP_PATH, UserConstants.DEFAULT_GROUP_PATH);
+        userPath = config.getConfigValue(UserManagerConfig.PARAM_USER_PATH, UserConstants.DEFAULT_USER_PATH);
     }
 
     @Override
@@ -205,6 +205,7 @@ public class UserProviderImpl implements UserProvider {
         String[] segmts = Text.explode(folderPath, '/', false);
         for (String segment : segmts) {
             folder = folder.getOrAddChild(segment, UserConstants.NT_REP_AUTHORIZABLE_FOLDER);
+            // TODO: remove check once UserValidator is active
             if (!folder.hasPrimaryNodeTypeName(UserConstants.NT_REP_AUTHORIZABLE_FOLDER)) {
                 String msg = "Cannot create user/group: Intermediate folders must be of type rep:AuthorizableFolder.";
                 throw new ConstraintViolationException(msg);
@@ -214,6 +215,7 @@ public class UserProviderImpl implements UserProvider {
         // test for colliding folder child node.
         while (folder.hasChild(nodeName)) {
             NodeUtil colliding = folder.getChild(nodeName);
+            // TODO: remove check once UserValidator is active
             if (colliding.hasPrimaryNodeTypeName(UserConstants.NT_REP_AUTHORIZABLE_FOLDER)) {
                 log.debug("Existing folder node collides with user/group to be created. Expanding path by: " + colliding.getName());
                 folder = colliding;
@@ -225,6 +227,7 @@ public class UserProviderImpl implements UserProvider {
             }
         }
 
+        // TODO: remove check once UserValidator is active
         if (!Text.isDescendantOrEqual(authRoot, folder.getTree().getPath())) {
             throw new ConstraintViolationException("Attempt to create user/group outside of configured scope " + authRoot);
         }
