@@ -21,9 +21,7 @@ import javax.jcr.AccessDeniedException;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.core.ReadOnlyTree;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
 import org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants;
@@ -31,6 +29,8 @@ import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.security.authorization.CompiledPermissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.Permissions;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.apache.jackrabbit.oak.version.VersionConstants;
 import org.apache.jackrabbit.util.Text;
 
 /**
@@ -46,11 +46,11 @@ class PermissionValidator implements Validator {
 
     private final CompiledPermissions compiledPermissions;
 
-    private final ReadOnlyTree parentBefore;
-    private final ReadOnlyTree parentAfter;
+    private final NodeUtil parentBefore;
+    private final NodeUtil parentAfter;
 
     PermissionValidator(CompiledPermissions compiledPermissions,
-                        ReadOnlyTree parentBefore, ReadOnlyTree parentAfter) {
+                        NodeUtil parentBefore, NodeUtil parentAfter) {
         this.compiledPermissions = compiledPermissions;
         this.parentBefore = parentBefore;
         this.parentAfter = parentAfter;
@@ -75,14 +75,14 @@ class PermissionValidator implements Validator {
 
     @Override
     public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
-        ReadOnlyTree child = new ReadOnlyTree(parentAfter, name, after);
+        NodeUtil child = parentAfter.getChild(name);
         return checkPermissions(child, false, Permissions.ADD_NODE);
     }
 
     @Override
     public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
-        ReadOnlyTree childBefore = new ReadOnlyTree(parentBefore, name, before);
-        ReadOnlyTree childAfter = new ReadOnlyTree(parentAfter, name, after);
+        NodeUtil childBefore = parentBefore.getChild(name);
+        NodeUtil childAfter = parentAfter.getChild(name);
 
         // TODO
 
@@ -91,13 +91,13 @@ class PermissionValidator implements Validator {
 
     @Override
     public Validator childNodeDeleted(String name, NodeState before) throws CommitFailedException {
-        ReadOnlyTree child = new ReadOnlyTree(parentBefore, name, before);
+        NodeUtil child = parentBefore.getChild(name);
         return checkPermissions(child, true, Permissions.REMOVE_NODE);
     }
 
     //------------------------------------------------------------< private >---
-    private void checkPermissions(Tree parent, PropertyState property, int defaultPermission) throws CommitFailedException {
-        String parentPath = parent.getPath();
+    private void checkPermissions(NodeUtil parent, PropertyState property, int defaultPermission) throws CommitFailedException {
+        String parentPath = parent.getTree().getPath();
         String name = property.getName();
 
         int permission;
@@ -116,8 +116,10 @@ class PermissionValidator implements Validator {
             permission = Permissions.PRIVILEGE_MANAGEMENT;
         } else if (isAccessControl(parent)) {
             permission = Permissions.MODIFY_ACCESS_CONTROL;
-        } else if (isVersion(parent)) {
+        } else if (isVersionProperty(parent, property)) {
             permission = Permissions.VERSION_MANAGEMENT;
+            // FIXME: path to check for permission must be adjusted to be
+            //        the one of the versionable node instead of the target parent.
         } else {
             // TODO: identify specific permission depending on type of protection
             // - user/group property -> user management
@@ -127,8 +129,8 @@ class PermissionValidator implements Validator {
         checkPermissions(PathUtils.concat(parentPath, name), permission);
     }
 
-    private PermissionValidator checkPermissions(ReadOnlyTree tree, boolean isBefore, int defaultPermission) throws CommitFailedException {
-        String path = tree.getPath();
+    private PermissionValidator checkPermissions(NodeUtil node, boolean isBefore, int defaultPermission) throws CommitFailedException {
+        String path = node.getTree().getPath();
         int permission;
 
         if (isNamespaceDefinition(path)) {
@@ -137,10 +139,12 @@ class PermissionValidator implements Validator {
             permission = Permissions.NODE_TYPE_DEFINITION_MANAGEMENT;
         } else if (isPrivilegeDefinition(path)) {
             permission = Permissions.PRIVILEGE_MANAGEMENT;
-        } else if (isAccessControl(tree)) {
+        } else if (isAccessControl(node)) {
             permission = Permissions.MODIFY_ACCESS_CONTROL;
-        } else if (isVersion(tree)) {
+        } else if (isVersion(node)) {
             permission = Permissions.VERSION_MANAGEMENT;
+            // FIXME: path to check for permission must be adjusted to be
+            // //     the one of the versionable node instead of the target node.
         } else {
             // TODO: identify specific permission depending on additional types of protection
             // - user/group -> user management
@@ -155,8 +159,8 @@ class PermissionValidator implements Validator {
         } else {
             checkPermissions(path, permission);
             return (isBefore) ?
-                    new PermissionValidator(compiledPermissions, tree, null) :
-                    new PermissionValidator(compiledPermissions, null, tree);
+                    new PermissionValidator(compiledPermissions, node, null) :
+                    new PermissionValidator(compiledPermissions, null, node);
         }
     }
 
@@ -166,14 +170,32 @@ class PermissionValidator implements Validator {
         }
     }
 
-    private static boolean isAccessControl(Tree parent) {
+    private static boolean isAccessControl(NodeUtil node) {
         // TODO: depends on ac-model
         return false;
     }
 
-    private static boolean isVersion(Tree parent) {
-        // TODO: add implementation
-        return false;
+    private static boolean isVersion(NodeUtil node) {
+        if (node.getTree().isRoot()) {
+            return false;
+        }
+        // TODO: review again
+        if (VersionConstants.VERSION_NODE_NAMES.contains(node.getName())) {
+            return true;
+        } else if (VersionConstants.VERSION_NODE_TYPE_NAMES.contains(node.getName(JcrConstants.JCR_PRIMARYTYPE))) {
+            return true;
+        } else {
+            String path = node.getTree().getPath();
+            return VersionConstants.SYSTEM_PATHS.contains(Text.getAbsoluteParent(path, 1));
+        }
+    }
+
+    private static boolean isVersionProperty(NodeUtil parent, PropertyState property) {
+        if (VersionConstants.VERSION_PROPERTY_NAMES.contains(property.getName())) {
+            return true;
+        } else {
+            return isVersion(parent);
+        }
     }
 
     private static boolean isLockProperty(String name) {

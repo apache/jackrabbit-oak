@@ -18,11 +18,15 @@ package org.apache.jackrabbit.oak.security.authorization;
 
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContext;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.util.NodeUtil;
 
 /**
  * PermissionValidatorProvider... TODO
@@ -30,11 +34,17 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 public class PermissionValidatorProvider implements ValidatorProvider {
 
     private final AccessControlContext acContext = null; // TODO
+    private final ContentSession contentSession = null; // TODO
 
     //--------------------------------------------------< ValidatorProvider >---
     @Nonnull
     @Override
     public Validator getRootValidator(NodeState before, NodeState after) {
-        return new PermissionValidator(acContext.getPermissions(), new ReadOnlyTree(before), new ReadOnlyTree(after));
+        NamePathMapper mapper = new NamePathMapper.Default();
+        CoreValueFactory vf = contentSession.getCoreValueFactory();
+
+        NodeUtil rootBefore = new NodeUtil(vf, mapper, new ReadOnlyTree(before));
+        NodeUtil rootAfter = new NodeUtil(vf, mapper, new ReadOnlyTree(after));
+        return new PermissionValidator(acContext.getPermissions(), rootBefore, rootAfter);
     }
 }
