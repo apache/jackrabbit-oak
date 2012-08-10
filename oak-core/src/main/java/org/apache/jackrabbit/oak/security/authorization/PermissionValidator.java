@@ -36,13 +36,12 @@ import org.apache.jackrabbit.util.Text;
 /**
  * PermissionValidator... TODO
  */
-public class PermissionValidator implements Validator {
+class PermissionValidator implements Validator {
 
     /* TODO
      * - special permissions for protected items (versioning, access control, etc.)
      * - Renaming nodes or Move with same parent are reflected as remove+add -> needs special handling
      * - review usage of OAK_CHILD_ORDER property (in particular if the property was removed
-     *
      */
 
     private final CompiledPermissions compiledPermissions;
@@ -115,11 +114,12 @@ public class PermissionValidator implements Validator {
             permission = Permissions.NODE_TYPE_DEFINITION_MANAGEMENT;
         } else if (isPrivilegeDefinition(parentPath)) {
             permission = Permissions.PRIVILEGE_MANAGEMENT;
-        } else if (isAccessControl(parent, property)) {
+        } else if (isAccessControl(parent)) {
             permission = Permissions.MODIFY_ACCESS_CONTROL;
+        } else if (isVersion(parent)) {
+            permission = Permissions.VERSION_MANAGEMENT;
         } else {
             // TODO: identify specific permission depending on type of protection
-            // - version property -> version management
             // - user/group property -> user management
             permission = defaultPermission;
         }
@@ -139,16 +139,18 @@ public class PermissionValidator implements Validator {
             permission = Permissions.PRIVILEGE_MANAGEMENT;
         } else if (isAccessControl(tree)) {
             permission = Permissions.MODIFY_ACCESS_CONTROL;
+        } else if (isVersion(tree)) {
+            permission = Permissions.VERSION_MANAGEMENT;
         } else {
             // TODO: identify specific permission depending on additional types of protection
-            // - versioning -> version management
             // - user/group -> user management
             // - workspace management ???
+            // TODO: identify renaming/move of nodes that only required MODIFY_CHILD_NODE_COLLECTION permission
             permission = defaultPermission;
         }
 
         if (Permissions.isRepositoryPermissions(permission)) {
-            checkPermissions((String) null, permission);
+            checkPermissions(null, permission);
             return null; // no need for further validation down the subtree
         } else {
             checkPermissions(path, permission);
@@ -169,8 +171,8 @@ public class PermissionValidator implements Validator {
         return false;
     }
 
-    private static boolean isAccessControl(Tree parent, PropertyState property) {
-        // TODO: depends on ac-model
+    private static boolean isVersion(Tree parent) {
+        // TODO: add implementation
         return false;
     }
 
