@@ -17,8 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.type;
 
 import org.apache.jackrabbit.JcrConstants;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * NodeTypeConstants... TODO
@@ -33,4 +31,11 @@ public interface NodeTypeConstants extends JcrConstants {
     String JCR_IS_FULLTEXT_SEARCHABLE = "jcr:isFullTextSearchable";
     String JCR_IS_QUERY_ORDERABLE = "jcr:isQueryOrderable";
     String JCR_AVAILABLE_QUERY_OPERATORS = "jcr:availableQueryOperators";
+
+    /**
+     * Name of the mixin type to mark merge conflicts
+     * TODO: review where this constant should be located.
+     */
+    String MIX_REP_MERGE_CONFLICT = "rep:MergeConflict";
+
 }
