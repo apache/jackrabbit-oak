@@ -37,6 +37,7 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.util.Calendar;
+import java.util.UUID;
 
 /**
  * Implementation of {@link ValueFactory} interface based on the
@@ -181,6 +182,17 @@ public class ValueFactoryImpl implements ValueFactory {
                 case PropertyType.DATE:
                     if (ISO8601.parse(value) == null) {
                         throw new ValueFormatException("Invalid date " + value);
+                    }
+                    cv = factory.createValue(value, type);
+                    break;
+
+                case PropertyType.REFERENCE:
+                case PropertyType.WEAKREFERENCE:
+                    // TODO: move to identifier/uuid management utility instead of relying on impl specific uuid-format here.
+                    try {
+                        UUID.fromString(value);
+                    } catch (IllegalArgumentException e) {
+                        throw new ValueFormatException(e);
                     }
                     cv = factory.createValue(value, type);
                     break;
