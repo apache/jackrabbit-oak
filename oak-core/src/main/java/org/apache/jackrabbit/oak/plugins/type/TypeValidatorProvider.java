@@ -28,7 +28,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 @Component
 @Service(ValidatorProvider.class)
-public class TypeValidatorProvider implements ValidatorProvider {
+public class TypeValidatorProvider implements ValidatorProvider, NodeTypeConstants {
 
     @Override
     public Validator getRootValidator(NodeState before, NodeState after) {
@@ -93,12 +93,12 @@ public class TypeValidatorProvider implements ValidatorProvider {
         types.add("rep:RetentionManageable");
 
         // Oak types are always available
-        types.add("mix:mergeConflict");
+        types.add(MIX_REP_MERGE_CONFLICT);
 
         // Find any extra types from /jcr:system/jcr:nodeTypes
-        NodeState system = after.getChildNode("jcr:system");
+        NodeState system = after.getChildNode(JCR_SYSTEM);
         if (system != null) {
-            NodeState registry = system.getChildNode("jcr:nodeTypes");
+            NodeState registry = system.getChildNode(JCR_NODE_TYPES);
             if (registry != null) {
                 for (ChildNodeEntry child : registry.getChildNodeEntries()) {
                     types.add(child.getName());

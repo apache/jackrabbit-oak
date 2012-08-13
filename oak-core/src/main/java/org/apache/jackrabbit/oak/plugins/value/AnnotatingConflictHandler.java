@@ -29,29 +29,30 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.MIX_REP_MERGE_CONFLICT;
+
 /**
  * This {@link ConflictHandler} implementation resolves conflicts to
  * {@link Resolution#THEIRS} and in addition marks nodes where a conflict
- * occurred with {@code mix:mergeConflict}:
+ * occurred with the mixin {@code rep:MergeConflict}:
  *
  * <pre>
- * [mix:mergeConflict]
+ * [rep:MergeConflict]
  *   mixin
- *   primaryitem jcr:ours
- *   + jcr:ours (nt:unstructured)
+ *   primaryitem rep:ours
+ *   + rep:ours (nt:unstructured)
  * </pre>
  *
- * The {@code jcr:ours} sub node contains our version of the node prior to
+ * The {@code rep:ours} sub node contains our version of the node prior to
  * the conflict.
  *
  * @see ConflictValidator
  */
 public class AnnotatingConflictHandler implements ConflictHandler {
-    private static final String JCR_MIXIN_TYPES = "jcr:mixinTypes";
 
     // TODO: move these constants to some common location for repository internal node types
-    private static final String MIX_MERGE_CONFLICT = "mix:mergeConflict";
-    private static final String JCR_OURS = "jcr:ours";
+    private static final String REP_OURS = "rep:ours";
     private static final String ADD_EXISTING = "addExisting";
     private static final String CHANGE_DELETED = "changeDeleted";
     private static final String CHANGE_CHANGED = "changeChanged";
@@ -128,18 +129,18 @@ public class AnnotatingConflictHandler implements ConflictHandler {
     }
 
     private Tree addConflictMarker(Tree parent) {
-        PropertyState jcrMixin = parent.getProperty(JCR_MIXIN_TYPES);
+        PropertyState jcrMixin = parent.getProperty(JCR_MIXINTYPES);
         List<CoreValue> mixins = new ArrayList<CoreValue>();
         if (jcrMixin != null) {
             assert jcrMixin.isArray();
             mixins.addAll(jcrMixin.getValues());
         }
-        if (!mixins.contains(MIX_MERGE_CONFLICT)) {
-            mixins.add(valueFactory.createValue(MIX_MERGE_CONFLICT, PropertyType.NAME));
-            parent.setProperty(JCR_MIXIN_TYPES, mixins);
+        if (!mixins.contains(MIX_REP_MERGE_CONFLICT)) {
+            mixins.add(valueFactory.createValue(MIX_REP_MERGE_CONFLICT, PropertyType.NAME));
+            parent.setProperty(JCR_MIXINTYPES, mixins);
         }
 
-        return getOrCreateNode(parent, JCR_OURS);
+        return getOrCreateNode(parent, REP_OURS);
     }
 
     private static Tree getOrCreateNode(Tree parent, String name) {
