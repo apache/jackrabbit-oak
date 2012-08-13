@@ -18,9 +18,11 @@ package org.apache.jackrabbit.oak.plugins.value;
 
 import javax.jcr.InvalidItemStateException;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -59,10 +61,10 @@ public class ConflictValidator extends DefaultValidator {
     }
 
     private static void failOnMergeConflict(PropertyState property) throws CommitFailedException {
-        if ("jcr:mixinTypes".equals(property.getName())) {
+        if (JcrConstants.JCR_MIXINTYPES.equals(property.getName())) {
             assert property.isArray();
             for (CoreValue v : property.getValues()) {
-                if ("mix:mergeConflict".equals(v.getString())) {
+                if (NodeTypeConstants.MIX_REP_MERGE_CONFLICT.equals(v.getString())) {
                     throw new CommitFailedException(new InvalidItemStateException("Item has unresolved conflicts"));
                 }
             }
