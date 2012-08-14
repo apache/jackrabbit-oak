@@ -22,7 +22,6 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.util.Calendar;
-import java.util.UUID;
 import javax.jcr.Binary;
 import javax.jcr.Node;
 import javax.jcr.PropertyType;
@@ -34,6 +33,7 @@ import javax.jcr.ValueFormatException;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -187,11 +187,8 @@ public class ValueFactoryImpl implements ValueFactory {
 
                 case PropertyType.REFERENCE:
                 case PropertyType.WEAKREFERENCE:
-                    // TODO: move to identifier/uuid management utility instead of relying on impl specific uuid-format here.
-                    try {
-                        UUID.fromString(value);
-                    } catch (IllegalArgumentException e) {
-                        throw new ValueFormatException(e);
+                    if (!IdentifierManager.isValidUUID(value)) {
+                        throw new ValueFormatException("Invalid reference value " + value);
                     }
                     cv = factory.createValue(value, type);
                     break;

@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.namepath;
 
-import org.junit.Test;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
+
+import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
+import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -34,9 +34,10 @@ public class NamePathMapperImplTest {
 
     @Test
     public void testInvalidIdentifierPath() {
+        String uuid = IdentifierManager.generateUUID();
         List<String> invalid = new ArrayList<String>();
-        invalid.add('[' + UUID.randomUUID().toString() + "]abc");
-        invalid.add('[' + UUID.randomUUID().toString() + "]/a/b/c");
+        invalid.add('[' + uuid + "]abc");
+        invalid.add('[' + uuid + "]/a/b/c");
 
         for (String jcrPath : invalid) {
             assertNull(npMapper.getOakPath(jcrPath));

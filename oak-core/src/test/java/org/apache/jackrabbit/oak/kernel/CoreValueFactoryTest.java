@@ -16,16 +16,6 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.core.MicroKernelImpl;
-import org.apache.jackrabbit.mk.json.JsopReader;
-import org.apache.jackrabbit.mk.json.JsopTokenizer;
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.CoreValueFactory;
-import org.junit.Before;
-import org.junit.Test;
-
-import javax.jcr.PropertyType;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -34,7 +24,17 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
+import javax.jcr.PropertyType;
+
+import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.mk.core.MicroKernelImpl;
+import org.apache.jackrabbit.mk.json.JsopReader;
+import org.apache.jackrabbit.mk.json.JsopTokenizer;
+import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.CoreValueFactory;
+import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
+import org.junit.Before;
+import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
@@ -77,7 +77,7 @@ public class CoreValueFactoryTest {
 
         singleValueMap.put(valueFactory.createValue("http://jackrabbit.apache.org", PropertyType.URI), "\"uri:http://jackrabbit.apache.org\"");
 
-        String uuid = UUID.randomUUID().toString();
+        String uuid = IdentifierManager.generateUUID();
         singleValueMap.put(valueFactory.createValue(uuid, PropertyType.REFERENCE), "\"ref:" +uuid+ '\"');
         singleValueMap.put(valueFactory.createValue(uuid, PropertyType.WEAKREFERENCE), "\"wea:" +uuid+ '\"');
 

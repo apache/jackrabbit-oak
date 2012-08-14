@@ -97,15 +97,7 @@ public class NodeDelegate extends ItemDelegate {
 
     @Nonnull
     public String getIdentifier() throws InvalidItemStateException {
-        PropertyDelegate pd = getProperty(JcrConstants.JCR_UUID);
-        if (pd == null) {
-            // TODO delegated to the OAK-API to calculate the identifier
-            // TODO consisting of closest referenceable parent and a relative path
-            // TODO irrespective of the accessibility of the parent node(s)
-            return getPath();
-        } else {
-            return pd.getValue().toString();
-        }
+        return sessionDelegate.getIdManager().getIdentifier(getTree());
     }
 
     /**
@@ -336,7 +328,7 @@ public class NodeDelegate extends ItemDelegate {
         return sessionDelegate.getTree(absPath);
     }
 
-    private synchronized Tree getTree() throws InvalidItemStateException {
+    synchronized Tree getTree() throws InvalidItemStateException {
         resolve();
         if (tree == null) {
             throw new InvalidItemStateException("Node is stale");
