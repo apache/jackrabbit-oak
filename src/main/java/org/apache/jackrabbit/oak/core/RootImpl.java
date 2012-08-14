@@ -147,7 +147,7 @@ public class RootImpl implements Root {
     }
 
     @Override
-    public void refresh() {
+    public final void refresh() {
         branch = store.branch();
         rootTree = TreeImpl.createRoot(this);
         permissions = this.accessControlContext.getPermissions();
