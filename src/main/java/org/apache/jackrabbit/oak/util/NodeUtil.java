@@ -51,7 +51,7 @@ public class NodeUtil {
 
     private final Tree tree;
 
-    public NodeUtil(CoreValueFactory factory, NameMapper mapper, Tree tree) {
+    public NodeUtil(Tree tree, CoreValueFactory factory, NameMapper mapper) {
         this.factory = factory;
         this.mapper = mapper;
         this.tree = tree;
@@ -74,7 +74,7 @@ public class NodeUtil {
     }
 
     public NodeUtil getParent() {
-        return new NodeUtil(factory, mapper, tree.getParent());
+        return new NodeUtil(tree.getParent(), factory, mapper);
     }
 
     public boolean hasChild(String name) {
@@ -84,13 +84,13 @@ public class NodeUtil {
     @CheckForNull
     public NodeUtil getChild(String name) {
         Tree child = tree.getChild(name);
-        return (child == null) ? null : new NodeUtil(factory, mapper, child);
+        return (child == null) ? null : new NodeUtil(child, factory, mapper);
     }
 
     @Nonnull
     public NodeUtil addChild(String name, String primaryNodeTypeName) {
         Tree child = tree.addChild(name);
-        NodeUtil childUtil = new NodeUtil(factory, mapper, child);
+        NodeUtil childUtil = new NodeUtil(child, factory, mapper);
         childUtil.setName(JcrConstants.JCR_PRIMARYTYPE, primaryNodeTypeName);
         return childUtil;
     }
@@ -203,7 +203,7 @@ public class NodeUtil {
         List<NodeUtil> nodes = Lists.newArrayList();
         for (Tree child : tree.getChildren()) {
             if (child.getName().startsWith(namePrefix)) {
-                nodes.add(new NodeUtil(factory, mapper, child));
+                nodes.add(new NodeUtil(child, factory, mapper));
             }
         }
         return nodes;

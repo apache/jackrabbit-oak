@@ -160,7 +160,7 @@ public class NodeTypeManagerImpl implements NodeTypeManager, NodeTypeConstants {
             Tree type = types.getChild(getOakName(name));
             if (type != null) {
                 return new NodeTypeImpl(this, factory, new NodeUtil(
-                        session.getCoreValueFactory(), mapper, type));
+                        type, session.getCoreValueFactory(), mapper));
             }
         }
         throw new NoSuchNodeTypeException(name);
@@ -173,7 +173,7 @@ public class NodeTypeManagerImpl implements NodeTypeManager, NodeTypeConstants {
         if (types != null) {
             for (Tree type : types.getChildren()) {
                 list.add(new NodeTypeImpl(this, factory, new NodeUtil(
-                        session.getCoreValueFactory(), mapper, type)));
+                        type, session.getCoreValueFactory(), mapper)));
 
             }
         }
@@ -275,7 +275,7 @@ public class NodeTypeManagerImpl implements NodeTypeManager, NodeTypeConstants {
         type = types.addChild(oakName);
 
         CoreValueFactory factory = session.getCoreValueFactory();
-        NodeUtil node = new NodeUtil(factory, mapper, type);
+        NodeUtil node = new NodeUtil(type, factory, mapper);
         node.setName(JCR_PRIMARYTYPE, NT_NODETYPE);
         node.setName(JCR_NODETYPENAME, jcrName);
         node.setNames(JCR_SUPERTYPES, ntd.getDeclaredSupertypeNames());
