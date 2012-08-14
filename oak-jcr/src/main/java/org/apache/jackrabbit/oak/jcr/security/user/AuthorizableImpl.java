@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.jcr.security.user;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.util.Text;
@@ -39,6 +40,9 @@ import java.util.List;
 
 /**
  * AuthorizableImpl... TODO
+ *
+ * FIXME: get rid of keeping both tree AND node fields. this is workaround for
+ *        missing conversion from Node to Tree and vice version in OAK-JCR
  */
 abstract class AuthorizableImpl implements Authorizable, UserConstants {
 
@@ -48,13 +52,16 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
     private static final Logger log = LoggerFactory.getLogger(AuthorizableImpl.class);
 
     private final Node node;
+    private final Tree tree;
     private final UserManagerImpl userManager;
 
     private int hashCode;
 
-    AuthorizableImpl(Node node, UserManagerImpl userManager) throws RepositoryException {
-        this.userManager = userManager;
+    AuthorizableImpl(Node node, Tree tree, UserManagerImpl userManager) throws RepositoryException {
         this.node = node;
+        this.tree = tree;
+        this.userManager = userManager;
+
         checkValidNode(node);
     }
 
@@ -279,6 +286,14 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
      */
     Node getNode() {
         return node;
+    }
+
+    Tree getTree() {
+        return tree;
+    }
+
+    String getContentID() throws RepositoryException {
+        return getNode().getUUID();
     }
 
     String getJcrName(String oakName) {

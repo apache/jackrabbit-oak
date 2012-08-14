@@ -1292,13 +1292,6 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
 
     }
 
-    //-----------------------------------------------------------< internal >---
-
-    // FIXME: remove again. See OAK-136
-    NodeDelegate getNodeDelegate() {
-        return dlg;
-    }
-
     //------------------------------------------------------------< private >---
 
     private static Iterator<Node> nodeIterator(Iterator<NodeDelegate> childNodes) {

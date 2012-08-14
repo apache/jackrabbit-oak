@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.jcr.security.user;
 
 import org.apache.jackrabbit.api.security.user.Impersonation;
 import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.user.PasswordUtility;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,8 +41,8 @@ class UserImpl extends AuthorizableImpl implements User {
      */
     private static final Logger log = LoggerFactory.getLogger(UserImpl.class);
 
-    UserImpl(Node node, UserManagerImpl userManager) throws RepositoryException {
-        super(node, userManager);
+    UserImpl(Node node, Tree tree, UserManagerImpl userManager) throws RepositoryException {
+        super(node, tree, userManager);
     }
 
     void checkValidNode(Node node) throws RepositoryException {
@@ -64,7 +66,7 @@ class UserImpl extends AuthorizableImpl implements User {
     @Override
     public Principal getPrincipal() throws RepositoryException {
         String principalName = getPrincipalName();
-        return new ItemBasedPrincipalImpl(principalName, getNode());
+        return new TreeBasedPrincipal(principalName, getTree(), getUserManager().getSessionDelegate().getNamePathMapper());
 
     }
 
@@ -108,7 +110,7 @@ class UserImpl extends AuthorizableImpl implements User {
     public void changePassword(String password) throws RepositoryException {
         UserManagerImpl userManager = getUserManager();
         userManager.onPasswordChange(this, password);
-        userManager.setPassword(getNode(), password, true);
+        userManager.setPassword(getTree(), password, true);
     }
 
     /**
@@ -118,9 +120,9 @@ class UserImpl extends AuthorizableImpl implements User {
     public void changePassword(String password, String oldPassword) throws RepositoryException {
         // make sure the old password matches.
         String pwHash = null;
-        String pwPropName = getJcrName(REP_PASSWORD);
-        if (getNode().hasProperty(pwPropName)) {
-            pwHash = getNode().getProperty(pwPropName).getString();
+        PropertyState pwProp = getTree().getProperty(REP_PASSWORD);
+        if (pwProp != null) {
+            pwHash = pwProp.getValue().getString();
         }
         if (!PasswordUtility.isSame(pwHash, oldPassword)) {
             throw new RepositoryException("Failed to change password: Old password does not match.");
@@ -139,10 +141,10 @@ class UserImpl extends AuthorizableImpl implements User {
         if (reason == null) {
             if (isDisabled()) {
                 // enable the user again.
-                getUserManager().removeInternalProperty(getNode(), REP_DISABLED);
+                getUserManager().removeInternalProperty(getTree(), REP_DISABLED);
             } // else: nothing to do.
         } else {
-            getUserManager().setInternalProperty(getNode(), REP_DISABLED, reason, PropertyType.STRING);
+            getUserManager().setInternalProperty(getTree(), REP_DISABLED, reason, PropertyType.STRING);
         }
     }
 
@@ -150,19 +152,19 @@ class UserImpl extends AuthorizableImpl implements User {
      * @see org.apache.jackrabbit.api.security.user.User#isDisabled()
      */
     @Override
-    public boolean isDisabled() throws RepositoryException {
-        return getNode().hasProperty(getJcrName(REP_DISABLED));
+    public boolean isDisabled() {
+        return getTree().hasProperty(REP_DISABLED);
     }
 
     /**
      * @see org.apache.jackrabbit.api.security.user.User#getDisabledReason()
      */
     @Override
-    public String getDisabledReason() throws RepositoryException {
-        if (isDisabled()) {
-            return getNode().getProperty(getJcrName(REP_DISABLED)).getString();
-        } else {
+    public String getDisabledReason() {
+        PropertyState disabled = getTree().getProperty(REP_DISABLED);
+        if (disabled != null) {
+            return disabled.getValue().getString();
+        } else
             return null;
-        }
     }
 }

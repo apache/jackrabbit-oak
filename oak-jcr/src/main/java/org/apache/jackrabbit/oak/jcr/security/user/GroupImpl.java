@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.jcr.security.user;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,8 +40,8 @@ class GroupImpl extends AuthorizableImpl implements Group {
      */
     private static final Logger log = LoggerFactory.getLogger(GroupImpl.class);
 
-    GroupImpl(Node node, UserManagerImpl userManager) throws RepositoryException {
-        super(node, userManager);
+    GroupImpl(Node node, Tree tree, UserManagerImpl userManager) throws RepositoryException {
+        super(node, tree, userManager);
     }
 
     @Override
@@ -64,7 +65,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
      */
     @Override
     public Principal getPrincipal() throws RepositoryException {
-        return new GroupPrincipal(getPrincipalName(), getNode().getPath());
+        return new GroupPrincipal(getPrincipalName());
     }
 
     //--------------------------------------------------------------< Group >---
@@ -162,6 +163,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
      */
     private Iterator<Authorizable> getMembers(boolean includeInherited) throws RepositoryException {
         if (isEveryone()) {
+            // TODO: improve using authorizable-query
             String propName = getJcrName(REP_PRINCIPAL_NAME);
             return getUserManager().findAuthorizables(propName, null, UserManager.SEARCH_TYPE_AUTHORIZABLE);
         } else {
@@ -198,10 +200,10 @@ class GroupImpl extends AuthorizableImpl implements Group {
     /**
      * Principal representation of this group instance.
      */
-    private class GroupPrincipal extends ItemBasedPrincipalImpl implements java.security.acl.Group {
+    private class GroupPrincipal extends TreeBasedPrincipal implements java.security.acl.Group {
 
-        GroupPrincipal(String principalName, String nodePath) {
-            super(principalName, getNode());
+        GroupPrincipal(String principalName) {
+            super(principalName, getTree(), getUserManager().getSessionDelegate().getNamePathMapper());
         }
 
         @Override

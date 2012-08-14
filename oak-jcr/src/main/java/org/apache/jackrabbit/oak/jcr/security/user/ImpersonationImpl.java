@@ -16,26 +16,28 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.user;
 
+import java.security.Principal;
+import java.security.acl.Group;
+import java.util.HashSet;
+import java.util.Set;
+import javax.jcr.PropertyType;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.UnsupportedRepositoryOperationException;
+import javax.security.auth.Subject;
+
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Impersonation;
+import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.jcr.security.principal.PrincipalIteratorAdapter;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.jcr.PropertyType;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.UnsupportedRepositoryOperationException;
-import javax.jcr.Value;
-import javax.security.auth.Subject;
-import java.security.Principal;
-import java.security.acl.Group;
-import java.util.HashSet;
-import java.util.Set;
 
 /**
  * ImpersonationImpl...
@@ -163,7 +165,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
                 if (p instanceof Group) {
                     continue;
                 }
-                UserManagerImpl userManager = getUserManagerImpl();
+                UserManagerImpl userManager = user.getUserManager();
                 Authorizable a = userManager.getAuthorizable(p);
                 if (a != null && userManager.isAdminId(a.getID())) {
                     allows = true;
@@ -178,10 +180,10 @@ class ImpersonationImpl implements Impersonation, UserConstants {
 
     private Set<String> getImpersonatorNames() throws RepositoryException {
         Set<String> princNames = new HashSet<String>();
-        String propName = user.getJcrName(REP_IMPERSONATORS);
-        if (user.getNode().hasProperty(propName)) {
-            Value[] vs = user.getNode().getProperty(propName).getValues();
-            for (Value v : vs) {
+        Tree userTree = user.getTree();
+        PropertyState impersonators = userTree.getProperty(REP_IMPERSONATORS);
+        if (impersonators != null) {
+            for (CoreValue v : impersonators.getValues()) {
                 princNames.add(v.getString());
             }
         }
@@ -191,22 +193,18 @@ class ImpersonationImpl implements Impersonation, UserConstants {
     private void updateImpersonatorNames(Set<String> principalNames) throws RepositoryException {
         String[] pNames = principalNames.toArray(new String[principalNames.size()]);
         if (pNames.length == 0) {
-            user.getUserManager().removeInternalProperty(user.getNode(), REP_IMPERSONATORS);
+            user.getUserManager().removeInternalProperty(user.getTree(), REP_IMPERSONATORS);
         } else {
-            user.getUserManager().setInternalProperty(user.getNode(), REP_IMPERSONATORS, pNames, PropertyType.STRING);
+            user.getUserManager().setInternalProperty(user.getTree(), REP_IMPERSONATORS, pNames, PropertyType.STRING);
         }
     }
 
     private PrincipalManager getPrincipalManager() throws RepositoryException {
-        Session s = user.getNode().getSession();
+        Session s = user.getUserManager().getSession();
         if (s instanceof JackrabbitSession) {
             return ((JackrabbitSession) s).getPrincipalManager();
         } else {
             throw new UnsupportedRepositoryOperationException("Principal management not supported.");
         }
-    }
-
-    private UserManagerImpl getUserManagerImpl() {
-        return user.getUserManager();
     }
 }

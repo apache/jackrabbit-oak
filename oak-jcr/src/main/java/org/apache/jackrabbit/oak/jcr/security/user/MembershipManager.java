@@ -16,6 +16,17 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.user;
 
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.List;
+import javax.jcr.Node;
+import javax.jcr.PropertyIterator;
+import javax.jcr.PropertyType;
+import javax.jcr.RepositoryException;
+
+import com.google.common.collect.Iterators;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -25,49 +36,33 @@ import org.apache.jackrabbit.commons.flat.PropertySequence;
 import org.apache.jackrabbit.commons.flat.Rank;
 import org.apache.jackrabbit.commons.flat.TreeManager;
 import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
+import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.CoreValueFactory;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Iterators;
-
-import javax.jcr.Node;
-import javax.jcr.Property;
-import javax.jcr.PropertyIterator;
-import javax.jcr.RepositoryException;
-import javax.jcr.Value;
-import javax.jcr.ValueFactory;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.List;
-
 /**
  * MembershipManager...
  */
-class MembershipManager {
+class MembershipManager implements UserConstants {
 
     private static final Logger log = LoggerFactory.getLogger(MembershipManager.class);
 
     private final UserManagerImpl userManager;
-    private final ValueFactory valueFactory;
     private final int memberSplitSize;
 
-    private final String repMembers;
-
-    MembershipManager(UserManagerImpl userManager, int memberSplitSize, ValueFactory valueFactory) {
+    MembershipManager(UserManagerImpl userManager, int memberSplitSize) {
         this.userManager = userManager;
-        this.valueFactory = valueFactory;
         this.memberSplitSize = memberSplitSize;
-
-        repMembers = userManager.getJcrName(UserConstants.REP_MEMBERS);
     }
 
     Iterator<Group> getMembership(AuthorizableImpl authorizable, boolean includeInherited) throws RepositoryException {
         PropertyIterator refs = null;
         try {
-            String nodeID = authorizable.getNode().getIdentifier();
+            String nodeID = authorizable.getContentID();
             refs = authorizable.getNode().getWeakReferences(null);
         } catch (RepositoryException e) {
             log.error("Failed to retrieve membership references of " + authorizable.getID(), e);
@@ -88,7 +83,7 @@ class MembershipManager {
     }
 
     boolean isMember(GroupImpl group, AuthorizableImpl authorizable, boolean includeInherited) throws RepositoryException {
-        Node node = group.getNode();
+        Tree groupTree = group.getTree();
 
         if (includeInherited) {
             Iterator<Group> groups = getMembership(authorizable, true);
@@ -99,17 +94,21 @@ class MembershipManager {
                 }
             }
         } else {
-            if (useMemberNode(node)) {
-                if (node.hasNode(repMembers)) {
-                    // TODO: fix.. testing for property name isn't correct.
-                    PropertySequence propertySequence = getPropertySequence(node.getNode(repMembers));
-                    return propertySequence.hasItem(authorizable.getID());
+            if (useMemberNode(groupTree)) {
+                Tree membersTree = groupTree.getChild(REP_MEMBERS);
+                if (membersTree != null) {
+                    // FIXME: fix.. testing for property name isn't correct.
+                    // FIXME: usage of PropertySequence isn't possible when operating on oak-API
+//                    PropertySequence propertySequence = getPropertySequence(membersTree);
+//                    return propertySequence.hasItem(authorizable.getID());
+                    return false;
                 }
             } else {
-                if (node.hasProperty(repMembers)) {
-                    Value[] members = node.getProperty(repMembers).getValues();
-                    for (Value v : members) {
-                        if (authorizable.getNode().getIdentifier().equals(v.getString())) {
+                PropertyState property = groupTree.getProperty(REP_MEMBERS);
+                if (property != null) {
+                    List<CoreValue> members = property.getValues();
+                    for (CoreValue v : members) {
+                        if (authorizable.getContentID().equals(v.getString())) {
                             return true;
                         }
                     }
@@ -122,16 +121,20 @@ class MembershipManager {
 
     Iterator<Authorizable> getMembers(GroupImpl group, int authorizableType,
                                       boolean includeInherited) throws RepositoryException {
-        Node node = group.getNode();
+        Tree groupTree = group.getTree();
         AuthorizableIterator iterator = null;
-        if (useMemberNode(node)) {
-            if (node.hasNode(repMembers)) {
-                PropertySequence propertySequence = getPropertySequence(node.getNode(repMembers));
-                iterator = new AuthorizableIterator(propertySequence, authorizableType, userManager);
+
+        if (useMemberNode(groupTree)) {
+            Tree membersTree = groupTree.getChild(REP_MEMBERS);
+            if (membersTree != null) {
+                // FIXME: replace usage of PropertySequence (oak-api not possible there)
+//                PropertySequence propertySequence = getPropertySequence(membersTree);
+//                iterator = new AuthorizableIterator(propertySequence, authorizableType, userManager);
             }
         } else {
-            if (node.hasProperty(repMembers)) {
-                Value[] members = node.getProperty(repMembers).getValues();
+            PropertyState property = groupTree.getProperty(REP_MEMBERS);
+            if (property != null) {
+                List<CoreValue> members = property.getValues();
                 iterator = new AuthorizableIterator(members, authorizableType, userManager);
             }
         }
@@ -148,54 +151,71 @@ class MembershipManager {
     }
 
     boolean addMember(GroupImpl group, AuthorizableImpl authorizable) throws RepositoryException {
-        Node node = group.getNode();
-        if (useMemberNode(node)) {
-            // TODO: modify items on oak-api directly
-        } else {
-            Node memberNode = authorizable.getNode();
-            Value[] values;
-            Value toAdd = valueFactory.createValue(memberNode, true);
-            if (node.hasProperty(repMembers)) {
-                Value[] old = node.getProperty(repMembers).getValues();
-                values = new Value[old.length + 1];
-                System.arraycopy(old, 0, values, 0, old.length);
-            } else {
-                values = new Value[1];
+        Tree groupTree = group.getTree();
+        if (useMemberNode(groupTree)) {
+            Tree membersTree = groupTree.getChild(REP_MEMBERS);
+            if (membersTree == null) {
+                membersTree = groupTree.addChild(REP_MEMBERS);
+                membersTree.setProperty(JcrConstants.JCR_PRIMARYTYPE, getCoreValueFactory().createValue(NT_REP_MEMBERS, PropertyType.NAME));
             }
-            values[values.length - 1] = toAdd;
 
-            userManager.setInternalProperty(node, repMembers, values);
+            //FIXME: replace usage of PropertySequence with oak-compatible utility
+//            PropertySequence properties = getPropertySequence(membersTree);
+//            String propName = Text.escapeIllegalJcrChars(authorizable.getID());
+//            if (properties.hasItem(propName)) {
+//                log.debug("Authorizable {} is already member of {}", authorizable, this);
+//                return false;
+//            } else {
+//                CoreValue newMember = createCoreValue(authorizable);
+//                properties.addProperty(propName, newMember);
+//            }
+        } else {
+            List<CoreValue> values;
+            CoreValue toAdd = createCoreValue(authorizable);
+
+            PropertyState property = groupTree.getProperty(REP_MEMBERS);
+            if (property != null) {
+                values = property.getValues();
+                if (values.contains(toAdd)) {
+                    return false;
+                } else {
+                    values.add(toAdd);
+                }
+            } else {
+                values = Collections.singletonList(toAdd);
+            }
+            userManager.setInternalProperty(groupTree, REP_MEMBERS, values);
         }
         return true;
     }
 
     boolean removeMember(GroupImpl group, AuthorizableImpl authorizable) throws RepositoryException {
-        Node node = group.getNode();
-
-        if (useMemberNode(node)) {
-            if (node.hasNode(repMembers)) {
-                Node nMembers = node.getNode(repMembers);
-                PropertySequence properties = getPropertySequence(nMembers);
-                String propName = authorizable.getNode().getName();
-                // TODO: fix.. testing for property name isn't correct.
-                if (properties.hasItem(propName)) {
-                    Property p = properties.getItem(propName);
-                    userManager.removeInternalProperty(p.getParent(), propName);
-                }
-                return true;
+        Tree groupTree = group.getTree();
+        if (useMemberNode(groupTree)) {
+            Tree membersTree = groupTree.getChild(REP_MEMBERS);
+            if (membersTree != null) {
+                // FIXME: replace usage of PropertySequence with oak-compatible utility
+//                PropertySequence properties = getPropertySequence(membersTree);
+//                String propName = authorizable.getTree().getName();
+                // FIXME: fix.. testing for property name isn't correct.
+//                if (properties.hasItem(propName)) {
+//                    Property p = properties.getItem(propName);
+//                    userManager.removeInternalProperty(p.getParent(), propName);
+//                }
+//                return true;
+                return false;
             }
         } else {
-            if (node.hasProperty(repMembers)) {
-                Value toRemove = valueFactory.createValue((authorizable).getNode(), true);
-                Property property = node.getProperty(repMembers);
-                List<Value> valList = new ArrayList<Value>(Arrays.asList(property.getValues()));
+            PropertyState property = groupTree.getProperty(REP_MEMBERS);
+            if (property != null) {
+                CoreValue toRemove = createCoreValue(authorizable);
+                List<CoreValue> values = property.getValues();
 
-                if (valList.remove(toRemove)) {
-                    if (valList.isEmpty()) {
-                        userManager.removeInternalProperty(node, repMembers);
+                if (values.remove(toRemove)) {
+                    if (values.isEmpty()) {
+                        userManager.removeInternalProperty(groupTree, REP_MEMBERS);
                     } else {
-                        Value[] values = valList.toArray(new Value[valList.size()]);
-                        userManager.setInternalProperty(node, repMembers, values);
+                        userManager.setInternalProperty(groupTree, REP_MEMBERS, values);
                     }
                     return true;
                 }
@@ -208,10 +228,11 @@ class MembershipManager {
     }
 
     //--------------------------------------------------------------------------
-    private boolean useMemberNode(Node n) throws RepositoryException {
-        return memberSplitSize >= 4 && !n.hasProperty(repMembers);
+    private boolean useMemberNode(Tree groupTree) {
+        return memberSplitSize >= 4 && !groupTree.hasProperty(REP_MEMBERS);
     }
 
+    // FIXME: replace usage of PropertySequence with utility operating on oak-api
     private PropertySequence getPropertySequence(Node nMembers) throws RepositoryException {
         Comparator<String> order = Rank.comparableComparator();
         int minChildren = memberSplitSize / 2;
@@ -295,5 +316,13 @@ class MembershipManager {
         };
 
         return new InheritingAuthorizableIterator(inheritedMembership);
+    }
+
+    private CoreValue createCoreValue(AuthorizableImpl authorizable) throws RepositoryException {
+        return getCoreValueFactory().createValue(authorizable.getContentID(), PropertyType.WEAKREFERENCE);
+    }
+
+    private CoreValueFactory getCoreValueFactory() {
+        return userManager.getSessionDelegate().getContentSession().getCoreValueFactory();
     }
 }
