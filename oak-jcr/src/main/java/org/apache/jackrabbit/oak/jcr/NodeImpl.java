@@ -23,10 +23,10 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.UUID;
-
+import java.util.Set;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Binary;
 import javax.jcr.InvalidItemStateException;
@@ -53,7 +53,10 @@ import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionHistory;
 
-import org.apache.jackrabbit.JcrConstants;
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.commons.ItemNameMatcher;
 import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
 import org.apache.jackrabbit.commons.iterator.PropertyIteratorAdapter;
@@ -67,13 +70,10 @@ import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
 import org.apache.jackrabbit.oak.jcr.value.ValueConverter;
+import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.value.ValueHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterators;
 
 import static javax.jcr.Property.JCR_LOCK_IS_DEEP;
 import static javax.jcr.Property.JCR_LOCK_OWNER;
@@ -728,19 +728,9 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
 
     @Override
     @Nonnull
-    public PropertyIterator getReferences(String name) throws RepositoryException {
+    public PropertyIterator getReferences(final String name) throws RepositoryException {
         checkStatus();
-
-        return sessionDelegate.perform(new SessionOperation<PropertyIterator>() {
-            @Override
-            public PropertyIterator perform() throws RepositoryException {
-                if (!isNodeType(JcrConstants.MIX_REFERENCEABLE)) {
-                    return PropertyIteratorAdapter.EMPTY;
-                } else {
-                    throw new UnsupportedRepositoryOperationException("TODO: Node.getReferences");
-                }
-            }
-        });
+        return internalGetReferences(name, false);
     }
 
     /**
@@ -756,15 +746,46 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
     @Nonnull
     public PropertyIterator getWeakReferences(String name) throws RepositoryException {
         checkStatus();
+        return internalGetReferences(name, true);
+    }
+
+    private PropertyIterator internalGetReferences(String name, boolean weak) throws RepositoryException {
+        final Set<String> propertyOakPaths;
+        if (weak) {
+            propertyOakPaths = sessionDelegate.getIdManager().getWeakReferences(dlg.getTree(), name);
+        } else {
+            propertyOakPaths = sessionDelegate.getIdManager().getReferences(dlg.getTree(), name);
+        }
+
+        final Iterable<Property> properties = Iterables.transform(
+                propertyOakPaths,
+                new Function<String, Property>() {
+                    @Override
+                    public Property apply(String oakPath) {
+                        // FIXME: should use sessionDelegate.getProperty(oakPath)
+                        // FIXME: avoid converting oak-path to jcr-path and back and to avoid
+                        // FIXME: using jcr-api calls internally.
+                        try {
+                            return sessionDelegate.getSession().getProperty(sessionDelegate.getNamePathMapper().getJcrPath(oakPath));
+                        } catch (RepositoryException e) {
+                            log.debug(e.getMessage());
+                            return null;
+                        }
+                    }
+                }
+        );
+
+        final Predicate ignoreNull = new Predicate() {
+            @Override
+            public boolean apply(@Nullable Object o) {
+                return o != null;
+            }
+        };
 
         return sessionDelegate.perform(new SessionOperation<PropertyIterator>() {
             @Override
-            public PropertyIterator perform() throws RepositoryException {
-                if (!isNodeType(JcrConstants.MIX_REFERENCEABLE)) {
-                    return PropertyIteratorAdapter.EMPTY;
-                } else {
-                    throw new UnsupportedRepositoryOperationException("TODO: Node.getWeakReferences");
-                }
+            public PropertyIterator perform() {
+                return new PropertyIteratorAdapter(Iterables.filter(properties, ignoreNull).iterator(), propertyOakPaths.size());
             }
         });
     }
@@ -955,7 +976,8 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
                 // TODO: hack -- make sure we assign a UUID
                 if (nodeModified && nt.isNodeType(NodeType.MIX_REFERENCEABLE)) {
                     String jcrUuid = sessionDelegate.getOakPathOrThrow(Property.JCR_UUID);
-                    dlg.setProperty(jcrUuid, ValueConverter.toCoreValue(UUID.randomUUID().toString(), PropertyType.STRING, sessionDelegate));
+                    String uuid = IdentifierManager.generateUUID();
+                    dlg.setProperty(jcrUuid, ValueConverter.toCoreValue(uuid, PropertyType.STRING, sessionDelegate));
                 }
                 return null;
             }

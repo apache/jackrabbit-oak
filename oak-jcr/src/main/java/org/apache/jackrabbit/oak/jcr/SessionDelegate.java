@@ -17,11 +17,7 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import java.io.IOException;
-import java.text.ParseException;
-import java.util.Collections;
-import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.ItemExistsException;
@@ -34,7 +30,6 @@ import javax.jcr.Workspace;
 import javax.jcr.lock.LockManager;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.observation.ObservationManager;
-import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.version.VersionManager;
 
@@ -44,10 +39,7 @@ import org.apache.jackrabbit.oak.api.ChangeExtractor;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ConflictHandler;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.QueryEngine;
-import org.apache.jackrabbit.oak.api.Result;
-import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -58,6 +50,7 @@ import org.apache.jackrabbit.oak.jcr.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.namepath.AbstractNameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
+import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.value.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.util.TODO;
 import org.slf4j.Logger;
@@ -76,6 +69,8 @@ public class SessionDelegate {
     private final Root root;
     private final ConflictHandler conflictHandler;
     private final boolean autoRefresh;
+
+    private final IdentifierManager idManager;
 
     private ObservationManagerImpl observationManager;
     private boolean isAlive = true;
@@ -97,6 +92,7 @@ public class SessionDelegate {
         this.root = contentSession.getCurrentRoot();
         this.conflictHandler = new AnnotatingConflictHandler(contentSession.getCoreValueFactory());
         this.autoRefresh = autoRefresh;
+        this.idManager = new IdentifierManager(contentSession, root);
     }
 
     /**
@@ -187,17 +183,8 @@ public class SessionDelegate {
 
     @CheckForNull
     public NodeDelegate getNodeByIdentifier(String id) {
-        // TODO delegate identifier handling  to the OAK-API (or oak-utility)
-        // TODO as stated in NodeDelegate#getIdentifier() a non-uuid ID shoud
-        // TODO consisting of closest referenceable parent and a relative path
-        // TODO irrespective of the accessibility of the parent node(s)
-        if (id.startsWith("/")) {
-            Tree tree = getTree(id);
-            return tree == null ? null : new NodeDelegate(this, tree);
-        } else {
-            // referenceable
-            return findByJcrUuid(id);
-        }
+        Tree tree = idManager.getTree(id);
+        return (tree == null) ? null : new NodeDelegate(this, tree);
     }
 
     @Nonnull
@@ -448,35 +435,12 @@ public class SessionDelegate {
         return root.getTree(path);
     }
 
-    @CheckForNull
-    NodeDelegate findByJcrUuid(String id) {
-        try {
-            Map<String, CoreValue> bindings = Collections.singletonMap("id", getValueFactory().getCoreValueFactory()
-                    .createValue(id));
-
-            Result result = getQueryEngine().executeQuery("SELECT * FROM [nt:base] WHERE [jcr:uuid] = $id", Query.JCR_SQL2,
-                    getContentSession(), Long.MAX_VALUE, 0, bindings, namePathMapper);
-
-            String path = null;
-
-            for (ResultRow rr : result.getRows()) {
-                if (path != null) {
-                    log.error("multiple results for identifier lookup: " + path + " vs. " + rr.getPath());
-                    return null;
-                } else {
-                    path = rr.getPath();
-                }
-            }
-
-            return path == null ? null : getNode(path);
-        } catch (ParseException ex) {
-            log.error("query failed", ex);
-            return null;
-        }
-    }
-
     UserManager getUserManager() throws UnsupportedRepositoryOperationException {
         return TODO.unimplemented().returnValue(new UserManagerImpl(this, root, null));
+    }
+
+    IdentifierManager getIdManager() {
+        return idManager;
     }
 
     //--------------------------------------------------< SessionNameMapper >---
