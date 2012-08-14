@@ -192,11 +192,14 @@ public class SessionDelegate {
 
     @CheckForNull
     public NodeDelegate getNodeByIdentifier(String id) {
+        // TODO delegate identifier handling  to the OAK-API (or oak-utility)
+        // TODO as stated in NodeDelegate#getIdentifier() a non-uuid ID shoud
+        // TODO consisting of closest referenceable parent and a relative path
+        // TODO irrespective of the accessibility of the parent node(s)
         if (id.startsWith("/")) {
             Tree tree = getTree(id);
             return tree == null ? null : new NodeDelegate(this, tree);
-        }
-        else {
+        } else {
             // referenceable
             return findByJcrUuid(id);
         }
