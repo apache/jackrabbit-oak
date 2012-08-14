@@ -27,6 +27,7 @@ import org.json.simple.JSONArray;
 import org.json.simple.parser.JSONParser;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.concurrent.Executors;
@@ -156,6 +157,7 @@ public class DefaultRevisionStoreTest {
      * @throws Exception if an error occurs
      */
     @Test
+    @Ignore
     public void testConcurrentMergeGC() throws Exception {
         ScheduledExecutorService gcExecutor = Executors.newScheduledThreadPool(1);
         gcExecutor.scheduleWithFixedDelay(new Runnable() {
