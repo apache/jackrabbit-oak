@@ -26,13 +26,11 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.UUID;
 import javax.jcr.Credentials;
 import javax.jcr.PropertyType;
+import javax.jcr.RepositoryException;
 import javax.jcr.SimpleCredentials;
-import javax.jcr.query.Query;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
@@ -41,13 +39,12 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.QueryEngine;
-import org.apache.jackrabbit.oak.api.Result;
-import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
+import org.apache.jackrabbit.oak.security.user.UserProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.user.PasswordUtility;
+import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
 import org.apache.jackrabbit.util.ISO8601;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
@@ -105,12 +102,11 @@ public class TokenProviderImpl implements TokenProvider {
         if (credentials instanceof SimpleCredentials) {
             final SimpleCredentials sc = (SimpleCredentials) credentials;
             String userID = sc.getUserID();
-            String userPath = getUserPath(contentSession, userID);
 
             Root root = contentSession.getCurrentRoot();
-            Tree userTree = (userPath == null) ? null : root.getTree(userPath);
-            if (userTree != null) {
-                try {
+            try {
+                Tree userTree = getUserTree(contentSession, root, userID);
+                if (userTree != null) {
                     Tree tokenParent = userTree.getChild(TOKENS_NODE_NAME);
                     if (tokenParent == null) {
                         tokenParent = userTree.addChild(TOKENS_NODE_NAME);
@@ -144,16 +140,18 @@ public class TokenProviderImpl implements TokenProvider {
                     // also set the new token to the simple credentials.
                     sc.setAttribute(TOKEN_ATTRIBUTE, token);
                     return new TokenInfoImpl(tokenTree, token);
-
-                } catch (NoSuchAlgorithmException e) {
-                    log.debug("Failed to create login token ", e.getMessage());
-                } catch (UnsupportedEncodingException e) {
-                    log.debug("Failed to create login token ", e.getMessage());
-                } catch (CommitFailedException e) {
-                    log.debug("Failed to create login token ", e.getMessage());
+                } else {
+                    log.debug("Cannot create login token: No corresponding node for User " + userID + '.');
                 }
-            } else {
-                log.debug("Cannot create login token: No corresponding node for User " + userID + '.');
+
+            } catch (NoSuchAlgorithmException e) {
+                log.debug("Failed to create login token ", e.getMessage());
+            } catch (UnsupportedEncodingException e) {
+                log.debug("Failed to create login token ", e.getMessage());
+            } catch (CommitFailedException e) {
+                log.debug("Failed to create login token ", e.getMessage());
+            } catch (RepositoryException e) {
+                log.debug("Failed to create login token ", e.getMessage());
             }
         }
 
@@ -246,23 +244,9 @@ public class TokenProviderImpl implements TokenProvider {
         }
     }
 
-    // TODO: move to user related oak-spi that is used both by JCR usermanagement
-    // and oak-level functionality.
-    private static String getUserPath(ContentSession contentSession, String userID) {
-        QueryEngine qe = contentSession.getQueryEngine();
-        try {
-            String uuid = UUID.nameUUIDFromBytes(userID.toLowerCase().getBytes("UTF-8")).toString();
-            Map<String, CoreValue> bindings = Collections.singletonMap("id", contentSession.getCoreValueFactory().createValue(uuid));
-            String statement = "SELECT * FROM [rep:User] WHERE [jcr:uuid] = $id";
-            Result result = contentSession.getQueryEngine().executeQuery(statement, Query.JCR_SQL2, contentSession, Long.MAX_VALUE, 0, bindings, null);
-            Iterator<? extends ResultRow> it = result.getRows().iterator();
-            if (it.hasNext()) {
-                return it.next().getPath();
-            }
-        } catch (Exception e) {
-            // no such user.
-        }
-        return null;
+    private static Tree getUserTree(ContentSession contentSession, Root root, String userID) throws RepositoryException {
+        UserProvider userProvider = new UserProviderImpl(contentSession, root, null);
+        return userProvider.getAuthorizable(userID);
     }
 
     //--------------------------------------------------------------------------
