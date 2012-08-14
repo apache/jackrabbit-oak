@@ -98,6 +98,12 @@ public interface MicroKernel {
      * The {@code path} parameter allows to filter the revisions by path, i.e.
      * only those revisions that affected the subtree rooted at {@code path}
      * will be included.
+     * <p/>
+     * The {@code maxEntries} parameter allows to limit the number of revisions
+     * returned. if {@code maxEntries < 0} no limit will be applied. otherwise,
+     * if the number of revisions satisfying the specified {@code since} and
+     * {@code path} criteria exceeds {@code maxEntries}, only {@code maxEntries}
+     * entries will be returned (in chronological order, starting with the oldest).
      *
      * @param since      timestamp (ms) of earliest revision to be returned
      * @param maxEntries maximum #entries to be returned;
