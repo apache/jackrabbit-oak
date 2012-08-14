@@ -423,6 +423,10 @@ public class SessionDelegate {
         return observationManager;
     }
 
+    public IdentifierManager getIdManager() {
+        return idManager;
+    }
+
     @Nonnull
     public ContentSession getContentSession() {
         return contentSession;
@@ -437,10 +441,6 @@ public class SessionDelegate {
 
     UserManager getUserManager() throws UnsupportedRepositoryOperationException {
         return TODO.unimplemented().returnValue(new UserManagerImpl(this, root, null));
-    }
-
-    IdentifierManager getIdManager() {
-        return idManager;
     }
 
     //--------------------------------------------------< SessionNameMapper >---

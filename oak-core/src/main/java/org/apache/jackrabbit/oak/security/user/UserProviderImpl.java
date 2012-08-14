@@ -16,15 +16,15 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import java.io.UnsupportedEncodingException;
-import java.util.UUID;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserManagerConfig;
 import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
@@ -121,6 +121,7 @@ public class UserProviderImpl implements UserProvider {
 
     private final ContentSession contentSession;
     private final Root root;
+    private final IdentifierManager identifierManager;
 
     private final int defaultDepth;
 
@@ -130,6 +131,7 @@ public class UserProviderImpl implements UserProvider {
     public UserProviderImpl(ContentSession contentSession, Root root, UserManagerConfig config) {
         this.contentSession = contentSession;
         this.root = root;
+        this.identifierManager = new IdentifierManager(contentSession, root);
 
         defaultDepth = config.getConfigValue(UserManagerConfig.PARAM_DEFAULT_DEPTH, DEFAULT_DEPTH);
 
@@ -148,19 +150,43 @@ public class UserProviderImpl implements UserProvider {
     }
 
     @Override
-    public Tree getAuthorizable(String authorizableId) {
-        // TODO: add implementation (requires identifier utility in oak-core)
-        return null;
+    public Tree getAuthorizable(String authorizableId) throws RepositoryException {
+        Tree tree = identifierManager.getTree(getContentID(authorizableId));
+        if (isAuthorizableTree(tree, UserManager.SEARCH_TYPE_AUTHORIZABLE)) {
+            return tree;
+        } else {
+            return null;
+        }
     }
 
     @Override
-    public String getContentID(String authorizableId) throws RepositoryException {
-        try {
-            UUID uuid = UUID.nameUUIDFromBytes(authorizableId.toLowerCase().getBytes("UTF-8"));
-            return uuid.toString();
-        } catch (UnsupportedEncodingException e) {
-            throw new RepositoryException("Unexpected error while creating authorizable node", e);
+    public Tree getAuthorizable(String authorizableId, int authorizableType) throws RepositoryException {
+        Tree tree = identifierManager.getTree(getContentID(authorizableId));
+        if (isAuthorizableTree(tree, authorizableType)) {
+            return tree;
+        } else {
+            return null;
         }
+    }
+
+    @Override()
+    public Tree getAuthorizableByPath(String authorizableOakPath) {
+        Tree tree = root.getTree(authorizableOakPath);
+        if (isAuthorizableTree(tree, UserManager.SEARCH_TYPE_AUTHORIZABLE)) {
+            return tree;
+        } else {
+            return null;
+        }
+    }
+
+    //------------------------------------------------------------< private >---
+    private String getContentID(String authorizableId) throws RepositoryException {
+        return IdentifierManager.generateUUID(authorizableId.toLowerCase());
+    }
+
+    private boolean isAuthorizableTree(Tree tree, int type) {
+        // TODO: check for node type according to the specified type constraint
+        return true;
     }
 
     private Tree createAuthorizableNode(String authorizableId, boolean isGroup, String intermediatePath) throws RepositoryException {
