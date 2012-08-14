@@ -23,9 +23,17 @@ import org.apache.jackrabbit.JcrConstants;
  */
 public interface PrivilegeConstants {
 
+    // constants for privilege serialization
     String REP_PRIVILEGES = "rep:privileges";
     String PRIVILEGES_PATH = '/' + JcrConstants.JCR_SYSTEM + '/' + REP_PRIVILEGES;
-    
+
+    String NT_REP_PRIVILEGES = "rep:Privileges";
+    String NT_REP_PRIVILEGE = "rep:Privilege";
+
+    String REP_IS_ABSTRACT = "rep:isAbstract";
+    String REP_AGGREGATES = "rep:aggregates";
+
+    // Constants for privilege names
     String JCR_READ = "jcr:read";
     String JCR_MODIFY_PROPERTIES = "jcr:modifyProperties";
     String JCR_ADD_CHILD_NODES = "jcr:addChildNodes";

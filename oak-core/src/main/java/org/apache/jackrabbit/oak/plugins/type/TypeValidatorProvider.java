@@ -21,6 +21,7 @@ import java.util.Set;
 
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
+import org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -94,6 +95,8 @@ public class TypeValidatorProvider implements ValidatorProvider, NodeTypeConstan
 
         // Oak types are always available
         types.add(MIX_REP_MERGE_CONFLICT);
+        types.add(PrivilegeConstants.NT_REP_PRIVILEGES);
+        types.add(PrivilegeConstants.NT_REP_PRIVILEGE);
 
         // Find any extra types from /jcr:system/jcr:nodeTypes
         NodeState system = after.getChildNode(JCR_SYSTEM);

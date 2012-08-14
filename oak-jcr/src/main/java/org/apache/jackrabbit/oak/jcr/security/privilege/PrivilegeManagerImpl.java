@@ -45,7 +45,7 @@ public class PrivilegeManagerImpl implements PrivilegeManager {
     private final PrivilegeProvider provider;
     private final SessionDelegate sessionDelegate;
 
-    public PrivilegeManagerImpl(SessionDelegate sessionDelegate) {
+    public PrivilegeManagerImpl(SessionDelegate sessionDelegate) throws RepositoryException {
         this.provider = new PrivilegeRegistry(sessionDelegate.getContentSession());
         this.sessionDelegate = sessionDelegate;
     }
