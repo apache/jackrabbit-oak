@@ -33,8 +33,7 @@ class NamespaceValidator extends DefaultValidator {
         this.map = map;
     }
 
-    //-----------------------------------------------------< NodeValidator >--
-
+    //----------------------------------------------------------< Validator >---
     @Override
     public void propertyAdded(PropertyState after)
             throws CommitFailedException {
