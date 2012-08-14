@@ -21,7 +21,6 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserManagerConfig;
@@ -40,11 +39,9 @@ public class UserValidatorProvider implements ValidatorProvider {
     @Nonnull
     @Override
     public Validator getRootValidator(NodeState before, NodeState after) {
-        NamePathMapper mapper = new NamePathMapper.Default();
-        CoreValueFactory vf = contentSession.getCoreValueFactory();
 
-        NodeUtil rootBefore = new NodeUtil(vf, mapper, new ReadOnlyTree(before));
-        NodeUtil rootAfter = new NodeUtil(vf, mapper, new ReadOnlyTree(after));
+        NodeUtil rootBefore = new NodeUtil(new ReadOnlyTree(before), contentSession);
+        NodeUtil rootAfter = new NodeUtil(new ReadOnlyTree(after), contentSession);
 
         return new UserValidator(rootBefore, rootAfter, this);
     }
