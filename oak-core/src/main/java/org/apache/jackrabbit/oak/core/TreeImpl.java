@@ -198,11 +198,7 @@ public class TreeImpl implements Tree, PurgeListener {
                 new Predicate<PropertyState>() {
                     @Override
                     public boolean apply(PropertyState propertyState) {
-                        if (propertyState != null) {
-                            return canReadProperty(propertyState.getName());
-                        } else {
-                            return false;
-                        }
+                        return propertyState != null && canReadProperty(propertyState.getName());
                     }
                 });
     }
@@ -268,11 +264,7 @@ public class TreeImpl implements Tree, PurgeListener {
                 new Predicate<Tree>() {
                     @Override
                     public boolean apply(Tree tree) {
-                        if (tree != null) {
-                            return canRead(tree);
-                        } else {
-                            return false;
-                        }
+                        return tree != null && canRead(tree);
                     }
                 });
     }
