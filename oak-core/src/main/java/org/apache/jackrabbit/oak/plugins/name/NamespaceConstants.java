@@ -16,6 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.name;
 
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import javax.jcr.NamespaceRegistry;
+
 import org.apache.jackrabbit.JcrConstants;
 
 /**
@@ -26,4 +31,41 @@ public interface NamespaceConstants {
     String REP_NAMESPACES = "rep:namespaces";
 
     String NAMESPACES_PATH = '/' + JcrConstants.JCR_SYSTEM + '/' + REP_NAMESPACES;
+
+    // TODO: see http://java.net/jira/browse/JSR_333-50)
+    String PREFIX_SV = "sv";
+    String NAMESPACE_SV = "http://www.jcp.org/jcr/sv/1.0";
+
+    String PREFIX_REP = "rep";
+    String NAMESPACE_REP = "internal"; // TODO: see OAK-74
+
+    // additional XML namespace
+    String PREFIX_XMLNS = "xmlns";
+    String NAMESPACE_XMLNS = "http://www.w3.org/2000/xmlns/";
+
+    /**
+     * Reserved namespace prefixes as defined in jackrabbit 2
+     */
+    Collection<String> RESERVED_PREFIXES = Collections.unmodifiableList(Arrays.asList(
+            NamespaceRegistry.PREFIX_XML,
+            NamespaceRegistry.PREFIX_JCR,
+            NamespaceRegistry.PREFIX_NT,
+            NamespaceRegistry.PREFIX_MIX,
+            PREFIX_XMLNS,
+            PREFIX_REP,
+            PREFIX_SV
+    ));
+
+    /**
+     * Reserved namespace URIs as defined in jackrabbit 2
+     */
+    Collection<String> RESERVED_URIS = Collections.unmodifiableList(Arrays.asList(
+            NamespaceRegistry.NAMESPACE_XML,
+            NamespaceRegistry.NAMESPACE_JCR,
+            NamespaceRegistry.NAMESPACE_NT,
+            NamespaceRegistry.NAMESPACE_MIX,
+            NAMESPACE_XMLNS,
+            NAMESPACE_REP,
+            NAMESPACE_SV
+    ));
 }

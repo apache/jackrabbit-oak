@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.name;
 
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Map;
 
 import javax.annotation.Nonnull;

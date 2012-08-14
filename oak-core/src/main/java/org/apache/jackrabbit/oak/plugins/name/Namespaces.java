@@ -32,29 +32,26 @@ import org.apache.jackrabbit.oak.api.Tree;
  */
 class Namespaces implements NamespaceConstants {
 
-    private static final Map<String, String> defaults = new HashMap<String, String>();
-
     private Namespaces() {
     }
 
+    private static final Map<String, String> DEFAULTS = new HashMap<String, String>();
     static {
         // Standard namespace specified by JCR (default one not included)
-        defaults.put(NamespaceRegistry.PREFIX_EMPTY, NamespaceRegistry.NAMESPACE_EMPTY);
-        defaults.put(NamespaceRegistry.PREFIX_JCR, NamespaceRegistry.NAMESPACE_JCR);
-        defaults.put(NamespaceRegistry.PREFIX_NT,  NamespaceRegistry.NAMESPACE_NT);
-        defaults.put(NamespaceRegistry.PREFIX_MIX, NamespaceRegistry.NAMESPACE_MIX);
-        defaults.put(NamespaceRegistry.PREFIX_XML, NamespaceRegistry.NAMESPACE_XML);
+        DEFAULTS.put(NamespaceRegistry.PREFIX_EMPTY, NamespaceRegistry.NAMESPACE_EMPTY);
+        DEFAULTS.put(NamespaceRegistry.PREFIX_JCR, NamespaceRegistry.NAMESPACE_JCR);
+        DEFAULTS.put(NamespaceRegistry.PREFIX_NT,  NamespaceRegistry.NAMESPACE_NT);
+        DEFAULTS.put(NamespaceRegistry.PREFIX_MIX, NamespaceRegistry.NAMESPACE_MIX);
+        DEFAULTS.put(NamespaceRegistry.PREFIX_XML, NamespaceRegistry.NAMESPACE_XML);
 
         // Namespace included in Jackrabbit 2.x
-        // TODO: use constants (see also http://java.net/jira/browse/JSR_333-50)
-        defaults.put("sv", "http://www.jcp.org/jcr/sv/1.0");
-
-        // TODO: see OAK-74
-        defaults.put("rep", "internal");
+        DEFAULTS.put(PREFIX_XMLNS, NAMESPACE_XMLNS);
+        DEFAULTS.put(PREFIX_SV, NAMESPACE_SV);
+        DEFAULTS.put(PREFIX_REP, NAMESPACE_REP);
     }
 
     public static Map<String, String> getNamespaceMap(Tree root) {
-        Map<String, String> map = new HashMap<String, String>(defaults);
+        Map<String, String> map = new HashMap<String, String>(DEFAULTS);
 
         Tree system = root.getChild(JcrConstants.JCR_SYSTEM);
         if (system != null) {
