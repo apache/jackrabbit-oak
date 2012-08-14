@@ -16,21 +16,20 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.user;
 
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.NoSuchElementException;
+import javax.jcr.Property;
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.commons.flat.PropertySequence;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.jcr.Node;
-import javax.jcr.Property;
-import javax.jcr.PropertyIterator;
-import javax.jcr.RepositoryException;
-import javax.jcr.Value;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.NoSuchElementException;
 
 /**
  * AuthorizableIterator...
@@ -39,7 +38,7 @@ class AuthorizableIterator implements Iterator {
 
     private static final Logger log = LoggerFactory.getLogger(AuthorizableIterator.class);
 
-    private final Iterator<?> nodeIds;
+    private final Iterator<?> authorizableIds;
     private final AuthorizableTypePredicate predicate;
     private final UserManagerImpl userManager;
     private final long size;
@@ -54,13 +53,13 @@ class AuthorizableIterator implements Iterator {
         this(authorizableNodeIds.iterator(), authorizableType, userManager, -1);  // TODO calculate size here
     }
 
-    AuthorizableIterator(PropertyIterator authorizableNodeIds, int authorizableType, UserManagerImpl userManager) {
-        this(authorizableNodeIds, authorizableType, userManager, authorizableNodeIds.getSize());
+    AuthorizableIterator(Collection<String> authorizablePaths, int authorizableType, UserManagerImpl userManager) {
+        this(authorizablePaths.iterator(), authorizableType, userManager, authorizablePaths.size());
     }
 
-    private AuthorizableIterator(Iterator<?> nodeIds, int authorizableType,
+    private AuthorizableIterator(Iterator<?> authorizableIds, int authorizableType,
                                  UserManagerImpl userManager, long size) {
-        this.nodeIds = nodeIds;
+        this.authorizableIds = authorizableIds;
         this.predicate = new AuthorizableTypePredicate(authorizableType);
         this.userManager = userManager;
         this.size = size;
@@ -96,11 +95,16 @@ class AuthorizableIterator implements Iterator {
     }
 
     private Authorizable fetchNext() {
-        while (nodeIds.hasNext()) {
+        while (authorizableIds.hasNext()) {
+            Object next = authorizableIds.next();
             try {
-                String nid = getNodeId(nodeIds.next());
-                Node n = userManager.getSession().getNodeByIdentifier(nid);
-                Authorizable a = userManager.getAuthorizable(n);
+                Authorizable a;
+                if (next instanceof String) {
+                    a = userManager.getAuthorizableByPath(next.toString());
+                } else {
+                    String nid = getNodeId(next);
+                    a = userManager.getAuthorizableByNodeID(nid);
+                }
                 if (a != null && predicate.evaluate(a)) {
                     return a;
                 }
@@ -108,7 +112,6 @@ class AuthorizableIterator implements Iterator {
                 log.debug(e.getMessage());
             }
         }
-
         return null;
     }
 
@@ -118,7 +121,7 @@ class AuthorizableIterator implements Iterator {
         } else if (o instanceof Value) {
             return ((Value) o).getString();
         } else if (o instanceof Property) {
-            return ((Property) o).getString();
+            return ((Property) o).getParent().getUUID();
         } else {
             return o.toString();
         }

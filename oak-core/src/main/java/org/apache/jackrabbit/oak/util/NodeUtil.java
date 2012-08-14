@@ -60,7 +60,7 @@ public class NodeUtil {
     public NodeUtil(Tree tree, ContentSession contentSession) {
         this.tree = tree;
         this.factory = contentSession.getCoreValueFactory();
-        this.mapper = new NamePathMapper.Default();
+        this.mapper = NamePathMapper.DEFAULT;
     }
 
     @Nonnull

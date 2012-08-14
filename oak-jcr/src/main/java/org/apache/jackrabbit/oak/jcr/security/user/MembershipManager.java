@@ -18,10 +18,11 @@ package org.apache.jackrabbit.oak.jcr.security.user;
 
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import javax.jcr.Node;
-import javax.jcr.PropertyIterator;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 
@@ -40,6 +41,8 @@ import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,17 +63,24 @@ class MembershipManager implements UserConstants {
     }
 
     Iterator<Group> getMembership(AuthorizableImpl authorizable, boolean includeInherited) throws RepositoryException {
-        PropertyIterator refs = null;
-        try {
-            String nodeID = authorizable.getContentID();
-            refs = authorizable.getNode().getWeakReferences(null);
-        } catch (RepositoryException e) {
-            log.error("Failed to retrieve membership references of " + authorizable.getID(), e);
-            // TODO retrieve by traversing
+        Set<String> groupPaths = new HashSet<String>();
+
+        String nodeID = authorizable.getContentID();
+        IdentifierManager idManager = userManager.getSessionDelegate().getIdManager();
+        NamePathMapper mapper = userManager.getSessionDelegate().getNamePathMapper();
+
+        Set<String> refPaths = idManager.getWeakReferences(authorizable.getTree(), null, NT_REP_GROUP, NT_REP_MEMBERS);
+        for (String propPath : refPaths) {
+            int index = propPath.indexOf('/'+REP_MEMBERS);
+            if (index > 0) {
+                groupPaths.add(mapper.getJcrPath(propPath.substring(0,index)));
+            } else {
+                log.debug("Not a membership reference property " + propPath);
+            }
         }
 
-        if (refs != null) {
-            AuthorizableIterator iterator = new AuthorizableIterator(refs, UserManager.SEARCH_TYPE_GROUP, userManager);
+        if (!groupPaths.isEmpty()) {
+            AuthorizableIterator iterator = new AuthorizableIterator(groupPaths, UserManager.SEARCH_TYPE_GROUP, userManager);
             if (includeInherited) {
                 return getAllMembership(iterator);
             } else {

@@ -21,7 +21,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
 import java.util.Iterator;
 import java.util.List;
-import javax.jcr.ItemNotFoundException;
+import javax.annotation.CheckForNull;
 import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.PropertyType;
@@ -82,16 +82,9 @@ public class UserManagerImpl implements UserManager {
     @Override
     public Authorizable getAuthorizable(String id) throws RepositoryException {
         Authorizable authorizable = null;
-        // TODO: replace
-//        Tree tree = userProvider.getAuthorizable(id);
-//        if (tree != null) {
-//            authorizable = getAuthorizable(tree);
-//        }
-        try {
-            Node node = getSession().getNodeByIdentifier(userProvider.getContentID(id));
-            authorizable = getAuthorizable(node);
-        } catch (ItemNotFoundException e) {
-            log.debug("No authorizable with ID " + id);
+        Tree tree = userProvider.getAuthorizable(id);
+        if (tree != null) {
+            authorizable = getAuthorizable(tree);
         }
         return authorizable;
     }
@@ -104,13 +97,13 @@ public class UserManagerImpl implements UserManager {
         Session session = getSession();
         Authorizable authorizable = null;
         if (principal instanceof ItemBasedPrincipal) {
-            String authPath = ((ItemBasedPrincipal) principal).getPath();
-            if (session.nodeExists(authPath)) {
-                Node n = session.getNode(authPath);
-                authorizable = getAuthorizable(n);
-            }
+            String authJcrPath = ((ItemBasedPrincipal) principal).getPath();
+            String oakPath = sessionDelegate.getNamePathMapper().getOakPath(authJcrPath);
+            authorizable = getAuthorizable(userProvider.getAuthorizableByPath(oakPath));
         } else {
             // another Principal implementation.
+            // first try shortcut for cases where principalName equals the ID.
+            // second use a query to find the authorizable by principalName.
             String name = principal.getName();
             Authorizable a = getAuthorizable(name);
             if (a != null && name.equals(a.getPrincipal().getName())) {
@@ -132,18 +125,13 @@ public class UserManagerImpl implements UserManager {
      */
     @Override
     public Authorizable getAuthorizableByPath(String path) throws RepositoryException {
-        Session session = getSession();
-        if (session.nodeExists(path)) {
-            return getAuthorizable(session.getNode(path));
-        } else {
-            return null;
-        }
+        String oakPath = sessionDelegate.getOakPathOrThrow(path);
+        return getAuthorizable(userProvider.getAuthorizableByPath(oakPath));
     }
 
     @Override
     public Iterator<Authorizable> findAuthorizables(String relPath, String value) throws RepositoryException {
-        // TODO : create and execute a query
-        throw new UnsupportedOperationException("Not Implemented");
+        return findAuthorizables(relPath, value, SEARCH_TYPE_AUTHORIZABLE);
     }
 
     @Override
@@ -394,14 +382,24 @@ public class UserManagerImpl implements UserManager {
         return membershipManager;
     }
 
-    Authorizable getAuthorizable(Node node) throws RepositoryException {
+    @CheckForNull
+    Authorizable getAuthorizable(Tree tree) throws RepositoryException {
+        if (tree == null) {
+            return null;
+        }
+        Node node = util.getNode(tree);
         if (node.isNodeType(getJcrName(UserConstants.NT_REP_USER))) {
-            return new UserImpl(node, util.getTree(node), this);
+            return new UserImpl(node, tree, this);
         } else if (node.isNodeType(getJcrName(UserConstants.NT_REP_GROUP))) {
-            return new GroupImpl(node, util.getTree(node), this);
+            return new GroupImpl(node, tree, this);
         } else {
             throw new RepositoryException("Unexpected node type " + node.getPrimaryNodeType().getName() + ". Expected rep:User or rep:Group.");
         }
+    }
+
+    @CheckForNull
+    Authorizable getAuthorizableByNodeID(String identifier) throws RepositoryException {
+        return getAuthorizable(sessionDelegate.getIdManager().getTree(identifier));
     }
 
     String getJcrName(String oakName) {
