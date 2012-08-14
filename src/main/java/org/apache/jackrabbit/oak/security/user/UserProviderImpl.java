@@ -22,10 +22,9 @@ import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.api.CoreValueFactory;
+import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserManagerConfig;
 import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
@@ -120,21 +119,17 @@ public class UserProviderImpl implements UserProvider {
     private static final String DELIMITER = "/";
     private static final int DEFAULT_DEPTH = 2;
 
+    private final ContentSession contentSession;
     private final Root root;
-    private final CoreValueFactory valueFactory;
-    private final NameMapper nameMapper;
 
     private final int defaultDepth;
 
     private final String groupPath;
     private final String userPath;
 
-    public UserProviderImpl(Root root, CoreValueFactory valueFactory,
-                            NameMapper nameMapper,
-                            UserManagerConfig config) {
+    public UserProviderImpl(ContentSession contentSession, Root root, UserManagerConfig config) {
+        this.contentSession = contentSession;
         this.root = root;
-        this.valueFactory = valueFactory;
-        this.nameMapper = nameMapper;
 
         defaultDepth = config.getConfigValue(UserManagerConfig.PARAM_DEFAULT_DEPTH, DEFAULT_DEPTH);
 
@@ -200,12 +195,12 @@ public class UserProviderImpl implements UserProvider {
         NodeUtil folder;
         Tree authTree = root.getTree(authRoot);
         if (authTree == null) {
-            folder = new NodeUtil(valueFactory, nameMapper, root.getTree(""));
+            folder = new NodeUtil(root.getTree(""), contentSession);
             for (String name : Text.explode(authRoot, '/', false)) {
                 folder = folder.getOrAddChild(name, UserConstants.NT_REP_AUTHORIZABLE_FOLDER);
             }
         }  else {
-            folder = new NodeUtil(valueFactory, nameMapper, authTree);
+            folder = new NodeUtil(authTree, contentSession);
         }
         String folderPath = getFolderPath(authorizableId, intermediatePath);
         String[] segmts = Text.explode(folderPath, '/', false);
