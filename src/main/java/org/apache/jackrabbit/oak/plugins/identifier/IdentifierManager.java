@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.identifier;
 
+import java.io.UnsupportedEncodingException;
 import java.text.ParseException;
 import java.util.Collections;
 import java.util.Map;
@@ -23,6 +24,7 @@ import java.util.Set;
 import java.util.UUID;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.jcr.RepositoryException;
 import javax.jcr.query.Query;
 
 import org.apache.jackrabbit.JcrConstants;
@@ -57,6 +59,16 @@ public class IdentifierManager {
         return UUID.randomUUID().toString();
     }
 
+    @Nonnull
+    public static String generateUUID(String hint) throws RepositoryException {
+        try {
+            UUID uuid = UUID.nameUUIDFromBytes(hint.getBytes("UTF-8"));
+            return uuid.toString();
+        } catch (UnsupportedEncodingException e) {
+            throw new RepositoryException("Unexpected error while creating authorizable node", e);
+        }
+    }
+
     public static boolean isValidUUID(String uuid) {
         try {
             UUID.fromString(uuid);
@@ -87,6 +99,13 @@ public class IdentifierManager {
         }
     }
 
+    /**
+     * The tree identified by the specified {@code identifier} or {@code null}.
+     *
+     * @param identifier The identifier of the Node such as exposed by {@link javax.jcr.Node#getIdentifier()}
+     * @return The tree with the given {@code identifier} or {@code null} if no
+     * such tree exists or isn't accessible to the content session.
+     */
     @CheckForNull
     public Tree getTree(String identifier) {
         if (isValidUUID(identifier)) {
@@ -99,8 +118,20 @@ public class IdentifierManager {
         }
     }
 
+    /**
+     * Searches all reference properties to the specified {@code tree} that match
+     * the given name and node type constraints.
+     *
+     * @param tree The tree for which references should be searched.
+     * @param propertyName A name constraint for the reference properties;
+     * {@code null} if no constraint should be enforced.
+     * @param nodeTypeNames Node type constraints to be enforced when using
+     * for reference properties.
+     * @return A set of oak paths of those reference properties referring to the
+     * specified {@code tree} and matching the constraints.
+     */
     @Nonnull
-    public Set<String> getReferences(Tree tree, String name) {
+    public Set<String> getReferences(Tree tree, String propertyName, String... nodeTypeNames) {
         if (!isReferenceable(tree)) {
             return Collections.emptySet();
         } else {
@@ -110,8 +141,20 @@ public class IdentifierManager {
         }
     }
 
+    /**
+     * Searches all weak reference properties to the specified {@code tree} that
+     * match the given name and node type constraints.
+     *
+     * @param tree The tree for which weak references should be searched.
+     * @param propertyName A name constraint for the weak reference properties;
+     * {@code null} if no constraint should be enforced.
+     * @param nodeTypeNames Node type constraints to be enforced when using
+     * for reference properties or {@code null} to avoid node type constraints.
+     * @return A set of oak paths of those weak reference properties referring to the
+     * specified {@code tree} and matching the constraints.
+     */
     @Nonnull
-    public Set<String> getWeakReferences(Tree tree, String name) {
+    public Set<String> getWeakReferences(Tree tree, String propertyName, String... nodeTypeNames) {
         if (!isReferenceable(tree)) {
             return Collections.emptySet();
         } else {
@@ -132,7 +175,7 @@ public class IdentifierManager {
             Map<String, CoreValue> bindings = Collections.singletonMap("id", contentSession.getCoreValueFactory().createValue(id));
 
             Result result = contentSession.getQueryEngine().executeQuery("SELECT * FROM [nt:base] WHERE [jcr:uuid] = $id", Query.JCR_SQL2,
-                    contentSession, Long.MAX_VALUE, 0, bindings, new NamePathMapper.Default());
+                    contentSession, Long.MAX_VALUE, 0, bindings, NamePathMapper.DEFAULT);
 
             String path = null;
             for (ResultRow rr : result.getRows()) {
