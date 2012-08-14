@@ -143,13 +143,19 @@ public class UserProviderImpl implements UserProvider {
     }
 
     @Override
-    public String createUser(String userID, String intermediateJcrPath) throws RepositoryException {
+    public Tree createUser(String userID, String intermediateJcrPath) throws RepositoryException {
         return createAuthorizableNode(userID, false, intermediateJcrPath);
     }
 
     @Override
-    public String createGroup(String groupID, String intermediateJcrPath) throws RepositoryException {
+    public Tree createGroup(String groupID, String intermediateJcrPath) throws RepositoryException {
         return createAuthorizableNode(groupID, true, intermediateJcrPath);
+    }
+
+    @Override
+    public Tree getAuthorizable(String authorizableId) {
+        // TODO: add implementation (requires identifier utility in oak-core)
+        return null;
     }
 
     @Override
@@ -162,7 +168,7 @@ public class UserProviderImpl implements UserProvider {
         }
     }
 
-    private String createAuthorizableNode(String authorizableId, boolean isGroup, String intermediatePath) throws RepositoryException {
+    private Tree createAuthorizableNode(String authorizableId, boolean isGroup, String intermediatePath) throws RepositoryException {
         String nodeName = Text.escapeIllegalJcrChars(authorizableId);
         NodeUtil folder = createFolderNodes(authorizableId, nodeName, isGroup, intermediatePath);
 
@@ -172,7 +178,7 @@ public class UserProviderImpl implements UserProvider {
         String nodeID = getContentID(authorizableId);
         authorizableNode.setString(JcrConstants.JCR_UUID, nodeID);
 
-        return authorizableNode.getTree().getPath();
+        return authorizableNode.getTree();
     }
 
     /**

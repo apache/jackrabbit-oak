@@ -14,29 +14,39 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.security.user;
+package org.apache.jackrabbit.oak.jcr.security.user;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import javax.jcr.Node;
 import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 
 /**
- * UserProvider deals with with creating and resolving repository content
- * associated with {@code User}s and {@code Group}s.
+ * NodeUtil...
+ *
+ * FIXME: remove again.
+ * FIXME: this is a tmp workaround for missing conversion from Node to Tree
  */
-public interface UserProvider {
+class NodeTreeUtil {
 
-    @Nonnull
-    Tree createUser(String userId, String intermediateJcrPath) throws RepositoryException;
+    private final Session session;
+    private final Root root;
+    private final NamePathMapper mapper;
 
-    @Nonnull
-    Tree createGroup(String groupId, String intermediateJcrPath) throws RepositoryException;
+    NodeTreeUtil(Session session, Root root, NamePathMapper mapper) {
+        this.session = session;
+        this.root = root;
+        this.mapper = mapper;
+    }
 
-    @CheckForNull
-    Tree getAuthorizable(String authorizableId);
+    Tree getTree(Node node) throws RepositoryException {
+        return root.getTree(mapper.getOakPath(node.getPath()));
+    }
 
-    @Nonnull
-    String getContentID(String authorizableId) throws RepositoryException;
+    Node getNode(Tree tree) throws RepositoryException {
+        return session.getNode(mapper.getJcrPath(tree.getPath()));
+    }
 }

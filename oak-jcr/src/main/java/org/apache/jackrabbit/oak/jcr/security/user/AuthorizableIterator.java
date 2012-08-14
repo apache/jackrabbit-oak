@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.jcr.security.user;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.commons.flat.PropertySequence;
+import org.apache.jackrabbit.oak.api.CoreValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,6 +29,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 import java.util.NoSuchElementException;
 
 /**
@@ -44,8 +46,8 @@ class AuthorizableIterator implements Iterator {
 
     private Authorizable next;
 
-    AuthorizableIterator(Value[] authorizableNodeIds, int authorizableType, UserManagerImpl userManager) {
-        this(Arrays.asList(authorizableNodeIds).iterator(), authorizableType, userManager, authorizableNodeIds.length);
+    AuthorizableIterator(List<CoreValue> authorizableNodeIds, int authorizableType, UserManagerImpl userManager) {
+        this(Arrays.asList(authorizableNodeIds).iterator(), authorizableType, userManager, authorizableNodeIds.size());
     }
 
     AuthorizableIterator(PropertySequence authorizableNodeIds, int authorizableType, UserManagerImpl userManager) {
@@ -111,7 +113,9 @@ class AuthorizableIterator implements Iterator {
     }
 
     private static String getNodeId(Object o) throws RepositoryException {
-        if (o instanceof Value) {
+        if (o instanceof CoreValue) {
+            return ((CoreValue) o).getString();
+        } else if (o instanceof Value) {
             return ((Value) o).getString();
         } else if (o instanceof Property) {
             return ((Property) o).getString();

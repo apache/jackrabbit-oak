@@ -25,11 +25,11 @@ import java.util.concurrent.ScheduledExecutorService;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.ItemExistsException;
-import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Workspace;
 import javax.jcr.lock.LockManager;
 import javax.jcr.nodetype.NodeTypeManager;
@@ -38,6 +38,7 @@ import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.version.VersionManager;
 
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ChangeExtractor;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -52,11 +53,13 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
 import org.apache.jackrabbit.oak.jcr.observation.ObservationManagerImpl;
+import org.apache.jackrabbit.oak.jcr.security.user.UserManagerImpl;
 import org.apache.jackrabbit.oak.jcr.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.namepath.AbstractNameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.value.AnnotatingConflictHandler;
+import org.apache.jackrabbit.oak.util.TODO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -180,14 +183,6 @@ public class SessionDelegate {
     public NodeDelegate getNode(String path) {
         Tree tree = getTree(path);
         return tree == null ? null : new NodeDelegate(this, tree);
-    }
-
-    public NodeDelegate getNode(Node jcrNode) {
-        if (jcrNode instanceof NodeImpl) {
-            return ((NodeImpl) jcrNode).getNodeDelegate();
-        } else {
-            throw new IllegalArgumentException("NodeImpl expected");
-        }
     }
 
     @CheckForNull
@@ -478,6 +473,10 @@ public class SessionDelegate {
             log.error("query failed", ex);
             return null;
         }
+    }
+
+    UserManager getUserManager() throws UnsupportedRepositoryOperationException {
+        return TODO.unimplemented().returnValue(new UserManagerImpl(this, root, null));
     }
 
     //--------------------------------------------------< SessionNameMapper >---

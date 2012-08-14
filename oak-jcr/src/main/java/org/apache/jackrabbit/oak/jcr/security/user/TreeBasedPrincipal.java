@@ -18,35 +18,37 @@ package org.apache.jackrabbit.oak.jcr.security.user;
 
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.principal.JackrabbitPrincipal;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.namepath.PathMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.jcr.Item;
-import javax.jcr.RepositoryException;
 import java.security.Principal;
 
 /**
- * ItemBasedPrincipalImpl...
+ * TreeBasedPrincipal...
  */
-class ItemBasedPrincipalImpl implements ItemBasedPrincipal {
+class TreeBasedPrincipal implements ItemBasedPrincipal {
 
     /**
      * logger instance
      */
-    private static final Logger log = LoggerFactory.getLogger(ItemBasedPrincipalImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(TreeBasedPrincipal.class);
 
     private final String principalName;
-    private final Item item;
+    private final Tree tree;
+    private final PathMapper pathMapper;
 
-    ItemBasedPrincipalImpl(String principalName, Item item) {
+    TreeBasedPrincipal(String principalName, Tree tree, PathMapper pathMapper) {
         this.principalName = principalName;
-        this.item = item;
+        this.tree = tree;
+        this.pathMapper = pathMapper;
     }
 
     //-------------------------------------------------< ItemBasedPrincipal >---
     @Override
-    public String getPath() throws RepositoryException {
-        return item.getPath();
+    public String getPath() {
+        return pathMapper.getJcrPath(tree.getPath());
     }
 
     //----------------------------------------------------------< Principal >---
