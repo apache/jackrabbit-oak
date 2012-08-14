@@ -69,7 +69,7 @@ public class UserManagerImpl implements UserManager {
     public UserManagerImpl(SessionDelegate sessionDelegate, Root root, UserManagerConfig config) {
         this.sessionDelegate = sessionDelegate;
         this.config = (config == null) ? new UserManagerConfig("admin") : config;
-        userProvider = new UserProviderImpl(root, sessionDelegate.getContentSession().getCoreValueFactory(), sessionDelegate.getNamePathMapper(), this.config);
+        userProvider = new UserProviderImpl(sessionDelegate.getContentSession(), root, this.config);
 
         // FIXME: remove again. only tmp workaround
         this.util = new NodeTreeUtil(sessionDelegate.getSession(), root, sessionDelegate.getNamePathMapper());
