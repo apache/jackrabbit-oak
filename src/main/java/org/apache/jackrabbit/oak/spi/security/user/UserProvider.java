@@ -16,7 +16,11 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
+
+import org.apache.jackrabbit.oak.api.Tree;
 
 /**
  * UserProvider deals with with creating and resolving repository content
@@ -24,9 +28,15 @@ import javax.jcr.RepositoryException;
  */
 public interface UserProvider {
 
-    String createUser(String userId, String intermediateJcrPath) throws RepositoryException;
+    @Nonnull
+    Tree createUser(String userId, String intermediateJcrPath) throws RepositoryException;
 
-    String createGroup(String groupId, String intermediateJcrPath) throws RepositoryException;
+    @Nonnull
+    Tree createGroup(String groupId, String intermediateJcrPath) throws RepositoryException;
 
+    @CheckForNull
+    Tree getAuthorizable(String authorizableId);
+
+    @Nonnull
     String getContentID(String authorizableId) throws RepositoryException;
 }
