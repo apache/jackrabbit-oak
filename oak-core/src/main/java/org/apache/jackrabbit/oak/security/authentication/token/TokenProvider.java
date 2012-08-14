@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.token;
 
+import javax.annotation.CheckForNull;
 import javax.jcr.Credentials;
 
 /**
@@ -30,8 +31,10 @@ public interface TokenProvider {
 
     boolean doCreateToken(Credentials credentials);
 
+    @CheckForNull
     TokenInfo createToken(Credentials credentials);
 
+    @CheckForNull
     TokenInfo getTokenInfo(String token);
 
     boolean removeToken(TokenInfo tokenInfo);
