@@ -28,11 +28,13 @@ import javax.jcr.ValueFactory;
 
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,6 +55,12 @@ public class NodeUtil {
         this.factory = factory;
         this.mapper = mapper;
         this.tree = tree;
+    }
+
+    public NodeUtil(Tree tree, ContentSession contentSession) {
+        this.tree = tree;
+        this.factory = contentSession.getCoreValueFactory();
+        this.mapper = new NamePathMapper.Default();
     }
 
     @Nonnull
