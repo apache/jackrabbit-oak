@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.jcr.value;
 
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.CoreValueFactory;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.util.ISO8601;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.math.BigDecimal;
+import java.util.Calendar;
+import java.util.UUID;
 import javax.jcr.Binary;
 import javax.jcr.Node;
 import javax.jcr.PropertyType;
@@ -31,13 +31,12 @@ import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 import javax.jcr.ValueFormatException;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
-import java.math.BigDecimal;
-import java.util.Calendar;
-import java.util.UUID;
+import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.CoreValueFactory;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.util.ISO8601;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Implementation of {@link ValueFactory} interface based on the
@@ -82,13 +81,13 @@ public class ValueFactoryImpl implements ValueFactory {
         } else {
             // TODO add proper implementation
             try {
-            switch (jcrValue.getType()) {
-                case PropertyType.BINARY:
-                    v = (ValueImpl) createValue(jcrValue.getStream());
-                    break;
-                default:
-                    v = (ValueImpl) createValue(jcrValue.getString(), jcrValue.getType());
-            }
+                switch (jcrValue.getType()) {
+                    case PropertyType.BINARY:
+                        v = (ValueImpl) createValue(jcrValue.getStream());
+                        break;
+                    default:
+                        v = (ValueImpl) createValue(jcrValue.getString(), jcrValue.getType());
+                }
             } catch (RepositoryException e) {
                 throw new UnsupportedOperationException("Not implemented yet...");
             }
