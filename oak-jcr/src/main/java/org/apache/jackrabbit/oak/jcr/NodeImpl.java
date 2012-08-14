@@ -110,20 +110,20 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
     public Node getParent() throws RepositoryException {
         checkStatus();
 
-        if (dlg.isRoot()) {
-            throw new ItemNotFoundException("Root has no parent");
-        } else {
-            return sessionDelegate.perform(new SessionOperation<NodeImpl>() {
-                @Override
-                public NodeImpl perform() throws RepositoryException {
+        return sessionDelegate.perform(new SessionOperation<NodeImpl>() {
+            @Override
+            public NodeImpl perform() throws RepositoryException {
+                if (dlg.isRoot()) {
+                    throw new ItemNotFoundException("Root has no parent");
+                } else {
                     NodeDelegate parent = dlg.getParent();
                     if (parent == null) {
                         throw new AccessDeniedException();
                     }
                     return new NodeImpl(parent);
                 }
-            });
-        }
+            }
+        });
     }
 
     /**
