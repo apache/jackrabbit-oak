@@ -16,15 +16,15 @@
  */
 package org.apache.jackrabbit.oak.security.principal;
 
-import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.security.Principal;
 import java.security.acl.Group;
 import java.util.Collections;
 import java.util.Set;
+
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The {@code KernelPrincipalProvider} is a principal provider implementation
@@ -38,7 +38,7 @@ public class KernelPrincipalProvider implements PrincipalProvider {
      */
     private static final Logger log = LoggerFactory.getLogger(KernelPrincipalProvider.class);
 
-
+    //--------------------------------------------------< PrincipalProvider >---
     @Override
     public Principal getPrincipal(final String principalName) {
         // TODO: use user-defined query to search for a principalName property
