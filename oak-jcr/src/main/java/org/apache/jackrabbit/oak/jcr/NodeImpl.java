@@ -24,9 +24,9 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Binary;
 import javax.jcr.InvalidItemStateException;
@@ -55,6 +55,7 @@ import javax.jcr.version.VersionHistory;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.commons.ItemNameMatcher;
@@ -775,17 +776,11 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
                 }
         );
 
-        final Predicate ignoreNull = new Predicate() {
-            @Override
-            public boolean apply(@Nullable Object o) {
-                return o != null;
-            }
-        };
-
         return sessionDelegate.perform(new SessionOperation<PropertyIterator>() {
             @Override
             public PropertyIterator perform() {
-                return new PropertyIteratorAdapter(Iterables.filter(properties, ignoreNull).iterator(), propertyOakPaths.size());
+                return new PropertyIteratorAdapter(
+                        Iterables.filter(properties, Predicates.<Property>notNull()).iterator(), propertyOakPaths.size());
             }
         });
     }
