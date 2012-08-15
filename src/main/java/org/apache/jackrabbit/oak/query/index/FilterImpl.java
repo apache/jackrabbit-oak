@@ -24,8 +24,10 @@ import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.spi.Filter;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map.Entry;
 
 /**
@@ -60,7 +62,10 @@ public class FilterImpl implements Filter {
      */
     private String valuePrefix;
 
-    private String fulltextCondition;
+    /**
+     * The fulltext search conditions, if any.
+     */
+    private final ArrayList<String> fulltextConditions = new ArrayList<String>();
 
     private final HashMap<String, PropertyRestriction> propertyRestrictions =
             new HashMap<String, PropertyRestriction>();
@@ -349,14 +354,13 @@ public class FilterImpl implements Filter {
     }
 
     @Override
-    public String getFulltextCondition() {
-        return fulltextCondition;
+    public List<String> getFulltextConditions() {
+        // TODO support fulltext conditions on certain properties
+        return fulltextConditions;
     }
 
-    public void restrictFulltextCondition(String fulltextCondition) {
-        // TODO support combining multiple conditions as in
-        // contains('x') and contains('y')
-        this.fulltextCondition = fulltextCondition;
+    public void restrictFulltextCondition(String condition) {
+        fulltextConditions.add(condition);
     }
 
 }

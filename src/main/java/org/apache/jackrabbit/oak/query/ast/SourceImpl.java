@@ -74,6 +74,20 @@ public abstract class SourceImpl extends AstElement {
      * @return the selector, or null
      */
     public abstract SelectorImpl getSelector(String selectorName);
+    
+    /**
+     * Get the selector with the given name, or fail if not found.
+     *
+     * @param selectorName the selector name
+     * @return the selector (never null)
+     */
+    public SelectorImpl getExistingSelector(String selectorName) {
+        SelectorImpl s = getSelector(selectorName);
+        if (s == null) {
+            throw new IllegalArgumentException("Unknown selector: " + selectorName);
+        }
+        return s;
+    }
 
     /**
      * Get the query plan.

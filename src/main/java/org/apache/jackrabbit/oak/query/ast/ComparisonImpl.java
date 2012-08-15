@@ -194,6 +194,33 @@ public class ComparisonImpl extends ConstraintImpl {
         return operand1 + " " + operator + " " + operand2;
     }
 
+    @Override
+    public void apply(FilterImpl f) {
+        CoreValue v = operand2.currentValue();
+        if (v != null) {
+            if (operator == Operator.LIKE) {
+                String pattern;
+                pattern = v.getString();
+                LikePattern p = new LikePattern(pattern);
+                String lowerBound = p.getLowerBound();
+                String upperBound = p.getUpperBound();
+                if (lowerBound == null && upperBound == null) {
+                    // ignore
+                } else {
+                    CoreValueFactory vf = query.getValueFactory();
+                    if (lowerBound != null) {
+                        operand1.apply(f, Operator.GREATER_OR_EQUAL, vf.createValue(lowerBound));
+                    }
+                    if (upperBound != null) {
+                        operand1.apply(f, Operator.LESS_OR_EQUAL, vf.createValue(upperBound));
+                    }
+                }
+            } else {
+                operand1.apply(f, operator, v);
+            }
+        }
+    }
+
     /**
      * A pattern matcher.
      */
@@ -359,33 +386,6 @@ public class ComparisonImpl extends ConstraintImpl {
             }
         }
 
-    }
-
-    @Override
-    public void apply(FilterImpl f) {
-        CoreValue v = operand2.currentValue();
-        if (v != null) {
-            if (operator == Operator.LIKE) {
-                String pattern;
-                pattern = v.getString();
-                LikePattern p = new LikePattern(pattern);
-                String lowerBound = p.getLowerBound();
-                String upperBound = p.getUpperBound();
-                if (lowerBound == null && upperBound == null) {
-                    // ignore
-                } else {
-                    CoreValueFactory vf = query.getValueFactory();
-                    if (lowerBound != null) {
-                        operand1.apply(f, Operator.GREATER_OR_EQUAL, vf.createValue(lowerBound));
-                    }
-                    if (upperBound != null) {
-                        operand1.apply(f, Operator.LESS_OR_EQUAL, vf.createValue(upperBound));
-                    }
-                }
-            } else {
-                operand1.apply(f, operator, v);
-            }
-        }
     }
 
 }

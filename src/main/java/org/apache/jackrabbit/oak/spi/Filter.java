@@ -27,14 +27,19 @@ import org.apache.jackrabbit.oak.api.CoreValue;
  */
 public interface Filter {
 
+    /**
+     * Get the list of property restrictions, if any.
+     * 
+     * @return the conditions (an empty collection if not used)
+     */
     Collection<PropertyRestriction> getPropertyRestrictions();
 
     /**
-     * Get the fulltext search condition.
+     * Get the fulltext search conditions, if any.
      *
-     * @return the condition, or null if not used
+     * @return the conditions (an empty collection if not used)
      */
-    String getFulltextCondition();
+    Collection<String> getFulltextConditions();
 
     /**
      * Get the property restriction for the given property, if any.

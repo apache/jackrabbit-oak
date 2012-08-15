@@ -43,6 +43,7 @@ import java.util.HashMap;
 
 /**
  * The SQL2 parser can convert a JCR-SQL2 query to a query.
+ * The 'old' SQL query language is also supported if
  */
 public class SQL2Parser {
 
@@ -151,7 +152,12 @@ public class SQL2Parser {
         list.add(column);
     }
 
-    void setSupportSQL1(boolean sql1) {
+    /**
+     * Enable or disable support for SQL-1 queries.
+     *
+     * @param sql1 the new value
+     */
+    public void setSupportSQL1(boolean sql1) {
         this.supportSQL1 = sql1;
     }
 
@@ -332,6 +338,18 @@ public class SQL2Parser {
             c = factory.comparison(left, Operator.GREATER_OR_EQUAL, parseStaticOperand());
         } else if (readIf("LIKE")) {
             c = factory.comparison(left, Operator.LIKE, parseStaticOperand());
+            if (supportSQL1) {
+                if (readIf("ESCAPE")) {
+                    StaticOperandImpl esc = parseStaticOperand();
+                    if (!(esc instanceof LiteralImpl)) {
+                        throw getSyntaxError("only ESCAPE '\' is supported");
+                    }
+                    CoreValue v = ((LiteralImpl) esc).getLiteralValue();
+                    if (!v.getString().equals("\\")) {
+                        throw getSyntaxError("only ESCAPE '\' is supported");
+                    }
+                }
+            }
         } else if (readIf("IS")) {
             boolean not = readIf("NOT");
             read("NULL");
@@ -563,6 +581,19 @@ public class SQL2Parser {
             literal = factory.literal(value);
             return literal;
         } else {
+            if (supportSQL1) {
+                if (readIf("TIMESTAMP")) {
+                    StaticOperandImpl op = parseStaticOperand();
+                    if (!(op instanceof LiteralImpl)) {
+                        throw getSyntaxError("literal");
+                    }
+                    LiteralImpl literal = (LiteralImpl) op;
+                    CoreValue value = literal.getLiteralValue();
+                    value = valueFactory.createValue(value.getString(), PropertyType.DATE);
+                    literal = factory.literal(value);
+                    return literal;
+                }
+            }
             throw getSyntaxError("static operand");
         }
     }
@@ -939,6 +970,15 @@ public class SQL2Parser {
             return;
         case CHAR_QUOTED:
             readString(i, '\"');
+            if (supportSQL1) {
+                // for SQL-2, this is a literal, as defined in
+                // the JCR 2.0 spec, 6.7.34 Literal - UncastLiteral
+                // but for compatibility with Jackrabbit 2.x, for
+                // SQL-1, this is an identifier, as in ANSI SQL
+                // (not in the JCR 1.0 spec)
+                // (confusing isn't it?)
+                currentTokenType = IDENTIFIER;
+            }
             return;
         case CHAR_END:
             currentToken = "";
@@ -1069,6 +1109,11 @@ public class SQL2Parser {
         return '\'' + value.replace("'", "''") + '\'';
     }
 
+    /**
+     * Enable or disable support for text literals in queries. The default is enabled.
+     *
+     * @param allowTextLiterals
+     */
     public void setAllowTextLiterals(boolean allowTextLiterals) {
         this.allowTextLiterals = allowTextLiterals;
     }

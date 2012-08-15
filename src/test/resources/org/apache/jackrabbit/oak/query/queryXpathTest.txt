@@ -18,6 +18,61 @@
 # * lines starting with "xpath" are xpath queries, followed by expected sql2 query
 # * use ascii character only
 
+# jackrabbit test queries
+
+xpath /jcr:root/testroot/*[jcr:contains(@jcr:content, 'lazy')]
+select [jcr:path], [jcr:score], * from [nt:base] where contains([jcr:content], 'lazy') and ischildnode('/testroot')
+
+# TODO is the @ before jcr:content not needed, if not why?
+xpath /jcr:root/testroot/*[jcr:contains(jcr:content, 'lazy')]
+invalid: Query: /jcr:root/testroot/*[jcr:contains(jcr:content,(*)'lazy')]; expected: (
+
+xpath /jcr:root/testroot/*[@prop1 = 1 and jcr:like(fn:name(), 'F%')]
+select [jcr:path], [jcr:score], * from [nt:base] where (([prop1] = 1) and (name() like 'F%')) and ischildnode('/testroot')
+
+# TODO support rep:excerpt() and rep:similar()? how?
+xpath /jcr:root/testroot/*[jcr:contains(., 'jackrabbit')]/rep:excerpt(.)
+invalid: Query: /jcr:root/testroot/*[jcr:contains(., 'jackrabbit')]/rep:excerpt((*).); expected: <end>
+
+xpath /jcr:root/testroot//child/..[@foo1]
+invalid: Query: /jcr:root/testroot//child/.(*).[@foo1]; expected: non-path condition
+
+xpath //testroot/*[@jcr:primaryType='nt:unstructured' and fn:not(@mytext)]
+invalid: Query: //testroot/*(*)[@jcr:primaryType='nt:unstructured' and fn:not(@mytext)]; expected: non-path condition
+
+xpath /jcr:root/testroot/people/jcr:deref(@worksfor, '*')
+invalid: Query: /jcr:root/testroot/people/jcr:deref((*)@worksfor, '*'); expected: <end>
+
+xpath /jcr:root[@foo = 'does-not-exist']
+select [jcr:path], [jcr:score], * from [nt:base] where ([foo] = 'does-not-exist') and isdescendantnode('/')
+
+xpath //*[@jcr:primaryType='nt:unstructured' and jcr:like(@foo,"%ar'ba%")]
+select [jcr:path], [jcr:score], * from [nt:base] where ([jcr:primaryType] = 'nt:unstructured') and ([foo] like '%ar''ba%')
+
+xpath /jcr:root/testroot/*[fn:lower-case(@prop1) = 'foo']
+select [jcr:path], [jcr:score], * from [nt:base] where (lower([prop1]) = 'foo') and ischildnode('/testroot')
+
+xpath /jcr:root/testroot/*[fn:lower-case(@prop1) != 'foo']
+select [jcr:path], [jcr:score], * from [nt:base] where (lower([prop1]) <> 'foo') and ischildnode('/testroot')
+
+xpath /jcr:root/testroot/*[fn:lower-case(@prop1) <= 'foo']
+select [jcr:path], [jcr:score], * from [nt:base] where (lower([prop1]) <= 'foo') and ischildnode('/testroot')
+
+xpath /jcr:root/testroot/*[fn:lower-case(@prop1) >= 'foo']
+select [jcr:path], [jcr:score], * from [nt:base] where (lower([prop1]) >= 'foo') and ischildnode('/testroot')
+
+xpath /jcr:root/testroot/*[fn:lower-case(@prop1) < 'foo']
+select [jcr:path], [jcr:score], * from [nt:base] where (lower([prop1]) < 'foo') and ischildnode('/testroot')
+
+xpath /jcr:root/testroot/*[fn:lower-case(@prop1) > 'foo']
+select [jcr:path], [jcr:score], * from [nt:base] where (lower([prop1]) > 'foo') and ischildnode('/testroot')
+
+xpath /jcr:root/testroot/*[fn:lower-case(@prop1) <> 'foo']
+select [jcr:path], [jcr:score], * from [nt:base] where (lower([prop1]) <> 'foo') and ischildnode('/testroot')
+
+xpath /jcr:root/testroot/*[@prop1 = 1 and fn:name() = 'node1']
+select [jcr:path], [jcr:score], * from [nt:base] where (([prop1] = 1) and (name() = 'node1')) and ischildnode('/testroot')
+
 # sling queries
 
 xpath //element(*,mix:language)[fn:lower-case(@jcr:language)='en']//element(*,sling:Message)[@sling:message]/(@sling:key|@sling:message)
