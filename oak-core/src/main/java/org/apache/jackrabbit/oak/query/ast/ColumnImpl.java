@@ -77,7 +77,7 @@ public class ColumnImpl extends AstElement {
     }
 
     public void bindSelector(SourceImpl source) {
-        selector = source.getSelector(selectorName);
+        selector = source.getExistingSelector(selectorName);
     }
 
 }

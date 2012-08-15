@@ -110,10 +110,7 @@ public class FullTextSearchImpl extends ConstraintImpl {
     }
 
     public void bindSelector(SourceImpl source) {
-        selector = source.getSelector(selectorName);
-        if (selector == null) {
-            throw new IllegalArgumentException("Unknown selector: " + selectorName);
-        }
+        selector = source.getExistingSelector(selectorName);
         CoreValue v = fullTextSearchExpression.currentValue();
         try {
             expr = FullTextParser.parse(v.getString());
@@ -133,7 +130,16 @@ public class FullTextSearchImpl extends ConstraintImpl {
     }
 
     /**
-     * A parser for fulltext condition literals.
+     * A parser for fulltext condition literals. The grammar is defined in the
+     * <a href="http://www.day.com/specs/jcr/2.0/6_Query.html#6.7.19">
+     * JCR 2.0 specification, 6.7.19 FullTextSearch</a>,
+     * as follows (a bit simplified):
+     * <pre>
+     * FullTextSearchLiteral ::= Disjunct {' OR ' Disjunct}
+     * Disjunct ::= Term {' ' Term}
+     * Term ::= ['-'] SimpleTerm
+     * SimpleTerm ::= Word | '"' Word {' ' Word} '"'
+     * </pre>
      */
     public static class FullTextParser {
 

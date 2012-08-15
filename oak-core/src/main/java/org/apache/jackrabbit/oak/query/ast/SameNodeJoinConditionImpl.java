@@ -72,14 +72,8 @@ public class SameNodeJoinConditionImpl extends JoinConditionImpl {
     }
 
     public void bindSelector(SourceImpl source) {
-        selector1 = source.getSelector(selector1Name);
-        if (selector1 == null) {
-            throw new IllegalArgumentException("Unknown selector: " + selector1Name);
-        }
-        selector2 = source.getSelector(selector2Name);
-        if (selector2 == null) {
-            throw new IllegalArgumentException("Unknown selector: " + selector2Name);
-        }
+        selector1 = source.getExistingSelector(selector1Name);
+        selector2 = source.getExistingSelector(selector2Name);
     }
 
     @Override
