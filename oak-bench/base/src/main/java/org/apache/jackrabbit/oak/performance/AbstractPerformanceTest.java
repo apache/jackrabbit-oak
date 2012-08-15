@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.performance;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.Collections;
 import java.util.regex.Pattern;
 
 import javax.jcr.Credentials;
@@ -28,13 +29,31 @@ import javax.jcr.SimpleCredentials;
 
 import org.apache.commons.io.output.FileWriterWithEncoding;
 import org.apache.commons.math.stat.descriptive.DescriptiveStatistics;
+import org.apache.jackrabbit.mk.MicroKernelFactory;
+import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.mk.core.MicroKernelImpl;
+import org.apache.jackrabbit.mk.index.IndexWrapper;
+import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.jcr.RepositoryImpl;
+import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
+import org.apache.jackrabbit.oak.spi.commit.ValidatingEditor;
+import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 
+/**
+ * This class calls all known performance tests.
+ */
 public abstract class AbstractPerformanceTest {
 
-    private final int warmup = 1;
+    /**
+     * The warmup time, in ms.
+     */
+    private final int warmup = Integer.getInteger("oak.performanceTest.warmup", 0);
 
-    private final int runtime = 10;
+    /**
+     * How long each test is repeated, in ms.
+     */
+    private final int runtime = Integer.getInteger("oak.performanceTest.runtime", 100);
 
     private final Credentials credentials = new SimpleCredentials("admin",
             "admin".toCharArray());
@@ -69,9 +88,12 @@ public abstract class AbstractPerformanceTest {
         if (microKernelPattern.matcher(microKernel).matches()
                 && testPattern.matcher(test.toString()).matches()) {
 
+            MicroKernel mk = null;
             RepositoryImpl repository;
             try {
-                repository = createRepository(microKernel);
+
+                mk = createMicroKernel(microKernel);
+                repository = createRepository(mk);
 
                 // Run the test
                 DescriptiveStatistics statistics = runTest(test, repository);
@@ -82,6 +104,10 @@ public abstract class AbstractPerformanceTest {
                 re.printStackTrace();
             } catch (Exception e) {
                 e.printStackTrace();
+            } finally {
+                if (mk != null) {
+                    MicroKernelFactory.disposeInstance(mk);
+                }
             }
         }
     }
@@ -93,13 +119,15 @@ public abstract class AbstractPerformanceTest {
         test.setUp(repository, credentials);
         try {
             // Run a few iterations to warm up the system
-            long warmupEnd = System.currentTimeMillis() + warmup * 1000;
-            while (System.currentTimeMillis() < warmupEnd) {
-                test.execute();
+            if (warmup > 0) {
+                long warmupEnd = System.currentTimeMillis() + warmup;
+                while (System.currentTimeMillis() < warmupEnd) {
+                    test.execute();
+                }
             }
 
             // Run test iterations, and capture the execution times
-            long runtimeEnd = System.currentTimeMillis() + runtime * 1000;
+            long runtimeEnd = System.currentTimeMillis() + runtime;
             while (System.currentTimeMillis() < runtimeEnd) {
                 statistics.addValue(test.execute());
             }
@@ -133,13 +161,25 @@ public abstract class AbstractPerformanceTest {
         }
     }
 
-    protected RepositoryImpl createRepository(String microKernel)
-            throws RepositoryException {
+    protected MicroKernel createMicroKernel(String microKernel) {
 
         // TODO: depending on the microKernel string a particular repository
         // with that MK must be returned
 
-        return new RepositoryImpl();
+        return new MicroKernelImpl("target/mk-tck-" + System.currentTimeMillis());
+
+    }
+
+    protected RepositoryImpl createRepository(MicroKernel mk) {
+
+        // return new RepositoryImpl();
+
+        mk = new IndexWrapper(mk);
+        ValidatingEditor ve =  new ValidatingEditor(
+                new CompositeValidatorProvider(Collections.<ValidatorProvider>emptyList()));
+        ContentRepository contentRepository = new ContentRepositoryImpl(mk, null, ve);
+        return new RepositoryImpl(contentRepository, null);
+
     }
 
 }

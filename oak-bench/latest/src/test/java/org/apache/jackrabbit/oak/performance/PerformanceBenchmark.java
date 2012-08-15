@@ -23,6 +23,6 @@ public class PerformanceBenchmark extends AbstractPerformanceTest {
     @Test
     public void testPerformance() throws Exception {
         testPerformance("0.3", "default");
-        testPerformance("0.3", "other_mk");
+        // testPerformance("0.3", "other_mk");
     }
 }

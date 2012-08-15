@@ -76,6 +76,7 @@ public abstract class AbstractTest {
         beforeTest();
         try {
             long start = System.currentTimeMillis();
+            // System.out.println("execute " + this);
             runTest();
             return System.currentTimeMillis() - start;
         } finally {
@@ -193,14 +194,22 @@ public abstract class AbstractTest {
      * @param job background job
      */
     protected void addBackgroundJob(final Runnable job) {
-        Thread thread = new Thread() {
+        Thread thread = new Thread("Background job " + job) {
             @Override
             public void run() {
                 while (running) {
+                    try {
+                        // rate-limit, to avoid 100% cpu usage
+                        Thread.sleep(10);
+                    } catch (InterruptedException e) {
+                        // ignore
+                    }
                     job.run();
                 }
             }
         };
+        thread.setDaemon(true);
+        thread.setPriority(Thread.MIN_PRIORITY);
         thread.start();
         threads.add(thread);
     }
