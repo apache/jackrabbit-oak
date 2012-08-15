@@ -16,19 +16,20 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.user;
 
+import java.security.Principal;
+import java.util.Enumeration;
+import java.util.Iterator;
+import javax.jcr.Node;
+import javax.jcr.RepositoryException;
+
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.spi.security.principal.TreeBasedPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.jcr.Node;
-import javax.jcr.RepositoryException;
-import java.security.Principal;
-import java.util.Enumeration;
-import java.util.Iterator;
 
 /**
  * GroupImpl...
