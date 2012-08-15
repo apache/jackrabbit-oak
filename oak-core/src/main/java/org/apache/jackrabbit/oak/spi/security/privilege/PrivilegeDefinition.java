@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.privilege;
 
+import java.util.Set;
 import javax.annotation.Nonnull;
 
 /**
@@ -49,5 +50,5 @@ public interface PrivilegeDefinition {
      * @return The internal names of the aggregated privileges or an empty array.
      */
     @Nonnull
-    String[] getDeclaredAggregateNames();
+    Set<String> getDeclaredAggregateNames();
 }

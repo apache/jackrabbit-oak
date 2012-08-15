@@ -94,7 +94,7 @@ class PrivilegeDefinitionReader {
      * @throws RepositoryException
      * @throws IOException
      */
-    static Map<String, PrivilegeDefinition> readCustomDefinitons(InputStream customPrivileges,
+    static PrivilegeDefinition[] readCustomDefinitons(InputStream customPrivileges,
                                                                  NamespaceRegistry nsRegistry) throws RepositoryException, IOException {
         Map<String, PrivilegeDefinition> definitions = new LinkedHashMap<String, PrivilegeDefinition>();
         InputSource src = new InputSource(customPrivileges);
@@ -105,7 +105,7 @@ class PrivilegeDefinitionReader {
             }
             definitions.put(privName, def);
         }
-        return definitions;
+        return definitions.values().toArray(new PrivilegeDefinition[definitions.size()]);
     }
 
 

@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.spi.commit.ValidatingEditor;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContext;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -114,13 +115,20 @@ public class ContentRepositoryImpl implements ContentRepository {
         // TODO: use configurable context provider
         loginContextProvider = new LoginContextProviderImpl(this);
 
+        // FIXME: repository setup must be done elsewhere...
         // FIXME: depends on CoreValue's name mangling
-        String ntUnstructured = "nam:nt:unstructured";
-
-        // FIXME: workspace setup must be done elsewhere...
-        microKernel.commit("/",
-                "^\"jcr:primaryType\":\"" + ntUnstructured + "\" ",
-                null, null);
+        NodeState root = nodeStore.getRoot();
+        if (root.hasChildNode("jcr:system")) {
+            microKernel.commit("/", "^\"jcr:primaryType\":\"nam:rep:root\" ", null, null);
+        } else {
+            microKernel.commit("/", "^\"jcr:primaryType\":\"nam:rep:root\"" +
+                "+\"jcr:system\":{" +
+                    "\"jcr:primaryType\"    :\"nam:rep:system\"," +
+                    "\"jcr:versionStorage\" :{\"jcr:primaryType\":\"nam:rep:versionStorage\"}," +
+                    "\"jcr:nodeTypes\"      :{\"jcr:primaryType\":\"nam:rep:nodeTypes\"}," +
+                    "\"jcr:activities\"     :{\"jcr:primaryType\":\"nam:rep:Activities\"}," +
+                    "\"rep:privileges\"     :{\"jcr:primaryType\":\"nam:rep:Privileges\"}}", null, null);
+        }
     }
 
     private static QueryIndexProvider getDefaultIndexProvider(MicroKernel mk) {
