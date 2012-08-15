@@ -648,3 +648,11 @@
   - rep:hold (UNDEFINED) protected  multiple IGNORE
   - rep:retentionPolicy (UNDEFINED) protected IGNORE
 
+// -----------------------------------------------------------------------------
+// Oak save conflict resolution
+// -----------------------------------------------------------------------------
+
+[rep:MergeConflict]
+  mixin
+  primaryitem rep:ours
+  + rep:ours (nt:unstructured) protected IGNORE
