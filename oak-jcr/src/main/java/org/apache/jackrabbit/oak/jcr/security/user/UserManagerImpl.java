@@ -41,6 +41,8 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.jcr.SessionDelegate;
+import org.apache.jackrabbit.oak.jcr.security.user.query.XPathQueryBuilder;
+import org.apache.jackrabbit.oak.jcr.security.user.query.XPathQueryEvaluator;
 import org.apache.jackrabbit.oak.jcr.value.ValueConverter;
 import org.apache.jackrabbit.oak.security.user.UserProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
@@ -142,8 +144,9 @@ public class UserManagerImpl implements UserManager {
 
     @Override
     public Iterator<Authorizable> findAuthorizables(Query query) throws RepositoryException {
-        // TODO : execute the specified query
-        throw new UnsupportedOperationException("Not Implemented");
+        XPathQueryBuilder builder = new XPathQueryBuilder();
+        query.build(builder);
+        return new XPathQueryEvaluator(builder, this, sessionDelegate.getQueryManager(), sessionDelegate.getNamePathMapper()).eval();
     }
 
     @Override
