@@ -493,7 +493,4 @@ public class SessionDelegate {
             }
         }
     }
-
-    //------------------------------------------------------------< AnnotatingConflictHandler >---
-
 }
