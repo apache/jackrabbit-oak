@@ -25,7 +25,7 @@ class ChangeFilter {
     private final boolean deep;
     private final String[] uuid;          // TODO implement filtering by uuid
     private final String[] nodeTypeName;  // TODO implement filtering by nodeTypeName
-    private boolean noLocal;              // TODO implement filtering by noLocal
+    private final boolean noLocal;        // TODO implement filtering by noLocal
 
     public ChangeFilter(int eventTypes, String path, boolean deep, String[] uuid, String[] nodeTypeName,
             boolean noLocal) {
