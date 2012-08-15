@@ -45,7 +45,6 @@ class Namespaces implements NamespaceConstants {
         DEFAULTS.put(NamespaceRegistry.PREFIX_XML, NamespaceRegistry.NAMESPACE_XML);
 
         // Namespace included in Jackrabbit 2.x
-        DEFAULTS.put(PREFIX_XMLNS, NAMESPACE_XMLNS);
         DEFAULTS.put(PREFIX_SV, NAMESPACE_SV);
         DEFAULTS.put(PREFIX_REP, NAMESPACE_REP);
     }
