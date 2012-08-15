@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
  * <p>
  * What query languages are supported depends on the registered query parsers.
  */
-public interface QueryEngine {
+public interface SessionQueryEngine {
 
     /**
      * Get the list of supported query languages.
@@ -59,7 +59,7 @@ public interface QueryEngine {
      * @throws ParseException if the statement could not be parsed
      * @throws IllegalArgumentException if there was an error executing the query
      */
-    Result executeQuery(String statement, String language, ContentSession session,
+    Result executeQuery(String statement, String language,
             long limit, long offset, Map<String, CoreValue> bindings,
             NamePathMapper namePathMapper) throws ParseException;
 

@@ -18,16 +18,16 @@ package org.apache.jackrabbit.oak.core;
 
 import java.io.IOException;
 import java.util.Set;
-
 import javax.annotation.Nonnull;
 import javax.security.auth.login.LoginContext;
 import javax.security.auth.login.LoginException;
-
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
-import org.apache.jackrabbit.oak.api.QueryEngine;
+import org.apache.jackrabbit.oak.api.SessionQueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.query.QueryEngineImpl;
+import org.apache.jackrabbit.oak.query.SessionQueryEngineImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContext;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
@@ -43,11 +43,11 @@ class ContentSessionImpl implements ContentSession {
     private final LoginContext loginContext;
     private final String workspaceName;
     private final NodeStore store;
-    private final QueryEngine queryEngine;
+    private final SessionQueryEngine queryEngine;
     private final AccessControlContext accessControlContext;
 
     public ContentSessionImpl(LoginContext loginContext, String workspaceName,
-                              NodeStore store, QueryEngine queryEngine,
+                              NodeStore store, QueryEngineImpl queryEngine,
                               AccessControlContext accessControlContext) {
 
         assert queryEngine != null;
@@ -55,8 +55,7 @@ class ContentSessionImpl implements ContentSession {
         this.loginContext = loginContext;
         this.workspaceName = workspaceName;
         this.store = store;
-        this.queryEngine = queryEngine;
-
+        this.queryEngine = new SessionQueryEngineImpl(this, queryEngine);
         this.accessControlContext = accessControlContext;
         this.accessControlContext.initialize(getAuthInfo().getPrincipals());
     }
@@ -94,7 +93,7 @@ class ContentSessionImpl implements ContentSession {
 
     @Nonnull
     @Override
-    public QueryEngine getQueryEngine() {
+    public SessionQueryEngine getQueryEngine() {
         return queryEngine;
     }
 

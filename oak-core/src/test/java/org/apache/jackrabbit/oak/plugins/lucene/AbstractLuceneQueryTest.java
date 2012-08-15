@@ -30,7 +30,7 @@ import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
-import org.apache.jackrabbit.oak.api.QueryEngine;
+import org.apache.jackrabbit.oak.api.SessionQueryEngine;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -53,14 +53,14 @@ import org.junit.Before;
  */
 public abstract class AbstractLuceneQueryTest {
 
-    private static String TEST_INDEX_NAME = DEFAULT_INDEX_NAME;
+    protected static final String SQL2 = "JCR-SQL2";
 
-    protected static String SQL2 = "JCR-SQL2";
+    private static final String TEST_INDEX_NAME = DEFAULT_INDEX_NAME;
 
     protected ContentRepository repository;
     protected ContentSession session;
     protected CoreValueFactory vf;
-    protected QueryEngine qe;
+    protected SessionQueryEngine qe;
     protected Root root;
 
     @Before
@@ -95,7 +95,7 @@ public abstract class AbstractLuceneQueryTest {
 
     /**
      * Recreates an empty index node, ready to be used in tests
-     * 
+     *
      * @throws Exception
      */
     private void cleanupIndexNode() throws Exception {
@@ -112,7 +112,7 @@ public abstract class AbstractLuceneQueryTest {
     }
 
     protected Result executeQuery(String statement) throws ParseException {
-        return qe.executeQuery(statement, SQL2, session, Long.MAX_VALUE, 0,
+        return qe.executeQuery(statement, SQL2, Long.MAX_VALUE, 0,
                 null, null);
     }
 }

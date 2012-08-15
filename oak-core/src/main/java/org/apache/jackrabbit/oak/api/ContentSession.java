@@ -82,7 +82,7 @@ public interface ContentSession extends Closeable {
      * @return the query engine
      */
     @Nonnull
-    QueryEngine getQueryEngine();
+    SessionQueryEngine getQueryEngine();
 
     /**
      * Returns the internal value factory.
