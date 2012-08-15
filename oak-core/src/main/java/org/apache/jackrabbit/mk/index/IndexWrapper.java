@@ -17,8 +17,10 @@
 package org.apache.jackrabbit.mk.index;
 
 import java.io.InputStream;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Set;
 
 import org.apache.jackrabbit.mk.ExceptionFactory;
 import org.apache.jackrabbit.mk.api.MicroKernel;
@@ -36,7 +38,7 @@ public class IndexWrapper extends MicroKernelWrapperBase implements MicroKernel 
 
     private final MicroKernelWrapper mk;
     private final Indexer indexer;
-    private final HashSet<String> branchRevisions = new HashSet<String>();
+    private final Set<String> branchRevisions = Collections.synchronizedSet(new HashSet<String>());
 
     public IndexWrapper(MicroKernel mk) {
         this.mk = MicroKernelWrapperBase.wrap(mk);
