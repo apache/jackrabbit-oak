@@ -59,14 +59,8 @@ public class DescendantNodeJoinConditionImpl extends JoinConditionImpl {
     }
 
     public void bindSelector(SourceImpl source) {
-        descendantSelector = source.getSelector(descendantSelectorName);
-        if (descendantSelector == null) {
-            throw new IllegalArgumentException("Unknown selector: " + descendantSelectorName);
-        }
-        ancestorSelector = source.getSelector(ancestorSelectorName);
-        if (ancestorSelector == null) {
-            throw new IllegalArgumentException("Unknown selector: " + ancestorSelectorName);
-        }
+        descendantSelector = source.getExistingSelector(descendantSelectorName);
+        ancestorSelector = source.getExistingSelector(ancestorSelectorName);
     }
 
     @Override

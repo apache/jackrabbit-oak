@@ -529,7 +529,6 @@ public class Indexer implements QueryIndexProvider {
 
         // TODO allow creating multiple indexes in one step
         // (buffer indexes to be created; traverse the repository only once)
-        // TODO re-organize the index structure
         // TODO allow filters (only index a certain path; exclude a list of paths)
 
         if (PathUtils.getDepth(path) == indexRootNodeDepth + 1) {
@@ -675,7 +674,7 @@ public class Indexer implements QueryIndexProvider {
                 if (index instanceof PropertyIndex) {
                     qi = new PropertyContentIndex((PropertyIndex) index);
                 } else if (index instanceof PrefixIndex) {
-                    // TODO support prefix indexes?
+                    // TODO support prefix indexes in the query engine?
                 }
                 queryIndexList.add(qi);
             }

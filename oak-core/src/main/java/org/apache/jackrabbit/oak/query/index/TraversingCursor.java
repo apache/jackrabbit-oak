@@ -65,7 +65,8 @@ public class TraversingCursor implements Cursor {
                 node = parent.getChildNode(name);
 
                 if (node == null) {
-                    return; // nothing can match this filter, leave nodes empty
+                    // nothing can match this filter, leave nodes empty
+                    return; 
                 }
             }
         }
@@ -150,7 +151,7 @@ public class TraversingCursor implements Cursor {
         return true;
     }
 
-    private PropertyState getProperty(NodeState node, String path) {
+    private static PropertyState getProperty(NodeState node, String path) {
         int slash = path.indexOf('/');
         while (slash != -1) {
             node = node.getChildNode(path.substring(0, slash));
@@ -163,7 +164,7 @@ public class TraversingCursor implements Cursor {
         return node.getProperty(path);
     }
 
-    private boolean matchesValue(CoreValue value, PropertyRestriction pr) {
+    private static boolean matchesValue(CoreValue value, PropertyRestriction pr) {
         int first = -1;
         if (pr.first != null) {
             first = compareValues(pr.first, value, pr.first.getType());
@@ -183,7 +184,7 @@ public class TraversingCursor implements Cursor {
         return true;
     }
 
-    private int compareValues(CoreValue a, CoreValue b, int type) {
+    private static int compareValues(CoreValue a, CoreValue b, int type) {
         if (type == PropertyType.BOOLEAN) {
             return Boolean.valueOf(a.getBoolean()).compareTo(
                     Boolean.valueOf(b.getBoolean()));

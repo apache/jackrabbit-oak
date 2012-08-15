@@ -56,11 +56,11 @@ public class XPathToSQL2Converter {
      * @throws ParseException if parsing fails
      */
     public String convert(String query) throws ParseException {
-        // TODO verify this is correct
         boolean explain = query.startsWith("explain ");
         if (explain) {
             query = query.substring("explain ".length());
         }
+        // TODO verify this is correct
         if (!query.startsWith("/")) {
             query = "/jcr:root/" + query;
         }
@@ -74,6 +74,10 @@ public class XPathToSQL2Converter {
         ArrayList<Expression> columnList = new ArrayList<Expression>();
         boolean children = false;
         boolean descendants = false;
+        // TODO support one node matcher ('*' wildcard), example:
+        // /jcr:root/content/acme/*/jcr:content[@template='/apps/acme']
+        // TODO verify '//' is behaving correctly, as specified, example:
+        // /jcr:root/content/acme//jcr:content[@template='/apps/acme']
         while (true) {
             String nodeType;
             if (readIf("/")) {
@@ -90,6 +94,11 @@ public class XPathToSQL2Converter {
                         }
                     } else {
                         descendants = true;
+                        if (readIf("[")) {
+                            Expression c = parseConstraint();
+                            condition = add(condition, c);
+                            read("]");
+                        }
                         // expected end of statement
                         break;
                     }
@@ -291,6 +300,8 @@ public class XPathToSQL2Converter {
             c = new Condition(left, "=", parseExpression());
         } else if (readIf("<>")) {
             c = new Condition(left, "<>", parseExpression());
+        } else if (readIf("!=")) {
+            c = new Condition(left, "<>", parseExpression());
         } else if (readIf("<")) {
             c = new Condition(left, "<", parseExpression());
         } else if (readIf(">")) {
@@ -386,13 +397,17 @@ public class XPathToSQL2Converter {
             f.params.add(parseExpression());
             read(")");
             return f;
+        } else if ("fn:name".equals(functionName)) {
+            Function f = new Function("name");
+            read(")");
+            return f;
         } else if ("fn:upper-case".equals(functionName)) {
             Function f = new Function("upper");
             f.params.add(parseExpression());
             read(")");
             return f;
-        // } else if ("jcr:deref".equals(functionName)) {
-            // TODO support jcr:deref?
+         } else if ("jcr:deref".equals(functionName)) {
+             throw getSyntaxError("jcr:deref is not supported");
         } else {
             throw getSyntaxError("jcr:like | jcr:contains | jcr:score | jcr:deref | fn:lower-case | fn:upper-case");
         }
@@ -496,6 +511,14 @@ public class XPathToSQL2Converter {
                     checkRunOver(i, len, startLoop);
                 }
                 break;
+            case '\"':
+                type = CHAR_STRING;
+                types[i] = CHAR_STRING;
+                startLoop = i;
+                while (command[++i] != '\"') {
+                    checkRunOver(i, len, startLoop);
+                }
+                break;
             case ':':
             case '_':
                 type = CHAR_NAME;
@@ -547,7 +570,7 @@ public class XPathToSQL2Converter {
         case CHAR_NAME:
             while (true) {
                 type = types[i];
-                // the '-' can be part of a name, 
+                // the '-' can be part of a name,
                 // for example in "fn:lower-case"
                 if (type != CHAR_NAME && type != CHAR_VALUE && chars[i] != '-') {
                     c = chars[i];
@@ -623,7 +646,11 @@ public class XPathToSQL2Converter {
             readDecimal(i - 1, i);
             return;
         case CHAR_STRING:
-            readString(i, '\'');
+            if (chars[i - 1] == '\'') {
+                readString(i, '\'');
+            } else {
+                readString(i, '\"');
+            }
             return;
         case CHAR_END:
             currentToken = "";
@@ -635,7 +662,7 @@ public class XPathToSQL2Converter {
         }
     }
 
-    private void readString(int i, char end) {
+    private void readString(int i, char end) throws ParseException {
         char[] chars = statementChars;
         String result = null;
         while (true) {
