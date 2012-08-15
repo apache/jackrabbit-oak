@@ -16,15 +16,10 @@
  */
 package org.apache.jackrabbit.oak.security.privilege;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import javax.annotation.Nonnull;
-import javax.jcr.NamespaceRegistry;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.JcrConstants;
@@ -37,17 +32,21 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
-import org.apache.jackrabbit.oak.plugins.name.NamespaceRegistryImpl;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.NodeUtil;
-import org.apache.jackrabbit.oak.util.TODO;
 import org.apache.jackrabbit.util.Text;
 
 /**
- * PrivilegeProviderImpl... TODO
+ * PrivilegeRegistry... TODO
+ *
+ *
+ * TODO: define if/how built-in privileges are reflected in the mk
+ * TODO: define if custom privileges are read with editing content session (thus enforcing read permissions)
+ *
+ * FIXME: Session#refresh should refresh privileges exposed
  */
 public class PrivilegeRegistry implements PrivilegeProvider, PrivilegeConstants, Validator {
 
@@ -77,11 +76,6 @@ public class PrivilegeRegistry implements PrivilegeProvider, PrivilegeConstants,
     public PrivilegeRegistry(ContentSession contentSession) throws RepositoryException {
 
         this.contentSession = contentSession;
-        this.reader = new PrivilegeDefinitionReader(contentSession);
-
-        // TODO: define if/how built-in privileges are reflected in the mk
-        // TODO: define where custom privileges are being stored.
-        // TODO: define if custom privileges are read with editing content session (thus enforcing read permissions)
 
         for (String privilegeName : SIMPLE_PRIVILEGES) {
             PrivilegeDefinition def = new PrivilegeDefinitionImpl(privilegeName, false);
@@ -93,29 +87,8 @@ public class PrivilegeRegistry implements PrivilegeProvider, PrivilegeConstants,
             definitions.put(privilegeName, def);
         }
 
-        CoreValueFactory vf = contentSession.getCoreValueFactory();
-        Root root = contentSession.getCurrentRoot();
-
-        Tree privilegesTree = root.getTree(PRIVILEGES_PATH);
-        if (privilegesTree == null) {
-            // backwards compatibility: read privileges from file system and update
-            // the content tree.
-            try {
-                NodeUtil system = new NodeUtil(root.getTree(JcrConstants.JCR_SYSTEM), contentSession);
-                NodeUtil privNode = system.addChild(REP_PRIVILEGES, NT_REP_PRIVILEGES);
-
-                migrateCustomPrivileges(privNode);
-
-                root.commit(DefaultConflictHandler.OURS);
-            } catch (IOException e) {
-                throw new RepositoryException(e);
-            } catch (CommitFailedException e) {
-                throw new RepositoryException(e);
-            }
-        }
-
+        this.reader = new PrivilegeDefinitionReader(contentSession);
         definitions.putAll(reader.readDefinitions());
-
         updateJcrAllPrivilege();
     }
 
@@ -136,21 +109,20 @@ public class PrivilegeRegistry implements PrivilegeProvider, PrivilegeConstants,
             final String privilegeName, final boolean isAbstract,
             final Set<String> declaredAggregateNames)
             throws RepositoryException {
-        // TODO: add proper implementation including
-        // - permission check (possibly delegate to a commit validator),
-        // - validate definition (possibly delegate to commit validator)
-        // - persist the custom definition
-        // - recalculate jcr:all privilege
-        return TODO.dummyImplementation().call(new Callable<PrivilegeDefinition>() {
-            @Override
-            public PrivilegeDefinition call() throws Exception {
-                PrivilegeDefinition definition = new PrivilegeDefinitionImpl(
-                        privilegeName, isAbstract,
-                        new HashSet<String>(declaredAggregateNames));
-                definitions.put(privilegeName, definition);
-                return definition;
-            }
-        });
+
+        PrivilegeDefinition definition = new PrivilegeDefinitionImpl(privilegeName, isAbstract, declaredAggregateNames);
+        internalRegisterDefinitions(definition);
+        return definition;
+    }
+
+    public void registerDefinition(PrivilegeDefinition definition) throws RepositoryException {
+        PrivilegeDefinition toRegister;
+        if (definition instanceof PrivilegeDefinitionImpl) {
+            toRegister = definition;
+        } else {
+            toRegister = new PrivilegeDefinitionImpl(definition.getName(), definition.isAbstract(), definition.getDeclaredAggregateNames());
+        }
+        internalRegisterDefinitions(toRegister);
     }
 
     //----------------------------------------------------------< Validator >---
@@ -172,6 +144,7 @@ public class PrivilegeRegistry implements PrivilegeProvider, PrivilegeConstants,
     @Override
     public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
         // the following characteristics are expected to be validated elsewhere:
+        // - permission to allow privilege registration -> permission validator.
         // - name collisions (-> delegated to NodeTypeValidator since sms are not allowed)
         // - name must be valid (-> delegated to NameValidator)
 
@@ -188,7 +161,7 @@ public class PrivilegeRegistry implements PrivilegeProvider, PrivilegeConstants,
             throw new CommitFailedException("Privilege definition must have primary node type set to rep:privilege");
         }
 
-        // additional validation of the definition include:
+        // additional validation of the definition
         PrivilegeDefinition def = reader.readDefinition(tree);
         validateDefinition(def);
 
@@ -208,22 +181,6 @@ public class PrivilegeRegistry implements PrivilegeProvider, PrivilegeConstants,
 
     //------------------------------------------------------------< private >---
 
-    private void migrateCustomPrivileges(NodeUtil privilegesNode) throws RepositoryException, IOException, CommitFailedException {
-        InputStream stream = null;
-        // TODO: user proper path to jr2 custom privileges stored in fs
-        // jr2 used to be:
-        // new FileSystemResource(fs, "/privileges/custom_privileges.xml").getInputStream()
-        if (stream != null) {
-            try {
-                NamespaceRegistry  nsRegistry = new NamespaceRegistryImpl(contentSession);
-                Map<String, PrivilegeDefinition> custom = PrivilegeDefinitionReader.readCustomDefinitons(stream, nsRegistry);
-                writeDefinitions(privilegesNode, custom);
-            } finally {
-                stream.close();
-            }
-        }
-    }
-
     private void updateJcrAllPrivilege() {
         // TODO: add proper implementation taking custom privileges into account.
         definitions.put(JCR_ALL, new PrivilegeDefinitionImpl(JCR_ALL, false,
@@ -233,28 +190,100 @@ public class PrivilegeRegistry implements PrivilegeProvider, PrivilegeConstants,
                 JCR_NAMESPACE_MANAGEMENT, REP_PRIVILEGE_MANAGEMENT, REP_WRITE));
     }
 
-    private void writeDefinitions(NodeUtil privilegesNode, Map<String, PrivilegeDefinition> definitions) {
-        for (PrivilegeDefinition def : definitions.values()) {
-            NodeUtil privNode = privilegesNode.addChild(def.getName(), NT_REP_PRIVILEGE);
-            if (def.isAbstract()) {
-                privNode.setBoolean(REP_IS_ABSTRACT, true);
+    private void internalRegisterDefinitions(PrivilegeDefinition toRegister) throws RepositoryException {
+        CoreValueFactory vf = contentSession.getCoreValueFactory();
+        Root root = contentSession.getCurrentRoot();
+
+        try {
+            // make sure the privileges path is defined
+            Tree privilegesTree = root.getTree(PRIVILEGES_PATH);
+            if (privilegesTree == null) {
+                throw new RepositoryException("Repository doesn't contain node " + PRIVILEGES_PATH);
             }
-            String[] declAggrNames = def.getDeclaredAggregateNames();
-            if (declAggrNames.length > 0) {
-                privNode.setNames(REP_AGGREGATES, def.getDeclaredAggregateNames());
-            }
+
+            NodeUtil privilegesNode = new NodeUtil(privilegesTree, contentSession);
+            writeDefinition(privilegesNode, toRegister);
+
+            // delegate validation to the commit validation (see above)
+            root.commit(DefaultConflictHandler.OURS);
+
+        } catch (CommitFailedException e) {
+            throw new RepositoryException(e.getMessage());
+        }
+
+        definitions.put(toRegister.getName(), toRegister);
+        updateJcrAllPrivilege();
+    }
+
+    private void writeDefinition(NodeUtil privilegesNode, PrivilegeDefinition definition) {
+        NodeUtil privNode = privilegesNode.addChild(definition.getName(), NT_REP_PRIVILEGE);
+        if (definition.isAbstract()) {
+            privNode.setBoolean(REP_IS_ABSTRACT, true);
+        }
+        Set<String> declAggrNames = definition.getDeclaredAggregateNames();
+        if (!declAggrNames.isEmpty()) {
+            String[] names = definition.getDeclaredAggregateNames().toArray(new String[declAggrNames.size()]);
+            privNode.setNames(REP_AGGREGATES, names);
         }
     }
 
     /**
+     * Validation of the privilege definition including the following steps:
      *
-     * @param definition
+     * - all aggregates must have been registered before
+     * - no existing privilege defines the same aggregation
+     * - no cyclic aggregation
+     *
+     * @param definition The new privilege definition to validate.
+     * @throws org.apache.jackrabbit.oak.api.CommitFailedException If any of
+     * the checks listed above fails.
      */
-    private void validateDefinition(PrivilegeDefinition definition) {
-        // TODO
-        // - aggregate names refer to existing privileges
-        // - aggregate names do not create cyclic dependencies
-        // - aggregate names are not covered by an existing privilege definition
-        // -
+    private void validateDefinition(PrivilegeDefinition definition) throws CommitFailedException {
+        Set<String> aggrNames = definition.getDeclaredAggregateNames();
+        if (aggrNames.isEmpty()) {
+            return;
+        }
+
+        for (String aggrName : aggrNames) {
+            // aggregated privilege not registered
+            if (!definitions.containsKey(aggrName)) {
+                throw new CommitFailedException("Declared aggregate '"+ aggrName +"' is not a registered privilege.");
+            }
+
+            // check for circular aggregation
+            if (isCircularAggregation(definition.getName(), aggrName)) {
+                String msg = "Detected circular aggregation within custom privilege caused by " + aggrName;
+                throw new CommitFailedException(msg);
+            }
+        }
+
+        for (PrivilegeDefinition existing : definitions.values()) {
+            if (aggrNames.equals(existing.getDeclaredAggregateNames())) {
+                String msg = "Custom aggregate privilege '" + definition.getName() + "' is already covered by '" + existing.getName() + '\'';
+                throw new CommitFailedException(msg);
+            }
+        }
+    }
+
+    private boolean isCircularAggregation(String privilegeName, String aggregateName) {
+        if (privilegeName.equals(aggregateName)) {
+            return true;
+        }
+
+        PrivilegeDefinition aggrPriv = definitions.get(aggregateName);
+        if (aggrPriv.getDeclaredAggregateNames().isEmpty()) {
+            return false;
+        } else {
+            boolean isCircular = false;
+            for (String name : aggrPriv.getDeclaredAggregateNames()) {
+                if (privilegeName.equals(name)) {
+                    return true;
+                }
+                if (definitions.containsKey(name)) {
+                    isCircular = isCircularAggregation(privilegeName, name);
+                }
+            }
+            return isCircular;
+        }
     }
 }
