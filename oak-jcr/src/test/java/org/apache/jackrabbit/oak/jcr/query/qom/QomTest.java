@@ -293,7 +293,7 @@ public class QomTest extends AbstractRepositoryTest {
         PropertyValue p = f.propertyValue("x", "propertyName");
         c = f.and(f.comparison(p, QueryObjectModelConstants.JCR_OPERATOR_EQUAL_TO, b), c);
         Ordering o = f.ascending(p);
-        Column col = f.column("selectorName", "propertyName", "columnName");
+        Column col = f.column("x", "propertyName", "columnName");
         Ordering[] ords = new Ordering[]{o};
         Column[] cols = new Column[]{col};
         QueryObjectModel q = f.createQuery(s, c, ords, cols);
