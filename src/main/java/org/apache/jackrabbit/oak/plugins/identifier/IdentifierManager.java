@@ -175,7 +175,7 @@ public class IdentifierManager {
             Map<String, CoreValue> bindings = Collections.singletonMap("id", contentSession.getCoreValueFactory().createValue(id));
 
             Result result = contentSession.getQueryEngine().executeQuery("SELECT * FROM [nt:base] WHERE [jcr:uuid] = $id", Query.JCR_SQL2,
-                    contentSession, Long.MAX_VALUE, 0, bindings, NamePathMapper.DEFAULT);
+                    Long.MAX_VALUE, 0, bindings, new NamePathMapper.Default());
 
             String path = null;
             for (ResultRow rr : result.getRows()) {
