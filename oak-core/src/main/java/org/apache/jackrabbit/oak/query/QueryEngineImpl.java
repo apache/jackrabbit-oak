@@ -25,7 +25,6 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
-import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.kernel.KernelNodeState;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
@@ -37,7 +36,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 /**
  * The query engine implementation.
  */
-public class QueryEngineImpl implements QueryEngine {
+public class QueryEngineImpl {
 
     static final String SQL2 = "JCR-SQL2";
     static final String SQL = "sql";
@@ -54,7 +53,6 @@ public class QueryEngineImpl implements QueryEngine {
         this.indexProvider = indexProvider;
     }
 
-    @Override
     public List<String> getSupportedQueryLanguages() {
         return Arrays.asList(SQL2, SQL, XPATH, JQOM);
     }
@@ -67,7 +65,6 @@ public class QueryEngineImpl implements QueryEngine {
      * @return the list of bind variable names
      * @throws ParseException
      */
-    @Override
     public List<String> getBindVariableNames(String statement, String language) throws ParseException {
         Query q = parseQuery(statement, language);
         return q.getBindVariableNames();
@@ -93,7 +90,6 @@ public class QueryEngineImpl implements QueryEngine {
         return q;
     }
 
-    @Override
     public ResultImpl executeQuery(String statement, String language, ContentSession session,
             long limit, long offset, Map<String, CoreValue> bindings,
             NamePathMapper namePathMapper) throws ParseException {

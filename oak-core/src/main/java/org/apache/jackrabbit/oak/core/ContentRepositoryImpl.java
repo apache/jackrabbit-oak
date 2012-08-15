@@ -29,7 +29,6 @@ import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.mk.index.Indexer;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
 import org.apache.jackrabbit.oak.security.authentication.LoginContextProviderImpl;
@@ -58,7 +57,7 @@ public class ContentRepositoryImpl implements ContentRepository {
 
     private final LoginContextProvider loginContextProvider;
 
-    private final QueryEngine queryEngine;
+    private final QueryEngineImpl queryEngine;
     private final KernelNodeStore nodeStore;
 
     /**
@@ -75,10 +74,10 @@ public class ContentRepositoryImpl implements ContentRepository {
 
     /**
      * Utility constructor, intended to be used within test cases only.
-     * 
+     *
      * Creates an Oak repository instance based on the given, already
      * initialized components.
-     * 
+     *
      * @param microKernel
      *            underlying kernel instance
      * @param indexProvider
