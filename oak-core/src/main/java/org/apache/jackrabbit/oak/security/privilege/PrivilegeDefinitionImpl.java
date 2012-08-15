@@ -57,8 +57,8 @@ class PrivilegeDefinitionImpl implements PrivilegeDefinition {
 
     @Nonnull
     @Override
-    public String[] getDeclaredAggregateNames() {
-        return declaredAggregateNames.toArray(new String[declaredAggregateNames.size()]);
+    public Set<String> getDeclaredAggregateNames() {
+        return declaredAggregateNames;
     }
 
     //-------------------------------------------------------------< Object >---

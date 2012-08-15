@@ -68,10 +68,14 @@ public class NodeTypeManagerImpl implements NodeTypeManager, NodeTypeConstants {
         this.mapper = mapper;
         this.factory = factory;
 
-        if (session.getCurrentRoot().getTree(NODE_TYPES_PATH) == null) {
+        // FIXME: migrate custom node types as well.
+        // FIXME: registration of built-in node types should be moved to repo-setup
+        //        as the jcr:nodetypes tree is protected and the editing session may
+        //        not have sufficient permission to register node types or may
+        //        even have limited read-permission on the jcr:nodetypes path.
+        if (!nodeTypesInContent()) {
             try {
-                InputStream stream = NodeTypeManagerImpl.class.getResourceAsStream(
-                        "builtin_nodetypes.cnd");
+                InputStream stream = NodeTypeManagerImpl.class.getResourceAsStream("builtin_nodetypes.cnd");
                 try {
                     CompactNodeTypeDefReader<NodeTypeTemplate, Map<String, String>> reader =
                             new CompactNodeTypeDefReader<NodeTypeTemplate, Map<String, String>>(
@@ -356,13 +360,19 @@ public class NodeTypeManagerImpl implements NodeTypeManager, NodeTypeConstants {
     private Tree getOrCreateNodeTypes(Root root) {
         Tree types = root.getTree(NODE_TYPES_PATH);
         if (types == null) {
-            Tree system = root.getTree("/jcr:system");  // FIXME: OAK-221
+            Tree system = root.getTree(JCR_SYSTEM);
             if (system == null) {
-                system = root.getTree("/").addChild(JCR_SYSTEM);
+                system = root.getTree("").addChild(JCR_SYSTEM);
             }
             types = system.addChild(JCR_NODE_TYPES);
         }
         return types;
+    }
+
+    private boolean nodeTypesInContent() {
+        Root currentRoot = session.getCurrentRoot();
+        Tree types = currentRoot.getTree(NODE_TYPES_PATH);
+        return types != null && types.getChildrenCount() > 0;
     }
 
     @Override

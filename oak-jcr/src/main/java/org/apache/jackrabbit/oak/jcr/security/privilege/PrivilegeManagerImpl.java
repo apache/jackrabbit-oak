@@ -119,13 +119,13 @@ public class PrivilegeManagerImpl implements PrivilegeManager {
 
         @Override
         public boolean isAggregate() {
-            return definition.getDeclaredAggregateNames().length > 0;
+            return !definition.getDeclaredAggregateNames().isEmpty();
         }
 
         @Override
         public Privilege[] getDeclaredAggregatePrivileges() {
-            String[] declaredAggregateNames = definition.getDeclaredAggregateNames();
-            Set<Privilege> declaredAggregates = new HashSet<Privilege>(declaredAggregateNames.length);
+            Set<String> declaredAggregateNames = definition.getDeclaredAggregateNames();
+            Set<Privilege> declaredAggregates = new HashSet<Privilege>(declaredAggregateNames.size());
             for (String pName : declaredAggregateNames) {
                 try {
                     declaredAggregates.add(getPrivilege(pName));
