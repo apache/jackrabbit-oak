@@ -29,7 +29,7 @@ public class TransientManyChildNodesTest extends AbstractTest {
 
     private static final int CHILD_COUNT = 10 * 1000;
 
-    private static final int ITERATIONS = 1000;
+    private static final int ITERATIONS = 10;
 
     private Session session;
 
