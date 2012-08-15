@@ -14,21 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.jcr.security.user;
+package org.apache.jackrabbit.oak.spi.security.principal;
+
+import java.security.Principal;
 
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.principal.JackrabbitPrincipal;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.PathMapper;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.security.Principal;
 
 /**
  * TreeBasedPrincipal...
  */
-class TreeBasedPrincipal implements ItemBasedPrincipal {
+public class TreeBasedPrincipal implements ItemBasedPrincipal {
 
     /**
      * logger instance
@@ -39,7 +41,17 @@ class TreeBasedPrincipal implements ItemBasedPrincipal {
     private final Tree tree;
     private final PathMapper pathMapper;
 
-    TreeBasedPrincipal(String principalName, Tree tree, PathMapper pathMapper) {
+    public TreeBasedPrincipal(Tree tree, PathMapper pathMapper) {
+        PropertyState prop = tree.getProperty(UserConstants.REP_PRINCIPAL_NAME);
+        if (prop == null) {
+            throw new IllegalArgumentException("Tree doesn't have rep:principalName property");
+        }
+        this.principalName = prop.getValue().getString();
+        this.tree = tree;
+        this.pathMapper = pathMapper;
+    }
+
+    public TreeBasedPrincipal(String principalName, Tree tree, PathMapper pathMapper) {
         this.principalName = principalName;
         this.tree = tree;
         this.pathMapper = pathMapper;

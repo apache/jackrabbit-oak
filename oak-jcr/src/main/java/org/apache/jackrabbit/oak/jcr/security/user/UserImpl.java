@@ -16,20 +16,21 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.user;
 
-import org.apache.jackrabbit.api.security.user.Impersonation;
-import org.apache.jackrabbit.api.security.user.User;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.spi.security.user.PasswordUtility;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import java.security.Principal;
 import javax.jcr.Credentials;
 import javax.jcr.Node;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
-import java.security.Principal;
+
+import org.apache.jackrabbit.api.security.user.Impersonation;
+import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.spi.security.principal.TreeBasedPrincipal;
+import org.apache.jackrabbit.oak.spi.security.user.PasswordUtility;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * UserImpl...
