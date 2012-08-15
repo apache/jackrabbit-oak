@@ -36,7 +36,9 @@ public class DescendantSearchTest extends AbstractTest {
 
     protected Query createQuery(QueryManager manager, int i)
             throws RepositoryException {
-        return manager.createQuery("/jcr:root/testroot//element(*,nt:base)[@testcount=" + i + "]", Query.XPATH);
+        @SuppressWarnings("deprecation")
+        String xpath = Query.XPATH;
+        return manager.createQuery("/jcr:root/testroot//element(*,nt:base)[@testcount=" + i + "]", xpath);
     }
 
     @Override
@@ -52,6 +54,9 @@ public class DescendantSearchTest extends AbstractTest {
             }
             session.save();
         }
+
+        IndexManager.createPropertyIndex(session, "testcount");
+
     }
 
     @Override

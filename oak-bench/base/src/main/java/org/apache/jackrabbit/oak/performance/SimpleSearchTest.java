@@ -23,6 +23,9 @@ import javax.jcr.Session;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 
+/**
+ * Run a simple query of the form "//*[@testcount=...]".
+ */
 public class SimpleSearchTest extends AbstractTest {
 
     private static final int NODE_COUNT = 100;
@@ -33,7 +36,9 @@ public class SimpleSearchTest extends AbstractTest {
 
     protected Query createQuery(QueryManager manager, int i)
             throws RepositoryException {
-        return manager.createQuery("//*[@testcount=" + i + "]", Query.XPATH);
+        @SuppressWarnings("deprecation")
+        String xpath = Query.XPATH;
+        return manager.createQuery("//*[@testcount=" + i + "]", xpath);
     }
 
     @Override
@@ -49,6 +54,9 @@ public class SimpleSearchTest extends AbstractTest {
             }
             session.save();
         }
+
+        IndexManager.createPropertyIndex(session, "testcount");
+
     }
 
     @Override
