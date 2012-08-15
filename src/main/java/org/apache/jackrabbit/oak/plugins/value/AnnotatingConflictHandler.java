@@ -41,7 +41,7 @@ import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.MIX_REP_M
  * [rep:MergeConflict]
  *   mixin
  *   primaryitem rep:ours
- *   + rep:ours (nt:unstructured)
+ *   + rep:ours (nt:unstructured) protected IGNORE
  * </pre>
  *
  * The {@code rep:ours} sub node contains our version of the node prior to
