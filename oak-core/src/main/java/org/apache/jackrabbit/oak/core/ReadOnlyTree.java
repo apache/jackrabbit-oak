@@ -30,15 +30,13 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 public class ReadOnlyTree implements Tree {
 
     /** Parent of this tree, {@code null} for the root */
-    private final Tree parent;
+    private final ReadOnlyTree parent;
 
     /** Name of this tree */
     private final String name;
 
     /** Underlying node state */
     private final NodeState state;
-
-    private final String path;
 
     public ReadOnlyTree(NodeState root) {
         this(null, "", root);
@@ -52,7 +50,6 @@ public class ReadOnlyTree implements Tree {
         this.parent = parent;
         this.name = name;
         this.state = state;
-        this.path = (parent == null) ? "" : parent.getPath() + '/' + name;
     }
 
     @Override
@@ -67,7 +64,21 @@ public class ReadOnlyTree implements Tree {
 
     @Override
     public String getPath() {
-        return path;
+        if (isRoot()) {
+            // shortcut
+            return "/";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        buildPath(sb);
+        return sb.toString();
+    }
+
+    private void buildPath(StringBuilder sb) {
+        if (!isRoot()) {
+            parent.buildPath(sb);
+            sb.append('/').append(name);
+        }
     }
 
     @Override
