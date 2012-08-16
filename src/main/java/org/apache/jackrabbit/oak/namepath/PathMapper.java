@@ -22,6 +22,11 @@ import javax.annotation.Nonnull;
 /**
  * {@code PathMapper} instances provide methods for mapping paths from their JCR
  * string representation to their Oak representation and vice versa.
+ *
+ * The Oak representation of a path consists of an optional forward slash followed
+ * by the names of the respective items in the
+ * {@link org.apache.jackrabbit.oak.api.Tree} separated by forward slashes.
+ * FIXME make leading forward slash not optional. See OAK-221
  */
 public interface PathMapper {
 
