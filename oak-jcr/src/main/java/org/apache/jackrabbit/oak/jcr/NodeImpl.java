@@ -55,7 +55,6 @@ import javax.jcr.version.VersionHistory;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.commons.ItemNameMatcher;
@@ -226,8 +225,8 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
                     String grandParentPath = PathUtils.getParentPath(parentPath);
                     NodeDelegate grandParent = dlg.getChild(grandParentPath);
                     if (grandParent != null) {
-                        String propname = PathUtils.getName(parentPath);
-                        if (grandParent.getProperty(propname) != null) {
+                        String propName = PathUtils.getName(parentPath);
+                        if (grandParent.getProperty(propName) != null) {
                             throw new ConstraintViolationException("Can't add new node to property.");
                         }
                     }
@@ -750,37 +749,28 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
         return internalGetReferences(name, true);
     }
 
-    private PropertyIterator internalGetReferences(String name, boolean weak) throws RepositoryException {
-        final Set<String> propertyOakPaths;
-        if (weak) {
-            propertyOakPaths = sessionDelegate.getIdManager().getWeakReferences(dlg.getTree(), name);
-        } else {
-            propertyOakPaths = sessionDelegate.getIdManager().getReferences(dlg.getTree(), name);
-        }
-
-        final Iterable<Property> properties = Iterables.transform(
-                propertyOakPaths,
-                new Function<String, Property>() {
-                    @Override
-                    public Property apply(String oakPath) {
-                        // FIXME: should use sessionDelegate.getProperty(oakPath)
-                        // FIXME: avoid converting oak-path to jcr-path and back and to avoid
-                        // FIXME: using jcr-api calls internally.
-                        try {
-                            return sessionDelegate.getSession().getProperty(sessionDelegate.getNamePathMapper().getJcrPath(oakPath));
-                        } catch (RepositoryException e) {
-                            log.debug(e.getMessage());
-                            return null;
-                        }
-                    }
-                }
-        );
-
+    private PropertyIterator internalGetReferences(final String name, final boolean weak) throws RepositoryException {
         return sessionDelegate.perform(new SessionOperation<PropertyIterator>() {
             @Override
-            public PropertyIterator perform() {
-                return new PropertyIteratorAdapter(
-                        Iterables.filter(properties, Predicates.<Property>notNull()).iterator(), propertyOakPaths.size());
+            public PropertyIterator perform() throws InvalidItemStateException {
+                IdentifierManager idManager = sessionDelegate.getIdManager();
+
+                Set<String> propertyOakPaths = weak
+                    ? idManager.getWeakReferences(dlg.getTree(), name)
+                    : idManager.getReferences(dlg.getTree(), name);
+
+                Iterable<Property> properties = Iterables.transform(
+                    propertyOakPaths,
+                    new Function<String, Property>() {
+                        @Override
+                        public Property apply(String oakPath) {
+                            PropertyDelegate pd = sessionDelegate.getProperty(oakPath);
+                            return pd == null ? null : new PropertyImpl(pd);
+                        }
+                    }
+                );
+
+                return new PropertyIteratorAdapter(properties.iterator(), propertyOakPaths.size());
             }
         });
     }
