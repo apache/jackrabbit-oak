@@ -67,7 +67,7 @@ class UserImpl extends AuthorizableImpl implements User {
     @Override
     public Principal getPrincipal() throws RepositoryException {
         String principalName = getPrincipalName();
-        return new TreeBasedPrincipal(principalName, getTree(), getUserManager().getSessionDelegate().getNamePathMapper());
+        return new TreeBasedPrincipal(principalName, getTree(), getUserManager().getNamePathMapper());
 
     }
 
@@ -77,13 +77,7 @@ class UserImpl extends AuthorizableImpl implements User {
      */
     @Override
     public boolean isAdmin() {
-        try {
-            return getUserManager().isAdminId(getID());
-        } catch (RepositoryException e) {
-            // should never get here
-            log.error("Internal error while retrieving UserID.", e);
-            return false;
-        }
+        return getUserManager().isAdminId(getID());
     }
 
     /**
@@ -139,11 +133,12 @@ class UserImpl extends AuthorizableImpl implements User {
         if (isAdmin()) {
             throw new RepositoryException("The administrator user cannot be disabled.");
         }
+        Tree userTree = getTree();
         if (reason == null) {
             if (isDisabled()) {
                 // enable the user again.
-                getUserManager().removeInternalProperty(getTree(), REP_DISABLED);
-            } // else: nothing to do.
+                userTree.removeProperty(REP_DISABLED);
+            }
         } else {
             getUserManager().setInternalProperty(getTree(), REP_DISABLED, reason, PropertyType.STRING);
         }

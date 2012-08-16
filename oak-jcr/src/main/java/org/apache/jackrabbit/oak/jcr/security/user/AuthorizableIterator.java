@@ -16,18 +16,17 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.user;
 
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Iterator;
-import java.util.List;
-import java.util.NoSuchElementException;
-import javax.jcr.Property;
+import javax.annotation.Nullable;
+import javax.jcr.RangeIterator;
 import javax.jcr.RepositoryException;
-import javax.jcr.Value;
 
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
-import org.apache.jackrabbit.commons.flat.PropertySequence;
-import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,50 +37,35 @@ class AuthorizableIterator implements Iterator {
 
     private static final Logger log = LoggerFactory.getLogger(AuthorizableIterator.class);
 
-    private final Iterator<?> authorizableIds;
-    private final AuthorizableTypePredicate predicate;
-    private final UserManagerImpl userManager;
+    private final Iterator<Authorizable> authorizables;
     private final long size;
 
     private Authorizable next;
 
-    AuthorizableIterator(List<CoreValue> authorizableNodeIds, int authorizableType, UserManagerImpl userManager) {
-        this(Arrays.asList(authorizableNodeIds).iterator(), authorizableType, userManager, authorizableNodeIds.size());
+    AuthorizableIterator(Iterator<String> authorizableOakPath, UserManagerImpl userManager) {
+        this(authorizableOakPath, userManager, UserManager.SEARCH_TYPE_AUTHORIZABLE);
     }
 
-    AuthorizableIterator(PropertySequence authorizableNodeIds, int authorizableType, UserManagerImpl userManager) {
-        this(authorizableNodeIds.iterator(), authorizableType, userManager, -1);  // TODO calculate size here
-    }
+    AuthorizableIterator(Iterator<String> authorizableOakPaths, UserManagerImpl userManager, int authorizableType) {
+        Iterator<Authorizable> it = Iterators.transform(authorizableOakPaths, new ToAuthorizable(userManager, authorizableType));
+        this.authorizables = Iterators.filter(it, Predicates.notNull());
 
-    AuthorizableIterator(Collection<String> authorizablePaths, int authorizableType, UserManagerImpl userManager) {
-        this(authorizablePaths.iterator(), authorizableType, userManager, authorizablePaths.size());
-    }
-
-    private AuthorizableIterator(Iterator<?> authorizableIds, int authorizableType,
-                                 UserManagerImpl userManager, long size) {
-        this.authorizableIds = authorizableIds;
-        this.predicate = new AuthorizableTypePredicate(authorizableType);
-        this.userManager = userManager;
-        this.size = size;
-
-        next = fetchNext();
+        if (authorizableOakPaths instanceof RangeIterator) {
+            size = ((RangeIterator) authorizableOakPaths).getSize();
+        } else {
+            size = -1;
+        }
     }
 
     //-----------------------------------------------------------< Iterator >---
     @Override
     public boolean hasNext() {
-        return next != null;
+        return authorizables.hasNext();
     }
 
     @Override
     public Authorizable next() {
-        if (next == null) {
-            throw new NoSuchElementException();
-        }
-
-        Authorizable a = next;
-        next = fetchNext();
-        return a;
+        return authorizables.next();
     }
 
     @Override
@@ -94,36 +78,57 @@ class AuthorizableIterator implements Iterator {
         return size;
     }
 
-    private Authorizable fetchNext() {
-        while (authorizableIds.hasNext()) {
-            Object next = authorizableIds.next();
+    //--------------------------------------------------------------------------
+
+    private static class ToAuthorizable implements Function<String, Authorizable> {
+
+        private final UserManagerImpl userManager;
+        private final Predicate predicate;
+
+        public ToAuthorizable(UserManagerImpl userManager, int type) {
+            this.userManager = userManager;
+            this.predicate = new AuthorizableTypePredicate(type);
+        }
+
+        @Override
+        public Authorizable apply(@Nullable String oakPath) {
+            String jcrPath = userManager.getNamePathMapper().getJcrPath(oakPath);
             try {
-                Authorizable a;
-                if (next instanceof String) {
-                    a = userManager.getAuthorizableByPath(next.toString());
-                } else {
-                    String nid = getNodeId(next);
-                    a = userManager.getAuthorizableByNodeID(nid);
-                }
-                if (a != null && predicate.evaluate(a)) {
+                Authorizable a = userManager.getAuthorizableByPath(jcrPath);
+                if (predicate.apply(a)) {
                     return a;
                 }
             } catch (RepositoryException e) {
-                log.debug(e.getMessage());
+                log.debug("Failed to access authorizable " + jcrPath);
             }
+            return null;
         }
-        return null;
     }
 
-    private static String getNodeId(Object o) throws RepositoryException {
-        if (o instanceof CoreValue) {
-            return ((CoreValue) o).getString();
-        } else if (o instanceof Value) {
-            return ((Value) o).getString();
-        } else if (o instanceof Property) {
-            return ((Property) o).getParent().getUUID();
-        } else {
-            return o.toString();
+    private static class AuthorizableTypePredicate implements Predicate<Authorizable> {
+
+        private final int authorizableType;
+
+        AuthorizableTypePredicate(int authorizableType) {
+            this.authorizableType = authorizableType;
+        }
+
+        @Override
+        public boolean apply(Authorizable authorizable) {
+            if (authorizable == null) {
+                return false;
+            }
+            switch (authorizableType) {
+                case UserManager.SEARCH_TYPE_AUTHORIZABLE:
+                    return true;
+                case UserManager.SEARCH_TYPE_GROUP:
+                    return authorizable.isGroup();
+                case UserManager.SEARCH_TYPE_USER:
+                    return !authorizable.isGroup();
+                default:
+                    log.warn("Illegal authorizable type " + authorizableType);
+                    return false;
+            }
         }
     }
 }

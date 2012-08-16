@@ -32,9 +32,16 @@ import org.apache.jackrabbit.oak.util.NodeUtil;
  */
 public class UserValidatorProvider implements ValidatorProvider {
 
-    private final UserManagerConfig config = null; // TODO
-    private final ContentSession contentSession = null; // TODO
+    private final ContentSession contentSession;
+    private final UserManagerConfig config;
 
+    public UserValidatorProvider(ContentSession contentSession, UserManagerConfig config) {
+        assert contentSession != null;
+        assert config != null;
+
+        this.contentSession = contentSession;
+        this.config = config;
+    }
     //--------------------------------------------------< ValidatorProvider >---
     @Nonnull
     @Override
@@ -47,12 +54,18 @@ public class UserValidatorProvider implements ValidatorProvider {
     }
 
     //-----------------------------------------------------------< internal >---
-
+    @Nonnull
     UserManagerConfig getConfig() {
         return config;
     }
 
+    @Nonnull
     CoreValueFactory getValueFactory() {
         return contentSession.getCoreValueFactory();
+    }
+
+    @Nonnull
+    ContentSession getContentSession() {
+        return contentSession;
     }
 }

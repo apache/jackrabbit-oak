@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import java.util.Collections;
 import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.jcr.nodetype.ConstraintViolationException;
 
+import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.commit.UniquePropertyValidator;
@@ -35,6 +35,9 @@ import org.apache.jackrabbit.util.Text;
  * UserValidator... TODO
  */
 class UserValidator extends UniquePropertyValidator {
+
+    private final static Set<String> PROPERTY_NAMES = ImmutableSet.copyOf(new String[] {
+            UserConstants.REP_AUTHORIZABLE_ID, UserConstants.REP_PRINCIPAL_NAME});
 
     private final UserValidatorProvider provider;
 
@@ -52,7 +55,7 @@ class UserValidator extends UniquePropertyValidator {
     @Override
     protected Set<String> getPropertyNames() {
         // TODO: make configurable
-        return Collections.singleton(UserConstants.REP_PRINCIPAL_NAME);
+        return PROPERTY_NAMES;
     }
 
     //----------------------------------------------------------< Validator >---

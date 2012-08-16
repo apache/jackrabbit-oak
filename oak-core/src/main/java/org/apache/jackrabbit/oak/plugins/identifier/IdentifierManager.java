@@ -24,7 +24,7 @@ import java.util.Set;
 import java.util.UUID;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import javax.jcr.RepositoryException;
+import javax.jcr.PropertyType;
 import javax.jcr.query.Query;
 
 import org.apache.jackrabbit.JcrConstants;
@@ -60,12 +60,12 @@ public class IdentifierManager {
     }
 
     @Nonnull
-    public static String generateUUID(String hint) throws RepositoryException {
+    public static String generateUUID(String hint) {
         try {
             UUID uuid = UUID.nameUUIDFromBytes(hint.getBytes("UTF-8"));
             return uuid.toString();
         } catch (UnsupportedEncodingException e) {
-            throw new RepositoryException("Unexpected error while creating authorizable node", e);
+            throw new RuntimeException("Unexpected error while creating authorizable node", e);
         }
     }
 
@@ -109,12 +109,49 @@ public class IdentifierManager {
     @CheckForNull
     public Tree getTree(String identifier) {
         if (isValidUUID(identifier)) {
-            return findByJcrUuid(identifier);
+            return findTreeByJcrUuid(identifier);
         } else {
             // TODO as stated in NodeDelegate#getIdentifier() a non-uuid ID should
             // TODO consisting of closest referenceable parent and a relative path
             // TODO irrespective of the accessibility of the parent node(s)
             return root.getTree(identifier);
+        }
+    }
+
+    /**
+     * The path of the tree identified by the specified {@code identifier} or {@code null}.
+     *
+     * @param identifier The identifier of the Tree such as exposed by {@link javax.jcr.Node#getIdentifier()}
+     * @return The tree with the given {@code identifier} or {@code null} if no
+     * such tree exists or isn't accessible to the content session.
+     */
+    @CheckForNull
+    public String getPath(String identifier) {
+        if (isValidUUID(identifier)) {
+            return resolveUUID(identifier);
+        } else {
+            // TODO as stated in NodeDelegate#getIdentifier() a non-uuid ID should
+            // TODO consisting of closest referenceable parent and a relative path
+            // TODO irrespective of the accessibility of the parent node(s)
+            return root.getTree(identifier).getPath();
+        }
+    }
+
+    /**
+     * Returns the path of the tree references by the specified (weak)
+     * reference {@code CoreValue value}.
+     *
+     * @param referenceValue A (weak) reference value.
+     * @return The tree with the given {@code identifier} or {@code null} if no
+     * such tree exists or isn't accessible to the content session.
+     */
+    @CheckForNull
+    public String getPath(CoreValue referenceValue) {
+        int type = referenceValue.getType();
+        if (type == PropertyType.REFERENCE || type == PropertyType.WEAKREFERENCE) {
+            return resolveUUID(referenceValue);
+        } else {
+            throw new IllegalArgumentException("Invalid value type");
         }
     }
 
@@ -170,10 +207,13 @@ public class IdentifierManager {
     }
 
     @CheckForNull
-    private Tree findByJcrUuid(String id) {
-        try {
-            Map<String, CoreValue> bindings = Collections.singletonMap("id", contentSession.getCoreValueFactory().createValue(id));
+    private String resolveUUID(String uuid) {
+        return resolveUUID(contentSession.getCoreValueFactory().createValue(uuid));
+    }
 
+    private String resolveUUID(CoreValue uuid) {
+        try {
+            Map<String, CoreValue> bindings = Collections.singletonMap("id", uuid);
             Result result = contentSession.getQueryEngine().executeQuery("SELECT * FROM [nt:base] WHERE [jcr:uuid] = $id", Query.JCR_SQL2,
                     Long.MAX_VALUE, 0, bindings, new NamePathMapper.Default());
 
@@ -186,10 +226,16 @@ public class IdentifierManager {
                     path = rr.getPath();
                 }
             }
-            return path == null ? null : root.getTree(path);
+            return path == null ? null : path;
         } catch (ParseException ex) {
             log.error("query failed", ex);
             return null;
         }
+    }
+
+    @CheckForNull
+    private Tree findTreeByJcrUuid(String uuid) {
+        String path = resolveUUID(uuid);
+        return (path == null) ? null : root.getTree(path);
     }
 }

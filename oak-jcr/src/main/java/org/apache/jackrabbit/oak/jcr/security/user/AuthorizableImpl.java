@@ -16,16 +16,10 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.user;
 
-import org.apache.jackrabbit.api.security.user.Authorizable;
-import org.apache.jackrabbit.api.security.user.Group;
-import org.apache.jackrabbit.api.security.user.User;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
-import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.apache.jackrabbit.util.Text;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.PropertyIterator;
@@ -33,10 +27,20 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.PropertyDefinition;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
+
+import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.apache.jackrabbit.util.Text;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * AuthorizableImpl... TODO
@@ -76,8 +80,13 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
      * @see org.apache.jackrabbit.api.security.user.Authorizable#getID()
      */
     @Override
-    public String getID() throws RepositoryException {
-        return Text.unescapeIllegalJcrChars(getNode().getName());
+    public String getID() {
+        PropertyState idProp = tree.getProperty(UserConstants.REP_AUTHORIZABLE_ID);
+        if (idProp != null) {
+            return idProp.getValue().getString();
+        } else {
+            return Text.unescapeIllegalJcrChars(getTree().getName());
+        }
     }
 
     /**
@@ -107,7 +116,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
             throw new RepositoryException("The administrator cannot be removed.");
         }
         userManager.onRemove(this);
-        node.remove();
+        tree.remove();
     }
 
     /**
@@ -272,12 +281,8 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
      */
     @Override
     public String toString() {
-        try {
-            String typeStr = (isGroup()) ? "Group '" : "User '";
-            return new StringBuilder().append(typeStr).append(getID()).append('\'').toString();
-        } catch (RepositoryException e) {
-            return super.toString();
-        }
+        String typeStr = (isGroup()) ? "Group '" : "User '";
+        return new StringBuilder().append(typeStr).append(getID()).append('\'').toString();
     }
 
     //--------------------------------------------------------------------------
@@ -290,10 +295,6 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
 
     Tree getTree() {
         return tree;
-    }
-
-    String getContentID() throws RepositoryException {
-        return getNode().getUUID();
     }
 
     String getJcrName(String oakName) {
@@ -314,8 +315,8 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
     String getPrincipalName() throws RepositoryException {
         String principalName;
         String propName = getJcrName(REP_PRINCIPAL_NAME);
-        if (node.hasProperty(propName)) {
-            principalName = node.getProperty(propName).getString();
+        if (tree.hasProperty(propName)) {
+            principalName = tree.getProperty(propName).getValue().getString();
         } else {
             log.debug("Authorizable without principal name -> using ID as fallback.");
             principalName = getID();
@@ -421,7 +422,13 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
             return Collections.<Group>emptySet().iterator();
         }
 
-        MembershipManager membershipManager = userManager.getMembershipManager();
-        return membershipManager.getMembership(this, includeInherited);
+        MembershipProvider mMgr = userManager.getMembershipProvider();
+        Iterator<String> oakPaths = mMgr.getMembership(tree, includeInherited);
+        if (oakPaths.hasNext()) {
+            AuthorizableIterator groups = new AuthorizableIterator(oakPaths, userManager, UserManager.SEARCH_TYPE_AUTHORIZABLE);
+            return new RangeIteratorAdapter(groups, groups.getSize());
+        } else {
+            return RangeIteratorAdapter.EMPTY;
+        }
     }
 }
