@@ -17,9 +17,9 @@
 package org.apache.jackrabbit.oak.security.privilege;
 
 import javax.annotation.Nonnull;
-import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.CoreValueFactory;
+import org.apache.jackrabbit.oak.core.ReadOnlyTree;
 import org.apache.jackrabbit.oak.spi.commit.SubtreeValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
@@ -33,16 +33,16 @@ import static org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants.RE
  */
 public class PrivilegeValidatorProvider implements ValidatorProvider {
 
-    private final ContentSession contentSession = null; // TODO
+    private final CoreValueFactory valueFactory;
+
+    public PrivilegeValidatorProvider(CoreValueFactory valueFactory) {
+        this.valueFactory = valueFactory;
+    }
 
     @Nonnull
     @Override
     public Validator getRootValidator(NodeState before, NodeState after) {
-        try {
-            // TODO check again...
-            return new SubtreeValidator(new PrivilegeRegistry(contentSession), JCR_SYSTEM, REP_PRIVILEGES);
-        } catch (RepositoryException e) {
-            throw new IllegalStateException(e);
-        }
+        // TODO check again...
+        return new SubtreeValidator(new PrivilegeValidator(valueFactory, new ReadOnlyTree(before)), JCR_SYSTEM, REP_PRIVILEGES);
     }
 }
