@@ -31,6 +31,7 @@ import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Impersonation;
+import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -111,7 +112,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
 
         // make sure the given principal doesn't refer to the admin user.
         Authorizable a = user.getUserManager().getAuthorizable(p);
-        if (a != null && user.getUserManager().isAdminId(a.getID())) {
+        if (a != null && !a.isGroup() && ((User)a).isAdmin()) {
             log.debug("Admin principal is already granted impersonation.");
             return false;
         }
@@ -192,8 +193,11 @@ class ImpersonationImpl implements Impersonation, UserConstants {
 
     private void updateImpersonatorNames(Set<String> principalNames) throws RepositoryException {
         String[] pNames = principalNames.toArray(new String[principalNames.size()]);
+        Tree userTree = user.getTree();
         if (pNames.length == 0) {
-            user.getUserManager().removeInternalProperty(user.getTree(), REP_IMPERSONATORS);
+            if (userTree.hasProperty(REP_IMPERSONATORS)) {
+                userTree.removeProperty(REP_IMPERSONATORS);
+            } // nothing to do.
         } else {
             user.getUserManager().setInternalProperty(user.getTree(), REP_IMPERSONATORS, pNames, PropertyType.STRING);
         }

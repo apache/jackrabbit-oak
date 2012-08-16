@@ -25,9 +25,11 @@ import javax.jcr.RepositoryException;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.principal.TreeBasedPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -117,8 +119,9 @@ class GroupImpl extends AuthorizableImpl implements Group {
             return false;
         }
 
+        String memberID = authorizable.getID();
         if (authorizableImpl.isGroup()) {
-            if (getID().equals(authorizableImpl.getID())) {
+            if (getID().equals(memberID)) {
                 String msg = "Attempt to add a group as member of itself (" + getID() + ").";
                 log.debug(msg);
                 return false;
@@ -130,11 +133,11 @@ class GroupImpl extends AuthorizableImpl implements Group {
         }
 
         if (isDeclaredMember(authorizable)) {
-            log.debug("Authorizable {} is already declared member of {}", authorizable.getID(), getID());
+            log.debug("Authorizable {} is already declared member of {}", memberID, getID());
             return false;
         }
 
-        return getUserManager().getMembershipManager().addMember(this, authorizableImpl);
+        return getUserManager().getMembershipProvider().addMember(getTree(), authorizableImpl.getTree());
     }
 
     /**
@@ -149,7 +152,8 @@ class GroupImpl extends AuthorizableImpl implements Group {
         if (isEveryone()) {
             return false;
         } else {
-            return getUserManager().getMembershipManager().removeMember(this, (AuthorizableImpl) authorizable);
+            MembershipProvider mMgr = getUserManager().getMembershipProvider();
+            return mMgr.removeMember(getTree(), ((AuthorizableImpl) authorizable).getTree());
         }
     }
 
@@ -163,13 +167,21 @@ class GroupImpl extends AuthorizableImpl implements Group {
      * @throws RepositoryException If an error occurs.
      */
     private Iterator<Authorizable> getMembers(boolean includeInherited) throws RepositoryException {
+        UserManagerImpl uMgr = getUserManager();
         if (isEveryone()) {
             // TODO: improve using authorizable-query
             String propName = getJcrName(REP_PRINCIPAL_NAME);
-            return getUserManager().findAuthorizables(propName, null, UserManager.SEARCH_TYPE_AUTHORIZABLE);
+            return uMgr.findAuthorizables(propName, null, UserManager.SEARCH_TYPE_AUTHORIZABLE);
         } else {
-            MembershipManager mMgr = getUserManager().getMembershipManager();
-            return mMgr.getMembers(this, UserManager.SEARCH_TYPE_AUTHORIZABLE, includeInherited);
+            MembershipProvider mMgr = uMgr.getMembershipProvider();
+            Iterator oakPaths = mMgr.getMembers(getTree(), UserManager.SEARCH_TYPE_AUTHORIZABLE, includeInherited);
+            if (!oakPaths.hasNext()) {
+                AuthorizableIterator iterator = new AuthorizableIterator(oakPaths, uMgr);
+                return new RangeIteratorAdapter(iterator, iterator.getSize());
+            } else {
+                return RangeIteratorAdapter.EMPTY;
+
+            }
         }
     }
 
@@ -193,8 +205,9 @@ class GroupImpl extends AuthorizableImpl implements Group {
         } else if (getID().equals(authorizable.getID())) {
             return false;
         } else {
-            AuthorizableImpl authorizableImpl = (AuthorizableImpl) authorizable;
-            return getUserManager().getMembershipManager().isMember(this, authorizableImpl, includeInherited);
+            Tree authorizableTree = ((AuthorizableImpl) authorizable).getTree();
+            MembershipProvider mgr = getUserManager().getMembershipProvider();
+            return mgr.isMember(this.getTree(), authorizableTree, includeInherited);
         }
     }
 
@@ -204,7 +217,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
     private class GroupPrincipal extends TreeBasedPrincipal implements java.security.acl.Group {
 
         GroupPrincipal(String principalName) {
-            super(principalName, getTree(), getUserManager().getSessionDelegate().getNamePathMapper());
+            super(principalName, getTree(), getUserManager().getNamePathMapper());
         }
 
         @Override

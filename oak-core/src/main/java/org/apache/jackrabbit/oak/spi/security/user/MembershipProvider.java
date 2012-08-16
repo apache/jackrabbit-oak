@@ -16,24 +16,32 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user;
 
+import java.util.Iterator;
+
+import javax.annotation.Nonnull;
+
+import org.apache.jackrabbit.oak.api.Tree;
+
 /**
- * UserConstants...
+ * MembershipProvider... TODO
  */
-public interface UserConstants {
+public interface MembershipProvider {
 
-    String NT_REP_AUTHORIZABLE = "rep:Authorizable";
-    String NT_REP_AUTHORIZABLE_FOLDER = "rep:AuthorizableFolder";
-    String NT_REP_USER = "rep:User";
-    String NT_REP_GROUP = "rep:Group";
-    String NT_REP_MEMBERS = "rep:Members";
-    String REP_PRINCIPAL_NAME = "rep:principalName";
-    String REP_AUTHORIZABLE_ID = "rep:authorizableId";
-    String REP_PASSWORD = "rep:password";
-    String REP_DISABLED = "rep:disabled";
-    String REP_MEMBERS = "rep:members";
-    String REP_IMPERSONATORS = "rep:impersonators";
+    @Nonnull
+    Iterator<String> getMembership(String authorizableId, boolean includeInherited);
 
-    String DEFAULT_USER_PATH = "rep:security/rep:authorizables/rep:users";
-    String DEFAULT_GROUP_PATH = "rep:security/rep:authorizables/rep:groups";
+    @Nonnull
+    Iterator<String> getMembership(Tree authorizableTree, boolean includeInherited);
 
+    @Nonnull
+    Iterator<String> getMembers(String groupId, int authorizableType, boolean includeInherited);
+
+    @Nonnull
+    Iterator<String> getMembers(Tree groupTree, int authorizableType, boolean includeInherited);
+
+    boolean isMember(Tree groupTree, Tree authorizableTree, boolean includeInherited);
+
+    boolean addMember(Tree groupTree, Tree newMemberTree);
+
+    boolean removeMember(Tree groupTree, Tree memberTree);
 }

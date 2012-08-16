@@ -23,7 +23,6 @@ import java.util.Iterator;
 import java.util.List;
 import javax.annotation.CheckForNull;
 import javax.jcr.Node;
-import javax.jcr.PathNotFoundException;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -37,19 +36,19 @@ import org.apache.jackrabbit.api.security.user.Query;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.jcr.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.security.user.query.XPathQueryBuilder;
 import org.apache.jackrabbit.oak.jcr.security.user.query.XPathQueryEvaluator;
 import org.apache.jackrabbit.oak.jcr.value.ValueConverter;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.security.user.UserProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
 import org.apache.jackrabbit.oak.spi.security.user.PasswordUtility;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserManagerConfig;
-import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,11 +62,9 @@ public class UserManagerImpl implements UserManager {
 
     private final SessionDelegate sessionDelegate;
     private final UserManagerConfig config;
-    private final UserProvider userProvider;
+    private final UserProviderImpl userProvider;
     private final NodeTreeUtil util;
 
-    private MembershipManager membershipManager;
-    
     public UserManagerImpl(SessionDelegate sessionDelegate, Root root, UserManagerConfig config) {
         this.sessionDelegate = sessionDelegate;
         this.config = (config == null) ? new UserManagerConfig("admin") : config;
@@ -352,37 +349,16 @@ public class UserManagerImpl implements UserManager {
         userNode.setProperty(oakName, cvs);
     }
 
-    void setInternalProperty(Tree userNode, String oakName, List<CoreValue> values) throws RepositoryException {
-        userNode.setProperty(oakName, values);
-    }
-
-    void removeInternalProperty(Tree userNode, String oakName) throws RepositoryException {
-        PropertyState pd = userNode.getProperty(oakName);
-        if (pd == null) {
-            throw new PathNotFoundException("Missing authorizable property " + oakName);
-        } else {
-            userNode.removeProperty(oakName);
-        }
-    }
-
     Session getSession() {
         return sessionDelegate.getSession();
     }
 
-    SessionDelegate getSessionDelegate() {
-        return sessionDelegate;
+    NamePathMapper getNamePathMapper() {
+        return sessionDelegate.getNamePathMapper();
     }
 
-    MembershipManager getMembershipManager() {
-        if (membershipManager == null) {
-            int splitSize = config.getConfigValue(UserManagerConfig.PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE, 0);
-            if (splitSize < 4) {
-                log.warn("Invalid value {} for {}. Expected integer >= 4", splitSize, UserManagerConfig.PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE);
-                splitSize = 0;
-            }
-            membershipManager = new MembershipManager(this, splitSize);
-        }
-        return membershipManager;
+    MembershipProvider getMembershipProvider() {
+        return userProvider;
     }
 
     @CheckForNull
@@ -398,11 +374,6 @@ public class UserManagerImpl implements UserManager {
         } else {
             throw new RepositoryException("Unexpected node type " + node.getPrimaryNodeType().getName() + ". Expected rep:User or rep:Group.");
         }
-    }
-
-    @CheckForNull
-    Authorizable getAuthorizableByNodeID(String identifier) throws RepositoryException {
-        return getAuthorizable(sessionDelegate.getIdManager().getTree(identifier));
     }
 
     String getJcrName(String oakName) {

@@ -35,10 +35,10 @@ public interface UserProvider {
     Tree createGroup(String groupId, String intermediateJcrPath) throws RepositoryException;
 
     @CheckForNull
-    Tree getAuthorizable(String authorizableId) throws RepositoryException;
+    Tree getAuthorizable(String authorizableId);
 
     @CheckForNull
-    Tree getAuthorizable(String authorizableId, int authorizableType) throws RepositoryException;
+    Tree getAuthorizable(String authorizableId, int authorizableType);
 
     @CheckForNull
     Tree getAuthorizableByPath(String authorizableOakPath);
