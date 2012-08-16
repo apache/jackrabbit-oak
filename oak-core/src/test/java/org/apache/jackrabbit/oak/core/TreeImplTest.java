@@ -85,7 +85,7 @@ public class TreeImplTest extends AbstractOakTest {
         Iterable<Tree> children = tree.getChildren();
 
         Set<String> expectedPaths = new HashSet<String>();
-        Collections.addAll(expectedPaths, "x", "y", "z");
+        Collections.addAll(expectedPaths, "/x", "/y", "/z");
 
         for (Tree child : children) {
             assertTrue(expectedPaths.remove(child.getPath()));

@@ -104,9 +104,9 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public String getPath() {
-        // Shortcut for root
-        if (parent == null) {
-            return "";
+        if (isRoot()) {
+            // shortcut
+            return "/";
         }
 
         StringBuilder sb = new StringBuilder();
@@ -430,12 +430,9 @@ public class TreeImpl implements Tree, PurgeListener {
             throw new IllegalStateException("Cannot build the path of a removed tree");
         }
 
-        if (parent != null) {
+        if (!isRoot()) {
             parent.buildPath(sb);
-            if (sb.length() > 0) {
-                sb.append('/');
-            }
-            sb.append(name);
+            sb.append('/').append(name);
         }
     }
 

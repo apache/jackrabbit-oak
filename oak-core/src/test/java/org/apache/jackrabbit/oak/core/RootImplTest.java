@@ -49,13 +49,11 @@ public class RootImplTest extends AbstractOakTest {
         RootImpl root = createRootImpl(null);
 
         List<String> validPaths = new ArrayList<String>();
-        validPaths.add("");
-        validPaths.add("x");
-        validPaths.add("x/xx");
-        validPaths.add("y");
-        validPaths.add("z");
-        //validPaths.add("/");  FIXME: see OAK-221
-        //validPaths.add("/x"); FIXME: see OAK-221
+        validPaths.add("/");
+        validPaths.add("/x");
+        validPaths.add("/x/xx");
+        validPaths.add("/y");
+        validPaths.add("/z");
 
         for (String treePath : validPaths) {
             Tree tree = root.getTree(treePath);
@@ -64,10 +62,8 @@ public class RootImplTest extends AbstractOakTest {
         }
 
         List<String> invalidPaths = new ArrayList<String>();
-        invalidPaths.add("any");
-        invalidPaths.add("x/any");
-        //invalidPaths.add("/");      FIXME: see OAK-221
-        //invalidPaths.add("/x/xx");  FIXME: see OAK-221
+        invalidPaths.add("/any");
+        invalidPaths.add("/x/any");
 
         for (String treePath : invalidPaths) {
             assertNull(root.getTree(treePath));

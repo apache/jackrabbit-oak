@@ -30,17 +30,15 @@ import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.ItemNotFoundException;
 
-import org.apache.jackrabbit.JcrConstants;
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterators;
 
 /**
  * {@code NodeDelegate} serve as internal representations of {@code Node}s.
@@ -69,7 +67,7 @@ public class NodeDelegate extends ItemDelegate {
 
     @Override
     public String getPath() throws InvalidItemStateException {
-        return '/' + getTree().getPath();
+        return getTree().getPath();
     }
 
     @Override
