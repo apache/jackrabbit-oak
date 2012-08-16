@@ -145,6 +145,7 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
     //------------------------------------------------------------< private >---
 
     private NodeState getNode(String path) {
+        assert path.startsWith("/");
         NodeState node = getRoot();
         for (String name : elements(path)) {
             node = node.getChildNode(name);
@@ -158,7 +159,7 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
 
     private void commit(String jsop) {
         MicroKernel kernel = store.getKernel();
-        branchRevision = kernel.commit("/", jsop, branchRevision, null);
+        branchRevision = kernel.commit("", jsop, branchRevision, null);
         currentRoot = new KernelNodeState(kernel, "/", branchRevision);
         committed = currentRoot;
     }

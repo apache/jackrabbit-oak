@@ -16,15 +16,14 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
-import static junit.framework.Assert.assertEquals;
-
+import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.SinglePropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableMap;
+import static junit.framework.Assert.assertEquals;
 
 public class JsopDiffTest {
 
@@ -35,23 +34,23 @@ public class JsopDiffTest {
 
         diff = new JsopDiff();
         diff.propertyAdded(before);
-        assertEquals("^\"foo\":\"bar\"", diff.toString());
+        assertEquals("^\"/foo\":\"bar\"", diff.toString());
 
         diff = new JsopDiff();
         diff.propertyChanged(before, SinglePropertyState.create("foo", 123));
-        assertEquals("^\"foo\":123", diff.toString());
+        assertEquals("^\"/foo\":123", diff.toString());
 
         diff = new JsopDiff();
         diff.propertyChanged(before, SinglePropertyState.create("foo", 1.23));
-        assertEquals("^\"foo\":\"dou:1.23\"", diff.toString()); // TODO: 1.23?
+        assertEquals("^\"/foo\":\"dou:1.23\"", diff.toString()); // TODO: 1.23?
 
         diff = new JsopDiff();
         diff.propertyChanged(before, SinglePropertyState.create("foo", true));
-        assertEquals("^\"foo\":true", diff.toString());
+        assertEquals("^\"/foo\":true", diff.toString());
 
         diff = new JsopDiff();
         diff.propertyDeleted(before);
-        assertEquals("^\"foo\":null", diff.toString());
+        assertEquals("^\"/foo\":null", diff.toString());
     }
 
     @Test
@@ -67,15 +66,15 @@ public class JsopDiffTest {
 
         diff = new JsopDiff();
         diff.childNodeAdded("test", before);
-        assertEquals("+\"test\":{}", diff.toString());
+        assertEquals("+\"/test\":{}", diff.toString());
 
         diff = new JsopDiff();
         diff.childNodeChanged("test", before, after);
-        assertEquals("^\"test/a\":1+\"test/x\":{}", diff.toString());
+        assertEquals("^\"/test/a\":1+\"/test/x\":{}", diff.toString());
 
         diff = new JsopDiff();
         diff.childNodeDeleted("test", after);
-        assertEquals("-\"test\"", diff.toString());
+        assertEquals("-\"/test\"", diff.toString());
     }
 
 }

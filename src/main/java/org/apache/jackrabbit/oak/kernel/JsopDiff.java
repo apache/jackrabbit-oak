@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
-import static org.apache.jackrabbit.oak.kernel.CoreValueMapper.TYPE2HINT;
-
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.mk.json.JsopBuilder;
@@ -27,6 +25,8 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+
+import static org.apache.jackrabbit.oak.kernel.CoreValueMapper.TYPE2HINT;
 
 class JsopDiff implements NodeStateDiff {
 
@@ -40,7 +40,7 @@ class JsopDiff implements NodeStateDiff {
     }
 
     public JsopDiff() {
-        this(new JsopBuilder(), "");
+        this(new JsopBuilder(), "/");
     }
 
     public static void diffToJsop(
@@ -101,7 +101,7 @@ class JsopDiff implements NodeStateDiff {
         return PathUtils.concat(path, name);
     }
 
-    private void toJson(NodeState nodeState, JsopBuilder jsop) {
+    private static void toJson(NodeState nodeState, JsopBuilder jsop) {
         jsop.object();
         for (PropertyState property : nodeState.getProperties()) {
             jsop.key(property.getName());
@@ -114,7 +114,7 @@ class JsopDiff implements NodeStateDiff {
         jsop.endObject();
     }
 
-    private void toJson(PropertyState propertyState, JsopBuilder jsop) {
+    private static void toJson(PropertyState propertyState, JsopBuilder jsop) {
         if (propertyState.isArray()) {
             jsop.array();
             for (CoreValue value : propertyState.getValues()) {
@@ -126,7 +126,7 @@ class JsopDiff implements NodeStateDiff {
         }
     }
 
-    private void toJson(CoreValue value, JsopBuilder jsop) {
+    private static void toJson(CoreValue value, JsopBuilder jsop) {
         int type = value.getType();
         if (type == PropertyType.BOOLEAN) {
             jsop.value(value.getBoolean());
