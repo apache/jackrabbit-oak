@@ -50,7 +50,6 @@ public interface SessionQueryEngine {
      *
      * @param statement the query statement
      * @param language the language
-     * @param session the content session to use
      * @param limit the maximum result set size
      * @param offset the number of rows to skip
      * @param bindings the bind variable value bindings
