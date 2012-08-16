@@ -22,12 +22,14 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import javax.annotation.CheckForNull;
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.Subject;
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.CallbackHandler;
+import javax.security.auth.callback.NameCallback;
 import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.auth.login.LoginException;
 
@@ -35,6 +37,7 @@ import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.spi.security.authentication.PrincipalProviderCallback;
+import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -124,6 +127,9 @@ public class LoginModuleImpl extends AbstractLoginModule {
         if (success) {
             log.debug("Login: adding Credentials to shared state.");
             sharedState.put(SHARED_KEY_CREDENTIALS, credentials);
+
+            log.debug("Login: adding login name to shared state.");
+            sharedState.put(SHARED_KEY_LOGIN_NAME, userID);
         }
         return success;
     }
@@ -164,9 +170,13 @@ public class LoginModuleImpl extends AbstractLoginModule {
         Set<Principal> principals = new HashSet<Principal>();
         PrincipalProvider principalProvider = getPrincipalProvider();
         if (principalProvider != null && userID != null) {
-            Principal p = principalProvider.getPrincipal(userID); // TODO FIXME
+            // TODO fixme
+            Principal p = principalProvider.getPrincipal(userID);
             if (p != null) {
                 principals.add(p);
+                if ("admin".equals(p.getName())) {
+                    principals.add(AdminPrincipal.INSTANCE);
+                }
                 principals.addAll(principalProvider.getGroupMembership(p));
             } else {
                 log.debug("Commit: Cannot retrieve principal for userID '{}'.", userID);
@@ -194,6 +204,7 @@ public class LoginModuleImpl extends AbstractLoginModule {
         return principalProvider;
     }
 
+    @CheckForNull
     private String getUserID() {
         // TODO add proper implementation
         String userID = null;
@@ -207,8 +218,23 @@ public class LoginModuleImpl extends AbstractLoginModule {
                 if (bc instanceof SimpleCredentials) {
                     userID = ((SimpleCredentials) bc).getUserID();
                 }
+            } else {
+                try {
+                    NameCallback callback = new NameCallback("User-ID: ");
+                    callbackHandler.handle(new Callback[]{callback});
+                    userID = callback.getName();
+                } catch (UnsupportedCallbackException e) {
+                    log.warn("Credentials- or NameCallback must be supported");
+                } catch (IOException e) {
+                    log.error("Name-Callback failed: " + e.getMessage());
+                }
             }
         }
+
+        if (userID == null) {
+            userID = getSharedLoginName();
+        }
+
         return userID;
     }
 
