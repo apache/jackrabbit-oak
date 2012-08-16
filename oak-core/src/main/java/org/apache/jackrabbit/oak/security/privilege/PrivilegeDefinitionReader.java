@@ -32,7 +32,9 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.w3c.dom.Attr;
@@ -55,15 +57,20 @@ import static org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants.RE
  */
 class PrivilegeDefinitionReader {
 
-    private final ContentSession contentSession;
+    private final CoreValueFactory valueFactory;
+    private final Tree privilegesTree;
+
+    PrivilegeDefinitionReader(CoreValueFactory valueFactory, Tree privilegesTree) {
+        this.valueFactory = valueFactory;
+        this.privilegesTree = privilegesTree;
+    }
 
     PrivilegeDefinitionReader(ContentSession contentSession) {
-        this.contentSession = contentSession;
+        this(contentSession.getCoreValueFactory(), contentSession.getCurrentRoot().getTree(PRIVILEGES_PATH));
     }
 
     Map<String, PrivilegeDefinition> readDefinitions() {
         Map<String, PrivilegeDefinition> definitions = new HashMap<String, PrivilegeDefinition>();
-        Tree privilegesTree = contentSession.getCurrentRoot().getTree(PRIVILEGES_PATH);
         if (privilegesTree != null) {
             for (Tree child : privilegesTree.getChildren()) {
                 PrivilegeDefinition def = readDefinition(child);
@@ -74,7 +81,7 @@ class PrivilegeDefinitionReader {
     }
 
     PrivilegeDefinition readDefinition(Tree definitionTree) {
-        NodeUtil n = new NodeUtil(definitionTree, contentSession);
+        NodeUtil n = new NodeUtil(definitionTree, valueFactory, NamePathMapper.DEFAULT);
         String name = n.getName();
         boolean isAbstract = n.getBoolean(REP_IS_ABSTRACT);
         String[] declAggrNames = n.getStrings(REP_AGGREGATES);
