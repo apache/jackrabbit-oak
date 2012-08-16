@@ -167,7 +167,7 @@ public class SessionDelegate {
 
     @CheckForNull
     public NodeDelegate getRoot() {
-        Tree root = getTree("");
+        Tree root = getTree("/");
         if (root == null) {
             return null;
         } else {
@@ -320,27 +320,24 @@ public class SessionDelegate {
         return contentSession.getWorkspaceName();
     }
 
-    public void copy(String srcAbsPath, String destAbsPath) throws RepositoryException {
-        String srcPath = PathUtils.relativize("/", srcAbsPath);
-        String destPath = PathUtils.relativize("/", destAbsPath);
-
+    public void copy(String srcPath, String destPath) throws RepositoryException {
         // check destination
         Tree dest = getTree(destPath);
         if (dest != null) {
-            throw new ItemExistsException(destAbsPath);
+            throw new ItemExistsException(destPath);
         }
 
         // check parent of destination
         String destParentPath = PathUtils.getParentPath(destPath);
         Tree destParent = getTree(destParentPath);
         if (destParent == null) {
-            throw new PathNotFoundException(PathUtils.getParentPath(destAbsPath));
+            throw new PathNotFoundException(PathUtils.getParentPath(destPath));
         }
 
         // check source exists
         Tree src = getTree(srcPath);
         if (src == null) {
-            throw new PathNotFoundException(srcAbsPath);
+            throw new PathNotFoundException(srcPath);
         }
 
         try {
@@ -353,30 +350,28 @@ public class SessionDelegate {
         }
     }
 
-    public void move(String srcAbsPath, String destAbsPath, boolean transientOp)
+    public void move(String srcPath, String destPath, boolean transientOp)
             throws RepositoryException {
 
-        String srcPath = PathUtils.relativize("/", srcAbsPath);
-        String destPath = PathUtils.relativize("/", destAbsPath);
         Root moveRoot = transientOp ? root : contentSession.getCurrentRoot();
 
         // check destination
         Tree dest = moveRoot.getTree(destPath);
         if (dest != null) {
-            throw new ItemExistsException(destAbsPath);
+            throw new ItemExistsException(destPath);
         }
 
         // check parent of destination
         String destParentPath = PathUtils.getParentPath(destPath);
         Tree destParent = moveRoot.getTree(destParentPath);
         if (destParent == null) {
-            throw new PathNotFoundException(PathUtils.getParentPath(destAbsPath));
+            throw new PathNotFoundException(PathUtils.getParentPath(destPath));
         }
 
         // check source exists
         Tree src = moveRoot.getTree(srcPath);
         if (src == null) {
-            throw new PathNotFoundException(srcAbsPath);
+            throw new PathNotFoundException(srcPath);
         }
 
         try {

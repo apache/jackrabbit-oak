@@ -396,6 +396,7 @@ public class TreeImpl implements Tree, PurgeListener {
      */
     @CheckForNull
     TreeImpl getTree(String path) {
+        assert path.startsWith("/");
         TreeImpl child = this;
         for (String name : elements(path)) {
             child = child.internalGetChild(name);
