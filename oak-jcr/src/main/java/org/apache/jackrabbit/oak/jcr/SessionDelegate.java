@@ -175,6 +175,12 @@ public class SessionDelegate {
         }
     }
 
+    /**
+     * {@code NodeDelegate} at the given path
+     * @param path Oak path
+     * @return  The {@code NodeDelegate} at {@code path} or {@code null} if
+     * none exists or not accessible.
+     */
     @CheckForNull
     public NodeDelegate getNode(String path) {
         Tree tree = getTree(path);
@@ -320,6 +326,12 @@ public class SessionDelegate {
         return contentSession.getWorkspaceName();
     }
 
+    /**
+     * Copy a node
+     * @param srcPath  oak path to the source node to copy
+     * @param destPath  oak path to the destination
+     * @throws RepositoryException
+     */
     public void copy(String srcPath, String destPath) throws RepositoryException {
         // check destination
         Tree dest = getTree(destPath);
@@ -350,6 +362,13 @@ public class SessionDelegate {
         }
     }
 
+    /**
+     * Move a node
+     * @param srcPath  oak path to the source node to copy
+     * @param destPath  oak path to the destination
+     * @param transientOp  whether or not to perform the move in transient space
+     * @throws RepositoryException
+     */
     public void move(String srcPath, String destPath, boolean transientOp)
             throws RepositoryException {
 
@@ -429,6 +448,12 @@ public class SessionDelegate {
 
     //-----------------------------------------------------------< internal >---
 
+    /**
+     * Get the {@code Tree} with the given path
+     * @param path  oak path
+     * @return  tree at the given path or {@code null} if no such tree exists or
+     * if the tree at {@code path} is not accessible.
+     */
     @CheckForNull
     Tree getTree(String path) {
         return root.getTree(path);
