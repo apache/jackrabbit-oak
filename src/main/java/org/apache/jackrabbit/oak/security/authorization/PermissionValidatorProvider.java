@@ -31,8 +31,13 @@ import org.apache.jackrabbit.oak.util.NodeUtil;
  */
 public class PermissionValidatorProvider implements ValidatorProvider {
 
-    private final AccessControlContext acContext = null; // TODO
-    private final ContentSession contentSession = null; // TODO
+    private final ContentSession contentSession;
+    private final AccessControlContext accessControlContext;
+
+    public PermissionValidatorProvider(ContentSession contentSession, AccessControlContext accessControlContext) {
+        this.contentSession = contentSession;
+        this.accessControlContext = accessControlContext;
+    }
 
     //--------------------------------------------------< ValidatorProvider >---
     @Nonnull
@@ -40,6 +45,6 @@ public class PermissionValidatorProvider implements ValidatorProvider {
     public Validator getRootValidator(NodeState before, NodeState after) {
         NodeUtil rootBefore = new NodeUtil(new ReadOnlyTree(before), contentSession);
         NodeUtil rootAfter = new NodeUtil(new ReadOnlyTree(after), contentSession);
-        return new PermissionValidator(acContext.getPermissions(), rootBefore, rootAfter);
+        return new PermissionValidator(accessControlContext.getPermissions(), rootBefore, rootAfter);
     }
 }
