@@ -183,7 +183,7 @@ public class RootImplFuzzIT {
 
             @Override
             void apply(RootImpl root) {
-                root.move(source.substring(1), destination.substring(1));
+                root.move(source, destination);
             }
 
             @Override
@@ -203,7 +203,7 @@ public class RootImplFuzzIT {
 
             @Override
             void apply(RootImpl root) {
-                root.copy(source.substring(1), destination.substring(1));
+                root.copy(source, destination);
             }
 
             @Override

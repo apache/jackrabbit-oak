@@ -78,7 +78,7 @@ public class RootImplTest extends AbstractOakTest {
         Tree y = tree.getChild("y");
 
         assertTrue(tree.hasChild("x"));
-        root.move("x", "y/xx");
+        root.move("/x", "/y/xx");
         assertFalse(tree.hasChild("x"));
         assertTrue(y.hasChild("xx"));
         
@@ -93,13 +93,13 @@ public class RootImplTest extends AbstractOakTest {
     @Test
     public void move2() {
         RootImpl root = createRootImpl(null);
-        Tree r = root.getTree("");
+        Tree r = root.getTree("/");
         Tree x = r.getChild("x");
         Tree y = r.getChild("y");
 
         assertFalse(y.hasChild("x"));
         assertEquals("", x.getParent().getName());
-        root.move("x", "y/x");
+        root.move("/x", "/y/x");
         assertTrue(y.hasChild("x"));
         assertEquals("y", x.getParent().getName());
     }
@@ -110,11 +110,11 @@ public class RootImplTest extends AbstractOakTest {
      */
     public void removeMoved() throws CommitFailedException {
         RootImpl root = createRootImpl(null);
-        Tree r = root.getTree("");
+        Tree r = root.getTree("/");
         r.addChild("a");
         r.addChild("b");
 
-        root.move("a", "b/c");
+        root.move("/a", "/b/c");
         assertFalse(r.hasChild("a"));
         assertTrue(r.hasChild("b"));
 
@@ -133,7 +133,7 @@ public class RootImplTest extends AbstractOakTest {
         Tree tree = root.getTree("/");
 
         assertTrue(tree.hasChild("x"));
-        root.move("x", "xx");
+        root.move("/x", "/xx");
         assertFalse(tree.hasChild("x"));
         assertTrue(tree.hasChild("xx"));
         
@@ -152,7 +152,7 @@ public class RootImplTest extends AbstractOakTest {
         Tree y = tree.getChild("y");
 
         assertTrue(tree.hasChild("x"));
-        root.copy("x", "y/xx");
+        root.copy("/x", "/y/xx");
         assertTrue(tree.hasChild("x"));
         assertTrue(y.hasChild("xx"));
         
@@ -171,8 +171,8 @@ public class RootImplTest extends AbstractOakTest {
 
         Tree y = tree.getChild("y");
 
-        root.getTree("x").addChild("x1");
-        root.copy("x", "y/xx");
+        root.getTree("/x").addChild("x1");
+        root.copy("/x", "/y/xx");
         assertTrue(y.hasChild("xx"));
         assertTrue(y.getChild("xx").hasChild("x1"));
 
