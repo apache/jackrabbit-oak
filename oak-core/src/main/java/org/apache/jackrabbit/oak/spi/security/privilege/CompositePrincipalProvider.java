@@ -37,6 +37,7 @@ public class CompositePrincipalProvider implements PrincipalProvider {
     private final List<PrincipalProvider> providers;
 
     public CompositePrincipalProvider(List<PrincipalProvider> providers) {
+        assert providers != null;
         this.providers = providers;
     }
 
@@ -58,5 +59,14 @@ public class CompositePrincipalProvider implements PrincipalProvider {
             groups.addAll(provider.getGroupMembership(principal));
         }
         return groups;
+    }
+
+    @Override
+    public Set<Principal> getPrincipals(String userID) {
+        Set<Principal> principals = new HashSet<Principal>();
+        for (PrincipalProvider provider : providers) {
+            principals.addAll(provider.getPrincipals(userID));
+        }
+        return principals;
     }
 }
