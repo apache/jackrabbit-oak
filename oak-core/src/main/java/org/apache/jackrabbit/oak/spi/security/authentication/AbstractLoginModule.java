@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.spi.security.authentication;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
+import javax.annotation.CheckForNull;
 import javax.jcr.Credentials;
 import javax.security.auth.Subject;
 import javax.security.auth.callback.Callback;
@@ -45,6 +46,13 @@ public abstract class AbstractLoginModule implements LoginModule {
      * shared between multiple login modules.
      */
     public static final String SHARED_KEY_CREDENTIALS = "org.apache.jackrabbit.credentials";
+
+    /**
+     * Key of the sharedState entry referring to a valid login ID that is shared
+     * between multiple login modules.
+     */
+    public static final String SHARED_KEY_LOGIN_NAME = "javax.security.auth.login.name";
+
 
     protected Subject subject;
     protected CallbackHandler callbackHandler;
@@ -75,6 +83,7 @@ public abstract class AbstractLoginModule implements LoginModule {
     //--------------------------------------------------------------------------
     protected abstract Set<Class> getSupportedCredentials();
 
+    @CheckForNull
     protected Credentials getCredentials() {
         if (callbackHandler != null) {
             log.debug("Login: retrieving Credentials using callback.");
@@ -111,6 +120,7 @@ public abstract class AbstractLoginModule implements LoginModule {
         return null;
     }
 
+    @CheckForNull
     protected Credentials getSharedCredentials() {
         Credentials shared = null;
         if (sharedState.containsKey(SHARED_KEY_CREDENTIALS)) {
@@ -123,5 +133,14 @@ public abstract class AbstractLoginModule implements LoginModule {
         }
 
         return shared;
+    }
+
+    @CheckForNull
+    protected String getSharedLoginName() {
+        if (sharedState.containsKey(SHARED_KEY_LOGIN_NAME)) {
+            return (String) sharedState.get(SHARED_KEY_LOGIN_NAME);
+        } else {
+            return null;
+        }
     }
 }
