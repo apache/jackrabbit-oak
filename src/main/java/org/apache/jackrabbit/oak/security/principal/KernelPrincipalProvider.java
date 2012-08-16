@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.security.principal;
 import java.security.Principal;
 import java.security.acl.Group;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
@@ -29,7 +30,7 @@ import org.slf4j.LoggerFactory;
 /**
  * The {@code KernelPrincipalProvider} is a principal provider implementation
  * that operates on principal information read from user information stored
- * in the{@code MicroKernel}.
+ * in the {@code MicroKernel}.
  */
 public class KernelPrincipalProvider implements PrincipalProvider {
 
@@ -55,5 +56,15 @@ public class KernelPrincipalProvider implements PrincipalProvider {
     public Set<Group> getGroupMembership(Principal principal) {
         // TODO
         return Collections.<Group>singleton(EveryonePrincipal.getInstance());
+    }
+
+    @Override
+    public Set<Principal> getPrincipals(String userID) {
+        // TODO
+        Set<Principal> principals = new HashSet<Principal>();
+        Principal p = getPrincipal(userID);
+        principals.add(p);
+        principals.addAll(getGroupMembership(p));
+        return principals;
     }
 }

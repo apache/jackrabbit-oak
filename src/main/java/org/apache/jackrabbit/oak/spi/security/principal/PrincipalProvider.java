@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.spi.security.principal;
 import java.security.Principal;
 import java.security.acl.Group;
 import java.util.Set;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
 /**
  * PrincipalProvider... TODO
@@ -32,6 +34,7 @@ public interface PrincipalProvider {
      * @param principalName the name of the principal to retrieve
      * @return return the requested principal or {@code null}
      */
+    @CheckForNull
     Principal getPrincipal(String principalName);
 
     /**
@@ -48,5 +51,18 @@ public interface PrincipalProvider {
      * @return an iterator returning all groups the given principal is member of.
      * @see java.security.acl.Group#isMember(java.security.Principal)
      */
+    @Nonnull
     Set<Group> getGroupMembership(Principal principal);
+
+    /**
+     * Tries to resolve the specified {@code userID} to a valid principal and
+     * it's group membership. This method returns an empty set if the
+     * specified ID cannot be resolved.
+     *
+     * @param userID A userID.
+     * @return The set of principals associated with the specified {@code userID}
+     * or an empty set if it cannot be resolved.
+     */
+    @Nonnull
+    Set<Principal> getPrincipals(String userID);
 }
