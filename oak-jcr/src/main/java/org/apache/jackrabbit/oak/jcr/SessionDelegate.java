@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.jcr;
 
 import java.io.IOException;
 import java.util.concurrent.ScheduledExecutorService;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.ItemExistsException;
@@ -39,8 +40,9 @@ import org.apache.jackrabbit.oak.api.ChangeExtractor;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ConflictHandler;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.SessionQueryEngine;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.SessionQueryEngine;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
@@ -191,6 +193,22 @@ public class SessionDelegate {
     public NodeDelegate getNodeByIdentifier(String id) {
         Tree tree = idManager.getTree(id);
         return (tree == null) ? null : new NodeDelegate(this, tree);
+    }
+
+    @CheckForNull
+    /**
+     * {@code PropertyDelegate} at the given path
+     * @param path Oak path
+     * @return  The {@code PropertyDelegate} at {@code path} or {@code null} if
+     * none exists or not accessible.
+     */
+    public PropertyDelegate getProperty(String path) {
+        String parentPath = PathUtils.getParentPath(path);
+        String name = PathUtils.getName(path);
+
+        Tree parent = getTree(parentPath);
+        PropertyState propertyState = parent == null ? null : parent.getProperty(name);
+        return propertyState == null ? null : new PropertyDelegate(this, parent, propertyState);
     }
 
     @Nonnull

@@ -326,6 +326,7 @@ public class NodeDelegate extends ItemDelegate {
         return sessionDelegate.getTree(absPath);
     }
 
+    @Nonnull
     synchronized Tree getTree() throws InvalidItemStateException {
         resolve();
         if (tree == null) {
