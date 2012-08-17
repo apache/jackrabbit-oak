@@ -31,7 +31,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
-import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
@@ -62,12 +61,11 @@ import javax.jcr.observation.EventIterator;
 import javax.jcr.observation.EventListener;
 import javax.jcr.observation.ObservationManager;
 
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
-
-import com.google.common.collect.Sets;
 
 import static java.util.Arrays.asList;
 import static org.junit.Assert.assertEquals;
@@ -1596,35 +1594,61 @@ public class RepositoryTest extends AbstractRepositoryTest {
     }
 
     @Test
-    public void observationDispose() throws RepositoryException, ExecutionException, TimeoutException,
-                InterruptedException {
+    public void observationDispose() throws RepositoryException, InterruptedException, ExecutionException,
+            TimeoutException {
 
-        final List<Event> failedEvents = new ArrayList<Event>();
-
-        final ObservationManager obsMgr = getAdminSession().getWorkspace().getObservationManager();
-        final EventListener listener = new EventListener() {
-            @Override
-            public void onEvent(EventIterator events) {
-                while (events.hasNext()) {
-                    failedEvents.add(events.nextEvent());
+        final AtomicReference<CountDownLatch> hasEvents = new AtomicReference<CountDownLatch>(new CountDownLatch(1));
+        final AtomicReference<CountDownLatch> waitForRemove = new AtomicReference<CountDownLatch>(new CountDownLatch(1));
+        final Session observingSession = createAdminSession();
+        try {
+            final ObservationManager obsMgr = observingSession.getWorkspace().getObservationManager();
+            final EventListener listener = new EventListener() {
+                @Override
+                public void onEvent(EventIterator events) {
+                    while (events.hasNext()) {
+                        events.next();
+                        hasEvents.get().countDown();
+                        try {
+                            // After receiving an event wait until event listener is removed
+                            waitForRemove.get().await();
+                        }
+                        catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                        }
+                    }
                 }
-            }
-        };
-        obsMgr.addEventListener(listener, Event.NODE_ADDED | Event.NODE_REMOVED | Event.NODE_MOVED |
+            };
+
+            obsMgr.addEventListener(listener, Event.NODE_ADDED | Event.NODE_REMOVED | Event.NODE_MOVED |
                 Event.PROPERTY_ADDED | Event.PROPERTY_REMOVED | Event.PROPERTY_CHANGED | Event.PERSIST,
                 "/", true, null, null, false);
 
-        FutureTask<Void> disposer = new FutureTask<Void>(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                obsMgr.removeEventListener(listener);
-                return null;
-            }
-        });
+            // Generate two events
+            Node n = getNode(TEST_PATH);
+            n.setProperty("prop1", "val1");
+            n.setProperty("prop2", "val2");
+            n.getSession().save();
 
-        Executors.newSingleThreadExecutor().execute(disposer);
-        disposer.get(2, TimeUnit.SECONDS);
-        assertTrue(failedEvents.isEmpty());
+            // Make sure we see the first event
+            assertTrue(hasEvents.get().await(2, TimeUnit.SECONDS));
+
+            // Remove event listener before it receives the second event
+            Executors.newSingleThreadExecutor().submit(new Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    obsMgr.removeEventListener(listener);
+                    return null;
+                }
+            }).get(2, TimeUnit.SECONDS);
+            hasEvents.set(new CountDownLatch(1));
+            waitForRemove.get().countDown();
+
+            // Make sure we don't see the second event
+            assertFalse(hasEvents.get().await(2, TimeUnit.SECONDS));
+        }
+        finally {
+            observingSession.logout();
+        }
     }
 
     @Test

@@ -19,8 +19,6 @@ package org.apache.jackrabbit.oak.jcr.observation;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.jcr.RepositoryException;
@@ -41,31 +39,21 @@ public class ObservationManagerImpl implements ObservationManager {
 
     private final ScheduledExecutorService executor;
 
-    private ScheduledFuture<?> future = null;
-
     private final Map<EventListener, ChangeProcessor> processors =
             new HashMap<EventListener, ChangeProcessor>();
 
     private final AtomicBoolean hasEvents = new AtomicBoolean(false);
 
-    public ObservationManagerImpl(
-            SessionDelegate sessionDelegate,
-            ScheduledExecutorService executor) {
+    public ObservationManagerImpl(SessionDelegate sessionDelegate, ScheduledExecutorService executor) {
         this.sessionDelegate = sessionDelegate;
         this.executor = executor;
     }
 
-    private synchronized void sendEvents() {
-        for (ChangeProcessor processor : processors.values()) {
-            processor.run();
-        }
-    }
-
     public synchronized void dispose() {
-        if (future != null) {
-            future.cancel(false);
-            future = null;
+        for (ChangeProcessor processor : processors.values()) {
+            processor.stop();
         }
+        processors.clear();
     }
 
     /**
@@ -78,25 +66,14 @@ public class ObservationManagerImpl implements ObservationManager {
     }
 
     @Override
-    public synchronized void addEventListener(
-            EventListener listener, int eventTypes, String absPath,
-            boolean isDeep, String[] uuid, String[] nodeTypeName,
-            boolean noLocal) throws RepositoryException {
-        if (future == null) {
-            future = executor.scheduleWithFixedDelay(new Runnable() {
-                @Override
-                public void run() {
-                    sendEvents();
-                }
-            }, 100, 1000, TimeUnit.MILLISECONDS);
-        }
-
-        ChangeFilter filter = new ChangeFilter(
-                eventTypes, absPath, isDeep, uuid, nodeTypeName, noLocal);
+    public synchronized void addEventListener(EventListener listener, int eventTypes, String absPath,
+            boolean isDeep, String[] uuid, String[] nodeTypeName, boolean noLocal) throws RepositoryException {
+        ChangeFilter filter = new ChangeFilter(eventTypes, absPath, isDeep, uuid, nodeTypeName, noLocal);
         ChangeProcessor processor = processors.get(listener);
         if (processor == null) {
             processor = new ChangeProcessor(this, listener, filter);
             processors.put(listener, processor);
+            processor.start(executor);
         } else {
             processor.setFilter(filter);
         }
@@ -104,11 +81,10 @@ public class ObservationManagerImpl implements ObservationManager {
 
     @Override
     public synchronized void removeEventListener(EventListener listener) {
-        processors.remove(listener);
+        ChangeProcessor processor = processors.remove(listener);
 
-        if (processors.isEmpty()) {
-            future.cancel(false);
-            future = null;
+        if (processor != null) {
+            processor.stop();
         }
     }
 
