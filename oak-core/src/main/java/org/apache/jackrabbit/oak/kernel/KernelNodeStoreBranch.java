@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
-
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitEditor;
+import org.apache.jackrabbit.oak.spi.commit.CompositeEditor;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 
@@ -38,6 +38,9 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
     /** The underlying store to which this branch belongs */
     private final KernelNodeStore store;
 
+    /** The commit editor */
+    private final CommitEditor editor;
+
     /** Base state of this branch */
     private final NodeState base;
 
@@ -50,8 +53,13 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
     /** Last state which was committed to this branch */
     private NodeState committed;
 
-    KernelNodeStoreBranch(KernelNodeStore store) {
+    KernelNodeStoreBranch(KernelNodeStore store, CommitEditor editor) {
         this.store = store;
+        if (editor == null) {
+            this.editor = store.getEditor();
+        } else {
+            this.editor = new CompositeEditor(store.getEditor(), editor);
+        }
 
         MicroKernel kernel = store.getKernel();
         this.branchRevision = kernel.branch(null);
@@ -61,13 +69,13 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
     }
 
     @Override
-    public NodeState getRoot() {
-        return currentRoot;
+    public NodeState getBase() {
+        return base;
     }
 
     @Override
-    public NodeState getBase() {
-        return base;
+    public NodeState getRoot() {
+        return currentRoot;
     }
 
     @Override
@@ -122,14 +130,12 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
 
     @Override
     public KernelNodeState merge() throws CommitFailedException {
-        MicroKernel kernel = store.getKernel();
-        CommitEditor editor = store.getEditor();
-
         NodeState oldRoot = base;
         NodeState toCommit = editor.editCommit(store, oldRoot, currentRoot);
         setRoot(toCommit);
 
         try {
+            MicroKernel kernel = store.getKernel();
             String mergedRevision = kernel.merge(branchRevision, null);
             branchRevision = null;
             currentRoot = null;
@@ -163,5 +169,4 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
         currentRoot = new KernelNodeState(kernel, "/", branchRevision);
         committed = currentRoot;
     }
-
 }

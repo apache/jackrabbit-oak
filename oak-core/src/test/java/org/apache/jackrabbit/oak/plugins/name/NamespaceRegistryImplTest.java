@@ -16,22 +16,25 @@
 */
 package org.apache.jackrabbit.oak.plugins.name;
 
-import static org.junit.Assert.assertEquals;
-
-import javax.jcr.GuestCredentials;
 import javax.jcr.NamespaceRegistry;
 
+import org.apache.jackrabbit.oak.AbstractOakTest;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.junit.Test;
 
-public class NamespaceRegistryImplTest {
+import static org.junit.Assert.assertEquals;
+
+public class NamespaceRegistryImplTest extends AbstractOakTest {
+
+    @Override
+    protected ContentRepository createRepository() {
+        return createEmptyRepository();
+    }
 
     @Test
     public void testMappings() throws Exception {
-        ContentRepository repository = new ContentRepositoryImpl();
-        ContentSession session = repository.login(new GuestCredentials(), null);
+        ContentSession session = createAdminSession();
         NamespaceRegistry r = new NamespaceRegistryImpl(session);
 
         assertEquals("", r.getURI(""));
@@ -55,5 +58,4 @@ public class NamespaceRegistryImplTest {
         assertEquals(r.getPrefix("n2"), "p2");
 
     }
-
 }

@@ -97,8 +97,8 @@ public class KernelNodeStore implements NodeStore {
     }
 
     @Override
-    public NodeStoreBranch branch() {
-        return new KernelNodeStoreBranch(this);
+    public NodeStoreBranch branch(CommitEditor commitEditor) {
+        return new KernelNodeStoreBranch(this, commitEditor);
     }
 
     @Override
