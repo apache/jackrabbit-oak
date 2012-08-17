@@ -20,7 +20,6 @@ import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
-import org.junit.After;
 import org.junit.Test;
 
 import static org.junit.Assert.fail;
@@ -44,37 +43,45 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
      */
     @Test
     public void sessionIsolation() throws RepositoryException {
-        Session session0 = createAnonymousSession();
-        Node testNode = session0.getNode("/").addNode("testNode");
-        testNode.setProperty("p1", 1);
-        testNode.setProperty("p2", 1);
-        session0.save();
-        check(getSession());
-
-        Session session1 = createAnonymousSession();
-        Session session2 = createAnonymousSession();
-
-        session1.getNode("/testNode").setProperty("p1", -1);
-        check(session1);
-        session1.save();
-
-        session2.getNode("/testNode").setProperty("p2", -1);
-        check(session2);      // Throws on JR2, not on JR3
-        session2.save();
-
-        Session session3 = createAnonymousSession();
+        Session session0 = createAdminSession();
+        Session session1 = null;
+        Session session2 = null;
         try {
-            check(session3);  // Throws on JR3
-            fail();
-        }
-        catch (AssertionError e) {
-            // expected
-        }
+            Node testNode = session0.getNode("/").addNode("testNode");
+            testNode.setProperty("p1", 1);
+            testNode.setProperty("p2", 1);
+            session0.save();
+            check(getAdminSession());
 
-        session0.logout();
-        session1.logout();
-        session2.logout();
-        session3.logout();
+            session1 = createAdminSession();
+            session2 = createAdminSession();
+            session1.getNode("/testNode").setProperty("p1", -1);
+            check(session1);
+            session1.save();
+
+            session2.getNode("/testNode").setProperty("p2", -1);
+            check(session2);      // Throws on JR2, not on JR3
+            session2.save();
+
+            Session session3 = createAnonymousSession();
+            try {
+                check(session3);  // Throws on JR3
+                fail();
+            } catch (AssertionError e) {
+                // expected
+            } finally {
+                session3.logout();
+            }
+
+        } finally {
+            session0.logout();
+            if (session1 != null) {
+                session1.logout();
+            }
+            if (session2 != null) {
+                session2.logout();
+            }
+        }
     }
 
     private static void check(Session session) throws RepositoryException {

@@ -16,21 +16,21 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import static org.apache.jackrabbit.oak.jcr.RepositoryTestUtils.buildDefaultCommitEditor;
-
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-
-import org.apache.jackrabbit.mk.core.MicroKernelImpl;
-import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
-import org.junit.After;
-
 import javax.jcr.GuestCredentials;
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.jcr.SimpleCredentials;
+
+import org.apache.jackrabbit.mk.core.MicroKernelImpl;
+import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
+import org.junit.After;
+
+import static org.apache.jackrabbit.oak.jcr.RepositoryTestUtils.buildDefaultCommitEditor;
 
 /**
  * Abstract base class for repository tests providing methods for accessing
@@ -44,14 +44,14 @@ public abstract class AbstractRepositoryTest {
     private ScheduledExecutorService executor = null;
 
     private Repository repository = null;
-    private Session session = null;
+    private Session adminSession = null;
 
     @After
     public void logout() throws RepositoryException {
         // release session field
-        if (session != null) {
-            session.logout();
-            session = null;
+        if (adminSession != null) {
+            adminSession.logout();
+            adminSession = null;
         }
         // release repository field
         repository = null;
@@ -72,23 +72,19 @@ public abstract class AbstractRepositoryTest {
         return repository;
     }
 
-    protected Session getSession() throws RepositoryException {
-        if (session == null) {
-            session = createAnonymousSession();
+    protected Session getAdminSession() throws RepositoryException {
+        if (adminSession == null) {
+            adminSession = createAdminSession();
         }
-        return session;
-    }
-
-    protected Node getNode(String path) throws RepositoryException {
-        return getSession().getNode(path);
-    }
-
-    protected Property getProperty(String path) throws RepositoryException {
-        return getSession().getProperty(path);
+        return adminSession;
     }
 
     protected Session createAnonymousSession() throws RepositoryException {
         return getRepository().login(new GuestCredentials());
+    }
+
+    protected Session createAdminSession() throws RepositoryException {
+        return getRepository().login(new SimpleCredentials("admin", "admin".toCharArray()));
     }
 
 }

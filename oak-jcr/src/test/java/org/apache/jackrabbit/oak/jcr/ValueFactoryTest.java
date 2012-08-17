@@ -38,7 +38,7 @@ public class ValueFactoryTest extends AbstractRepositoryTest {
 
     @Before
     public void setup() throws RepositoryException {
-        Session session = getSession();
+        Session session = getAdminSession();
         valueFactory = session.getValueFactory();
     }
 

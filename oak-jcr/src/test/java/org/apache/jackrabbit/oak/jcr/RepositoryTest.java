@@ -82,25 +82,20 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
     @Before
     public void setup() throws RepositoryException {
-        Session session = createAnonymousSession();
+        Session session = getAdminSession();
         ValueFactory valueFactory = session.getValueFactory();
-        try {
-            Node root = session.getRootNode();
-            Node foo = root.addNode("foo");
-            foo.setProperty("stringProp", "stringVal");
-            foo.setProperty("intProp", 42);
-            foo.setProperty("mvProp", new Value[] {
+        Node root = session.getRootNode();
+        Node foo = root.addNode("foo");
+        foo.setProperty("stringProp", "stringVal");
+        foo.setProperty("intProp", 42);
+        foo.setProperty("mvProp", new Value[]{
                 valueFactory.createValue(1),
                 valueFactory.createValue(2),
                 valueFactory.createValue(3),
-            });
-            root.addNode("bar");
-            root.addNode(TEST_NODE);
-            session.save();
-        }
-        finally {
-            session.logout();
-        }
+        });
+        root.addNode("bar");
+        root.addNode(TEST_NODE);
+        session.save();
     }
 
     @Test
@@ -111,7 +106,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
     @Test
     public void login() throws RepositoryException {
-        assertNotNull(getSession());
+        assertNotNull(getAdminSession());
     }
 
     @Test(expected = NoSuchWorkspaceException.class)
@@ -123,7 +118,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
     @Ignore("WIP") // TODO implement workspace management
     @Test
     public void getWorkspaceNames() throws RepositoryException {
-        String[] workspaces = getSession().getWorkspace().getAccessibleWorkspaceNames();
+        String[] workspaces = getAdminSession().getWorkspace().getAccessibleWorkspaceNames();
 
         Set<String> names = new HashSet<String>() {{
             add("default");
@@ -136,9 +131,9 @@ public class RepositoryTest extends AbstractRepositoryTest {
     @Ignore("WIP") // TODO implement workspace management
     @Test
     public void createDeleteWorkspace() throws RepositoryException {
-        getSession().getWorkspace().createWorkspace("new");
+        getAdminSession().getWorkspace().createWorkspace("new");
 
-        Session session2 = createAnonymousSession();
+        Session session2 = createAdminSession();
         try {
             String[] workspaces = session2.getWorkspace().getAccessibleWorkspaceNames();
             assertTrue(asList(workspaces).contains("new"));
@@ -146,24 +141,22 @@ public class RepositoryTest extends AbstractRepositoryTest {
             assertEquals("new", session3.getWorkspace().getName());
             session3.logout();
             session2.getWorkspace().deleteWorkspace("new");
-        }
-        finally {
+        } finally {
             session2.logout();
         }
 
-        Session session4 = createAnonymousSession();
+        Session session4 = createAdminSession();
         try {
             String[] workspaces = session4.getWorkspace().getAccessibleWorkspaceNames();
             assertFalse(asList(workspaces).contains("new"));
-        }
-        finally {
+        } finally {
             session4.logout();
         }
     }
 
     @Test
     public void getRoot() throws RepositoryException {
-        Node root = getSession().getRootNode();
+        Node root = getAdminSession().getRootNode();
         assertNotNull(root);
         assertEquals("", root.getName());
         assertEquals("/", root.getPath());
@@ -188,7 +181,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
     public void getNodeByIdentifier() throws RepositoryException {
         Node node = getNode("/foo");
         String id = node.getIdentifier();
-        Node node2 = getSession().getNodeByIdentifier(id);
+        Node node2 = getAdminSession().getNodeByIdentifier(id);
         assertTrue(node.isSame(node2));
     }
 
@@ -264,8 +257,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
                 for (Value v : p.getValues()) {
                     assertTrue(values.remove(v.getString()));
                 }
-            }
-            else {
+            } else {
                 assertTrue(values.remove(p.getString()));
             }
         }
@@ -311,7 +303,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
     @Test
     public void addNode() throws RepositoryException {
-        Session session = getSession();
+        Session session = getAdminSession();
         String newNode = TEST_PATH + "/new";
         assertFalse(session.nodeExists(newNode));
 
@@ -329,15 +321,14 @@ public class RepositoryTest extends AbstractRepositoryTest {
             added = session2.getNode(newNode);
             assertFalse(added.isNew());
             assertFalse(added.isModified());
-        }
-        finally {
+        } finally {
             session2.logout();
         }
     }
 
     @Test
     public void addNodeWithSpecialChars() throws RepositoryException {
-        Session session = getSession();
+        Session session = getAdminSession();
         String nodeName = "foo{";
 
         String newNode = TEST_PATH + '/' + nodeName;
@@ -350,15 +341,14 @@ public class RepositoryTest extends AbstractRepositoryTest {
         Session session2 = createAnonymousSession();
         try {
             assertTrue(session2.nodeExists(newNode));
-        }
-        finally {
+        } finally {
             session2.logout();
         }
     }
 
     @Test
     public void addNodeWithNodeType() throws RepositoryException {
-        Session session = getSession();
+        Session session = getAdminSession();
 
         Node node = getNode(TEST_PATH);
         node.addNode("new", "nt:folder");
@@ -367,7 +357,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
     @Test
     public void addNodeToRootNode() throws RepositoryException {
-        Session session = getSession();
+        Session session = getAdminSession();
         Node root = session.getRootNode();
         String newNode = "newNodeBelowRoot";
         assertFalse(root.hasNode(newNode));
@@ -378,20 +368,20 @@ public class RepositoryTest extends AbstractRepositoryTest {
     @Test
     public void addStringProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
-        addProperty(parentNode, "string", getSession().getValueFactory().createValue("string value"));
+        addProperty(parentNode, "string", getAdminSession().getValueFactory().createValue("string value"));
     }
 
     @Test
     public void addMultiValuedString() throws RepositoryException {
         Node parentNode = getNode(TEST_PATH);
         Value[] values = new Value[2];
-        values[0] = getSession().getValueFactory().createValue("one");
-        values[1] = getSession().getValueFactory().createValue("two");
+        values[0] = getAdminSession().getValueFactory().createValue("one");
+        values[1] = getAdminSession().getValueFactory().createValue("two");
 
         parentNode.setProperty("multi string", values);
         parentNode.getSession().save();
 
-        Session session2 = createAnonymousSession();
+        Session session2 = createAdminSession();
         try {
             Property property = session2.getProperty(TEST_PATH + "/multi string");
             assertTrue(property.isMultiple());
@@ -400,8 +390,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
             assertEquals(values.length, values2.length);
             assertEquals(values[0], values2[0]);
             assertEquals(values[1], values2[1]);
-        }
-        finally {
+        } finally {
             session2.logout();
         }
     }
@@ -409,15 +398,15 @@ public class RepositoryTest extends AbstractRepositoryTest {
     @Test
     public void addLongProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
-        addProperty(parentNode, "long", getSession().getValueFactory().createValue(42L));
+        addProperty(parentNode, "long", getAdminSession().getValueFactory().createValue(42L));
     }
 
     @Test
     public void addMultiValuedLong() throws RepositoryException {
         Node parentNode = getNode(TEST_PATH);
         Value[] values = new Value[2];
-        values[0] = getSession().getValueFactory().createValue(42L);
-        values[1] = getSession().getValueFactory().createValue(84L);
+        values[0] = getAdminSession().getValueFactory().createValue(42L);
+        values[1] = getAdminSession().getValueFactory().createValue(84L);
 
         parentNode.setProperty("multi long", values);
         parentNode.getSession().save();
@@ -431,8 +420,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
             assertEquals(values.length, values2.length);
             assertEquals(values[0], values2[0]);
             assertEquals(values[1], values2[1]);
-        }
-        finally {
+        } finally {
             session2.logout();
         }
     }
@@ -440,15 +428,15 @@ public class RepositoryTest extends AbstractRepositoryTest {
     @Test
     public void addDoubleProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
-        addProperty(parentNode, "double", getSession().getValueFactory().createValue(42.2D));
+        addProperty(parentNode, "double", getAdminSession().getValueFactory().createValue(42.2D));
     }
 
     @Test
     public void addMultiValuedDouble() throws RepositoryException {
         Node parentNode = getNode(TEST_PATH);
         Value[] values = new Value[2];
-        values[0] = getSession().getValueFactory().createValue(42.1d);
-        values[1] = getSession().getValueFactory().createValue(99.0d);
+        values[0] = getAdminSession().getValueFactory().createValue(42.1d);
+        values[1] = getAdminSession().getValueFactory().createValue(99.0d);
 
         parentNode.setProperty("multi double", values);
         parentNode.getSession().save();
@@ -462,8 +450,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
             assertEquals(values.length, values2.length);
             assertEquals(values[0], values2[0]);
             assertEquals(values[1], values2[1]);
-        }
-        finally {
+        } finally {
             session2.logout();
         }
     }
@@ -471,15 +458,15 @@ public class RepositoryTest extends AbstractRepositoryTest {
     @Test
     public void addBooleanProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
-        addProperty(parentNode, "boolean", getSession().getValueFactory().createValue(true));
+        addProperty(parentNode, "boolean", getAdminSession().getValueFactory().createValue(true));
     }
 
     @Test
     public void addMultiValuedBoolean() throws RepositoryException {
         Node parentNode = getNode(TEST_PATH);
         Value[] values = new Value[2];
-        values[0] = getSession().getValueFactory().createValue(true);
-        values[1] = getSession().getValueFactory().createValue(false);
+        values[0] = getAdminSession().getValueFactory().createValue(true);
+        values[1] = getAdminSession().getValueFactory().createValue(false);
 
         parentNode.setProperty("multi boolean", values);
         parentNode.getSession().save();
@@ -493,8 +480,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
             assertEquals(values.length, values2.length);
             assertEquals(values[0], values2[0]);
             assertEquals(values[1], values2[1]);
-        }
-        finally {
+        } finally {
             session2.logout();
         }
     }
@@ -502,15 +488,15 @@ public class RepositoryTest extends AbstractRepositoryTest {
     @Test
     public void addDecimalProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
-        addProperty(parentNode, "decimal", getSession().getValueFactory().createValue(BigDecimal.valueOf(21)));
+        addProperty(parentNode, "decimal", getAdminSession().getValueFactory().createValue(BigDecimal.valueOf(21)));
     }
 
     @Test
     public void addMultiValuedDecimal() throws RepositoryException {
         Node parentNode = getNode(TEST_PATH);
         Value[] values = new Value[2];
-        values[0] = getSession().getValueFactory().createValue(BigDecimal.valueOf(42));
-        values[1] = getSession().getValueFactory().createValue(BigDecimal.valueOf(99));
+        values[0] = getAdminSession().getValueFactory().createValue(BigDecimal.valueOf(42));
+        values[1] = getAdminSession().getValueFactory().createValue(BigDecimal.valueOf(99));
 
         parentNode.setProperty("multi decimal", values);
         parentNode.getSession().save();
@@ -524,8 +510,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
             assertEquals(values.length, values2.length);
             assertEquals(values[0], values2[0]);
             assertEquals(values[1], values2[1]);
-        }
-        finally {
+        } finally {
             session2.logout();
         }
     }
@@ -533,7 +518,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
     @Test
     public void addDateProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
-        addProperty(parentNode, "date", getSession().getValueFactory().createValue(Calendar.getInstance()));
+        addProperty(parentNode, "date", getAdminSession().getValueFactory().createValue(Calendar.getInstance()));
     }
 
     @Test
@@ -541,9 +526,9 @@ public class RepositoryTest extends AbstractRepositoryTest {
         Node parentNode = getNode(TEST_PATH);
         Value[] values = new Value[2];
         Calendar calendar = Calendar.getInstance();
-        values[0] = getSession().getValueFactory().createValue(calendar);
+        values[0] = getAdminSession().getValueFactory().createValue(calendar);
         calendar.add(Calendar.DAY_OF_MONTH, 1);
-        values[1] = getSession().getValueFactory().createValue(calendar);
+        values[1] = getAdminSession().getValueFactory().createValue(calendar);
 
         parentNode.setProperty("multi date", values);
         parentNode.getSession().save();
@@ -557,8 +542,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
             assertEquals(values.length, values2.length);
             assertEquals(values[0], values2[0]);
             assertEquals(values[1], values2[1]);
-        }
-        finally {
+        } finally {
             session2.logout();
         }
     }
@@ -566,15 +550,15 @@ public class RepositoryTest extends AbstractRepositoryTest {
     @Test
     public void addURIProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
-        addProperty(parentNode, "uri", getSession().getValueFactory().createValue("http://www.day.com/", PropertyType.URI));
+        addProperty(parentNode, "uri", getAdminSession().getValueFactory().createValue("http://www.day.com/", PropertyType.URI));
     }
 
     @Test
     public void addMultiValuedURI() throws RepositoryException {
         Node parentNode = getNode(TEST_PATH);
         Value[] values = new Value[2];
-        values[0] = getSession().getValueFactory().createValue("http://www.day.com", PropertyType.URI);
-        values[1] = getSession().getValueFactory().createValue("file://var/dam", PropertyType.URI);
+        values[0] = getAdminSession().getValueFactory().createValue("http://www.day.com", PropertyType.URI);
+        values[1] = getAdminSession().getValueFactory().createValue("file://var/dam", PropertyType.URI);
 
         parentNode.setProperty("multi uri", values);
         parentNode.getSession().save();
@@ -588,8 +572,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
             assertEquals(values.length, values2.length);
             assertEquals(values[0], values2[0]);
             assertEquals(values[1], values2[1]);
-        }
-        finally {
+        } finally {
             session2.logout();
         }
     }
@@ -597,15 +580,15 @@ public class RepositoryTest extends AbstractRepositoryTest {
     @Test
     public void addNameProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
-        addProperty(parentNode, "name", getSession().getValueFactory().createValue("jcr:something\"", PropertyType.NAME));
+        addProperty(parentNode, "name", getAdminSession().getValueFactory().createValue("jcr:something\"", PropertyType.NAME));
     }
 
     @Test
     public void addMultiValuedName() throws RepositoryException {
         Node parentNode = getNode(TEST_PATH);
         Value[] values = new Value[2];
-        values[0] = getSession().getValueFactory().createValue("jcr:foo", PropertyType.NAME);
-        values[1] = getSession().getValueFactory().createValue("bar", PropertyType.NAME);
+        values[0] = getAdminSession().getValueFactory().createValue("jcr:foo", PropertyType.NAME);
+        values[1] = getAdminSession().getValueFactory().createValue("bar", PropertyType.NAME);
 
         parentNode.setProperty("multi name", values);
         parentNode.getSession().save();
@@ -619,8 +602,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
             assertEquals(values.length, values2.length);
             assertEquals(values[0], values2[0]);
             assertEquals(values[1], values2[1]);
-        }
-        finally {
+        } finally {
             session2.logout();
         }
     }
@@ -628,15 +610,15 @@ public class RepositoryTest extends AbstractRepositoryTest {
     @Test
     public void addPathProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
-        addProperty(parentNode, "path", getSession().getValueFactory().createValue("/jcr:foo/bar\"", PropertyType.PATH));
+        addProperty(parentNode, "path", getAdminSession().getValueFactory().createValue("/jcr:foo/bar\"", PropertyType.PATH));
     }
 
     @Test
     public void addMultiValuedPath() throws RepositoryException {
         Node parentNode = getNode(TEST_PATH);
         Value[] values = new Value[2];
-        values[0] = getSession().getValueFactory().createValue("/nt:foo/jcr:bar", PropertyType.PATH);
-        values[1] = getSession().getValueFactory().createValue("/", PropertyType.PATH);
+        values[0] = getAdminSession().getValueFactory().createValue("/nt:foo/jcr:bar", PropertyType.PATH);
+        values[1] = getAdminSession().getValueFactory().createValue("/", PropertyType.PATH);
 
         parentNode.setProperty("multi path", values);
         parentNode.getSession().save();
@@ -650,8 +632,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
             assertEquals(values.length, values2.length);
             assertEquals(values[0], values2[0]);
             assertEquals(values[1], values2[1]);
-        }
-        finally {
+        } finally {
             session2.logout();
         }
     }
@@ -660,24 +641,24 @@ public class RepositoryTest extends AbstractRepositoryTest {
     public void addBinaryProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
         InputStream is = new ByteArrayInputStream("foo\"".getBytes());
-        Binary bin = getSession().getValueFactory().createBinary(is);
-        addProperty(parentNode, "binary", getSession().getValueFactory().createValue(bin));
+        Binary bin = getAdminSession().getValueFactory().createBinary(is);
+        addProperty(parentNode, "binary", getAdminSession().getValueFactory().createValue(bin));
     }
 
     @Test
     public void addSmallBinaryProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
         InputStream is = new NumberStream(1234);
-        Binary bin = getSession().getValueFactory().createBinary(is);
-        addProperty(parentNode, "bigBinary", getSession().getValueFactory().createValue(bin));
+        Binary bin = getAdminSession().getValueFactory().createBinary(is);
+        addProperty(parentNode, "bigBinary", getAdminSession().getValueFactory().createValue(bin));
     }
 
     @Test
     public void addBigBinaryProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
         InputStream is = new NumberStream(123456);
-        Binary bin = getSession().getValueFactory().createBinary(is);
-        addProperty(parentNode, "bigBinary", getSession().getValueFactory().createValue(bin));
+        Binary bin = getAdminSession().getValueFactory().createBinary(is);
+        addProperty(parentNode, "bigBinary", getAdminSession().getValueFactory().createValue(bin));
     }
 
     @Test
@@ -686,12 +667,12 @@ public class RepositoryTest extends AbstractRepositoryTest {
         Value[] values = new Value[2];
 
         InputStream is = new ByteArrayInputStream("foo".getBytes());
-        Binary bin = getSession().getValueFactory().createBinary(is);
-        values[0] = getSession().getValueFactory().createValue(bin);
+        Binary bin = getAdminSession().getValueFactory().createBinary(is);
+        values[0] = getAdminSession().getValueFactory().createValue(bin);
 
         is = new ByteArrayInputStream("bar".getBytes());
-        bin = getSession().getValueFactory().createBinary(is);
-        values[1] = getSession().getValueFactory().createValue(bin);
+        bin = getAdminSession().getValueFactory().createBinary(is);
+        values[1] = getAdminSession().getValueFactory().createValue(bin);
 
         parentNode.setProperty("multi binary", values);
         parentNode.getSession().save();
@@ -705,8 +686,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
             assertEquals(values.length, values2.length);
             assertEquals(values[0], values2[0]);
             assertEquals(values[1], values2[1]);
-        }
-        finally {
+        } finally {
             session2.logout();
         }
     }
@@ -714,23 +694,23 @@ public class RepositoryTest extends AbstractRepositoryTest {
     @Test
     public void addReferenceProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
-        Node referee = getSession().getNode("/foo");
+        Node referee = getAdminSession().getNode("/foo");
         referee.addMixin("mix:referenceable");
-        getSession().save();
+        getAdminSession().save();
 
-        addProperty(parentNode, "reference", getSession().getValueFactory().createValue(referee));
+        addProperty(parentNode, "reference", getAdminSession().getValueFactory().createValue(referee));
     }
 
     @Test
     public void addMultiValuedReference() throws RepositoryException {
         Node parentNode = getNode(TEST_PATH);
-        Node referee = getSession().getNode("/foo");
+        Node referee = getAdminSession().getNode("/foo");
         referee.addMixin("mix:referenceable");
-        getSession().save();
+        getAdminSession().save();
 
         Value[] values = new Value[2];
-        values[0] = getSession().getValueFactory().createValue(referee);
-        values[1] = getSession().getValueFactory().createValue(referee);
+        values[0] = getAdminSession().getValueFactory().createValue(referee);
+        values[1] = getAdminSession().getValueFactory().createValue(referee);
 
         parentNode.setProperty("multi reference", values);
         parentNode.getSession().save();
@@ -744,8 +724,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
             assertEquals(values.length, values2.length);
             assertEquals(values[0], values2[0]);
             assertEquals(values[1], values2[1]);
-        }
-        finally {
+        } finally {
             session2.logout();
         }
     }
@@ -753,23 +732,23 @@ public class RepositoryTest extends AbstractRepositoryTest {
     @Test
     public void addWeakReferenceProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
-        Node referee = getSession().getNode("/foo");
+        Node referee = getAdminSession().getNode("/foo");
         referee.addMixin("mix:referenceable");
-        getSession().save();
+        getAdminSession().save();
 
-        addProperty(parentNode, "weak reference", getSession().getValueFactory().createValue(referee, true));
+        addProperty(parentNode, "weak reference", getAdminSession().getValueFactory().createValue(referee, true));
     }
 
     @Test
     public void addMultiValuedWeakReference() throws RepositoryException {
         Node parentNode = getNode(TEST_PATH);
-        Node referee = getSession().getNode("/foo");
+        Node referee = getAdminSession().getNode("/foo");
         referee.addMixin("mix:referenceable");
-        getSession().save();
+        getAdminSession().save();
 
         Value[] values = new Value[2];
-        values[0] = getSession().getValueFactory().createValue(referee, true);
-        values[1] = getSession().getValueFactory().createValue(referee, true);
+        values[0] = getAdminSession().getValueFactory().createValue(referee, true);
+        values[1] = getAdminSession().getValueFactory().createValue(referee, true);
 
         parentNode.setProperty("multi weak reference", values);
         parentNode.getSession().save();
@@ -783,8 +762,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
             assertEquals(values.length, values2.length);
             assertEquals(values[0], values2[0]);
             assertEquals(values[1], values2[1]);
-        }
-        finally {
+        } finally {
             session2.logout();
         }
     }
@@ -803,8 +781,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
             assertTrue(property.isMultiple());
             Value[] values2 = property.getValues();
             assertEquals(0, values2.length);
-        }
-        finally {
+        } finally {
             session2.logout();
         }
     }
@@ -824,8 +801,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
             assertEquals(PropertyType.STRING, property.getType());
             Value[] values2 = property.getValues();
             assertEquals(0, values2.length);
-        }
-        finally {
+        } finally {
             session2.logout();
         }
     }
@@ -834,8 +810,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
     public void addMultiValuedStringWithNull() throws RepositoryException {
         Node parentNode = getNode(TEST_PATH);
         Value[] values = new Value[3];
-        values[0] = getSession().getValueFactory().createValue(true);
-        values[2] = getSession().getValueFactory().createValue(false);
+        values[0] = getAdminSession().getValueFactory().createValue(true);
+        values[2] = getAdminSession().getValueFactory().createValue(false);
 
         parentNode.setProperty("multi with null", values);
         parentNode.getSession().save();
@@ -847,8 +823,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
             assertEquals(PropertyType.BOOLEAN, property.getType());
             Value[] values2 = property.getValues();
             assertEquals(values.length - 1, values2.length);
-        }
-        finally {
+        } finally {
             session2.logout();
         }
     }
@@ -874,7 +849,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
     @Test
     public void setStringProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
-        addProperty(parentNode, "string", getSession().getValueFactory().createValue("string \" value"));
+        addProperty(parentNode, "string", getAdminSession().getValueFactory().createValue("string \" value"));
 
         Property property = parentNode.getProperty("string");
         property.setValue("new value");
@@ -887,8 +862,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         try {
             Property property2 = session2.getProperty(TEST_PATH + "/string");
             assertEquals("new value", property2.getString());
-        }
-        finally {
+        } finally {
             session2.logout();
         }
     }
@@ -896,14 +870,13 @@ public class RepositoryTest extends AbstractRepositoryTest {
     @Test
     public void setDoubleNaNProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
-        addProperty(parentNode, "NaN", getSession().getValueFactory().createValue(Double.NaN));
+        addProperty(parentNode, "NaN", getAdminSession().getValueFactory().createValue(Double.NaN));
 
         Session session2 = createAnonymousSession();
         try {
             Property property2 = session2.getProperty(TEST_PATH + "/NaN");
             assertTrue(Double.isNaN(property2.getDouble()));
-        }
-        finally {
+        } finally {
             session2.logout();
         }
     }
@@ -912,14 +885,14 @@ public class RepositoryTest extends AbstractRepositoryTest {
     public void setMultiValuedProperty() throws RepositoryException {
         Node parentNode = getNode(TEST_PATH);
         Value[] values = new Value[2];
-        values[0] = getSession().getValueFactory().createValue("one");
-        values[1] = getSession().getValueFactory().createValue("two");
+        values[0] = getAdminSession().getValueFactory().createValue("one");
+        values[1] = getAdminSession().getValueFactory().createValue("two");
 
         parentNode.setProperty("multi string2", values);
         parentNode.getSession().save();
 
-        values[0] = getSession().getValueFactory().createValue("eins");
-        values[1] = getSession().getValueFactory().createValue("zwei");
+        values[0] = getAdminSession().getValueFactory().createValue("eins");
+        values[1] = getAdminSession().getValueFactory().createValue("zwei");
         parentNode.setProperty("multi string2", values);
         parentNode.getSession().save();
 
@@ -931,8 +904,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
             assertEquals(2, values.length);
             assertEquals(values[0], values2[0]);
             assertEquals(values[1], values2[1]);
-        }
-        finally {
+        } finally {
             session2.logout();
         }
     }
@@ -943,20 +915,18 @@ public class RepositoryTest extends AbstractRepositoryTest {
         parentNode.setProperty("newProperty", "some value");
         parentNode.getSession().save();
 
-        Session session2 = createAnonymousSession();
+        Session session2 = createAdminSession();
         try {
             session2.getProperty(TEST_PATH + "/newProperty").setValue((String) null);
             session2.save();
-        }
-        finally {
+        } finally {
             session2.logout();
         }
 
         Session session3 = createAnonymousSession();
         try {
             assertFalse(session3.propertyExists(TEST_PATH + "/newProperty"));
-        }
-        finally {
+        } finally {
             session3.logout();
         }
     }
@@ -967,20 +937,18 @@ public class RepositoryTest extends AbstractRepositoryTest {
         parentNode.setProperty("newProperty", "some value");
         parentNode.getSession().save();
 
-        Session session2 = createAnonymousSession();
+        Session session2 = createAdminSession();
         try {
             session2.getProperty(TEST_PATH + "/newProperty").remove();
             session2.save();
-        }
-        finally {
+        } finally {
             session2.logout();
         }
 
         Session session3 = createAnonymousSession();
         try {
             assertFalse(session3.propertyExists(TEST_PATH + "/newProperty"));
-        }
-        finally {
+        } finally {
             session3.logout();
         }
     }
@@ -991,7 +959,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         parentNode.addNode("newNode");
         parentNode.getSession().save();
 
-        Session session2 = createAnonymousSession();
+        Session session2 = createAdminSession();
         try {
             Node removeNode = session2.getNode(TEST_PATH + "/newNode");
             removeNode.remove();
@@ -999,13 +967,12 @@ public class RepositoryTest extends AbstractRepositoryTest {
             try {
                 removeNode.getParent();
                 fail("Cannot retrieve the parent from a transiently removed item.");
+            } catch (InvalidItemStateException expected) {
             }
-            catch (InvalidItemStateException expected) {}
 
             assertTrue(session2.getNode(TEST_PATH).isModified());
             session2.save();
-        }
-        finally {
+        } finally {
             session2.logout();
         }
 
@@ -1013,16 +980,15 @@ public class RepositoryTest extends AbstractRepositoryTest {
         try {
             assertFalse(session3.nodeExists(TEST_PATH + "/newNode"));
             assertFalse(session3.getNode(TEST_PATH).isModified());
-        }
-        finally {
+        } finally {
             session3.logout();
         }
     }
 
     @Test
     public void sessionSave() throws RepositoryException {
-        Session session1 = createAnonymousSession();
-        Session session2 = createAnonymousSession();
+        Session session1 = createAdminSession();
+        Session session2 = createAdminSession();
         try {
             // Add some items and ensure they are accessible through this session
             session1.getNode("/").addNode("node1");
@@ -1062,8 +1028,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
             assertTrue(session2.itemExists("/node1/node2"));
             assertTrue(session2.itemExists("/node1/node3"));
             assertTrue(session2.itemExists("/node1/node3/property1"));
-        }
-        finally {
+        } finally {
             session1.logout();
             session2.logout();
         }
@@ -1071,50 +1036,45 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
     @Test
     public void sessionRefresh() throws RepositoryException {
-        Session session = createAnonymousSession();
-        try {
-            // Add some items and ensure they are accessible through this session
-            session.getNode("/").addNode("node1");
-            session.getNode("/node1").addNode("node2");
-            session.getNode("/").addNode("node1/node3");
+        Session session = getAdminSession();
+        // Add some items and ensure they are accessible through this session
+        session.getNode("/").addNode("node1");
+        session.getNode("/node1").addNode("node2");
+        session.getNode("/").addNode("node1/node3");
 
-            Node node1 = session.getNode("/node1");
-            assertEquals("/node1", node1.getPath());
+        Node node1 = session.getNode("/node1");
+        assertEquals("/node1", node1.getPath());
 
-            Node node2 = session.getNode("/node1/node2");
-            assertEquals("/node1/node2", node2.getPath());
+        Node node2 = session.getNode("/node1/node2");
+        assertEquals("/node1/node2", node2.getPath());
 
-            Node node3 = session.getNode("/node1/node3");
-            assertEquals("/node1/node3", node3.getPath());
+        Node node3 = session.getNode("/node1/node3");
+        assertEquals("/node1/node3", node3.getPath());
 
-            node3.setProperty("property1", "value1");
-            Item property1 = session.getProperty("/node1/node3/property1");
-            assertFalse(property1.isNode());
-            assertEquals("value1", ((Property) property1).getString());
+        node3.setProperty("property1", "value1");
+        Item property1 = session.getProperty("/node1/node3/property1");
+        assertFalse(property1.isNode());
+        assertEquals("value1", ((Property) property1).getString());
 
-            // Make sure these items are still accessible after refresh(true);
-            session.refresh(true);
-            assertTrue(session.itemExists("/node1"));
-            assertTrue(session.itemExists("/node1/node2"));
-            assertTrue(session.itemExists("/node1/node3"));
-            assertTrue(session.itemExists("/node1/node3/property1"));
+        // Make sure these items are still accessible after refresh(true);
+        session.refresh(true);
+        assertTrue(session.itemExists("/node1"));
+        assertTrue(session.itemExists("/node1/node2"));
+        assertTrue(session.itemExists("/node1/node3"));
+        assertTrue(session.itemExists("/node1/node3/property1"));
 
-            session.refresh(false);
-            // Make sure these items are not accessible after refresh(false);
-            assertFalse(session.itemExists("/node1"));
-            assertFalse(session.itemExists("/node1/node2"));
-            assertFalse(session.itemExists("/node1/node3"));
-            assertFalse(session.itemExists("/node1/node3/property1"));
-        }
-        finally {
-            session.logout();
-        }
+        session.refresh(false);
+        // Make sure these items are not accessible after refresh(false);
+        assertFalse(session.itemExists("/node1"));
+        assertFalse(session.itemExists("/node1/node2"));
+        assertFalse(session.itemExists("/node1/node3"));
+        assertFalse(session.itemExists("/node1/node3/property1"));
     }
 
     @Test
     public void sessionRefreshFalse() throws RepositoryException {
-        Session session1 = createAnonymousSession();
-        Session session2 = createAnonymousSession();
+        Session session1 = createAdminSession();
+        Session session2 = createAdminSession();
         try {
             Node foo = session1.getNode("/foo");
             foo.addNode("added");
@@ -1125,8 +1085,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
             session1.refresh(false);
             assertFalse(foo.hasNode("added"));
             assertTrue(foo.hasNode("bar"));
-        }
-        finally {
+        } finally {
             session1.logout();
             session2.logout();
         }
@@ -1134,8 +1093,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
     @Test
     public void sessionRefreshTrue() throws RepositoryException {
-        Session session1 = createAnonymousSession();
-        Session session2 = createAnonymousSession();
+        Session session1 = createAdminSession();
+        Session session2 = createAdminSession();
         try {
             Node foo = session1.getNode("/foo");
             foo.addNode("added");
@@ -1146,8 +1105,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
             session1.refresh(true);
             assertTrue(foo.hasNode("added"));
             assertTrue(foo.hasNode("bar"));
-        }
-        finally {
+        } finally {
             session1.logout();
             session2.logout();
         }
@@ -1155,8 +1113,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
     @Test
     public void sessionIsolation() throws RepositoryException {
-        Session session1 = createAnonymousSession();
-        Session session2 = createAnonymousSession();
+        Session session1 = createAdminSession();
+        Session session2 = createAdminSession();
         try {
             session1.getRootNode().addNode("node1");
             session2.getRootNode().addNode("node2");
@@ -1171,8 +1129,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
             assertFalse(session1.getRootNode().hasNode("node2"));
             assertTrue(session2.getRootNode().hasNode("node1"));
             assertTrue(session2.getRootNode().hasNode("node2"));
-        }
-        finally {
+        } finally {
             session1.logout();
             session2.logout();
         }
@@ -1180,8 +1137,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
     @Test
     public void saveRefreshConflict() throws RepositoryException {
-        Session session1 = createAnonymousSession();
-        Session session2 = createAnonymousSession();
+        Session session1 = createAdminSession();
+        Session session2 = createAdminSession();
         try {
             session1.getRootNode().addNode("node");
             session2.getRootNode().addNode("node").setProperty("p", "v");
@@ -1199,11 +1156,9 @@ public class RepositoryTest extends AbstractRepositoryTest {
             try {
                 session2.save();
                 fail("Expected InvalidItemStateException");
+            } catch (InvalidItemStateException expected) {
             }
-            catch (InvalidItemStateException expected) {
-            }
-        }
-        finally {
+        } finally {
             session1.logout();
             session2.logout();
         }
@@ -1211,11 +1166,11 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
     @Test
     public void saveConflict() throws RepositoryException {
-        getSession().getRootNode().addNode("node");
-        getSession().save();
+        getAdminSession().getRootNode().addNode("node");
+        getAdminSession().save();
 
-        Session session1 = createAnonymousSession();
-        Session session2 = createAnonymousSession();
+        Session session1 = createAdminSession();
+        Session session2 = createAdminSession();
         try {
             session1.getNode("/node").remove();
             session2.getNode("/node").addNode("2");
@@ -1231,11 +1186,9 @@ public class RepositoryTest extends AbstractRepositoryTest {
             try {
                 session2.save();
                 fail("Expected InvalidItemStateException");
+            } catch (InvalidItemStateException expected) {
             }
-            catch (InvalidItemStateException expected) {
-            }
-        }
-        finally {
+        } finally {
             session1.logout();
             session2.logout();
         }
@@ -1243,38 +1196,33 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
     @Test
     public void liveNodes() throws RepositoryException {
-        Session session = createAnonymousSession();
-        try {
-            Node n1 = (Node) session.getItem(TEST_PATH);
-            Node n2 = (Node) session.getItem(TEST_PATH);
+        Session session = getAdminSession();
+        Node n1 = (Node) session.getItem(TEST_PATH);
+        Node n2 = (Node) session.getItem(TEST_PATH);
 
-            Node c1 = n1.addNode("c1");
-            Node c2 = n2.addNode("c2");
-            assertTrue(n1.hasNode("c1"));
-            assertTrue(n1.hasNode("c2"));
-            assertTrue(n2.hasNode("c1"));
-            assertTrue(n2.hasNode("c2"));
+        Node c1 = n1.addNode("c1");
+        Node c2 = n2.addNode("c2");
+        assertTrue(n1.hasNode("c1"));
+        assertTrue(n1.hasNode("c2"));
+        assertTrue(n2.hasNode("c1"));
+        assertTrue(n2.hasNode("c2"));
 
-            c1.remove();
-            assertFalse(n1.hasNode("c1"));
-            assertTrue(n1.hasNode("c2"));
-            assertFalse(n2.hasNode("c1"));
-            assertTrue(n2.hasNode("c2"));
+        c1.remove();
+        assertFalse(n1.hasNode("c1"));
+        assertTrue(n1.hasNode("c2"));
+        assertFalse(n2.hasNode("c1"));
+        assertTrue(n2.hasNode("c2"));
 
-            c2.remove();
-            assertFalse(n1.hasNode("c1"));
-            assertFalse(n1.hasNode("c2"));
-            assertFalse(n2.hasNode("c1"));
-            assertFalse(n2.hasNode("c2"));
-        }
-        finally {
-            session.logout();
-        }
+        c2.remove();
+        assertFalse(n1.hasNode("c1"));
+        assertFalse(n1.hasNode("c2"));
+        assertFalse(n2.hasNode("c1"));
+        assertFalse(n2.hasNode("c2"));
     }
 
     @Test
     public void move() throws RepositoryException {
-        Session session = getSession();
+        Session session = getAdminSession();
 
         Node node = getNode(TEST_PATH);
         node.addNode("source").addNode("node");
@@ -1299,7 +1247,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
     @Test
     public void workspaceMove() throws RepositoryException {
-        Session session = getSession();
+        Session session = getAdminSession();
 
         Node node = getNode(TEST_PATH);
         node.addNode("source").addNode("node");
@@ -1322,7 +1270,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
     @Test
     public void workspaceCopy() throws RepositoryException {
-        Session session = getSession();
+        Session session = getAdminSession();
 
         Node node = getNode(TEST_PATH);
         node.addNode("source").addNode("node");
@@ -1349,22 +1297,21 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertEquals("nt:unstructured", testNode.getProperty("jcr:primaryType").getString());
 
         testNode.setPrimaryType("nt:folder");
-        getSession().save();
+        getAdminSession().save();
 
         Session session2 = createAnonymousSession();
         try {
             testNode = session2.getNode(TEST_PATH);
             assertEquals("nt:folder", testNode.getPrimaryNodeType().getName());
             assertEquals("nt:folder", testNode.getProperty("jcr:primaryType").getString());
-        }
-        finally {
+        } finally {
             session2.logout();
         }
     }
 
     @Test
     public void nodeTypeRegistry() throws RepositoryException {
-        NodeTypeManager ntMgr = getSession().getWorkspace().getNodeTypeManager();
+        NodeTypeManager ntMgr = getAdminSession().getWorkspace().getNodeTypeManager();
         assertFalse(ntMgr.hasNodeType("foo"));
 
         NodeTypeTemplate ntd = ntMgr.createNodeTypeTemplate();
@@ -1379,7 +1326,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
     @Test
     public void testNamespaceRegistry() throws RepositoryException {
         NamespaceRegistry nsReg =
-                getSession().getWorkspace().getNamespaceRegistry();
+                getAdminSession().getWorkspace().getNamespaceRegistry();
         assertFalse(asList(nsReg.getPrefixes()).contains("foo"));
         assertFalse(asList(nsReg.getURIs()).contains("file:///foo"));
 
@@ -1394,7 +1341,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
     @Test
     public void mixin() throws RepositoryException {
-        NodeTypeManager ntMgr = getSession().getWorkspace().getNodeTypeManager();
+        NodeTypeManager ntMgr = getAdminSession().getWorkspace().getNodeTypeManager();
         NodeTypeTemplate mixTest = ntMgr.createNodeTypeTemplate();
         mixTest.setName("mix:test");
         mixTest.setMixin(true);
@@ -1412,16 +1359,14 @@ public class RepositoryTest extends AbstractRepositoryTest {
             mix = session2.getNode(TEST_PATH).getMixinNodeTypes();
             assertEquals(1, mix.length);
             assertEquals("mix:test", mix[0].getName());
-        }
-        finally {
+        } finally {
             session2.logout();
         }
 
         try {
             testNode.removeMixin("mix:test");
             fail("Expected ConstraintViolationException");
-        }
-        catch (ConstraintViolationException expected) {
+        } catch (ConstraintViolationException expected) {
         }
     }
 
@@ -1458,67 +1403,66 @@ public class RepositoryTest extends AbstractRepositoryTest {
         try {
             ObservationManager obsMgr = observingSession.getWorkspace().getObservationManager();
             obsMgr.addEventListener(new EventListener() {
-                    @Override
-                    public void onEvent(EventIterator events) {
-                        while (events.hasNext()) {
-                            Event event = events.nextEvent();
-                            try {
-                                String path = event.getPath();
-                                if (path.startsWith("/jcr:system")) {
-                                        // ignore changes in jcr:system
-                                        continue;
-                                }
-                                switch (event.getType()) {
-                                    case Event.NODE_ADDED:
-                                        if (!addNodes.remove(path)) {
-                                            failedEvents.add(event);
-                                        }
-                                        if (!observingSession.nodeExists(path)) {
-                                            failedEvents.add(event);
-                                        }
-                                        break;
-                                    case Event.NODE_REMOVED:
-                                        if (!removeNodes.remove(path)) {
-                                            failedEvents.add(event);
-                                        }
-                                        if (observingSession.nodeExists(path)) {
-                                            failedEvents.add(event);
-                                        }
-                                        break;
-                                    case Event.PROPERTY_ADDED:
-                                        if (!addProperties.remove(path)) {
-                                            failedEvents.add(event);
-                                        }
-                                        if (!observingSession.propertyExists(path)) {
-                                            failedEvents.add(event);
-                                        }
-                                        break;
-                                    case Event.PROPERTY_CHANGED:
-                                        if (!setProperties.remove(path)) {
-                                            failedEvents.add(event);
-                                        }
-                                        break;
-                                    case Event.PROPERTY_REMOVED:
-                                        if (!removeProperties.remove(path)) {
-                                            failedEvents.add(event);
-                                        }
-                                        if (observingSession.propertyExists(path)) {
-                                            failedEvents.add(event);
-                                        }
-                                        break;
-                                    default:
+                @Override
+                public void onEvent(EventIterator events) {
+                    while (events.hasNext()) {
+                        Event event = events.nextEvent();
+                        try {
+                            String path = event.getPath();
+                            if (path.startsWith("/jcr:system")) {
+                                // ignore changes in jcr:system
+                                continue;
+                            }
+                            switch (event.getType()) {
+                                case Event.NODE_ADDED:
+                                    if (!addNodes.remove(path)) {
                                         failedEvents.add(event);
-                                }
+                                    }
+                                    if (!observingSession.nodeExists(path)) {
+                                        failedEvents.add(event);
+                                    }
+                                    break;
+                                case Event.NODE_REMOVED:
+                                    if (!removeNodes.remove(path)) {
+                                        failedEvents.add(event);
+                                    }
+                                    if (observingSession.nodeExists(path)) {
+                                        failedEvents.add(event);
+                                    }
+                                    break;
+                                case Event.PROPERTY_ADDED:
+                                    if (!addProperties.remove(path)) {
+                                        failedEvents.add(event);
+                                    }
+                                    if (!observingSession.propertyExists(path)) {
+                                        failedEvents.add(event);
+                                    }
+                                    break;
+                                case Event.PROPERTY_CHANGED:
+                                    if (!setProperties.remove(path)) {
+                                        failedEvents.add(event);
+                                    }
+                                    break;
+                                case Event.PROPERTY_REMOVED:
+                                    if (!removeProperties.remove(path)) {
+                                        failedEvents.add(event);
+                                    }
+                                    if (observingSession.propertyExists(path)) {
+                                        failedEvents.add(event);
+                                    }
+                                    break;
+                                default:
+                                    failedEvents.add(event);
                             }
-                            catch (RepositoryException e) {
-                                failedEvents.add(event);
-                            }
-                            eventCount.get().countDown();
+                        } catch (RepositoryException e) {
+                            failedEvents.add(event);
                         }
+                        eventCount.get().countDown();
                     }
-                },
-                Event.NODE_ADDED | Event.NODE_REMOVED | Event.NODE_MOVED | Event.PROPERTY_ADDED |
-                Event.PROPERTY_REMOVED | Event.PROPERTY_CHANGED | Event.PERSIST, "/", true, null, null, false);
+                }
+            },
+                    Event.NODE_ADDED | Event.NODE_REMOVED | Event.NODE_MOVED | Event.PROPERTY_ADDED |
+                            Event.PROPERTY_REMOVED | Event.PROPERTY_CHANGED | Event.PERSIST, "/", true, null, null, false);
 
             eventCount.set(new CountDownLatch(7));
             Node n = getNode(TEST_PATH);
@@ -1527,7 +1471,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
             n1.setProperty("prop1", "val1");
             n1.setProperty("prop2", "val2");
             n.addNode("2");
-            getSession().save();
+            getAdminSession().save();
             assertTrue(eventCount.get().await(2, TimeUnit.SECONDS));
 
             eventCount.set(new CountDownLatch(8));
@@ -1536,7 +1480,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
             n1.setProperty("prop1", "val1 new");
             n1.getProperty("prop2").remove();
             n.getNode("2").remove();
-            getSession().save();
+            getAdminSession().save();
             assertTrue(eventCount.get().await(2, TimeUnit.SECONDS));
 
             assertTrue("failedEvents not empty: " + failedEvents, failedEvents.isEmpty());
@@ -1545,8 +1489,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
             assertTrue("addProperties not empty: " + addProperties, addProperties.isEmpty());
             assertTrue("removeProperties not empty: " + removeProperties, removeProperties.isEmpty());
             assertTrue("setProperties not empty: " + setProperties, setProperties.isEmpty());
-        }
-        finally {
+        } finally {
             observingSession.logout();
         }
     }
@@ -1574,73 +1517,72 @@ public class RepositoryTest extends AbstractRepositoryTest {
         try {
             ObservationManager obsMgr = observingSession.getWorkspace().getObservationManager();
             obsMgr.addEventListener(new EventListener() {
-                    @Override
-                    public void onEvent(EventIterator events) {
-                        while (events.hasNext()) {
-                            Event event = events.nextEvent();
-                            try {
-                                String path = event.getPath();
-                                if (path.startsWith("/jcr:system")) {
-                                        // ignore changes in jcr:system
-                                        continue;
-                                }
-                                switch (event.getType()) {
-                                    case Event.NODE_ADDED:
-                                        if (!addNodes.remove(path)) {
-                                            failedEvents.add(event);
-                                        }
-                                        if (!observingSession.nodeExists(path)) {
-                                            failedEvents.add(event);
-                                        }
-                                        break;
-                                    case Event.NODE_REMOVED:
-                                        if (!removeNodes.remove(path)) {
-                                            failedEvents.add(event);
-                                        }
-                                        if (observingSession.nodeExists(path)) {
-                                            failedEvents.add(event);
-                                        }
-                                        break;
-                                    case Event.PROPERTY_ADDED:
-                                        if (!addProperties.remove(path)) {
-                                            failedEvents.add(event);
-                                        }
-                                        if (!observingSession.propertyExists(path)) {
-                                            failedEvents.add(event);
-                                        }
-                                        break;
-                                    case Event.PROPERTY_REMOVED:
-                                        if (!removeProperties.remove(path)) {
-                                            failedEvents.add(event);
-                                        }
-                                        if (observingSession.propertyExists(path)) {
-                                            failedEvents.add(event);
-                                        }
-                                        break;
-                                    default:
+                @Override
+                public void onEvent(EventIterator events) {
+                    while (events.hasNext()) {
+                        Event event = events.nextEvent();
+                        try {
+                            String path = event.getPath();
+                            if (path.startsWith("/jcr:system")) {
+                                // ignore changes in jcr:system
+                                continue;
+                            }
+                            switch (event.getType()) {
+                                case Event.NODE_ADDED:
+                                    if (!addNodes.remove(path)) {
                                         failedEvents.add(event);
-                                }
+                                    }
+                                    if (!observingSession.nodeExists(path)) {
+                                        failedEvents.add(event);
+                                    }
+                                    break;
+                                case Event.NODE_REMOVED:
+                                    if (!removeNodes.remove(path)) {
+                                        failedEvents.add(event);
+                                    }
+                                    if (observingSession.nodeExists(path)) {
+                                        failedEvents.add(event);
+                                    }
+                                    break;
+                                case Event.PROPERTY_ADDED:
+                                    if (!addProperties.remove(path)) {
+                                        failedEvents.add(event);
+                                    }
+                                    if (!observingSession.propertyExists(path)) {
+                                        failedEvents.add(event);
+                                    }
+                                    break;
+                                case Event.PROPERTY_REMOVED:
+                                    if (!removeProperties.remove(path)) {
+                                        failedEvents.add(event);
+                                    }
+                                    if (observingSession.propertyExists(path)) {
+                                        failedEvents.add(event);
+                                    }
+                                    break;
+                                default:
+                                    failedEvents.add(event);
                             }
-                            catch (RepositoryException e) {
-                                failedEvents.add(event);
-                            }
-                            eventCount.get().countDown();
+                        } catch (RepositoryException e) {
+                            failedEvents.add(event);
                         }
+                        eventCount.get().countDown();
                     }
-                },
-                Event.NODE_ADDED | Event.NODE_REMOVED | Event.NODE_MOVED | Event.PROPERTY_ADDED |
-                Event.PROPERTY_REMOVED | Event.PROPERTY_CHANGED | Event.PERSIST, "/", true, null, null, false);
+                }
+            },
+                    Event.NODE_ADDED | Event.NODE_REMOVED | Event.NODE_MOVED | Event.PROPERTY_ADDED |
+                            Event.PROPERTY_REMOVED | Event.PROPERTY_CHANGED | Event.PERSIST, "/", true, null, null, false);
 
             eventCount.set(new CountDownLatch(2));
             Node n = getNode(TEST_PATH);
             n.addNode("1");
-            getSession().save();
+            getAdminSession().save();
             assertTrue(eventCount.get().await(2, TimeUnit.SECONDS));
 
             eventCount.set(new CountDownLatch(4));
             n.addNode("2");
             n.getNode("1").remove();
-            getSession().save();
+            getAdminSession().save();
             assertTrue(eventCount.get().await(2, TimeUnit.SECONDS));
 
             assertTrue("failedEvents not empty: " + failedEvents, failedEvents.isEmpty());
@@ -1648,8 +1590,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
             assertTrue("removeNodes not empty: " + removeNodes, removeNodes.isEmpty());
             assertTrue("addProperties not empty: " + addProperties, addProperties.isEmpty());
             assertTrue("removeProperties not empty: " + removeProperties, removeProperties.isEmpty());
-        }
-        finally {
+        } finally {
             observingSession.logout();
         }
     }
@@ -1660,7 +1601,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
         final List<Event> failedEvents = new ArrayList<Event>();
 
-        final ObservationManager obsMgr = getSession().getWorkspace().getObservationManager();
+        final ObservationManager obsMgr = getAdminSession().getWorkspace().getObservationManager();
         final EventListener listener = new EventListener() {
             @Override
             public void onEvent(EventIterator events) {
@@ -1670,8 +1611,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
             }
         };
         obsMgr.addEventListener(listener, Event.NODE_ADDED | Event.NODE_REMOVED | Event.NODE_MOVED |
-            Event.PROPERTY_ADDED | Event.PROPERTY_REMOVED | Event.PROPERTY_CHANGED | Event.PERSIST,
-            "/", true, null, null, false);
+                Event.PROPERTY_ADDED | Event.PROPERTY_REMOVED | Event.PROPERTY_CHANGED | Event.PERSIST,
+                "/", true, null, null, false);
 
         FutureTask<Void> disposer = new FutureTask<Void>(new Callable<Void>() {
             @Override
@@ -1688,7 +1629,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
     @Test
     public void liveNode() throws RepositoryException {
-        Session session = getSession();
+        Session session = getAdminSession();
 
         Node n1 = session.getNode(TEST_PATH);
         Node n2 = session.getNode(TEST_PATH);
@@ -1720,17 +1661,25 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertTrue(c2.hasProperty("pc2"));
     }
 
-    //------------------------------------------< private >---
+    //------------------------------------------------------------< private >---
+
+    private Node getNode(String path) throws RepositoryException {
+        return getAdminSession().getNode(path);
+    }
+
+    private Property getProperty(String path) throws RepositoryException {
+        return getAdminSession().getProperty(path);
+    }
 
     private void addProperty(Node parentNode, String name, Value value) throws RepositoryException, IOException {
         String propertyPath = parentNode.getPath() + '/' + name;
-        assertFalse(getSession().propertyExists(propertyPath));
+        assertFalse(getAdminSession().propertyExists(propertyPath));
 
         Property added = parentNode.setProperty(name, value);
         assertTrue(parentNode.isModified());
         assertFalse(added.isModified());
         assertTrue(added.isNew());
-        getSession().save();
+        getAdminSession().save();
 
         Session session2 = createAnonymousSession();
         try {
@@ -1745,10 +1694,9 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
             if (value2.getType() == PropertyType.REFERENCE || value2.getType() == PropertyType.WEAKREFERENCE) {
                 String ref = value2.getString();
-                assertNotNull(getSession().getNodeByIdentifier(ref));
+                assertNotNull(getAdminSession().getNodeByIdentifier(ref));
             }
-        }
-        finally {
+        } finally {
             session2.logout();
         }
     }
