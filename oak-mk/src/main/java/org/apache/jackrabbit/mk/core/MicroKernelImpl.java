@@ -67,12 +67,20 @@ public class MicroKernelImpl implements MicroKernel {
      */
     public MicroKernelImpl(Repository rep) {
         this.rep = rep;
+        try {
+            // initialize commit gate with current head
+            gate.commit(rep.getHeadRevision().toString());
+        } catch (Exception e) {
+            throw new MicroKernelException(e);
+        }
     }
 
     protected void init(String homeDir) throws MicroKernelException {
         try {
             rep = new Repository(homeDir);
             rep.init();
+            // initialize commit gate with current head
+            gate.commit(rep.getHeadRevision().toString());
         } catch (Exception e) {
             throw new MicroKernelException(e);
         }
