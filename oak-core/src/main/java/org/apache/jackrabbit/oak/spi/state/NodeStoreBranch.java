@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.spi.state;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.spi.commit.CommitEditor;
 
 public interface NodeStoreBranch {
 
@@ -65,12 +66,13 @@ public interface NodeStoreBranch {
 
     /**
      * Merges the changes in this branch to the main content tree.
+     * @param editor  commit editor to apply
      * @return the node state resulting from the merge.
      *
      * @throws CommitFailedException if the merge failed
      */
     @Nonnull
-    NodeState merge() throws CommitFailedException;
+    NodeState merge(CommitEditor editor) throws CommitFailedException;
 
 }
 
