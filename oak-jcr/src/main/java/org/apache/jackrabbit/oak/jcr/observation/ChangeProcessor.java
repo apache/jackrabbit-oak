@@ -19,11 +19,17 @@ package org.apache.jackrabbit.oak.jcr.observation;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.jcr.observation.Event;
 import javax.jcr.observation.EventListener;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.commons.iterator.EventIteratorAdapter;
 import org.apache.jackrabbit.oak.api.ChangeExtractor;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -34,16 +40,16 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Iterators;
-
 class ChangeProcessor implements Runnable {
-
     private final ObservationManagerImpl observationManager;
     private final NamePathMapper namePathMapper;
     private final ChangeExtractor changeExtractor;
     private final EventListener listener;
     private final AtomicReference<ChangeFilter> filterRef;
+    private final CountDownLatch stopped = new CountDownLatch(1);
+    private volatile boolean running;
+    private volatile boolean stopping;
+    private ScheduledFuture<?> future;
 
     public ChangeProcessor(ObservationManagerImpl observationManager, EventListener listener, ChangeFilter filter) {
         this.observationManager = observationManager;
@@ -57,12 +63,46 @@ class ChangeProcessor implements Runnable {
         filterRef.set(filter);
     }
 
+    /**
+     * Stop this change processor if running. After returning from this methods no further
+     * events will be delivered. This method has no effect if the change processor is not running.
+     * A change processor is running while execution is inside its {@code run()} method.
+     */
+    public synchronized void stop() {
+        if (running) {
+            try {
+                stopping = true;
+                future.cancel(true);
+                stopped.await();
+            }
+            catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+
+    /**
+     * Start the change processor on the passed {@code executor}.
+     * @param executor
+     * @throws IllegalStateException if started already
+     */
+    public synchronized void start(ScheduledExecutorService executor) {
+        if (future != null) {
+            throw new IllegalStateException("Change processor started already");
+        }
+        future = executor.scheduleWithFixedDelay(this, 100, 1000, TimeUnit.MILLISECONDS);
+    }
+
     @Override
     public void run() {
+        running = true;
         EventGeneratingNodeStateDiff diff = new EventGeneratingNodeStateDiff();
         changeExtractor.getChanges(diff);
-        observationManager.setHasEvents();
-        diff.sendEvents();
+        if (!stopping) {
+            diff.sendEvents();
+        }
+        stopped.countDown();
+        running = false;
     }
 
     //------------------------------------------------------------< private >---
@@ -89,7 +129,13 @@ class ChangeProcessor implements Runnable {
         public void sendEvents() {
             Iterator<Event> eventIt = Iterators.concat(events.iterator());
             if (eventIt.hasNext()) {
-                listener.onEvent(new EventIteratorAdapter(eventIt));
+                observationManager.setHasEvents();
+                listener.onEvent(new EventIteratorAdapter(eventIt) {
+                    @Override
+                    public boolean hasNext() {
+                        return !stopping && super.hasNext();
+                    }
+                });
                 events = new ArrayList<Iterator<Event>>(PURGE_LIMIT);
             }
         }
@@ -100,7 +146,7 @@ class ChangeProcessor implements Runnable {
 
         @Override
         public void propertyAdded(PropertyState after) {
-            if (filterRef.get().include(Event.PROPERTY_ADDED, jcrPath(), associatedParentNode)) {
+            if (!stopping && filterRef.get().include(Event.PROPERTY_ADDED, jcrPath(), associatedParentNode)) {
                 Event event = generatePropertyEvent(Event.PROPERTY_ADDED, path, after);
                 events.add(Iterators.singletonIterator(event));
             }
@@ -108,7 +154,7 @@ class ChangeProcessor implements Runnable {
 
         @Override
         public void propertyChanged(PropertyState before, PropertyState after) {
-            if (filterRef.get().include(Event.PROPERTY_CHANGED, jcrPath(), associatedParentNode)) {
+            if (!stopping && filterRef.get().include(Event.PROPERTY_CHANGED, jcrPath(), associatedParentNode)) {
                 Event event = generatePropertyEvent(Event.PROPERTY_CHANGED, path, after);
                 events.add(Iterators.singletonIterator(event));
             }
@@ -116,7 +162,7 @@ class ChangeProcessor implements Runnable {
 
         @Override
         public void propertyDeleted(PropertyState before) {
-            if (filterRef.get().include(Event.PROPERTY_REMOVED, jcrPath(), associatedParentNode)) {
+            if (!stopping && filterRef.get().include(Event.PROPERTY_REMOVED, jcrPath(), associatedParentNode)) {
                 Event event = generatePropertyEvent(Event.PROPERTY_REMOVED, path, before);
                 events.add(Iterators.singletonIterator(event));
             }
@@ -127,7 +173,7 @@ class ChangeProcessor implements Runnable {
             if (NodeStateUtils.isHidden(name)) {
                 return;
             }
-            if (filterRef.get().includeChildren(jcrPath())) {
+            if (!stopping && filterRef.get().includeChildren(jcrPath())) {
                 Iterator<Event> events = generateNodeEvents(Event.NODE_ADDED, path, name, after);
                 this.events.add(events);
                 if (++childNodeCount > PURGE_LIMIT) {
@@ -141,7 +187,7 @@ class ChangeProcessor implements Runnable {
             if (NodeStateUtils.isHidden(name)) {
                 return;
             }
-            if (filterRef.get().includeChildren(jcrPath())) {
+            if (!stopping && filterRef.get().includeChildren(jcrPath())) {
                 Iterator<Event> events = generateNodeEvents(Event.NODE_REMOVED, path, name, before);
                 this.events.add(events);
             }
@@ -152,7 +198,7 @@ class ChangeProcessor implements Runnable {
             if (NodeStateUtils.isHidden(name)) {
                 return;
             }
-            if (filterRef.get().includeChildren(jcrPath())) {
+            if (!stopping && filterRef.get().includeChildren(jcrPath())) {
                 EventGeneratingNodeStateDiff diff = new EventGeneratingNodeStateDiff(
                         PathUtils.concat(path, name), events, after);
                 after.compareAgainstBaseState(before, diff);
