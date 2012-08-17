@@ -25,8 +25,8 @@ import org.apache.jackrabbit.oak.spi.commit.CommitEditor;
 import org.apache.jackrabbit.oak.spi.commit.EmptyEditor;
 import org.apache.jackrabbit.oak.spi.commit.EmptyObserver;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 
@@ -97,8 +97,8 @@ public class KernelNodeStore implements NodeStore {
     }
 
     @Override
-    public NodeStoreBranch branch(CommitEditor commitEditor) {
-        return new KernelNodeStoreBranch(this, commitEditor);
+    public NodeStoreBranch branch() {
+        return new KernelNodeStoreBranch(this);
     }
 
     @Override

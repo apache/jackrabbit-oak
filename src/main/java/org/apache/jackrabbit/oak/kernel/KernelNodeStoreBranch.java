@@ -38,9 +38,6 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
     /** The underlying store to which this branch belongs */
     private final KernelNodeStore store;
 
-    /** The commit editor */
-    private final CommitEditor editor;
-
     /** Base state of this branch */
     private final NodeState base;
 
@@ -53,14 +50,8 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
     /** Last state which was committed to this branch */
     private NodeState committed;
 
-    KernelNodeStoreBranch(KernelNodeStore store, CommitEditor editor) {
+    KernelNodeStoreBranch(KernelNodeStore store) {
         this.store = store;
-        if (editor == null) {
-            this.editor = store.getEditor();
-        } else {
-            this.editor = new CompositeEditor(store.getEditor(), editor);
-        }
-
         MicroKernel kernel = store.getKernel();
         this.branchRevision = kernel.branch(null);
         this.currentRoot = new KernelNodeState(kernel, "/", branchRevision);
@@ -129,9 +120,12 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
     }
 
     @Override
-    public KernelNodeState merge() throws CommitFailedException {
+    public KernelNodeState merge(CommitEditor editor) throws CommitFailedException {
         NodeState oldRoot = base;
-        NodeState toCommit = editor.editCommit(store, oldRoot, currentRoot);
+        CommitEditor commitEditor = editor == null
+                ? store.getEditor()
+                : new CompositeEditor(store.getEditor(), editor);
+        NodeState toCommit = commitEditor.editCommit(store, oldRoot, currentRoot);
         setRoot(toCommit);
 
         try {

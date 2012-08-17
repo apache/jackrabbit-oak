@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.spi.state;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
-import org.apache.jackrabbit.oak.spi.commit.CommitEditor;
 
 /**
  * Storage abstraction for trees. At any given point in time the stored
@@ -45,7 +44,7 @@ public interface NodeStore {
      * @return branch
      */
     @Nonnull
-    NodeStoreBranch branch(CommitEditor commitEditor);
+    NodeStoreBranch branch();
 
     /**
      * Returns a builder for constructing a new or modified node state.
