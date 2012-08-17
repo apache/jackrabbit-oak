@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.query.qom;
 
-import static org.junit.Assert.assertEquals;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.Value;
@@ -55,9 +54,12 @@ import javax.jcr.query.qom.SameNodeJoinCondition;
 import javax.jcr.query.qom.Selector;
 import javax.jcr.query.qom.Source;
 import javax.jcr.query.qom.UpperCase;
+
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
 import org.junit.Before;
 import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  * Tests the QueryObjectModelFactory and other QOM classes.
@@ -69,7 +71,7 @@ public class QomTest extends AbstractRepositoryTest {
 
     @Before
     public void before() throws RepositoryException {
-        Session session = getSession();
+        Session session = getAdminSession();
         vf = session.getValueFactory();
         QueryManager qm = session.getWorkspace().getQueryManager();
         f = qm.getQOMFactory();

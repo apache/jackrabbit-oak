@@ -16,12 +16,12 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import org.junit.Test;
-
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+
+import org.junit.Test;
 
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertTrue;
@@ -30,45 +30,40 @@ public class CRUDTest extends AbstractRepositoryTest {
 
     @Test
     public void testCRUD() throws RepositoryException {
-        Session session = createAnonymousSession();
-        try {
-            // Create
-            Node hello = session.getRootNode().addNode("hello");
-            hello.setProperty("world",  "hello world");
-            session.save();
+        Session session = getAdminSession();
+        // Create
+        Node hello = session.getRootNode().addNode("hello");
+        hello.setProperty("world",  "hello world");
+        session.save();
 
-            // Read
-            assertEquals(
-                    "hello world",
-                    session.getProperty("/hello/world").getString());
+        // Read
+        assertEquals(
+                "hello world",
+                session.getProperty("/hello/world").getString());
 
-            // Update
-            session.getNode("/hello").setProperty("world", "Hello, World!");
-            session.save();
-            assertEquals(
-                    "Hello, World!",
-                    session.getProperty("/hello/world").getString());
+        // Update
+        session.getNode("/hello").setProperty("world", "Hello, World!");
+        session.save();
+        assertEquals(
+                "Hello, World!",
+                session.getProperty("/hello/world").getString());
 
-            // Delete
-            session.getNode("/hello").remove();
-            session.save();
-            assertTrue(!session.propertyExists("/hello/world"));
-        } finally {
-            session.logout();
-        }
+        // Delete
+        session.getNode("/hello").remove();
+        session.save();
+        assertTrue(!session.propertyExists("/hello/world"));
     }
 
     @Test
     public void testRemoveMissingProperty() throws RepositoryException {
-        Session session = getSession();
+        Session session = getAdminSession();
         Node root = session.getRootNode();
         root.setProperty("missing", (String) null);
     }
 
     @Test
     public void testRootPropertyPath() throws RepositoryException {
-        Property property =
-                getSession().getRootNode().getProperty("jcr:primaryType");
+        Property property = getAdminSession().getRootNode().getProperty("jcr:primaryType");
         assertEquals("/jcr:primaryType", property.getPath());
     }
 }

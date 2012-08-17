@@ -30,7 +30,7 @@ public class OrderableNodesTest extends AbstractRepositoryTest {
 
     @Test
     public void testSimpleOrdering() throws RepositoryException {
-        Session session = getSession();
+        Session session = getAdminSession();
         Node root = session.getRootNode().addNode("test");
 
         root.addNode("a");
