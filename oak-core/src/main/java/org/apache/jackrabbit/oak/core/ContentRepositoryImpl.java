@@ -104,7 +104,7 @@ public class ContentRepositoryImpl implements ContentRepository {
      * @param commitEditor the commit editor
      */
     public ContentRepositoryImpl(MicroKernel microKernel, QueryIndexProvider indexProvider,
-            CommitEditor commitEditor) {
+                                 CommitEditor commitEditor) {
 
         nodeStore = new KernelNodeStore(microKernel);
         nodeStore.setEditor(commitEditor);
@@ -156,7 +156,4 @@ public class ContentRepositoryImpl implements ContentRepository {
 
         return new ContentSessionImpl(loginContext, workspaceName, nodeStore, queryEngine, acContext);
     }
-
-    //------------------------------------------------------------< ConflictValidator >---
-
 }
