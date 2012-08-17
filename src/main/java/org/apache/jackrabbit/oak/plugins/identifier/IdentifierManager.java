@@ -226,7 +226,7 @@ public class IdentifierManager {
                     path = rr.getPath();
                 }
             }
-            return path == null ? null : path;
+            return path;
         } catch (ParseException ex) {
             log.error("query failed", ex);
             return null;
