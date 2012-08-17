@@ -40,7 +40,7 @@ import static org.junit.Assert.assertTrue;
 /**
  * TreeImplTest...
  */
-public class TreeImplTest extends AbstractOakTest {
+public class TreeImplTest extends AbstractCoreTest {
 
     @Override
     protected NodeState createInitialState(MicroKernel microKernel) {

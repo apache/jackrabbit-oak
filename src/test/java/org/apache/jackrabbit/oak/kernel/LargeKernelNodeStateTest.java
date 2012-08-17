@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.kernel;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.oak.core.AbstractOakTest;
+import org.apache.jackrabbit.oak.core.AbstractCoreTest;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
@@ -28,7 +28,7 @@ import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.assertNull;
 
-public class LargeKernelNodeStateTest extends AbstractOakTest {
+public class LargeKernelNodeStateTest extends AbstractCoreTest {
     private static final int N = KernelNodeState.MAX_CHILD_NODE_NAMES;
 
     @Override

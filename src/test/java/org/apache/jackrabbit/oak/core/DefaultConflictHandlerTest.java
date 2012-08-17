@@ -31,7 +31,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
-public class DefaultConflictHandlerTest extends AbstractOakTest {
+public class DefaultConflictHandlerTest extends AbstractCoreTest {
     private Root ourRoot;
     private Root theirRoot;
     private CoreValue ourValue;

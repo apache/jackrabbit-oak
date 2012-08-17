@@ -16,19 +16,11 @@
  */
 package org.apache.jackrabbit.oak.spi.state;
 
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-
 import javax.annotation.Nonnull;
 
-public interface NodeStoreBranch {
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 
-    /**
-     * Returns the latest state of the branch.
-     *
-     * @return root node state
-     */
-    @Nonnull
-    NodeState getRoot();
+public interface NodeStoreBranch {
 
     /**
      * Returns the base state of this branch.
@@ -37,6 +29,14 @@ public interface NodeStoreBranch {
      */
     @Nonnull
     NodeState getBase();
+
+    /**
+     * Returns the latest state of the branch.
+     *
+     * @return root node state
+     */
+    @Nonnull
+    NodeState getRoot();
 
     /**
      * Updates the state of the content tree.

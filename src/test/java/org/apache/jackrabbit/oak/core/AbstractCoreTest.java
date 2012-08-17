@@ -29,12 +29,12 @@ import org.slf4j.LoggerFactory;
 /**
  * AbstractOakTest...
  */
-public abstract class AbstractOakTest {
+public abstract class AbstractCoreTest {
 
     /**
      * logger instance
      */
-    private static final Logger log = LoggerFactory.getLogger(AbstractOakTest.class);
+    private static final Logger log = LoggerFactory.getLogger(AbstractCoreTest.class);
 
     // TODO: use regular oak-repo setup
     protected KernelNodeStore store;
