@@ -57,6 +57,14 @@ public class TreeBasedPrincipal implements ItemBasedPrincipal {
         this.pathMapper = pathMapper;
     }
 
+    protected Tree getTree() {
+        return tree;
+    }
+
+    public String getOakPath() {
+        return tree.getPath();
+    }
+
     //-------------------------------------------------< ItemBasedPrincipal >---
     @Override
     public String getPath() {
