@@ -21,11 +21,12 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.security.auth.login.LoginContext;
 import javax.security.auth.login.LoginException;
+
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
-import org.apache.jackrabbit.oak.api.SessionQueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.SessionQueryEngine;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
 import org.apache.jackrabbit.oak.query.SessionQueryEngineImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContext;
