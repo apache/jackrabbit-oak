@@ -313,15 +313,13 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
      * @throws RepositoryException If no principal name can be retrieved.
      */
     String getPrincipalName() throws RepositoryException {
-        String principalName;
-        String propName = getJcrName(REP_PRINCIPAL_NAME);
-        if (tree.hasProperty(propName)) {
-            principalName = tree.getProperty(propName).getValue().getString();
+        if (tree.hasProperty(REP_PRINCIPAL_NAME)) {
+            return tree.getProperty(REP_PRINCIPAL_NAME).getValue().getString();
         } else {
-            log.debug("Authorizable without principal name -> using ID as fallback.");
-            principalName = getID();
+            String msg = "Authorizable without principal name " + getID();
+            log.warn(msg);
+            throw new RepositoryException(msg);
         }
-        return principalName;
     }
 
     /**
