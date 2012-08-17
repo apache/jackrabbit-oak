@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.security.authentication;
 
 import java.io.IOException;
 import java.security.Principal;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -37,7 +38,6 @@ import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.spi.security.authentication.PrincipalProviderCallback;
-import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -167,25 +167,13 @@ public class LoginModuleImpl extends AbstractLoginModule {
     //--------------------------------------------------------------------------
 
     private Set<Principal> getPrincipals(String userID) {
-        Set<Principal> principals = new HashSet<Principal>();
         PrincipalProvider principalProvider = getPrincipalProvider();
-        if (principalProvider != null && userID != null) {
-            // TODO fixme
-            Principal p = principalProvider.getPrincipal(userID);
-            if (p != null) {
-                principals.add(p);
-                if ("admin".equals(p.getName())) {
-                    principals.add(AdminPrincipal.INSTANCE);
-                }
-                principals.addAll(principalProvider.getGroupMembership(p));
-            } else {
-                log.debug("Commit: Cannot retrieve principal for userID '{}'.", userID);
-            }
-        } else {
+        if (principalProvider == null) {
             log.debug("Commit: Cannot retrieve principals. No principal provider configured.");
+            return Collections.emptySet();
+        } else {
+            return principalProvider.getPrincipals(userID);
         }
-
-        return principals;
     }
 
     private PrincipalProvider getPrincipalProvider() {

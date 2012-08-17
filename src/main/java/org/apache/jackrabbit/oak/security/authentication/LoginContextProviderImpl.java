@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.security.authentication;
 
 import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.security.principal.KernelPrincipalProvider;
+import org.apache.jackrabbit.oak.security.principal.TmpPrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.slf4j.Logger;
@@ -45,7 +45,7 @@ public class LoginContextProviderImpl implements LoginContextProvider {
     public LoginContextProviderImpl(ContentRepository repository) {
         // TODO: use configurable authentication config and principal provider
         authConfig = new ConfigurationImpl();
-        principalProvider = new KernelPrincipalProvider();
+        principalProvider = new TmpPrincipalProvider();
     }
 
     @Override
