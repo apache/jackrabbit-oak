@@ -20,6 +20,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
+import org.apache.jackrabbit.oak.spi.commit.CommitEditor;
+import org.apache.jackrabbit.oak.spi.commit.EmptyEditor;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -45,7 +47,7 @@ public class MemoryNodeStore implements NodeStore {
     }
 
     @Override
-    public NodeStoreBranch branch() {
+    public NodeStoreBranch branch(CommitEditor editor) {
         return new MemoryNodeStoreBranch(root.get());
     }
 

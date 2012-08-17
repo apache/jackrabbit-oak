@@ -26,10 +26,18 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.ChangeExtractor;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ConflictHandler;
+import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.security.authorization.PermissionValidatorProvider;
+import org.apache.jackrabbit.oak.security.user.UserValidatorProvider;
+import org.apache.jackrabbit.oak.spi.commit.CommitEditor;
+import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
+import org.apache.jackrabbit.oak.spi.commit.ValidatingEditor;
+import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContext;
 import org.apache.jackrabbit.oak.spi.security.authorization.CompiledPermissions;
+import org.apache.jackrabbit.oak.spi.security.user.UserManagerConfig;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
@@ -52,14 +60,16 @@ public class RootImpl implements Root {
     /** The underlying store to which this root belongs */
     private final NodeStore store;
 
+    private final AccessControlContext accessControlContext;
+    private CompiledPermissions permissions;
+
+    private final CommitEditor commitEditor;
+
     /** Current branch this root operates on */
     private NodeStoreBranch branch;
 
     /** Current root {@code Tree} */
     private TreeImpl rootTree;
-
-    private final AccessControlContext accessControlContext;
-    private CompiledPermissions permissions;
 
     /**
      * Number of {@link #purge()} occurred so since the lase
@@ -92,13 +102,12 @@ public class RootImpl implements Root {
      * @param store  node store
      * @param workspaceName  name of the workspace
      * @param accessControlContext
-     * TODO: add support for multiple workspaces. See OAK-118
      */
     @SuppressWarnings("UnusedParameters")
     public RootImpl(NodeStore store, String workspaceName, AccessControlContext accessControlContext) {
         this.store = store;
         this.accessControlContext = accessControlContext;
-
+        this.commitEditor = createCommitEditor();
         refresh();
     }
 
@@ -148,7 +157,7 @@ public class RootImpl implements Root {
 
     @Override
     public final void refresh() {
-        branch = store.branch();
+        branch = store.branch(commitEditor);
         rootTree = TreeImpl.createRoot(this);
         permissions = this.accessControlContext.getPermissions();
     }
@@ -236,5 +245,20 @@ public class RootImpl implements Root {
         for (PurgeListener purgeListener : purgeListeners) {
             purgeListener.purged();
         }
+    }
+
+    private CommitEditor createCommitEditor() {
+        CoreValueFactory valueFactory = store.getValueFactory();
+        List<ValidatorProvider> providers = new ArrayList<ValidatorProvider>();
+
+        // TODO: refactor once permissions are read from content (make sure we read from an up to date store)
+        providers.add(new PermissionValidatorProvider(valueFactory, accessControlContext));
+        // TODO the following v-providers could be initialized at ContentRepo level
+        // FIXME: use proper configuration
+        providers.add(new UserValidatorProvider(valueFactory, new UserManagerConfig("admin")));
+        // FIXME: oak-core tests setup incomplete repository -> privilege validator fails.
+        // providers.add(new PrivilegeValidatorProvider(valueFactory));
+
+        return new ValidatingEditor(new CompositeValidatorProvider(providers));
     }
 }

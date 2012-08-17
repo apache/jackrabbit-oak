@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.spi.commit.CommitEditor;
+import org.apache.jackrabbit.oak.spi.commit.EmptyEditor;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -69,7 +70,7 @@ public class KernelNodeStoreTest {
 
     @Test
     public void branch() throws CommitFailedException {
-        NodeStoreBranch branch = store.branch();
+        NodeStoreBranch branch = store.branch(EmptyEditor.INSTANCE);
 
         NodeBuilder rootBuilder = store.getBuilder(branch.getRoot());
         NodeBuilder testBuilder = rootBuilder.getChildBuilder("test");
@@ -137,7 +138,7 @@ public class KernelNodeStoreTest {
 
         NodeState newRoot = rootBuilder.getNodeState();
 
-        NodeStoreBranch branch = store.branch();
+        NodeStoreBranch branch = store.branch(EmptyEditor.INSTANCE);
         branch.setRoot(newRoot);
         branch.merge();
         store.getRoot(); // triggers the observer
@@ -180,7 +181,7 @@ public class KernelNodeStoreTest {
 
         NodeState newRoot = rootBuilder.getNodeState();
 
-        NodeStoreBranch branch = store.branch();
+        NodeStoreBranch branch = store.branch(EmptyEditor.INSTANCE);
         branch.setRoot(newRoot);
         branch.merge();
 

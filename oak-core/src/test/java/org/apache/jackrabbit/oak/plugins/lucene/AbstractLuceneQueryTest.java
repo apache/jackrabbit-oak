@@ -16,23 +16,18 @@
  */
 package org.apache.jackrabbit.oak.plugins.lucene;
 
-import static org.apache.jackrabbit.oak.plugins.lucene.LuceneIndexUtils.DEFAULT_INDEX_HOME;
-import static org.apache.jackrabbit.oak.plugins.lucene.LuceneIndexUtils.DEFAULT_INDEX_NAME;
-import static org.apache.jackrabbit.oak.plugins.lucene.LuceneIndexUtils.createIndexNode;
-
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.jcr.GuestCredentials;
-
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
+import org.apache.jackrabbit.oak.AbstractOakTest;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
-import org.apache.jackrabbit.oak.api.SessionQueryEngine;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.SessionQueryEngine;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
@@ -48,16 +43,19 @@ import org.apache.jackrabbit.oak.spi.commit.ValidatingEditor;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.junit.Before;
 
+import static org.apache.jackrabbit.oak.plugins.lucene.LuceneIndexUtils.DEFAULT_INDEX_HOME;
+import static org.apache.jackrabbit.oak.plugins.lucene.LuceneIndexUtils.DEFAULT_INDEX_NAME;
+import static org.apache.jackrabbit.oak.plugins.lucene.LuceneIndexUtils.createIndexNode;
+
 /**
  * base class for lucene search tests
  */
-public abstract class AbstractLuceneQueryTest {
+public abstract class AbstractLuceneQueryTest extends AbstractOakTest {
 
     protected static final String SQL2 = "JCR-SQL2";
 
     private static final String TEST_INDEX_NAME = DEFAULT_INDEX_NAME;
 
-    protected ContentRepository repository;
     protected ContentSession session;
     protected CoreValueFactory vf;
     protected SessionQueryEngine qe;
@@ -65,15 +63,20 @@ public abstract class AbstractLuceneQueryTest {
 
     @Before
     public void before() throws Exception {
-        repository = new ContentRepositoryImpl(new MicroKernelImpl(),
-                new LuceneIndexProvider(DEFAULT_INDEX_HOME),
-                buildDefaultCommitEditor());
-        session = repository.login(new GuestCredentials(), null);
-        cleanupIndexNode();
+        super.before();
 
+        session = createAdminSession();
+        cleanupIndexNode();
         vf = session.getCoreValueFactory();
         qe = session.getQueryEngine();
 
+    }
+
+    @Override
+    protected ContentRepository createRepository() {
+        return new ContentRepositoryImpl(new MicroKernelImpl(),
+                new LuceneIndexProvider(DEFAULT_INDEX_HOME),
+                buildDefaultCommitEditor());
     }
 
     private static CommitEditor buildDefaultCommitEditor() {
