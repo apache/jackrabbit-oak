@@ -38,8 +38,8 @@ import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContext;
 import org.apache.jackrabbit.oak.spi.security.authorization.CompiledPermissions;
 import org.apache.jackrabbit.oak.spi.security.user.UserManagerConfig;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
@@ -157,7 +157,7 @@ public class RootImpl implements Root {
 
     @Override
     public final void refresh() {
-        branch = store.branch(commitEditor);
+        branch = store.branch();
         rootTree = TreeImpl.createRoot(this);
         permissions = this.accessControlContext.getPermissions();
     }
@@ -166,7 +166,7 @@ public class RootImpl implements Root {
     public void commit(ConflictHandler conflictHandler) throws CommitFailedException {
         rebase(conflictHandler);
         purgePendingChanges();
-        branch.merge();
+        branch.merge(commitEditor);
         refresh();
     }
 

@@ -26,8 +26,8 @@ import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.spi.commit.CommitEditor;
 import org.apache.jackrabbit.oak.spi.commit.EmptyEditor;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.junit.Before;
@@ -70,7 +70,7 @@ public class KernelNodeStoreTest {
 
     @Test
     public void branch() throws CommitFailedException {
-        NodeStoreBranch branch = store.branch(EmptyEditor.INSTANCE);
+        NodeStoreBranch branch = store.branch();
 
         NodeBuilder rootBuilder = store.getBuilder(branch.getRoot());
         NodeBuilder testBuilder = rootBuilder.getChildBuilder("test");
@@ -105,7 +105,7 @@ public class KernelNodeStoreTest {
         assertNull(testState.getChildNode("newNode"));
         assertNotNull(testState.getChildNode("x"));
 
-        branch.merge();
+        branch.merge(EmptyEditor.INSTANCE);
 
         // Assert changes are present in the trunk
         testState = store.getRoot().getChildNode("test");
@@ -138,9 +138,9 @@ public class KernelNodeStoreTest {
 
         NodeState newRoot = rootBuilder.getNodeState();
 
-        NodeStoreBranch branch = store.branch(EmptyEditor.INSTANCE);
+        NodeStoreBranch branch = store.branch();
         branch.setRoot(newRoot);
-        branch.merge();
+        branch.merge(EmptyEditor.INSTANCE);
         store.getRoot(); // triggers the observer
 
         NodeState before = states[0];
@@ -181,9 +181,9 @@ public class KernelNodeStoreTest {
 
         NodeState newRoot = rootBuilder.getNodeState();
 
-        NodeStoreBranch branch = store.branch(EmptyEditor.INSTANCE);
+        NodeStoreBranch branch = store.branch();
         branch.setRoot(newRoot);
-        branch.merge();
+        branch.merge(EmptyEditor.INSTANCE);
 
         NodeState test = store.getRoot().getChildNode("test");
         assertNotNull(test.getChildNode("newNode"));
