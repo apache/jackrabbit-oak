@@ -596,7 +596,8 @@
 [rep:Authorizable] > mix:referenceable, nt:hierarchyNode
   abstract
   + * (nt:base) = nt:unstructured VERSION
-  - rep:principalName (STRING) protected mandatory
+  - rep:principalName  (STRING) protected mandatory
+  - rep:authorizableId (STRING) protected
   - * (UNDEFINED)
   - * (UNDEFINED) multiple
 
