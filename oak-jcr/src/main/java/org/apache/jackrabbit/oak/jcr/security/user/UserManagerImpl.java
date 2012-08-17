@@ -28,7 +28,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
 
-import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -49,6 +48,7 @@ import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
 import org.apache.jackrabbit.oak.spi.security.user.PasswordUtility;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserManagerConfig;
+import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -93,30 +93,7 @@ public class UserManagerImpl implements UserManager {
      */
     @Override
     public Authorizable getAuthorizable(Principal principal) throws RepositoryException {
-        Session session = getSession();
-        Authorizable authorizable = null;
-        if (principal instanceof ItemBasedPrincipal) {
-            String authJcrPath = ((ItemBasedPrincipal) principal).getPath();
-            String oakPath = sessionDelegate.getNamePathMapper().getOakPath(authJcrPath);
-            authorizable = getAuthorizable(userProvider.getAuthorizableByPath(oakPath));
-        } else {
-            // another Principal implementation.
-            // first try shortcut for cases where principalName equals the ID.
-            // second use a query to find the authorizable by principalName.
-            String name = principal.getName();
-            Authorizable a = getAuthorizable(name);
-            if (a != null && name.equals(a.getPrincipal().getName())) {
-                authorizable = a;
-            } else {
-                String propName = getJcrName(UserConstants.REP_PRINCIPAL_NAME);
-                Iterator<Authorizable> result = findAuthorizables(propName, name, SEARCH_TYPE_AUTHORIZABLE);
-                if (result.hasNext()) {
-                    authorizable = result.next();
-                }
-            }
-        }
-        // build the corresponding authorizable object
-        return authorizable;
+        return getAuthorizable(userProvider.getAuthorizableByPrincipal(principal));
     }
 
     /**
@@ -294,14 +271,6 @@ public class UserManagerImpl implements UserManager {
 
     //--------------------------------------------------------------------------
     /**
-     * @param userID A userID.
-     * @return true if the given userID belongs to the administrator user.
-     */
-    boolean isAdminId(String userID) {
-        return config.getAdminId().equals(userID);
-    }
-
-    /**
      *
      *
      * @param userNode The node representing the user.
@@ -355,6 +324,10 @@ public class UserManagerImpl implements UserManager {
 
     NamePathMapper getNamePathMapper() {
         return sessionDelegate.getNamePathMapper();
+    }
+
+    UserProvider getUserProvider() {
+        return userProvider;
     }
 
     MembershipProvider getMembershipProvider() {

@@ -19,16 +19,19 @@ package org.apache.jackrabbit.oak.jcr.security.user;
 import java.security.Principal;
 import java.util.Enumeration;
 import java.util.Iterator;
+import javax.annotation.Nullable;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.spi.security.principal.TreeBasedPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.principal.TreeBasedPrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,7 +71,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
      */
     @Override
     public Principal getPrincipal() throws RepositoryException {
-        return new GroupPrincipal(getPrincipalName());
+        return new GroupPrincipal(getPrincipalName(), getTree());
     }
 
     //--------------------------------------------------------------< Group >---
@@ -216,18 +219,18 @@ class GroupImpl extends AuthorizableImpl implements Group {
      */
     private class GroupPrincipal extends TreeBasedPrincipal implements java.security.acl.Group {
 
-        GroupPrincipal(String principalName) {
-            super(principalName, getTree(), getUserManager().getNamePathMapper());
+        GroupPrincipal(String principalName, Tree groupTree) {
+            super(principalName, groupTree, getUserManager().getNamePathMapper());
         }
 
         @Override
         public boolean addMember(Principal principal) {
-            return false;
+            throw new UnsupportedOperationException();
         }
 
         @Override
         public boolean removeMember(Principal principal) {
-            return false;
+            throw new UnsupportedOperationException();
         }
 
         @Override
@@ -254,9 +257,9 @@ class GroupImpl extends AuthorizableImpl implements Group {
 
         @Override
         public Enumeration<? extends Principal> members() {
-            final Iterator<Authorizable> iterator;
+            final Iterator<Authorizable> members;
             try {
-                iterator = GroupImpl.this.getMembers();
+                members = GroupImpl.this.getMembers();
             } catch (RepositoryException e) {
                 // should not occur.
                 String msg = "Unable to retrieve Group members: " + e.getMessage();
@@ -264,25 +267,20 @@ class GroupImpl extends AuthorizableImpl implements Group {
                 throw new IllegalStateException(msg);
             }
 
-            Enumeration<Principal> members = new Enumeration<Principal>() {
-
+            Iterator<Principal> principals = Iterators.transform(members, new Function<Authorizable, Principal>() {
                 @Override
-                public boolean hasMoreElements() {
-                    return iterator.hasNext();
-                }
-
-                @Override
-                public Principal nextElement() {
+                public Principal apply(@Nullable Authorizable authorizable) {
+                    assert authorizable != null;
                     try {
-                        return iterator.next().getPrincipal();
+                        return authorizable.getPrincipal();
                     } catch (RepositoryException e) {
                         String msg = "Internal error while retrieving principal: " + e.getMessage();
                         log.error(msg);
                         throw new IllegalStateException(msg);
                     }
                 }
-            };
-            return members;
+            });
+            return Iterators.asEnumeration(principals);
         }
     }
 }

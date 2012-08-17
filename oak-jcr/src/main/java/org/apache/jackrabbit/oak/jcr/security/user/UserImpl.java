@@ -77,7 +77,7 @@ class UserImpl extends AuthorizableImpl implements User {
      */
     @Override
     public boolean isAdmin() {
-        return getUserManager().isAdminId(getID());
+        return getUserManager().getUserProvider().isAdminUser(getTree());
     }
 
     /**

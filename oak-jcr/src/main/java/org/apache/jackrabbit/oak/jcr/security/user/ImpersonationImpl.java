@@ -112,7 +112,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
 
         // make sure the given principal doesn't refer to the admin user.
         Authorizable a = user.getUserManager().getAuthorizable(p);
-        if (a != null && !a.isGroup() && ((User)a).isAdmin()) {
+        if (a != null && ((User)a).isAdmin()) {
             log.debug("Admin principal is already granted impersonation.");
             return false;
         }
@@ -168,7 +168,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
                 }
                 UserManagerImpl userManager = user.getUserManager();
                 Authorizable a = userManager.getAuthorizable(p);
-                if (a != null && userManager.isAdminId(a.getID())) {
+                if (a != null && ((User) a).isAdmin()) {
                     allows = true;
                     break;
                 }
@@ -179,7 +179,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
 
     //------------------------------------------------------------< private >---
 
-    private Set<String> getImpersonatorNames() throws RepositoryException {
+    private Set<String> getImpersonatorNames() {
         Set<String> princNames = new HashSet<String>();
         Tree userTree = user.getTree();
         PropertyState impersonators = userTree.getProperty(REP_IMPERSONATORS);

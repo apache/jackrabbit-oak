@@ -16,15 +16,19 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import java.security.Principal;
+import java.text.ParseException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
+import javax.jcr.query.Query;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -36,9 +40,13 @@ import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.SessionQueryEngine;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
+import org.apache.jackrabbit.oak.spi.security.principal.TreeBasedPrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserManagerConfig;
@@ -54,7 +62,7 @@ import org.slf4j.LoggerFactory;
  *
  * <h1>UserProvider</h1>
  *
- * <h2>Creation</h2>
+ * <h2>User and Group Creation</h2>
  * This implementation creates the JCR nodes corresponding the a given
  * authorizable ID with the following behavior:
  * <ul>
@@ -130,7 +138,12 @@ import org.slf4j.LoggerFactory;
  *     <li>autoExpandSize</li>
  * </ul>
  *
- * <h2>Access by ID</h2>
+ * <h2>User and Group Access</h2>
+ * <h3>By ID</h3>
+ * TODO
+ * <h3>By Path</h3>
+ * TODO
+ * <h3>By Principal Name</h3>
  * TODO
  *
  * <h1>MembershipProvider</h1>
@@ -153,6 +166,7 @@ public class UserProviderImpl implements UserProvider, MembershipProvider, UserC
 
     private final int defaultDepth;
     private final int splitSize;
+    private final String adminId;
 
     private final String groupPath;
     private final String userPath;
@@ -169,6 +183,7 @@ public class UserProviderImpl implements UserProvider, MembershipProvider, UserC
             splitValue = 0;
         }
         this.splitSize = splitValue;
+        this.adminId = config.getAdminId();
 
         groupPath = config.getConfigValue(UserManagerConfig.PARAM_GROUP_PATH, DEFAULT_GROUP_PATH);
         userPath = config.getConfigValue(UserManagerConfig.PARAM_USER_PATH, DEFAULT_USER_PATH);
@@ -213,6 +228,55 @@ public class UserProviderImpl implements UserProvider, MembershipProvider, UserC
         } else {
             return null;
         }
+    }
+
+    @Override
+    public Tree getAuthorizableByPrincipal(Principal principal) {
+        Tree authorizableTree = null;
+        if (principal instanceof TreeBasedPrincipal) {
+            authorizableTree = root.getTree(((TreeBasedPrincipal) principal).getOakPath());
+        } else {
+            // NOTE: in contrast to JR2 the extra shortcut for ID==principalName
+            // can be omitted as principals names are stored in user defined
+            // index as well.
+            SessionQueryEngine queryEngine = contentSession.getQueryEngine();
+            try {
+                CoreValue bindValue = contentSession.getCoreValueFactory().createValue(principal.getName());
+                Map<String, CoreValue> bindings = Collections.singletonMap("principalName", bindValue);
+                String stmt = "SELECT * FROM [rep:Authorizable] WHERE [rep:principalName] = $principalName";
+                Result result = contentSession.getQueryEngine().executeQuery(stmt,
+                        Query.JCR_SQL2, 1, 0,
+                        Collections.singletonMap("principalName", bindValue),
+                        new NamePathMapper.Default());
+
+                Iterator rows = result.getRows().iterator();
+                if (rows.hasNext()) {
+                    String path = rows.next().toString();
+                    authorizableTree = root.getTree(path);
+                }
+            } catch (ParseException ex) {
+                log.error("query failed", ex);
+            }
+        }
+        return authorizableTree;
+    }
+
+    @Override
+    public String getAuthorizableId(Tree authorizableTree) {
+        assert authorizableTree != null;
+        PropertyState idProp = authorizableTree.getProperty(UserConstants.REP_AUTHORIZABLE_ID);
+        if (idProp != null) {
+            return idProp.getValue().getString();
+        } else {
+            return Text.unescapeIllegalJcrChars(authorizableTree.getName());
+        }
+    }
+
+    @Override
+    public boolean isAdminUser(Tree userTree) {
+        assert userTree != null;
+        return isAuthorizableTree(userTree, UserManager.SEARCH_TYPE_USER) &&
+               adminId.equals(getAuthorizableId(userTree));
     }
 
     //--------------------------------------------------< MembershipProvider>---

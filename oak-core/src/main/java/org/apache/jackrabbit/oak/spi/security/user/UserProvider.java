@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user;
 
+import java.security.Principal;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
@@ -42,4 +43,13 @@ public interface UserProvider {
 
     @CheckForNull
     Tree getAuthorizableByPath(String authorizableOakPath);
+
+    @CheckForNull
+    Tree getAuthorizableByPrincipal(Principal principal);
+
+    @Nonnull
+    String getAuthorizableId(Tree authorizableTree);
+
+    boolean isAdminUser(Tree userTree);
+
 }

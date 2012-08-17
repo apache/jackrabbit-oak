@@ -33,7 +33,6 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
@@ -81,12 +80,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
      */
     @Override
     public String getID() {
-        PropertyState idProp = tree.getProperty(UserConstants.REP_AUTHORIZABLE_ID);
-        if (idProp != null) {
-            return idProp.getValue().getString();
-        } else {
-            return Text.unescapeIllegalJcrChars(getTree().getName());
-        }
+        return userManager.getUserProvider().getAuthorizableId(tree);
     }
 
     /**
