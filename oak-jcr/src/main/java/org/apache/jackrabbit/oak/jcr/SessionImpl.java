@@ -21,7 +21,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-
 import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Credentials;
@@ -51,7 +50,7 @@ import org.apache.jackrabbit.commons.iterator.AccessControlPolicyIteratorAdapter
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.security.principal.PrincipalManagerImpl;
 import org.apache.jackrabbit.oak.jcr.xml.XmlImportHandler;
-import org.apache.jackrabbit.oak.security.principal.KernelPrincipalProvider;
+import org.apache.jackrabbit.oak.security.principal.TmpPrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.util.TODO;
 import org.apache.jackrabbit.util.XMLChar;
@@ -140,8 +139,8 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
 
     @Override
     @Nonnull
-    public Node getNodeByUUID(String id) throws RepositoryException {
-        return getNodeByIdentifier(id);
+    public Node getNodeByUUID(String uuid) throws RepositoryException {
+        return getNodeByIdentifier(uuid);
     }
 
     @Override
@@ -526,7 +525,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     @Nonnull
     public PrincipalManager getPrincipalManager() throws RepositoryException {
         return TODO.unimplemented().returnValue(new PrincipalManagerImpl(
-                new KernelPrincipalProvider()));
+                new TmpPrincipalProvider()));
     }
 
     @Override
