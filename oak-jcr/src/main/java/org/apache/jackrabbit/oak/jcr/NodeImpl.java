@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.jcr;
 
 import java.io.InputStream;
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Iterator;
@@ -57,6 +56,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.commons.ItemNameMatcher;
 import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
 import org.apache.jackrabbit.commons.iterator.PropertyIteratorAdapter;
@@ -945,12 +945,7 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
                     nodeModified = true;
                     dlg.setProperty(jcrMixinTypes, Collections.singletonList(cv));
                 } else {
-                    List<CoreValue> values = new ArrayList<CoreValue>();
-                    for (CoreValue existingValue : mixins.getValues()) {
-                        if (!values.contains(existingValue)) {
-                            values.add(existingValue);
-                        }
-                    }
+                    List<CoreValue> values = Lists.newArrayList(mixins.getValues());
                     if (!values.contains(cv)) {
                         values.add(cv);
                         nodeModified = true;
