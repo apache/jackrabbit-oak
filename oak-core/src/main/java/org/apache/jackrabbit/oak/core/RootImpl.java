@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.core;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.ChangeExtractor;
@@ -30,6 +29,7 @@ import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.security.authorization.PermissionValidatorProvider;
+import org.apache.jackrabbit.oak.security.privilege.PrivilegeValidatorProvider;
 import org.apache.jackrabbit.oak.security.user.UserValidatorProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitEditor;
 import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
@@ -256,8 +256,7 @@ public class RootImpl implements Root {
         // TODO the following v-providers could be initialized at ContentRepo level
         // FIXME: use proper configuration
         providers.add(new UserValidatorProvider(valueFactory, new UserManagerConfig("admin")));
-        // FIXME: oak-core tests setup incomplete repository -> privilege validator fails.
-        // providers.add(new PrivilegeValidatorProvider(valueFactory));
+        providers.add(new PrivilegeValidatorProvider(valueFactory));
 
         return new ValidatingEditor(new CompositeValidatorProvider(providers));
     }

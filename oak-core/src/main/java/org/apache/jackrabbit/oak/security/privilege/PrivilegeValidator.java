@@ -47,12 +47,13 @@ class PrivilegeValidator implements PrivilegeConstants, Validator {
             privilegesBefore = system.getChild(REP_PRIVILEGES);
         }
 
-        if (privilegesBefore == null) {
-            throw new IllegalStateException("Mandatory tree /jcr:system/rep:privileges is missing");
+        if (privilegesBefore != null) {
+            reader = new PrivilegeDefinitionReader(valueFactory, privilegesBefore);
+            definitions = PrivilegeRegistry.getAllDefinitions(reader);
+        } else {
+            reader = null;
+            definitions = null;
         }
-
-        reader = new PrivilegeDefinitionReader(valueFactory, privilegesBefore);
-        definitions = PrivilegeRegistry.getAllDefinitions(reader);
     }
 
     //----------------------------------------------------------< Validator >---
@@ -73,6 +74,8 @@ class PrivilegeValidator implements PrivilegeConstants, Validator {
 
     @Override
     public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
+        checkInitialized();
+
         // the following characteristics are expected to be validated elsewhere:
         // - permission to allow privilege registration -> permission validator.
         // - name collisions (-> delegated to NodeTypeValidator since sms are not allowed)
@@ -167,6 +170,12 @@ class PrivilegeValidator implements PrivilegeConstants, Validator {
                 }
             }
             return isCircular;
+        }
+    }
+
+    private void checkInitialized() throws CommitFailedException {
+        if (reader == null || definitions == null) {
+            throw new CommitFailedException(new IllegalStateException("Mandatory privileges root is missing."));
         }
     }
 }
