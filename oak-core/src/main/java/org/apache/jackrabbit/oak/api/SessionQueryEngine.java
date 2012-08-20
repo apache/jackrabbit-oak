@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.api;
 import java.text.ParseException;
 import java.util.List;
 import java.util.Map;
+
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 
 /**
@@ -59,7 +60,7 @@ public interface SessionQueryEngine {
      * @throws IllegalArgumentException if there was an error executing the query
      */
     Result executeQuery(String statement, String language,
-            long limit, long offset, Map<String, CoreValue> bindings,
+            long limit, long offset, Map<String, ? extends CoreValue> bindings,
             NamePathMapper namePathMapper) throws ParseException;
 
     // TODO pass namespace mapping
