@@ -24,6 +24,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
@@ -177,7 +178,7 @@ public class UserProviderImpl implements UserProvider, MembershipProvider, UserC
         this.identifierManager = new IdentifierManager(contentSession, root);
 
         defaultDepth = config.getConfigValue(UserManagerConfig.PARAM_DEFAULT_DEPTH, DEFAULT_DEPTH);
-        int splitValue = config.getConfigValue(UserManagerConfig.PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE, 0);
+        int splitValue = config.getConfigValue(UserManagerConfig.PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE, 4);
         if (splitValue < 4) {
             log.warn("Invalid value {} for {}. Expected integer >= 4", splitValue, UserManagerConfig.PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE);
             splitValue = 0;
@@ -463,7 +464,7 @@ public class UserProviderImpl implements UserProvider, MembershipProvider, UserC
 
     private boolean isAuthorizableTree(Tree tree, int type) {
         // FIXME: check for node type according to the specified type constraint
-        if (tree.hasProperty(JcrConstants.JCR_PRIMARYTYPE)) {
+        if (tree != null && tree.hasProperty(JcrConstants.JCR_PRIMARYTYPE)) {
             String ntName = tree.getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue().getString();
             switch (type) {
                 case UserManager.SEARCH_TYPE_GROUP:
@@ -512,7 +513,7 @@ public class UserProviderImpl implements UserProvider, MembershipProvider, UserC
         NodeUtil folder;
         Tree authTree = root.getTree(authRoot);
         if (authTree == null) {
-            folder = new NodeUtil(root.getTree(""), contentSession);
+            folder = new NodeUtil(root.getTree("/"), contentSession);
             for (String name : Text.explode(authRoot, '/', false)) {
                 folder = folder.getOrAddChild(name, NT_REP_AUTHORIZABLE_FOLDER);
             }
