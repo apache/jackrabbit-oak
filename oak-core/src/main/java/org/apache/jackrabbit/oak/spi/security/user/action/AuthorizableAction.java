@@ -16,12 +16,12 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user.action;
 
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
-
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
 
 /**
  * The {@code AuthorizableAction} interface provide an implementation
@@ -34,7 +34,7 @@ import javax.jcr.Session;
  * <li>{@link #onPasswordChange(org.apache.jackrabbit.api.security.user.User, String, javax.jcr.Session) User password modification}.</li>
  * </ul>
  *
- * @see org.apache.jackrabbit.oak.spi.security.user.UserManagerConfig
+ * @see org.apache.jackrabbit.oak.spi.security.user.UserConfig
  */
 public interface AuthorizableAction {
 

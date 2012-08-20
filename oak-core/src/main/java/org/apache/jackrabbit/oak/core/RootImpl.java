@@ -36,7 +36,7 @@ import org.apache.jackrabbit.oak.spi.commit.ValidatingEditor;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContext;
 import org.apache.jackrabbit.oak.spi.security.authorization.CompiledPermissions;
-import org.apache.jackrabbit.oak.spi.security.user.UserManagerConfig;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
@@ -255,7 +255,7 @@ public class RootImpl implements Root {
         providers.add(accessControlContext.getAccessControlValdatorProvider(valueFactory));
         // TODO the following v-providers could be initialized at ContentRepo level
         // FIXME: use proper configuration
-        providers.add(new UserValidatorProvider(valueFactory, new UserManagerConfig("admin")));
+        providers.add(new UserValidatorProvider(valueFactory, new UserConfig("admin")));
         providers.add(new PrivilegeValidatorProvider(valueFactory));
 
         return new ValidatingEditor(new CompositeValidatorProvider(providers));
