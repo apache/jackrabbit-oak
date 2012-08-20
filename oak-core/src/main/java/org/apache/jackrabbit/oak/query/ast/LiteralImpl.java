@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import java.util.Locale;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.query.SQL2Parser;
 
@@ -45,8 +46,8 @@ public class LiteralImpl extends StaticOperandImpl {
 
     @Override
     public String toString() {
-        String type = PropertyType.nameFromValue(value.getType()).toUpperCase();
-        return "cast(" + escape() + " as " + type + ')';
+        String type = PropertyType.nameFromValue(value.getType());
+        return "cast(" + escape() + " as " + type.toLowerCase(Locale.ENGLISH) + ')';
     }
 
     private String escape() {
