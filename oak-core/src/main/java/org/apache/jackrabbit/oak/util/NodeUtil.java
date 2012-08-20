@@ -191,7 +191,7 @@ public class NodeUtil {
         for (String value : values) {
             String oakName = mapper.getOakName(value);
             if (oakName == null) {
-                throw new IllegalArgumentException("Invalid name:" + name);
+                throw new IllegalArgumentException(new RepositoryException("Invalid name:" + name));
             }
 
             cvs.add(factory.createValue(oakName, PropertyType.NAME));
