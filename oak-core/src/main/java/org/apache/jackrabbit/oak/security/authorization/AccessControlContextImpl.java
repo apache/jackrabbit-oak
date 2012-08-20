@@ -59,7 +59,7 @@ public class AccessControlContextImpl implements AccessControlContext {
     }
 
     @Override
-    public ValidatorProvider getAccessControlValdatorProvider(CoreValueFactory valueFactory) {
+    public ValidatorProvider getAccessControlValidatorProvider(CoreValueFactory valueFactory) {
         return new AccessControlValidatorProvider(valueFactory, this);
     }
 

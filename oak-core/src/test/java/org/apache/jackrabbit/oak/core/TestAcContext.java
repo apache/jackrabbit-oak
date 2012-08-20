@@ -64,7 +64,7 @@ public class TestAcContext implements AccessControlContext {
     }
 
     @Override
-    public ValidatorProvider getAccessControlValdatorProvider(CoreValueFactory valueFactory) {
+    public ValidatorProvider getAccessControlValidatorProvider(CoreValueFactory valueFactory) {
         return new DefaultValidatorProvider();
     }
 }
