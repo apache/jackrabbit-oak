@@ -178,9 +178,9 @@ public class UserProviderImpl implements UserProvider, MembershipProvider, UserC
         this.identifierManager = new IdentifierManager(contentSession, root);
 
         defaultDepth = config.getConfigValue(UserManagerConfig.PARAM_DEFAULT_DEPTH, DEFAULT_DEPTH);
-        int splitValue = config.getConfigValue(UserManagerConfig.PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE, 4);
-        if (splitValue < 4) {
-            log.warn("Invalid value {} for {}. Expected integer >= 4", splitValue, UserManagerConfig.PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE);
+        int splitValue = config.getConfigValue(UserManagerConfig.PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE, 0);
+        if (splitValue != 0 && splitValue < 4) {
+            log.warn("Invalid value {} for {}. Expected integer >= 4 or 0", splitValue, UserManagerConfig.PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE);
             splitValue = 0;
         }
         this.splitSize = splitValue;
