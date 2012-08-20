@@ -19,8 +19,6 @@ package org.apache.jackrabbit.oak.spi.security.authorization;
 import java.security.Principal;
 import java.util.Set;
 
-import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 
@@ -36,5 +34,5 @@ public interface AccessControlContext {
 
     ValidatorProvider getPermissionValidatorProvider(CoreValueFactory valueFactory);
 
-    ValidatorProvider getAccessControlValdatorProvider(CoreValueFactory valueFactory);
+    ValidatorProvider getAccessControlValidatorProvider(CoreValueFactory valueFactory);
 }
