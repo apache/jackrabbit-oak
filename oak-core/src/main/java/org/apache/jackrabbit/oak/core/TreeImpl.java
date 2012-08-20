@@ -28,19 +28,18 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.core.RootImpl.PurgeListener;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
-
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Iterables;
-
+import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.core.RootImpl.PurgeListener;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState.EMPTY_NODE;
@@ -443,11 +442,10 @@ public class TreeImpl implements Tree, PurgeListener {
     }
 
     private boolean canReadProperty(String name) {
-        StringBuilder path = new StringBuilder();
-        path.append(getPath()).append(name);
+        String path = PathUtils.concat(getPath(), name);
 
         // FIXME: special handling for access control item and version content
-        return root.getPermissions().canRead(path.toString(), true);
+        return root.getPermissions().canRead(path, true);
     }
 
     private static boolean isSame(NodeState state1, NodeState state2) {
