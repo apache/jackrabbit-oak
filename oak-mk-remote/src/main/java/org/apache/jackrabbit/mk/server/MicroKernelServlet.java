@@ -112,7 +112,7 @@ class MicroKernelServlet {
 
             response.setContentType("application/json");
             String json = mk.getRevisionHistory(since, maxEntries, path);
-            if (request.getHeaders().containsKey("User-Agent")) {
+            if (request.getUserAgent() != null) {
                 json = JsopBuilder.prettyPrint(json);
             }
             response.write(json);
@@ -157,7 +157,7 @@ class MicroKernelServlet {
 
             response.setContentType("application/json");
             String json = mk.getJournal(fromRevisionId, toRevisionId, path);
-            if (request.getHeaders().containsKey("User-Agent")) {
+            if (request.getUserAgent() != null) {
                 json = JsopBuilder.prettyPrint(json);
             }
             response.write(json);
@@ -179,7 +179,7 @@ class MicroKernelServlet {
 
             response.setContentType("application/json");
             String json = mk.diff(fromRevisionId, toRevisionId, path, depth);
-            if (request.getHeaders().containsKey("User-Agent")) {
+            if (request.getUserAgent() != null) {
                 json = JsopBuilder.prettyPrint(json);
             }
             response.write(json);
@@ -239,7 +239,7 @@ class MicroKernelServlet {
             if (json == null) {
                 json = "null";
             }
-            if (request.getHeaders().containsKey("User-Agent")) {
+            if (request.getUserAgent() != null) {
                 json = JsopBuilder.prettyPrint(json);
             }
             response.write(json);
