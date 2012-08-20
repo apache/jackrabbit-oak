@@ -29,7 +29,9 @@ import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants.REP_PRIVILEGES;
 
 /**
- * PrivilegeValidatorProvider... TODO
+ * {@code PrivilegeValidatorProvider} to construct a {@code Validator} instance
+ * to make sure modifications to the /jcr:system/rep:privileges tree are compliant
+ * with constraints applied for custom privileges.
  */
 public class PrivilegeValidatorProvider implements ValidatorProvider {
 
@@ -42,7 +44,6 @@ public class PrivilegeValidatorProvider implements ValidatorProvider {
     @Nonnull
     @Override
     public Validator getRootValidator(NodeState before, NodeState after) {
-        // TODO check again...
         return new SubtreeValidator(new PrivilegeValidator(valueFactory, new ReadOnlyTree(before)), JCR_SYSTEM, REP_PRIVILEGES);
     }
 }
