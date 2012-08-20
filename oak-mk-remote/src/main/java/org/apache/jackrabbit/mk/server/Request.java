@@ -94,7 +94,7 @@ class Request implements Closeable {
             }
             parts = headerLine.split(":");
             if (parts.length == 2) {
-                headers.put(parts[0].trim(), parts[1].trim());
+                headers.put(parts[0].trim().toLowerCase(), parts[1].trim());
             }
         }
 
@@ -139,7 +139,7 @@ class Request implements Closeable {
     }
 
     private String getContentType() {
-        String ct = headers.get("Content-Type");
+        String ct = headers.get("content-type");
         if (ct != null) {
             int sep = ct.indexOf(';');
             if (sep != -1) {
@@ -150,7 +150,7 @@ class Request implements Closeable {
     }
 
     private int getContentLength() {
-        String s = headers.get("Content-Length");
+        String s = headers.get("content-length");
         if (s != null) {
             try {
                 return Integer.parseInt(s);
@@ -160,10 +160,11 @@ class Request implements Closeable {
         }
         return -1;
     }
-
-    public Map<String, String> getHeaders() {
-        return headers;
+    
+    public String getUserAgent() {
+        return headers.get("user-agent");
     }
+
 
     public String getQueryString() {
         return queryString;
@@ -251,7 +252,7 @@ class Request implements Closeable {
 
     public InputStream getInputStream() {
         if (reqIn == null) {
-            String encoding = headers.get("Transfer-Encoding");
+            String encoding = headers.get("transfer-encoding");
             if ("chunked".equalsIgnoreCase(encoding)) {
                 chunkedIn.recycle(in);
                 reqIn = chunkedIn;
