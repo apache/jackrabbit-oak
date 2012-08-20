@@ -93,7 +93,7 @@ public class SessionDelegate {
         this.root = contentSession.getCurrentRoot();
         this.conflictHandler = new AnnotatingConflictHandler(contentSession.getCoreValueFactory());
         this.autoRefresh = autoRefresh;
-        this.idManager = new IdentifierManager(contentSession, root);
+        this.idManager = new IdentifierManager(contentSession.getQueryEngine(), root);
         this.namePathMapper = new NamePathMapperImpl(new SessionNameMapper(), idManager);
         this.valueFactory = new ValueFactoryImpl(contentSession.getCoreValueFactory(), namePathMapper);
     }
