@@ -252,7 +252,7 @@ public class RootImpl implements Root {
 
         // TODO: refactor once permissions are read from content (make sure we read from an up to date store)
         providers.add(accessControlContext.getPermissionValidatorProvider(valueFactory));
-        providers.add(accessControlContext.getAccessControlValdatorProvider(valueFactory));
+        providers.add(accessControlContext.getAccessControlValidatorProvider(valueFactory));
         // TODO the following v-providers could be initialized at ContentRepo level
         // FIXME: use proper configuration
         providers.add(new UserValidatorProvider(valueFactory, new UserConfig("admin")));
