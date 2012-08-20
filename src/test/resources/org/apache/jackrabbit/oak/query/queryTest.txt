@@ -190,7 +190,7 @@ select * from [nt:base] as p inner join [nt:base] as c on p.id = c.p
 /parents/p2, /children/c3
 
 explain select * from [nt:base] as p inner join [nt:base] as c on p.id = c.p
-nt:base as p /* traverse "//*" */ INNER join nt:base as c /* traverse "//*" */
+nt:base as p /* traverse "//*" */ inner join nt:base as c /* traverse "//*" */ on p.id = c.p
 
 commit / - "parents"
 commit / - "children"

@@ -29,7 +29,7 @@ public interface Filter {
 
     /**
      * Get the list of property restrictions, if any.
-     * 
+     *
      * @return the conditions (an empty collection if not used)
      */
     Collection<PropertyRestriction> getPropertyRestrictions();

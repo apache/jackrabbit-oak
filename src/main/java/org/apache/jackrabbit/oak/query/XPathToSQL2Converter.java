@@ -331,21 +331,6 @@ public class XPathToSQL2Converter {
             Literal l = Literal.newString(currentToken);
             read();
             return l;
-        } else if (currentTokenType == IDENTIFIER) {
-            String name = readIdentifier();
-            // relative properties
-            if (readIf("/")) {
-                do {
-                    if (readIf("@")) {
-                        name = name + "/" + readIdentifier();
-                        return new Property(name);
-                    } else {
-                        name = name + "/" + readIdentifier();
-                    }
-                } while (readIf("/"));
-            }
-            read("(");
-            return parseFunction(name);
         } else if (readIf("-")) {
             if (currentTokenType != VALUE_NUMBER) {
                 throw getSyntaxError();
@@ -359,8 +344,58 @@ public class XPathToSQL2Converter {
             }
             return parseExpression();
         } else {
-            throw getSyntaxError();
+            return parsePropertyOrFunction();
         }
+    }
+
+    private Expression parsePropertyOrFunction() throws ParseException {
+        StringBuilder buff = new StringBuilder();
+        boolean isPath = false;
+        while (true) {
+            if (currentTokenType == IDENTIFIER) {
+                String name = readIdentifier();
+                buff.append(name);
+            } else if (readIf("*")) {
+                // any node
+                buff.append('*');
+                isPath = true;
+            } else if (readIf(".")) {
+                buff.append('.');
+                if (readIf(".")) {
+                    buff.append('.');
+                }
+                isPath = true;
+            } else if (readIf("@")) {
+                if (readIf("*")) {
+                    // xpath supports @*, even thought jackrabbit may not
+                    buff.append('*');
+                } else {
+                    buff.append(readIdentifier());
+                }
+                return new Property(buff.toString());
+            } else {
+                break;
+            }
+            if (readIf("/")) {
+                isPath = true;
+                buff.append('/');
+            } else {
+                break;
+            }
+        }
+        if (!isPath && readIf("(")) {
+            return parseFunction(buff.toString());
+        } else if (buff.length() > 0) {
+            // path without all attributes, as in:
+            // jcr:contains(jcr:content, 'x')
+            if (buff.toString().equals(".")) {
+                buff = new StringBuilder("*");
+            } else {
+                buff.append("/*");
+            }
+            return new Property(buff.toString());
+        }
+        throw getSyntaxError();
     }
 
     private Expression parseFunction(String functionName) throws ParseException {
@@ -372,12 +407,7 @@ public class XPathToSQL2Converter {
             return c;
         } else if ("jcr:contains".equals(functionName)) {
             Function f = new Function("contains");
-            if (readIf(".")) {
-                // special case: jcr:contains(., expr)
-                f.params.add(new Literal("*"));
-            } else {
-                f.params.add(parseExpression());
-            }
+            f.params.add(parseExpression());
             read(",");
             f.params.add(parseExpression());
             read(")");
@@ -399,7 +429,10 @@ public class XPathToSQL2Converter {
             return f;
         } else if ("fn:name".equals(functionName)) {
             Function f = new Function("name");
-            read(")");
+            if (!readIf(")")) {
+                f.params.add(parseExpression());
+                read(")");
+            }
             return f;
         } else if ("fn:upper-case".equals(functionName)) {
             Function f = new Function("upper");

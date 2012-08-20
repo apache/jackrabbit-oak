@@ -535,7 +535,7 @@ public class Query {
         }
         buff.append(" from ").append(source);
         if (constraint != null) {
-            buff.append(constraint);
+            buff.append(" where ").append(constraint);
         }
         if (orderings != null) {
             buff.append(" order by ");
