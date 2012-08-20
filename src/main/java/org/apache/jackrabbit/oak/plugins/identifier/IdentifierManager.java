@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
@@ -133,7 +134,8 @@ public class IdentifierManager {
             // TODO as stated in NodeDelegate#getIdentifier() a non-uuid ID should
             // TODO consisting of closest referenceable parent and a relative path
             // TODO irrespective of the accessibility of the parent node(s)
-            return root.getTree(identifier).getPath();
+            Tree tree = root.getTree(identifier);
+            return tree == null ? null : tree.getPath();
         }
     }
 
