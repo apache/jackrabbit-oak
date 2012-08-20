@@ -175,8 +175,8 @@ class ValueImpl implements Value {
                 return namePathMapper.getJcrName(value.toString());
             case PropertyType.PATH:
                 String s = value.toString();
-                // TODO special handling for identifier paths; should happen in path mapper (OAK-23)
                 if (s.startsWith("[") && s.endsWith("]")) {
+                    // identifier paths are returned as-is (JCR 2.0, 3.4.3.1)
                     return s;
                 } else {
                     return namePathMapper.getJcrPath(value.toString());
