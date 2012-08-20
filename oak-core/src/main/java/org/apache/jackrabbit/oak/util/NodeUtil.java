@@ -17,6 +17,8 @@
 package org.apache.jackrabbit.oak.util;
 
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
 import java.util.List;
 
 import javax.annotation.CheckForNull;
@@ -35,6 +37,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -171,11 +174,7 @@ public class NodeUtil {
     }
 
     public void setName(String name, String value) {
-        String oakName = mapper.getOakName(value);
-        if (oakName == null) {
-            throw new IllegalArgumentException("Invalid name:" + name);
-        }
-
+        String oakName = getOakName(value);
         tree.setProperty(name, factory.createValue(oakName, PropertyType.NAME));
     }
 
@@ -193,14 +192,28 @@ public class NodeUtil {
     public void setNames(String name, String... values) {
         List<CoreValue> cvs = new ArrayList<CoreValue>(values.length);
         for (String value : values) {
-            String oakName = mapper.getOakName(value);
-            if (oakName == null) {
-                throw new IllegalArgumentException(new RepositoryException("Invalid name:" + name));
-            }
-
-            cvs.add(factory.createValue(oakName, PropertyType.NAME));
+            cvs.add(factory.createValue(getOakName(value), PropertyType.NAME));
         }
         tree.setProperty(name, cvs);
+    }
+
+    public void setDate(String name, long time) {
+        Calendar cal = GregorianCalendar.getInstance();
+        cal.setTimeInMillis(time);
+        tree.setProperty(name, factory.createValue(ISO8601.format(cal), PropertyType.DATE));
+    }
+
+    public long getLong(String name, long defaultValue) {
+        PropertyState property = tree.getProperty(name);
+        if (property != null && !property.isArray()) {
+            return property.getValue().getLong();
+        } else {
+            return defaultValue;
+        }
+    }
+
+    public void setLong(String name, long value) {
+        tree.setProperty(name, factory.createValue(value));
     }
 
     public List<NodeUtil> getNodes(String namePrefix) {
@@ -240,6 +253,14 @@ public class NodeUtil {
         } else {
             return null;
         }
+    }
+
+    private String getOakName(String jcrName) {
+        String oakName = mapper.getOakName(jcrName);
+        if (oakName == null) {
+            throw new IllegalArgumentException(new RepositoryException("Invalid name:" + jcrName));
+        }
+        return oakName;
     }
 
 }
