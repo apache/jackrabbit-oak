@@ -47,7 +47,7 @@ import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
 import org.apache.jackrabbit.oak.spi.security.user.PasswordUtility;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.apache.jackrabbit.oak.spi.security.user.UserManagerConfig;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
 import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
 import org.slf4j.Logger;
@@ -61,13 +61,13 @@ public class UserManagerImpl implements UserManager {
     private static final Logger log = LoggerFactory.getLogger(UserManagerImpl.class);
 
     private final SessionDelegate sessionDelegate;
-    private final UserManagerConfig config;
+    private final UserConfig config;
     private final UserProviderImpl userProvider;
     private final NodeTreeUtil util;
 
-    public UserManagerImpl(SessionDelegate sessionDelegate, Root root, UserManagerConfig config) {
+    public UserManagerImpl(SessionDelegate sessionDelegate, Root root, UserConfig config) {
         this.sessionDelegate = sessionDelegate;
-        this.config = (config == null) ? new UserManagerConfig("admin") : config;
+        this.config = (config == null) ? new UserConfig("admin") : config;
         userProvider = new UserProviderImpl(sessionDelegate.getContentSession(), root, this.config);
 
         // FIXME: remove again. only tmp workaround
@@ -286,9 +286,9 @@ public class UserManagerImpl implements UserManager {
         String pwHash;
         if (forceHash || PasswordUtility.isPlainTextPassword(password)) {
             try {
-                String algorithm = config.getConfigValue(UserManagerConfig.PARAM_PASSWORD_HASH_ALGORITHM, PasswordUtility.DEFAULT_ALGORITHM);
-                int iterations = config.getConfigValue(UserManagerConfig.PARAM_PASSWORD_HASH_ITERATIONS, PasswordUtility.DEFAULT_ITERATIONS);
-                int saltSize = config.getConfigValue(UserManagerConfig.PARAM_PASSWORD_SALT_SIZE, PasswordUtility.DEFAULT_SALT_SIZE);
+                String algorithm = config.getConfigValue(UserConfig.PARAM_PASSWORD_HASH_ALGORITHM, PasswordUtility.DEFAULT_ALGORITHM);
+                int iterations = config.getConfigValue(UserConfig.PARAM_PASSWORD_HASH_ITERATIONS, PasswordUtility.DEFAULT_ITERATIONS);
+                int saltSize = config.getConfigValue(UserConfig.PARAM_PASSWORD_SALT_SIZE, PasswordUtility.DEFAULT_SALT_SIZE);
                 pwHash = PasswordUtility.buildPasswordHash(password, algorithm, saltSize, iterations);
             } catch (NoSuchAlgorithmException e) {
                 throw new RepositoryException(e);

@@ -23,7 +23,7 @@ import org.apache.jackrabbit.oak.core.ReadOnlyTree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
-import org.apache.jackrabbit.oak.spi.security.user.UserManagerConfig;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 
@@ -33,9 +33,9 @@ import org.apache.jackrabbit.oak.util.NodeUtil;
 public class UserValidatorProvider implements ValidatorProvider {
 
     private final CoreValueFactory valueFactory;
-    private final UserManagerConfig config;
+    private final UserConfig config;
 
-    public UserValidatorProvider(CoreValueFactory valueFactory, UserManagerConfig config) {
+    public UserValidatorProvider(CoreValueFactory valueFactory, UserConfig config) {
         assert valueFactory != null;
         assert config != null;
 
@@ -55,7 +55,7 @@ public class UserValidatorProvider implements ValidatorProvider {
 
     //-----------------------------------------------------------< internal >---
     @Nonnull
-    UserManagerConfig getConfig() {
+    UserConfig getConfig() {
         return config;
     }
 

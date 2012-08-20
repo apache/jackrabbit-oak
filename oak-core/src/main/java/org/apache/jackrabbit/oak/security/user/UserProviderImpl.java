@@ -40,6 +40,7 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.Root;
@@ -50,7 +51,7 @@ import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.spi.security.principal.TreeBasedPrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.apache.jackrabbit.oak.spi.security.user.UserManagerConfig;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
 import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.util.Text;
@@ -68,10 +69,10 @@ import org.slf4j.LoggerFactory;
  * authorizable ID with the following behavior:
  * <ul>
  * <li>Users are created below /rep:security/rep:authorizables/rep:users or
- * the path configured in the {@link org.apache.jackrabbit.oak.spi.security.user.UserManagerConfig#PARAM_USER_PATH}
+ * the path configured in the {@link org.apache.jackrabbit.oak.spi.security.user.UserConfig#PARAM_USER_PATH}
  * respectively.</li>
  * <li>Groups are created below /rep:security/rep:authorizables/rep:groups or
- * the path configured in the {@link org.apache.jackrabbit.oak.spi.security.user.UserManagerConfig#PARAM_GROUP_PATH}
+ * the path configured in the {@link org.apache.jackrabbit.oak.spi.security.user.UserConfig#PARAM_GROUP_PATH}
  * respectively.</li>
  * <li>Below each category authorizables are created within a human readable
  * structure based on the defined intermediate path or some internal logic
@@ -119,13 +120,13 @@ import org.slf4j.LoggerFactory;
  *
  * <h3>Configuration Options</h3>
  * <ul>
- *     <li>{@link org.apache.jackrabbit.oak.spi.security.user.UserManagerConfig#PARAM_USER_PATH}: Underneath this structure
+ *     <li>{@link org.apache.jackrabbit.oak.spi.security.user.UserConfig#PARAM_USER_PATH}: Underneath this structure
  *     all user nodes are created. Default value is
  *     "/rep:security/rep:authorizables/rep:users"</li>
- *     <li>{@link org.apache.jackrabbit.oak.spi.security.user.UserManagerConfig#PARAM_GROUP_PATH}: Underneath this structure
+ *     <li>{@link org.apache.jackrabbit.oak.spi.security.user.UserConfig#PARAM_GROUP_PATH}: Underneath this structure
  *     all group nodes are created. Default value is
  *     "/rep:security/rep:authorizables/rep:groups"</li>
- *     <li>{@link org.apache.jackrabbit.oak.spi.security.user.UserManagerConfig#PARAM_DEFAULT_DEPTH}: A positive {@code integer}
+ *     <li>{@link org.apache.jackrabbit.oak.spi.security.user.UserConfig#PARAM_DEFAULT_DEPTH}: A positive {@code integer}
  *     greater than zero defining the depth of the default structure that is
  *     always created. Default value: 2</li>
  * </ul>
@@ -161,7 +162,8 @@ public class UserProviderImpl implements UserProvider, MembershipProvider, UserC
     private static final String DELIMITER = "/";
     private static final int DEFAULT_DEPTH = 2;
 
-    private final ContentSession contentSession;
+    private final CoreValueFactory valueFactory;
+    private final SessionQueryEngine queryEngine;
     private final Root root;
     private final IdentifierManager identifierManager;
 
@@ -172,22 +174,27 @@ public class UserProviderImpl implements UserProvider, MembershipProvider, UserC
     private final String groupPath;
     private final String userPath;
 
-    public UserProviderImpl(ContentSession contentSession, Root root, UserManagerConfig config) {
-        this.contentSession = contentSession;
-        this.root = root;
-        this.identifierManager = new IdentifierManager(contentSession.getQueryEngine(), root);
+    public UserProviderImpl(ContentSession contentSession, Root root, UserConfig config) {
+        this(contentSession.getCoreValueFactory(), contentSession.getQueryEngine(), root, config);
+    }
 
-        defaultDepth = config.getConfigValue(UserManagerConfig.PARAM_DEFAULT_DEPTH, DEFAULT_DEPTH);
-        int splitValue = config.getConfigValue(UserManagerConfig.PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE, 0);
+    public UserProviderImpl(CoreValueFactory valueFactory, SessionQueryEngine queryEngine, Root root, UserConfig config) {
+        this.valueFactory = valueFactory;
+        this.queryEngine = queryEngine;
+        this.root = root;
+        this.identifierManager = new IdentifierManager(queryEngine, root);
+
+        defaultDepth = config.getConfigValue(UserConfig.PARAM_DEFAULT_DEPTH, DEFAULT_DEPTH);
+        int splitValue = config.getConfigValue(UserConfig.PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE, 0);
         if (splitValue != 0 && splitValue < 4) {
-            log.warn("Invalid value {} for {}. Expected integer >= 4 or 0", splitValue, UserManagerConfig.PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE);
+            log.warn("Invalid value {} for {}. Expected integer >= 4 or 0", splitValue, UserConfig.PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE);
             splitValue = 0;
         }
         this.splitSize = splitValue;
         this.adminId = config.getAdminId();
 
-        groupPath = config.getConfigValue(UserManagerConfig.PARAM_GROUP_PATH, DEFAULT_GROUP_PATH);
-        userPath = config.getConfigValue(UserManagerConfig.PARAM_USER_PATH, DEFAULT_USER_PATH);
+        groupPath = config.getConfigValue(UserConfig.PARAM_GROUP_PATH, DEFAULT_GROUP_PATH);
+        userPath = config.getConfigValue(UserConfig.PARAM_USER_PATH, DEFAULT_USER_PATH);
     }
 
     //-------------------------------------------------------< UserProvider >---
@@ -240,12 +247,11 @@ public class UserProviderImpl implements UserProvider, MembershipProvider, UserC
             // NOTE: in contrast to JR2 the extra shortcut for ID==principalName
             // can be omitted as principals names are stored in user defined
             // index as well.
-            SessionQueryEngine queryEngine = contentSession.getQueryEngine();
             try {
-                CoreValue bindValue = contentSession.getCoreValueFactory().createValue(principal.getName());
+                CoreValue bindValue = valueFactory.createValue(principal.getName());
                 Map<String, CoreValue> bindings = Collections.singletonMap("principalName", bindValue);
                 String stmt = "SELECT * FROM [rep:Authorizable] WHERE [rep:principalName] = $principalName";
-                Result result = contentSession.getQueryEngine().executeQuery(stmt,
+                Result result = queryEngine.executeQuery(stmt,
                         Query.JCR_SQL2, 1, 0,
                         Collections.singletonMap("principalName", bindValue),
                         new NamePathMapper.Default());
@@ -383,7 +389,7 @@ public class UserProviderImpl implements UserProvider, MembershipProvider, UserC
     @Override
     public boolean addMember(Tree groupTree, Tree newMemberTree) {
         if (useMemberNode(groupTree)) {
-            NodeUtil groupNode = new NodeUtil(groupTree, contentSession);
+            NodeUtil groupNode = new NodeUtil(groupTree, valueFactory);
             NodeUtil membersNode = groupNode.getOrAddChild(REP_MEMBERS, NT_REP_MEMBERS);
 
             //FIXME: replace usage of PropertySequence with oak-compatible utility
@@ -513,12 +519,12 @@ public class UserProviderImpl implements UserProvider, MembershipProvider, UserC
         NodeUtil folder;
         Tree authTree = root.getTree(authRoot);
         if (authTree == null) {
-            folder = new NodeUtil(root.getTree("/"), contentSession);
+            folder = new NodeUtil(root.getTree("/"), valueFactory);
             for (String name : Text.explode(authRoot, '/', false)) {
                 folder = folder.getOrAddChild(name, NT_REP_AUTHORIZABLE_FOLDER);
             }
         }  else {
-            folder = new NodeUtil(authTree, contentSession);
+            folder = new NodeUtil(authTree, valueFactory);
         }
         String folderPath = getFolderPath(authorizableId, intermediatePath);
         String[] segmts = Text.explode(folderPath, '/', false);
@@ -576,7 +582,7 @@ public class UserProviderImpl implements UserProvider, MembershipProvider, UserC
     //-----------------------------------------< private MembershipProvider >---
 
     private CoreValue createCoreValue(Tree authorizableTree) {
-        return contentSession.getCoreValueFactory().createValue(getContentID(authorizableTree), PropertyType.WEAKREFERENCE);
+        return valueFactory.createValue(getContentID(authorizableTree), PropertyType.WEAKREFERENCE);
     }
 
     private boolean useMemberNode(Tree groupTree) {

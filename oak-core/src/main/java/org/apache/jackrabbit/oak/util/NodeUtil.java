@@ -57,10 +57,14 @@ public class NodeUtil {
         this.tree = tree;
     }
 
-    public NodeUtil(Tree tree, ContentSession contentSession) {
+    public NodeUtil(Tree tree, CoreValueFactory factory) {
         this.tree = tree;
-        this.factory = contentSession.getCoreValueFactory();
+        this.factory = factory;
         this.mapper = NamePathMapper.DEFAULT;
+    }
+
+    public NodeUtil(Tree tree, ContentSession contentSession) {
+        this(tree, contentSession.getCoreValueFactory());
     }
 
     @Nonnull
