@@ -28,7 +28,6 @@ import org.apache.jackrabbit.oak.api.ConflictHandler;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.security.authorization.PermissionValidatorProvider;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeValidatorProvider;
 import org.apache.jackrabbit.oak.security.user.UserValidatorProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitEditor;
@@ -252,7 +251,8 @@ public class RootImpl implements Root {
         List<ValidatorProvider> providers = new ArrayList<ValidatorProvider>();
 
         // TODO: refactor once permissions are read from content (make sure we read from an up to date store)
-        providers.add(new PermissionValidatorProvider(valueFactory, accessControlContext));
+        providers.add(accessControlContext.getPermissionValidatorProvider(valueFactory));
+        providers.add(accessControlContext.getAccessControlValdatorProvider(valueFactory));
         // TODO the following v-providers could be initialized at ContentRepo level
         // FIXME: use proper configuration
         providers.add(new UserValidatorProvider(valueFactory, new UserManagerConfig("admin")));

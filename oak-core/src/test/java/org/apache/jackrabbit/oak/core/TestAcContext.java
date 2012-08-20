@@ -19,6 +19,9 @@ package org.apache.jackrabbit.oak.core;
 import java.security.Principal;
 import java.util.Set;
 
+import org.apache.jackrabbit.oak.api.CoreValueFactory;
+import org.apache.jackrabbit.oak.spi.commit.DefaultValidatorProvider;
+import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContext;
 import org.apache.jackrabbit.oak.spi.security.authorization.CompiledPermissions;
 import org.slf4j.Logger;
@@ -53,5 +56,15 @@ public class TestAcContext implements AccessControlContext {
                 return true;
             }
         };
+    }
+
+    @Override
+    public ValidatorProvider getPermissionValidatorProvider(CoreValueFactory valueFactory) {
+        return new DefaultValidatorProvider();
+    }
+
+    @Override
+    public ValidatorProvider getAccessControlValdatorProvider(CoreValueFactory valueFactory) {
+        return new DefaultValidatorProvider();
     }
 }

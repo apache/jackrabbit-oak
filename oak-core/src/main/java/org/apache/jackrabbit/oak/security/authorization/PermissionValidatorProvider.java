@@ -30,7 +30,7 @@ import org.apache.jackrabbit.oak.util.NodeUtil;
 /**
  * PermissionValidatorProvider... TODO
  */
-public class PermissionValidatorProvider implements ValidatorProvider {
+class PermissionValidatorProvider implements ValidatorProvider {
 
     private final CoreValueFactory coreValueFactory;
     private final AccessControlContext accessControlContext;
