@@ -163,7 +163,12 @@ public class ValueFactoryImpl implements ValueFactory {
                     break;
 
                 case PropertyType.PATH:
-                    String oakValue = namePathMapper.getOakPath(value);
+                    String oakValue = value;
+                    if (value.startsWith("[") && value.endsWith("]")) {
+                        // identifier path; do no change
+                    } else {
+                        oakValue = namePathMapper.getOakPath(value);
+                    }
                     if (oakValue == null) {
                         throw new ValueFormatException("Invalid path: " + value);
                     }
