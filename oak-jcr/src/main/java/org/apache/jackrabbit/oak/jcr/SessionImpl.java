@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.jcr;
 import java.security.AccessControlException;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nonnull;
@@ -402,7 +403,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
         throw new UnsupportedRepositoryOperationException("Retention Management is not supported.");
     }
 
-    //--------------------------------------------------< Namespaces >---   
+    //--------------------------------------------------< Namespaces >---
 
     // The code below is copied from JCR Commons AbstractSession, but provides information
     // the "hasRemappings" information
@@ -428,7 +429,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
         } else if (uri.length() == 0) {
             throw new NamespaceException(
                     "Default namespace is reserved and can not be remapped");
-        } else if (prefix.toLowerCase().startsWith("xml")) {
+        } else if (prefix.toLowerCase(Locale.ENGLISH).startsWith("xml")) {
             throw new NamespaceException(
                     "XML prefixes are reserved: " + prefix);
         } else if (!XMLChar.isValidNCName(prefix)) {
