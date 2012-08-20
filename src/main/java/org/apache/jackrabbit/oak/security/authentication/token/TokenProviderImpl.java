@@ -29,7 +29,6 @@ import java.util.HashMap;
 import java.util.Map;
 import javax.jcr.Credentials;
 import javax.jcr.PropertyType;
-import javax.jcr.RepositoryException;
 import javax.jcr.SimpleCredentials;
 
 import org.apache.jackrabbit.JcrConstants;
@@ -150,8 +149,6 @@ public class TokenProviderImpl implements TokenProvider {
                 log.debug("Failed to create login token ", e.getMessage());
             } catch (CommitFailedException e) {
                 log.debug("Failed to create login token ", e.getMessage());
-            } catch (RepositoryException e) {
-                log.debug("Failed to create login token ", e.getMessage());
             }
         }
 
@@ -244,7 +241,7 @@ public class TokenProviderImpl implements TokenProvider {
         }
     }
 
-    private static Tree getUserTree(ContentSession contentSession, Root root, String userID) throws RepositoryException {
+    private static Tree getUserTree(ContentSession contentSession, Root root, String userID) {
         UserProvider userProvider = new UserProviderImpl(contentSession, root, null);
         return userProvider.getAuthorizable(userID);
     }
