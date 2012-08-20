@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.privilege;
 
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import javax.jcr.RepositoryException;
@@ -125,12 +126,16 @@ class PrivilegeValidator implements PrivilegeConstants, Validator {
      * the checks listed above fails.
      */
     private void validateDefinition(PrivilegeDefinition definition) throws CommitFailedException {
-        Set<String> aggrNames = definition.getDeclaredAggregateNames();
-        if (aggrNames.isEmpty()) {
+        Set<String> declaredNames = definition.getDeclaredAggregateNames();
+        if (declaredNames.isEmpty()) {
             return;
         }
 
-        for (String aggrName : aggrNames) {
+        if (declaredNames.size() == 1) {
+            throw new CommitFailedException("Singular aggregation is equivalent to existing privilege.");
+        }
+
+        for (String aggrName : declaredNames) {
             // aggregated privilege not registered
             if (!definitions.containsKey(aggrName)) {
                 throw new CommitFailedException("Declared aggregate '"+ aggrName +"' is not a registered privilege.");
@@ -143,8 +148,15 @@ class PrivilegeValidator implements PrivilegeConstants, Validator {
             }
         }
 
+        Set<String> aggregateNames = resolveAggregates(declaredNames);
         for (PrivilegeDefinition existing : definitions.values()) {
-            if (aggrNames.equals(existing.getDeclaredAggregateNames())) {
+            Set<String> existingDeclared = existing.getDeclaredAggregateNames();
+            if (existingDeclared.isEmpty()) {
+                continue;
+            }
+
+            // test for exact same aggregation or aggregation with the same net effect
+            if (declaredNames.equals(existingDeclared) || aggregateNames.equals(resolveAggregates(existingDeclared))) {
                 String msg = "Custom aggregate privilege '" + definition.getName() + "' is already covered by '" + existing.getName() + '\'';
                 throw new CommitFailedException(msg);
             }
@@ -171,6 +183,24 @@ class PrivilegeValidator implements PrivilegeConstants, Validator {
             }
             return isCircular;
         }
+    }
+
+    private Set<String> resolveAggregates(Set<String> declared) throws CommitFailedException {
+        Set<String> aggregateNames = new HashSet<String>();
+        for (String name : declared) {
+            PrivilegeDefinition d = definitions.get(name);
+            if (d == null) {
+                throw new CommitFailedException("Invalid declared aggregate name " + name + ": Unknown privilege.");
+            }
+
+            Set<String> names = d.getDeclaredAggregateNames();
+            if (names.isEmpty()) {
+                aggregateNames.add(name);
+            } else {
+                aggregateNames.addAll(resolveAggregates(names));
+            }
+        }
+        return aggregateNames;
     }
 
     private void checkInitialized() throws CommitFailedException {

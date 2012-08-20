@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.privilege;
 
+import java.util.Collections;
 import java.util.Set;
-
 import javax.annotation.Nonnull;
 
 import com.google.common.collect.ImmutableSet;
@@ -41,7 +41,9 @@ class PrivilegeDefinitionImpl implements PrivilegeDefinition {
 
     PrivilegeDefinitionImpl(String name, boolean isAbstract,
                             String... declaredAggregateNames) {
-        this(name, isAbstract, ImmutableSet.copyOf(declaredAggregateNames  == null ? new String[0] : declaredAggregateNames));
+        this(name, isAbstract, (declaredAggregateNames == null) ?
+                Collections.<String>emptySet() :
+                ImmutableSet.copyOf(declaredAggregateNames));
     }
 
     //------------------------------------------------< PrivilegeDefinition >---
