@@ -27,15 +27,14 @@ import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Map;
+import javax.annotation.CheckForNull;
 import javax.jcr.Credentials;
-import javax.jcr.PropertyType;
 import javax.jcr.SimpleCredentials;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -44,6 +43,7 @@ import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
 import org.apache.jackrabbit.oak.security.user.UserProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.user.PasswordUtility;
 import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
+import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.util.ISO8601;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
@@ -77,10 +77,12 @@ public class TokenProviderImpl implements TokenProvider {
     private static final char DELIM = '_';
 
     private final ContentSession contentSession;
+    private final Root root;
     private final long tokenExpiration;
 
     public TokenProviderImpl(ContentSession contentSession, long tokenExpiration) {
         this.contentSession = contentSession;
+        this.root = contentSession.getCurrentRoot();
         this.tokenExpiration = tokenExpiration;
     }
 
@@ -102,43 +104,43 @@ public class TokenProviderImpl implements TokenProvider {
             final SimpleCredentials sc = (SimpleCredentials) credentials;
             String userID = sc.getUserID();
 
-            Root root = contentSession.getCurrentRoot();
+            CoreValueFactory valueFactory = contentSession.getCoreValueFactory();
             try {
-                Tree userTree = getUserTree(contentSession, root, userID);
+                Tree userTree = getUserTree(userID);
                 if (userTree != null) {
-                    Tree tokenParent = userTree.getChild(TOKENS_NODE_NAME);
+                    NodeUtil userNode = new NodeUtil(userTree, valueFactory);
+                    NodeUtil tokenParent = userNode.getChild(TOKENS_NODE_NAME);
                     if (tokenParent == null) {
-                        tokenParent = userTree.addChild(TOKENS_NODE_NAME);
-                        CoreValue primaryType = contentSession.getCoreValueFactory().createValue(TOKENS_NT_NAME);
-                        tokenParent.setProperty(JcrConstants.JCR_PRIMARYTYPE, primaryType);
+                        tokenParent = userNode.addChild(TOKENS_NODE_NAME, TOKENS_NT_NAME);
                     }
 
                     long creationTime = new Date().getTime();
                     Calendar creation = GregorianCalendar.getInstance();
                     creation.setTimeInMillis(creationTime);
                     String tokenName = Text.replace(ISO8601.format(creation), ":", ".");
-                    Tree tokenTree = tokenParent.addChild(tokenName);
+
+                    NodeUtil tokenNode = tokenParent.addChild(tokenName, TOKENS_NT_NAME);
 
                     String key = generateKey(8);
-                    String token = new StringBuilder(tokenTree.getPath()).append(DELIM).append(key).toString();
+                    String token = new StringBuilder(tokenNode.getTree().getPath()).append(DELIM).append(key).toString();
 
-                    CoreValueFactory vf = contentSession.getCoreValueFactory();
-                    tokenTree.setProperty(TOKEN_ATTRIBUTE_KEY, vf.createValue(PasswordUtility.buildPasswordHash(key)));
+                    String pwHash = PasswordUtility.buildPasswordHash(key);
+                    tokenNode.setString(TOKEN_ATTRIBUTE_KEY, pwHash);
                     final long expirationTime = creationTime + tokenExpiration;
-                    tokenTree.setProperty(TOKEN_ATTRIBUTE_EXPIRY, getExpirationValue(expirationTime));
+                    tokenNode.setDate(TOKEN_ATTRIBUTE_EXPIRY, expirationTime);
 
                     Map<String, String> attributes;
                     for (String name : sc.getAttributeNames()) {
                         if (!TOKEN_ATTRIBUTE.equals(name)) {
                             String attr = sc.getAttribute(name).toString();
-                            tokenTree.setProperty(name, vf.createValue(attr));
+                            tokenNode.setString(name, attr);
                         }
                     }
                     root.commit(DefaultConflictHandler.OURS);
 
                     // also set the new token to the simple credentials.
                     sc.setAttribute(TOKEN_ATTRIBUTE, token);
-                    return new TokenInfoImpl(tokenTree, token);
+                    return new TokenInfoImpl(tokenNode, token);
                 } else {
                     log.debug("Cannot create login token: No corresponding node for User " + userID + '.');
                 }
@@ -157,11 +159,10 @@ public class TokenProviderImpl implements TokenProvider {
 
     @Override
     public TokenInfo getTokenInfo(String token) {
-        Root root = contentSession.getCurrentRoot();
         int pos = token.indexOf(DELIM);
         String tokenPath = (pos == -1) ? token : token.substring(0, pos);
         Tree tokenTree = root.getTree(tokenPath);
-        return (tokenTree == null) ? null : new TokenInfoImpl(tokenTree, token);
+        return (tokenTree == null) ? null : new TokenInfoImpl(new NodeUtil(tokenTree, contentSession), token);
     }
 
     @Override
@@ -184,12 +185,13 @@ public class TokenProviderImpl implements TokenProvider {
     public boolean resetTokenExpiration(TokenInfo tokenInfo, long loginTime) {
         Tree tokenTree = getTokenTree(tokenInfo);
         if (tokenTree != null) {
-            long expTime = tokenTree.getProperty(TOKEN_ATTRIBUTE_EXPIRY).getValue().getLong();
+            NodeUtil tokenNode = new NodeUtil(tokenTree, contentSession);
+            long expTime = tokenNode.getLong(TOKEN_ATTRIBUTE_EXPIRY, 0);
             if (expTime - loginTime <= tokenExpiration/2) {
                 long expirationTime = loginTime + tokenExpiration;
                 try {
-                    tokenTree.setProperty(TOKEN_ATTRIBUTE_EXPIRY, getExpirationValue(expirationTime));
-                    contentSession.getCurrentRoot().commit(DefaultConflictHandler.OURS);
+                    tokenNode.setDate(TOKEN_ATTRIBUTE_EXPIRY, expirationTime);
+                    root.commit(DefaultConflictHandler.OURS);
                     return true;
                 } catch (CommitFailedException e) {
                     log.warn("Error while resetting token expiration", e.getMessage());
@@ -201,13 +203,6 @@ public class TokenProviderImpl implements TokenProvider {
 
 
     //--------------------------------------------------------------------------
-
-    private CoreValue getExpirationValue(long expirationTime) {
-        Calendar cal = GregorianCalendar.getInstance();
-        cal.setTimeInMillis(expirationTime);
-        return contentSession.getCoreValueFactory().createValue(ISO8601.format(cal), PropertyType.DATE);
-    }
-
     /**
      * Returns {@code true} if the specified {@code attributeName}
      * starts with or equals {@link #TOKEN_ATTRIBUTE}.
@@ -241,7 +236,8 @@ public class TokenProviderImpl implements TokenProvider {
         }
     }
 
-    private static Tree getUserTree(ContentSession contentSession, Root root, String userID) {
+    @CheckForNull
+    private Tree getUserTree(String userID) {
         UserProvider userProvider = new UserProviderImpl(contentSession, root, null);
         return userProvider.getAuthorizable(userID);
     }
@@ -259,23 +255,16 @@ public class TokenProviderImpl implements TokenProvider {
         private Map<String, String> publicAttributes;
 
 
-        private TokenInfoImpl(Tree tokenTree, String token) {
+        private TokenInfoImpl(NodeUtil tokenNode, String token) {
             this.token = token;
-            this.tokenPath = tokenTree.getPath();
+            this.tokenPath = tokenNode.getTree().getPath();
 
-            PropertyState expTime = tokenTree.getProperty(TOKEN_ATTRIBUTE_EXPIRY);
-            if (expTime == null) {
-                expirationTime = Long.MIN_VALUE;
-            } else {
-                expirationTime = expTime.getValue().getLong();
-            }
-
-            PropertyState keyProp = tokenTree.getProperty(TOKEN_ATTRIBUTE_KEY);
-            key = (keyProp == null) ? null : keyProp.getValue().getString();
+            expirationTime = tokenNode.getLong(TOKEN_ATTRIBUTE_EXPIRY, Long.MIN_VALUE);
+            key = tokenNode.getString(TOKEN_ATTRIBUTE_KEY, null);
 
             mandatoryAttributes = new HashMap<String, String>();
             publicAttributes = new HashMap<String, String>();
-            for (PropertyState propertyState : tokenTree.getProperties()) {
+            for (PropertyState propertyState : tokenNode.getTree().getProperties()) {
                 String name = propertyState.getName();
                 String value = propertyState.getValue().getString();
                 if (isMandatoryAttribute(name)) {
