@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import javax.jcr.NamespaceException;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
@@ -72,23 +73,36 @@ public class PrivilegeManagerImpl implements PrivilegeManager {
     @Override
     public Privilege registerPrivilege(String privilegeName, boolean isAbstract,
                                        String[] declaredAggregateNames) throws RepositoryException {
-        PrivilegeDefinition def = provider.registerDefinition(getOakName(privilegeName), isAbstract, getOakNames(declaredAggregateNames));
+        if (privilegeName == null || privilegeName.isEmpty()) {
+            throw new RepositoryException("Invalid privilege name " + privilegeName);
+        }
+        String oakName = getOakName(privilegeName);
+        if (oakName == null) {
+            throw new NamespaceException("Invalid privilege name " + privilegeName);
+        }
+
+        PrivilegeDefinition def = provider.registerDefinition(oakName, isAbstract, getOakNames(declaredAggregateNames));
         return new PrivilegeImpl(def);
     }
 
-    //--------------------------------------------------------------------------
+    //------------------------------------------------------------< private >---
+
     private String getOakName(String jcrName) {
         return sessionDelegate.getNamePathMapper().getOakName(jcrName);
     }
 
-    private Set<String> getOakNames(String[] jcrNames) {
+    private Set<String> getOakNames(String[] jcrNames) throws RepositoryException {
         Set<String> oakNames;
         if (jcrNames == null || jcrNames.length == 0) {
             oakNames = Collections.emptySet();
         } else {
             oakNames = new HashSet<String>(jcrNames.length);
             for (String jcrName : jcrNames) {
-                oakNames.add(getOakName(jcrName));
+                String oakName = getOakName(jcrName);
+                if (oakName == null) {
+                    throw new RepositoryException("Invalid name " + jcrName);
+                }
+                oakNames.add(oakName);
             }
         }
         return oakNames;
