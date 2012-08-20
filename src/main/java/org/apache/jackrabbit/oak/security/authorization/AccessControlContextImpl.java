@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.security.authorization;
 import java.security.Principal;
 import java.util.Set;
 
+import org.apache.jackrabbit.oak.api.CoreValueFactory;
+import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.CompiledPermissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContext;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
@@ -33,6 +35,7 @@ public class AccessControlContextImpl implements AccessControlContext {
 
     private Set<Principal> principals;
 
+    //-----------------------------------------------< AccessControlContext >---
     @Override
     public void initialize(Set<Principal> principals) {
         this.principals = principals;
@@ -50,6 +53,17 @@ public class AccessControlContextImpl implements AccessControlContext {
         }
     }
 
+    @Override
+    public ValidatorProvider getPermissionValidatorProvider(CoreValueFactory valueFactory) {
+        return new PermissionValidatorProvider(valueFactory, this);
+    }
+
+    @Override
+    public ValidatorProvider getAccessControlValdatorProvider(CoreValueFactory valueFactory) {
+        return new AccessControlValidatorProvider(valueFactory, this);
+    }
+
+    //--------------------------------------------------------------------------
     /**
      * Trivial implementation of the {@code CompiledPermissions} interface that
      * either allows or denies all permissions.
