@@ -175,7 +175,7 @@ public class UserProviderImpl implements UserProvider, MembershipProvider, UserC
     public UserProviderImpl(ContentSession contentSession, Root root, UserManagerConfig config) {
         this.contentSession = contentSession;
         this.root = root;
-        this.identifierManager = new IdentifierManager(contentSession, root);
+        this.identifierManager = new IdentifierManager(contentSession.getQueryEngine(), root);
 
         defaultDepth = config.getConfigValue(UserManagerConfig.PARAM_DEFAULT_DEPTH, DEFAULT_DEPTH);
         int splitValue = config.getConfigValue(UserManagerConfig.PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE, 0);

@@ -29,14 +29,15 @@ import javax.jcr.PropertyType;
 import javax.jcr.query.Query;
 
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.SessionQueryEngine;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.memory.StringValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,12 +48,12 @@ public class IdentifierManager {
 
     private static final Logger log = LoggerFactory.getLogger(IdentifierManager.class);
 
-    private final ContentSession contentSession;
     private final Root root;
+    private final SessionQueryEngine queryEngine;
 
-    public IdentifierManager(ContentSession contentSession, Root root) {
-        this.contentSession = contentSession;
+    public IdentifierManager(SessionQueryEngine queryEngine, Root root) {
         this.root = root;
+        this.queryEngine = queryEngine;
     }
 
     @Nonnull
@@ -66,7 +67,7 @@ public class IdentifierManager {
             UUID uuid = UUID.nameUUIDFromBytes(hint.getBytes("UTF-8"));
             return uuid.toString();
         } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException("Unexpected error while creating authorizable node", e);
+            throw new RuntimeException("Unexpected error while creating uuid", e);
         }
     }
 
@@ -110,7 +111,8 @@ public class IdentifierManager {
     @CheckForNull
     public Tree getTree(String identifier) {
         if (isValidUUID(identifier)) {
-            return findTreeByJcrUuid(identifier);
+            String path = resolveUUID(identifier);
+            return (path == null) ? null : root.getTree(path);
         } else {
             // TODO as stated in NodeDelegate#getIdentifier() a non-uuid ID should
             // TODO consisting of closest referenceable parent and a relative path
@@ -210,13 +212,13 @@ public class IdentifierManager {
 
     @CheckForNull
     private String resolveUUID(String uuid) {
-        return resolveUUID(contentSession.getCoreValueFactory().createValue(uuid));
+        return resolveUUID(new StringValue(uuid));
     }
 
     private String resolveUUID(CoreValue uuid) {
         try {
             Map<String, CoreValue> bindings = Collections.singletonMap("id", uuid);
-            Result result = contentSession.getQueryEngine().executeQuery("SELECT * FROM [nt:base] WHERE [jcr:uuid] = $id", Query.JCR_SQL2,
+            Result result = queryEngine.executeQuery("SELECT * FROM [nt:base] WHERE [jcr:uuid] = $id", Query.JCR_SQL2,
                     Long.MAX_VALUE, 0, bindings, new NamePathMapper.Default());
 
             String path = null;
@@ -235,9 +237,4 @@ public class IdentifierManager {
         }
     }
 
-    @CheckForNull
-    private Tree findTreeByJcrUuid(String uuid) {
-        String path = resolveUUID(uuid);
-        return (path == null) ? null : root.getTree(path);
-    }
 }
