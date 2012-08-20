@@ -71,6 +71,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
 import org.apache.jackrabbit.oak.jcr.value.ValueConverter;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
+import org.apache.jackrabbit.oak.util.TODO;
 import org.apache.jackrabbit.value.ValueHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1212,9 +1213,9 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
      */
     @Override
     @Nonnull
-    public Lock lock(boolean isDeep, boolean isSessionScoped)
+    public Lock lock(final boolean isDeep, boolean isSessionScoped)
             throws RepositoryException {
-        String userID = getSession().getUserID();
+        final String userID = getSession().getUserID();
 
         String lockOwner = sessionDelegate.getOakPathOrThrow(JCR_LOCK_OWNER);
         String lockIsDeep = sessionDelegate.getOakPathOrThrow(JCR_LOCK_IS_DEEP);
@@ -1234,6 +1235,55 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
         }
 
         getSession().refresh(true);
+
+        if (isSessionScoped) {
+            return TODO.dummyImplementation().returnValue(new Lock() {
+                @Override
+                public String getLockOwner() {
+                    return userID;
+                }
+
+                @Override
+                public boolean isDeep() {
+                    return isDeep;
+                }
+
+                @Override
+                public Node getNode() {
+                    return NodeImpl.this;
+                }
+
+                @Override
+                public String getLockToken() {
+                    return null;
+                }
+
+                @Override
+                public long getSecondsRemaining() {
+                    return Long.MAX_VALUE;
+                }
+
+                @Override
+                public boolean isLive() {
+                    return true;
+                }
+
+                @Override
+                public boolean isSessionScoped() {
+                    return true;
+                }
+
+                @Override
+                public boolean isLockOwningSession() {
+                    return true;
+                }
+
+                @Override
+                public void refresh() {
+                }
+            });
+        }
+
         return getLock();
     }
 
