@@ -16,23 +16,23 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user;
 
-import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nonnull;
+
+import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * UserManagerConfig provides utilities to retrieve configuration options
  * related to user management. In addition it defines some constants that
  * have been used in Jackrabbit 2.0 default user management implementation.
  */
-public class UserManagerConfig {
+public class UserConfig {
 
-    private static final Logger log = LoggerFactory.getLogger(UserManagerConfig.class);
+    private static final Logger log = LoggerFactory.getLogger(UserConfig.class);
 
     /**
      * Configuration option to define the path underneath which user nodes
@@ -87,11 +87,11 @@ public class UserManagerConfig {
     private final Map<String, Object> options;
     private final Set<AuthorizableAction> actions;
 
-    public UserManagerConfig(String adminId) {
+    public UserConfig(String adminId) {
         this(adminId, null, null);
     }
 
-    public UserManagerConfig(String adminId, Map<String, Object> options, Set<AuthorizableAction> actions) {
+    public UserConfig(String adminId, Map<String, Object> options, Set<AuthorizableAction> actions) {
         assert adminId != null;
 
         this.adminId = adminId;

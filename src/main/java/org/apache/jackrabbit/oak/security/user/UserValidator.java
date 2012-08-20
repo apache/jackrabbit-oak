@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.commit.UniquePropertyValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.apache.jackrabbit.oak.spi.security.user.UserManagerConfig;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.util.Text;
@@ -34,10 +34,11 @@ import org.apache.jackrabbit.util.Text;
 /**
  * UserValidator... TODO
  */
-class UserValidator extends UniquePropertyValidator {
+class UserValidator extends UniquePropertyValidator implements UserConstants {
 
     private final static Set<String> PROPERTY_NAMES = ImmutableSet.copyOf(new String[] {
-            UserConstants.REP_AUTHORIZABLE_ID, UserConstants.REP_PRINCIPAL_NAME});
+            REP_AUTHORIZABLE_ID, REP_PRINCIPAL_NAME
+    });
 
     private final UserValidatorProvider provider;
 
@@ -67,6 +68,11 @@ class UserValidator extends UniquePropertyValidator {
     @Override
     public void propertyChanged(PropertyState before, PropertyState after) throws CommitFailedException {
         super.propertyChanged(before, after);
+
+        String name = before.getName();
+        if (REP_PRINCIPAL_NAME.equals(name) || REP_AUTHORIZABLE_ID.equals(name)) {
+            throw new CommitFailedException("Authorizable property " + name + " may not be altered after user/group creation.");
+        }
     }
 
     @Override
@@ -78,10 +84,10 @@ class UserValidator extends UniquePropertyValidator {
     public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
         NodeUtil node = parentAfter.getChild(name);
         String authRoot = null;
-        if (node.hasPrimaryNodeTypeName(UserConstants.NT_REP_USER)) {
-            authRoot = provider.getConfig().getConfigValue(UserManagerConfig.PARAM_USER_PATH, UserConstants.DEFAULT_USER_PATH);
+        if (node.hasPrimaryNodeTypeName(NT_REP_USER)) {
+            authRoot = provider.getConfig().getConfigValue(UserConfig.PARAM_USER_PATH, DEFAULT_USER_PATH);
         } else if (node.hasPrimaryNodeTypeName(UserConstants.NT_REP_GROUP)) {
-            authRoot = provider.getConfig().getConfigValue(UserManagerConfig.PARAM_GROUP_PATH, UserConstants.DEFAULT_GROUP_PATH);
+            authRoot = provider.getConfig().getConfigValue(UserConfig.PARAM_GROUP_PATH, DEFAULT_GROUP_PATH);
         }
         if (authRoot != null) {
             assertHierarchy(node, authRoot);
@@ -119,7 +125,7 @@ class UserValidator extends UniquePropertyValidator {
 
         NodeUtil parent = userNode.getParent();
         while (!parent.getTree().isRoot()) {
-            if (!parent.hasPrimaryNodeTypeName(UserConstants.NT_REP_AUTHORIZABLE_FOLDER)) {
+            if (!parent.hasPrimaryNodeTypeName(NT_REP_AUTHORIZABLE_FOLDER)) {
                 String msg = "Cannot create user/group: Intermediate folders must be of type rep:AuthorizableFolder.";
                 Exception e = new ConstraintViolationException(msg);
                 throw new CommitFailedException(e);
