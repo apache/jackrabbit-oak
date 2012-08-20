@@ -165,10 +165,12 @@ public class NamePathMapperImpl implements NamePathMapper {
         if (length > 0 && jcrPath.charAt(0) == '[') {
             if (jcrPath.charAt(length - 1) != ']') {
                 // TODO error handling?
+                log.debug("Could not parse path " + jcrPath + ": unterminated identifier");
                 return null;
             }
             if (this.idManager == null) {
                 // TODO error handling?
+                log.debug("Could not parse path " + jcrPath + ": could not resolve identifier");
                 return null;
             }
             return this.idManager.getPath(jcrPath.substring(1, length - 1));
