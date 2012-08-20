@@ -178,8 +178,6 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     public Node getNode(final String absPath) throws RepositoryException {
         ensureIsAlive();
 
-        // FIXME: deal with identifier path (OAK-23)
-
         return dlg.perform(new SessionOperation<NodeImpl>() {
             @Override
             public NodeImpl perform() throws RepositoryException {
@@ -196,8 +194,6 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     @Override
     public boolean nodeExists(final String absPath) throws RepositoryException {
         ensureIsAlive();
-
-        // FIXME: deal with identifier path (OAK-23)
 
         return dlg.perform(new SessionOperation<Boolean>() {
             @Override

@@ -21,6 +21,7 @@ import java.util.List;
 
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,9 +36,16 @@ public class NamePathMapperImpl implements NamePathMapper {
     private static final Logger log = LoggerFactory.getLogger(NamePathMapperImpl.class);
 
     private final NameMapper nameMapper;
+    private final IdentifierManager idManager;
 
     public NamePathMapperImpl(NameMapper nameMapper) {
         this.nameMapper = nameMapper;
+        this.idManager = null;
+    }
+
+    public NamePathMapperImpl(NameMapper nameMapper, IdentifierManager idManager) {
+        this.nameMapper = nameMapper;
+        this.idManager = idManager;
     }
 
     //---------------------------------------------------------< NameMapper >---
@@ -151,13 +159,28 @@ public class NamePathMapperImpl implements NamePathMapper {
             return "/";
         }
 
+        int length = jcrPath.length();
+
+        // identifier path?
+        if (length > 0 && jcrPath.charAt(0) == '[') {
+            if (jcrPath.charAt(length - 1) != ']') {
+                // TODO error handling?
+                return null;
+            }
+            if (this.idManager == null) {
+                // TODO error handling?
+                return null;
+            }
+            return this.idManager.getPath(jcrPath.substring(1, length - 1));
+        }
+
         boolean hasClarkBrackets = false;
         boolean hasIndexBrackets = false;
         boolean hasColon = false;
         boolean hasNameStartingWithDot = false;
 
         char prev = 0;
-        for (int i = 0; i < jcrPath.length(); i++) {
+        for (int i = 0; i < length; i++) {
             char c = jcrPath.charAt(i);
 
             if (c == '{' || c == '}') {

@@ -163,17 +163,9 @@ public class ValueFactoryImpl implements ValueFactory {
                     break;
 
                 case PropertyType.PATH:
-                    // TODO we special case identifier paths here for now
-                    // eventually this should be done in the path mapper (OAK-23)
-
-                    String oakValue;
-                    if (value.startsWith("[") && value.endsWith("]")) {
-                        oakValue = value;
-                    } else {
-                        oakValue = namePathMapper.getOakPath(value);
-                        if (oakValue == null) {
-                            throw new ValueFormatException("Invalid path: " + value);
-                        }
+                    String oakValue = namePathMapper.getOakPath(value);
+                    if (oakValue == null) {
+                        throw new ValueFormatException("Invalid path: " + value);
                     }
                     cv = factory.createValue(oakValue, type);
                     break;

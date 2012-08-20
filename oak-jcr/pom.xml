@@ -34,7 +34,6 @@
   <properties>
     <known.issues>
 org.apache.jackrabbit.test.api.AddNodeTest#testSameNameSiblings<!-- OAK-203 -->
-org.apache.jackrabbit.test.api.PathTest#testGetItem<!-- OAK-23 -->
 org.apache.jackrabbit.test.api.SessionTest#testMoveConstraintViolationExceptionSrc<!--OAK-132-->
 org.apache.jackrabbit.test.api.SessionTest#testMoveConstraintViolationExceptionDest<!--OAK-132-->
 org.apache.jackrabbit.test.api.SessionTest#testSaveConstraintViolationException<!--OAK-66-->

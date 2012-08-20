@@ -61,7 +61,7 @@ import org.slf4j.LoggerFactory;
 public class SessionDelegate {
     static final Logger log = LoggerFactory.getLogger(SessionDelegate.class);
 
-    private final NamePathMapper namePathMapper = new NamePathMapperImpl(new SessionNameMapper());
+    private final NamePathMapper namePathMapper;
     private final Repository repository;
     private final ScheduledExecutorService executor;
     private final ContentSession contentSession;
@@ -88,13 +88,14 @@ public class SessionDelegate {
         this.repository = repository;
         this.executor = executor;
         this.contentSession = contentSession;
-        this.valueFactory = new ValueFactoryImpl(contentSession.getCoreValueFactory(), namePathMapper);
         this.workspace = new WorkspaceImpl(this);
         this.session = new SessionImpl(this);
         this.root = contentSession.getCurrentRoot();
         this.conflictHandler = new AnnotatingConflictHandler(contentSession.getCoreValueFactory());
         this.autoRefresh = autoRefresh;
         this.idManager = new IdentifierManager(contentSession, root);
+        this.namePathMapper = new NamePathMapperImpl(new SessionNameMapper(), idManager);
+        this.valueFactory = new ValueFactoryImpl(contentSession.getCoreValueFactory(), namePathMapper);
     }
 
     /**
