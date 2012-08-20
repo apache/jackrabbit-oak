@@ -65,12 +65,14 @@ public class JoinImpl extends SourceImpl {
 
     @Override
     public String getPlan() {
-        return left.getPlan() + ' ' + joinType.name() + " join " + right.getPlan();
+        return left.getPlan() + ' ' + joinType +
+                " " + right.getPlan() + " on " + joinCondition;
     }
 
     @Override
     public String toString() {
-        return left + " " + joinType.name() + " join " + right;
+        return left + " " + joinType +
+                " " + right + " on " + joinCondition;
     }
 
     @Override

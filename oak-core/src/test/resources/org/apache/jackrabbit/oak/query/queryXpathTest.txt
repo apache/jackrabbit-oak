@@ -20,12 +20,26 @@
 
 # jackrabbit test queries
 
-xpath /jcr:root/testroot/*[jcr:contains(@jcr:content, 'lazy')]
-select [jcr:path], [jcr:score], * from [nt:base] where contains([jcr:content], 'lazy') and ischildnode('/testroot')
+xpath //element(*,rep:Authorizable)[(((jcr:contains(profile/givenName,'**') or jcr:contains(profile/familyName,'**')) or jcr:contains(profile/email,'**')) or (jcr:like(rep:principalName,'%%') or jcr:like(fn:name(.),'%%')))] order by rep:principalName ascending
+select [jcr:path], [jcr:score], * from [rep:Authorizable] where ((contains([profile/givenName/*], '**') or contains([profile/familyName/*], '**')) or contains([profile/email/*], '**')) or (([rep:principalName/*] like '%%') or (name([*]) like '%%')) order by [rep:principalName/*]
 
-# TODO is the @ before jcr:content not needed, if not why?
+xpath //element(*,rep:Authorizable)[(((jcr:contains(profile/@givenName,'**') or jcr:contains(profile/@familyName,'**')) or jcr:contains(profile/@email,'**')) or (jcr:like(@rep:principalName,'%%') or jcr:like(fn:name(.),'%%')))] order by @rep:principalName ascending
+select [jcr:path], [jcr:score], * from [rep:Authorizable] where ((contains([profile/givenName], '**') or contains([profile/familyName], '**')) or contains([profile/email], '**')) or (([rep:principalName] like '%%') or (name([*]) like '%%')) order by [rep:principalName]
+
+xpath /jcr:root/testroot//*[jcr:contains(@jcr:data, 'lazy')]
+select [jcr:path], [jcr:score], * from [nt:base] where contains([jcr:data], 'lazy') and isdescendantnode('/testroot')
+
 xpath /jcr:root/testroot/*[jcr:contains(jcr:content, 'lazy')]
-invalid: Query: /jcr:root/testroot/*[jcr:contains(jcr:content,(*)'lazy')]; expected: (
+select [jcr:path], [jcr:score], * from [nt:base] where contains([jcr:content/*], 'lazy') and ischildnode('/testroot')
+
+xpath /jcr:root/testroot/*[jcr:contains(*, 'lazy')]
+select [jcr:path], [jcr:score], * from [nt:base] where contains([*/*], 'lazy') and ischildnode('/testroot')
+
+xpath /jcr:root/testroot/*[jcr:contains(*/@jcr:data, 'lazy')]
+select [jcr:path], [jcr:score], * from [nt:base] where contains([*/jcr:data], 'lazy') and ischildnode('/testroot')
+
+xpath /jcr:root/testroot/*[jcr:contains(*/@*, 'lazy')]
+select [jcr:path], [jcr:score], * from [nt:base] where contains([*/*], 'lazy') and ischildnode('/testroot')
 
 xpath /jcr:root/testroot/*[@prop1 = 1 and jcr:like(fn:name(), 'F%')]
 select [jcr:path], [jcr:score], * from [nt:base] where (([prop1] = 1) and (name() like 'F%')) and ischildnode('/testroot')
@@ -143,10 +157,10 @@ xpath /jcr:root/content//*[@name='Hello']
 select [jcr:path], [jcr:score], * from [nt:base] where ([name] = 'Hello') and isdescendantnode('/content')
 
 xpath //*[jcr:contains(., 'test')] order by @jcr:score
-select [jcr:path], [jcr:score], * from [nt:base] where contains(*, 'test') order by [jcr:score]
+select [jcr:path], [jcr:score], * from [nt:base] where contains([*], 'test') order by [jcr:score]
 
 xpath /jcr:root//*[jcr:contains(., 'test')] order by @jcr:score
-select [jcr:path], [jcr:score], * from [nt:base] where contains(*, 'test') and isdescendantnode('/') order by [jcr:score]
+select [jcr:path], [jcr:score], * from [nt:base] where contains([*], 'test') and isdescendantnode('/') order by [jcr:score]
 
 xpath /jcr:root//element(*, test)
 select [jcr:path], [jcr:score], * from [test] where isdescendantnode('/')
@@ -229,7 +243,7 @@ xpath //element(*, my:type)[jcr:like(@title,'%Java%')]
 select [jcr:path], [jcr:score], * from [my:type] where [title] like '%Java%'
 
 xpath //element(*, my:type)[jcr:contains(., 'JSR 170')]
-select [jcr:path], [jcr:score], * from [my:type] where contains(*, 'JSR 170')
+select [jcr:path], [jcr:score], * from [my:type] where contains([*], 'JSR 170')
 
 xpath //element(*, my:type)[@my:title]
 select [jcr:path], [jcr:score], * from [my:type] where [my:title] is not null
@@ -268,7 +282,7 @@ xpath //element(*, my:type) order by @my:date descending, @my:title ascending
 select [jcr:path], [jcr:score], * from [my:type] order by [my:date] desc, [my:title]
 
 xpath //element(*, my:type)[jcr:contains(., 'jcr')] order by jcr:score() descending
-select [jcr:path], [jcr:score], * from [my:type] where contains(*, 'jcr') order by score() desc
+select [jcr:path], [jcr:score], * from [my:type] where contains([*], 'jcr') order by score() desc
 
 xpath //element(*, my:type)[jcr:contains(@my:title, 'jcr')] order by jcr:score() descending
 select [jcr:path], [jcr:score], * from [my:type] where contains([my:title], 'jcr') order by score() desc
@@ -289,13 +303,13 @@ xpath //element(*, my:type)[@my:value = +'x']
 invalid: Query: //element(*, my:type)[@my:value = +'x'(*)]
 
 xpath //element(*, my:type)[@my:value = ['x']
-invalid: Query: //element(*, my:type)[@my:value = [(*)'x']; expected: @, true, false, -, +
+invalid: Query: //element(*, my:type)[@my:value = [(*)'x']; expected: @, true, false, -, +, *, ., @, (
 
 xpath //element(*, my:type)[jcr:strike(@title,'%Java%')]
 invalid: Query: //element(*, my:type)[jcr:strike(@(*)title,'%Java%')]; expected: jcr:like | jcr:contains | jcr:score | jcr:deref | fn:lower-case | fn:upper-case
 
 xpath //element(*, my:type)[
-invalid: Query: //element(*, my:type)(*)[; expected: not, (, @, true, false, -, +
+invalid: Query: //element(*, my:type)(*)[; expected: not, (, @, true, false, -, +, *, ., @, (
 
-xpath //element(*, my:type)[@my:value >= .]
-invalid: Query: //element(*, my:type)[@my:value >= .(*)]; expected: @, true, false, -, +
+xpath //element(*, my:type)[@my:value >= %]
+invalid: Query: //element(*, my:type)[@my:value >= %(*)]; expected: @, true, false, -, +, *, ., @, (

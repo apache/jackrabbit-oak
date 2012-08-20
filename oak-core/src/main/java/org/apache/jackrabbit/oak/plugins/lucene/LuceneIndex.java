@@ -27,9 +27,11 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.jackrabbit.oak.query.index.IndexRowImpl;
 import org.apache.jackrabbit.oak.spi.Cursor;
 import org.apache.jackrabbit.oak.spi.Filter;
 import org.apache.jackrabbit.oak.spi.Filter.PropertyRestriction;
+import org.apache.jackrabbit.oak.spi.IndexRow;
 import org.apache.jackrabbit.oak.spi.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -125,7 +127,8 @@ public class LuceneIndex implements QueryIndex {
             qs.add(new PrefixQuery(newPathTerm(path + "/")));
             break;
         case DIRECT_CHILDREN:
-            qs.add(new PrefixQuery(newPathTerm(path + "/"))); // FIXME
+            // FIXME
+            qs.add(new PrefixQuery(newPathTerm(path + "/")));
             break;
         case EXACT:
             qs.add(new TermQuery(newPathTerm(path)));
@@ -136,7 +139,8 @@ public class LuceneIndex implements QueryIndex {
                 String parent = path.substring(0, slash);
                 qs.add(new TermQuery(newPathTerm(parent)));
             } else {
-                return null; // there's no parent of the root node
+                // there's no parent of the root node
+                return null;
             }
             break;
         }
@@ -172,6 +176,9 @@ public class LuceneIndex implements QueryIndex {
         }
     }
 
+    /**
+     * A cursor over the resulting paths.
+     */
     private static class PathCursor implements Cursor {
 
         private final Iterator<String> iterator;
@@ -194,8 +201,9 @@ public class LuceneIndex implements QueryIndex {
         }
 
         @Override
-        public String currentPath() {
-            return path;
+        public IndexRow currentRow() {
+            // TODO support jcr:score and possibly rep:exceprt
+            return new IndexRowImpl(path);
         }
 
     }

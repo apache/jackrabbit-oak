@@ -23,6 +23,7 @@ import org.apache.jackrabbit.mk.index.PropertyIndex;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.spi.Cursor;
 import org.apache.jackrabbit.oak.spi.Filter;
+import org.apache.jackrabbit.oak.spi.IndexRow;
 import org.apache.jackrabbit.oak.spi.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -92,8 +93,8 @@ public class PropertyContentIndex implements QueryIndex {
         }
 
         @Override
-        public String currentPath() {
-            return currentPath;
+        public IndexRow currentRow() {
+            return new IndexRowImpl(currentPath);
         }
 
         @Override

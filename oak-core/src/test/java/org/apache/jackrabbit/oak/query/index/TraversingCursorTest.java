@@ -49,7 +49,7 @@ public class TraversingCursorTest {
         List<String> paths = new ArrayList<String>();
         Cursor c = t.query(f, head, new KernelNodeState(mk, "/", head));
         while (c.next()) {
-            paths.add(c.currentPath());
+            paths.add(c.currentRow().getPath());
         }
         Collections.sort(paths);
         assertEquals(Arrays.asList(

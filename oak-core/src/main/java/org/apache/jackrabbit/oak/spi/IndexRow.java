@@ -18,26 +18,28 @@
  */
 package org.apache.jackrabbit.oak.spi;
 
+import org.apache.jackrabbit.oak.api.CoreValue;
+
 /**
- * A cursor to read a number of nodes sequentially.
+ * A row returned by the index.
  */
-public interface Cursor {
+public interface IndexRow {
 
     /**
-     * Skip to the next node if one is available.
+     * The path of the node, if available.
      *
-     * @return true if another row is available
+     * @return the path
      */
-    boolean next();
+    String getPath();
 
     /**
-     * The current row within this index. The row usually only contains the
-     * path, but it may additionally contain so-called 'pseudo-properties' such
-     * as "jcr:score" and "rep:excerpt", in case the index supports those
-     * properties and if the properties were requested when running the query.
+     * The value of the given property, if available. This might be a property
+     * of the given node, or a pseudo-property (a property that is only
+     * available in the index but not in the node itself, such as "jcr:score").
      *
-     * @return the row
+     * @param columnName the column name
+     * @return the value, or null if not available
      */
-    IndexRow currentRow();
+    CoreValue getValue(String columnName);
 
 }
