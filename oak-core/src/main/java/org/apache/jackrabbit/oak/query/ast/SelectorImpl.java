@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.plugins.memory.SinglePropertyState;
 import org.apache.jackrabbit.oak.query.Query;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.Cursor;
+import org.apache.jackrabbit.oak.spi.IndexRow;
 import org.apache.jackrabbit.oak.spi.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -117,7 +118,7 @@ public class SelectorImpl extends SourceImpl {
             if (nodeTypeName.equals(TYPE_BASE)) {
                 return true;
             }
-            Tree tree = getTree(cursor.currentPath());
+            Tree tree = getTree(cursor.currentRow().getPath());
             PropertyState p = tree.getProperty(JCR_PRIMARY_TYPE);
             if (p == null) {
                 return true;
@@ -140,7 +141,7 @@ public class SelectorImpl extends SourceImpl {
 
     @Override
     public String currentPath() {
-        return cursor == null ? null : cursor.currentPath();
+        return cursor == null ? null : cursor.currentRow().getPath();
     }
 
     public PropertyState currentProperty(String propertyName) {
@@ -157,7 +158,16 @@ public class SelectorImpl extends SourceImpl {
             CoreValue v = query.getValueFactory().createValue(local);
             return new SinglePropertyState(PATH, v);
         }
-        String path = currentPath();
+        if (cursor == null) {
+            return null;
+        }
+        IndexRow r = cursor.currentRow();
+        if (r == null) {
+            return null;
+        }
+        // TODO support pseudo-properties such as jcr:score using
+        // r.getValue(columnName)
+        String path = r.getPath();
         if (path == null) {
             return null;
         }

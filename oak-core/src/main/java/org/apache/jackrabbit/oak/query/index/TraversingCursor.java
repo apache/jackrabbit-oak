@@ -14,12 +14,9 @@
 package org.apache.jackrabbit.oak.query.index;
 
 import static org.apache.jackrabbit.oak.spi.Filter.PathRestriction.ALL_CHILDREN;
-
 import java.util.Deque;
 import java.util.Iterator;
-
 import javax.jcr.PropertyType;
-
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -28,9 +25,9 @@ import org.apache.jackrabbit.oak.plugins.memory.StringValue;
 import org.apache.jackrabbit.oak.spi.Cursor;
 import org.apache.jackrabbit.oak.spi.Filter;
 import org.apache.jackrabbit.oak.spi.Filter.PropertyRestriction;
+import org.apache.jackrabbit.oak.spi.IndexRow;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Queues;
 
@@ -66,7 +63,7 @@ public class TraversingCursor implements Cursor {
 
                 if (node == null) {
                     // nothing can match this filter, leave nodes empty
-                    return; 
+                    return;
                 }
             }
         }
@@ -93,8 +90,8 @@ public class TraversingCursor implements Cursor {
     }
 
     @Override
-    public String currentPath() {
-        return currentPath;
+    public IndexRow currentRow() {
+        return new IndexRowImpl(currentPath);
     }
 
     @Override

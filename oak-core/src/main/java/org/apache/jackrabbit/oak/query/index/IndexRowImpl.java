@@ -16,28 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.spi;
+package org.apache.jackrabbit.oak.query.index;
+
+import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.spi.IndexRow;
 
 /**
- * A cursor to read a number of nodes sequentially.
+ * A simple index row implementation.
  */
-public interface Cursor {
+public class IndexRowImpl implements IndexRow {
 
-    /**
-     * Skip to the next node if one is available.
-     *
-     * @return true if another row is available
-     */
-    boolean next();
+    private final String path;
 
-    /**
-     * The current row within this index. The row usually only contains the
-     * path, but it may additionally contain so-called 'pseudo-properties' such
-     * as "jcr:score" and "rep:excerpt", in case the index supports those
-     * properties and if the properties were requested when running the query.
-     *
-     * @return the row
-     */
-    IndexRow currentRow();
+    public IndexRowImpl(String path) {
+        this.path = path;
+    }
+
+    @Override
+    public String getPath() {
+        return path;
+    }
+
+    @Override
+    public CoreValue getValue(String columnName) {
+        return null;
+    }
 
 }
