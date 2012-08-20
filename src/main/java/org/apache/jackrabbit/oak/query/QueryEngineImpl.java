@@ -21,6 +21,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValue;
@@ -91,7 +92,7 @@ public class QueryEngineImpl {
     }
 
     public ResultImpl executeQuery(String statement, String language, ContentSession session,
-            long limit, long offset, Map<String, CoreValue> bindings,
+            long limit, long offset, Map<String, ? extends CoreValue> bindings,
             NamePathMapper namePathMapper) throws ParseException {
         Query q = parseQuery(statement, language);
         q.setSession(session);
@@ -100,7 +101,7 @@ public class QueryEngineImpl {
         q.setOffset(offset);
         q.setMicroKernel(mk);
         if (bindings != null) {
-            for (Entry<String, CoreValue> e : bindings.entrySet()) {
+            for (Entry<String, ? extends CoreValue> e : bindings.entrySet()) {
                 q.bindValue(e.getKey(), e.getValue());
             }
         }
