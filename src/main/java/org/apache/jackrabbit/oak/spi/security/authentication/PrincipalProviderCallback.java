@@ -16,22 +16,15 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication;
 
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import javax.security.auth.callback.Callback;
+
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 
 /**
  * Callback implementation used to pass a {@link PrincipalProvider} to the
  * login module.
  */
 public class PrincipalProviderCallback implements Callback {
-
-    /**
-     * logger instance
-     */
-    private static final Logger log = LoggerFactory.getLogger(PrincipalProviderCallback.class);
 
     private PrincipalProvider principalProvider;
 
