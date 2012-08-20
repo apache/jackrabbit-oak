@@ -18,8 +18,6 @@ package org.apache.jackrabbit.oak.jcr;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 import javax.jcr.Credentials;
 import javax.jcr.Repository;
@@ -136,7 +134,7 @@ public class RepositoryImpl implements Repository {
             ContentSession contentSession = contentRepository.login(credentials, workspaceName);
             return new SessionDelegate(this, executor, contentSession, false).getSession();
         } catch (LoginException e) {
-            throw new javax.jcr.LoginException(e.getMessage());
+            throw new javax.jcr.LoginException(e.getMessage(), e);
         }
     }
 
