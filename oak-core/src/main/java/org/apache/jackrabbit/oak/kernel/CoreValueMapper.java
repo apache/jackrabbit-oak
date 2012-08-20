@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.kernel;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import javax.jcr.PropertyType;
@@ -39,7 +40,7 @@ public class CoreValueMapper {
 
     static {
         for (int type = PropertyType.UNDEFINED; type <= PropertyType.DECIMAL; type++) {
-            String hint = PropertyType.nameFromValue(type).substring(0, 3).toLowerCase();
+            String hint = PropertyType.nameFromValue(type).substring(0, 3).toLowerCase(Locale.ENGLISH);
             TYPE2HINT.put(type, hint);
             HINT2TYPE.put(hint, type);
         }
