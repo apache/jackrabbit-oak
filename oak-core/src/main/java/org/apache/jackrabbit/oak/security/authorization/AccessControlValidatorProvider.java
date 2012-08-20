@@ -14,27 +14,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.security.authorization;
+package org.apache.jackrabbit.oak.security.authorization;
 
-import java.security.Principal;
-import java.util.Set;
+import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
+import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContext;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * PermissionProvider... TODO
+ * AccessControlValidatorProvider... TODO
  */
-public interface AccessControlContext {
+class AccessControlValidatorProvider implements ValidatorProvider {
 
-    void initialize(Set<Principal> principals);
+    /**
+     * logger instance
+     */
+    private static final Logger log = LoggerFactory.getLogger(AccessControlValidatorProvider.class);
 
-    // TODO define how permissions eval is bound to a particular revision/branch. (passing Tree?)
-    CompiledPermissions getPermissions();
+    public AccessControlValidatorProvider(CoreValueFactory valueFactory, AccessControlContext accessControlContext) {
+        // TODO
+    }
 
-    ValidatorProvider getPermissionValidatorProvider(CoreValueFactory valueFactory);
-
-    ValidatorProvider getAccessControlValdatorProvider(CoreValueFactory valueFactory);
+    @Nonnull
+    @Override
+    public Validator getRootValidator(NodeState before, NodeState after) {
+        return new AccessControlValidator();
+    }
 }

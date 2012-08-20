@@ -14,27 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.security.authorization;
+package org.apache.jackrabbit.oak.spi.commit;
 
-import java.security.Principal;
-import java.util.Set;
+import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.CoreValueFactory;
-import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * PermissionProvider... TODO
+ * Validator provider that returns a new instance of {@link DefaultValidator}.
  */
-public interface AccessControlContext {
+public class DefaultValidatorProvider implements ValidatorProvider {
 
-    void initialize(Set<Principal> principals);
-
-    // TODO define how permissions eval is bound to a particular revision/branch. (passing Tree?)
-    CompiledPermissions getPermissions();
-
-    ValidatorProvider getPermissionValidatorProvider(CoreValueFactory valueFactory);
-
-    ValidatorProvider getAccessControlValdatorProvider(CoreValueFactory valueFactory);
+    @Nonnull
+    @Override
+    public Validator getRootValidator(NodeState before, NodeState after) {
+        return new DefaultValidator();
+    }
 }
