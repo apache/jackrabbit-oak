@@ -102,7 +102,7 @@ public class PropertyDelegate extends ItemDelegate {
     @Override
     public String toString() {
         // don't disturb the state: avoid calling resolve()
-        return "PropertyDelegate[/" + parent.getPath() + '/' + propertyState.getName() + ']';
+        return "PropertyDelegate[" + parent.getPath() + '/' + propertyState.getName() + ']';
     }
 
     /**

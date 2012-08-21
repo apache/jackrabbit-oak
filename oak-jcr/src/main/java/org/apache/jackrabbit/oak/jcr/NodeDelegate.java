@@ -90,7 +90,7 @@ public class NodeDelegate extends ItemDelegate {
     @Override
     public String toString() {
         // don't disturb the state: avoid calling getTree()
-        return "NodeDelegate[/" + tree.getPath() + ']';
+        return "NodeDelegate[" + tree.getPath() + ']';
     }
 
     @Nonnull
