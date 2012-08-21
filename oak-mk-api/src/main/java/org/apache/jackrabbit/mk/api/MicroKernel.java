@@ -174,7 +174,7 @@ public interface MicroKernel {
      *                       the default ({@code "/"}) will be assumed, i.e. no
      *                       filter will be applied
      * @return a chronological list of revisions in JSON format
-     * @throws MicroKernelException if an error occurs
+     * @throws MicroKernelException if any of the specified revisions doesn't exist or if another error occurs
      */
     String /* jsonArray */ getJournal(String fromRevisionId, String toRevisionId,
                                       String path)
@@ -220,7 +220,7 @@ public interface MicroKernel {
      *                       filter will be applied
      * @param depth          depth  limit; if {@code -1} no limit will be applied
      * @return JSON diff representation of the changes
-     * @throws MicroKernelException if an error occurs
+     * @throws MicroKernelException if any of the specified revisions doesn't exist or if another error occurs
      */
     String /* JSON diff */ diff(String fromRevisionId, String toRevisionId,
                                 String path, int depth)
@@ -248,7 +248,7 @@ public interface MicroKernel {
      * @param path       path denoting node
      * @param revisionId revision id, if {@code null} the current head revision is assumed
      * @return the number of child nodes
-     * @throws MicroKernelException if the specified node does not exist or if an error occurs
+     * @throws MicroKernelException if the specified node or revision does not exist or if another error occurs
      */
     long getChildNodeCount(String path, String revisionId) throws MicroKernelException;
 
@@ -408,7 +408,7 @@ public interface MicroKernel {
      *                   if {@code null} the current head revision is assumed
      * @param message commit message
      * @return id of newly created revision
-     * @throws MicroKernelException if an error occurs
+     * @throws MicroKernelException if the specified revision doesn't exist or if another error occurs
      */
     String /* revisionId */ commit(String path, String jsonDiff,
                                    String revisionId, String message)
