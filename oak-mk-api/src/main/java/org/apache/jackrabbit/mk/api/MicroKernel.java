@@ -461,7 +461,7 @@ public interface MicroKernel {
      *
      * @param blobId blob identifier
      * @return length of the specified blob
-     * @throws MicroKernelException if an error occurs
+     * @throws MicroKernelException if the specified blob does not exist or if another error occurs
      */
     long getLength(String blobId) throws MicroKernelException;
 
@@ -480,7 +480,7 @@ public interface MicroKernel {
      * @return the total number of bytes read into the buffer, or
      *         {@code -1} if there is no more data because the end of
      *         the blob content has been reached.
-     * @throws MicroKernelException if an error occurs
+     * @throws MicroKernelException if the specified blob does not exist or if another error occurs
      */
     int /* count */ read(String blobId, long pos, byte[] buff, int off, int length)
             throws MicroKernelException;
