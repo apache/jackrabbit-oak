@@ -16,24 +16,17 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.principal;
 
+import java.security.Principal;
+
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.security.Principal;
 
 /**
  * PrincipalManagerImpl...
  */
 public class PrincipalManagerImpl implements PrincipalManager {
-
-    /**
-     * logger instance
-     */
-    private static final Logger log = LoggerFactory.getLogger(PrincipalManagerImpl.class);
 
     private final PrincipalProvider principalProvider;
 
@@ -53,20 +46,17 @@ public class PrincipalManagerImpl implements PrincipalManager {
 
     @Override
     public PrincipalIterator findPrincipals(String simpleFilter) {
-        // TODO
-        return null;
+        return findPrincipals(simpleFilter, PrincipalManager.SEARCH_TYPE_ALL);
     }
 
     @Override
     public PrincipalIterator findPrincipals(String simpleFilter, int searchType) {
-        // TODO
-        return null;
+        return new PrincipalIteratorAdapter(principalProvider.findPrincipals(simpleFilter, searchType));
     }
 
     @Override
     public PrincipalIterator getPrincipals(int searchType) {
-        // TODO
-        return null;
+        throw new UnsupportedOperationException("not implemented");
     }
 
     @Override

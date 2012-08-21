@@ -19,9 +19,11 @@ package org.apache.jackrabbit.oak.spi.security.principal;
 import java.security.Principal;
 import java.security.acl.Group;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import com.google.common.collect.Iterators;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,5 +69,15 @@ public class CompositePrincipalProvider implements PrincipalProvider {
             principals.addAll(provider.getPrincipals(userID));
         }
         return principals;
+    }
+
+    @Override
+    public Iterator<Principal> findPrincipals(String nameHint, int searchType) {
+        Iterator<? extends Principal>[] iterators = new Iterator[providers.size()];
+        int i = 0;
+        for (PrincipalProvider provider : providers) {
+            iterators[i++] = provider.findPrincipals(nameHint, searchType);
+        }
+        return Iterators.concat(iterators);
     }
 }
