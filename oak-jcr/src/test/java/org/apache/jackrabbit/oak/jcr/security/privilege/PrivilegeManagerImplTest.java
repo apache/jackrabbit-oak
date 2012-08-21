@@ -43,7 +43,7 @@ import org.junit.Test;
  *
  * TODO: more tests for cyclic aggregation
  */
-public class PrivilegeManagerImplTest extends AbstractJCRTest {
+public class PrivilegeManagerImplTest extends AbstractJCRTest implements PrivilegeConstants {
 
     private PrivilegeManager privilegeManager;
 
@@ -73,86 +73,76 @@ public class PrivilegeManagerImplTest extends AbstractJCRTest {
         assertTrue(found);
     }
 
-    @Test
-    public void testRegisteredPrivileges() throws RepositoryException {
-        Privilege[] ps = privilegeManager.getRegisteredPrivileges();
-
-        List<Privilege> l = new ArrayList<Privilege>(Arrays.asList(ps));
-        assertTrue(l.remove(privilegeManager.getPrivilege(Privilege.JCR_READ)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(Privilege.JCR_ADD_CHILD_NODES)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(Privilege.JCR_REMOVE_CHILD_NODES)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(Privilege.JCR_MODIFY_PROPERTIES)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(Privilege.JCR_REMOVE_NODE)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(Privilege.JCR_READ_ACCESS_CONTROL)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(Privilege.JCR_MODIFY_ACCESS_CONTROL)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(Privilege.JCR_WRITE)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(Privilege.JCR_ALL)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(Privilege.JCR_LIFECYCLE_MANAGEMENT)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(Privilege.JCR_LOCK_MANAGEMENT)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(Privilege.JCR_NODE_TYPE_MANAGEMENT)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(Privilege.JCR_RETENTION_MANAGEMENT)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(Privilege.JCR_VERSION_MANAGEMENT)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(PrivilegeConstants.REP_WRITE)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(PrivilegeConstants.REP_ADD_PROPERTIES)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(PrivilegeConstants.REP_ALTER_PROPERTIES)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(PrivilegeConstants.REP_REMOVE_PROPERTIES)));
-        // including repo-level operation privileges
-        assertTrue(l.remove(privilegeManager.getPrivilege(PrivilegeConstants.JCR_NAMESPACE_MANAGEMENT)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(PrivilegeConstants.JCR_NODE_TYPE_DEFINITION_MANAGEMENT)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(PrivilegeConstants.JCR_WORKSPACE_MANAGEMENT)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(PrivilegeConstants.REP_PRIVILEGE_MANAGEMENT)));
-
-        assertTrue(l.isEmpty());
+    private void assertPrivilege(Privilege priv, String name, boolean isAggregate, boolean isAbstract) {
+        assertNotNull(priv);
+        assertEquals(name, priv.getName());
+        assertEquals(isAggregate, priv.isAggregate());
+        assertEquals(isAbstract, priv.isAbstract());
     }
 
-    @Test
-    public void testAllPrivilege() throws RepositoryException {
-        Privilege p = privilegeManager.getPrivilege(Privilege.JCR_ALL);
-        assertEquals("jcr:all",p.getName());
-        assertTrue(p.isAggregate());
-        assertFalse(p.isAbstract());
+    public void testGetRegisteredPrivileges() throws RepositoryException {
+        Privilege[] registered = privilegeManager.getRegisteredPrivileges();
+        Set<Privilege> set = new HashSet<Privilege>();
+        Privilege all = privilegeManager.getPrivilege(Privilege.JCR_ALL);
+        set.add(all);
+        set.addAll(Arrays.asList(all.getAggregatePrivileges()));
 
-        List<Privilege> l = new ArrayList<Privilege>(Arrays.asList(p.getAggregatePrivileges()));
-        assertTrue(l.remove(privilegeManager.getPrivilege(Privilege.JCR_READ)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(Privilege.JCR_ADD_CHILD_NODES)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(Privilege.JCR_REMOVE_CHILD_NODES)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(Privilege.JCR_MODIFY_PROPERTIES)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(Privilege.JCR_REMOVE_NODE)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(Privilege.JCR_READ_ACCESS_CONTROL)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(Privilege.JCR_MODIFY_ACCESS_CONTROL)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(Privilege.JCR_LIFECYCLE_MANAGEMENT)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(Privilege.JCR_LOCK_MANAGEMENT)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(Privilege.JCR_NODE_TYPE_MANAGEMENT)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(Privilege.JCR_RETENTION_MANAGEMENT)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(Privilege.JCR_VERSION_MANAGEMENT)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(Privilege.JCR_WRITE)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(PrivilegeConstants.REP_WRITE)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(PrivilegeConstants.REP_ADD_PROPERTIES)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(PrivilegeConstants.REP_ALTER_PROPERTIES)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(PrivilegeConstants.REP_REMOVE_PROPERTIES)));
-        // including repo-level operation privileges
-        assertTrue(l.remove(privilegeManager.getPrivilege(PrivilegeConstants.JCR_NAMESPACE_MANAGEMENT)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(PrivilegeConstants.JCR_NODE_TYPE_DEFINITION_MANAGEMENT)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(PrivilegeConstants.JCR_WORKSPACE_MANAGEMENT)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(PrivilegeConstants.REP_PRIVILEGE_MANAGEMENT)));
-        assertTrue(l.isEmpty());
+        for (Privilege p : registered) {
+            assertTrue(set.remove(p));
+        }
+        assertTrue(set.isEmpty());
+    }
+    
+    public void testGetPrivilege() throws RepositoryException {
+        for (String privName : NON_AGGR_PRIVILEGES) {
+            Privilege p = privilegeManager.getPrivilege(privName);
+            assertPrivilege(p, privName, false, false);
+        }
 
-        l = new ArrayList<Privilege>(Arrays.asList(p.getDeclaredAggregatePrivileges()));
-        assertTrue(l.remove(privilegeManager.getPrivilege(Privilege.JCR_READ)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(Privilege.JCR_READ_ACCESS_CONTROL)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(Privilege.JCR_MODIFY_ACCESS_CONTROL)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(Privilege.JCR_LIFECYCLE_MANAGEMENT)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(Privilege.JCR_LOCK_MANAGEMENT)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(Privilege.JCR_RETENTION_MANAGEMENT)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(Privilege.JCR_VERSION_MANAGEMENT)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(PrivilegeConstants.REP_WRITE)));
-        // including repo-level operation privileges
-        assertTrue(l.remove(privilegeManager.getPrivilege(PrivilegeConstants.JCR_NAMESPACE_MANAGEMENT)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(PrivilegeConstants.JCR_NODE_TYPE_DEFINITION_MANAGEMENT)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(PrivilegeConstants.JCR_WORKSPACE_MANAGEMENT)));
-        assertTrue(l.remove(privilegeManager.getPrivilege(PrivilegeConstants.REP_PRIVILEGE_MANAGEMENT)));
+        for (String privName : AGGR_PRIVILEGES) {
+            Privilege p = privilegeManager.getPrivilege(privName);
+            assertPrivilege(p, privName, true, false);
+        }
+    }
 
-        assertTrue(l.isEmpty());
+    public void testJcrAll() throws RepositoryException {
+        Privilege all = privilegeManager.getPrivilege(Privilege.JCR_ALL);
+        assertPrivilege(all, JCR_ALL, true, false);
+
+        List<Privilege> decl = Arrays.asList(all.getDeclaredAggregatePrivileges());
+        List<Privilege> aggr = new ArrayList<Privilege>(Arrays.asList(all.getAggregatePrivileges()));
+
+        assertFalse(decl.contains(all));
+        assertFalse(aggr.contains(all));
+
+        // declared and aggregated privileges are the same for jcr:all
+        assertTrue(decl.containsAll(aggr));
+
+        // test individual built-in privileges are listed in the aggregates
+        assertTrue(aggr.remove(privilegeManager.getPrivilege(Privilege.JCR_READ)));
+        assertTrue(aggr.remove(privilegeManager.getPrivilege(Privilege.JCR_ADD_CHILD_NODES)));
+        assertTrue(aggr.remove(privilegeManager.getPrivilege(Privilege.JCR_REMOVE_CHILD_NODES)));
+        assertTrue(aggr.remove(privilegeManager.getPrivilege(Privilege.JCR_MODIFY_PROPERTIES)));
+        assertTrue(aggr.remove(privilegeManager.getPrivilege(Privilege.JCR_REMOVE_NODE)));
+        assertTrue(aggr.remove(privilegeManager.getPrivilege(Privilege.JCR_READ_ACCESS_CONTROL)));
+        assertTrue(aggr.remove(privilegeManager.getPrivilege(Privilege.JCR_MODIFY_ACCESS_CONTROL)));
+        assertTrue(aggr.remove(privilegeManager.getPrivilege(Privilege.JCR_LIFECYCLE_MANAGEMENT)));
+        assertTrue(aggr.remove(privilegeManager.getPrivilege(Privilege.JCR_LOCK_MANAGEMENT)));
+        assertTrue(aggr.remove(privilegeManager.getPrivilege(Privilege.JCR_NODE_TYPE_MANAGEMENT)));
+        assertTrue(aggr.remove(privilegeManager.getPrivilege(Privilege.JCR_RETENTION_MANAGEMENT)));
+        assertTrue(aggr.remove(privilegeManager.getPrivilege(Privilege.JCR_VERSION_MANAGEMENT)));
+        assertTrue(aggr.remove(privilegeManager.getPrivilege(Privilege.JCR_WRITE)));
+        assertTrue(aggr.remove(privilegeManager.getPrivilege(PrivilegeConstants.REP_WRITE)));
+        assertTrue(aggr.remove(privilegeManager.getPrivilege(PrivilegeConstants.REP_ADD_PROPERTIES)));
+        assertTrue(aggr.remove(privilegeManager.getPrivilege(PrivilegeConstants.REP_ALTER_PROPERTIES)));
+        assertTrue(aggr.remove(privilegeManager.getPrivilege(PrivilegeConstants.REP_REMOVE_PROPERTIES)));
+        assertTrue(aggr.remove(privilegeManager.getPrivilege(PrivilegeConstants.JCR_NAMESPACE_MANAGEMENT)));
+        assertTrue(aggr.remove(privilegeManager.getPrivilege(PrivilegeConstants.JCR_NODE_TYPE_DEFINITION_MANAGEMENT)));
+        assertTrue(aggr.remove(privilegeManager.getPrivilege(PrivilegeConstants.JCR_WORKSPACE_MANAGEMENT)));
+        assertTrue(aggr.remove(privilegeManager.getPrivilege(PrivilegeConstants.REP_PRIVILEGE_MANAGEMENT)));
+
+        // there may be no privileges left
+        assertTrue(aggr.isEmpty());
     }
 
     @Test
@@ -377,52 +367,51 @@ public class PrivilegeManagerImplTest extends AbstractJCRTest {
         }
     }
 
-// FIXME: JCR_ALL privilege must be updated
-//    @Test
-//    public void testRegisterCustomPrivileges() throws RepositoryException {
-//        Map<String, String[]> newCustomPrivs = new HashMap<String, String[]>();
-//        newCustomPrivs.put("new", new String[0]);
-//        newCustomPrivs.put("test:new", new String[0]);
-//
-//        for (String name : newCustomPrivs.keySet()) {
-//            boolean isAbstract = true;
-//            String[] aggrNames = newCustomPrivs.get(name);
-//
-//            Privilege registered = privilegeManager.registerPrivilege(name, isAbstract, aggrNames);
-//
-//            // validate definition
-//            Privilege privilege = privilegeManager.getPrivilege(name);
-//            assertNotNull(privilege);
-//            assertEquals(name, privilege.getName());
-//            assertTrue(privilege.isAbstract());
-//            assertEquals(0, privilege.getDeclaredAggregatePrivileges().length);
-//            assertContainsDeclared(privilegeManager.getPrivilege(PrivilegeConstants.JCR_ALL), name);
-//        }
-//
-//        Map<String, String[]> newAggregates = new HashMap<String, String[]>();
-//        // a new aggregate of custom privileges
-//        newAggregates.put("newA2", getAggregateNames("test:new", "new"));
-//        // a new aggregate of custom and built-in privilege
-//        newAggregates.put("newA1", getAggregateNames("new", PrivilegeConstants.JCR_READ));
-//        // aggregating built-in privileges
-//        newAggregates.put("aggrBuiltIn", getAggregateNames(PrivilegeConstants.JCR_MODIFY_PROPERTIES, PrivilegeConstants.JCR_READ));
-//
-//        for (String name : newAggregates.keySet()) {
-//            boolean isAbstract = false;
-//            String[] aggrNames = newAggregates.get(name);
-//            privilegeManager.registerPrivilege(name, isAbstract, aggrNames);
-//            Privilege p = privilegeManager.getPrivilege(name);
-//
-//            assertNotNull(p);
-//            assertEquals(name, p.getName());
-//            assertFalse(p.isAbstract());
-//
-//            for (String n : aggrNames) {
-//                assertContainsDeclared(p, n);
-//            }
-//            assertContainsDeclared(privilegeManager.getPrivilege(PrivilegeConstants.JCR_ALL), name);
-//        }
-//    }
+    @Test
+    public void testRegisterCustomPrivileges() throws RepositoryException {
+        Map<String, String[]> newCustomPrivs = new HashMap<String, String[]>();
+        newCustomPrivs.put("new", new String[0]);
+        newCustomPrivs.put("test:new", new String[0]);
+
+        for (String name : newCustomPrivs.keySet()) {
+            boolean isAbstract = true;
+            String[] aggrNames = newCustomPrivs.get(name);
+
+            Privilege registered = privilegeManager.registerPrivilege(name, isAbstract, aggrNames);
+
+            // validate definition
+            Privilege privilege = privilegeManager.getPrivilege(name);
+            assertNotNull(privilege);
+            assertEquals(name, privilege.getName());
+            assertTrue(privilege.isAbstract());
+            assertEquals(0, privilege.getDeclaredAggregatePrivileges().length);
+            assertContainsDeclared(privilegeManager.getPrivilege(PrivilegeConstants.JCR_ALL), name);
+        }
+
+        Map<String, String[]> newAggregates = new HashMap<String, String[]>();
+        // a new aggregate of custom privileges
+        newAggregates.put("newA2", getAggregateNames("test:new", "new"));
+        // a new aggregate of custom and built-in privilege
+        newAggregates.put("newA1", getAggregateNames("new", PrivilegeConstants.JCR_READ));
+        // aggregating built-in privileges
+        newAggregates.put("aggrBuiltIn", getAggregateNames(PrivilegeConstants.JCR_MODIFY_PROPERTIES, PrivilegeConstants.JCR_READ));
+
+        for (String name : newAggregates.keySet()) {
+            boolean isAbstract = false;
+            String[] aggrNames = newAggregates.get(name);
+            privilegeManager.registerPrivilege(name, isAbstract, aggrNames);
+            Privilege p = privilegeManager.getPrivilege(name);
+
+            assertNotNull(p);
+            assertEquals(name, p.getName());
+            assertFalse(p.isAbstract());
+
+            for (String n : aggrNames) {
+                assertContainsDeclared(p, n);
+            }
+            assertContainsDeclared(privilegeManager.getPrivilege(PrivilegeConstants.JCR_ALL), name);
+        }
+    }
 
     @Test
     public void testCustomPrivilegeVisibleToNewSession() throws RepositoryException {
