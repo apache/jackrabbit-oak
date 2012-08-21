@@ -20,6 +20,7 @@ import java.security.Principal;
 import java.security.acl.Group;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
@@ -59,6 +60,11 @@ public class TmpPrincipalProvider implements PrincipalProvider {
             principals.add(AdminPrincipal.INSTANCE);
         }
         return principals;
+    }
+
+    @Override
+    public Iterator<Principal> findPrincipals(String nameHint, int searchType) {
+        throw new UnsupportedOperationException("not implemented");
     }
 
 }

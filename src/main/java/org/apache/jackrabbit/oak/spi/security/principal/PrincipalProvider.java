@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.spi.security.principal;
 
 import java.security.Principal;
 import java.security.acl.Group;
+import java.util.Iterator;
 import java.util.Set;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -65,4 +66,18 @@ public interface PrincipalProvider {
      */
     @Nonnull
     Set<Principal> getPrincipals(String userID);
+
+    /**
+     * Find the principals that match the specified nameHint and search type.
+     *
+     * @param nameHint A name hint to use for non-exact matching.
+     * @param searchType Limit the search to certain types of principals. Valid
+     * values are any of
+     * <ul><li>{@link org.apache.jackrabbit.api.security.principal.PrincipalManager#SEARCH_TYPE_ALL}</li></ul>
+     * <ul><li>{@link org.apache.jackrabbit.api.security.principal.PrincipalManager#SEARCH_TYPE_NOT_GROUP}</li></ul>
+     * <ul><li>{@link org.apache.jackrabbit.api.security.principal.PrincipalManager#SEARCH_TYPE_GROUP}</li></ul>
+     * @return An iterator of principals.
+     */
+    @Nonnull
+    Iterator<Principal> findPrincipals(String nameHint, int searchType);
 }
