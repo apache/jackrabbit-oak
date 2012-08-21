@@ -20,6 +20,7 @@ import java.util.List;
 
 import javax.annotation.Nonnull;
 
+import com.sun.istack.internal.NotNull;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 
@@ -66,10 +67,11 @@ public interface NodeBuilder {
      * @param name  name child node containing the sub-tree
      * @param nodeState  sub-tree
      */
-    void setNode(String name, NodeState nodeState);
+    void setNode(String name, @NotNull NodeState nodeState);
 
     /**
-     * Remove a child node
+     * Remove a child node. This method has no effect if a
+     * property of the given {@code name} does not exist.
      * @param name  name of the child node
      */
     void removeNode(String name);
@@ -103,7 +105,7 @@ public interface NodeBuilder {
      * @param name property name
      * @param value
      */
-    void setProperty(String name, CoreValue value);
+    void setProperty(String name, @NotNull CoreValue value);
 
     /**
      * Set a property.
@@ -111,10 +113,11 @@ public interface NodeBuilder {
      * @param name property name
      * @param values
      */
-    void setProperty(String name, List<CoreValue> values);
+    void setProperty(String name, @NotNull List<CoreValue> values);
 
     /**
-     * Remove the named property
+     * Remove the named property. This method has no effect if a
+     * property of the given {@code name} does not exist.
      * @param name  name of the property
      */
     void removeProperty(String name);
