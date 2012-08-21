@@ -128,6 +128,8 @@ public interface MicroKernel {
      * if a zero or negative {@code timeout} value has been specified the method
      * will return immediately, i.e. calling {@code waitForCommit(0)} is
      * equivalent to calling {@code getHeadRevision()}.
+     * <p/>
+     * Note that commits on a <i>private</i> branch will be ignored.
      *
      * @param oldHeadRevisionId id of earlier head revision
      * @param timeout the maximum time to wait in milliseconds

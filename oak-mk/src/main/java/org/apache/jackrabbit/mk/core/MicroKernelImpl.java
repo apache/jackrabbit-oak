@@ -484,7 +484,10 @@ public class MicroKernelImpl implements MicroKernel {
             Id newHead = cb.doCommit();
             if (!newHead.equals(revId)) {
                 // non-empty commit
-                gate.commit(newHead.toString());
+                if (rep.getCommit(newHead).getBranchRootId() == null) {
+                    // OAK-265: only trigger commit gate for non-branch commits
+                    gate.commit(newHead.toString());
+                }
             }
             return newHead.toString();
         } catch (Exception e) {
