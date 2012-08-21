@@ -22,6 +22,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import javax.jcr.PropertyType;
@@ -33,10 +34,12 @@ import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryValueFactory;
 import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * CoreValueUtilTest...
@@ -158,6 +161,61 @@ public class CoreValueFactoryTest {
             if (reader.matches('[')) {
                 assertEquals(values, CoreValueMapper.listFromJsopReader(reader, kernel));
             }
+        }
+    }
+
+    @Test
+    public void testHints() {
+        HashSet<String> hints = new HashSet<String>();
+        for (int i = PropertyType.UNDEFINED; i <= PropertyType.DECIMAL; i++) {
+            String hint = CoreValueMapper.getHintForType(i);
+            assertTrue(hints.add(hint));
+            assertEquals(3, hint.length());
+            assertTrue(CoreValueMapper.startsWithHint(hint + ":"));
+            String def = getDefaultValue(i).getString();
+            JsopTokenizer t = new JsopTokenizer("\"" + hint + ":" + def + "\"");
+            CoreValue cv = CoreValueMapper.fromJsopReader(t,
+                    MemoryValueFactory.INSTANCE);
+            assertEquals(i, cv.getType());
+            assertEquals(def, cv.getString());
+        }
+    }
+
+    private static CoreValue getDefaultValue(int propertyType) {
+        CoreValueFactory cv = MemoryValueFactory.INSTANCE;
+        switch (propertyType) {
+        case PropertyType.STRING:
+            return cv.createValue("");
+        case PropertyType.BINARY:
+            try {
+                return cv.createValue(new ByteArrayInputStream(new byte[0]));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        case PropertyType.DATE:
+            return cv.createValue("1970-01-01T00:00:00.0", PropertyType.DATE);
+        case PropertyType.LONG:
+            return cv.createValue(0);
+        case PropertyType.DOUBLE:
+            return cv.createValue(0.0);
+        case PropertyType.DECIMAL:
+            return cv.createValue(new BigDecimal("0"));
+        case PropertyType.BOOLEAN:
+            return cv.createValue(false);
+        case PropertyType.NAME:
+            return cv.createValue("", PropertyType.NAME);
+        case PropertyType.PATH:
+            return cv.createValue("", PropertyType.PATH);
+        case PropertyType.REFERENCE:
+            return cv.createValue("", PropertyType.REFERENCE);
+        case PropertyType.WEAKREFERENCE:
+            return cv.createValue("", PropertyType.WEAKREFERENCE);
+        case PropertyType.URI:
+            return cv.createValue("", PropertyType.URI);
+        case PropertyType.UNDEFINED:
+            return cv.createValue("", PropertyType.UNDEFINED);
+        default:
+            throw new IllegalArgumentException("type: " + propertyType);
         }
     }
 
