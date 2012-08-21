@@ -20,7 +20,6 @@ import java.io.UnsupportedEncodingException;
 import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
 import java.util.Iterator;
-import java.util.List;
 import javax.annotation.CheckForNull;
 import javax.jcr.Node;
 import javax.jcr.PropertyType;
@@ -34,20 +33,15 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.Query;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.jcr.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.security.user.query.XPathQueryBuilder;
 import org.apache.jackrabbit.oak.jcr.security.user.query.XPathQueryEvaluator;
-import org.apache.jackrabbit.oak.jcr.value.ValueConverter;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.security.user.UserProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
 import org.apache.jackrabbit.oak.spi.security.user.PasswordUtility;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
+import org.apache.jackrabbit.oak.spi.security.user.UserContext;
 import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
 import org.slf4j.Logger;
@@ -60,18 +54,15 @@ public class UserManagerImpl implements UserManager {
 
     private static final Logger log = LoggerFactory.getLogger(UserManagerImpl.class);
 
-    private final SessionDelegate sessionDelegate;
-    private final UserConfig config;
-    private final UserProviderImpl userProvider;
-    private final NodeTreeUtil util;
+    private final Session session;
+    private final NamePathMapper namePathMapper;
 
-    public UserManagerImpl(SessionDelegate sessionDelegate, Root root, UserConfig config) {
-        this.sessionDelegate = sessionDelegate;
-        this.config = (config == null) ? new UserConfig("admin") : config;
-        userProvider = new UserProviderImpl(sessionDelegate.getContentSession(), root, this.config);
+    private final UserContext userContext;
 
-        // FIXME: remove again. only tmp workaround
-        this.util = new NodeTreeUtil(sessionDelegate.getSession(), root, sessionDelegate.getNamePathMapper());
+    public UserManagerImpl(Session session, NamePathMapper namePathMapper, UserContext userContext) {
+        this.session = session;
+        this.namePathMapper = namePathMapper;
+        this.userContext = userContext;
     }
 
     //--------------------------------------------------------< UserManager >---
@@ -81,7 +72,7 @@ public class UserManagerImpl implements UserManager {
     @Override
     public Authorizable getAuthorizable(String id) throws RepositoryException {
         Authorizable authorizable = null;
-        Tree tree = userProvider.getAuthorizable(id);
+        Tree tree = getUserProvider().getAuthorizable(id);
         if (tree != null) {
             authorizable = getAuthorizable(tree);
         }
@@ -93,7 +84,7 @@ public class UserManagerImpl implements UserManager {
      */
     @Override
     public Authorizable getAuthorizable(Principal principal) throws RepositoryException {
-        return getAuthorizable(userProvider.getAuthorizableByPrincipal(principal));
+        return getAuthorizable(getUserProvider().getAuthorizableByPrincipal(principal));
     }
 
     /**
@@ -101,8 +92,11 @@ public class UserManagerImpl implements UserManager {
      */
     @Override
     public Authorizable getAuthorizableByPath(String path) throws RepositoryException {
-        String oakPath = sessionDelegate.getOakPathOrThrow(path);
-        return getAuthorizable(userProvider.getAuthorizableByPath(oakPath));
+        String oakPath = namePathMapper.getOakPath(path);
+        if (oakPath == null) {
+            throw new RepositoryException("Invalid path " + path);
+        }
+        return getAuthorizable(getUserProvider().getAuthorizableByPath(oakPath));
     }
 
     @Override
@@ -120,7 +114,7 @@ public class UserManagerImpl implements UserManager {
     public Iterator<Authorizable> findAuthorizables(Query query) throws RepositoryException {
         XPathQueryBuilder builder = new XPathQueryBuilder();
         query.build(builder);
-        return new XPathQueryEvaluator(builder, this, sessionDelegate.getQueryManager(), sessionDelegate.getNamePathMapper()).eval();
+        return new XPathQueryEvaluator(builder, this, session.getWorkspace().getQueryManager(), namePathMapper).eval();
     }
 
     @Override
@@ -139,11 +133,11 @@ public class UserManagerImpl implements UserManager {
         checkValidID(userID);
         checkValidPrincipal(principal, false);
 
-        Tree userTree = userProvider.createUser(userID, intermediatePath);
+        Tree userTree = getUserProvider().createUser(userID, intermediatePath);
         setPrincipal(userTree, principal);
         setPassword(userTree, password, true);
 
-        User user = new UserImpl(util.getNode(userTree), userTree, this);
+        User user = new UserImpl(getNode(userTree), userTree, this);
         onCreate(user, password);
 
         log.debug("User created: " + userID);
@@ -176,10 +170,10 @@ public class UserManagerImpl implements UserManager {
         checkValidID(groupID);
         checkValidPrincipal(principal, true);
 
-        Tree groupTree = userProvider.createGroup(groupID, intermediatePath);
+        Tree groupTree = getUserProvider().createGroup(groupID, intermediatePath);
         setPrincipal(groupTree, principal);
 
-        Group group = new GroupImpl(util.getNode(groupTree), groupTree, this);
+        Group group = new GroupImpl(getNode(groupTree), groupTree, this);
         onCreate(group);
 
         log.debug("Group created: " + groupID);
@@ -221,7 +215,7 @@ public class UserManagerImpl implements UserManager {
      * @throws RepositoryException If an exception occurs.
      */
     void onCreate(User user, String password) throws RepositoryException {
-        for (AuthorizableAction action : config.getAuthorizableActions()) {
+        for (AuthorizableAction action : getAuthorizableActions()) {
             action.onCreate(user, password, getSession());
         }
     }
@@ -235,7 +229,7 @@ public class UserManagerImpl implements UserManager {
      * @throws RepositoryException If an exception occurs.
      */
     void onCreate(Group group) throws RepositoryException {
-        for (AuthorizableAction action : config.getAuthorizableActions()) {
+        for (AuthorizableAction action : getAuthorizableActions()) {
             action.onCreate(group, getSession());
         }
     }
@@ -249,7 +243,7 @@ public class UserManagerImpl implements UserManager {
      * @throws RepositoryException If an exception occurs.
      */
     void onRemove(Authorizable authorizable) throws RepositoryException {
-        for (AuthorizableAction action : config.getAuthorizableActions()) {
+        for (AuthorizableAction action : getAuthorizableActions()) {
             action.onRemove(authorizable, getSession());
         }
     }
@@ -264,21 +258,25 @@ public class UserManagerImpl implements UserManager {
      * @throws RepositoryException If an exception occurs.
      */
     void onPasswordChange(User user, String password) throws RepositoryException {
-        for (AuthorizableAction action : config.getAuthorizableActions()) {
+        for (AuthorizableAction action : getAuthorizableActions()) {
             action.onPasswordChange(user, password, getSession());
         }
+    }
+
+    private AuthorizableAction[] getAuthorizableActions() {
+        return userContext.getConfig().getAuthorizableActions();
     }
 
     //--------------------------------------------------------------------------
     /**
      *
      *
-     * @param userNode The node representing the user.
+     * @param userTree The tree representing the user.
      * @param password The plaintext password to set.
      * @param forceHash If true the specified password will always be hashed.
      * @throws javax.jcr.RepositoryException If an error occurs
      */
-    void setPassword(Tree userNode, String password, boolean forceHash) throws RepositoryException {
+    void setPassword(Tree userTree, String password, boolean forceHash) throws RepositoryException {
         if (password == null) {
             log.debug("Password is null.");
             return;
@@ -286,10 +284,7 @@ public class UserManagerImpl implements UserManager {
         String pwHash;
         if (forceHash || PasswordUtility.isPlainTextPassword(password)) {
             try {
-                String algorithm = config.getConfigValue(UserConfig.PARAM_PASSWORD_HASH_ALGORITHM, PasswordUtility.DEFAULT_ALGORITHM);
-                int iterations = config.getConfigValue(UserConfig.PARAM_PASSWORD_HASH_ITERATIONS, PasswordUtility.DEFAULT_ITERATIONS);
-                int saltSize = config.getConfigValue(UserConfig.PARAM_PASSWORD_SALT_SIZE, PasswordUtility.DEFAULT_SALT_SIZE);
-                pwHash = PasswordUtility.buildPasswordHash(password, algorithm, saltSize, iterations);
+                pwHash = PasswordUtility.buildPasswordHash(password, userContext.getConfig());
             } catch (NoSuchAlgorithmException e) {
                 throw new RepositoryException(e);
             } catch (UnsupportedEncodingException e) {
@@ -298,40 +293,31 @@ public class UserManagerImpl implements UserManager {
         } else {
             pwHash = password;
         }
-        setInternalProperty(userNode, UserConstants.REP_PASSWORD, pwHash, PropertyType.STRING);
+        getUserProvider().setProtectedProperty(userTree, UserConstants.REP_PASSWORD, pwHash, PropertyType.STRING);
     }
 
-    void setPrincipal(Tree userNode, Principal principal) throws RepositoryException {
-        if (userNode.getStatus() != Tree.Status.NEW || userNode.hasProperty(UserConstants.REP_PRINCIPAL_NAME)) {
+    void setPrincipal(Tree userTree, Principal principal) throws RepositoryException {
+        // TODO: remove check once user-validator properly enforces that constraint
+        if (userTree.getStatus() != Tree.Status.NEW || userTree.hasProperty(UserConstants.REP_PRINCIPAL_NAME)) {
             throw new RepositoryException("rep:principalName can only be set once on a new node.");
         }
-        setInternalProperty(userNode, UserConstants.REP_PRINCIPAL_NAME, principal.getName(), PropertyType.STRING);
-    }
-
-    void setInternalProperty(Tree userNode, String oakName, String value, int type) throws RepositoryException {
-        CoreValue cv = ValueConverter.toCoreValue(value, type, sessionDelegate);
-        userNode.setProperty(oakName, cv);
-    }
-
-    void setInternalProperty(Tree userNode, String oakName, String[] values, int type) throws RepositoryException {
-        List<CoreValue> cvs = ValueConverter.toCoreValues(values, type, sessionDelegate);
-        userNode.setProperty(oakName, cvs);
+        getUserProvider().setProtectedProperty(userTree, UserConstants.REP_PRINCIPAL_NAME, principal.getName(), PropertyType.STRING);
     }
 
     Session getSession() {
-        return sessionDelegate.getSession();
+        return session;
     }
 
     NamePathMapper getNamePathMapper() {
-        return sessionDelegate.getNamePathMapper();
+        return namePathMapper;
     }
 
     UserProvider getUserProvider() {
-        return userProvider;
+        return userContext.getUserProvider();
     }
 
     MembershipProvider getMembershipProvider() {
-        return userProvider;
+        return userContext.getMembershipProvider();
     }
 
     @CheckForNull
@@ -339,7 +325,7 @@ public class UserManagerImpl implements UserManager {
         if (tree == null) {
             return null;
         }
-        Node node = util.getNode(tree);
+        Node node = getNode(tree);
         if (node.isNodeType(getJcrName(UserConstants.NT_REP_USER))) {
             return new UserImpl(node, tree, this);
         } else if (node.isNodeType(getJcrName(UserConstants.NT_REP_GROUP))) {
@@ -350,7 +336,11 @@ public class UserManagerImpl implements UserManager {
     }
 
     String getJcrName(String oakName) {
-        return sessionDelegate.getNamePathMapper().getJcrName(oakName);
+        return namePathMapper.getJcrName(oakName);
+    }
+
+    private Node getNode(Tree tree) throws RepositoryException {
+        return session.getNode(namePathMapper.getJcrPath(tree.getPath()));
     }
 
     private void checkValidID(String ID) throws RepositoryException {

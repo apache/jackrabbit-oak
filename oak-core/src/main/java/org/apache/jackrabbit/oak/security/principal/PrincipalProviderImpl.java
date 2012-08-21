@@ -47,19 +47,20 @@ import org.slf4j.LoggerFactory;
  * that operates on principal information read from user information stored
  * in the {@code MicroKernel}.
  */
-public class KernelPrincipalProvider implements PrincipalProvider {
+public class PrincipalProviderImpl implements PrincipalProvider {
 
     /**
      * logger instance
      */
-    private static final Logger log = LoggerFactory.getLogger(KernelPrincipalProvider.class);
+    private static final Logger log = LoggerFactory.getLogger(PrincipalProviderImpl.class);
 
     private final UserProvider userProvider;
     private final MembershipProvider membershipProvider;
     private final PathMapper pathMapper;
 
-    public KernelPrincipalProvider(UserProvider userProvider,
-                                   MembershipProvider membershipProvider, PathMapper pathMapper) {
+    public PrincipalProviderImpl(UserProvider userProvider,
+                                 MembershipProvider membershipProvider,
+                                 PathMapper pathMapper) {
         this.userProvider = userProvider;
         this.membershipProvider = membershipProvider;
         this.pathMapper = pathMapper;
@@ -112,6 +113,7 @@ public class KernelPrincipalProvider implements PrincipalProvider {
     }
 
     //------------------------------------------------------------< private >---
+
     private Set<Group> getGroupMembership(Tree authorizableTree) {
         Iterator<String> groupPaths = membershipProvider.getMembership(authorizableTree, true);
         Set<Group> groups = new HashSet<Group>();
@@ -165,7 +167,6 @@ public class KernelPrincipalProvider implements PrincipalProvider {
             Iterator<? extends Principal> members = Iterators.transform(declaredMemberPaths, new Function<String, Principal>() {
                 @Override
                 public Principal apply(@Nullable String oakPath) {
-                    // TODO
                     Tree tree = userProvider.getAuthorizableByPath(oakPath);
                     if (tree != null) {
                         if (isGroup(tree)) {
