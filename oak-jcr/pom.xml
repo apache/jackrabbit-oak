@@ -95,6 +95,12 @@ org.apache.jackrabbit.test.api.query.SaveTest#testItemExistsException<!-- OAK-20
 org.apache.jackrabbit.test.api.query.SimpleSelectionTest#testSingleProperty
 org.apache.jackrabbit.test.api.query.qom.ColumnTest#testExpandColumnsForNodeType
 org.apache.jackrabbit.test.api.query.qom.SelectorTest#testUnknownNodeType
+
+org.apache.jackrabbit.test.api.query.XPathQueryLevel2Test#testFullTextSearch
+org.apache.jackrabbit.test.api.query.XPathQueryLevel2Test#testScoreColumn
+org.apache.jackrabbit.test.api.query.XPathQueryLevel2Test#testPathColumn
+org.apache.jackrabbit.test.api.query.TextNodeTest#testTextNodeTestContains
+
 org.apache.jackrabbit.test.api.util
 org.apache.jackrabbit.test.api.observation.EventTest#testGetUserId
 org.apache.jackrabbit.test.api.observation.NodeMovedTest#testMoveNode
