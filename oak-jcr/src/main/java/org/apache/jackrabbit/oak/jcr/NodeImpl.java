@@ -57,6 +57,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.ItemNameMatcher;
 import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
 import org.apache.jackrabbit.commons.iterator.PropertyIteratorAdapter;
@@ -932,30 +933,27 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
                 NodeType nt = ntm.getNodeType(mixinName); // throws on not found
                 // TODO: END
 
-                String jcrMixinTypes = sessionDelegate.getOakPathOrThrow(Property.JCR_MIXIN_TYPES);
-                PropertyDelegate mixins = dlg.getProperty(jcrMixinTypes);
-
+                PropertyDelegate mixins = dlg.getProperty(JcrConstants.JCR_MIXINTYPES);
                 CoreValue cv = ValueConverter.toCoreValue(mixinName, PropertyType.NAME, sessionDelegate);
 
                 boolean nodeModified = false;
-
                 if (mixins == null) {
                     nodeModified = true;
-                    dlg.setProperty(jcrMixinTypes, Collections.singletonList(cv));
+                    dlg.setProperty(JcrConstants.JCR_MIXINTYPES, Collections.singletonList(cv));
                 } else {
                     List<CoreValue> values = Lists.newArrayList(mixins.getValues());
                     if (!values.contains(cv)) {
                         values.add(cv);
                         nodeModified = true;
-                        dlg.setProperty(jcrMixinTypes, values);
+                        dlg.setProperty(JcrConstants.JCR_MIXINTYPES, values);
                     }
                 }
 
                 // TODO: hack -- make sure we assign a UUID
-                if (nodeModified && nt.isNodeType(NodeType.MIX_REFERENCEABLE)) {
-                    String jcrUuid = sessionDelegate.getOakPathOrThrow(Property.JCR_UUID);
-                    String uuid = IdentifierManager.generateUUID();
-                    dlg.setProperty(jcrUuid, ValueConverter.toCoreValue(uuid, PropertyType.STRING, sessionDelegate));
+                if (nodeModified && nt.isNodeType(JcrConstants.MIX_REFERENCEABLE)) {
+                    CoreValue value = ValueConverter.toCoreValue(IdentifierManager.generateUUID(),
+                            PropertyType.STRING, sessionDelegate);
+                    dlg.setProperty(JcrConstants.JCR_UUID, value);
                 }
                 return null;
             }

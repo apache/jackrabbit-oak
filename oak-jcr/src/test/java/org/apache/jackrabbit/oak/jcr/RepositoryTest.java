@@ -984,6 +984,74 @@ public class RepositoryTest extends AbstractRepositoryTest {
     }
 
     @Test
+    @Ignore("OAK-261")  //  TODO OAK-261: Support querying on property types
+    public void getReferences() throws RepositoryException {
+        Session session = getAdminSession();
+        Node referee = getNode("/foo");
+        referee.addMixin("mix:referenceable");
+        getNode(TEST_PATH).setProperty("reference", session.getValueFactory().createValue(referee));
+        session.save();
+
+        PropertyIterator refs = referee.getReferences();
+        assertTrue(refs.hasNext());
+        Property p = refs.nextProperty();
+        assertEquals("reference", p.getName());
+        assertFalse(refs.hasNext());
+    }
+
+    @Test
+    @Ignore("OAK-261")  //  TODO OAK-261: Support querying on property types
+    public void getNamedReferences() throws RepositoryException {
+        Session session = getAdminSession();
+        Node referee = getNode("/foo");
+        referee.addMixin("mix:referenceable");
+        Value value = session.getValueFactory().createValue(referee);
+        getNode(TEST_PATH).setProperty("reference", value);
+        getNode("/bar").setProperty("reference", value);
+        session.save();
+
+        PropertyIterator refs = referee.getReferences("bar");
+        assertTrue(refs.hasNext());
+        Property p = refs.nextProperty();
+        assertEquals("reference", p.getName());
+        assertFalse(refs.hasNext());
+    }
+
+    @Test
+    @Ignore("OAK-261")  //  TODO OAK-261: Support querying on property types
+    public void getWeakReferences() throws RepositoryException {
+        Session session = getAdminSession();
+        Node referee = getNode("/foo");
+        referee.addMixin("mix:referenceable");
+        getNode(TEST_PATH).setProperty("weak-reference", session.getValueFactory().createValue(referee, true));
+        session.save();
+
+        PropertyIterator refs = referee.getWeakReferences();
+        assertTrue(refs.hasNext());
+        Property p = refs.nextProperty();
+        assertEquals("weak-reference", p.getName());
+        assertFalse(refs.hasNext());
+    }
+
+    @Test
+    @Ignore("OAK-261")  //  TODO OAK-261: Support querying on property types
+    public void getNamedWeakReferences() throws RepositoryException {
+        Session session = getAdminSession();
+        Node referee = getNode("/foo");
+        referee.addMixin("mix:referenceable");
+        Value value = session.getValueFactory().createValue(referee, true);
+        getNode(TEST_PATH).setProperty("reference", value);
+        getNode("/bar").setProperty("reference", value);
+        session.save();
+
+        PropertyIterator refs = referee.getWeakReferences("bar");
+        assertTrue(refs.hasNext());
+        Property p = refs.nextProperty();
+        assertEquals("reference", p.getName());
+        assertFalse(refs.hasNext());
+    }
+
+    @Test
     public void sessionSave() throws RepositoryException {
         Session session1 = createAdminSession();
         Session session2 = createAdminSession();
