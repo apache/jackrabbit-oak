@@ -145,6 +145,7 @@ public class DiffBuilder {
                     } else {
                         buff.tag('^');
                         buff.key(p);
+                        buff.object().endObject();
                         buff.newline();
                     }
                     ++levels;
