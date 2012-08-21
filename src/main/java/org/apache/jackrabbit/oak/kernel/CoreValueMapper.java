@@ -35,7 +35,7 @@ import org.apache.jackrabbit.oak.api.CoreValueFactory;
  */
 public class CoreValueMapper {
 
-    public static final Map<Integer, String> TYPE2HINT = new HashMap<Integer, String>();
+    private static final Map<Integer, String> TYPE2HINT = new HashMap<Integer, String>();
     private static final Map<String, Integer> HINT2TYPE = new HashMap<String, Integer>();
 
     static {
@@ -111,10 +111,19 @@ public class CoreValueMapper {
      * @param jsonString The JSON String representation of a {@code CoreValue}
      * @return {@code true} if the {@code jsonString} starts with a type
      * hint; {@code false} otherwise.
-     * @see #buildJsonStringWithHint(org.apache.jackrabbit.oak.api.CoreValue)
      */
     public static boolean startsWithHint(String jsonString) {
         return jsonString.length() >= 4 && jsonString.charAt(3) == ':';
+    }
+
+    /**
+     * Get the type hint (JSON prefix) for the given property type.
+     *
+     * @param propertyType the property type
+     * @return the hint
+     */
+    public static String getHintForType(int propertyType) {
+        return TYPE2HINT.get(propertyType);
     }
 
 }

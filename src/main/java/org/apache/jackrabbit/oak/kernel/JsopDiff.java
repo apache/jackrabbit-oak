@@ -26,8 +26,6 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
-import static org.apache.jackrabbit.oak.kernel.CoreValueMapper.TYPE2HINT;
-
 class JsopDiff implements NodeStateDiff {
 
     protected final JsopBuilder jsop;
@@ -91,6 +89,7 @@ class JsopDiff implements NodeStateDiff {
 
     //------------------------------------------------------------< Object >--
 
+    @Override
     public String toString() {
         return jsop.toString();
     }
@@ -136,7 +135,7 @@ class JsopDiff implements NodeStateDiff {
             String string = value.getString();
             if (type != PropertyType.STRING
                     || CoreValueMapper.startsWithHint(string)) {
-                string = TYPE2HINT.get(type) + ':' + string;
+                string = CoreValueMapper.getHintForType(type) + ':' + string;
             }
             jsop.value(string);
         }
