@@ -193,7 +193,7 @@ public interface MicroKernel {
      * The {@code depth} limit applies to the subtree rooted at {@code path}.
      * It allows to limit the depth of the diff, i.e. only changes up to the
      * specified depth will be included in full detail. changes at paths exceeding
-     * the specified depth limit will be reported as {@code ^"/some/path"},
+     * the specified depth limit will be reported as {@code ^"/some/path" : {}},
      * indicating that there are unspecified changes below that path.
      * <table border="1">
      *   <tr>
