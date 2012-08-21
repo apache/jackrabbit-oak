@@ -113,7 +113,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         repository.login(new GuestCredentials(), "invalid");
     }
 
-    @Ignore("WIP") // TODO implement workspace management
+    @Ignore("OAK-118") // TODO OAK-118: implement workspace management
     @Test
     public void getWorkspaceNames() throws RepositoryException {
         String[] workspaces = getAdminSession().getWorkspace().getAccessibleWorkspaceNames();
@@ -126,7 +126,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertTrue(names.containsAll(asList(workspaces)));
     }
 
-    @Ignore("WIP") // TODO implement workspace management
+    @Ignore("OAK-118") // TODO OAK-118: implement workspace management
     @Test
     public void createDeleteWorkspace() throws RepositoryException {
         getAdminSession().getWorkspace().createWorkspace("new");
