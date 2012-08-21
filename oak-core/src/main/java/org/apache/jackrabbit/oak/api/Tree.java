@@ -216,7 +216,7 @@ public interface Tree {
      * @return the affected property state
      */
     @Nonnull
-    PropertyState setProperty(String name, CoreValue value);
+    PropertyState setProperty(String name, @Nonnull CoreValue value);
 
     /**
      * Set a multivalued valued property state
@@ -226,10 +226,11 @@ public interface Tree {
      * @return the affected property state
      */
     @Nonnull
-    PropertyState setProperty(String name, List<CoreValue> values);
+    PropertyState setProperty(String name, @Nonnull List<CoreValue> values);
 
     /**
-     * Remove the property with the given name.
+     * Remove the property with the given name. This method has no effect if a
+     * property of the given {@code name} does not exist.
      *
      * @param name The name of the property
      */
