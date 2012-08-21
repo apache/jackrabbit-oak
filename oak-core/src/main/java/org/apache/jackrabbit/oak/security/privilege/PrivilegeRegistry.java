@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.privilege;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nonnull;
@@ -41,26 +40,14 @@ import org.apache.jackrabbit.oak.util.NodeUtil;
  * TODO: define if custom privileges are read with editing content session (thus enforcing read permissions)
  *
  * FIXME: Session#refresh should refresh privileges exposed
- * FIXME: Proper implementation for JCR_ALL privilege containing all custom privileges.
  */
 public class PrivilegeRegistry implements PrivilegeProvider, PrivilegeConstants {
 
-    private static final String[] SIMPLE_PRIVILEGES = new String[] {
-            JCR_READ, REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES, REP_REMOVE_PROPERTIES,
-            JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES, JCR_REMOVE_NODE,
-            JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL, JCR_NODE_TYPE_MANAGEMENT,
-            JCR_VERSION_MANAGEMENT, JCR_LOCK_MANAGEMENT, JCR_LIFECYCLE_MANAGEMENT,
-            JCR_RETENTION_MANAGEMENT, JCR_WORKSPACE_MANAGEMENT, JCR_NODE_TYPE_DEFINITION_MANAGEMENT,
-            JCR_NAMESPACE_MANAGEMENT, REP_PRIVILEGE_MANAGEMENT};
-
     private static final Map<String, String[]> AGGREGATE_PRIVILEGES = new HashMap<String,String[]>();
     static {
-        AGGREGATE_PRIVILEGES.put(JCR_MODIFY_PROPERTIES,
-                new String[] {REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES, REP_REMOVE_PROPERTIES});
-        AGGREGATE_PRIVILEGES.put(JCR_WRITE,
-                new String[] {JCR_MODIFY_PROPERTIES, JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES, JCR_REMOVE_NODE});
-        AGGREGATE_PRIVILEGES.put(REP_WRITE,
-                new String[] {JCR_WRITE, JCR_NODE_TYPE_MANAGEMENT});
+        AGGREGATE_PRIVILEGES.put(JCR_MODIFY_PROPERTIES, AGGR_JCR_MODIFY_PROPERTIES);
+        AGGREGATE_PRIVILEGES.put(JCR_WRITE, AGGR_JCR_WRITE);
+        AGGREGATE_PRIVILEGES.put(REP_WRITE, AGGR_REP_WRITE);
     }
 
     private final ContentSession contentSession;
@@ -74,7 +61,7 @@ public class PrivilegeRegistry implements PrivilegeProvider, PrivilegeConstants 
 
     static Map<String, PrivilegeDefinition> getAllDefinitions(PrivilegeDefinitionReader reader) {
         Map<String, PrivilegeDefinition> definitions = new HashMap<String, PrivilegeDefinition>();
-        for (String privilegeName : SIMPLE_PRIVILEGES) {
+        for (String privilegeName : NON_AGGR_PRIVILEGES) {
             PrivilegeDefinition def = new PrivilegeDefinitionImpl(privilegeName, false);
             definitions.put(privilegeName, def);
         }
@@ -84,40 +71,16 @@ public class PrivilegeRegistry implements PrivilegeProvider, PrivilegeConstants 
             definitions.put(privilegeName, def);
         }
 
+        // add custom definitions
         definitions.putAll(reader.readDefinitions());
         updateJcrAllPrivilege(definitions);
         return definitions;
     }
 
     private static void updateJcrAllPrivilege(Map<String, PrivilegeDefinition> definitions) {
-        // TODO: add proper implementation taking custom privileges into account.
-        Set<String> declaredAggregateNames = new HashSet<String>();
-        declaredAggregateNames.add(JCR_READ);
-        declaredAggregateNames.add(JCR_READ_ACCESS_CONTROL);
-        declaredAggregateNames.add(JCR_MODIFY_ACCESS_CONTROL);
-        declaredAggregateNames.add(JCR_VERSION_MANAGEMENT);
-        declaredAggregateNames.add(JCR_LOCK_MANAGEMENT);
-        declaredAggregateNames.add(JCR_LIFECYCLE_MANAGEMENT);
-        declaredAggregateNames.add(JCR_RETENTION_MANAGEMENT);
-        declaredAggregateNames.add(JCR_WORKSPACE_MANAGEMENT);
-        declaredAggregateNames.add(JCR_NODE_TYPE_DEFINITION_MANAGEMENT);
-        declaredAggregateNames.add(JCR_NAMESPACE_MANAGEMENT);
-        declaredAggregateNames.add(REP_PRIVILEGE_MANAGEMENT);
-        declaredAggregateNames.add(REP_WRITE);
-
-        definitions.put(JCR_ALL, new PrivilegeDefinitionImpl(JCR_ALL, false, declaredAggregateNames));
-    }
-
-    void registerDefinitions(PrivilegeDefinition[] definitions) throws RepositoryException {
-        for (PrivilegeDefinition definition : definitions) {
-            PrivilegeDefinition toRegister;
-            if (definition instanceof PrivilegeDefinitionImpl) {
-                toRegister = definition;
-            } else {
-                toRegister = new PrivilegeDefinitionImpl(definition.getName(), definition.isAbstract(), definition.getDeclaredAggregateNames());
-            }
-            internalRegisterDefinitions(toRegister);
-        }
+        Map<String, PrivilegeDefinition> m = new HashMap<String, PrivilegeDefinition>(definitions);
+        m.remove(JCR_ALL);
+        definitions.put(JCR_ALL, new PrivilegeDefinitionImpl(JCR_ALL, false, m.keySet()));
     }
 
     //--------------------------------------------------< PrivilegeProvider >---
