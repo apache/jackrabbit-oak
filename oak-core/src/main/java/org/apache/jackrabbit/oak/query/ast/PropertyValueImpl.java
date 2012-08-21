@@ -126,6 +126,9 @@ public class PropertyValueImpl extends DynamicOperandImpl {
     }
 
     private boolean matchesPropertyType(PropertyState state) {
+        if (state == null) {
+            return false;
+        }
         if (propertyType == PropertyType.UNDEFINED) {
             return true;
         }
