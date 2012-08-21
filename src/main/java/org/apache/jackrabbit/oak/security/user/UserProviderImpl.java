@@ -50,8 +50,8 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.spi.security.principal.TreeBasedPrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
-import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.util.Text;
@@ -295,7 +295,7 @@ public class UserProviderImpl implements UserProvider, MembershipProvider, UserC
     @Override
     public Iterator<String> getMembership(Tree authorizableTree, boolean includeInherited) {
         Set<String> groupPaths = new HashSet<String>();
-        Set<String> refPaths = identifierManager.getWeakReferences(authorizableTree, null, NT_REP_GROUP, NT_REP_MEMBERS);
+        Set<String> refPaths = identifierManager.getReferences(true, authorizableTree, null, NT_REP_GROUP, NT_REP_MEMBERS);
         for (String propPath : refPaths) {
             int index = propPath.indexOf('/'+REP_MEMBERS);
             if (index > 0) {

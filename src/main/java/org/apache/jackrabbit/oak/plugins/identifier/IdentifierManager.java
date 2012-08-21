@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.identifier;
 import java.io.UnsupportedEncodingException;
 import java.text.ParseException;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -28,6 +29,10 @@ import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 import javax.jcr.query.Query;
 
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -163,6 +168,8 @@ public class IdentifierManager {
      * Searches all reference properties to the specified {@code tree} that match
      * the given name and node type constraints.
      *
+     * @param weak  if {@code true} only weak references are returned. Otherwise only
+     *              hard references are returned.
      * @param tree The tree for which references should be searched.
      * @param propertyName A name constraint for the reference properties;
      * {@code null} if no constraint should be enforced.
@@ -172,37 +179,76 @@ public class IdentifierManager {
      * specified {@code tree} and matching the constraints.
      */
     @Nonnull
-    public Set<String> getReferences(Tree tree, String propertyName, String... nodeTypeNames) {
+    public Set<String> getReferences(boolean weak, Tree tree, String propertyName, final String... nodeTypeNames) {
         if (!isReferenceable(tree)) {
             return Collections.emptySet();
         } else {
-            String uuid = getIdentifier(tree);
-            // TODO execute query.
-            throw new UnsupportedOperationException("TODO: Node.getReferences");
+            try {
+                String uuid = getIdentifier(tree);
+                String reference = weak ? PropertyType.TYPENAME_WEAKREFERENCE : PropertyType.TYPENAME_REFERENCE;
+                propertyName = propertyName == null ? "*" : propertyName;   // TODO: sanitize against injection attacks!?
+                Map<String, ? extends CoreValue> bindings = Collections.singletonMap("id", new StringValue(uuid));
+
+                // TODO query depends on OAK-261
+                Result result = queryEngine.executeQuery(
+                        "SELECT * FROM [nt:base] WHERE PROPERTY([" + propertyName + "], '" + reference + "') = $uuid",
+                        Query.JCR_SQL2, Long.MAX_VALUE, 0, bindings, new NamePathMapper.Default());
+
+                Iterable<String> paths = Iterables.transform(result.getRows(),
+                        new Function<ResultRow, String>() {
+                            @Override
+                            public String apply(ResultRow row) {
+                                return row.getPath();
+                            }
+                });
+
+                if (nodeTypeNames.length > 0) {
+                    paths = Iterables.filter(paths, new Predicate<String>() {
+                        @Override
+                        public boolean apply(String path) {
+                            Tree tree = root.getTree(path);
+                            if (tree != null) {
+                                for (String ntName : nodeTypeNames) {
+                                    if (hasType(tree, ntName)) {
+                                        return true;
+                                    }
+                                }
+                            }
+                            return false;
+                        }
+                    });
+                }
+
+                return Sets.newHashSet(paths);
+            }
+            catch (ParseException e) {
+                log.error("query failed", e);
+                return Collections.emptySet();
+            }
         }
     }
 
-    /**
-     * Searches all weak reference properties to the specified {@code tree} that
-     * match the given name and node type constraints.
-     *
-     * @param tree The tree for which weak references should be searched.
-     * @param propertyName A name constraint for the weak reference properties;
-     * {@code null} if no constraint should be enforced.
-     * @param nodeTypeNames Node type constraints to be enforced when using
-     * for reference properties or {@code null} to avoid node type constraints.
-     * @return A set of oak paths of those weak reference properties referring to the
-     * specified {@code tree} and matching the constraints.
-     */
-    @Nonnull
-    public Set<String> getWeakReferences(Tree tree, String propertyName, String... nodeTypeNames) {
-        if (!isReferenceable(tree)) {
-            return Collections.emptySet();
-        } else {
-            String uuid = getIdentifier(tree);
-            // TODO execute query.
-            throw new UnsupportedOperationException("TODO: Node.getWeakReferences");
+    private static boolean hasType(Tree tree, String ntName) {
+        // TODO use NodeType.isNodeType to determine type membership instead of equality on type names
+        PropertyState pType = tree.getProperty(JcrConstants.JCR_PRIMARYTYPE);
+        if (pType != null) {
+            String primaryType = pType.getValue().getString();
+            if (ntName.equals(primaryType)) {
+                return true;
+            }
         }
+
+        PropertyState pMixin = tree.getProperty(JcrConstants.JCR_MIXINTYPES);
+        if (pMixin != null) {
+            List<CoreValue> mixinTypes = pMixin.getValues();
+            for (CoreValue mixinType : mixinTypes) {
+                if (ntName.equals(mixinType.getString())) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     public boolean isReferenceable(Tree tree) {
