@@ -52,7 +52,10 @@ public class PrivilegeMigrator {
             try {
                 NamespaceRegistry nsRegistry = new NamespaceRegistryImpl(contentSession);
                 PrivilegeDefinition[] custom = PrivilegeDefinitionReader.readCustomDefinitons(stream, nsRegistry);
-                pr.registerDefinitions(custom);
+
+                for (PrivilegeDefinition def : custom) {
+                    pr.registerDefinition(def.getName(), def.isAbstract(), def.getDeclaredAggregateNames());
+                }
             } catch (IOException e) {
                 throw new RepositoryException(e);
             } finally {
