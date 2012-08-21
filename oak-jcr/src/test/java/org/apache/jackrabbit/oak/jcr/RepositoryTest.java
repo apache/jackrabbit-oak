@@ -984,7 +984,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
     }
 
     @Test
-    @Ignore("OAK-261")  //  TODO OAK-261: Support querying on property types
     public void getReferences() throws RepositoryException {
         Session session = getAdminSession();
         Node referee = getNode("/foo");
@@ -1006,19 +1005,18 @@ public class RepositoryTest extends AbstractRepositoryTest {
         Node referee = getNode("/foo");
         referee.addMixin("mix:referenceable");
         Value value = session.getValueFactory().createValue(referee);
-        getNode(TEST_PATH).setProperty("reference", value);
-        getNode("/bar").setProperty("reference", value);
+        getNode(TEST_PATH).setProperty("reference1", value);
+        getNode("/bar").setProperty("reference2", value);
         session.save();
 
-        PropertyIterator refs = referee.getReferences("bar");
+        PropertyIterator refs = referee.getReferences("reference1");
         assertTrue(refs.hasNext());
         Property p = refs.nextProperty();
-        assertEquals("reference", p.getName());
+        assertEquals("reference1", p.getName());
         assertFalse(refs.hasNext());
     }
 
     @Test
-    @Ignore("OAK-261")  //  TODO OAK-261: Support querying on property types
     public void getWeakReferences() throws RepositoryException {
         Session session = getAdminSession();
         Node referee = getNode("/foo");
@@ -1040,14 +1038,14 @@ public class RepositoryTest extends AbstractRepositoryTest {
         Node referee = getNode("/foo");
         referee.addMixin("mix:referenceable");
         Value value = session.getValueFactory().createValue(referee, true);
-        getNode(TEST_PATH).setProperty("reference", value);
-        getNode("/bar").setProperty("reference", value);
+        getNode(TEST_PATH).setProperty("weak-reference1", value);
+        getNode("/bar").setProperty("weak-reference2", value);
         session.save();
 
-        PropertyIterator refs = referee.getWeakReferences("bar");
+        PropertyIterator refs = referee.getWeakReferences("weak-reference1");
         assertTrue(refs.hasNext());
         Property p = refs.nextProperty();
-        assertEquals("reference", p.getName());
+        assertEquals("weak-reference1", p.getName());
         assertFalse(refs.hasNext());
     }
 
