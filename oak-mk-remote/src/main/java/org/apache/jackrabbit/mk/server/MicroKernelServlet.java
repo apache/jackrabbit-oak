@@ -177,7 +177,7 @@ class MicroKernelServlet {
             String path = request.getParameter("path", "");
             int depth = request.getParameter("depth", 1);
 
-            response.setContentType("application/json");
+            response.setContentType("text/plain");
             String json = mk.diff(fromRevisionId, toRevisionId, path, depth);
             if (request.getUserAgent() != null) {
                 json = JsopBuilder.prettyPrint(json);
