@@ -26,6 +26,7 @@ import org.apache.jackrabbit.mk.simple.NodeImpl;
 import org.apache.jackrabbit.mk.simple.NodeMap;
 import org.apache.jackrabbit.mk.util.SimpleLRUCache;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.query.index.PrefixContentIndex;
 import org.apache.jackrabbit.oak.query.index.PropertyContentIndex;
 import org.apache.jackrabbit.oak.spi.QueryIndex;
 import org.apache.jackrabbit.oak.spi.QueryIndexProvider;
@@ -674,7 +675,7 @@ public class Indexer implements QueryIndexProvider {
                 if (index instanceof PropertyIndex) {
                     qi = new PropertyContentIndex((PropertyIndex) index);
                 } else if (index instanceof PrefixIndex) {
-                    // TODO support prefix indexes in the query engine?
+                    qi = new PrefixContentIndex((PrefixIndex) index);
                 }
                 queryIndexList.add(qi);
             }

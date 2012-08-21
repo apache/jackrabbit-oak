@@ -116,6 +116,10 @@ public class AstElementFactory {
         return new PropertyValueImpl(selectorName, propertyName);
     }
 
+    public PropertyValueImpl propertyValue(String selectorName, String propertyName, String propertyType) {
+        return new PropertyValueImpl(selectorName, propertyName, propertyType);
+    }
+
     public SameNodeImpl sameNode(String selectorName, String path) {
         return new SameNodeImpl(selectorName, path);
     }
