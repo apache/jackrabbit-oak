@@ -91,6 +91,27 @@ public class PasswordUtility {
     }
 
     /**
+     * Same as {@link #buildPasswordHash(String, String, int, int)} but retrieving
+     * the parameters for hash generation from the specified configuration.
+     *
+     * @param password The password to be hashed.
+     * @param config The configuration defining the details of the hash generation.
+     * @return The password hash.
+     * @throws NoSuchAlgorithmException If the specified algorithm is not supported.
+     * @throws UnsupportedEncodingException If utf-8 is not supported.
+     */
+    public static String buildPasswordHash(String password, UserConfig config) throws NoSuchAlgorithmException, UnsupportedEncodingException {
+        if (config == null) {
+            throw new IllegalArgumentException("UserConfig must not be null");
+        }
+        String algorithm = config.getConfigValue(UserConfig.PARAM_PASSWORD_HASH_ALGORITHM, DEFAULT_ALGORITHM);
+        int iterations = config.getConfigValue(UserConfig.PARAM_PASSWORD_HASH_ITERATIONS, DEFAULT_ITERATIONS);
+        int saltSize = config.getConfigValue(UserConfig.PARAM_PASSWORD_SALT_SIZE, DEFAULT_SALT_SIZE);
+
+        return buildPasswordHash(password, algorithm, iterations, saltSize);
+    }
+
+    /**
      * Returns {@code true} if the specified string doesn't start with a
      * valid algorithm name in curly brackets.
      *

@@ -238,6 +238,14 @@ public class NodeUtil {
         tree.setProperty(name, cvs);
     }
 
+    public void setValues(String name, String[] values, int type) {
+        List<CoreValue> cvs = Lists.newArrayList();
+        for (String value : values) {
+            cvs.add(factory.createValue(value, type));
+        }
+        tree.setProperty(name, cvs);
+    }
+
     public Value[] getValues(String name, ValueFactory vf) {
         PropertyState property = tree.getProperty(name);
         if (property != null) {

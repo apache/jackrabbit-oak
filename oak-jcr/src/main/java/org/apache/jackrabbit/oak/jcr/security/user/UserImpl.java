@@ -137,10 +137,10 @@ class UserImpl extends AuthorizableImpl implements User {
         if (reason == null) {
             if (isDisabled()) {
                 // enable the user again.
-                userTree.removeProperty(REP_DISABLED);
+                setProtectedProperty(REP_DISABLED, (String) null);
             }
         } else {
-            getUserManager().setInternalProperty(getTree(), REP_DISABLED, reason, PropertyType.STRING);
+            setProtectedProperty(REP_DISABLED, reason);
         }
     }
 
@@ -162,5 +162,15 @@ class UserImpl extends AuthorizableImpl implements User {
             return disabled.getValue().getString();
         } else
             return null;
+    }
+
+    //--------------------------------------------------------------------------
+
+    void setProtectedProperty(String oakName, String value) {
+        getUserManager().getUserProvider().setProtectedProperty(getTree(), oakName, value, PropertyType.STRING);
+    }
+
+    void setProtectedProperty(String oakName, String[] values) {
+        getUserManager().getUserProvider().setProtectedProperty(getTree(), oakName, values, PropertyType.STRING);
     }
 }

@@ -152,7 +152,7 @@ import org.slf4j.LoggerFactory;
  *
  * TODO
  */
-public class UserProviderImpl implements UserProvider, MembershipProvider, UserConstants {
+class UserProviderImpl implements UserProvider, MembershipProvider, UserConstants {
 
     /**
      * logger instance
@@ -174,13 +174,9 @@ public class UserProviderImpl implements UserProvider, MembershipProvider, UserC
     private final String groupPath;
     private final String userPath;
 
-    public UserProviderImpl(ContentSession contentSession, Root root, UserConfig config) {
-        this(contentSession.getCoreValueFactory(), contentSession.getQueryEngine(), root, config);
-    }
-
-    public UserProviderImpl(CoreValueFactory valueFactory, SessionQueryEngine queryEngine, Root root, UserConfig config) {
-        this.valueFactory = valueFactory;
-        this.queryEngine = queryEngine;
+    UserProviderImpl(ContentSession contentSession, Root root, UserConfig config) {
+        this.valueFactory = contentSession.getCoreValueFactory();
+        this.queryEngine = contentSession.getQueryEngine();
         this.root = root;
         this.identifierManager = new IdentifierManager(queryEngine, root);
 
@@ -284,6 +280,30 @@ public class UserProviderImpl implements UserProvider, MembershipProvider, UserC
         assert userTree != null;
         return isAuthorizableTree(userTree, UserManager.SEARCH_TYPE_USER) &&
                adminId.equals(getAuthorizableId(userTree));
+    }
+
+    @Override
+    public void setProtectedProperty(Tree authorizableTree, String propertyName, String value, int type) {
+        assert authorizableTree != null;
+
+        if (value == null) {
+            authorizableTree.removeProperty(propertyName);
+        } else {
+            CoreValue cv = valueFactory.createValue(value, type);
+            authorizableTree.setProperty(propertyName, cv);
+        }
+    }
+
+    @Override
+    public void setProtectedProperty(Tree authorizableTree, String propertyName, String[] values, int type) {
+        assert authorizableTree != null;
+
+        if (values == null) {
+            authorizableTree.removeProperty(propertyName);
+        } else {
+            NodeUtil node = new NodeUtil(authorizableTree, valueFactory);
+            node.setValues(propertyName, values, type);
+        }
     }
 
     //--------------------------------------------------< MembershipProvider>---

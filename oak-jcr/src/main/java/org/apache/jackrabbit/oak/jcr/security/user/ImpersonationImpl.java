@@ -20,7 +20,6 @@ import java.security.Principal;
 import java.security.acl.Group;
 import java.util.HashSet;
 import java.util.Set;
-import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
@@ -191,15 +190,12 @@ class ImpersonationImpl implements Impersonation, UserConstants {
         return princNames;
     }
 
-    private void updateImpersonatorNames(Set<String> principalNames) throws RepositoryException {
+    private void updateImpersonatorNames(Set<String> principalNames) {
         String[] pNames = principalNames.toArray(new String[principalNames.size()]);
-        Tree userTree = user.getTree();
         if (pNames.length == 0) {
-            if (userTree.hasProperty(REP_IMPERSONATORS)) {
-                userTree.removeProperty(REP_IMPERSONATORS);
-            } // nothing to do.
+            user.setProtectedProperty(REP_PRINCIPAL_NAME, (String) null);
         } else {
-            user.getUserManager().setInternalProperty(user.getTree(), REP_IMPERSONATORS, pNames, PropertyType.STRING);
+            user.setProtectedProperty(REP_IMPERSONATORS, pNames);
         }
     }
 

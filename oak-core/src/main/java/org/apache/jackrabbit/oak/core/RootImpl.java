@@ -254,7 +254,7 @@ public class RootImpl implements Root {
         providers.add(accessControlContext.getPermissionValidatorProvider(valueFactory));
         providers.add(accessControlContext.getAccessControlValidatorProvider(valueFactory));
         // TODO the following v-providers could be initialized at ContentRepo level
-        // FIXME: use proper configuration
+        // FIXME: retrieve from user context
         providers.add(new UserValidatorProvider(valueFactory, new UserConfig("admin")));
         providers.add(new PrivilegeValidatorProvider(valueFactory));
 

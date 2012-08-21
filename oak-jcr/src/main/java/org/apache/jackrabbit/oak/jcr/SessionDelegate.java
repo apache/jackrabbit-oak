@@ -54,6 +54,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.value.AnnotatingConflictHandler;
+import org.apache.jackrabbit.oak.security.user.UserContextImpl;
 import org.apache.jackrabbit.oak.util.TODO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -479,7 +480,8 @@ public class SessionDelegate {
     }
 
     UserManager getUserManager() throws UnsupportedRepositoryOperationException {
-        return TODO.unimplemented().returnValue(new UserManagerImpl(this, root, null));
+
+        return TODO.unimplemented().returnValue(new UserManagerImpl(getSession(), getNamePathMapper(), new UserContextImpl(getContentSession(), root)));
     }
 
     //--------------------------------------------------< SessionNameMapper >---

@@ -40,9 +40,8 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
-import org.apache.jackrabbit.oak.security.user.UserProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.user.PasswordUtility;
-import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
+import org.apache.jackrabbit.oak.spi.security.user.UserContext;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.util.ISO8601;
 import org.apache.jackrabbit.util.Text;
@@ -78,11 +77,13 @@ public class TokenProviderImpl implements TokenProvider {
 
     private final ContentSession contentSession;
     private final Root root;
+    private final UserContext userContext;
     private final long tokenExpiration;
 
-    public TokenProviderImpl(ContentSession contentSession, long tokenExpiration) {
+    public TokenProviderImpl(ContentSession contentSession, UserContext userContext, long tokenExpiration) {
         this.contentSession = contentSession;
         this.root = contentSession.getCurrentRoot();
+        this.userContext = userContext;
         this.tokenExpiration = tokenExpiration;
     }
 
@@ -124,8 +125,8 @@ public class TokenProviderImpl implements TokenProvider {
                     String key = generateKey(8);
                     String token = new StringBuilder(tokenNode.getTree().getPath()).append(DELIM).append(key).toString();
 
-                    String pwHash = PasswordUtility.buildPasswordHash(key);
-                    tokenNode.setString(TOKEN_ATTRIBUTE_KEY, pwHash);
+                    String tokenHash = PasswordUtility.buildPasswordHash(key);
+                    tokenNode.setString(TOKEN_ATTRIBUTE_KEY, tokenHash);
                     final long expirationTime = creationTime + tokenExpiration;
                     tokenNode.setDate(TOKEN_ATTRIBUTE_EXPIRY, expirationTime);
 
@@ -238,8 +239,7 @@ public class TokenProviderImpl implements TokenProvider {
 
     @CheckForNull
     private Tree getUserTree(String userID) {
-        UserProvider userProvider = new UserProviderImpl(contentSession, root, null);
-        return userProvider.getAuthorizable(userID);
+        return userContext.getUserProvider().getAuthorizable(userID);
     }
 
     //--------------------------------------------------------------------------
