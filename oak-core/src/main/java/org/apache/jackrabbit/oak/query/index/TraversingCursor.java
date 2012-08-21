@@ -16,15 +16,10 @@ package org.apache.jackrabbit.oak.query.index;
 import static org.apache.jackrabbit.oak.spi.Filter.PathRestriction.ALL_CHILDREN;
 import java.util.Deque;
 import java.util.Iterator;
-import javax.jcr.PropertyType;
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
-import org.apache.jackrabbit.oak.plugins.memory.StringValue;
 import org.apache.jackrabbit.oak.spi.Cursor;
 import org.apache.jackrabbit.oak.spi.Filter;
-import org.apache.jackrabbit.oak.spi.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.IndexRow;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -109,10 +104,7 @@ public class TraversingCursor implements Cursor {
                     nodes.addLast(node.getChildNodeEntries().iterator());
                     parentPath = currentPath;
                 }
-
-                if (matchesFilter(node, currentPath)) {
-                    return true;
-                }
+                return true;
             } else {
                 nodes.removeLast();
                 parentPath = PathUtils.getParentPath(parentPath);
@@ -120,80 +112,6 @@ public class TraversingCursor implements Cursor {
         }
         currentPath = null;
         return false;
-    }
-
-    private boolean matchesFilter(NodeState node, String path) {
-        for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
-            if ("jcr:path".equals(pr.propertyName)) {
-                if (!matchesValue(new StringValue(path), pr)) {
-                    return false;
-                }
-            } else {
-                PropertyState property = getProperty(node, pr.propertyName);
-                if (property == null) {
-                    return false;
-                } else if (pr.first != null || pr.last != null) {
-                    boolean matches = false;
-                    for (CoreValue value : property.getValues()) {
-                        if (matchesValue(value, pr)) {
-                            matches = true;
-                        }
-                    }
-                    if (!matches) {
-                        return false;
-                    }
-                }
-            }
-        }
-        return true;
-    }
-
-    private static PropertyState getProperty(NodeState node, String path) {
-        int slash = path.indexOf('/');
-        while (slash != -1) {
-            node = node.getChildNode(path.substring(0, slash));
-            if (node == null) {
-                return null;
-            }
-            path = path.substring(slash + 1);
-            slash = path.indexOf('/');
-        }
-        return node.getProperty(path);
-    }
-
-    private static boolean matchesValue(CoreValue value, PropertyRestriction pr) {
-        int first = -1;
-        if (pr.first != null) {
-            first = compareValues(pr.first, value, pr.first.getType());
-        }
-        if (first > 0 || (first == 0 && !pr.firstIncluding)) {
-            return false;
-        }
-
-        int last = -1;
-        if (pr.last != null) {
-            last = compareValues(value, pr.last, pr.last.getType());
-        }
-        if (last > 0 || (last == 0 && !pr.lastIncluding)) {
-            return false;
-        }
-
-        return true;
-    }
-
-    private static int compareValues(CoreValue a, CoreValue b, int type) {
-        if (type == PropertyType.BOOLEAN) {
-            return Boolean.valueOf(a.getBoolean()).compareTo(
-                    Boolean.valueOf(b.getBoolean()));
-        } else if (type == PropertyType.DECIMAL) {
-            return a.getDecimal().compareTo(b.getDecimal());
-        } else if (type == PropertyType.DOUBLE) {
-            return Double.compare(a.getDouble(), b.getDouble());
-        } else if (type == PropertyType.LONG) {
-            return Long.signum(a.getLong() - b.getLong());
-        } else {
-            return a.getString().compareTo(b.getString());
-        }
     }
 
 }
