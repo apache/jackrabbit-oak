@@ -18,10 +18,16 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import javax.jcr.PropertyType;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.memory.MultiPropertyState;
+import org.apache.jackrabbit.oak.query.SQL2Parser;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
 /**
@@ -31,11 +37,19 @@ public class PropertyValueImpl extends DynamicOperandImpl {
 
     private final String selectorName;
     private final String propertyName;
+    private final int propertyType;
     private SelectorImpl selector;
 
     public PropertyValueImpl(String selectorName, String propertyName) {
+        this(selectorName, propertyName, null);
+    }
+
+    public PropertyValueImpl(String selectorName, String propertyName, String propertyType) {
         this.selectorName = selectorName;
         this.propertyName = propertyName;
+        this.propertyType = propertyType == null ?
+                PropertyType.UNDEFINED :
+                SQL2Parser.getPropertyTypeFromName(propertyType);
     }
 
     public String getSelectorName() {
@@ -54,33 +68,77 @@ public class PropertyValueImpl extends DynamicOperandImpl {
     @Override
     public String toString() {
         // TODO quote property names?
-        return getSelectorName() + '.' + propertyName;
+        String s = getSelectorName() + '.' + propertyName;
+        if (propertyType != PropertyType.UNDEFINED) {
+            s = "property(" + s + ", '" +
+                    PropertyType.nameFromValue(propertyType).toLowerCase(Locale.ENGLISH) +
+                    "')";
+        }
+        return s;
     }
 
     @Override
     public PropertyState currentProperty() {
-        if (propertyName.indexOf('/') < 0) {
-            return selector.currentProperty(propertyName);
+        boolean relative = propertyName.indexOf('/') >= 0;
+        boolean asterisk = propertyName.equals("*");
+        if (!relative && !asterisk) {
+            PropertyState p = selector.currentProperty(propertyName);
+            return matchesPropertyType(p) ? p : null;
         }
-        // TODO really support relative properties?
         Tree tree = getTree(selector.currentPath());
-        for (String p : PathUtils.elements(PathUtils.getParentPath(propertyName))) {
+        if (relative) {
+            for (String p : PathUtils.elements(PathUtils.getParentPath(propertyName))) {
+                if (tree == null) {
+                    return null;
+                }
+                if (!tree.hasChild(p)) {
+                    return null;
+                }
+                tree = tree.getChild(p);
+            }
             if (tree == null) {
                 return null;
             }
-            if (!tree.hasChild(p)) {
+        }
+        if (!asterisk) {
+            String name = PathUtils.getName(propertyName);
+            if (!tree.hasProperty(name)) {
                 return null;
             }
-            tree = tree.getChild(p);
+            PropertyState p = tree.getProperty(name);
+            return matchesPropertyType(p) ? p : null;
         }
-        if (tree == null) {
-            return null;
+        // asterisk - create a multi-value property
+        // warning: the returned property state may have a mixed type
+        // (not all values may have the same type)
+        ArrayList<CoreValue> values = new ArrayList<CoreValue>();
+        for (PropertyState p : tree.getProperties()) {
+            if (matchesPropertyType(p)) {
+                if (p.isArray()) {
+                    values.addAll(p.getValues());
+                } else {
+                    values.add(p.getValue());
+                }
+            }
         }
-        String name = PathUtils.getName(propertyName);
-        if (!tree.hasProperty(name)) {
-            return null;
+        MultiPropertyState mv = new MultiPropertyState("*", values);
+        return mv;
+    }
+
+    private boolean matchesPropertyType(PropertyState state) {
+        if (propertyType == PropertyType.UNDEFINED) {
+            return true;
         }
-        return tree.getProperty(name);
+        if (state.isArray()) {
+            List<CoreValue> values = state.getValues();
+            if (values.isEmpty()) {
+                // TODO how to retrieve the property type of an empty multi-value property?
+                // currently it matches all property types
+                return true;
+            }
+            return values.get(0).getType() == propertyType;
+        }
+        return state.getValue().getType() == propertyType;
     }
 
     public void bindSelector(SourceImpl source) {
@@ -95,6 +153,9 @@ public class PropertyValueImpl extends DynamicOperandImpl {
                 return;
             }
             f.restrictProperty(propertyName, operator, v);
+            if (propertyType != PropertyType.UNDEFINED) {
+                f.restrictPropertyType(propertyName, operator, propertyType);
+            }
         }
     }
 
