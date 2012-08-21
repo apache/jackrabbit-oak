@@ -112,6 +112,12 @@ public class PrincipalProviderImpl implements PrincipalProvider {
         return principals;
     }
 
+    @Override
+    public Iterator<Principal> findPrincipals(String nameHint, int searchType) {
+        // TODO add implementation
+        throw new UnsupportedOperationException("TODO: PrincipalProvide#findPrincipals");
+    }
+
     //------------------------------------------------------------< private >---
 
     private Set<Group> getGroupMembership(Tree authorizableTree) {
