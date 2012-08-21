@@ -503,8 +503,12 @@ public class SQL2Parser {
             op = factory.lowerCase(parseDynamicOperand());
         } else if ("UPPER".equalsIgnoreCase(functionName)) {
             op = factory.upperCase(parseDynamicOperand());
+        } else if ("PROPERTY".equalsIgnoreCase(functionName)) {
+            PropertyValueImpl pv = parsePropertyValue(readName());
+            read(",");
+            op = factory.propertyValue(pv.getSelectorName(), pv.getPropertyName(), readString().getString());
         } else {
-            throw getSyntaxError("LENGTH, NAME, LOCALNAME, SCORE, LOWER, UPPER, or CAST");
+            throw getSyntaxError("LENGTH, NAME, LOCALNAME, SCORE, LOWER, UPPER, or PROPERTY");
         }
         read(")");
         return op;
@@ -609,33 +613,79 @@ public class SQL2Parser {
     }
 
     private CoreValue parseCastAs(CoreValue value) throws ParseException {
-        if (readIfPropertyType(PropertyType.STRING)) {
-            return valueFactory.createValue(value.getString());
-        } else if (readIfPropertyType(PropertyType.BINARY)) {
-            return valueFactory.createValue(value.getString(), PropertyType.BINARY);
-        } else if (readIfPropertyType(PropertyType.DATE)) {
-            return valueFactory.createValue(value.getString(), PropertyType.DATE);
-        } else if (readIfPropertyType(PropertyType.LONG)) {
-            return valueFactory.createValue(value.getLong());
-        } else if (readIfPropertyType(PropertyType.DOUBLE)) {
-            return valueFactory.createValue(value.getDouble());
-        } else if (readIfPropertyType(PropertyType.DECIMAL)) {
-            return valueFactory.createValue(value.getDecimal());
-        } else if (readIfPropertyType(PropertyType.BOOLEAN)) {
-            return valueFactory.createValue(value.getBoolean());
-        } else if (readIfPropertyType(PropertyType.NAME)) {
-            return valueFactory.createValue(value.getString(), PropertyType.NAME);
-        } else if (readIfPropertyType(PropertyType.PATH)) {
-            return valueFactory.createValue(value.getString(), PropertyType.PATH);
-        } else if (readIfPropertyType(PropertyType.REFERENCE)) {
-            return valueFactory.createValue(value.getString(), PropertyType.REFERENCE);
-        } else if (readIfPropertyType(PropertyType.WEAKREFERENCE)) {
-            return valueFactory.createValue(value.getString(), PropertyType.WEAKREFERENCE);
-        } else if (readIfPropertyType(PropertyType.URI)) {
-            return valueFactory.createValue(value.getString(), PropertyType.URI);
-        } else {
+        if (currentTokenQuoted) {
             throw getSyntaxError("data type (STRING|BINARY|...)");
         }
+        int propertyType = getPropertyTypeFromName(currentToken);
+        read();
+        switch (propertyType) {
+        case PropertyType.STRING:
+            return valueFactory.createValue(value.getString());
+        case PropertyType.BINARY:
+            return valueFactory.createValue(value.getString(), PropertyType.BINARY);
+        case PropertyType.DATE:
+            return valueFactory.createValue(value.getString(), PropertyType.DATE);
+        case PropertyType.LONG:
+            return valueFactory.createValue(value.getLong());
+        case PropertyType.DOUBLE:
+            return valueFactory.createValue(value.getDouble());
+        case PropertyType.DECIMAL:
+            return valueFactory.createValue(value.getDecimal());
+        case PropertyType.BOOLEAN:
+            return valueFactory.createValue(value.getBoolean());
+        case PropertyType.NAME:
+            return valueFactory.createValue(value.getString(), PropertyType.NAME);
+        case PropertyType.PATH:
+            return valueFactory.createValue(value.getString(), PropertyType.PATH);
+        case PropertyType.REFERENCE:
+            return valueFactory.createValue(value.getString(), PropertyType.REFERENCE);
+        case PropertyType.WEAKREFERENCE:
+            return valueFactory.createValue(value.getString(), PropertyType.WEAKREFERENCE);
+        case PropertyType.URI:
+            return valueFactory.createValue(value.getString(), PropertyType.URI);
+        default:
+            throw getSyntaxError("data type (STRING|BINARY|...)");
+        }
+    }
+
+    /**
+     * Get the property type from the given case insensitive name.
+     *
+     * @param name the property type name (case insensitive)
+     * @return the type, or {@code PropertyType.UNDEFINED} if unknown
+     */
+    public static int getPropertyTypeFromName(String name) {
+        if (matchesPropertyType(PropertyType.STRING, name)) {
+            return PropertyType.STRING;
+        } else if (matchesPropertyType(PropertyType.BINARY, name)) {
+            return PropertyType.BINARY;
+        } else if (matchesPropertyType(PropertyType.DATE, name)) {
+            return PropertyType.DATE;
+        } else if (matchesPropertyType(PropertyType.LONG, name)) {
+            return PropertyType.LONG;
+        } else if (matchesPropertyType(PropertyType.DOUBLE, name)) {
+            return PropertyType.DOUBLE;
+        } else if (matchesPropertyType(PropertyType.DECIMAL, name)) {
+            return PropertyType.DECIMAL;
+        } else if (matchesPropertyType(PropertyType.BOOLEAN, name)) {
+            return PropertyType.BOOLEAN;
+        } else if (matchesPropertyType(PropertyType.NAME, name)) {
+            return PropertyType.NAME;
+        } else if (matchesPropertyType(PropertyType.PATH, name)) {
+            return PropertyType.PATH;
+        } else if (matchesPropertyType(PropertyType.REFERENCE, name)) {
+            return PropertyType.REFERENCE;
+        } else if (matchesPropertyType(PropertyType.WEAKREFERENCE, name)) {
+            return PropertyType.WEAKREFERENCE;
+        } else if (matchesPropertyType(PropertyType.URI, name)) {
+            return PropertyType.URI;
+        }
+        return PropertyType.UNDEFINED;
+    }
+
+    private static boolean matchesPropertyType(int propertyType, String name) {
+        String typeName = PropertyType.nameFromValue(propertyType);
+        return typeName.equalsIgnoreCase(name);
     }
 
     private OrderingImpl[] parseOrder() throws ParseException {
@@ -713,11 +763,6 @@ public class SQL2Parser {
         ColumnImpl[] array = new ColumnImpl[columns.size()];
         columns.toArray(array);
         return array;
-    }
-
-    private boolean readIfPropertyType(int propertyType) throws ParseException {
-        String propertyName = PropertyType.nameFromValue(propertyType);
-        return readIf(propertyName);
     }
 
     private boolean readIf(String token) throws ParseException {

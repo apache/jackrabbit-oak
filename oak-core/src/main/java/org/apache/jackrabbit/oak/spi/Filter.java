@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.spi;
 
 import java.util.Collection;
+import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
 
@@ -92,6 +93,12 @@ public interface Filter {
          * Whether values that match the last should be returned.
          */
         public boolean lastIncluding;
+
+        /**
+         * The property type, if restricted.
+         * If not restricted, this field is set to PropertyType.UNDEFINED.
+         */
+        public int propertyType = PropertyType.UNDEFINED;
 
         @Override
         public String toString() {

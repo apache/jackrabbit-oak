@@ -29,6 +29,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
+import javax.jcr.PropertyType;
 
 /**
  * A filter or lookup condition.
@@ -56,11 +57,6 @@ public class FilterImpl implements Filter {
      *  The node type, or null if not set.
      */
     private String nodeType;
-
-    /**
-     *  The value prefix, or null if not set.
-     */
-    private String valuePrefix;
 
     /**
      * The fulltext search conditions, if any.
@@ -108,14 +104,6 @@ public class FilterImpl implements Filter {
         this.nodeType = nodeType;
     }
 
-    public String getValuePrefix() {
-        return valuePrefix;
-    }
-
-    public void setValuePrefix(String valuePrefix) {
-        this.valuePrefix = valuePrefix;
-    }
-
     public boolean isDistinct() {
         return distinct;
     }
@@ -126,7 +114,6 @@ public class FilterImpl implements Filter {
 
     public void setAlwaysFalse() {
         propertyRestrictions.clear();
-        valuePrefix = "none";
         nodeType = "";
         path = "/";
         pathRestriction = PathRestriction.EXACT;
@@ -173,6 +160,25 @@ public class FilterImpl implements Filter {
         default:
             throw new IllegalArgumentException("Unknown path restriction: " + pathRestriction);
         }
+    }
+
+    public void restrictPropertyType(String propertyName, Operator operator,
+            int propertyType) {
+        if (propertyType == PropertyType.UNDEFINED) {
+            // not restricted
+            return;
+        }
+        PropertyRestriction x = propertyRestrictions.get(propertyName);
+        if (x == null) {
+            x = new PropertyRestriction();
+            x.propertyName = propertyName;
+            propertyRestrictions.put(propertyName, x);
+        }
+        if (x.propertyType != PropertyType.UNDEFINED && x.propertyType != propertyType) {
+            // already restricted to another property type - always false
+            setAlwaysFalse();
+        }
+        x.propertyType = propertyType;
     }
 
     public void restrictProperty(String propertyName, Operator op, CoreValue value) {

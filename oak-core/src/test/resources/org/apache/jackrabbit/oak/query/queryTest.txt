@@ -21,6 +21,27 @@
 # * new tests are typically be added on top, after the syntax docs
 # * use ascii character only
 
+# property type (value prefix) index
+
+commit / + "test": { "a": { "id": "ref:123" }, "b": { "id" : "str:123" }}
+
+explain select * from [nt:base] where property([*], 'REFERENCE') = CAST('123' AS REFERENCE)
+nt:base as nt:base /* traverse "//*" */
+
+select * from [nt:base] where property([*], 'REFERENCE') = CAST('123' AS REFERENCE)
+/test/a
+
+commit /jcr:system/indexes + "prefix@ref:": {}
+
+explain select * from [nt:base] where property([*], 'REFERENCE') = CAST('123' AS REFERENCE)
+nt:base as nt:base /* prefixIndex "ref:123" */
+
+select * from [nt:base] where property([*], 'REFERENCE') = CAST('123' AS REFERENCE)
+/test/a
+
+commit / - "test"
+commit /jcr:system/indexes - "prefix@ref:"
+
 # sql-1 query (nt:unstructured needs to be escaped in sql-2)
 
 sql1 select prop1 from nt:unstructured where prop1 is not null order by prop1 asc
