@@ -756,10 +756,7 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
             public PropertyIterator perform() throws InvalidItemStateException {
                 IdentifierManager idManager = sessionDelegate.getIdManager();
 
-                Set<String> propertyOakPaths = weak
-                    ? idManager.getWeakReferences(dlg.getTree(), name)
-                    : idManager.getReferences(dlg.getTree(), name);
-
+                Set<String> propertyOakPaths = idManager.getReferences(weak, dlg.getTree(), name);
                 Iterable<Property> properties = Iterables.transform(
                     propertyOakPaths,
                     new Function<String, Property>() {
