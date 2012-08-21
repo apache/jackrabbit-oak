@@ -999,7 +999,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
     }
 
     @Test
-    @Ignore("OAK-261")  //  TODO OAK-261: Support querying on property types
     public void getNamedReferences() throws RepositoryException {
         Session session = getAdminSession();
         Node referee = getNode("/foo");
@@ -1032,7 +1031,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
     }
 
     @Test
-    @Ignore("OAK-261")  //  TODO OAK-261: Support querying on property types
     public void getNamedWeakReferences() throws RepositoryException {
         Session session = getAdminSession();
         Node referee = getNode("/foo");

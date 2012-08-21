@@ -190,7 +190,6 @@ public class IdentifierManager {
                 String pName = propertyName == null ? "*" : propertyName;   // TODO: sanitize against injection attacks!?
                 Map<String, ? extends CoreValue> bindings = Collections.singletonMap("uuid", new StringValue(uuid));
 
-                // TODO query depends on OAK-261
                 Result result = queryEngine.executeQuery(
                         "SELECT * FROM [nt:base] WHERE PROPERTY([" + pName + "], '" + reference + "') = $uuid",
                         Query.JCR_SQL2, Long.MAX_VALUE, 0, bindings, new NamePathMapper.Default());
