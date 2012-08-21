@@ -41,6 +41,7 @@ import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.SessionQueryEngine;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.StringValue;
 import org.slf4j.Logger;
@@ -179,26 +180,29 @@ public class IdentifierManager {
      * specified {@code tree} and matching the constraints.
      */
     @Nonnull
-    public Set<String> getReferences(boolean weak, Tree tree, String propertyName, final String... nodeTypeNames) {
+    public Set<String> getReferences(boolean weak, Tree tree, final String propertyName, final String... nodeTypeNames) {
         if (!isReferenceable(tree)) {
             return Collections.emptySet();
         } else {
             try {
-                String uuid = getIdentifier(tree);
+                final String uuid = getIdentifier(tree);
                 String reference = weak ? PropertyType.TYPENAME_WEAKREFERENCE : PropertyType.TYPENAME_REFERENCE;
-                propertyName = propertyName == null ? "*" : propertyName;   // TODO: sanitize against injection attacks!?
-                Map<String, ? extends CoreValue> bindings = Collections.singletonMap("id", new StringValue(uuid));
+                String pName = propertyName == null ? "*" : propertyName;   // TODO: sanitize against injection attacks!?
+                Map<String, ? extends CoreValue> bindings = Collections.singletonMap("uuid", new StringValue(uuid));
 
                 // TODO query depends on OAK-261
                 Result result = queryEngine.executeQuery(
-                        "SELECT * FROM [nt:base] WHERE PROPERTY([" + propertyName + "], '" + reference + "') = $uuid",
+                        "SELECT * FROM [nt:base] WHERE PROPERTY([" + pName + "], '" + reference + "') = $uuid",
                         Query.JCR_SQL2, Long.MAX_VALUE, 0, bindings, new NamePathMapper.Default());
 
                 Iterable<String> paths = Iterables.transform(result.getRows(),
                         new Function<ResultRow, String>() {
                             @Override
                             public String apply(ResultRow row) {
-                                return row.getPath();
+                                String pName = propertyName == null
+                                    ? findProperty(row.getPath(), uuid)
+                                    : propertyName;
+                                return PathUtils.concat(row.getPath(), pName);
                             }
                 });
 
@@ -206,7 +210,7 @@ public class IdentifierManager {
                     paths = Iterables.filter(paths, new Predicate<String>() {
                         @Override
                         public boolean apply(String path) {
-                            Tree tree = root.getTree(path);
+                            Tree tree = root.getTree(PathUtils.getParentPath(path));
                             if (tree != null) {
                                 for (String ntName : nodeTypeNames) {
                                     if (hasType(tree, ntName)) {
@@ -226,6 +230,30 @@ public class IdentifierManager {
                 return Collections.emptySet();
             }
         }
+    }
+
+    private String findProperty(String path, final String uuid) {
+        // TODO (OAK-220) PropertyState can only be accessed from parent tree
+        Tree tree = root.getTree(path);
+        assert tree != null;
+        final PropertyState refProp = Iterables.find(tree.getProperties(), new Predicate<PropertyState>() {
+            @Override
+            public boolean apply(PropertyState pState) {
+                if (pState.isArray()) {
+                    for (CoreValue value : pState.getValues()) {
+                        if (uuid.equals(value.getString())) {
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+                else {
+                    return uuid.equals(pState.getValue().getString());
+                }
+            }
+        });
+
+        return refProp.getName();
     }
 
     private static boolean hasType(Tree tree, String ntName) {
