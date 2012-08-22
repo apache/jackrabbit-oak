@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.index;
+package org.apache.jackrabbit.oak.plugins.index;
 
 import java.util.Iterator;
 import junit.framework.Assert;
@@ -32,7 +32,7 @@ public class PrefixIndexTest {
     @Test
     public void test() {
         MicroKernel mk = new MicroKernelImpl();
-        Indexer indexer = Indexer.getInstance(mk);
+        Indexer indexer = new Indexer(mk);
         indexer.init();
         PrefixIndex index = indexer.createPrefixIndex("d:");
 

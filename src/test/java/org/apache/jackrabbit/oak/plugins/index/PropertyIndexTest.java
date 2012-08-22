@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.index;
+package org.apache.jackrabbit.oak.plugins.index;
 
 import junit.framework.Assert;
 import org.apache.jackrabbit.mk.api.MicroKernel;
@@ -31,7 +31,7 @@ public class PropertyIndexTest {
     @Test
     public void test() {
         MicroKernel mk = new MicroKernelImpl();
-        Indexer indexer = Indexer.getInstance(mk);
+        Indexer indexer = new Indexer(mk);
         indexer.init();
         PropertyIndex index = indexer.createPropertyIndex("id", true);
 
@@ -64,7 +64,7 @@ public class PropertyIndexTest {
         Assert.assertEquals("/test/test", index.getPath("3", head));
 
         // Recreate the indexer
-        indexer = Indexer.getInstance(mk);
+        indexer = new Indexer(mk);
         indexer.init();
         index = indexer.createPropertyIndex("id", true);
         head = mk.getHeadRevision();

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.index;
+package org.apache.jackrabbit.oak.plugins.index;
 
 import java.util.Iterator;
 import java.util.Random;
@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.plugins.index.BTree;
 import org.apache.jackrabbit.oak.plugins.index.Cursor;
 import org.apache.jackrabbit.oak.plugins.index.Indexer;
 import org.apache.jackrabbit.oak.plugins.index.PropertyIndex;
+import org.junit.Before;
 import org.junit.Test;
 
 /**
@@ -33,10 +34,13 @@ import org.junit.Test;
  */
 public class IndexTest {
 
-    private final MicroKernel mk = new MicroKernelImpl();
-    private final Indexer indexer = Indexer.getInstance(mk);
+    private MicroKernel mk;
+    private Indexer indexer;
 
-    {
+    @Before
+    public void before() {
+        mk = new MicroKernelImpl();
+        indexer = new Indexer(mk);
         indexer.init();
     }
 
