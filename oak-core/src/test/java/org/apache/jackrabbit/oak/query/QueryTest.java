@@ -38,13 +38,23 @@ import org.junit.Test;
 public class QueryTest extends AbstractQueryTest {
 
     @Test
-    public void script() throws Exception {
-        test("queryTest.txt");
+    public void sql1() throws Exception {
+        test("sql1.txt");
+    }
+
+    @Test
+    public void sql2() throws Exception {
+        test("sql2.txt");
+    }
+
+    @Test
+    public void sql2Explain() throws Exception {
+        test("sql2_explain.txt");
     }
 
     @Test
     public void xpath() throws Exception {
-        test("queryXpathTest.txt");
+        test("xpath.txt");
     }
 
     @Test
@@ -88,9 +98,9 @@ public class QueryTest extends AbstractQueryTest {
                 line = line.trim();
                 if (line.startsWith("#") || line.length() == 0) {
                     w.println(line);
-                } else if (line.startsWith("xpath")) {
-                    line = line.substring("xpath".length()).trim();
-                    w.println("xpath " + line);
+                } else if (line.startsWith("xpath2sql")) {
+                    line = line.substring("xpath2sql".length()).trim();
+                    w.println("xpath2sql " + line);
                     XPathToSQL2Converter c = new XPathToSQL2Converter();
                     String got;
                     try {
