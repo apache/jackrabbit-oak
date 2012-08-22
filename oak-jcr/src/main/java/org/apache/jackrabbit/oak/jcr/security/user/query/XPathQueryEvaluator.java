@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.jcr.security.user.query;
 
 import java.util.Iterator;
+
 import javax.annotation.Nonnull;
 import javax.jcr.Node;
 import javax.jcr.PropertyType;
@@ -131,13 +132,13 @@ public class XPathQueryEvaluator implements ConditionVisitor {
     @Override
     public void visit(Condition.Node condition) throws RepositoryException {
         xPath.append('(')
-                .append("jcr:like(")
+                .append("jcr:like(@")
                 .append(namePathMapper.getJcrName(UserConstants.REP_PRINCIPAL_NAME))
                 .append(",'")
                 .append(condition.getPattern())
                 .append("')")
                 .append(" or ")
-                .append("jcr:like(fn:name(.),'")
+                .append("jcr:like(fn:name(),'")
                 .append(escape(condition.getPattern()))
                 .append("')")
                 .append(')');
