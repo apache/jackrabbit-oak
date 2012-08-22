@@ -72,6 +72,17 @@ public class TestContentLoader {
             ntm.registerNodeType(nttmpl, true);
         }
 
+        // test:canSetProperty
+        {
+            NodeTypeTemplate nttmpl = ntm.createNodeTypeTemplate();
+            nttmpl.setName("test:canSetProperty");
+            nttmpl.setDeclaredSuperTypeNames(new String[] { "nt:base" });
+
+            // add property definitions
+
+            ntm.registerNodeType(nttmpl, true);
+        }
+
         Node data = getOrAddNode(session.getRootNode(), "testdata");
         addPropertyTestData(getOrAddNode(data, "property"));
         addQueryTestData(getOrAddNode(data, "query"));
