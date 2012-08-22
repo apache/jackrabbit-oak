@@ -124,10 +124,10 @@ public final class Permissions {
         }
     }
 
-    public static boolean isRepositoryPermissions(int permissions) {
-        return permissions == NAMESPACE_MANAGEMENT ||
-               permissions == NODE_TYPE_DEFINITION_MANAGEMENT ||
-               permissions == PRIVILEGE_MANAGEMENT ||
-               permissions == WORKSPACE_MANAGEMENT;
+    public static boolean isRepositoryPermission(int permission) {
+        return permission == NAMESPACE_MANAGEMENT ||
+               permission == NODE_TYPE_DEFINITION_MANAGEMENT ||
+               permission == PRIVILEGE_MANAGEMENT ||
+               permission == WORKSPACE_MANAGEMENT;
     }
 }
