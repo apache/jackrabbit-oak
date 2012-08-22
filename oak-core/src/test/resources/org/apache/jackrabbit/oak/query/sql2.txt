@@ -17,45 +17,11 @@
 # * lines starting with "#" are remarks.
 # * lines starting with "select" are queries, followed by expected results and an empty line
 # * lines starting with "explain" are followed by expected query plan and an empty line
+# * lines starting with "sql1" are run using the sql1 language
+# * lines starting with "xpath2sql" are just converted from xpath to sql2
 # * all other lines are are committed into the microkernel (line by line)
 # * new tests are typically be added on top, after the syntax docs
 # * use ascii character only
-
-# property type (value prefix) index
-
-commit / + "test": { "a": { "id": "ref:123" }, "b": { "id" : "str:123" }}
-
-explain select * from [nt:base] where property([*], 'REFERENCE') = CAST('123' AS REFERENCE)
-nt:base as nt:base /* traverse "//*" */
-
-select * from [nt:base] where property([*], 'REFERENCE') = CAST('123' AS REFERENCE)
-/test/a
-
-commit /oak-index/indexes + "prefix@ref:": {}
-
-explain select * from [nt:base] where property([*], 'REFERENCE') = CAST('123' AS REFERENCE)
-nt:base as nt:base /* prefixIndex "ref:123" */
-
-select * from [nt:base] where property([*], 'REFERENCE') = CAST('123' AS REFERENCE)
-/test/a
-
-commit / - "test"
-commit /oak-index/indexes - "prefix@ref:"
-
-# sql-1 query (nt:unstructured needs to be escaped in sql-2)
-
-sql1 select prop1 from nt:unstructured where prop1 is not null order by prop1 asc
-
-sql1 select * from nt:base where jcr:path like '/testroot/%' and birth > timestamp '1976-01-01t00:00:00.000+01:00'
-
-sql1 select * from nt:base where jcr:path like '/testroot/%' and value like 'foo\_bar' escape '\'
-
-sql1 select * from nt:unstructured where "jcr:path" = '/testroot/foo' and contains(., 'fox')
-
-sql1 select * from nt:unstructured where "jcr:path" like '/testroot/%' and contains(., 'fox test')
-
-# not supported currently
-# sql1 select [jcr:path], [jcr:score], * from [nt:base] where (0 is not null) and isdescendantnode('/testroot')
 
 # test multi-valued properties
 
@@ -70,15 +36,14 @@ select * from [nt:base] where name = 'World'
 
 commit / - "test"
 
-# test the property content index
+# expected error on two selectors with the same name
 
 select * from [nt:base] as p inner join [nt:base] as p on ischildnode(p, p) where p.[jcr:path] = '/'
 java.lang.IllegalArgumentException: Two selectors with the same name: p
 
-commit / + "test": { "a": { "id": "10" }, "b": { "id" : "20" }}
-commit /oak-index/indexes + "property@id,unique": {}
-
 # combining 'not' and 'and'
+
+commit / + "test": { "a": { "id": "10" }, "b": { "id" : "20" }}
 
 select * from [nt:base] where id is not null and not id = '100' and id <> '20'
 /test/a
@@ -87,20 +52,16 @@ select * from [nt:base] where id is not null and not (id = '100' and id <> '20')
 /test/a
 /test/b
 
-explain select * from [nt:base] where id = '10'
-nt:base as nt:base /* propertyIndex "id [10..10]" */
-
 select * from [nt:base] where id = '10'
 /test/a
 
 select [jcr:path], * from [nt:base] where id = '10'
 /test/a, null
 
-explain select * from [nt:base] where id > '10'
-nt:base as nt:base /* traverse "//*" */
+select * from [nt:base] where id > '10'
+/test/b
 
 commit / - "test"
-commit /oak-index/indexes - "property@id,unique"
 
 # fulltext search
 
@@ -120,11 +81,10 @@ commit / + "test": { "jcr:resource": {}, "resource": { "x" : {}}}
 
 select * from [nt:base] where id = -1
 
-explain select * from [nt:base] as b where ischildnode(b, '/test')
-nt:base as b /* traverse "/test/*" */
-
-explain select * from [nt:base] as b where isdescendantnode(b, '/test')
-nt:base as b /* traverse "/test//*" */
+select * from [nt:base] as b where isdescendantnode(b, '/test')
+/test/jcr:resource
+/test/resource
+/test/resource/x
 
 select * from [nt:base] as b where ischildnode(b, '/test')
 /test/jcr:resource
@@ -215,9 +175,6 @@ select * from [nt:base] as p inner join [nt:base] as c on p.id = c.p
 /parents/p1, /children/c1
 /parents/p1, /children/c2
 /parents/p2, /children/c3
-
-explain select * from [nt:base] as p inner join [nt:base] as c on p.id = c.p
-nt:base as p /* traverse "//*" */ inner join nt:base as c /* traverse "//*" */ on p.id = c.p
 
 commit / - "parents"
 commit / - "children"
