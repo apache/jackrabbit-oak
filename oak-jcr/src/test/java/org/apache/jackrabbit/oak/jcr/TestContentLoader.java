@@ -26,6 +26,11 @@ import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.ValueFactory;
+import javax.jcr.nodetype.NodeDefinitionTemplate;
+import javax.jcr.nodetype.NodeTypeManager;
+import javax.jcr.nodetype.NodeTypeTemplate;
+import javax.jcr.nodetype.PropertyDefinitionTemplate;
+import javax.jcr.version.OnParentVersionAction;
 
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.value.BinaryValue;
@@ -40,6 +45,32 @@ public class TestContentLoader {
     public void loadTestContent(Session session) throws RepositoryException, IOException {
         session.getWorkspace().getNamespaceRegistry().registerNamespace(
                 "test", "http://www.apache.org/jackrabbit/test");
+
+        NodeTypeManager ntm = session.getWorkspace().getNodeTypeManager();
+
+        // TEST NODE TYPES (in Jackrabbit-core: imported from XML file using JackrabbitNodeTypeManager)
+
+        // test:setProperty
+        {
+            NodeTypeTemplate nttmpl = ntm.createNodeTypeTemplate();
+            nttmpl.setName("test:setProperty");
+            nttmpl.setDeclaredSuperTypeNames(new String[] { "nt:base", "mix:referenceable" });
+
+            NodeDefinitionTemplate ndtmpl = ntm.createNodeDefinitionTemplate();
+            ndtmpl.setName("*");
+            ndtmpl.setRequiredPrimaryTypeNames(new String[] { "test:setProperty" });
+            ndtmpl.setOnParentVersion(OnParentVersionAction.COPY);
+
+            nttmpl.getNodeDefinitionTemplates().add(ndtmpl);
+
+            PropertyDefinitionTemplate pdtmpl = ntm.createPropertyDefinitionTemplate();
+            pdtmpl.setName("*");
+            pdtmpl.setOnParentVersion(OnParentVersionAction.COPY);
+
+            nttmpl.getPropertyDefinitionTemplates().add(pdtmpl);
+
+            ntm.registerNodeType(nttmpl, true);
+        }
 
         Node data = getOrAddNode(session.getRootNode(), "testdata");
         addPropertyTestData(getOrAddNode(data, "property"));

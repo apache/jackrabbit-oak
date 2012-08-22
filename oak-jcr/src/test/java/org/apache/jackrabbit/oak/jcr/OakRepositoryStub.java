@@ -59,6 +59,8 @@ public class OakRepositoryStub extends RepositoryStub {
         try {
             TestContentLoader loader = new TestContentLoader();
             loader.loadTestContent(session);
+        } catch (Exception e) {
+            e.printStackTrace(System.err);
         } finally {
             session.logout();
         }
