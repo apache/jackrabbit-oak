@@ -16,6 +16,20 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.user;
 
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import javax.jcr.Credentials;
+import javax.jcr.Node;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.SimpleCredentials;
+import javax.jcr.UnsupportedRepositoryOperationException;
+import javax.jcr.Value;
+
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -26,20 +40,6 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.junit.Ignore;
 import org.junit.Test;
-
-import javax.jcr.Credentials;
-import javax.jcr.Node;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.SimpleCredentials;
-import javax.jcr.UnsupportedRepositoryOperationException;
-import javax.jcr.Value;
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 
 public class UserManagerImplTest extends AbstractUserTest {
 
@@ -802,11 +802,10 @@ public class UserManagerImplTest extends AbstractUserTest {
         Principal p = getTestPrincipal();
         String uid = p.getName();
 
-        String usersPath = "/home/users"; // TODO
-
         List<String> invalid = new ArrayList<String>();
         invalid.add("../../path");
-        invalid.add(usersPath + "/../test");
+        invalid.add(UserConstants.DEFAULT_USER_PATH + "/../test");
+        invalid.add("../../../home/users/test");
 
         for (String path : invalid) {
             try {
