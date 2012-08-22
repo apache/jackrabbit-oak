@@ -20,6 +20,8 @@ import java.util.Iterator;
 import junit.framework.Assert;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
+import org.apache.jackrabbit.oak.plugins.index.Indexer;
+import org.apache.jackrabbit.oak.plugins.index.PrefixIndex;
 import org.junit.Test;
 
 /**

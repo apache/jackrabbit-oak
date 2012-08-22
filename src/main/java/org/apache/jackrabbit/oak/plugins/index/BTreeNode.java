@@ -14,9 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.index;
+package org.apache.jackrabbit.oak.plugins.index;
 
 import java.util.Arrays;
+
 import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.oak.util.ArrayUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -24,11 +25,11 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 /**
  * An index node page.
  */
-class BTreeNode extends BTreePage {
+public class BTreeNode extends BTreePage {
 
     private String[] children;
 
-    BTreeNode(BTree tree, BTreeNode parent, String name, String[] keys, String[] values, String[] children) {
+    public BTreeNode(BTree tree, BTreeNode parent, String name, String[] keys, String[] values, String[] children) {
         super(tree, parent, name, keys, values);
         this.children = children;
         verify();

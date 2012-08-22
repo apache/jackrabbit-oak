@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.index;
+package org.apache.jackrabbit.oak.plugins.index;
 
 import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -264,7 +264,7 @@ public class BTree {
         }
     }
 
-    String getName() {
+    public String getName() {
         return name;
     }
 

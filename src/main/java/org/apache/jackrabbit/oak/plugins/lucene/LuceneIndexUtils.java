@@ -18,24 +18,28 @@ package org.apache.jackrabbit.oak.plugins.lucene;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import org.apache.jackrabbit.oak.api.CoreValueFactory;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.spi.query.IndexDefinition;
+import org.apache.jackrabbit.oak.spi.query.IndexDefinitionImpl;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 public class LuceneIndexUtils {
 
-    /**
-     * switch to "oak:index" as soon as it is possible
-     */
-    public static final String DEFAULT_INDEX_HOME = "/oak-index";
+    public static final String DEFAULT_INDEX_NAME = "default-lucene";
 
-    public static final String DEFAULT_INDEX_NAME = "default";
+    public static final String INDEX_DATA_CHILD_NAME = ":data";
 
-    public static final String[] DEFAULT_INDEX_PATH = { "oak-index", "default",
-            ":data" };
+    // public static final String[] DEFAULT_INDEX_PATH = { "oak-index",
+    // "default",
+    // ":data" };
 
     private LuceneIndexUtils() {
 
@@ -46,23 +50,20 @@ public class LuceneIndexUtils {
      * You still need to call #commit afterwards to persist the changes
      * 
      * @param index
-     * @param path
      * @param indexName
      * @return
      */
-    public static Tree createIndexNode(Tree index, String path, String indexName) {
-        for (String e : PathUtils.elements(path)) {
-            if (PathUtils.denotesRoot(e)) {
-                continue;
-            }
-            if (index.hasChild(e)) {
-                index = index.getChild(e);
-            } else {
-                index = index.addChild(e);
-            }
+    public static Tree createIndexNode(Tree index, String indexName,
+            CoreValueFactory vf) {
+        if (index.hasChild(indexName)) {
+            index = index.getChild(indexName);
+        } else {
+            index = index.addChild(indexName);
         }
-        if (!index.hasChild(":data")) {
-            index.addChild(":data");
+        index.setProperty(IndexDefinition.TYPE_PROPERTY_NAME,
+                vf.createValue(LuceneIndexFactory.TYPE));
+        if (!index.hasChild(INDEX_DATA_CHILD_NAME)) {
+            index.addChild(INDEX_DATA_CHILD_NAME);
         }
         return index;
     }
@@ -72,37 +73,44 @@ public class LuceneIndexUtils {
      * Checks if any of the index's children qualifies as an index node, and
      * returns the list of good candidates.
      * 
-     * For now each child that has a :data node is considered to be a potential
-     * index
+     * For now each child that has a "type=lucene" property and a ":data" node
+     * is considered to be a potential index
      * 
      * @param indexHome
      *            the location of potential index nodes
      * @return the list of existing indexes
      */
-    public static List<LuceneIndexInfo> getIndexInfos(NodeState indexHome,
+    public static List<IndexDefinition> getIndexInfos(NodeState indexHome,
             String parentPath) {
         if (indexHome == null) {
-            return Collections.<LuceneIndexInfo> emptyList();
+            return Collections.<IndexDefinition> emptyList();
         }
-        List<String> parent = segmentPath(parentPath);
-        List<LuceneIndexInfo> tempIndexes = new ArrayList<LuceneIndexInfo>();
+        List<IndexDefinition> tempIndexes = new ArrayList<IndexDefinition>();
         for (ChildNodeEntry c : indexHome.getChildNodeEntries()) {
             NodeState child = c.getNodeState();
-            if (child.hasChildNode(":data")) {
-                List<String> childIndexPath = new ArrayList<String>(parent);
-                childIndexPath.add(c.getName());
-                childIndexPath.add(":data");
-                tempIndexes.add(new LuceneIndexInfo(c.getName(), childIndexPath));
+
+            PropertyState type = child
+                    .getProperty(IndexDefinition.TYPE_PROPERTY_NAME);
+            if (type == null
+                    || type.isArray()
+                    || !LuceneIndexFactory.TYPE.equals(type.getValue()
+                            .getString())) {
+                continue;
+            }
+
+            if (child.hasChildNode(INDEX_DATA_CHILD_NAME)) {
+                Map<String, String> props = new HashMap<String, String>();
+                for (PropertyState ps : child.getProperties()) {
+                    if (ps != null && !ps.isArray()) {
+                        String v = ps.getValue().getString();
+                        props.put(ps.getName(), v);
+                    }
+                }
+                tempIndexes.add(new IndexDefinitionImpl(c.getName(), type
+                        .getValue().getString(), PathUtils.concat(parentPath,
+                        c.getName()), false, null));
             }
         }
         return tempIndexes;
-    }
-
-    private static List<String> segmentPath(String path) {
-        List<String> pathElements = new ArrayList<String>();
-        for (String e : PathUtils.elements(path)) {
-            pathElements.add(e);
-        }
-        return pathElements;
     }
 }

@@ -31,7 +31,7 @@ nt:base as nt:base /* traverse "//*" */
 select * from [nt:base] where property([*], 'REFERENCE') = CAST('123' AS REFERENCE)
 /test/a
 
-commit /jcr:system/indexes + "prefix@ref:": {}
+commit /oak-index/indexes + "prefix@ref:": {}
 
 explain select * from [nt:base] where property([*], 'REFERENCE') = CAST('123' AS REFERENCE)
 nt:base as nt:base /* prefixIndex "ref:123" */
@@ -40,7 +40,7 @@ select * from [nt:base] where property([*], 'REFERENCE') = CAST('123' AS REFEREN
 /test/a
 
 commit / - "test"
-commit /jcr:system/indexes - "prefix@ref:"
+commit /oak-index/indexes - "prefix@ref:"
 
 # sql-1 query (nt:unstructured needs to be escaped in sql-2)
 
@@ -76,7 +76,7 @@ select * from [nt:base] as p inner join [nt:base] as p on ischildnode(p, p) wher
 java.lang.IllegalArgumentException: Two selectors with the same name: p
 
 commit / + "test": { "a": { "id": "10" }, "b": { "id" : "20" }}
-commit /jcr:system/indexes + "property@id,unique": {}
+commit /oak-index/indexes + "property@id,unique": {}
 
 # combining 'not' and 'and'
 
@@ -100,7 +100,7 @@ explain select * from [nt:base] where id > '10'
 nt:base as nt:base /* traverse "//*" */
 
 commit / - "test"
-commit /jcr:system/indexes - "property@id,unique"
+commit /oak-index/indexes - "property@id,unique"
 
 # fulltext search
 
@@ -143,8 +143,13 @@ select * from [nt:base] as b where localname(b) = 'resource'
 select * from [nt:base] as x where isdescendantnode(x, '/')
 /
 /jcr:system
-/jcr:system/indexes
-/jcr:system/indexes/:data
+/jcr:system/jcr:activities
+/jcr:system/jcr:nodeTypes
+/jcr:system/jcr:versionStorage
+/jcr:system/rep:privileges
+/oak-index
+/oak-index/indexes
+/oak-index/indexes/:data
 /test
 /test/jcr:resource
 /test/resource
@@ -165,6 +170,7 @@ select * from [nt:base] as p where p.[jcr:path] = '/parents'
 select * from [nt:base] as p inner join [nt:base] as p2 on ischildnode(p2, p) where p.[jcr:path] = '/'
 /, /children
 /, /jcr:system
+/, /oak-index
 /, /parents
 
 select * from [nt:base] as p inner join [nt:base] as p2 on isdescendantnode(p2, p) where p.[jcr:path] = '/parents'
@@ -222,8 +228,13 @@ commit / + "test2": { "id":"1", "x": "2" }
 select * from [nt:base]
 /
 /jcr:system
-/jcr:system/indexes
-/jcr:system/indexes/:data
+/jcr:system/jcr:activities
+/jcr:system/jcr:nodeTypes
+/jcr:system/jcr:versionStorage
+/jcr:system/rep:privileges
+/oak-index
+/oak-index/indexes
+/oak-index/indexes/:data
 /test
 /test/hello
 /test/world
@@ -242,16 +253,26 @@ select * from [nt:base] where id = '1' or x = '2'
 select * from [nt:base] where not (id = '1' or x = '2')
 /
 /jcr:system
-/jcr:system/indexes
-/jcr:system/indexes/:data
+/jcr:system/jcr:activities
+/jcr:system/jcr:nodeTypes
+/jcr:system/jcr:versionStorage
+/jcr:system/rep:privileges
+/oak-index
+/oak-index/indexes
+/oak-index/indexes/:data
 /test
 /test/hello
 
 select * from [nt:base] where x is null
 /
 /jcr:system
-/jcr:system/indexes
-/jcr:system/indexes/:data
+/jcr:system/jcr:activities
+/jcr:system/jcr:nodeTypes
+/jcr:system/jcr:versionStorage
+/jcr:system/rep:privileges
+/oak-index
+/oak-index/indexes
+/oak-index/indexes/:data
 /test
 
 commit / - "test"
@@ -269,6 +290,11 @@ select name from [nt:base] order by upper(name)
 Hallo
 hello
 World!
+null
+null
+null
+null
+null
 null
 null
 null

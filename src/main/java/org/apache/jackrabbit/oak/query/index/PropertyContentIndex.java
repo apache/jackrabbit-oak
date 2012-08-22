@@ -19,8 +19,8 @@
 package org.apache.jackrabbit.oak.query.index;
 
 import java.util.Iterator;
-import org.apache.jackrabbit.mk.index.PropertyIndex;
 import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.plugins.index.PropertyIndex;
 import org.apache.jackrabbit.oak.spi.Cursor;
 import org.apache.jackrabbit.oak.spi.Filter;
 import org.apache.jackrabbit.oak.spi.IndexRow;
@@ -49,7 +49,7 @@ public class PropertyContentIndex implements QueryIndex {
             // only support equality matches (for now)
             return Double.MAX_VALUE;
         }
-        boolean unique = index.isUnique();
+        boolean unique = index.getDefinition().isUnique();
         return unique ? 2 : 20;
     }
 
@@ -76,7 +76,7 @@ public class PropertyContentIndex implements QueryIndex {
 
     @Override
     public String getIndexName() {
-        return index.getIndexNodeName();
+        return index.getDefinition().getName();
     }
 
     /**

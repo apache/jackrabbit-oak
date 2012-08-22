@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.mk.wrapper;
 
+import static org.apache.jackrabbit.oak.plugins.index.Indexer.INDEX_CONFIG_PATH;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import org.apache.jackrabbit.mk.api.MicroKernel;
@@ -36,47 +37,47 @@ public class IndexWrapperTest {
 
     @Test
     public void getNodes() {
-        assertNull(mk.getNodes("/jcr:system/indexes/unknown", head, 1, 0, -1, null));
+        assertNull(mk.getNodes(INDEX_CONFIG_PATH + "/unknown", head, 1, 0, -1, null));
         assertNull(mk.getNodes("/unknown", head, 1, 0, -1, null));
     }
 
     @Test
     public void prefix() {
-        head = mk.commit("/jcr:system/indexes", "+ \"prefix@x\": {}", head, "");
+        head = mk.commit(INDEX_CONFIG_PATH, "+ \"prefix@x\": {}", head, "");
         head = mk.commit("/", "+ \"n1\": { \"value\":\"a:no\" }", head, "");
         head = mk.commit("/", "+ \"n2\": { \"value\":\"x:yes\" }", head, "");
         head = mk.commit("/", "+ \"n3\": { \"value\":\"x:a\" }", head, "");
         head = mk.commit("/", "+ \"n4\": { \"value\":\"x:a\" }", head, "");
-        String empty = mk.getNodes("/jcr:system/indexes/prefix@x?x:no", head, 1, 0, -1, null);
+        String empty = mk.getNodes(INDEX_CONFIG_PATH + "/prefix@x?x:no", head, 1, 0, -1, null);
         assertEquals("[]", empty);
-        String yes = mk.getNodes("/jcr:system/indexes/prefix@x?x:yes", head, 1, 0, -1, null);
+        String yes = mk.getNodes(INDEX_CONFIG_PATH + "/prefix@x?x:yes", head, 1, 0, -1, null);
         assertEquals("[\"/n2/value\"]", yes);
-        String a = mk.getNodes("/jcr:system/indexes/prefix@x?x:a", head, 1, 0, -1, null);
+        String a = mk.getNodes(INDEX_CONFIG_PATH + "/prefix@x?x:a", head, 1, 0, -1, null);
         assertEquals("[\"/n3/value\",\"/n4/value\"]", a);
     }
 
     @Test
     public void propertyUnique() {
-        head = mk.commit("/jcr:system/indexes", "+ \"property@id,unique\": {}", head, "");
+        head = mk.commit(INDEX_CONFIG_PATH, "+ \"property@id,unique\": {}", head, "");
         head = mk.commit("/", "+ \"n1\": { \"value\":\"empty\" }", head, "");
         head = mk.commit("/", "+ \"n2\": { \"id\":\"1\" }", head, "");
-        String empty = mk.getNodes("/jcr:system/indexes/property@id,unique?0", head, 1, 0, -1, null);
+        String empty = mk.getNodes(INDEX_CONFIG_PATH + "/property@id,unique?0", head, 1, 0, -1, null);
         assertEquals("[]", empty);
-        String one = mk.getNodes("/jcr:system/indexes/property@id,unique?1", head, 1, 0, -1, null);
+        String one = mk.getNodes(INDEX_CONFIG_PATH + "/property@id,unique?1", head, 1, 0, -1, null);
         assertEquals("[\"/n2\"]", one);
     }
 
     @Test
     public void propertyNonUnique() {
-        head = mk.commit("/jcr:system/indexes", "+ \"property@ref\": {}", head, "");
+        head = mk.commit(INDEX_CONFIG_PATH, "+ \"property@ref\": {}", head, "");
         head = mk.commit("/", "+ \"n1\": { \"ref\":\"a\" }", head, "");
         head = mk.commit("/", "+ \"n2\": { \"ref\":\"b\" }", head, "");
         head = mk.commit("/", "+ \"n3\": { \"ref\":\"b\" }", head, "");
-        String empty = mk.getNodes("/jcr:system/indexes/property@ref?no", head, 1, 0, -1, null);
+        String empty = mk.getNodes(INDEX_CONFIG_PATH + "/property@ref?no", head, 1, 0, -1, null);
         assertEquals("[]", empty);
-        String one = mk.getNodes("/jcr:system/indexes/property@ref?a", head, 1, 0, -1, null);
+        String one = mk.getNodes(INDEX_CONFIG_PATH + "/property@ref?a", head, 1, 0, -1, null);
         assertEquals("[\"/n1\"]", one);
-        String two = mk.getNodes("/jcr:system/indexes/property@ref?b", head, 1, 0, -1, null);
+        String two = mk.getNodes(INDEX_CONFIG_PATH + "/property@ref?b", head, 1, 0, -1, null);
         assertEquals("[\"/n2\",\"/n3\"]", two);
     }
 
