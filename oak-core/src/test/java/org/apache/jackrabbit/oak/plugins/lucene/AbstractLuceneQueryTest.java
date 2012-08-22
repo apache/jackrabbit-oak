@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.SessionQueryEngine;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
 import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
@@ -43,7 +44,7 @@ import org.apache.jackrabbit.oak.spi.commit.ValidatingEditor;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.junit.Before;
 
-import static org.apache.jackrabbit.oak.plugins.lucene.LuceneIndexUtils.DEFAULT_INDEX_HOME;
+import static org.apache.jackrabbit.oak.spi.query.IndexUtils.DEFAULT_INDEX_HOME;
 import static org.apache.jackrabbit.oak.plugins.lucene.LuceneIndexUtils.DEFAULT_INDEX_NAME;
 import static org.apache.jackrabbit.oak.plugins.lucene.LuceneIndexUtils.createIndexNode;
 
@@ -64,11 +65,11 @@ public abstract class AbstractLuceneQueryTest extends AbstractOakTest {
     @Before
     public void before() throws Exception {
         super.before();
-
         session = createAdminSession();
-        cleanupIndexNode();
+        root = session.getCurrentRoot();
         vf = session.getCoreValueFactory();
         qe = session.getQueryEngine();
+        cleanupIndexNode();
 
     }
 
@@ -98,24 +99,32 @@ public abstract class AbstractLuceneQueryTest extends AbstractOakTest {
 
     /**
      * Recreates an empty index node, ready to be used in tests
-     *
+     * 
      * @throws Exception
      */
     private void cleanupIndexNode() throws Exception {
-        root = session.getCurrentRoot();
         Tree index = root.getTree(DEFAULT_INDEX_HOME);
         if (index != null) {
             index = index.getChild(TEST_INDEX_NAME);
             if (index != null) {
                 index.remove();
             }
+        } else {
+            index = root.getTree("/");
+            for (String p : PathUtils.elements(DEFAULT_INDEX_HOME)) {
+                if (index.hasChild(p)) {
+                    index = index.getChild(p);
+                } else {
+                    index = index.addChild(p);
+                }
+            }
         }
-        createIndexNode(root.getTree("/"), DEFAULT_INDEX_HOME, TEST_INDEX_NAME);
+
+        createIndexNode(root.getTree(DEFAULT_INDEX_HOME), TEST_INDEX_NAME, vf);
         root.commit(DefaultConflictHandler.OURS);
     }
 
     protected Result executeQuery(String statement) throws ParseException {
-        return qe.executeQuery(statement, SQL2, Long.MAX_VALUE, 0,
-                null, null);
+        return qe.executeQuery(statement, SQL2, Long.MAX_VALUE, 0, null, null);
     }
 }

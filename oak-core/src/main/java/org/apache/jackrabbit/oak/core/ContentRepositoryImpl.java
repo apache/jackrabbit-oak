@@ -26,7 +26,7 @@ import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
-import org.apache.jackrabbit.mk.index.Indexer;
+import org.apache.jackrabbit.oak.plugins.index.Indexer;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;

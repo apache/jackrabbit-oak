@@ -14,11 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.index;
+package org.apache.jackrabbit.oak.plugins.index;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map.Entry;
 
 import org.apache.jackrabbit.mk.ExceptionFactory;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
+import org.apache.jackrabbit.mk.index.IndexWrapper;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
@@ -30,12 +37,8 @@ import org.apache.jackrabbit.oak.query.index.PrefixContentIndex;
 import org.apache.jackrabbit.oak.query.index.PropertyContentIndex;
 import org.apache.jackrabbit.oak.spi.QueryIndex;
 import org.apache.jackrabbit.oak.spi.QueryIndexProvider;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map.Entry;
+import org.apache.jackrabbit.oak.spi.query.Index;
+import org.apache.jackrabbit.oak.spi.query.IndexUtils;
 
 /**
  * A index mechanism. An index is bound to a certain repository, and supports
@@ -47,7 +50,8 @@ public class Indexer implements QueryIndexProvider {
      * The root node of the index definition (configuration) nodes.
      */
     // TODO OAK-178 discuss where to store index config data
-    public static final String INDEX_CONFIG_PATH = "/jcr:system/indexes";
+    public static final String INDEX_CONFIG_PATH = IndexUtils.DEFAULT_INDEX_HOME + "/indexes";
+            //"/jcr:system/indexes";
 
     /**
      * For each index, the index content is stored relative to the index
@@ -59,18 +63,18 @@ public class Indexer implements QueryIndexProvider {
     /**
      * The node name prefix of a prefix index.
      */
-    static final String TYPE_PREFIX = "prefix@";
+    public static final String TYPE_PREFIX = "prefix@";
 
     /**
      * The node name prefix of a property index.
      */
     // TODO support multi-property indexes
-    static final String TYPE_PROPERTY = "property@";
+    public static final String TYPE_PROPERTY = "property@";
 
     /**
      * Marks a unique index.
      */
-    static final String UNIQUE = "unique";
+    public static final String UNIQUE = "unique";
 
     /**
      * The maximum length of the write buffer.
@@ -93,7 +97,7 @@ public class Indexer implements QueryIndexProvider {
     /**
      * An index node name to index map.
      */
-    private HashMap<String, Index> indexes = new HashMap<String, Index>();
+    private HashMap<String, PIndex> indexes = new HashMap<String, PIndex>();
 
     /**
      * A prefix to prefix index map.
@@ -105,7 +109,7 @@ public class Indexer implements QueryIndexProvider {
      */
     private final HashMap<String, PropertyIndex> propertyIndexes = new HashMap<String, PropertyIndex>();
 
-    Indexer(MicroKernel mk) {
+    public Indexer(MicroKernel mk) {
         this.mk = mk;
     }
 
@@ -126,7 +130,7 @@ public class Indexer implements QueryIndexProvider {
         return new Indexer(mk);
     }
 
-    String getIndexRootNode() {
+    public String getIndexRootNode() {
         return indexRootNode;
     }
 
@@ -157,13 +161,13 @@ public class Indexer implements QueryIndexProvider {
                 String k = n.getChildNodeName(i);
                 PropertyIndex prop = PropertyIndex.fromNodeName(this, k);
                 if (prop != null) {
-                    indexes.put(prop.getIndexNodeName(), prop);
+                    indexes.put(prop.getDefinition().getName(), prop);
                     propertyIndexes.put(prop.getPropertyName(), prop);
                     queryIndexList = null;
                 }
                 PrefixIndex pref = PrefixIndex.fromNodeName(this, k);
                 if (pref != null) {
-                    indexes.put(pref.getIndexNodeName(), pref);
+                    indexes.put(pref.getDefinition().getName(), pref);
                     prefixIndexes.put(pref.getPrefix(), pref);
                     queryIndexList = null;
                 }
@@ -173,7 +177,7 @@ public class Indexer implements QueryIndexProvider {
 
     private void removePropertyIndex(String property, boolean unique) {
         PropertyIndex index = propertyIndexes.remove(property);
-        indexes.remove(index.getIndexNodeName());
+        indexes.remove(index.getDefinition().getName());
         queryIndexList = null;
     }
 
@@ -184,7 +188,7 @@ public class Indexer implements QueryIndexProvider {
         }
         PropertyIndex index = new PropertyIndex(this, property, unique);
         buildIndex(index);
-        indexes.put(index.getIndexNodeName(), index);
+        indexes.put(index.getDefinition().getName(), index);
         propertyIndexes.put(index.getPropertyName(), index);
         queryIndexList = null;
         return index;
@@ -192,7 +196,7 @@ public class Indexer implements QueryIndexProvider {
 
     private void removePrefixIndex(String prefix) {
          PrefixIndex index = prefixIndexes.remove(prefix);
-         indexes.remove(index.getIndexNodeName());
+         indexes.remove(index.getDefinition().getName());
          queryIndexList = null;
     }
 
@@ -203,7 +207,7 @@ public class Indexer implements QueryIndexProvider {
         }
         PrefixIndex index = new PrefixIndex(this, prefix);
         buildIndex(index);
-        indexes.put(index.getIndexNodeName(), index);
+        indexes.put(index.getDefinition().getName(), index);
         prefixIndexes.put(index.getPrefix(), index);
         queryIndexList = null;
         return index;
@@ -214,7 +218,7 @@ public class Indexer implements QueryIndexProvider {
         return mk.nodeExists(PathUtils.concat(indexRootNode, name), revision);
     }
 
-    void createNodes(String path) {
+    public void createNodes(String path) {
         String rev = mk.getHeadRevision();
         JsopBuilder jsop = new JsopBuilder();
         String p = "/";
@@ -233,7 +237,7 @@ public class Indexer implements QueryIndexProvider {
         revision = mk.commit(indexRootNode, jsop, revision, null);
     }
 
-    BTreePage getPageIfCached(BTree tree, BTreeNode parent, String name) {
+    public BTreePage getPageIfCached(BTree tree, BTreeNode parent, String name) {
         String p = getPath(tree, parent, name);
         return modified.get(p);
     }
@@ -244,7 +248,7 @@ public class Indexer implements QueryIndexProvider {
         return PathUtils.concat(indexRoot, p);
     }
 
-    BTreePage getPage(BTree tree, BTreeNode parent, String name) {
+    public BTreePage getPage(BTree tree, BTreeNode parent, String name) {
         String p = getPath(tree, parent, name);
         BTreePage page;
         page = modified.get(p);
@@ -297,7 +301,7 @@ public class Indexer implements QueryIndexProvider {
         return data;
     }
 
-    void buffer(String diff) {
+    public void buffer(String diff) {
         if (buffer == null) {
             buffer = new StringBuilder(diff);
         } else {
@@ -305,7 +309,7 @@ public class Indexer implements QueryIndexProvider {
         }
     }
 
-    void modified(BTree tree, BTreePage page, boolean deleted) {
+    public void modified(BTree tree, BTreePage page, boolean deleted) {
         String indexRoot = PathUtils.concat(indexRootNode, tree.getName());
         String p = PathUtils.concat(indexRoot, INDEX_CONTENT, page.getPath());
         if (deleted) {
@@ -315,7 +319,7 @@ public class Indexer implements QueryIndexProvider {
         }
     }
 
-    void moveCache(BTree tree, String oldPath) {
+    public void moveCache(BTree tree, String oldPath) {
         String indexRoot = PathUtils.concat(indexRootNode, tree.getName());
         String o = PathUtils.concat(indexRoot, INDEX_CONTENT, oldPath);
         HashMap<String, BTreePage> moved = new HashMap<String, BTreePage>();
@@ -343,7 +347,7 @@ public class Indexer implements QueryIndexProvider {
         }
     }
 
-    synchronized void updateUntil(String toRevision) {
+    synchronized public void updateUntil(String toRevision) {
         if (DISABLED) {
             return;
         }
@@ -394,7 +398,7 @@ public class Indexer implements QueryIndexProvider {
      * @param toRevision the new index revision
      * @return the new head revision
      */
-    String updateEnd(String toRevision) {
+    public String updateEnd(String toRevision) {
         readRevision = toRevision;
         JsopBuilder jsop = new JsopBuilder();
         jsop.tag('^').key(PathUtils.concat(INDEX_CONTENT, "rev")).value(readRevision);
@@ -423,7 +427,7 @@ public class Indexer implements QueryIndexProvider {
      * @param t the changes
      * @param lastRevision
      */
-    void updateIndex(String rootPath, JsopReader t, String lastRevision) {
+    public void updateIndex(String rootPath, JsopReader t, String lastRevision) {
         while (true) {
             int r = t.read();
             if (r == JsopReader.END) {
@@ -512,7 +516,7 @@ public class Indexer implements QueryIndexProvider {
             // don't index the index data itself
             return;
         }
-        for (Index index : indexes.values()) {
+        for (PIndex index : indexes.values()) {
             if (remove) {
                 index.addOrRemoveNode(n, false);
             }
@@ -587,7 +591,7 @@ public class Indexer implements QueryIndexProvider {
         NodeImpl n = NodeImpl.parse(map, t, 0, path);
         if (n.hasProperty(property)) {
             n.setPath(nodePath);
-            for (Index index : indexes.values()) {
+            for (PIndex index : indexes.values()) {
                 index.addOrRemoveProperty(nodePath, property, n.getProperty(property), false);
             }
         }
@@ -600,7 +604,7 @@ public class Indexer implements QueryIndexProvider {
         }
         String nodePath = PathUtils.getParentPath(path);
         String property = PathUtils.getName(path);
-        for (Index index : indexes.values()) {
+        for (PIndex index : indexes.values()) {
             index.addOrRemoveProperty(nodePath, property, value, true);
         }
     }
@@ -637,12 +641,12 @@ public class Indexer implements QueryIndexProvider {
         }
     }
 
-    private void buildIndex(Index index) {
+    private void buildIndex(PIndex index) {
         // TODO index: add ability to start / stop / restart indexing; log the progress
         addRecursive(index, "/");
     }
 
-    private void addRecursive(Index index, String path) {
+    private void addRecursive(PIndex index, String path) {
         if (isInIndex(path)) {
             return;
         }
@@ -683,11 +687,11 @@ public class Indexer implements QueryIndexProvider {
         return queryIndexList;
     }
 
-    PrefixIndex getPrefixIndex(String prefix) {
+    public PrefixIndex getPrefixIndex(String prefix) {
         return prefixIndexes.get(prefix);
     }
 
-    PropertyIndex getPropertyIndex(String property) {
+    public PropertyIndex getPropertyIndex(String property) {
         return propertyIndexes.get(property);
     }
 

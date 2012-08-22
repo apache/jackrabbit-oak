@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.spi.QueryIndex;
 import org.apache.jackrabbit.oak.spi.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.query.IndexDefinition;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
@@ -89,7 +90,7 @@ public class LuceneIndexProvider implements QueryIndexProvider {
         }
 
         List<QueryIndex> tempIndexes = new ArrayList<QueryIndex>();
-        for (LuceneIndexInfo childIndex : getIndexInfos(index, indexPath)) {
+        for (IndexDefinition childIndex : getIndexInfos(index, indexPath)) {
             LOG.debug("adding a new lucene index instance @ {}", childIndex);
             tempIndexes.add(new LuceneIndex(store, childIndex));
         }

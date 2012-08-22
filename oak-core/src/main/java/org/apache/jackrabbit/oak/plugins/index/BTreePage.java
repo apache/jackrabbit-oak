@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.index;
+package org.apache.jackrabbit.oak.plugins.index;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
 /**
  * An index page.
  */
-abstract class BTreePage {
+abstract public class BTreePage {
 
     protected final BTree tree;
     protected BTreeNode parent;
@@ -65,7 +65,7 @@ abstract class BTreePage {
         return parent == null ? "" : parent.getPath();
     }
 
-    String getPath() {
+    public String getPath() {
         return PathUtils.concat(getParentPath(), name);
     }
 

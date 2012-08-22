@@ -19,10 +19,12 @@
 package org.apache.jackrabbit.oak.query.index;
 
 import java.util.Iterator;
+
 import javax.jcr.PropertyType;
-import org.apache.jackrabbit.mk.index.PrefixIndex;
+
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.kernel.CoreValueMapper;
+import org.apache.jackrabbit.oak.plugins.index.PrefixIndex;
 import org.apache.jackrabbit.oak.spi.Cursor;
 import org.apache.jackrabbit.oak.spi.Filter;
 import org.apache.jackrabbit.oak.spi.IndexRow;
@@ -89,7 +91,7 @@ public class PrefixContentIndex implements QueryIndex {
 
     @Override
     public String getIndexName() {
-        return index.getIndexNodeName();
+        return index.getDefinition().getName();
     }
 
     /**

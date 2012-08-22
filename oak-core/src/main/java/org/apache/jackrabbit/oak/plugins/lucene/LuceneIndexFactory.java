@@ -16,46 +16,28 @@
  */
 package org.apache.jackrabbit.oak.plugins.lucene;
 
-import java.util.Arrays;
-import java.util.List;
+import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.oak.spi.query.Index;
+import org.apache.jackrabbit.oak.spi.query.IndexDefinition;
+import org.apache.jackrabbit.oak.spi.query.IndexFactory;
 
-/**
- * LuceneIndexInfo contains information about a lucene index
- * 
- */
-public class LuceneIndexInfo {
+public class LuceneIndexFactory implements IndexFactory {
 
-    /**
-     * the index name
-     */
-    private final String name;
+    public static final String TYPE = "lucene";
 
-    /**
-     * the index path, broken into path segments
-     */
-    private final String[] path;
-
-    public LuceneIndexInfo(String name, String[] path) {
-        this.name = name;
-        this.path = path;
-    }
-
-    public LuceneIndexInfo(String name, List<String> path) {
-        this(name, path.toArray(new String[path.size()]));
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public String[] getPath() {
-        return path;
+    @Override
+    public void init(MicroKernel mk) {
+        // not needed
     }
 
     @Override
-    public String toString() {
-        return "IndexInfo [name=" + name + ", path=" + Arrays.toString(path)
-                + "]";
+    public String[] getTypes() {
+        return new String[] { TYPE };
+    }
+
+    @Override
+    public Index createIndex(IndexDefinition indexDefinition) {
+        return new LuceneEditor(indexDefinition);
     }
 
 }

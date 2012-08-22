@@ -18,7 +18,9 @@ package org.apache.jackrabbit.oak.plugins.lucene;
 
 import static org.apache.jackrabbit.oak.plugins.lucene.FieldNames.PATH;
 import static org.apache.jackrabbit.oak.plugins.lucene.FieldNames.PATH_SELECTOR;
+import static org.apache.jackrabbit.oak.plugins.lucene.LuceneIndexUtils.INDEX_DATA_CHILD_NAME;
 import static org.apache.jackrabbit.oak.plugins.lucene.TermFactory.newPathTerm;
+import static org.apache.jackrabbit.oak.spi.query.IndexUtils.split;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -33,6 +35,7 @@ import org.apache.jackrabbit.oak.spi.Filter;
 import org.apache.jackrabbit.oak.spi.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.IndexRow;
 import org.apache.jackrabbit.oak.spi.QueryIndex;
+import org.apache.jackrabbit.oak.spi.query.IndexDefinition;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.lucene.index.DirectoryReader;
@@ -56,11 +59,15 @@ public class LuceneIndex implements QueryIndex {
 
     private final NodeStore store;
 
-    private final LuceneIndexInfo index;
+    private final IndexDefinition index;
 
-    public LuceneIndex(NodeStore store, LuceneIndexInfo index) {
+    private final String[] indexDataPath;
+
+    public LuceneIndex(NodeStore store, IndexDefinition indexDefinition) {
         this.store = store;
-        this.index = index;
+        this.index = indexDefinition;
+        this.indexDataPath = split(indexDefinition.getPath(),
+                INDEX_DATA_CHILD_NAME);
     }
 
     @Override
@@ -81,7 +88,7 @@ public class LuceneIndex implements QueryIndex {
     @Override
     public Cursor query(Filter filter, String revisionId, NodeState root) {
         try {
-            Directory directory = new OakDirectory(store, root, index.getPath());
+            Directory directory = new OakDirectory(store, root, indexDataPath);
             try {
                 IndexReader reader = DirectoryReader.open(directory);
                 try {
@@ -111,6 +118,7 @@ public class LuceneIndex implements QueryIndex {
                 directory.close();
             }
         } catch (IOException e) {
+            e.printStackTrace();
             return new PathCursor(Collections.<String> emptySet());
         }
     }
@@ -157,7 +165,7 @@ public class LuceneIndex implements QueryIndex {
                 last = pr.last.getString();
             }
 
-            if (first .equals(last) && pr.firstIncluding && pr.lastIncluding) {
+            if (first.equals(last) && pr.firstIncluding && pr.lastIncluding) {
                 qs.add(new TermQuery(new Term(name, first)));
             } else {
                 qs.add(TermRangeQuery.newStringRange(name, first, last,

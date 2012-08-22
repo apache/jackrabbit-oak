@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.index;
+package org.apache.jackrabbit.oak.plugins.index;
 
 import java.util.Arrays;
 
@@ -25,9 +25,9 @@ import org.apache.jackrabbit.oak.util.ArrayUtils;
 /**
  * An index leaf page.
  */
-class BTreeLeaf extends BTreePage {
+public class BTreeLeaf extends BTreePage {
 
-    BTreeLeaf(BTree tree, BTreeNode parent, String name, String[] data, String[] paths) {
+    public BTreeLeaf(BTree tree, BTreeNode parent, String name, String[] data, String[] paths) {
         super(tree, parent, name, data, paths);
         verify();
     }
