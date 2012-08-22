@@ -26,6 +26,7 @@ import org.apache.jackrabbit.mk.model.StoredNode;
 import org.apache.jackrabbit.mk.store.BinaryBinding;
 import org.apache.jackrabbit.mk.store.IdFactory;
 import org.apache.jackrabbit.mk.store.NotFoundException;
+import org.h2.Driver;
 import org.h2.jdbcx.JdbcConnectionPool;
 
 import java.io.ByteArrayInputStream;
@@ -58,7 +59,7 @@ public class H2Persistence implements GCPersistence {
             dbDir.mkdirs();
         }
 
-        Class.forName("org.h2.Driver");
+        Driver.load();
         String url = "jdbc:h2:" + dbDir.getCanonicalPath() + "/revs";
         if (FAST) {
             url += ";log=0;undo_log=0";
