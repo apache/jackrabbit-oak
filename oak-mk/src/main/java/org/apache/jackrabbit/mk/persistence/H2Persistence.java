@@ -141,17 +141,19 @@ public class H2Persistence implements GCPersistence {
         node.serialize(new BinaryBinding(out));
         byte[] bytes = out.toByteArray();
         byte[] rawId = idFactory.createContentId(bytes);
+        Timestamp ts = new Timestamp(System.currentTimeMillis());
         //String id = StringUtils.convertBytesToHex(rawId);
 
         Connection con = cp.getConnection();
         try {
             PreparedStatement stmt = con
                     .prepareStatement(
-                            "insert into REVS (ID, DATA, TIME) select ?, ?, CURRENT_TIMESTAMP() where not exists (select 1 from REVS where ID = ?)");
+                            "insert into REVS (ID, DATA, TIME) select ?, ?, ? where not exists (select 1 from REVS where ID = ?)");
             try {
                 stmt.setBytes(1, rawId);
                 stmt.setBytes(2, bytes);
-                stmt.setBytes(3, rawId);
+                stmt.setTimestamp(3, ts);
+                stmt.setBytes(4, rawId);
                 stmt.executeUpdate();
             } finally {
                 stmt.close();
@@ -187,16 +189,18 @@ public class H2Persistence implements GCPersistence {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         commit.serialize(new BinaryBinding(out));
         byte[] bytes = out.toByteArray();
+        Timestamp ts = new Timestamp(System.currentTimeMillis());
 
         Connection con = cp.getConnection();
         try {
             PreparedStatement stmt = con
                     .prepareStatement(
-                            "insert into REVS (ID, DATA, TIME) select ?, ?, CURRENT_TIMESTAMP() where not exists (select 1 from REVS where ID = ?)");
+                            "insert into REVS (ID, DATA, TIME) select ?, ?, ? where not exists (select 1 from REVS where ID = ?)");
             try {
                 stmt.setBytes(1, id.getBytes());
                 stmt.setBytes(2, bytes);
-                stmt.setBytes(3, id.getBytes());
+                stmt.setTimestamp(3, ts);
+                stmt.setBytes(4, id.getBytes());
                 stmt.executeUpdate();
             } finally {
                 stmt.close();
@@ -232,16 +236,18 @@ public class H2Persistence implements GCPersistence {
         map.serialize(new BinaryBinding(out));
         byte[] bytes = out.toByteArray();
         byte[] rawId = idFactory.createContentId(bytes);
+        Timestamp ts = new Timestamp(System.currentTimeMillis());
 
         Connection con = cp.getConnection();
         try {
             PreparedStatement stmt = con
                     .prepareStatement(
-                            "insert into REVS (ID, DATA, TIME) select ?, ?, CURRENT_TIMESTAMP() where not exists (select 1 from REVS where ID = ?)");
+                            "insert into REVS (ID, DATA, TIME) select ?, ?, ? where not exists (select 1 from REVS where ID = ?)");
             try {
                 stmt.setBytes(1, rawId);
                 stmt.setBytes(2, bytes);
-                stmt.setBytes(3, rawId);
+                stmt.setTimestamp(3, ts);
+                stmt.setBytes(4, rawId);
                 stmt.executeUpdate();
             } finally {
                 stmt.close();
@@ -317,7 +323,7 @@ public class H2Persistence implements GCPersistence {
     }
     
     @Override
-    public void sweep() throws Exception {
+    public int sweep() throws Exception {
         Timestamp ts = new Timestamp(gcStart);
 
         Connection con = cp.getConnection();
@@ -327,7 +333,7 @@ public class H2Persistence implements GCPersistence {
                             "delete REVS where TIME < ?");
             try {
                 stmt.setTimestamp(1, ts);
-                stmt.executeUpdate();
+                return stmt.executeUpdate();
             } finally {
                 stmt.close();
             }

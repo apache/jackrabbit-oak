@@ -32,6 +32,8 @@ import org.apache.jackrabbit.mk.persistence.GCPersistence;
 import org.apache.jackrabbit.mk.persistence.Persistence;
 import org.apache.jackrabbit.mk.util.IOUtils;
 import org.apache.jackrabbit.mk.util.SimpleLRUCache;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.util.Collections;
@@ -55,6 +57,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public class DefaultRevisionStore extends AbstractRevisionStore implements
         Closeable {
 
+    private static final Logger LOG = LoggerFactory.getLogger(DefaultRevisionStore.class);
+    
     public static final String CACHE_SIZE = "mk.cacheSize";
     public static final int DEFAULT_CACHE_SIZE = 10000;
 
@@ -82,6 +86,8 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
      * GC run state.
      */
     private final AtomicInteger gcState = new AtomicInteger();
+    
+    private int markedNodes, markedCommits;
 
     /**
      * GC executor.
@@ -99,7 +105,7 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
     private final ReentrantReadWriteLock tokensLock = new ReentrantReadWriteLock();
 
     /**
-     * Active branches (Key: branch root id, Value: branch head).
+     * Active branches (Key: current branch head, Value: branch root id).
      */
     private final TreeMap<Id,Id> branches = new TreeMap<Id, Id>();
 
@@ -160,7 +166,7 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
                         gc();
                     }
                 }
-            }, 60, 1, TimeUnit.MINUTES); // FIXME, see OAK-216
+            }, 10, 1, TimeUnit.MINUTES);
         }
 
         initialized = true;
@@ -292,7 +298,7 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
         headLock.writeLock().lock();
     }
 
-    public Id putHeadCommit(PutToken token, MutableCommit commit, Id branchRootId)
+    public Id putHeadCommit(PutToken token, MutableCommit commit, Id branchRootId, Id branchRevId)
             throws Exception {
         verifyInitialized();
         if (!headLock.writeLock().isHeldByCurrentThread()) {
@@ -304,9 +310,9 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
         setHeadCommitId(id);
         
         putTokens.remove(token);
-        if (branchRootId != null) {
+        if (branchRevId != null) {
             synchronized (branches) {
-                branches.remove(branchRootId);
+                branches.remove(branchRevId);
             }
         }
         return id;
@@ -321,10 +327,14 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
         Id branchRootId = commit.getBranchRootId();
         if (branchRootId != null) {
             synchronized (branches) {
-                branches.put(branchRootId, commitId);
+                Id parentId = commit.getParentId();
+                if (!parentId.equals(branchRootId)) {
+                    /* not the first branch commit, replace its head */
+                    branches.remove(parentId);
+                }
+                branches.put(commitId, branchRootId);
             }
         }
-        
         return commitId;
     }
 
@@ -496,11 +506,20 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
             // already running
             return;
         }
+        
+        LOG.debug("GC started.");
+        markedCommits = markedNodes = 0;
 
         try {
             markUncommittedNodes();
             Id firstBranchRootId = markBranches();
+            if (firstBranchRootId != null) {
+                LOG.debug("First branch root to be preserved: {}", firstBranchRootId);
+            }
             Id firstCommitId = markCommits();
+            LOG.debug("First commit to be preserved: {}", firstCommitId);
+
+            LOG.debug("Marked {} commits, {} nodes.", markedCommits, markedNodes);
 
             if (firstBranchRootId != null && firstBranchRootId.compareTo(firstCommitId) < 0) {
                 firstCommitId = firstBranchRootId;
@@ -515,21 +534,24 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
             
         } catch (Exception e) {
             /* unable to perform GC */
+            LOG.error("Exception occurred in GC cycle", e);
             gcState.set(NOT_ACTIVE);
-            e.printStackTrace();
             return;
         }
         
         gcState.set(SWEEPING);
 
         try {
-            gcpm.sweep();
+            int swept = gcpm.sweep();
+            LOG.debug("GC cycle swept {} items", swept);
             cache.clear();
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error("Exception occurred in GC cycle", e);
         } finally {
             gcState.set(NOT_ACTIVE);
         }
+        
+        LOG.debug("GC stopped.");
     }
     
     /**
@@ -569,19 +591,23 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
             tmpBranches = (Map<Id,Id>) branches.clone();
         }
         
+        Id firstBranchRootId = null;
+        
         /* Mark all branch commits */
         for (Entry<Id, Id> entry : tmpBranches.entrySet()) {
-            Id branchRootId = entry.getKey();
-            Id branchHeadId = entry.getValue();
-            while (!branchHeadId.equals(branchRootId)) {
-                StoredCommit commit = getCommit(branchHeadId);
+            Id branchRevId = entry.getKey();
+            Id branchRootId = entry.getValue();
+            while (!branchRevId.equals(branchRootId)) {
+                StoredCommit commit = getCommit(branchRevId);
                 markCommit(commit);
-                branchHeadId = commit.getParentId();
+                branchRevId = commit.getParentId();
+            }
+            if (firstBranchRootId == null || firstBranchRootId.compareTo(branchRootId) > 0) {
+                firstBranchRootId = branchRootId;
             }
         }
         /* Mark all master commits till the first branch root id */
-        if (!tmpBranches.isEmpty()) {
-            Id firstBranchRootId = tmpBranches.keySet().iterator().next();
+        if (firstBranchRootId != null) {
             StoredCommit commit = getHeadCommit();
 
             for (;;) {
@@ -637,6 +663,8 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
         if (!gcpm.markCommit(commit.getId())) {
             return;
         }
+        markedCommits++;
+
         markNode(getNode(commit.getRootNodeId()));
     }
 
@@ -650,6 +678,8 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
         if (!gcpm.markNode(node.getId())) {
             return;
         }
+        markedNodes++;
+        
         Iterator<ChildNodeEntry> iter = node.getChildNodeEntries(0, -1);
         while (iter.hasNext()) {
             ChildNodeEntry c = iter.next();

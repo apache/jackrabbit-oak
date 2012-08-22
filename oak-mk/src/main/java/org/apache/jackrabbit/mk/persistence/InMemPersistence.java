@@ -175,10 +175,13 @@ public class InMemPersistence implements GCPersistence {
     }
 
     @Override
-    public void sweep() {
+    public int sweep() {
+        int count = objects.size();
+        
         objects.clear();
         objects.putAll(marked);
         
         gcStart = 0;
+        return count;
     }
 }
