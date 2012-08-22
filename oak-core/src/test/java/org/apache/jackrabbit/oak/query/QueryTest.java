@@ -103,15 +103,21 @@ public class QueryTest extends AbstractQueryTest {
                     w.println("xpath2sql " + line);
                     XPathToSQL2Converter c = new XPathToSQL2Converter();
                     String got;
+                    boolean failed;
                     try {
                         got = c.convert(line);
+                        failed = false;
                     } catch (ParseException e) {
                         got = "invalid: " + e.getMessage().replace('\n', ' ');
+                        failed = true;
                     }
                     line = r.readLine().trim();
                     w.println(got);
                     if (!line.equals(got)) {
                         errors = true;
+                    }
+                    if (!failed) {
+                        executeQuery(got, QueryEngineImpl.SQL2, null);
                     }
                 } else if (line.startsWith("select") || line.startsWith("explain") || line.startsWith("sql1")) {
                     w.println(line);
