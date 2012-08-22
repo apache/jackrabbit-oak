@@ -44,29 +44,36 @@ public class PrefixContentIndex implements QueryIndex {
 
     @Override
     public double getCost(Filter filter) {
-        Filter.PropertyRestriction restriction = filter.getPropertyRestriction("*");
-        if (restriction == null) {
-            return Double.MAX_VALUE;
+        if (getPropertyTypeRestriction(filter) != null) {
+            return 100;
         }
-        if (restriction.first != restriction.last) {
-            // only support equality matches (for now)
-            return Double.MAX_VALUE;
+        return Double.MAX_VALUE;
+    }
+
+    private Filter.PropertyRestriction getPropertyTypeRestriction(Filter filter) {
+        for (Filter.PropertyRestriction restriction : filter.getPropertyRestrictions()) {
+            if (restriction == null) {
+                continue;
+            }
+            if (restriction.first != restriction.last) {
+                // only support equality matches (for now)
+                continue;
+            }
+            if (restriction.propertyType == PropertyType.UNDEFINED) {
+                continue;
+            }
+            String hint = CoreValueMapper.getHintForType(restriction.propertyType);
+            String prefix = hint + ":";
+            if (prefix.equals(index.getPrefix())) {
+                return restriction;
+            }
         }
-        if (restriction.propertyType == PropertyType.UNDEFINED) {
-            return Double.MAX_VALUE;
-        }
-        String hint = CoreValueMapper.getHintForType(restriction.propertyType);
-        String prefix = hint + ":";
-        if (!prefix.equals(index.getPrefix())) {
-            // wrong prefix (wrong property type)
-            return Double.MAX_VALUE;
-        }
-        return 100;
+        return null;
     }
 
     @Override
     public String getPlan(Filter filter) {
-        Filter.PropertyRestriction restriction = filter.getPropertyRestriction("*");
+        Filter.PropertyRestriction restriction = getPropertyTypeRestriction(filter);
         if (restriction == null) {
             throw new IllegalArgumentException("No restriction for *");
         }
@@ -78,7 +85,7 @@ public class PrefixContentIndex implements QueryIndex {
 
     @Override
     public Cursor query(Filter filter, String revisionId, NodeState root) {
-        Filter.PropertyRestriction restriction = filter.getPropertyRestriction("*");
+        Filter.PropertyRestriction restriction = getPropertyTypeRestriction(filter);
         if (restriction == null) {
             throw new IllegalArgumentException("No restriction for *");
         }
