@@ -16,11 +16,13 @@
  */
 package org.apache.jackrabbit.oak.security.authentication;
 
+import java.security.Principal;
+import java.util.Set;
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
 import javax.jcr.SimpleCredentials;
-import java.security.Principal;
-import java.util.Set;
+
+import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
 
 /**
  * AuthenticationImpl...

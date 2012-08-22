@@ -253,7 +253,7 @@ public class UserProviderImplTest extends AbstractOakTest {
             root.commit(DefaultConflictHandler.OURS);
 
             assertEquals(defaultUserPath + m.get(uid), user.getPath());
-            assertEquals(uid, userProvider.getAuthorizableId(user));
+            assertEquals(uid, userProvider.getAuthorizableId(user, Type.USER));
 
             Tree ath = userProvider.getAuthorizable(uid);
             assertNotNull("Tree with id " + uid + " must exist.", ath);
@@ -344,11 +344,16 @@ public class UserProviderImplTest extends AbstractOakTest {
 
         String userID = "Amanda";
         Tree user = up.createUser(userID, null);
-        assertEquals(userID, up.getAuthorizableId(user));
+        assertEquals(userID, up.getAuthorizableId(user, Type.USER));
+        assertEquals(userID, up.getAuthorizableId(user, Type.AUTHORIZABLE));
+        assertNull(up.getAuthorizableId(user, Type.GROUP));
+
 
         String groupID = "visitors";
         Tree group = up.createGroup(groupID, null);
-        assertEquals(groupID, up.getAuthorizableId(group));
+        assertEquals(groupID, up.getAuthorizableId(group, Type.GROUP));
+        assertEquals(groupID, up.getAuthorizableId(group, Type.AUTHORIZABLE));
+        assertNull(up.getAuthorizableId(group, Type.USER));
     }
 
     @Test
