@@ -219,21 +219,23 @@ class UserProviderImpl extends AuthorizableBaseProvider implements UserProvider 
     }
 
     @Override
-    public String getAuthorizableId(Tree authorizableTree) {
+    public String getAuthorizableId(Tree authorizableTree, Type authorizableType) {
         assert authorizableTree != null;
-        PropertyState idProp = authorizableTree.getProperty(UserConstants.REP_AUTHORIZABLE_ID);
-        if (idProp != null) {
-            return idProp.getValue().getString();
-        } else {
-            return Text.unescapeIllegalJcrChars(authorizableTree.getName());
+        if (isAuthorizableTree(authorizableTree, authorizableType)) {
+            PropertyState idProp = authorizableTree.getProperty(UserConstants.REP_AUTHORIZABLE_ID);
+            if (idProp != null) {
+                return idProp.getValue().getString();
+            } else {
+                return Text.unescapeIllegalJcrChars(authorizableTree.getName());
+            }
         }
+        return null;
     }
 
     @Override
     public boolean isAdminUser(Tree userTree) {
         assert userTree != null;
-        return isAuthorizableTree(userTree, Type.USER) &&
-               adminId.equals(getAuthorizableId(userTree));
+        return adminId.equals(getAuthorizableId(userTree, Type.USER));
     }
 
     @Override

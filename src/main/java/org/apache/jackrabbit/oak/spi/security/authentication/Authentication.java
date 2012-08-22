@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authentication;
+package org.apache.jackrabbit.oak.spi.security.authentication;
 
-import javax.jcr.Credentials;
 import java.security.Principal;
 import java.util.Set;
+import javax.jcr.Credentials;
 
 /**
  * The {@code Authentication} interface defines methods to validate
@@ -37,8 +37,6 @@ import java.util.Set;
  * an external access token generation mechanism.
  */
 public interface Authentication {
-
-    // TODO: evaluate if that should part of SPI package.
 
     /**
      * Validates the specified {@code Credentials} and returns {@code true} if

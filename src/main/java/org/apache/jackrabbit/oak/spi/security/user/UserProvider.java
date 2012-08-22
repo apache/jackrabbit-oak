@@ -17,12 +17,10 @@
 package org.apache.jackrabbit.oak.spi.security.user;
 
 import java.security.Principal;
-import java.util.List;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.Tree;
 
 /**
@@ -49,8 +47,8 @@ public interface UserProvider {
     @CheckForNull
     Tree getAuthorizableByPrincipal(Principal principal);
 
-    @Nonnull
-    String getAuthorizableId(Tree authorizableTree);
+    @CheckForNull
+    String getAuthorizableId(Tree authorizableTree, Type authorizableType);
 
     boolean isAdminUser(Tree userTree);
 

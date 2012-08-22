@@ -19,10 +19,11 @@ package org.apache.jackrabbit.oak.security.authentication.token;
 import java.security.Principal;
 import java.util.Date;
 import java.util.Set;
+import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
 
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
-import org.apache.jackrabbit.oak.security.authentication.Authentication;
+import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,6 +41,7 @@ class TokenAuthentication implements Authentication {
         this.tokenProvider = tokenProvider;
     }
 
+    //-----------------------------------------------------< Authentication >---
     @Override
     public boolean authenticate(Credentials credentials) {
         boolean success = false;
@@ -58,11 +60,16 @@ class TokenAuthentication implements Authentication {
         return false;
     }
 
+    //-----------------------------------------------------------< internal >---
+    @Nonnull
     TokenInfo getTokenInfo() {
+        if (tokenInfo == null) {
+            throw new IllegalStateException("Token info can only be retrieved upon successful authentication.");
+        }
         return tokenInfo;
     }
 
-    //--------------------------------------------------------------------------
+    //------------------------------------------------------------< private >---
     private boolean validateCredentials(TokenCredentials tokenCredentials) {
         // credentials without userID -> check if attributes provide
         // sufficient information for successful authentication.

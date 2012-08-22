@@ -17,6 +17,8 @@
 package org.apache.jackrabbit.oak.spi.security.authentication;
 
 import java.io.IOException;
+import java.security.Principal;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import javax.annotation.CheckForNull;
@@ -28,6 +30,7 @@ import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.auth.login.LoginException;
 import javax.security.auth.spi.LoginModule;
 
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -142,5 +145,32 @@ public abstract class AbstractLoginModule implements LoginModule {
         } else {
             return null;
         }
+    }
+
+
+    protected Set<Principal> getPrincipals(String userID) {
+        PrincipalProvider principalProvider = getPrincipalProvider();
+        if (principalProvider == null) {
+            log.debug("Cannot retrieve principals. No principal provider configured.");
+            return Collections.emptySet();
+        } else {
+            return principalProvider.getPrincipals(userID);
+        }
+    }
+
+    private PrincipalProvider getPrincipalProvider() {
+        PrincipalProvider principalProvider = null;
+        if (callbackHandler != null) {
+            try {
+                PrincipalProviderCallback principalCallBack = new PrincipalProviderCallback();
+                callbackHandler.handle(new Callback[] {principalCallBack});
+                principalProvider = principalCallBack.getPrincipalProvider();
+            } catch (IOException e) {
+                log.warn(e.getMessage());
+            } catch (UnsupportedCallbackException e) {
+                log.warn(e.getMessage());
+            }
+        }
+        return principalProvider;
     }
 }
