@@ -20,6 +20,8 @@ import java.security.Principal;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidatorProvider;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContext;
@@ -52,7 +54,17 @@ public class TestAcContext implements AccessControlContext {
             }
 
             @Override
-            public boolean isGranted(String path, int permissions) {
+            public boolean isGranted(int permissions) {
+                return true;
+            }
+
+            @Override
+            public boolean isGranted(Tree tree, int permissions) {
+                return true;
+            }
+
+            @Override
+            public boolean isGranted(Tree parent, PropertyState property, int permissions) {
                 return true;
             }
         };

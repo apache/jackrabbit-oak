@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.security.authorization;
 import java.security.Principal;
 import java.util.Set;
 
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.authorization.CompiledPermissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.Permissions;
 
@@ -38,9 +40,21 @@ class CompiledPermissionImpl implements CompiledPermissions {
     }
 
     @Override
-    public boolean isGranted(String path, int permissions) {
+    public boolean isGranted(int permissions) {
         // TODO
-        return (permissions == Permissions.READ);
+        return false;
+    }
+
+    @Override
+    public boolean isGranted(Tree tree, int permissions) {
+        // TODO
+        return (permissions == Permissions.READ_NODE);
+    }
+
+    @Override
+    public boolean isGranted(Tree parent, PropertyState property, int permissions) {
+        // TODO
+        return (permissions == Permissions.READ_PROPERTY);
     }
 
 }

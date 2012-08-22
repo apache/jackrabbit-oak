@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization;
 
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
+
 /**
  * CompiledPermissions... TODO
  */
@@ -23,6 +26,10 @@ public interface CompiledPermissions {
 
     boolean canRead(String path, boolean isProperty);
 
-    boolean isGranted(String path, int permissions);
+    boolean isGranted(int permissions);
+
+    boolean isGranted(Tree tree, int permissions);
+
+    boolean isGranted(Tree parent, PropertyState property, int permissions);
 
 }

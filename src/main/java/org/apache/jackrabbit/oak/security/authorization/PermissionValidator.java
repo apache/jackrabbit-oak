@@ -21,7 +21,7 @@ import javax.jcr.AccessDeniedException;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
 import org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants;
@@ -126,7 +126,7 @@ class PermissionValidator implements Validator {
             permission = defaultPermission;
         }
 
-        checkPermissions(PathUtils.concat(parentPath, name), permission);
+        checkPermissions(parent.getTree(), property, permission);
     }
 
     private PermissionValidator checkPermissions(NodeUtil node, boolean isBefore, int defaultPermission) throws CommitFailedException {
@@ -153,19 +153,31 @@ class PermissionValidator implements Validator {
             permission = defaultPermission;
         }
 
-        if (Permissions.isRepositoryPermissions(permission)) {
-            checkPermissions(null, permission);
+        if (Permissions.isRepositoryPermission(permission)) {
+            checkPermissions(permission);
             return null; // no need for further validation down the subtree
         } else {
-            checkPermissions(path, permission);
+            checkPermissions(node.getTree(), permission);
             return (isBefore) ?
                     new PermissionValidator(compiledPermissions, node, null) :
                     new PermissionValidator(compiledPermissions, null, node);
         }
     }
 
-    private void checkPermissions(String path, int permissions) throws CommitFailedException {
-        if (!compiledPermissions.isGranted(path, permissions))    {
+    private void checkPermissions(int permissions) throws CommitFailedException {
+        if (!compiledPermissions.isGranted(permissions))    {
+            throw new CommitFailedException(new AccessDeniedException());
+        }
+    }
+
+    private void checkPermissions(Tree tree, int permissions) throws CommitFailedException {
+        if (!compiledPermissions.isGranted(tree, permissions))    {
+            throw new CommitFailedException(new AccessDeniedException());
+        }
+    }
+
+    private void checkPermissions(Tree parent, PropertyState property, int permissions) throws CommitFailedException {
+        if (!compiledPermissions.isGranted(parent, property, permissions))    {
             throw new CommitFailedException(new AccessDeniedException());
         }
     }
