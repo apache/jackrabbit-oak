@@ -53,7 +53,6 @@ org.apache.jackrabbit.test.api.NodeOrderableChildNodesTest#testOrderBeforePlaceA
 org.apache.jackrabbit.test.api.NodeOrderableChildNodesTest#testOrderBeforePlaceAtEndSessionSave<!--OAK-169-->
 org.apache.jackrabbit.test.api.SetValueValueFormatExceptionTest
 org.apache.jackrabbit.test.api.SetValueFormatExceptionTest
-org.apache.jackrabbit.test.api.SetPropertyNodeTest
 org.apache.jackrabbit.test.api.SetPropertyStringTest#testSetSingleStringArrayValueFormatException
 org.apache.jackrabbit.test.api.SetPropertyStringTest#testSetSingleStringArrayValueFormatExceptionWithPropertyType
 org.apache.jackrabbit.test.api.SetPropertyValueTest#testSetSingleValueArrayValueFormatException
