@@ -29,7 +29,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.PathMapper;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
@@ -37,6 +36,7 @@ import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.TreeBasedPrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
+import org.apache.jackrabbit.oak.spi.security.user.Type;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
 import org.slf4j.Logger;
@@ -64,7 +64,6 @@ public class PrincipalProviderImpl implements PrincipalProvider {
         this.userProvider = userProvider;
         this.membershipProvider = membershipProvider;
         this.pathMapper = pathMapper;
-
     }
 
     //--------------------------------------------------< PrincipalProvider >---
@@ -97,7 +96,7 @@ public class PrincipalProviderImpl implements PrincipalProvider {
     @Override
     public Set<Principal> getPrincipals(String userID) {
         Set<Principal> principals;
-        Tree userTree = userProvider.getAuthorizable(userID, UserManager.SEARCH_TYPE_USER);
+        Tree userTree = userProvider.getAuthorizable(userID, Type.USER);
         if (userTree != null) {
             principals = new HashSet<Principal>();
             Principal userPrincipal = new TreeBasedPrincipal(userTree, pathMapper);
@@ -169,7 +168,7 @@ public class PrincipalProviderImpl implements PrincipalProvider {
 
         @Override
         public Enumeration<? extends Principal> members() {
-            Iterator<String> declaredMemberPaths = membershipProvider.getMembers(getTree(), UserManager.SEARCH_TYPE_AUTHORIZABLE, false);
+            Iterator<String> declaredMemberPaths = membershipProvider.getMembers(getTree(), Type.AUTHORIZABLE, false);
             Iterator<? extends Principal> members = Iterators.transform(declaredMemberPaths, new Function<String, Principal>() {
                 @Override
                 public Principal apply(@Nullable String oakPath) {

@@ -41,7 +41,7 @@ public interface UserProvider {
     Tree getAuthorizable(String authorizableId);
 
     @CheckForNull
-    Tree getAuthorizable(String authorizableId, int authorizableType);
+    Tree getAuthorizable(String authorizableId, Type authorizableType);
 
     @CheckForNull
     Tree getAuthorizableByPath(String authorizableOakPath);
@@ -54,8 +54,8 @@ public interface UserProvider {
 
     boolean isAdminUser(Tree userTree);
 
-    void setProtectedProperty(Tree authorizableTree, String propertyName, String value, int type);
+    void setProtectedProperty(Tree authorizableTree, String propertyName, String value, int propertyType);
 
-    void setProtectedProperty(Tree v, String propertyName, String[] values, int type);
+    void setProtectedProperty(Tree v, String propertyName, String[] values, int propertyType);
 
 }
