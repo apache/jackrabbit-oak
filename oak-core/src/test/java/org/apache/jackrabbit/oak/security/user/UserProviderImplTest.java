@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractOakTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -31,6 +30,7 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
+import org.apache.jackrabbit.oak.spi.security.user.Type;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
@@ -288,23 +288,23 @@ public class UserProviderImplTest extends AbstractOakTest {
         Tree user = up.createUser(userID, null);
         root.commit(DefaultConflictHandler.OURS);
 
-        Tree a = up.getAuthorizable(userID, UserManager.SEARCH_TYPE_USER);
+        Tree a = up.getAuthorizable(userID, Type.USER);
         assertNotNull(a);
         assertEquals(user.getPath(), a.getPath());
 
-        assertNotNull(up.getAuthorizable(userID, UserManager.SEARCH_TYPE_AUTHORIZABLE));
-        assertNull(up.getAuthorizable(userID, UserManager.SEARCH_TYPE_GROUP));
+        assertNotNull(up.getAuthorizable(userID, Type.AUTHORIZABLE));
+        assertNull(up.getAuthorizable(userID, Type.GROUP));
 
         String groupID = "hr";
         Tree group = up.createGroup(groupID, null);
         root.commit(DefaultConflictHandler.OURS);
 
-        Tree g = up.getAuthorizable(groupID, UserManager.SEARCH_TYPE_GROUP);
+        Tree g = up.getAuthorizable(groupID, Type.GROUP);
         assertNotNull(a);
         assertEquals(user.getPath(), a.getPath());
 
-        assertNotNull(up.getAuthorizable(groupID, UserManager.SEARCH_TYPE_AUTHORIZABLE));
-        assertNull(up.getAuthorizable(groupID, UserManager.SEARCH_TYPE_USER));
+        assertNotNull(up.getAuthorizable(groupID, Type.AUTHORIZABLE));
+        assertNull(up.getAuthorizable(groupID, Type.USER));
     }
 
     @Test

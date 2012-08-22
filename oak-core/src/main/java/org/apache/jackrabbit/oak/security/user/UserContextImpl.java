@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.security.user;
 
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
@@ -29,19 +30,15 @@ import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
  */
 public class UserContextImpl implements UserContext {
 
-    private final ContentSession contentSession;
     private final UserConfig config;
-    private final UserProviderImpl userProvider;
 
     // TODO add proper configuration
-    public UserContextImpl(ContentSession contentSession, Root currentRoot) {
-        this(contentSession, currentRoot, new UserConfig("admin"));
+    public UserContextImpl() {
+        this(new UserConfig("admin"));
     }
 
-    public UserContextImpl(ContentSession contentSession, Root currentRoot, UserConfig config) {
-        this.contentSession = contentSession;
+    public UserContextImpl(UserConfig config) {
         this.config = config;
-        this.userProvider = new UserProviderImpl(contentSession, currentRoot, config);
     }
 
     @Override
@@ -50,17 +47,17 @@ public class UserContextImpl implements UserContext {
     }
 
     @Override
-    public UserProvider getUserProvider() {
-        return userProvider;
+    public UserProvider getUserProvider(ContentSession contentSession, Root root) {
+        return new UserProviderImpl(contentSession, root, config);
     }
 
     @Override
-    public MembershipProvider getMembershipProvider() {
-        return userProvider;
+    public MembershipProvider getMembershipProvider(ContentSession contentSession, Root root) {
+        return new MembershipProviderImpl(contentSession, root, config);
     }
 
     @Override
-    public ValidatorProvider getUserValidatorProvider() {
-        return new UserValidatorProvider(contentSession.getCoreValueFactory(), config);
+    public ValidatorProvider getUserValidatorProvider(CoreValueFactory valueFactory) {
+        return new UserValidatorProvider(valueFactory, config);
     }
 }

@@ -37,4 +37,18 @@ public interface UserConstants {
     String DEFAULT_GROUP_PATH = "/rep:security/rep:authorizables/rep:groups";
     int DEFAULT_DEPTH = 2;
 
+    int SEARCH_TYPE_USER = 1;
+
+    /**
+     * Filter flag indicating that only <code>Group</code>s should be searched
+     * and returned.
+     */
+    int SEARCH_TYPE_GROUP = 2;
+
+    /**
+     * Filter flag indicating that all <code>Authorizable</code>s should be
+     * searched.
+     */
+    int SEARCH_TYPE_AUTHORIZABLE = 3;
+
 }

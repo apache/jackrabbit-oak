@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.TreeBasedPrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
+import org.apache.jackrabbit.oak.spi.security.user.Type;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -177,7 +178,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
             return uMgr.findAuthorizables(propName, null, UserManager.SEARCH_TYPE_AUTHORIZABLE);
         } else {
             MembershipProvider mMgr = uMgr.getMembershipProvider();
-            Iterator oakPaths = mMgr.getMembers(getTree(), UserManager.SEARCH_TYPE_AUTHORIZABLE, includeInherited);
+            Iterator oakPaths = mMgr.getMembers(getTree(), Type.AUTHORIZABLE, includeInherited);
             if (!oakPaths.hasNext()) {
                 AuthorizableIterator iterator = new AuthorizableIterator(oakPaths, uMgr);
                 return new RangeIteratorAdapter(iterator, iterator.getSize());
