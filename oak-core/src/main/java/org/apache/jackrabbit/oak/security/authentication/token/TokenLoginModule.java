@@ -67,8 +67,11 @@ public class TokenLoginModule extends AbstractLoginModule {
             if (authentication.authenticate(tc)) {
                 tokenCredentials = tc;
                 tokenInfo = authentication.getTokenInfo();
-                userID = null; // TODO: getUserID(tc);
-                principals = null; // TODO getPrincipals(userID);
+                userID = tokenInfo.getUserId();
+                principals = getPrincipals(userID);
+
+                log.debug("Login: adding login name to shared state.");
+                sharedState.put(SHARED_KEY_LOGIN_NAME, userID);
                 return true;
             }
         }
@@ -78,7 +81,7 @@ public class TokenLoginModule extends AbstractLoginModule {
 
     @Override
     public boolean commit() throws LoginException {
-        if (tokenCredentials != null || !principals.isEmpty()) {
+        if (tokenCredentials != null) {
             if (!subject.isReadOnly()) {
                 subject.getPublicCredentials().add(tokenCredentials);
                 subject.getPrincipals().addAll(principals);
@@ -89,21 +92,19 @@ public class TokenLoginModule extends AbstractLoginModule {
 
         if (tokenProvider != null && sharedState.containsKey(SHARED_KEY_CREDENTIALS)) {
             Credentials shared = getSharedCredentials();
-            if (shared != null) {
-                if (tokenProvider.doCreateToken(shared)) {
-                    TokenInfo ti = tokenProvider.createToken(shared);
-                    if (ti != null) {
-                        TokenCredentials tc = new TokenCredentials(ti.getToken());
-                        Map<String, String> attributes = ti.getPrivateAttributes();
-                        for (String name : attributes.keySet()) {
-                            tc.setAttribute(name, attributes.get(name));
-                        }
-                        attributes = ti.getPublicAttributes();
-                        for (String name : attributes.keySet()) {
-                            tc.setAttribute(name, attributes.get(name));
-                        }
-                        subject.getPublicCredentials().add(tc);
+            if (shared != null && tokenProvider.doCreateToken(shared)) {
+                TokenInfo ti = tokenProvider.createToken(shared);
+                if (ti != null) {
+                    TokenCredentials tc = new TokenCredentials(ti.getToken());
+                    Map<String, String> attributes = ti.getPrivateAttributes();
+                    for (String name : attributes.keySet()) {
+                        tc.setAttribute(name, attributes.get(name));
                     }
+                    attributes = ti.getPublicAttributes();
+                    for (String name : attributes.keySet()) {
+                        tc.setAttribute(name, attributes.get(name));
+                    }
+                    subject.getPublicCredentials().add(tc);
                 }
             }
         }

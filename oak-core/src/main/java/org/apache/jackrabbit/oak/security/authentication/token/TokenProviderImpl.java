@@ -27,6 +27,7 @@ import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Map;
+import javax.annotation.CheckForNull;
 import javax.jcr.Credentials;
 import javax.jcr.SimpleCredentials;
 
@@ -105,11 +106,11 @@ public class TokenProviderImpl implements TokenProvider {
     public TokenInfo createToken(Credentials credentials) {
         if (credentials instanceof SimpleCredentials) {
             final SimpleCredentials sc = (SimpleCredentials) credentials;
-            String userID = sc.getUserID();
+            String userId = sc.getUserID();
 
             CoreValueFactory valueFactory = contentSession.getCoreValueFactory();
             try {
-                Tree userTree = userProvider.getAuthorizable(userID, Type.USER);
+                Tree userTree = userProvider.getAuthorizable(userId, Type.USER);
                 if (userTree != null) {
                     NodeUtil userNode = new NodeUtil(userTree, valueFactory);
                     NodeUtil tokenParent = userNode.getChild(TOKENS_NODE_NAME);
@@ -143,9 +144,9 @@ public class TokenProviderImpl implements TokenProvider {
 
                     // also set the new token to the simple credentials.
                     sc.setAttribute(TOKEN_ATTRIBUTE, token);
-                    return new TokenInfoImpl(tokenNode, token);
+                    return new TokenInfoImpl(tokenNode, token, userId);
                 } else {
-                    log.debug("Cannot create login token: No corresponding node for User " + userID + '.');
+                    log.debug("Cannot create login token: No corresponding node for User " + userId + '.');
                 }
 
             } catch (NoSuchAlgorithmException e) {
@@ -165,7 +166,12 @@ public class TokenProviderImpl implements TokenProvider {
         int pos = token.indexOf(DELIM);
         String tokenPath = (pos == -1) ? token : token.substring(0, pos);
         Tree tokenTree = root.getTree(tokenPath);
-        return (tokenTree == null) ? null : new TokenInfoImpl(new NodeUtil(tokenTree, contentSession), token);
+        String userId = getUserId(tokenTree);
+        if (tokenTree == null || userId == null) {
+            return null;
+        } else {
+            return new TokenInfoImpl(new NodeUtil(tokenTree, contentSession), token, userId);
+        }
     }
 
     @Override
@@ -206,17 +212,6 @@ public class TokenProviderImpl implements TokenProvider {
 
 
     //--------------------------------------------------------------------------
-    /**
-     * Returns {@code true} if the specified {@code attributeName}
-     * starts with or equals {@link #TOKEN_ATTRIBUTE}.
-     *
-     * @param attributeName
-     * @return {@code true} if the specified {@code attributeName}
-     * starts with or equals {@link #TOKEN_ATTRIBUTE}.
-     */
-    private static boolean isMandatoryAttribute(String attributeName) {
-        return attributeName != null && attributeName.startsWith(TOKEN_ATTRIBUTE);
-    }
 
     private static String generateKey(int size) {
         SecureRandom random = new SecureRandom();
@@ -231,6 +226,7 @@ public class TokenProviderImpl implements TokenProvider {
         return res.toString();
     }
 
+    @CheckForNull
     private Tree getTokenTree(TokenInfo tokenInfo) {
         if (tokenInfo instanceof TokenInfoImpl) {
             return root.getTree(((TokenInfoImpl) tokenInfo).tokenPath);
@@ -239,22 +235,35 @@ public class TokenProviderImpl implements TokenProvider {
         }
     }
 
+    @CheckForNull
+    private String getUserId(Tree tokenTree) {
+        if (tokenTree != null) {
+            Tree userTree = tokenTree.getParent().getParent();
+            return userProvider.getAuthorizableId(userTree, Type.USER);
+        }
+
+        return null;
+    }
+
     //--------------------------------------------------------------------------
 
     private static class TokenInfoImpl implements TokenInfo {
 
         private final String token;
         private final String tokenPath;
+        private final String userId;
 
         private final long expirationTime;
         private final String key;
-        private Map<String, String> mandatoryAttributes;
-        private Map<String, String> publicAttributes;
+
+        private final Map<String, String> mandatoryAttributes;
+        private final Map<String, String> publicAttributes;
 
 
-        private TokenInfoImpl(NodeUtil tokenNode, String token) {
+        private TokenInfoImpl(NodeUtil tokenNode, String token, String userId) {
             this.token = token;
             this.tokenPath = tokenNode.getTree().getPath();
+            this.userId = userId;
 
             expirationTime = tokenNode.getLong(TOKEN_ATTRIBUTE_EXPIRY, Long.MIN_VALUE);
             key = tokenNode.getString(TOKEN_ATTRIBUTE_KEY, null);
@@ -271,6 +280,13 @@ public class TokenProviderImpl implements TokenProvider {
                     publicAttributes.put(name, value);
                 } // else: jcr specific property
             }
+        }
+
+        //------------------------------------------------------< TokenInfo >---
+
+        @Override
+        public String getUserId() {
+            return userId;
         }
 
         @Override
@@ -316,6 +332,18 @@ public class TokenProviderImpl implements TokenProvider {
         @Override
         public Map<String, String> getPublicAttributes() {
             return Collections.unmodifiableMap(publicAttributes);
+        }
+
+        /**
+         * Returns {@code true} if the specified {@code attributeName}
+         * starts with or equals {@link #TOKEN_ATTRIBUTE}.
+         *
+         * @param attributeName
+         * @return {@code true} if the specified {@code attributeName}
+         * starts with or equals {@link #TOKEN_ATTRIBUTE}.
+         */
+        private static boolean isMandatoryAttribute(String attributeName) {
+            return attributeName != null && attributeName.startsWith(TOKEN_ATTRIBUTE);
         }
 
         /**

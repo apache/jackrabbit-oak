@@ -36,6 +36,7 @@ import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
+import org.apache.jackrabbit.oak.spi.security.user.Type;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
@@ -80,7 +81,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
      */
     @Override
     public String getID() {
-        return userManager.getUserProvider().getAuthorizableId(tree);
+        return userManager.getUserProvider().getAuthorizableId(tree, (isGroup()) ? Type.GROUP : Type.USER);
     }
 
     /**

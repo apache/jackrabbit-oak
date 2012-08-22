@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.security.authentication.token;
 
 import java.util.Map;
+import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 
@@ -25,13 +26,19 @@ import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
  */
 public interface TokenInfo {
 
+    @Nonnull
+    String getUserId();
+
+    @Nonnull
     String getToken();
 
     boolean isExpired(long loginTime);
 
     boolean matches(TokenCredentials tokenCredentials);
 
+    @Nonnull
     Map<String, String> getPrivateAttributes();
 
+    @Nonnull
     Map<String, String> getPublicAttributes();
 }
