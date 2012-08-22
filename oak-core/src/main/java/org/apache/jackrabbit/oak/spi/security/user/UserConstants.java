@@ -33,7 +33,8 @@ public interface UserConstants {
     String REP_MEMBERS = "rep:members";
     String REP_IMPERSONATORS = "rep:impersonators";
 
-    String DEFAULT_USER_PATH = "rep:security/rep:authorizables/rep:users";
-    String DEFAULT_GROUP_PATH = "rep:security/rep:authorizables/rep:groups";
+    String DEFAULT_USER_PATH = "/rep:security/rep:authorizables/rep:users";
+    String DEFAULT_GROUP_PATH = "/rep:security/rep:authorizables/rep:groups";
+    int DEFAULT_DEPTH = 2;
 
 }
