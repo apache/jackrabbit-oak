@@ -430,7 +430,8 @@ public class XPathToSQL2Converter {
         } else if ("fn:name".equals(functionName)) {
             Function f = new Function("name");
             if (!readIf(")")) {
-                f.params.add(parseExpression());
+                // only name(.) and name() are currently supported
+                read(".");
                 read(")");
             }
             return f;
@@ -837,6 +838,9 @@ public class XPathToSQL2Converter {
 
         @Override
         public String toString() {
+            if (name.equals("*")) {
+                return name;
+            }
             return '[' + name + ']';
         }
 

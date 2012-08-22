@@ -25,11 +25,14 @@
 
 # jackrabbit test queries
 
+xpath2sql /jcr:root/testroot/*[jcr:contains(., '"quick brown" -cat')]
+select [jcr:path], [jcr:score], * from [nt:base] where contains(*, '"quick brown" -cat') and ischildnode('/testroot')
+
 xpath2sql //element(*,rep:Authorizable)[(((jcr:contains(profile/givenName,'**') or jcr:contains(profile/familyName,'**')) or jcr:contains(profile/email,'**')) or (jcr:like(rep:principalName,'%%') or jcr:like(fn:name(.),'%%')))] order by rep:principalName ascending
-select [jcr:path], [jcr:score], * from [rep:Authorizable] where ((contains([profile/givenName/*], '**') or contains([profile/familyName/*], '**')) or contains([profile/email/*], '**')) or (([rep:principalName/*] like '%%') or (name([*]) like '%%')) order by [rep:principalName/*]
+select [jcr:path], [jcr:score], * from [rep:Authorizable] where ((contains([profile/givenName/*], '**') or contains([profile/familyName/*], '**')) or contains([profile/email/*], '**')) or (([rep:principalName/*] like '%%') or (name() like '%%')) order by [rep:principalName/*]
 
 xpath2sql //element(*,rep:Authorizable)[(((jcr:contains(profile/@givenName,'**') or jcr:contains(profile/@familyName,'**')) or jcr:contains(profile/@email,'**')) or (jcr:like(@rep:principalName,'%%') or jcr:like(fn:name(.),'%%')))] order by @rep:principalName ascending
-select [jcr:path], [jcr:score], * from [rep:Authorizable] where ((contains([profile/givenName], '**') or contains([profile/familyName], '**')) or contains([profile/email], '**')) or (([rep:principalName] like '%%') or (name([*]) like '%%')) order by [rep:principalName]
+select [jcr:path], [jcr:score], * from [rep:Authorizable] where ((contains([profile/givenName], '**') or contains([profile/familyName], '**')) or contains([profile/email], '**')) or (([rep:principalName] like '%%') or (name() like '%%')) order by [rep:principalName]
 
 xpath2sql /jcr:root/testroot//*[jcr:contains(@jcr:data, 'lazy')]
 select [jcr:path], [jcr:score], * from [nt:base] where contains([jcr:data], 'lazy') and isdescendantnode('/testroot')
@@ -134,12 +137,6 @@ select [jcr:path], [jcr:score], * from [nt:base] where issamenode('/test/jcr:xml
 xpath2sql /jcr:root/test/text()
 select [jcr:path], [jcr:score], * from [nt:base] where issamenode('/test/jcr:xmltext')
 
-xpath2sql explain //*[@*='x']
-explain select [jcr:path], [jcr:score], * from [nt:base] where [*] = 'x'
-
-xpath2sql //*[@*='x']
-select [jcr:path], [jcr:score], * from [nt:base] where [*] = 'x'
-
 xpath2sql /jcr:root
 select [jcr:path], [jcr:score], * from [nt:base] where isdescendantnode('/')
 
@@ -162,10 +159,10 @@ xpath2sql /jcr:root/content//*[@name='Hello']
 select [jcr:path], [jcr:score], * from [nt:base] where ([name] = 'Hello') and isdescendantnode('/content')
 
 xpath2sql //*[jcr:contains(., 'test')] order by @jcr:score
-select [jcr:path], [jcr:score], * from [nt:base] where contains([*], 'test') order by [jcr:score]
+select [jcr:path], [jcr:score], * from [nt:base] where contains(*, 'test') order by [jcr:score]
 
 xpath2sql /jcr:root//*[jcr:contains(., 'test')] order by @jcr:score
-select [jcr:path], [jcr:score], * from [nt:base] where contains([*], 'test') and isdescendantnode('/') order by [jcr:score]
+select [jcr:path], [jcr:score], * from [nt:base] where contains(*, 'test') and isdescendantnode('/') order by [jcr:score]
 
 xpath2sql /jcr:root//element(*, test)
 select [jcr:path], [jcr:score], * from [test] where isdescendantnode('/')
@@ -248,7 +245,7 @@ xpath2sql //element(*, my:type)[jcr:like(@title,'%Java%')]
 select [jcr:path], [jcr:score], * from [my:type] where [title] like '%Java%'
 
 xpath2sql //element(*, my:type)[jcr:contains(., 'JSR 170')]
-select [jcr:path], [jcr:score], * from [my:type] where contains([*], 'JSR 170')
+select [jcr:path], [jcr:score], * from [my:type] where contains(*, 'JSR 170')
 
 xpath2sql //element(*, my:type)[@my:title]
 select [jcr:path], [jcr:score], * from [my:type] where [my:title] is not null
@@ -287,7 +284,7 @@ xpath2sql //element(*, my:type) order by @my:date descending, @my:title ascendin
 select [jcr:path], [jcr:score], * from [my:type] order by [my:date] desc, [my:title]
 
 xpath2sql //element(*, my:type)[jcr:contains(., 'jcr')] order by jcr:score() descending
-select [jcr:path], [jcr:score], * from [my:type] where contains([*], 'jcr') order by score() desc
+select [jcr:path], [jcr:score], * from [my:type] where contains(*, 'jcr') order by score() desc
 
 xpath2sql //element(*, my:type)[jcr:contains(@my:title, 'jcr')] order by jcr:score() descending
 select [jcr:path], [jcr:score], * from [my:type] where contains([my:title], 'jcr') order by score() desc
