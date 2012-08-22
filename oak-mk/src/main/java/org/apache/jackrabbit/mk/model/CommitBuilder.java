@@ -156,7 +156,7 @@ public class CommitBuilder {
                 newCommit.setChanges(diff.toString());
                 newCommit.setRootNodeId(rootNodeId);
                 newCommit.setBranchRootId(null);
-                newRevId = store.putHeadCommit(token, newCommit, null);
+                newRevId = store.putHeadCommit(token, newCommit, null, null);
             } finally {
                 store.unlockHead();
             }
@@ -228,7 +228,7 @@ public class CommitBuilder {
             newCommit.setChanges(diff);
             newCommit.setRootNodeId(rootNodeId);
             newCommit.setBranchRootId(null);
-            newRevId = store.putHeadCommit(token, newCommit, branchRootId);
+            newRevId = store.putHeadCommit(token, newCommit, branchRootId, baseRevId);
         } finally {
             store.unlockHead();
         }

@@ -64,12 +64,15 @@ public interface RevisionStore extends RevisionProvider {
      * @param branchRootId
      *            former branch root id, if this is a merge; otherwise
      *            {@code null}
+     * @return branchRevId
+     *            current branch head, i.e. last commit on this branch, 
+     *            if this is a merge; otherwise {@code null}
      * @return head commit id
      * @throws Exception
      *             if an error occurs
      * @see #lockHead()
      */
-    Id /*id*/ putHeadCommit(PutToken token, MutableCommit commit, Id branchRootId) throws Exception;
+    Id /*id*/ putHeadCommit(PutToken token, MutableCommit commit, Id branchRootId, Id branchRevId) throws Exception;
     
     /**
      * Unlock the head.

@@ -86,7 +86,8 @@ public interface GCPersistence extends Persistence {
     /**
      * Sweep all objects that are not marked and were written before the GC started.
      * 
+     * @return number of swept items or <code>-1</code> if number is unknown
      * @throws Exception if an error occurs
      */
-    void sweep() throws Exception;
+    int sweep() throws Exception;
 }
