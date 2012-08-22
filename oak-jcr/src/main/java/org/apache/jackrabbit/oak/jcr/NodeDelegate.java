@@ -29,6 +29,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.ItemNotFoundException;
+import javax.jcr.ValueFormatException;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -278,7 +279,11 @@ public class NodeDelegate extends ItemDelegate {
      * @return  the set property
      */
     @Nonnull
-    public PropertyDelegate setProperty(String name, CoreValue value) throws InvalidItemStateException {
+    public PropertyDelegate setProperty(String name, CoreValue value) throws InvalidItemStateException, ValueFormatException {
+        PropertyState old = getTree().getProperty(name);
+        if (old != null && old.isArray()) {
+            throw new ValueFormatException("Attempt to set a single value to multi-valued property.");
+        }
         PropertyState propertyState = getTree().setProperty(name, value);
         return new PropertyDelegate(sessionDelegate, getTree(), propertyState);
     }
@@ -294,7 +299,11 @@ public class NodeDelegate extends ItemDelegate {
      * @return  the set property
      */
     @Nonnull
-    public PropertyDelegate setProperty(String name, List<CoreValue> value) throws InvalidItemStateException {
+    public PropertyDelegate setProperty(String name, List<CoreValue> value) throws InvalidItemStateException, ValueFormatException {
+        PropertyState old = getTree().getProperty(name);
+        if (old != null && ! old.isArray()) {
+            throw new ValueFormatException("Attempt to set multiple values to single valued property.");
+        }
         PropertyState propertyState = getTree().setProperty(name, value);
         return new PropertyDelegate(sessionDelegate, getTree(), propertyState);
     }
