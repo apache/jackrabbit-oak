@@ -39,7 +39,7 @@ commit / - "test"
 # expected error on two selectors with the same name
 
 select * from [nt:base] as p inner join [nt:base] as p on ischildnode(p, p) where p.[jcr:path] = '/'
-java.lang.IllegalArgumentException: Two selectors with the same name: p
+java.text.ParseException: select * from [nt:base] as p inner join [nt:base] as p on ischildnode(p, p) where p.[jcr:path] = '/': Two selectors with the same name: p
 
 # combining 'not' and 'and'
 

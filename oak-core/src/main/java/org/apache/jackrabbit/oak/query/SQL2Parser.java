@@ -133,7 +133,13 @@ public class SQL2Parser {
         }
         Query q = new Query(source, constraint, orderings, columnArray, valueFactory);
         q.setExplain(explain);
-        q.init();
+        try {
+            q.init();
+        } catch (Exception e) {
+            ParseException e2 = new ParseException(query + ": " + e.getMessage(), 0);
+            e2.initCause(e);
+            throw e2;
+        }
         return q;
     }
 
