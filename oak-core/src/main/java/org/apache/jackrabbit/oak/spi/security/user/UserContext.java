@@ -18,6 +18,9 @@ package org.apache.jackrabbit.oak.spi.security.user;
 
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.CoreValueFactory;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 
 /**
@@ -29,12 +32,12 @@ public interface UserContext {
     UserConfig getConfig();
 
     @Nonnull
-    UserProvider getUserProvider();
+    UserProvider getUserProvider(ContentSession contentSession, Root root);
 
     @Nonnull
-    MembershipProvider getMembershipProvider();
+    MembershipProvider getMembershipProvider(ContentSession contentSession, Root root);
 
     @Nonnull
-    ValidatorProvider getUserValidatorProvider();
+    ValidatorProvider getUserValidatorProvider(CoreValueFactory valueFactory);
 
 }

@@ -40,8 +40,8 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
 import org.apache.jackrabbit.oak.spi.security.user.PasswordUtility;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.apache.jackrabbit.oak.spi.security.user.UserContext;
 import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
 import org.slf4j.Logger;
@@ -57,12 +57,18 @@ public class UserManagerImpl implements UserManager {
     private final Session session;
     private final NamePathMapper namePathMapper;
 
-    private final UserContext userContext;
+    private final UserProvider userProvider;
+    private final MembershipProvider membershipProvider;
+    private final UserConfig config;
 
-    public UserManagerImpl(Session session, NamePathMapper namePathMapper, UserContext userContext) {
+    public UserManagerImpl(Session session, NamePathMapper namePathMapper,
+                           UserProvider userProvider, MembershipProvider membershipProvider,
+                           UserConfig config) {
         this.session = session;
         this.namePathMapper = namePathMapper;
-        this.userContext = userContext;
+        this.userProvider = userProvider;
+        this.membershipProvider = membershipProvider;
+        this.config = config;
     }
 
     //--------------------------------------------------------< UserManager >---
@@ -264,7 +270,7 @@ public class UserManagerImpl implements UserManager {
     }
 
     private AuthorizableAction[] getAuthorizableActions() {
-        return userContext.getConfig().getAuthorizableActions();
+        return config.getAuthorizableActions();
     }
 
     //--------------------------------------------------------------------------
@@ -284,7 +290,7 @@ public class UserManagerImpl implements UserManager {
         String pwHash;
         if (forceHash || PasswordUtility.isPlainTextPassword(password)) {
             try {
-                pwHash = PasswordUtility.buildPasswordHash(password, userContext.getConfig());
+                pwHash = PasswordUtility.buildPasswordHash(password, config);
             } catch (NoSuchAlgorithmException e) {
                 throw new RepositoryException(e);
             } catch (UnsupportedEncodingException e) {
@@ -313,11 +319,11 @@ public class UserManagerImpl implements UserManager {
     }
 
     UserProvider getUserProvider() {
-        return userContext.getUserProvider();
+        return userProvider;
     }
 
     MembershipProvider getMembershipProvider() {
-        return userContext.getMembershipProvider();
+        return membershipProvider;
     }
 
     @CheckForNull

@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.jcr;
 
 import java.io.IOException;
 import java.util.concurrent.ScheduledExecutorService;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.ItemExistsException;
@@ -55,6 +54,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.value.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.security.user.UserContextImpl;
+import org.apache.jackrabbit.oak.spi.security.user.UserContext;
 import org.apache.jackrabbit.oak.util.TODO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -480,8 +480,9 @@ public class SessionDelegate {
     }
 
     UserManager getUserManager() throws UnsupportedRepositoryOperationException {
-
-        return TODO.unimplemented().returnValue(new UserManagerImpl(getSession(), getNamePathMapper(), new UserContextImpl(getContentSession(), root)));
+        // FIXME
+        UserContext ctx = new UserContextImpl();
+        return TODO.unimplemented().returnValue(new UserManagerImpl(getSession(), getNamePathMapper(), ctx.getUserProvider(contentSession, root), ctx.getMembershipProvider(contentSession, root), ctx.getConfig()));
     }
 
     //--------------------------------------------------< SessionNameMapper >---

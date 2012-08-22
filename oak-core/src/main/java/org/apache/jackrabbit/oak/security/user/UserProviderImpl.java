@@ -19,37 +19,22 @@ package org.apache.jackrabbit.oak.security.user;
 import java.security.Principal;
 import java.text.ParseException;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
-
-import javax.annotation.Nullable;
-import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.query.Query;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.SessionQueryEngine;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.spi.security.principal.TreeBasedPrincipal;
-import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
+import org.apache.jackrabbit.oak.spi.security.user.Type;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
@@ -152,7 +137,7 @@ import org.slf4j.LoggerFactory;
  *
  * TODO
  */
-class UserProviderImpl implements UserProvider, MembershipProvider, UserConstants {
+class UserProviderImpl extends AuthorizableBaseProvider implements UserProvider {
 
     /**
      * logger instance
@@ -160,34 +145,18 @@ class UserProviderImpl implements UserProvider, MembershipProvider, UserConstant
     private static final Logger log = LoggerFactory.getLogger(UserProviderImpl.class);
 
     private static final String DELIMITER = "/";
-    private static final int DEFAULT_DEPTH = 2;
-
-    private final CoreValueFactory valueFactory;
-    private final SessionQueryEngine queryEngine;
-    private final Root root;
-    private final IdentifierManager identifierManager;
 
     private final int defaultDepth;
-    private final int splitSize;
     private final String adminId;
 
     private final String groupPath;
     private final String userPath;
 
     UserProviderImpl(ContentSession contentSession, Root root, UserConfig config) {
-        this.valueFactory = contentSession.getCoreValueFactory();
-        this.queryEngine = contentSession.getQueryEngine();
-        this.root = root;
-        this.identifierManager = new IdentifierManager(queryEngine, root);
+        super(contentSession, root, config);
 
         defaultDepth = config.getConfigValue(UserConfig.PARAM_DEFAULT_DEPTH, DEFAULT_DEPTH);
-        int splitValue = config.getConfigValue(UserConfig.PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE, 0);
-        if (splitValue != 0 && splitValue < 4) {
-            log.warn("Invalid value {} for {}. Expected integer >= 4 or 0", splitValue, UserConfig.PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE);
-            splitValue = 0;
-        }
-        this.splitSize = splitValue;
-        this.adminId = config.getAdminId();
+        adminId = config.getAdminId();
 
         groupPath = config.getConfigValue(UserConfig.PARAM_GROUP_PATH, DEFAULT_GROUP_PATH);
         userPath = config.getConfigValue(UserConfig.PARAM_USER_PATH, DEFAULT_USER_PATH);
@@ -206,32 +175,17 @@ class UserProviderImpl implements UserProvider, MembershipProvider, UserConstant
 
     @Override
     public Tree getAuthorizable(String authorizableId) {
-        Tree tree = identifierManager.getTree(getContentID(authorizableId));
-        if (isAuthorizableTree(tree, UserManager.SEARCH_TYPE_AUTHORIZABLE)) {
-            return tree;
-        } else {
-            return null;
-        }
+        return getByID(authorizableId, Type.AUTHORIZABLE);
     }
 
     @Override
-    public Tree getAuthorizable(String authorizableId, int authorizableType) {
-        Tree tree = identifierManager.getTree(getContentID(authorizableId));
-        if (isAuthorizableTree(tree, authorizableType)) {
-            return tree;
-        } else {
-            return null;
-        }
+    public Tree getAuthorizable(String authorizableId, Type authorizableType) {
+        return getByID(authorizableId, authorizableType);
     }
 
     @Override()
     public Tree getAuthorizableByPath(String authorizableOakPath) {
-        Tree tree = root.getTree(authorizableOakPath);
-        if (isAuthorizableTree(tree, UserManager.SEARCH_TYPE_AUTHORIZABLE)) {
-            return tree;
-        } else {
-            return null;
-        }
+        return getByPath(authorizableOakPath);
     }
 
     @Override
@@ -278,233 +232,35 @@ class UserProviderImpl implements UserProvider, MembershipProvider, UserConstant
     @Override
     public boolean isAdminUser(Tree userTree) {
         assert userTree != null;
-        return isAuthorizableTree(userTree, UserManager.SEARCH_TYPE_USER) &&
+        return isAuthorizableTree(userTree, Type.USER) &&
                adminId.equals(getAuthorizableId(userTree));
     }
 
     @Override
-    public void setProtectedProperty(Tree authorizableTree, String propertyName, String value, int type) {
+    public void setProtectedProperty(Tree authorizableTree, String propertyName, String value, int propertyType) {
         assert authorizableTree != null;
 
         if (value == null) {
             authorizableTree.removeProperty(propertyName);
         } else {
-            CoreValue cv = valueFactory.createValue(value, type);
+            CoreValue cv = valueFactory.createValue(value, propertyType);
             authorizableTree.setProperty(propertyName, cv);
         }
     }
 
     @Override
-    public void setProtectedProperty(Tree authorizableTree, String propertyName, String[] values, int type) {
+    public void setProtectedProperty(Tree authorizableTree, String propertyName, String[] values, int propertyType) {
         assert authorizableTree != null;
 
         if (values == null) {
             authorizableTree.removeProperty(propertyName);
         } else {
             NodeUtil node = new NodeUtil(authorizableTree, valueFactory);
-            node.setValues(propertyName, values, type);
+            node.setValues(propertyName, values, propertyType);
         }
-    }
-
-    //--------------------------------------------------< MembershipProvider>---
-    @Override
-    public Iterator<String> getMembership(String authorizableId, boolean includeInherited) {
-        return getMembership(getAuthorizable(authorizableId), includeInherited);
-    }
-
-    @Override
-    public Iterator<String> getMembership(Tree authorizableTree, boolean includeInherited) {
-        Set<String> groupPaths = new HashSet<String>();
-        Set<String> refPaths = identifierManager.getReferences(true, authorizableTree, null, NT_REP_GROUP, NT_REP_MEMBERS);
-        for (String propPath : refPaths) {
-            int index = propPath.indexOf('/'+REP_MEMBERS);
-            if (index > 0) {
-                groupPaths.add(propPath.substring(0, index));
-            } else {
-                log.debug("Not a membership reference property " + propPath);
-            }
-        }
-
-        Iterator<String> it = groupPaths.iterator();
-        if (includeInherited && it.hasNext()) {
-            return getAllMembership(groupPaths.iterator());
-        } else {
-            return new RangeIteratorAdapter(it, groupPaths.size());
-        }
-    }
-
-    @Override
-    public Iterator<String> getMembers(String groupId, int authorizableType, boolean includeInherited) {
-        return getMembers(getAuthorizable(groupId), UserManager.SEARCH_TYPE_AUTHORIZABLE, includeInherited);
-    }
-
-    @Override
-    public Iterator<String> getMembers(Tree groupTree, int authorizableType, boolean includeInherited) {
-        Iterable memberPaths = Collections.emptySet();
-        if (useMemberNode(groupTree)) {
-            Tree membersTree = groupTree.getChild(REP_MEMBERS);
-            if (membersTree != null) {
-                // FIXME: replace usage of PropertySequence (oak-api not possible there)
-//                PropertySequence propertySequence = getPropertySequence(membersTree);
-//                iterator = new AuthorizableIterator(propertySequence, authorizableType, userManager);
-            }
-        } else {
-            PropertyState property = groupTree.getProperty(REP_MEMBERS);
-            if (property != null) {
-                List<CoreValue> vs = property.getValues();
-                memberPaths = Iterables.transform(vs, new Function<CoreValue,String>() {
-                    @Override
-                    public String apply(@Nullable CoreValue value) {
-                        return identifierManager.getPath(value);
-                    }
-                });
-            }
-        }
-
-        Iterator it = memberPaths.iterator();
-        if (includeInherited && it.hasNext()) {
-            return getAllMembers(it, authorizableType);
-        } else {
-            return new RangeIteratorAdapter(it, Iterables.size(memberPaths));
-        }
-    }
-
-    @Override
-    public boolean isMember(Tree groupTree, Tree authorizableTree, boolean includeInherited) {
-        if (includeInherited) {
-            Iterator<String> groupPaths = getMembership(authorizableTree, true);
-            String path = groupTree.getPath();
-            while (groupPaths.hasNext()) {
-                if (path.equals(groupPaths.next())) {
-                    return true;
-                }
-            }
-        } else {
-            if (useMemberNode(groupTree)) {
-                Tree membersTree = groupTree.getChild(REP_MEMBERS);
-                if (membersTree != null) {
-                    // FIXME: fix.. testing for property name isn't correct.
-                    // FIXME: usage of PropertySequence isn't possible when operating on oak-API
-//                    PropertySequence propertySequence = getPropertySequence(membersTree);
-//                    return propertySequence.hasItem(authorizable.getID());
-                    return false;
-                }
-            } else {
-                PropertyState property = groupTree.getProperty(REP_MEMBERS);
-                if (property != null) {
-                    List<CoreValue> members = property.getValues();
-                    String authorizableUUID = getContentID(authorizableTree);
-                    for (CoreValue v : members) {
-                        if (authorizableUUID.equals(v.getString())) {
-                            return true;
-                        }
-                    }
-                }
-            }
-        }
-        // no a member of the specified group
-        return false;
-    }
-
-    @Override
-    public boolean addMember(Tree groupTree, Tree newMemberTree) {
-        if (useMemberNode(groupTree)) {
-            NodeUtil groupNode = new NodeUtil(groupTree, valueFactory);
-            NodeUtil membersNode = groupNode.getOrAddChild(REP_MEMBERS, NT_REP_MEMBERS);
-
-            //FIXME: replace usage of PropertySequence with oak-compatible utility
-//            PropertySequence properties = getPropertySequence(membersTree);
-//            String propName = Text.escapeIllegalJcrChars(authorizable.getID());
-//            if (properties.hasItem(propName)) {
-//                log.debug("Authorizable {} is already member of {}", authorizable, this);
-//                return false;
-//            } else {
-//                CoreValue newMember = createCoreValue(authorizable);
-//                properties.addProperty(propName, newMember);
-//            }
-        } else {
-            List<CoreValue> values;
-            CoreValue toAdd = createCoreValue(newMemberTree);
-            PropertyState property = groupTree.getProperty(REP_MEMBERS);
-            if (property != null) {
-                values = property.getValues();
-                if (values.contains(toAdd)) {
-                    return false;
-                } else {
-                    values.add(toAdd);
-                }
-            } else {
-                values = Collections.singletonList(toAdd);
-            }
-            groupTree.setProperty(REP_MEMBERS, values);
-        }
-        return true;
-    }
-
-    @Override
-    public boolean removeMember(Tree groupTree, Tree memberTree) {
-        if (useMemberNode(groupTree)) {
-            Tree membersTree = groupTree.getChild(REP_MEMBERS);
-            if (membersTree != null) {
-                // FIXME: replace usage of PropertySequence with oak-compatible utility
-//                PropertySequence properties = getPropertySequence(membersTree);
-//                String propName = authorizable.getTree().getName();
-                // FIXME: fix.. testing for property name isn't correct.
-//                if (properties.hasItem(propName)) {
-//                    Property p = properties.getItem(propName);
-//                    userManager.removeInternalProperty(p.getParent(), propName);
-//                }
-//                return true;
-                return false;
-            }
-        } else {
-            PropertyState property = groupTree.getProperty(REP_MEMBERS);
-            if (property != null) {
-                CoreValue toRemove = createCoreValue(memberTree);
-                List<CoreValue> values = property.getValues();
-                if (values.remove(toRemove)) {
-                    if (values.isEmpty()) {
-                        groupTree.removeProperty(REP_MEMBERS);
-                    } else {
-                        groupTree.setProperty(REP_MEMBERS, values);
-                    }
-                    return true;
-                }
-            }
-        }
-
-        // nothing changed
-        log.debug("Authorizable {} was not member of {}", memberTree.getName(), groupTree.getName());
-        return false;
     }
 
     //------------------------------------------------------------< private >---
-
-    private String getContentID(String authorizableId) {
-        return IdentifierManager.generateUUID(authorizableId.toLowerCase());
-    }
-
-    private String getContentID(Tree authorizableTree) {
-        return identifierManager.getIdentifier(authorizableTree);
-    }
-
-    private boolean isAuthorizableTree(Tree tree, int type) {
-        // FIXME: check for node type according to the specified type constraint
-        if (tree != null && tree.hasProperty(JcrConstants.JCR_PRIMARYTYPE)) {
-            String ntName = tree.getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue().getString();
-            switch (type) {
-                case UserManager.SEARCH_TYPE_GROUP:
-                    return NT_REP_GROUP.equals(ntName);
-                case UserManager.SEARCH_TYPE_USER:
-                    return NT_REP_USER.equals(ntName);
-                default:
-                    return NT_REP_USER.equals(ntName) || NT_REP_GROUP.equals(ntName);
-            }
-        }
-        return false;
-    }
-
-    //-----------------------------------------------< private UserProvider >---
 
     private Tree createAuthorizableNode(String authorizableId, boolean isGroup, String intermediatePath) throws RepositoryException {
         String nodeName = Text.escapeIllegalJcrChars(authorizableId);
@@ -597,94 +353,5 @@ class UserProviderImpl implements UserProvider, MembershipProvider, UserConstant
             }
         }
         return sb.toString();
-    }
-
-    //-----------------------------------------< private MembershipProvider >---
-
-    private CoreValue createCoreValue(Tree authorizableTree) {
-        return valueFactory.createValue(getContentID(authorizableTree), PropertyType.WEAKREFERENCE);
-    }
-
-    private boolean useMemberNode(Tree groupTree) {
-        return splitSize >= 4 && !groupTree.hasProperty(REP_MEMBERS);
-    }
-
-    /**
-     * Returns an iterator of authorizables which includes all indirect members
-     * of the given iterator of authorizables.
-     *
-     *
-     * @param declaredMembers
-     * @param authorizableType
-     * @return Iterator of Authorizable objects
-     */
-    private Iterator<String> getAllMembers(final Iterator<String> declaredMembers,
-                                           final int authorizableType) {
-        Iterator<Iterator<String>> inheritedMembers = new Iterator<Iterator<String>>() {
-            @Override
-            public boolean hasNext() {
-                return declaredMembers.hasNext();
-            }
-
-            @Override
-            public Iterator<String> next() {
-                String memberPath = declaredMembers.next();
-                return Iterators.concat(Iterators.singletonIterator(memberPath), inherited(memberPath));
-            }
-
-            @Override
-            public void remove() {
-                throw new UnsupportedOperationException();
-            }
-
-            private Iterator<String> inherited(String authorizablePath) {
-                Tree group = getAuthorizableByPath(authorizablePath);
-                if (isAuthorizableTree(group, UserManager.SEARCH_TYPE_GROUP)) {
-                    return getMembers(group, authorizableType, true);
-                } else {
-                    return Iterators.emptyIterator();
-                }
-            }
-        };
-        return Iterators.filter(Iterators.concat(inheritedMembers), new ProcessedPathPredicate());
-    }
-
-    private Iterator<String> getAllMembership(final Iterator<String> groupPaths) {
-        Iterator<Iterator<String>> inheritedMembership = new Iterator<Iterator<String>>() {
-            @Override
-            public boolean hasNext() {
-                return groupPaths.hasNext();
-            }
-
-            @Override
-            public Iterator<String> next() {
-                String groupPath = groupPaths.next();
-                return Iterators.concat(Iterators.singletonIterator(groupPath), inherited(groupPath));
-            }
-
-            @Override
-            public void remove() {
-                throw new UnsupportedOperationException();
-            }
-
-            private Iterator<String> inherited(String authorizablePath) {
-                Tree group = getAuthorizableByPath(authorizablePath);
-                if (isAuthorizableTree(group, UserManager.SEARCH_TYPE_GROUP)) {
-                    return getMembership(group, true);
-                } else {
-                    return Iterators.emptyIterator();
-                }
-            }
-        };
-
-        return Iterators.filter(Iterators.concat(inheritedMembership), new ProcessedPathPredicate());
-    }
-
-    private static final class ProcessedPathPredicate implements Predicate<String> {
-        private final Set<String> processed = new HashSet<String>();
-        @Override
-        public boolean apply(@Nullable String path) {
-            return processed.add(path);
-        }
     }
 }

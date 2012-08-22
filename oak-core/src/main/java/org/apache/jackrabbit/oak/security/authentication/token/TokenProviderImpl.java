@@ -27,7 +27,6 @@ import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Map;
-import javax.annotation.CheckForNull;
 import javax.jcr.Credentials;
 import javax.jcr.SimpleCredentials;
 
@@ -41,7 +40,9 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
 import org.apache.jackrabbit.oak.spi.security.user.PasswordUtility;
+import org.apache.jackrabbit.oak.spi.security.user.Type;
 import org.apache.jackrabbit.oak.spi.security.user.UserContext;
+import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.util.ISO8601;
 import org.apache.jackrabbit.util.Text;
@@ -77,14 +78,15 @@ public class TokenProviderImpl implements TokenProvider {
 
     private final ContentSession contentSession;
     private final Root root;
-    private final UserContext userContext;
+    private final UserProvider userProvider;
     private final long tokenExpiration;
 
-    public TokenProviderImpl(ContentSession contentSession, UserContext userContext, long tokenExpiration) {
+    public TokenProviderImpl(ContentSession contentSession, long tokenExpiration, UserContext userContext) {
         this.contentSession = contentSession;
         this.root = contentSession.getCurrentRoot();
-        this.userContext = userContext;
         this.tokenExpiration = tokenExpiration;
+
+        this.userProvider = userContext.getUserProvider(contentSession, root);
     }
 
     //------------------------------------------------------< TokenProvider >---
@@ -107,7 +109,7 @@ public class TokenProviderImpl implements TokenProvider {
 
             CoreValueFactory valueFactory = contentSession.getCoreValueFactory();
             try {
-                Tree userTree = getUserTree(userID);
+                Tree userTree = userProvider.getAuthorizable(userID, Type.USER);
                 if (userTree != null) {
                     NodeUtil userNode = new NodeUtil(userTree, valueFactory);
                     NodeUtil tokenParent = userNode.getChild(TOKENS_NODE_NAME);
@@ -172,7 +174,7 @@ public class TokenProviderImpl implements TokenProvider {
         if (tokenTree != null) {
             try {
                 if (tokenTree.remove()) {
-                    contentSession.getCurrentRoot().commit(DefaultConflictHandler.OURS);
+                    root.commit(DefaultConflictHandler.OURS);
                     return true;
                 }
             } catch (CommitFailedException e) {
@@ -231,15 +233,10 @@ public class TokenProviderImpl implements TokenProvider {
 
     private Tree getTokenTree(TokenInfo tokenInfo) {
         if (tokenInfo instanceof TokenInfoImpl) {
-            return contentSession.getCurrentRoot().getTree(((TokenInfoImpl) tokenInfo).tokenPath);
+            return root.getTree(((TokenInfoImpl) tokenInfo).tokenPath);
         } else {
             return null;
         }
-    }
-
-    @CheckForNull
-    private Tree getUserTree(String userID) {
-        return userContext.getUserProvider().getAuthorizable(userID);
     }
 
     //--------------------------------------------------------------------------
