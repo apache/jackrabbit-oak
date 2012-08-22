@@ -48,9 +48,6 @@ org.apache.jackrabbit.test.api.NodeTest#testPrimaryTypeProtected<!--OAK-66-->
 org.apache.jackrabbit.test.api.NodeTest#testMixinTypesProtected<!--OAK-66-->
 org.apache.jackrabbit.test.api.NodeUUIDTest#testSaveReferentialIntegrityException<!--OAK-66-->
 org.apache.jackrabbit.test.api.NodeUUIDTest#testSaveMovedRefNode<!--OAK-66-->
-org.apache.jackrabbit.test.api.NodeReadMethodsTest#testGetUUID<!-- OAK-66 -->
-org.apache.jackrabbit.test.api.SessionReadMethodsTest#testGetNodeByUUID<!-- OAK-66 -->
-org.apache.jackrabbit.test.api.ExportSysViewTest<!-- OAK-66 -->
 org.apache.jackrabbit.test.api.NodeOrderableChildNodesTest#testOrderBeforeUnsupportedRepositoryOperationException<!--OAK-169-->
 org.apache.jackrabbit.test.api.NodeOrderableChildNodesTest#testOrderBeforePlaceAtEndParentSave<!--OAK-169-->
 org.apache.jackrabbit.test.api.NodeOrderableChildNodesTest#testOrderBeforePlaceAtEndSessionSave<!--OAK-169-->
