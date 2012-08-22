@@ -19,6 +19,8 @@ package org.apache.jackrabbit.mk.index;
 import junit.framework.Assert;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
+import org.apache.jackrabbit.oak.plugins.index.Indexer;
+import org.apache.jackrabbit.oak.plugins.index.PropertyIndex;
 import org.junit.Test;
 
 /**

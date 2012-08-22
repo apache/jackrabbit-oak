@@ -14,28 +14,45 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.index;
+package org.apache.jackrabbit.oak.plugins.index;
 
+import java.io.IOException;
 import java.util.Iterator;
+
 import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.mk.simple.NodeImpl;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.spi.query.IndexDefinition;
+import org.apache.jackrabbit.oak.spi.query.IndexDefinitionImpl;
+import org.apache.jackrabbit.oak.spi.query.IndexUtils;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
  * An index for all values with a given prefix.
  */
-public class PrefixIndex implements Index {
+public class PrefixIndex implements PIndex {
 
     private final Indexer indexer;
     private final BTree tree;
     private final String prefix;
 
+    private final IndexDefinition indexDefinition;
+
     public PrefixIndex(Indexer indexer, String prefix) {
+        this(indexer, prefix, new IndexDefinitionImpl(prefix,
+                PropertyIndexFactory.TYPE_PREFIX, PathUtils.concat(
+                        IndexUtils.DEFAULT_INDEX_HOME, prefix), false, null));
+    }
+
+    public PrefixIndex(Indexer indexer, String prefix, IndexDefinition indexDefinition) {
         this.indexer = indexer;
         this.prefix = prefix;
         this.tree = new BTree(indexer, Indexer.TYPE_PREFIX + prefix, false);
         tree.setMinSize(10);
+        this.indexDefinition = indexDefinition;
     }
 
     public static PrefixIndex fromNodeName(Indexer indexer, String nodeName) {
@@ -51,8 +68,8 @@ public class PrefixIndex implements Index {
     }
 
     @Override
-    public String getIndexNodeName() {
-        return tree.getName();
+    public IndexDefinition getDefinition() {
+        return indexDefinition;
     }
 
     @Override
@@ -128,8 +145,15 @@ public class PrefixIndex implements Index {
     }
 
     @Override
-    public boolean isUnique() {
-        return tree.isUnique();
+    public void close() throws IOException {
+        // not needed
+    }
+
+    @Override
+    public NodeState editCommit(NodeStore store, NodeState before,
+            NodeState after) throws CommitFailedException {
+        // TODO Auto-generated method stub
+        return null;
     }
 
 }

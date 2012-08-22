@@ -19,8 +19,9 @@ package org.apache.jackrabbit.oak.performance;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import org.apache.jackrabbit.mk.index.Indexer;
+
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.Indexer;
 
 /**
  * A utility class to manage indexes in Oak.

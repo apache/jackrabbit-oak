@@ -16,6 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.lucene;
 
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertFalse;
+import static junit.framework.Assert.assertTrue;
+import static org.apache.jackrabbit.oak.plugins.lucene.LuceneIndexUtils.DEFAULT_INDEX_NAME;
+import static org.apache.jackrabbit.oak.spi.query.IndexUtils.DEFAULT_INDEX_HOME;
+
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -29,35 +35,29 @@ import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.Cursor;
 import org.apache.jackrabbit.oak.spi.Filter;
 import org.apache.jackrabbit.oak.spi.QueryIndex;
+import org.apache.jackrabbit.oak.spi.query.IndexDefinition;
+import org.apache.jackrabbit.oak.spi.query.IndexDefinitionImpl;
 import org.junit.Test;
-
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertTrue;
-import static org.apache.jackrabbit.oak.plugins.lucene.LuceneIndexUtils.DEFAULT_INDEX_NAME;
-import static org.apache.jackrabbit.oak.plugins.lucene.LuceneIndexUtils.DEFAULT_INDEX_PATH;
 
 public class LuceneEditorTest {
 
     @Test
     public void testLucene() throws Exception {
-        LuceneIndexInfo indexInfo = new LuceneIndexInfo(DEFAULT_INDEX_NAME,
-                DEFAULT_INDEX_PATH);
+        IndexDefinition testID = new IndexDefinitionImpl(DEFAULT_INDEX_NAME,
+                LuceneIndexFactory.TYPE, DEFAULT_INDEX_HOME, false, null);
 
         KernelNodeStore store = new KernelNodeStore(new MicroKernelImpl());
-        store.setEditor(new LuceneEditor(indexInfo.getPath()));
+        store.setEditor(new LuceneEditor(testID));
         Root root = new RootImpl(store, "", new TestAcContext());
         Tree tree = root.getTree("/");
 
         tree.setProperty("foo", MemoryValueFactory.INSTANCE.createValue("bar"));
         root.commit(DefaultConflictHandler.OURS);
 
-        QueryIndex index = new LuceneIndex(store, indexInfo);
+        QueryIndex index = new LuceneIndex(store, testID);
         FilterImpl filter = new FilterImpl(null);
         filter.restrictPath("/", Filter.PathRestriction.EXACT);
-        filter.restrictProperty(
-                "foo",
-                Operator.EQUAL,
+        filter.restrictProperty("foo", Operator.EQUAL,
                 MemoryValueFactory.INSTANCE.createValue("bar"));
         Cursor cursor = index.query(filter, null, store.getRoot());
         assertTrue(cursor.next());
