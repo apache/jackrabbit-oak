@@ -43,9 +43,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * The {@code KernelPrincipalProvider} is a principal provider implementation
- * that operates on principal information read from user information stored
- * in the {@code MicroKernel}.
+ * The {@code PrincipalProviderImpl} is a principal provider implementation
+ * that operates on principal information read from user information exposed by
+ * the configured {@link UserProvider} and {@link MembershipProvider}.
  */
 public class PrincipalProviderImpl implements PrincipalProvider {
 
@@ -94,7 +94,7 @@ public class PrincipalProviderImpl implements PrincipalProvider {
     }
 
     @Override
-    public Set<Principal> getPrincipals(String userID) {
+    public Set<? extends Principal> getPrincipals(String userID) {
         Set<Principal> principals;
         Tree userTree = userProvider.getAuthorizable(userID, Type.USER);
         if (userTree != null) {
@@ -112,9 +112,12 @@ public class PrincipalProviderImpl implements PrincipalProvider {
     }
 
     @Override
-    public Iterator<Principal> findPrincipals(String nameHint, int searchType) {
-        // TODO add implementation
-        throw new UnsupportedOperationException("TODO: PrincipalProvide#findPrincipals");
+    public Iterator<? extends Principal> findPrincipals(String nameHint, int searchType) {
+        String[] propNames = new String[] {UserConstants.REP_PRINCIPAL_NAME};
+        String[] ntNames = new String[] {UserConstants.NT_REP_AUTHORIZABLE};
+        Iterator<Tree> authorizables = userProvider.findAuthorizables(propNames, nameHint, ntNames, false, Long.MAX_VALUE, Type.AUTHORIZABLE);
+
+        return Iterators.transform(authorizables, new AuthorizableToPrincipal());
     }
 
     //------------------------------------------------------------< private >---
@@ -140,6 +143,24 @@ public class PrincipalProviderImpl implements PrincipalProvider {
 
         String ntName = authorizableTree.getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue().getString();
         return UserConstants.NT_REP_GROUP.equals(ntName);
+    }
+
+    /**
+     * Function to covert an authorizable tree to a principal.
+     */
+    private final class AuthorizableToPrincipal implements Function<Tree, TreeBasedPrincipal> {
+
+        @Override
+        public TreeBasedPrincipal apply(@Nullable Tree tree) {
+            if (tree == null) {
+                throw new IllegalArgumentException("null tree.");
+            }
+            if (userProvider.isAuthorizableType(tree, Type.GROUP)) {
+                return new TreeBasedGroup(tree);
+            } else {
+                return new TreeBasedPrincipal(tree, pathMapper);
+            }
+        }
     }
 
     /**

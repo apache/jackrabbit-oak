@@ -65,7 +65,7 @@ public interface PrincipalProvider {
      * or an empty set if it cannot be resolved.
      */
     @Nonnull
-    Set<Principal> getPrincipals(String userID);
+    Set<? extends Principal> getPrincipals(String userID);
 
     /**
      * Find the principals that match the specified nameHint and search type.
@@ -79,5 +79,5 @@ public interface PrincipalProvider {
      * @return An iterator of principals.
      */
     @Nonnull
-    Iterator<Principal> findPrincipals(String nameHint, int searchType);
+    Iterator<? extends Principal> findPrincipals(String nameHint, int searchType);
 }
