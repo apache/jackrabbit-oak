@@ -99,7 +99,7 @@ public class LoginModuleImpl extends AbstractLoginModule {
     }
 
     private Credentials credentials;
-    private Set<Principal> principals;
+    private Set<? extends Principal> principals;
     private String userID;
 
     //--------------------------------------------------------< LoginModule >---

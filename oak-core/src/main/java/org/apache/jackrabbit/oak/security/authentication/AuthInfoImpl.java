@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.security.authentication;
 
-import org.apache.jackrabbit.oak.api.AuthInfo;
-
 import java.security.Principal;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nonnull;
+
+import org.apache.jackrabbit.oak.api.AuthInfo;
 
 /**
  * AuthInfoImpl... TODO
@@ -33,7 +33,7 @@ public class AuthInfoImpl implements AuthInfo {
     private final Map<String,?> attributes;
     private final Set<Principal> principals;
 
-    public AuthInfoImpl(String userID, Map<String, ?> attributes, Set<Principal> principals) {
+    public AuthInfoImpl(String userID, Map<String, ?> attributes, Set<? extends Principal> principals) {
         this.userID = userID;
         this.attributes = (attributes == null) ? Collections.<String, Object>emptyMap() : attributes;
         this.principals = Collections.unmodifiableSet(principals);

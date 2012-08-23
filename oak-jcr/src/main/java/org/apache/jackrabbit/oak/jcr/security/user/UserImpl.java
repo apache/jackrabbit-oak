@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.jcr.security.user;
 
 import java.security.Principal;
 import javax.jcr.Credentials;
-import javax.jcr.Node;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
@@ -29,6 +28,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.principal.TreeBasedPrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.PasswordUtility;
+import org.apache.jackrabbit.oak.spi.security.user.Type;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,12 +42,12 @@ class UserImpl extends AuthorizableImpl implements User {
      */
     private static final Logger log = LoggerFactory.getLogger(UserImpl.class);
 
-    UserImpl(Node node, Tree tree, UserManagerImpl userManager) throws RepositoryException {
-        super(node, tree, userManager);
+    UserImpl(Tree tree, UserManagerImpl userManager) throws RepositoryException {
+        super(tree, userManager);
     }
 
-    void checkValidNode(Node node) throws RepositoryException {
-        if (node == null || !node.isNodeType(getJcrName(NT_REP_USER))) {
+    void checkValidTree(Tree tree) throws RepositoryException {
+        if (tree == null || !getUserManager().getUserProvider().isAuthorizableType(tree, Type.USER)) {
             throw new IllegalArgumentException("Invalid user node: node type rep:User expected.");
         }
     }

@@ -133,7 +133,7 @@ import org.slf4j.LoggerFactory;
  * <h3>By Principal Name</h3>
  * TODO
  *
- * <h1>MembershipProvider</h1>
+ * <h3>Search for authorizables</h3>
  *
  * TODO
  */
@@ -233,6 +233,17 @@ class UserProviderImpl extends AuthorizableBaseProvider implements UserProvider 
     }
 
     @Override
+    public Iterator<Tree> findAuthorizables(String[] propertyRelPaths, String value, String[] ntNames, boolean exact, long maxSize, Type authorizableType) {
+        // TODO
+        throw new UnsupportedOperationException("not yet implemented");
+    }
+
+    @Override
+    public boolean isAuthorizableType(Tree authorizableTree, Type authorizableType) {
+        return isAuthorizableTree(authorizableTree, authorizableType);
+    }
+
+    @Override
     public boolean isAdminUser(Tree userTree) {
         assert userTree != null;
         return adminId.equals(getAuthorizableId(userTree, Type.USER));
@@ -284,10 +295,10 @@ class UserProviderImpl extends AuthorizableBaseProvider implements UserProvider 
      * configured user or group path. Note that Authorizable nodes are never
      * nested.
      *
-     * @param authorizableId
-     * @param nodeName
-     * @param isGroup
-     * @param intermediatePath
+     * @param authorizableId The desired authorizable ID.
+     * @param nodeName The name of the authorizable node.
+     * @param isGroup Flag indicating whether the new authorizable is a group or a user.
+     * @param intermediatePath An optional intermediate path.
      * @return The folder node.
      * @throws RepositoryException If an error occurs
      */
@@ -308,17 +319,12 @@ class UserProviderImpl extends AuthorizableBaseProvider implements UserProvider 
         String[] segmts = Text.explode(folderPath, '/', false);
         for (String segment : segmts) {
             folder = folder.getOrAddChild(segment, NT_REP_AUTHORIZABLE_FOLDER);
-            // TODO: remove check once UserValidator is active
-            if (!folder.hasPrimaryNodeTypeName(NT_REP_AUTHORIZABLE_FOLDER)) {
-                String msg = "Cannot create user/group: Intermediate folders must be of type rep:AuthorizableFolder.";
-                throw new ConstraintViolationException(msg);
-            }
+            // verification of node type is delegated to UserValidator upon commit
         }
 
         // test for colliding folder child node.
         while (folder.hasChild(nodeName)) {
             NodeUtil colliding = folder.getChild(nodeName);
-            // TODO: remove check once UserValidator is active
             if (colliding.hasPrimaryNodeTypeName(NT_REP_AUTHORIZABLE_FOLDER)) {
                 log.debug("Existing folder node collides with user/group to be created. Expanding path by: " + colliding.getName());
                 folder = colliding;
@@ -330,10 +336,8 @@ class UserProviderImpl extends AuthorizableBaseProvider implements UserProvider 
             }
         }
 
-        // TODO: remove check once UserValidator is active
-        if (!Text.isDescendantOrEqual(authRoot, folder.getTree().getPath())) {
-            throw new ConstraintViolationException("Attempt to create user/group outside of configured scope " + authRoot);
-        }
+        // note: verification that user/group is created underneath the configured
+        // tree is delegated to UserValidator
         return folder;
     }
 

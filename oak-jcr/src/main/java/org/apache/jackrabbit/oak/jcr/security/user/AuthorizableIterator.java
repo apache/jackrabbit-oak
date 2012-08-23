@@ -27,6 +27,7 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,19 +43,22 @@ class AuthorizableIterator implements Iterator {
 
     private Authorizable next;
 
-    AuthorizableIterator(Iterator<String> authorizableOakPath, UserManagerImpl userManager) {
-        this(authorizableOakPath, userManager, UserManager.SEARCH_TYPE_AUTHORIZABLE);
+    static AuthorizableIterator create(Iterator<String> authorizableOakPaths, UserManagerImpl userManager, int authorizableType) {
+        Iterator it = Iterators.transform(authorizableOakPaths, new PathToAuthorizable(userManager, authorizableType));
+        long size = getSize(authorizableOakPaths);
+        return new AuthorizableIterator(Iterators.filter(it, Predicates.notNull()), size);
     }
 
-    AuthorizableIterator(Iterator<String> authorizableOakPaths, UserManagerImpl userManager, int authorizableType) {
-        Iterator<Authorizable> it = Iterators.transform(authorizableOakPaths, new ToAuthorizable(userManager, authorizableType));
-        this.authorizables = Iterators.filter(it, Predicates.notNull());
+    static AuthorizableIterator create(Iterator<Tree> authorizableTrees, UserManagerImpl userManager) {
+        Iterator it = Iterators.transform(authorizableTrees, new TreeToAuthorizable(userManager));
+        long size = getSize(authorizableTrees);
 
-        if (authorizableOakPaths instanceof RangeIterator) {
-            size = ((RangeIterator) authorizableOakPaths).getSize();
-        } else {
-            size = -1;
-        }
+        return new AuthorizableIterator(Iterators.filter(it, Predicates.<Object>notNull()), size);
+    }
+
+    AuthorizableIterator(Iterator<Authorizable> authorizables, long size) {
+        this.authorizables = authorizables;
+        this.size = size;
     }
 
     //-----------------------------------------------------------< Iterator >---
@@ -80,12 +84,20 @@ class AuthorizableIterator implements Iterator {
 
     //--------------------------------------------------------------------------
 
-    private static class ToAuthorizable implements Function<String, Authorizable> {
+    private static long getSize(Iterator it) {
+        if (it instanceof RangeIterator) {
+            return ((RangeIterator) it).getSize();
+        } else {
+            return -1;
+        }
+    }
+
+    private static class PathToAuthorizable implements Function<String, Authorizable> {
 
         private final UserManagerImpl userManager;
         private final Predicate predicate;
 
-        public ToAuthorizable(UserManagerImpl userManager, int type) {
+        public PathToAuthorizable(UserManagerImpl userManager, int type) {
             this.userManager = userManager;
             this.predicate = new AuthorizableTypePredicate(type);
         }
@@ -102,6 +114,25 @@ class AuthorizableIterator implements Iterator {
                 log.debug("Failed to access authorizable " + jcrPath);
             }
             return null;
+        }
+    }
+
+    private static class TreeToAuthorizable implements Function<Tree, Authorizable> {
+
+        private final UserManagerImpl userManager;
+
+        public TreeToAuthorizable(UserManagerImpl userManager) {
+            this.userManager = userManager;
+        }
+
+        @Override
+        public Authorizable apply(@Nullable Tree authorizableTree) {
+            try {
+                return userManager.getAuthorizable(authorizableTree);
+            } catch (RepositoryException e) {
+                log.debug("Failed to access authorizable " + authorizableTree.getPath());
+                return null;
+            }
         }
     }
 
