@@ -97,6 +97,12 @@ public interface Tree {
     Status getStatus();
 
     /**
+     * @return the current location
+     */
+    @Nonnull
+    TreeLocation getLocation();
+
+    /**
      * @return the parent of this {@code Tree} instance. This method returns
      * {@code null} if the parent is not accessible or if no parent exists (root
      * node).
