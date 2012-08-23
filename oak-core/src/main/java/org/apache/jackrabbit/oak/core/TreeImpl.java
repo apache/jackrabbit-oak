@@ -561,16 +561,27 @@ public class TreeImpl implements Tree, PurgeListener {
         }
 
         @Override
-        public TreeLocation getChild(String name) {
-            PropertyState property = tree.internalGetProperty(name);
+        public TreeLocation getChild(String relPath) {
+            if (relPath.isEmpty()) {
+                return this;
+            }
+
+            TreeImpl child = tree;
+            String parentPath = PathUtils.getParentPath(relPath);
+            for (String name : PathUtils.elements(parentPath)) {
+                child = child.internalGetChild(name);
+            }
+
+            String name = PathUtils.getName(relPath);
+            PropertyState property = child.internalGetProperty(name);
             if (property != null) {
                 return new PropertyLocation(this, property);
             }
             else {
-                TreeImpl node = tree.internalGetChild(name);
-                return node == null
+                child = child.internalGetChild(name);
+                return child == null
                     ? NullLocation.INSTANCE
-                    : new NodeLocation(node);
+                    : new NodeLocation(child);
             }
         }
 
@@ -612,7 +623,7 @@ public class TreeImpl implements Tree, PurgeListener {
         }
 
         @Override
-        public TreeLocation getChild(String name) {
+        public TreeLocation getChild(String relPath) {
             return NullLocation.INSTANCE;
         }
 
@@ -648,7 +659,7 @@ public class TreeImpl implements Tree, PurgeListener {
         }
 
         @Override
-        public TreeLocation getChild(String name) {
+        public TreeLocation getChild(String relPath) {
             return this;
         }
 

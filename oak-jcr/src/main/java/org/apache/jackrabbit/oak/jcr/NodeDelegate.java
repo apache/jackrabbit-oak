@@ -39,6 +39,7 @@ import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
+import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
 /**
@@ -49,16 +50,12 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
  */
 public class NodeDelegate extends ItemDelegate {
 
-    /**
-     * The underlying {@link Tree} instance. In order to ensure the instance
-     * is up to date, this field <em>should not be accessed directly</em> but
-     * rather the {@link #getTree()} method should be used.
-     */
-    private Tree tree;
+    /** The underlying {@link TreeLocation} of this node. */
+    private TreeLocation treeLocation;
 
     public NodeDelegate(SessionDelegate sessionDelegate, Tree tree) {
         super(sessionDelegate);
-        this.tree = tree;
+        this.treeLocation = tree.getLocation();
     }
 
     @Override
@@ -79,8 +76,7 @@ public class NodeDelegate extends ItemDelegate {
 
     @Override
     public boolean isStale() {
-        resolve();
-        return tree == null;
+        return treeLocation.getStatus() == Status.REMOVED;
     }
 
     @Override
@@ -90,8 +86,8 @@ public class NodeDelegate extends ItemDelegate {
 
     @Override
     public String toString() {
-        // don't disturb the state: avoid calling getTree()
-        return "NodeDelegate[" + tree.getPath() + ']';
+        // don't disturb the state: avoid resolving the tree
+        return "NodeDelegate[" + treeLocation.getPath() + ']';
     }
 
     @Nonnull
@@ -337,20 +333,15 @@ public class NodeDelegate extends ItemDelegate {
 
     @Nonnull
     synchronized Tree getTree() throws InvalidItemStateException {
-        resolve();
-        if (tree == null) {
-            throw new InvalidItemStateException("Node is stale");
+        String path = treeLocation.getPath();
+        if (path != null) {
+            Tree tree = sessionDelegate.getTree(path);
+            if (tree != null) {
+                treeLocation = tree.getLocation();
+                return tree;
+            }
         }
-
-        return tree;
-    }
-
-    private synchronized void resolve() {
-        if (tree != null) {
-            tree = tree.getStatus() == Status.REMOVED
-                ? null
-                : sessionDelegate.getTree(tree.getPath());
-        }
+        throw new InvalidItemStateException("Node is stale");
     }
 
     private Iterator<NodeDelegate> nodeDelegateIterator(
@@ -382,7 +373,7 @@ public class NodeDelegate extends ItemDelegate {
                 new Function<PropertyState, PropertyDelegate>() {
                     @Override
                     public PropertyDelegate apply(PropertyState propertyState) {
-                        return new PropertyDelegate(sessionDelegate, tree,
+                        return new PropertyDelegate(sessionDelegate, treeLocation.getTree(),
                                 propertyState);
                     }
                 });
