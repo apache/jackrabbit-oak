@@ -728,8 +728,8 @@ public class UserManagerImplTest extends AbstractUserTest {
 
     @Test
     public void testEnforceAuthorizableFolderHierarchy() throws RepositoryException {
-        AuthorizableImpl authImpl = (AuthorizableImpl) userMgr.getAuthorizable(superuser.getUserID());
-        Node userNode = authImpl.getNode();
+        Authorizable auth = userMgr.getAuthorizable(superuser.getUserID());
+        Node userNode = superuser.getNode(auth.getPath());
 
         Node folder = userNode.addNode("folder", UserConstants.NT_REP_AUTHORIZABLE_FOLDER);
         String path = folder.getPath();
