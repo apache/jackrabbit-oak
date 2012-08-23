@@ -85,4 +85,18 @@ public abstract class AbstractCommit implements Commit {
         binding.write("parentId", parentId == null ? "" : parentId.toString());
         binding.write("branchRootId", branchRootId == null ? "" : branchRootId.toString());
     }
+
+    //-----------------------------------------------------< Object overrides >
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("rootNodeId: '").append(rootNodeId.toString()).append("', ");
+        sb.append("commitTS: ").append(commitTS).append(", ");
+        sb.append("msg: '").append(msg == null ? "" : msg).append("', ");
+        sb.append("changes: '").append(changes == null ? "" : changes).append("', ");
+        sb.append("parentId: '").append(parentId == null ? "" : parentId.toString()).append("', ");
+        sb.append("branchRootId: '").append(branchRootId == null ? "" : branchRootId.toString()).append("'");
+        return sb.toString();
+    }
 }

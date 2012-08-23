@@ -49,7 +49,7 @@ public interface RevisionStore extends RevisionProvider {
     /**
      * Lock the head. Must be called prior to putting a new head commit.
      * 
-     * @see #putHeadCommit(PutToken, MutableCommit, Id)
+     * @see #putHeadCommit(PutToken, MutableCommit, Id, Id)
      * @see #unlockHead()
      */
     void lockHead();
