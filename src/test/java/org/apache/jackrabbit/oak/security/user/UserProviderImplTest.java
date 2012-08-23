@@ -53,6 +53,7 @@ import static org.junit.Assert.fail;
  *
  * TODO: create tests with custom config that persists changes (currently fails since config used in UserValidator is different)
  * TODO: add tests for setProtectedProperty (might still be refactored...)
+ * TODO: add tests for findAuthorizables once implementation is ready
  */
 public class UserProviderImplTest extends AbstractOakTest {
 
@@ -347,7 +348,6 @@ public class UserProviderImplTest extends AbstractOakTest {
         assertEquals(userID, up.getAuthorizableId(user, Type.USER));
         assertEquals(userID, up.getAuthorizableId(user, Type.AUTHORIZABLE));
         assertNull(up.getAuthorizableId(user, Type.GROUP));
-
 
         String groupID = "visitors";
         Tree group = up.createGroup(groupID, null);
