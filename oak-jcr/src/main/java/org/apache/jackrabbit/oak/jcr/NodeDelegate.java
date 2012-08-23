@@ -40,7 +40,6 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.TreeLocation;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 
 /**
  * {@code NodeDelegate} serve as internal representations of {@code Node}s.
@@ -51,11 +50,11 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 public class NodeDelegate extends ItemDelegate {
 
     /** The underlying {@link TreeLocation} of this node. */
-    private TreeLocation treeLocation;
+    private TreeLocation location;
 
     public NodeDelegate(SessionDelegate sessionDelegate, Tree tree) {
         super(sessionDelegate);
-        this.treeLocation = tree.getLocation();
+        this.location = tree.getLocation();
     }
 
     @Override
@@ -76,7 +75,7 @@ public class NodeDelegate extends ItemDelegate {
 
     @Override
     public boolean isStale() {
-        return treeLocation.getStatus() == Status.REMOVED;
+        return location.getStatus() == Status.REMOVED;
     }
 
     @Override
@@ -87,7 +86,7 @@ public class NodeDelegate extends ItemDelegate {
     @Override
     public String toString() {
         // don't disturb the state: avoid resolving the tree
-        return "NodeDelegate[" + treeLocation.getPath() + ']';
+        return "NodeDelegate[" + location.getPath() + ']';
     }
 
     @Nonnull
@@ -119,17 +118,12 @@ public class NodeDelegate extends ItemDelegate {
      * no such property exists
      */
     @CheckForNull
-    public PropertyDelegate getProperty(String relPath) throws InvalidItemStateException {
-        Tree parent = getTree(PathUtils.getParentPath(relPath));
-        if (parent == null) {
-            return null;
-        }
-
-        String name = PathUtils.getName(relPath);
-        PropertyState propertyState = parent.getProperty(name);
+    public PropertyDelegate getProperty(String relPath) {
+        TreeLocation propertyLocation = getLocation().getChild(relPath);
+        PropertyState propertyState = propertyLocation.getProperty();
         return propertyState == null
-            ? null
-            : new PropertyDelegate(sessionDelegate, parent, propertyState);
+                ? null
+                : new PropertyDelegate(sessionDelegate, propertyLocation);
     }
 
     /**
@@ -157,8 +151,8 @@ public class NodeDelegate extends ItemDelegate {
      * no such node exists
      */
     @CheckForNull
-    public NodeDelegate getChild(String relPath) throws InvalidItemStateException {
-        Tree tree = getTree(relPath);
+    public NodeDelegate getChild(String relPath) {
+        Tree tree = getLocation().getChild(relPath).getTree();
         return tree == null ? null : new NodeDelegate(sessionDelegate, tree);
     }
 
@@ -276,12 +270,13 @@ public class NodeDelegate extends ItemDelegate {
      */
     @Nonnull
     public PropertyDelegate setProperty(String name, CoreValue value) throws InvalidItemStateException, ValueFormatException {
-        PropertyState old = getTree().getProperty(name);
+        Tree tree = getTree();
+        PropertyState old = tree.getProperty(name);
         if (old != null && old.isArray()) {
             throw new ValueFormatException("Attempt to set a single value to multi-valued property.");
         }
-        PropertyState propertyState = getTree().setProperty(name, value);
-        return new PropertyDelegate(sessionDelegate, getTree(), propertyState);
+        PropertyState propertyState = tree.setProperty(name, value);
+        return new PropertyDelegate(sessionDelegate, tree, propertyState);
     }
 
     public void removeProperty(String name) throws InvalidItemStateException {
@@ -296,12 +291,13 @@ public class NodeDelegate extends ItemDelegate {
      */
     @Nonnull
     public PropertyDelegate setProperty(String name, List<CoreValue> value) throws InvalidItemStateException, ValueFormatException {
-        PropertyState old = getTree().getProperty(name);
+        Tree tree = getTree();
+        PropertyState old = tree.getProperty(name);
         if (old != null && ! old.isArray()) {
             throw new ValueFormatException("Attempt to set multiple values to single valued property.");
         }
-        PropertyState propertyState = getTree().setProperty(name, value);
-        return new PropertyDelegate(sessionDelegate, getTree(), propertyState);
+        PropertyState propertyState = tree.setProperty(name, value);
+        return new PropertyDelegate(sessionDelegate, tree, propertyState);
     }
 
     /**
@@ -326,22 +322,32 @@ public class NodeDelegate extends ItemDelegate {
 
     // -----------------------------------------------------------< private >---
 
-    private Tree getTree(String relPath) throws InvalidItemStateException {
-        String absPath = PathUtils.concat(getPath(), relPath);
-        return sessionDelegate.getTree(absPath);
+    @Nonnull
+    Tree getTree() throws InvalidItemStateException {
+        resolve();
+        Tree tree = location.getTree();
+        if (tree == null) {
+            throw new InvalidItemStateException("Node is stale");
+        }
+        else {
+            return tree;
+        }
     }
 
     @Nonnull
-    synchronized Tree getTree() throws InvalidItemStateException {
-        String path = treeLocation.getPath();
+    private TreeLocation getLocation() {
+        resolve();
+        return location;
+    }
+
+    private synchronized void resolve() {
+        String path = location.getPath();
         if (path != null) {
             Tree tree = sessionDelegate.getTree(path);
             if (tree != null) {
-                treeLocation = tree.getLocation();
-                return tree;
+                location = tree.getLocation();
             }
         }
-        throw new InvalidItemStateException("Node is stale");
     }
 
     private Iterator<NodeDelegate> nodeDelegateIterator(
@@ -373,7 +379,7 @@ public class NodeDelegate extends ItemDelegate {
                 new Function<PropertyState, PropertyDelegate>() {
                     @Override
                     public PropertyDelegate apply(PropertyState propertyState) {
-                        return new PropertyDelegate(sessionDelegate, treeLocation.getTree(),
+                        return new PropertyDelegate(sessionDelegate, location.getTree(),
                                 propertyState);
                     }
                 });

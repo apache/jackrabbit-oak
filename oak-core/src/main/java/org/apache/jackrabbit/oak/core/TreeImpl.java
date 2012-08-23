@@ -570,12 +570,15 @@ public class TreeImpl implements Tree, PurgeListener {
             String parentPath = PathUtils.getParentPath(relPath);
             for (String name : PathUtils.elements(parentPath)) {
                 child = child.internalGetChild(name);
+                if (child == null) {
+                    return NullLocation.INSTANCE;
+                }
             }
 
             String name = PathUtils.getName(relPath);
             PropertyState property = child.internalGetProperty(name);
             if (property != null) {
-                return new PropertyLocation(this, property);
+                return new PropertyLocation(new NodeLocation(child), property);
             }
             else {
                 child = child.internalGetChild(name);
@@ -651,7 +654,7 @@ public class TreeImpl implements Tree, PurgeListener {
     }
 
     private static class NullLocation implements TreeLocation {
-        static NullLocation INSTANCE = new NullLocation();
+        public static final NullLocation INSTANCE = new NullLocation();
 
         @Override
         public TreeLocation getParent() {
