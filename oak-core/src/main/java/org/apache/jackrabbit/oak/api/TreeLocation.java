@@ -26,12 +26,13 @@ public interface TreeLocation {
     TreeLocation getParent();
 
     /**
-     * Navigate to a child
-     * @param name  name of the child
+     * Navigate to a child through a relative path. A relative path consists of a
+     * possibly empty lists of names separated by forward slashes.
+     * @param relPath  relative path to the child
      * @return  a {@code TreeLocation} for a child with the given {@code name}.
      */
     @Nonnull
-    TreeLocation getChild(String name);
+    TreeLocation getChild(String relPath);
 
     /**
      * Get the underlying {@link org.apache.jackrabbit.oak.api.Tree} for this {@code TreeLocation}.
