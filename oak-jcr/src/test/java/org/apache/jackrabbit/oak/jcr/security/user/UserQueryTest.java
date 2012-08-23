@@ -71,14 +71,13 @@ public class UserQueryTest extends AbstractUserTest {
             systemDefined.add(authorizable);
         }
 
-        // Create a zoo. Please excuse my ignorance in zoology ;-)
         Group animals = createGroup("animals");
         Group invertebrates = createGroup("invertebrates");
         Group arachnids = createGroup("arachnids");
         Group insects = createGroup("insects");
-            vertebrates = createGroup("vertebrates");
-                mammals = createGroup("mammals");
-                    apes = createGroup("apes");
+        vertebrates = createGroup("vertebrates");
+        mammals = createGroup("mammals");
+        apes = createGroup("apes");
         Group reptiles = createGroup("reptiles");
         Group birds = createGroup("birds");
         Group amphibians = createGroup("amphibians");
@@ -515,9 +514,9 @@ public class UserQueryTest extends AbstractUserTest {
             public <T> void build(QueryBuilder<T> builder) {
                 builder.setCondition(builder.
                         and(builder.
-                            eq("profile/@cute", vf.createValue(true)), builder.
-                            not(builder.
-                                eq("@color", vf.createValue("black")))));
+                                eq("profile/@cute", vf.createValue(true)), builder.
+                                not(builder.
+                                        eq("@color", vf.createValue("black")))));
             }
         });
 
@@ -527,7 +526,7 @@ public class UserQueryTest extends AbstractUserTest {
                     Value[] cute = user.getProperty("profile/cute");
                     Value[] black = user.getProperty("color");
                     return cute != null && cute.length == 1 && cute[0].getBoolean() &&
-                           !(black != null && black.length == 1 && black[0].getString().equals("black"));
+                            !(black != null && black.length == 1 && black[0].getString().equals("black"));
                 } catch (RepositoryException e) {
                     fail(e.getMessage());
                 }
@@ -545,8 +544,8 @@ public class UserQueryTest extends AbstractUserTest {
             public <T> void build(QueryBuilder<T> builder) {
                 builder.setCondition(builder.
                         or(builder.
-                            eq("profile/@food", vf.createValue("mice")), builder.
-                            eq("profile/@food", vf.createValue("nectar"))));
+                                eq("profile/@food", vf.createValue("mice")), builder.
+                                eq("profile/@food", vf.createValue("nectar"))));
             }
         });
 
@@ -555,7 +554,7 @@ public class UserQueryTest extends AbstractUserTest {
                 try {
                     Value[] food = user.getProperty("profile/food");
                     return food != null && food.length == 1 &&
-                          (food[0].getString().equals("mice") || food[0].getString().equals("nectar"));
+                            (food[0].getString().equals("mice") || food[0].getString().equals("nectar"));
                 } catch (RepositoryException e) {
                     fail(e.getMessage());
                 }
