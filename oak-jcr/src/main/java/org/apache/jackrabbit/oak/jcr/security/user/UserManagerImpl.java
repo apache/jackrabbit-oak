@@ -21,7 +21,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
 import java.util.Iterator;
 import javax.annotation.CheckForNull;
-import javax.jcr.Node;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -40,6 +39,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
 import org.apache.jackrabbit.oak.spi.security.user.PasswordUtility;
+import org.apache.jackrabbit.oak.spi.security.user.Type;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
@@ -112,8 +112,11 @@ public class UserManagerImpl implements UserManager {
 
     @Override
     public Iterator<Authorizable> findAuthorizables(String relPath, String value, int searchType) throws RepositoryException {
-        // TODO : create and execute a query
-        throw new UnsupportedOperationException("Not Implemented");
+        String[] oakPaths =  new String[] {namePathMapper.getOakPath(relPath)};
+        Type authorizableType = getAuthorizableType(searchType);
+        Iterator<Tree> result = userProvider.findAuthorizables(oakPaths, value, null, true, Long.MAX_VALUE, authorizableType);
+
+        return AuthorizableIterator.create(result, this);
     }
 
     @Override
@@ -139,11 +142,12 @@ public class UserManagerImpl implements UserManager {
         checkValidID(userID);
         checkValidPrincipal(principal, false);
 
+        String oakPath = namePathMapper.getOakPath(intermediatePath);
         Tree userTree = getUserProvider().createUser(userID, intermediatePath);
         setPrincipal(userTree, principal);
         setPassword(userTree, password, true);
 
-        User user = new UserImpl(getNode(userTree), userTree, this);
+        User user = new UserImpl(userTree, this);
         onCreate(user, password);
 
         log.debug("User created: " + userID);
@@ -176,10 +180,11 @@ public class UserManagerImpl implements UserManager {
         checkValidID(groupID);
         checkValidPrincipal(principal, true);
 
-        Tree groupTree = getUserProvider().createGroup(groupID, intermediatePath);
+        String oakPath = namePathMapper.getOakPath(intermediatePath);
+        Tree groupTree = getUserProvider().createGroup(groupID, oakPath);
         setPrincipal(groupTree, principal);
 
-        Group group = new GroupImpl(getNode(groupTree), groupTree, this);
+        Group group = new GroupImpl(groupTree, this);
         onCreate(group);
 
         log.debug("Group created: " + groupID);
@@ -331,22 +336,13 @@ public class UserManagerImpl implements UserManager {
         if (tree == null) {
             return null;
         }
-        Node node = getNode(tree);
-        if (node.isNodeType(getJcrName(UserConstants.NT_REP_USER))) {
-            return new UserImpl(node, tree, this);
-        } else if (node.isNodeType(getJcrName(UserConstants.NT_REP_GROUP))) {
-            return new GroupImpl(node, tree, this);
+        if (userProvider.isAuthorizableType(tree, Type.USER)) {
+            return new UserImpl(tree, this);
+        } else if (userProvider.isAuthorizableType(tree, Type.GROUP)) {
+            return new GroupImpl(tree, this);
         } else {
-            throw new RepositoryException("Unexpected node type " + node.getPrimaryNodeType().getName() + ". Expected rep:User or rep:Group.");
+            throw new RepositoryException("Not a user or group tree " + tree.getPath() + ".");
         }
-    }
-
-    String getJcrName(String oakName) {
-        return namePathMapper.getJcrName(oakName);
-    }
-
-    private Node getNode(Tree tree) throws RepositoryException {
-        return session.getNode(namePathMapper.getJcrPath(tree.getPath()));
     }
 
     private void checkValidID(String ID) throws RepositoryException {
@@ -363,6 +359,19 @@ public class UserManagerImpl implements UserManager {
         }
         if (!isGroup && EveryonePrincipal.NAME.equals(principal.getName())) {
             throw new IllegalArgumentException("'everyone' is a reserved group principal name.");
+        }
+    }
+
+    private static Type getAuthorizableType(int searchType) {
+        switch (searchType) {
+            case UserManager.SEARCH_TYPE_USER:
+                return Type.USER;
+            case UserManager.SEARCH_TYPE_GROUP:
+                return Type.GROUP;
+            case UserManager.SEARCH_TYPE_AUTHORIZABLE:
+                return Type.AUTHORIZABLE;
+            default:
+                throw new IllegalArgumentException("Invalid search type " + searchType);
         }
     }
 }
