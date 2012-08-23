@@ -306,6 +306,11 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
                     "putHeadCommit called without holding write lock.");
         }
 
+        if (commit.getBranchRootId() != null) {
+            // OAK-267
+            throw new IllegalStateException("private branch commit [" + commit + "] cannot become HEAD");
+        }
+
         Id id = writeCommit(token, commit);
         setHeadCommitId(id);
         

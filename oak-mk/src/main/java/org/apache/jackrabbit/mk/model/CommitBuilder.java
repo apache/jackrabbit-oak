@@ -22,6 +22,8 @@ import org.apache.jackrabbit.mk.model.tree.DiffBuilder;
 import org.apache.jackrabbit.mk.store.NotFoundException;
 import org.apache.jackrabbit.mk.store.RevisionStore;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,6 +32,8 @@ import java.util.List;
  *
  */
 public class CommitBuilder {
+
+    private static final Logger LOG = LoggerFactory.getLogger(CommitBuilder.class);
 
     /** revision changes are based upon */
     private Id baseRevId;
@@ -225,6 +229,11 @@ public class CommitBuilder {
                     store.getNodeState(store.getRootNode(currentHead)),
                     store.getNodeState(store.getNode(rootNodeId)),
                     "/", -1, store, "").build();
+            if (diff.isEmpty()) {
+                LOG.debug("merge of empty branch {} with differing content hashes encountered, ignore and keep current head {}",
+                        baseRevId, currentHead);
+                return currentHead;
+            }
             newCommit.setChanges(diff);
             newCommit.setRootNodeId(rootNodeId);
             newCommit.setBranchRootId(null);

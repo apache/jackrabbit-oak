@@ -33,6 +33,8 @@ import org.apache.jackrabbit.mk.model.tree.PropertyState;
 import org.apache.jackrabbit.mk.util.CommitGate;
 import org.apache.jackrabbit.mk.util.NameFilter;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -42,6 +44,8 @@ import java.util.List;
  *
  */
 public class MicroKernelImpl implements MicroKernel {
+
+    private static final Logger LOG = LoggerFactory.getLogger(MicroKernelImpl.class);
 
     protected Repository rep;
     private final CommitGate gate = new CommitGate();
@@ -227,6 +231,9 @@ public class MicroKernelImpl implements MicroKernel {
                     break;
                 }
             }
+        } catch (MicroKernelException e) {
+            // re-throw
+            throw e;
         } catch (Exception e) {
             throw new MicroKernelException(e);
         }
