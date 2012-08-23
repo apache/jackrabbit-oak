@@ -35,6 +35,7 @@ import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.RootImpl.PurgeListener;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -134,49 +135,11 @@ public class TreeImpl implements Tree, PurgeListener {
     @Override
     public Status getPropertyStatus(String name) {
         // TODO: see OAK-212
-        if (!canReadProperty(name)) {
-            return null;
+        if (canReadProperty(name)) {
+            return internalGetPropertyStatus(name);
         }
-
-        NodeState baseState = getBaseState();
-        boolean exists = internalGetProperty(name) != null;
-        if (baseState == null) {
-            // This instance is NEW...
-            if (exists) {
-                // ...so all children are new
-                return Status.NEW;
-            } else {
-                // ...unless they don't exist.
-                return null;
-            }
-        } else {
-            if (exists) {
-                // We have the property...
-                if (baseState.getProperty(name) == null) {
-                    // ...but didn't have it before. So its NEW.
-                    return Status.NEW;
-                } else {
-                    // ... and did have it before. So...
-                    PropertyState base = baseState.getProperty(name);
-                    PropertyState head = getProperty(name);
-                    if (base == null ? head == null : base.equals(head)) {
-                        // ...it's EXISTING if it hasn't changed
-                        return Status.EXISTING;
-                    } else {
-                        // ...and MODIFIED otherwise.
-                        return Status.MODIFIED;
-                    }
-                }
-            } else {
-                // We don't have the property
-                if (baseState.getProperty(name) == null) {
-                    // ...and didn't have it before. So it doesn't exist.
-                    return null;
-                } else {
-                    // ...but did have it before. So it's REMOVED
-                    return Status.REMOVED;
-                }
-            }
+        else {
+            return null;
         }
     }
 
@@ -326,6 +289,11 @@ public class TreeImpl implements Tree, PurgeListener {
         root.purge();
     }
 
+    @Override
+    public TreeLocation getLocation() {
+        return new NodeLocation(this);
+    }
+
     //--------------------------------------------------< RootImpl.Listener >---
 
     @Override
@@ -419,6 +387,49 @@ public class TreeImpl implements Tree, PurgeListener {
 
     private PropertyState internalGetProperty(String propertyName) {
         return getNodeBuilder().getProperty(propertyName);
+    }
+
+    private Status internalGetPropertyStatus(String name) {
+        NodeState baseState = getBaseState();
+        boolean exists = internalGetProperty(name) != null;
+        if (baseState == null) {
+            // This instance is NEW...
+            if (exists) {
+                // ...so all children are new
+                return Status.NEW;
+            } else {
+                // ...unless they don't exist.
+                return null;
+            }
+        } else {
+            if (exists) {
+                // We have the property...
+                if (baseState.getProperty(name) == null) {
+                    // ...but didn't have it before. So its NEW.
+                    return Status.NEW;
+                } else {
+                    // ... and did have it before. So...
+                    PropertyState base = baseState.getProperty(name);
+                    PropertyState head = getProperty(name);
+                    if (base == null ? head == null : base.equals(head)) {
+                        // ...it's EXISTING if it hasn't changed
+                        return Status.EXISTING;
+                    } else {
+                        // ...and MODIFIED otherwise.
+                        return Status.MODIFIED;
+                    }
+                }
+            } else {
+                // We don't have the property
+                if (baseState.getProperty(name) == null) {
+                    // ...and didn't have it before. So it doesn't exist.
+                    return null;
+                } else {
+                    // ...but did have it before. So it's REMOVED
+                    return Status.REMOVED;
+                }
+            }
+        }
     }
 
     private boolean isRemoved() {
@@ -532,4 +543,142 @@ public class TreeImpl implements Tree, PurgeListener {
         }
     }
 
+    //------------------------------------------------------------< TreeLocation >---
+
+    private class NodeLocation implements TreeLocation {
+        private final TreeImpl tree;
+
+        public NodeLocation(TreeImpl tree) {
+            assert tree != null;
+            this.tree = tree;
+        }
+
+        @Nonnull
+        @Override
+        public TreeLocation getParent() {
+            return tree.parent == null
+                ? NullLocation.INSTANCE
+                : new NodeLocation(tree.parent);
+        }
+
+        @Nonnull
+        @Override
+        public TreeLocation getChild(String name) {
+            PropertyState property = tree.internalGetProperty(name);
+            if (property != null) {
+                return new PropertyLocation(this, property);
+            }
+            else {
+                TreeImpl node = tree.internalGetChild(name);
+                return node == null
+                    ? NullLocation.INSTANCE
+                    : new NodeLocation(node);
+            }
+        }
+
+        @Override
+        public String getPath() {
+            return tree.getPath();
+        }
+
+        @Override
+        public Tree getTree() {
+            return canRead(tree) ? tree : null;
+        }
+
+        @Override
+        public PropertyState getProperty() {
+            return null;
+        }
+
+        @Override
+        public Status getStatus() {
+            return tree.getStatus();
+        }
+    }
+
+    private class PropertyLocation implements TreeLocation {
+        private final NodeLocation parent;
+        private final PropertyState property;
+
+        public PropertyLocation(NodeLocation parent, PropertyState property) {
+            assert parent != null;
+            assert property != null;
+            this.parent = parent;
+            this.property = property;
+        }
+
+        @Nonnull
+        @Override
+        public TreeLocation getParent() {
+            return parent;
+        }
+
+        @Nonnull
+        @Override
+        public TreeLocation getChild(String name) {
+            return NullLocation.INSTANCE;
+        }
+
+        @Override
+        public String getPath() {
+            return PathUtils.concat(parent.getPath(), property.getName());
+        }
+
+        @Override
+        public Tree getTree() {
+            return null;
+        }
+
+        @Override
+        public PropertyState getProperty() {
+            return root.getPermissions().canRead(getPath(), true)
+                ? property
+                : null;
+        }
+
+        @Override
+        public Status getStatus() {
+            return parent.tree.internalGetPropertyStatus(property.getName());
+        }
+    }
+
+    private static class NullLocation implements TreeLocation {
+        static NullLocation INSTANCE = new NullLocation();
+
+        @Nonnull
+        @Override
+        public TreeLocation getParent() {
+            return this;
+        }
+
+        @Nonnull
+        @Override
+        public TreeLocation getChild(String name) {
+            return this;
+        }
+
+        @Override
+        public String getPath() {
+            return null;
+        }
+
+        @Override
+        public Tree getTree() {
+            return null;
+        }
+
+        @Override
+        public PropertyState getProperty() {
+            return null;
+        }
+
+        @Override
+        public Status getStatus() {
+            return null;
+        }
+    }
+
 }
+
+

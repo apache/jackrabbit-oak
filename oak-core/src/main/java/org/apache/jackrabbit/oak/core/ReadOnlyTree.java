@@ -24,6 +24,7 @@ import java.util.List;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -128,6 +129,11 @@ public class ReadOnlyTree implements Tree {
     @Override
     public Status getStatus() {
         return Status.EXISTING;
+    }
+
+    @Override
+    public TreeLocation getLocation() {
+        throw new UnsupportedOperationException();
     }
 
     @Override
