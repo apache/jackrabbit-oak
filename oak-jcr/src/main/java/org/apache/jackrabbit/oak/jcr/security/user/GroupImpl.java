@@ -20,7 +20,6 @@ import java.security.Principal;
 import java.util.Enumeration;
 import java.util.Iterator;
 import javax.annotation.Nullable;
-import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 
 import com.google.common.base.Function;
@@ -47,13 +46,13 @@ class GroupImpl extends AuthorizableImpl implements Group {
      */
     private static final Logger log = LoggerFactory.getLogger(GroupImpl.class);
 
-    GroupImpl(Node node, Tree tree, UserManagerImpl userManager) throws RepositoryException {
-        super(node, tree, userManager);
+    GroupImpl(Tree tree, UserManagerImpl userManager) throws RepositoryException {
+        super(tree, userManager);
     }
 
     @Override
-    void checkValidNode(Node node) throws RepositoryException {
-        if (node == null || !node.isNodeType(getJcrName(NT_REP_GROUP))) {
+    void checkValidTree(Tree tree) throws RepositoryException {
+        if (tree == null || !getUserManager().getUserProvider().isAuthorizableType(tree, Type.GROUP)) {
             throw new IllegalArgumentException("Invalid group node: node type rep:Group expected.");
         }
     }
@@ -180,7 +179,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
             MembershipProvider mMgr = uMgr.getMembershipProvider();
             Iterator oakPaths = mMgr.getMembers(getTree(), Type.AUTHORIZABLE, includeInherited);
             if (!oakPaths.hasNext()) {
-                AuthorizableIterator iterator = new AuthorizableIterator(oakPaths, uMgr);
+                AuthorizableIterator iterator = AuthorizableIterator.create(oakPaths, uMgr, UserManager.SEARCH_TYPE_AUTHORIZABLE);
                 return new RangeIteratorAdapter(iterator, iterator.getSize());
             } else {
                 return RangeIteratorAdapter.EMPTY;

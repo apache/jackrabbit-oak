@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.spi.security.user;
 
 import java.security.Principal;
+import java.util.Iterator;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
@@ -49,6 +50,36 @@ public interface UserProvider {
 
     @CheckForNull
     String getAuthorizableId(Tree authorizableTree, Type authorizableType);
+
+    /**
+     * Find the authorizable trees matching the following search parameters within
+     * the sub-tree defined by an authorizable tree:
+     *
+     * @param propertyRelPaths An array of property names or relative paths
+     * pointing to properties within the tree defined by a given authorizable node.
+     * @param value The property value to look for.
+     * @param ntNames An array of node type names to restrict the search within
+     * the authorizable tree to a subset of nodes that match any of the node
+     * type names; {@code null} indicates that no filtering by node type is
+     * desired. Specifying a node type name that defines an authorizable node
+     * )e.g. {@link UserConstants#NT_REP_USER rep:User} will limit the search to
+     * properties defined with the authorizable node itself instead of searching
+     * the complete sub-tree.
+     * @param exact A boolean flag indicating if the value must match exactly or not.s
+     * @param maxSize The maximal number of search results to look for.
+     * @param authorizableType Filter the search results to only return authorizable
+     * trees of a given type. Passing {@link Type#AUTHORIZABLE} indicates that
+     * no filtering for a specific authorizable type is desired. However, properties
+     * might still be search in the complete sub-tree of authorizables depending
+     * on the other query parameters.
+     * @return An iterator of authorizable trees that match the specified
+     * search parameters and filters or an empty iterator if no result can be
+     * found.
+     */
+    @Nonnull
+    Iterator<Tree> findAuthorizables(String[] propertyRelPaths, String value, String[] ntNames, boolean exact, long maxSize, Type authorizableType);
+
+    boolean isAuthorizableType(Tree authorizableTree, Type authorizableType);
 
     boolean isAdminUser(Tree userTree);
 

@@ -49,7 +49,7 @@ public class TokenLoginModule extends AbstractLoginModule {
     private TokenCredentials tokenCredentials;
     private TokenInfo tokenInfo;
     private String userID;
-    private Set<Principal> principals;
+    private Set<? extends Principal> principals;
 
     //--------------------------------------------------------< LoginModule >---
 

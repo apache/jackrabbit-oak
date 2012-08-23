@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import javax.annotation.Nonnull;
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.PropertyIterator;
@@ -55,21 +56,20 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
      */
     private static final Logger log = LoggerFactory.getLogger(AuthorizableImpl.class);
 
-    private final Node node;
     private final Tree tree;
     private final UserManagerImpl userManager;
 
+    private Node node;
     private int hashCode;
 
-    AuthorizableImpl(Node node, Tree tree, UserManagerImpl userManager) throws RepositoryException {
-        this.node = node;
+    AuthorizableImpl(Tree tree, UserManagerImpl userManager) throws RepositoryException {
         this.tree = tree;
         this.userManager = userManager;
 
-        checkValidNode(node);
+        checkValidTree(tree);
     }
 
-    abstract void checkValidNode(Node node) throws RepositoryException;
+    abstract void checkValidTree(Tree tree) throws RepositoryException;
 
     static boolean isValidAuthorizableImpl(Authorizable authorizable) {
         return authorizable instanceof AuthorizableImpl;
@@ -127,6 +127,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
      */
     @Override
     public Iterator<String> getPropertyNames(String relPath) throws RepositoryException {
+        Node node = getNode();
         Node n = node.getNode(relPath);
         if (Text.isDescendantOrEqual(node.getPath(), n.getPath())) {
             List<String> l = new ArrayList<String>();
@@ -147,6 +148,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
      */
     @Override
     public boolean hasProperty(String relPath) throws RepositoryException {
+        Node node = getNode();
         return node.hasProperty(relPath) && isAuthorizableProperty(node.getProperty(relPath), true);
     }
 
@@ -155,6 +157,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
      */
     @Override
     public Value[] getProperty(String relPath) throws RepositoryException {
+        Node node = getNode();
         Value[] values = null;
         if (node.hasProperty(relPath)) {
             Property prop = node.getProperty(relPath);
@@ -216,6 +219,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
      */
     @Override
     public boolean removeProperty(String relPath) throws RepositoryException {
+        Node node = getNode();
         if (node.hasProperty(relPath)) {
             Property p = node.getProperty(relPath);
             if (isAuthorizableProperty(p, true)) {
@@ -232,7 +236,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
      */
     @Override
     public String getPath() throws RepositoryException {
-        return node.getPath();
+        return getNode().getPath();
     }
 
     //-------------------------------------------------------------< Object >---
@@ -243,6 +247,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
     public int hashCode() {
         if (hashCode == 0) {
             try {
+                Node node = getNode();
                 StringBuilder sb = new StringBuilder();
                 sb.append(isGroup() ? "group:" : "user:");
                 sb.append(node.getSession().getWorkspace().getName());
@@ -250,6 +255,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
                 sb.append(node.getIdentifier());
                 hashCode = sb.toString().hashCode();
             } catch (RepositoryException e) {
+                log.warn("Error while calculating hash code.",e.getMessage());
             }
         }
         return hashCode;
@@ -263,6 +269,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
         if (obj instanceof AuthorizableImpl) {
             AuthorizableImpl otherAuth = (AuthorizableImpl) obj;
             try {
+                Node node = getNode();
                 return isGroup() == otherAuth.isGroup() && node.isSame(otherAuth.node);
             } catch (RepositoryException e) {
                 // should not occur -> return false in this case.
@@ -284,21 +291,28 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
     /**
      * @return The node associated with this authorizable instance.
      */
-    Node getNode() {
+    @Nonnull
+    Node getNode() throws RepositoryException {
+        if (node == null) {
+            String jcrPath = userManager.getNamePathMapper().getJcrPath(tree.getPath());
+            node = userManager.getSession().getNode(jcrPath);
+        }
         return node;
     }
 
+    @Nonnull
     Tree getTree() {
         return tree;
     }
 
     String getJcrName(String oakName) {
-        return userManager.getJcrName(oakName);
+        return userManager.getNamePathMapper().getJcrName(oakName);
     }
 
     /**
      * @return The user manager associated with this authorizable.
      */
+    @Nonnull
     UserManagerImpl getUserManager() {
         return userManager;
     }
@@ -307,6 +321,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
      * @return The principal name of this authorizable.
      * @throws RepositoryException If no principal name can be retrieved.
      */
+    @Nonnull
     String getPrincipalName() throws RepositoryException {
         if (tree.hasProperty(REP_PRINCIPAL_NAME)) {
             return tree.getProperty(REP_PRINCIPAL_NAME).getValue().getString();
@@ -343,6 +358,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
      * @throws RepositoryException If the property definition cannot be retrieved.
      */
     private boolean isAuthorizableProperty(Property prop, boolean verifyAncestor) throws RepositoryException {
+        Node node = getNode();
         if (verifyAncestor && !Text.isDescendant(node.getPath(), prop.getPath())) {
             log.debug("Attempt to access property outside of authorizable scope.");
             return false;
@@ -371,8 +387,10 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
      * @throws RepositoryException If an error occurs or if {@code relPath} refers
      * to a node that is outside of the scope of this authorizable.
      */
+    @Nonnull
     private Node getOrCreateTargetNode(String relPath) throws RepositoryException {
         Node n;
+        Node node = getNode();
         if (relPath != null) {
             String userPath = node.getPath();
             if (node.hasNode(relPath)) {
@@ -410,6 +428,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
      * @return Iterator of groups this authorizable is (declared) member of.
      * @throws RepositoryException If an error occurs.
      */
+    @Nonnull
     private Iterator<Group> getMembership(boolean includeInherited) throws RepositoryException {
         if (isEveryone()) {
             return Collections.<Group>emptySet().iterator();
@@ -418,7 +437,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
         MembershipProvider mMgr = userManager.getMembershipProvider();
         Iterator<String> oakPaths = mMgr.getMembership(tree, includeInherited);
         if (oakPaths.hasNext()) {
-            AuthorizableIterator groups = new AuthorizableIterator(oakPaths, userManager, UserManager.SEARCH_TYPE_AUTHORIZABLE);
+            AuthorizableIterator groups = AuthorizableIterator.create(oakPaths, userManager, UserManager.SEARCH_TYPE_GROUP);
             return new RangeIteratorAdapter(groups, groups.getSize());
         } else {
             return RangeIteratorAdapter.EMPTY;

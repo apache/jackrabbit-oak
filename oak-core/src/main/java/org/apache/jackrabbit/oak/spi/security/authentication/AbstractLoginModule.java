@@ -148,7 +148,7 @@ public abstract class AbstractLoginModule implements LoginModule {
     }
 
 
-    protected Set<Principal> getPrincipals(String userID) {
+    protected Set<? extends Principal> getPrincipals(String userID) {
         PrincipalProvider principalProvider = getPrincipalProvider();
         if (principalProvider == null) {
             log.debug("Cannot retrieve principals. No principal provider configured.");
