@@ -553,7 +553,6 @@ public class TreeImpl implements Tree, PurgeListener {
             this.tree = tree;
         }
 
-        @Nonnull
         @Override
         public TreeLocation getParent() {
             return tree.parent == null
@@ -561,7 +560,6 @@ public class TreeImpl implements Tree, PurgeListener {
                 : new NodeLocation(tree.parent);
         }
 
-        @Nonnull
         @Override
         public TreeLocation getChild(String name) {
             PropertyState property = tree.internalGetProperty(name);
@@ -608,13 +606,11 @@ public class TreeImpl implements Tree, PurgeListener {
             this.property = property;
         }
 
-        @Nonnull
         @Override
         public TreeLocation getParent() {
             return parent;
         }
 
-        @Nonnull
         @Override
         public TreeLocation getChild(String name) {
             return NullLocation.INSTANCE;
@@ -646,13 +642,11 @@ public class TreeImpl implements Tree, PurgeListener {
     private static class NullLocation implements TreeLocation {
         static NullLocation INSTANCE = new NullLocation();
 
-        @Nonnull
         @Override
         public TreeLocation getParent() {
             return this;
         }
 
-        @Nonnull
         @Override
         public TreeLocation getChild(String name) {
             return this;
