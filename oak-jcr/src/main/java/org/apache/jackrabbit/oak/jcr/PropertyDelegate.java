@@ -27,8 +27,8 @@ import javax.jcr.nodetype.PropertyDefinition;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
+import org.apache.jackrabbit.oak.core.TreeImpl.PropertyLocation;
 import org.apache.jackrabbit.oak.util.TODO;
 
 /**
@@ -180,7 +180,7 @@ public class PropertyDelegate extends ItemDelegate {
      * @param value
      */
     public void setValue(CoreValue value) throws InvalidItemStateException {
-        getParentTree().setProperty(getName(), value);
+        getLocation().setValue(value);
     }
 
     /**
@@ -188,34 +188,30 @@ public class PropertyDelegate extends ItemDelegate {
      * @param values
      */
     public void setValues(List<CoreValue> values) throws InvalidItemStateException {
-        getParentTree().setProperty(getName(), values);
+        getLocation().setValues(values);
     }
 
     /**
      * Remove the property
      */
     public void remove() throws InvalidItemStateException {
-        getParentTree().removeProperty(getName());
+        getLocation().remove();
     }
 
     //------------------------------------------------------------< private >---
 
     @Nonnull
     private PropertyState getPropertyState() throws InvalidItemStateException {
-        PropertyState property = getLocation().getProperty();
-        if (property == null) {
-            throw new InvalidItemStateException("Property is stale");
-        }
-        return property;
+        return getLocation().getProperty();  // Not null
     }
 
-    @Nonnull
-    private Tree getParentTree() throws InvalidItemStateException {
-        Tree tree = getLocation().getParent().getTree();
-        if (tree == null) {
-            throw new InvalidItemStateException("Parent node is stale");
+    @Override
+    public PropertyLocation getLocation() throws InvalidItemStateException {
+        TreeLocation location = super.getLocation();
+        if (location.getProperty() == null) {
+            throw new InvalidItemStateException("Property is stale");
         }
-        return tree;
+        return (PropertyLocation) location;
     }
 
 }

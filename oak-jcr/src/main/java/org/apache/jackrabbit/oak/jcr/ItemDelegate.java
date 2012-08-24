@@ -103,7 +103,7 @@ public abstract class ItemDelegate {
      * @throws InvalidItemStateException if the location points to a stale item
      */
     @Nonnull
-    public final TreeLocation getLocation() throws InvalidItemStateException {
+    public TreeLocation getLocation() throws InvalidItemStateException {
         TreeLocation location = getLocationOrNull();
         if (location == null) {
             throw new InvalidItemStateException("Item is stale");
