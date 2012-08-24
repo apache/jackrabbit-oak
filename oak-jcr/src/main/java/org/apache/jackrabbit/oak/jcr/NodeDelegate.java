@@ -119,7 +119,7 @@ public class NodeDelegate extends ItemDelegate {
      */
     @CheckForNull
     public PropertyDelegate getProperty(String relPath) {
-        TreeLocation propertyLocation = getLocation().getChild(relPath);
+        TreeLocation propertyLocation = getChildLocation(relPath);
         PropertyState propertyState = propertyLocation.getProperty();
         return propertyState == null
                 ? null
@@ -152,7 +152,7 @@ public class NodeDelegate extends ItemDelegate {
      */
     @CheckForNull
     public NodeDelegate getChild(String relPath) {
-        Tree tree = getLocation().getChild(relPath).getTree();
+        Tree tree = getChildLocation(relPath).getTree();
         return tree == null ? null : new NodeDelegate(sessionDelegate, tree);
     }
 
@@ -320,7 +320,7 @@ public class NodeDelegate extends ItemDelegate {
         getTree().remove();
     }
 
-    // -----------------------------------------------------------< private >---
+    //------------------------------------------------------------< internal >---
 
     @Nonnull
     Tree getTree() throws InvalidItemStateException {
@@ -332,6 +332,12 @@ public class NodeDelegate extends ItemDelegate {
         else {
             return tree;
         }
+    }
+
+    // -----------------------------------------------------------< private >---
+
+    private TreeLocation getChildLocation(String relPath) {
+        return getLocation().getChild(relPath);
     }
 
     @Nonnull
