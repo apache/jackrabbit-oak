@@ -172,12 +172,7 @@ public class SessionDelegate {
 
     @CheckForNull
     public NodeDelegate getRoot() {
-        TreeLocation rootLocation = getLocation("/");
-        if (rootLocation.getTree() == null) {
-            return null;
-        } else {
-            return new NodeDelegate(this, rootLocation);
-        }
+        return getNode("/");
     }
 
     /**
@@ -188,8 +183,7 @@ public class SessionDelegate {
      */
     @CheckForNull
     public NodeDelegate getNode(String path) {
-        TreeLocation location = getLocation(path);
-        return location.getTree() == null ? null : new NodeDelegate(this, location);
+        return NodeDelegate.create(this, getLocation(path));
     }
 
     @CheckForNull
