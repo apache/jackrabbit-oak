@@ -43,14 +43,6 @@ public class PropertyDelegate extends ItemDelegate {
     /** The underlying {@link TreeLocation} of this node. */
     private TreeLocation location;
 
-    PropertyDelegate(SessionDelegate sessionDelegate, Tree parent, PropertyState propertyState) {
-        super(sessionDelegate);
-
-        assert parent != null;
-        assert propertyState != null;
-        this.location = parent.getLocation().getChild(propertyState.getName());
-    }
-
     PropertyDelegate(SessionDelegate sessionDelegate, TreeLocation location) {
         super(sessionDelegate);
         assert location != null;
@@ -75,7 +67,7 @@ public class PropertyDelegate extends ItemDelegate {
     @Override
     @CheckForNull
     public NodeDelegate getParent() throws InvalidItemStateException {
-        return new NodeDelegate(sessionDelegate, getParentTree());
+        return new NodeDelegate(sessionDelegate, location.getParent());
     }
 
     @Override
