@@ -610,7 +610,7 @@ public class TreeImpl implements Tree, PurgeListener {
         }
     }
 
-    private class PropertyLocation implements TreeLocation {
+    public class PropertyLocation implements TreeLocation {
         private final NodeLocation parent;
         private final PropertyState property;
 
@@ -651,6 +651,59 @@ public class TreeImpl implements Tree, PurgeListener {
         @Override
         public Status getStatus() {
             return parent.tree.internalGetPropertyStatus(property.getName());
+        }
+
+        /**
+         * Set the value of the underlying property
+         * @param value the value to set
+         * @return  {@code true} on success false otherwise
+         */
+        public boolean setValue(CoreValue value) {
+            if (canWrite()) {
+                parent.tree.setProperty(property.getName(), value);
+                return true;
+            }
+            else {
+                return false;
+            }
+        }
+
+        /**
+         * Set the values of the underlying property
+         * @param values the values to set
+         * @return  {@code true} on success false otherwise
+         */
+        public boolean setValues(List<CoreValue> values) {
+            if (canWrite()) {
+                parent.tree.setProperty(property.getName(), values);
+                return true;
+            }
+            else {
+                return false;
+            }
+        }
+
+        /**
+         * Remove the underlying property
+         * @return  {@code true} on success false otherwise
+         */
+        public boolean remove() {
+            if (canWrite()) {
+                parent.tree.removeProperty(property.getName());
+            return true;
+            }
+            else {
+                return false;
+            }
+        }
+
+        private boolean canRead() {
+            return root.getPermissions().canRead(getPath(), true);
+        }
+
+        private boolean canWrite() {
+            // TODO implement canWrite
+            return canRead();
         }
     }
 
