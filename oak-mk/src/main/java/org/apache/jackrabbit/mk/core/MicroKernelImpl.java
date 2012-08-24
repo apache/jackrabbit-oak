@@ -32,6 +32,7 @@ import org.apache.jackrabbit.mk.model.tree.NodeState;
 import org.apache.jackrabbit.mk.model.tree.PropertyState;
 import org.apache.jackrabbit.mk.util.CommitGate;
 import org.apache.jackrabbit.mk.util.NameFilter;
+import org.apache.jackrabbit.mk.util.NodeFilter;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -649,69 +650,6 @@ public class MicroKernelImpl implements MicroKernel {
                     builder.endObject();
                 }
             }
-        }
-    }
-
-    //-------------------------------------------------------< inner classes >
-
-    static class NodeFilter {
-
-        NameFilter nodeFilter;
-        NameFilter propFilter;
-
-        private NodeFilter(NameFilter nodeFilter, NameFilter propFilter) {
-            this.nodeFilter = nodeFilter;
-            this.propFilter = propFilter;
-        }
-
-        static NodeFilter parse(String json) {
-            // parse json format filter
-            JsopTokenizer t = new JsopTokenizer(json);
-            t.read('{');
-
-            NameFilter nodeFilter = null, propFilter = null;
-
-            do {
-                String type = t.readString();
-                t.read(':');
-                String[] globs = parseArray(t);
-                if (type.equals("nodes")) {
-                    nodeFilter = new NameFilter(globs);
-                } else if (type.equals("properties")) {
-                    propFilter = new NameFilter(globs);
-                } else {
-                    throw new IllegalArgumentException("illegal filter format");
-                }
-            } while (t.matches(','));
-            t.read('}');
-
-            return new NodeFilter(nodeFilter, propFilter);
-        }
-
-        private static String[] parseArray(JsopTokenizer t) {
-            List<String> l = new ArrayList<String>();
-            t.read('[');
-            do {
-                l.add(t.readString());
-            } while (t.matches(','));
-            t.read(']');
-            return l.toArray(new String[l.size()]);
-        }
-
-        NameFilter getChildNodeFilter() {
-            return nodeFilter;
-        }
-
-        NameFilter getPropertyFilter() {
-            return propFilter;
-        }
-
-        boolean includeNode(String name) {
-            return nodeFilter == null || nodeFilter.matches(name);
-        }
-
-        boolean includeProperty(String name) {
-            return propFilter == null || propFilter.matches(name);
         }
     }
 }
