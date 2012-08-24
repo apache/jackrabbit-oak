@@ -38,7 +38,6 @@ import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 
 /**
@@ -48,9 +47,6 @@ import org.apache.jackrabbit.oak.api.TreeLocation;
  * items does not exist anymore.
  */
 public class NodeDelegate extends ItemDelegate {
-
-    /** The underlying {@link TreeLocation} of this node. */
-    private TreeLocation location;
 
     /**
      * Create a new {@code NodeDelegate} instance for a valid {@code TreeLocation}. That
@@ -66,45 +62,11 @@ public class NodeDelegate extends ItemDelegate {
     }
 
     NodeDelegate(SessionDelegate sessionDelegate, Tree tree) {
-        this(sessionDelegate, tree.getLocation());
+        super(sessionDelegate, tree.getLocation());
     }
 
     private NodeDelegate(SessionDelegate sessionDelegate, TreeLocation location) {
-        super(sessionDelegate);
-        assert location != null;
-        this.location = location;
-    }
-
-    @Override
-    public String getName() throws InvalidItemStateException {
-        return getTree().getName();
-    }
-
-    @Override
-    public String getPath() throws InvalidItemStateException {
-        return getTree().getPath();
-    }
-
-    @Override
-    public NodeDelegate getParent() throws InvalidItemStateException {
-        TreeLocation parentLocation = getLocation().getParent();
-        return create(sessionDelegate, parentLocation);
-    }
-
-    @Override
-    public boolean isStale() {
-        return location.getStatus() == Status.REMOVED;
-    }
-
-    @Override
-    public Status getStatus() throws InvalidItemStateException {
-        return getTree().getStatus();
-    }
-
-    @Override
-    public String toString() {
-        // don't disturb the state: avoid resolving the tree
-        return "NodeDelegate[" + location.getPath() + ']';
+        super(sessionDelegate, location);
     }
 
     @Nonnull
@@ -362,7 +324,8 @@ public class NodeDelegate extends ItemDelegate {
         return location;
     }
 
-    private synchronized void resolve() {
+    @Override
+    protected synchronized void resolve() {
         String path = location.getPath();
         if (path != null) {
             Tree tree = sessionDelegate.getTree(path);

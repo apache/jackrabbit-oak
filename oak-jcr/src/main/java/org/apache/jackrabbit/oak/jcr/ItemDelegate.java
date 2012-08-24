@@ -17,11 +17,13 @@
 
 package org.apache.jackrabbit.oak.jcr;
 
-import org.apache.jackrabbit.oak.api.Tree.Status;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
+
+import org.apache.jackrabbit.oak.api.Tree.Status;
+import org.apache.jackrabbit.oak.api.TreeLocation;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 
 /**
  * Abstract base class for {@link NodeDelegate} and {@link PropertyDelegate}
@@ -30,10 +32,15 @@ public abstract class ItemDelegate {
 
     protected final SessionDelegate sessionDelegate;
 
-    protected ItemDelegate(SessionDelegate sessionDelegate) {
+    /** The underlying {@link org.apache.jackrabbit.oak.api.TreeLocation} of this item. */
+    protected TreeLocation location;
+
+    protected ItemDelegate(SessionDelegate sessionDelegate, TreeLocation location) {
         assert sessionDelegate != null;
+        assert location != null;
 
         this.sessionDelegate = sessionDelegate;
+        this.location = location;
     }
 
     /**
@@ -41,14 +48,19 @@ public abstract class ItemDelegate {
      * @return oak name of this item
      */
     @Nonnull
-    public abstract String getName() throws InvalidItemStateException;
+    public String getName() throws InvalidItemStateException {
+        return PathUtils.getName(getPath());
+    }
 
     /**
      * Get the path of this item
      * @return oak path of this item
      */
     @Nonnull
-    public abstract String getPath() throws InvalidItemStateException;
+    public String getPath() throws InvalidItemStateException {
+        checkStale();
+        return location.getPath();
+    }
 
     /**
      * Get the parent of this item or {@code null}.
@@ -56,27 +68,55 @@ public abstract class ItemDelegate {
      * is not accessible.
      */
     @CheckForNull
-    public abstract NodeDelegate getParent() throws InvalidItemStateException;
+    public NodeDelegate getParent() throws InvalidItemStateException {
+        checkStale();
+        return NodeDelegate.create(sessionDelegate, location.getParent());
+    }
 
     /**
      * Determine whether this item is stale
      * @return  {@code true} iff stale
      */
-    public abstract boolean isStale();
+    public boolean isStale() {
+        if (location.getStatus() == Status.REMOVED) {
+            return true;
+        }
+        else {
+            resolve();
+            return location.getStatus() == Status.REMOVED;
+        }
+    }
+
+    public void checkStale() throws InvalidItemStateException {
+        if (isStale()) {
+            throw new InvalidItemStateException("Item is stale");
+        }
+    }
 
     /**
      * Get the status of this item
      * @return  {@link Status} of this item
      */
     @Nonnull
-    public abstract Status getStatus() throws InvalidItemStateException;
+    public Status getStatus() throws InvalidItemStateException {
+        checkStale();
+        return location.getStatus();
+    }
 
     /**
      * Get the session delegate with which this item is associated
      * @return  {@link SessionDelegate} to which this item belongs
      */
     @Nonnull
-    public SessionDelegate getSessionDelegate() {
+    public final SessionDelegate getSessionDelegate() {
         return sessionDelegate;
     }
+
+    @Override
+    public String toString() {
+        // don't disturb the state: avoid resolving the tree
+        return getClass().getSimpleName() + '[' + location.getPath() + ']';
+    }
+
+    protected abstract void resolve();
 }
