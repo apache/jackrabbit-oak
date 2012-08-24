@@ -195,12 +195,11 @@ public class H2Persistence implements GCPersistence {
         try {
             PreparedStatement stmt = con
                     .prepareStatement(
-                            "insert into REVS (ID, DATA, TIME) select ?, ?, ? where not exists (select 1 from REVS where ID = ?)");
+                            "insert into REVS (ID, DATA, TIME) select ?, ?, ?");
             try {
                 stmt.setBytes(1, id.getBytes());
                 stmt.setBytes(2, bytes);
                 stmt.setTimestamp(3, ts);
-                stmt.setBytes(4, id.getBytes());
                 stmt.executeUpdate();
             } finally {
                 stmt.close();
