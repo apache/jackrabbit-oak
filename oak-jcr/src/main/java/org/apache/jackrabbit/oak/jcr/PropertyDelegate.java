@@ -27,7 +27,6 @@ import javax.jcr.nodetype.PropertyDefinition;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
@@ -39,56 +38,8 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
  */
 public class PropertyDelegate extends ItemDelegate {
 
-    /** The underlying {@link TreeLocation} of this node. */
-    private TreeLocation location;
-
     PropertyDelegate(SessionDelegate sessionDelegate, TreeLocation location) {
-        super(sessionDelegate);
-        assert location != null;
-        this.location = location;
-    }
-
-    @Override
-    public String getName() throws InvalidItemStateException {
-        return getPropertyState().getName();
-    }
-
-    @Override
-    public String getPath() throws InvalidItemStateException {
-        resolve();
-        String path = location.getPath();
-        if (path == null) {
-            throw new InvalidItemStateException("Property is stale");
-        }
-        return path;
-    }
-
-    @Override
-    public NodeDelegate getParent() throws InvalidItemStateException {
-        return NodeDelegate.create(sessionDelegate, location.getParent());
-    }
-
-    @Override
-    public boolean isStale() {
-        resolve();
-        return location.getStatus() == Status.REMOVED;
-    }
-
-    @Override
-    public Status getStatus() throws InvalidItemStateException {
-        resolve();
-        Status propertyStatus = location.getStatus();
-        if (propertyStatus == null) {
-            throw new InvalidItemStateException("Property is stale");
-        }
-
-        return propertyStatus;
-    }
-
-    @Override
-    public String toString() {
-        // don't disturb the state: avoid resolving the tree
-        return "PropertyDelegate[" + location.getPath() + ']';
+        super(sessionDelegate, location);
     }
 
     /**
@@ -263,7 +214,8 @@ public class PropertyDelegate extends ItemDelegate {
         return tree;
     }
 
-    synchronized void resolve() {
+    @Override
+    protected synchronized void resolve() {
         String path = location.getPath();
         if (path != null) {
             Tree parent = sessionDelegate.getTree(PathUtils.getParentPath(path));
