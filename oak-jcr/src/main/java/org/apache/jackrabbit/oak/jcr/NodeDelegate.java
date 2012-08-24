@@ -52,11 +52,24 @@ public class NodeDelegate extends ItemDelegate {
     /** The underlying {@link TreeLocation} of this node. */
     private TreeLocation location;
 
+    /**
+     * Create a new {@code NodeDelegate} instance for a valid {@code TreeLocation}. That
+     * is for one where {@code getTree() != null}.
+     * @param sessionDelegate
+     * @param location
+     * @return
+     */
+    static NodeDelegate create(SessionDelegate sessionDelegate, TreeLocation location) {
+        return location.getTree() == null
+            ? null
+            : new NodeDelegate(sessionDelegate, location);
+    }
+
     NodeDelegate(SessionDelegate sessionDelegate, Tree tree) {
         this(sessionDelegate, tree.getLocation());
     }
 
-    NodeDelegate(SessionDelegate sessionDelegate, TreeLocation location) {
+    private NodeDelegate(SessionDelegate sessionDelegate, TreeLocation location) {
         super(sessionDelegate);
         assert location != null;
         this.location = location;
@@ -75,9 +88,7 @@ public class NodeDelegate extends ItemDelegate {
     @Override
     public NodeDelegate getParent() throws InvalidItemStateException {
         TreeLocation parentLocation = getLocation().getParent();
-        return parentLocation.getTree() == null
-            ? null
-            : new NodeDelegate(sessionDelegate, parentLocation);
+        return create(sessionDelegate, parentLocation);
     }
 
     @Override
@@ -160,9 +171,7 @@ public class NodeDelegate extends ItemDelegate {
     @CheckForNull
     public NodeDelegate getChild(String relPath) {
         TreeLocation childLocation = getChildLocation(relPath);
-        return childLocation.getTree() == null
-            ? null
-            : new NodeDelegate(sessionDelegate, childLocation);
+        return create(sessionDelegate, childLocation);
     }
 
     /**
@@ -201,9 +210,9 @@ public class NodeDelegate extends ItemDelegate {
 
                 for (CoreValue value : order.getValues()) {
                     String name = value.getString();
-                    TreeLocation childLocation = tree.getLocation().getChild(name);
-                    if (childLocation.getTree() != null && !name.startsWith(":")) {
-                        ordered.put(name, new NodeDelegate(sessionDelegate, childLocation));
+                    Tree child = tree.getChild(name);
+                    if (child != null && !name.startsWith(":")) {
+                        ordered.put(name, new NodeDelegate(sessionDelegate, child));
                     }
                 }
 
@@ -338,9 +347,7 @@ public class NodeDelegate extends ItemDelegate {
         if (tree == null) {
             throw new InvalidItemStateException("Node is stale");
         }
-        else {
-            return tree;
-        }
+        return tree;
     }
 
     // -----------------------------------------------------------< private >---
