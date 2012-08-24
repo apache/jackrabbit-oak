@@ -562,6 +562,7 @@ public class TreeImpl implements Tree, PurgeListener {
 
         @Override
         public TreeLocation getChild(String relPath) {
+            assert !relPath.startsWith("/");
             if (relPath.isEmpty()) {
                 return this;
             }
