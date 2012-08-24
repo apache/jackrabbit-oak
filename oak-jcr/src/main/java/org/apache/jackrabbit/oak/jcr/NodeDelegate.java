@@ -52,8 +52,9 @@ public class NodeDelegate extends ItemDelegate {
     /** The underlying {@link TreeLocation} of this node. */
     private TreeLocation location;
 
-    public NodeDelegate(SessionDelegate sessionDelegate, Tree tree) {
+    NodeDelegate(SessionDelegate sessionDelegate, Tree tree) {
         super(sessionDelegate);
+        assert tree != null;
         this.location = tree.getLocation();
     }
 
