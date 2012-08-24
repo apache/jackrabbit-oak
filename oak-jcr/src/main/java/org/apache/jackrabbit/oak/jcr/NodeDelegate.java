@@ -98,7 +98,7 @@ public class NodeDelegate extends ItemDelegate {
      * no such property exists
      */
     @CheckForNull
-    public PropertyDelegate getProperty(String relPath) {
+    public PropertyDelegate getProperty(String relPath) throws InvalidItemStateException {
         TreeLocation propertyLocation = getChildLocation(relPath);
         PropertyState propertyState = propertyLocation.getProperty();
         return propertyState == null
@@ -131,7 +131,7 @@ public class NodeDelegate extends ItemDelegate {
      * no such node exists
      */
     @CheckForNull
-    public NodeDelegate getChild(String relPath) {
+    public NodeDelegate getChild(String relPath) throws InvalidItemStateException {
         TreeLocation childLocation = getChildLocation(relPath);
         return create(sessionDelegate, childLocation);
     }
@@ -249,7 +249,8 @@ public class NodeDelegate extends ItemDelegate {
      * @return  the set property
      */
     @Nonnull
-    public PropertyDelegate setProperty(String name, CoreValue value) throws InvalidItemStateException, ValueFormatException {
+    public PropertyDelegate setProperty(String name, CoreValue value)
+            throws InvalidItemStateException, ValueFormatException {
         Tree tree = getTree();
         PropertyState old = tree.getProperty(name);
         if (old != null && old.isArray()) {
@@ -270,7 +271,8 @@ public class NodeDelegate extends ItemDelegate {
      * @return  the set property
      */
     @Nonnull
-    public PropertyDelegate setProperty(String name, List<CoreValue> value) throws InvalidItemStateException, ValueFormatException {
+    public PropertyDelegate setProperty(String name, List<CoreValue> value)
+            throws InvalidItemStateException, ValueFormatException {
         Tree tree = getTree();
         PropertyState old = tree.getProperty(name);
         if (old != null && ! old.isArray()) {
@@ -304,8 +306,7 @@ public class NodeDelegate extends ItemDelegate {
 
     @Nonnull
     Tree getTree() throws InvalidItemStateException {
-        resolve();
-        Tree tree = location.getTree();
+        Tree tree = getLocation().getTree();
         if (tree == null) {
             throw new InvalidItemStateException("Node is stale");
         }
@@ -314,25 +315,8 @@ public class NodeDelegate extends ItemDelegate {
 
     // -----------------------------------------------------------< private >---
 
-    private TreeLocation getChildLocation(String relPath) {
+    private TreeLocation getChildLocation(String relPath) throws InvalidItemStateException {
         return getLocation().getChild(relPath);
-    }
-
-    @Nonnull
-    private TreeLocation getLocation() {
-        resolve();
-        return location;
-    }
-
-    @Override
-    protected synchronized void resolve() {
-        String path = location.getPath();
-        if (path != null) {
-            Tree tree = sessionDelegate.getTree(path);
-            if (tree != null) {
-                location = tree.getLocation();
-            }
-        }
     }
 
     private Iterator<NodeDelegate> nodeDelegateIterator(
@@ -353,7 +337,8 @@ public class NodeDelegate extends ItemDelegate {
     }
 
     private Iterator<PropertyDelegate> propertyDelegateIterator(
-            Iterator<? extends PropertyState> properties) {
+            Iterator<? extends PropertyState> properties) throws InvalidItemStateException {
+        final TreeLocation location = getLocation();
         return Iterators.transform(
                 Iterators.filter(properties, new Predicate<PropertyState>() {
                     @Override
