@@ -36,7 +36,19 @@ public interface Persistence extends Closeable {
 
     public void initialize(File homeDir) throws Exception;
     
-    Id readHead() throws Exception;
+    /**
+     * Return an array of ids, where the first is the head id (as stored
+     * with {@link #writeHead(Id)}) and the second is the highest commit
+     * id found or {@code null}.
+     * <p/>
+     * This method is not guaranteed to deliver "live" results, after
+     * something is written to the storage, so it should better be used
+     * once after initialization. 
+     * 
+     * @return array of ids
+     * @throws Exception if an error occurs
+     */
+    Id[] readIds() throws Exception;
 
     void writeHead(Id id) throws Exception;
 
