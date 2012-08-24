@@ -53,9 +53,13 @@ public class NodeDelegate extends ItemDelegate {
     private TreeLocation location;
 
     NodeDelegate(SessionDelegate sessionDelegate, Tree tree) {
+        this(sessionDelegate, tree.getLocation());
+    }
+
+    NodeDelegate(SessionDelegate sessionDelegate, TreeLocation location) {
         super(sessionDelegate);
-        assert tree != null;
-        this.location = tree.getLocation();
+        assert location != null;
+        this.location = location;
     }
 
     @Override
@@ -70,8 +74,10 @@ public class NodeDelegate extends ItemDelegate {
 
     @Override
     public NodeDelegate getParent() throws InvalidItemStateException {
-        Tree parent = getTree().getParent();
-        return parent == null ? null : new NodeDelegate(sessionDelegate, parent);
+        TreeLocation parentLocation = getLocation().getParent();
+        return parentLocation.getTree() == null
+            ? null
+            : new NodeDelegate(sessionDelegate, parentLocation);
     }
 
     @Override
@@ -153,8 +159,10 @@ public class NodeDelegate extends ItemDelegate {
      */
     @CheckForNull
     public NodeDelegate getChild(String relPath) {
-        Tree tree = getChildLocation(relPath).getTree();
-        return tree == null ? null : new NodeDelegate(sessionDelegate, tree);
+        TreeLocation childLocation = getChildLocation(relPath);
+        return childLocation.getTree() == null
+            ? null
+            : new NodeDelegate(sessionDelegate, childLocation);
     }
 
     /**
@@ -193,9 +201,9 @@ public class NodeDelegate extends ItemDelegate {
 
                 for (CoreValue value : order.getValues()) {
                     String name = value.getString();
-                    Tree child = tree.getChild(name);
-                    if (child != null && !name.startsWith(":")) {
-                        ordered.put(name, new NodeDelegate(sessionDelegate, child));
+                    TreeLocation childLocation = tree.getLocation().getChild(name);
+                    if (childLocation.getTree() != null && !name.startsWith(":")) {
+                        ordered.put(name, new NodeDelegate(sessionDelegate, childLocation));
                     }
                 }
 
@@ -276,8 +284,8 @@ public class NodeDelegate extends ItemDelegate {
         if (old != null && old.isArray()) {
             throw new ValueFormatException("Attempt to set a single value to multi-valued property.");
         }
-        PropertyState propertyState = tree.setProperty(name, value);
-        return new PropertyDelegate(sessionDelegate, tree, propertyState);
+        tree.setProperty(name, value);
+        return new PropertyDelegate(sessionDelegate, tree.getLocation().getChild(name));
     }
 
     public void removeProperty(String name) throws InvalidItemStateException {
@@ -297,8 +305,8 @@ public class NodeDelegate extends ItemDelegate {
         if (old != null && ! old.isArray()) {
             throw new ValueFormatException("Attempt to set multiple values to single valued property.");
         }
-        PropertyState propertyState = tree.setProperty(name, value);
-        return new PropertyDelegate(sessionDelegate, tree, propertyState);
+        tree.setProperty(name, value);
+        return new PropertyDelegate(sessionDelegate, tree.getLocation().getChild(name));
     }
 
     /**
@@ -358,9 +366,9 @@ public class NodeDelegate extends ItemDelegate {
     }
 
     private Iterator<NodeDelegate> nodeDelegateIterator(
-            Iterator<Tree> childNodeStates) {
+            Iterator<Tree> children) {
         return Iterators.transform(
-                Iterators.filter(childNodeStates, new Predicate<Tree>() {
+                Iterators.filter(children, new Predicate<Tree>() {
                     @Override
                     public boolean apply(Tree tree) {
                         return !tree.getName().startsWith(":");
@@ -368,8 +376,8 @@ public class NodeDelegate extends ItemDelegate {
                 }),
                 new Function<Tree, NodeDelegate>() {
                     @Override
-                    public NodeDelegate apply(Tree state) {
-                        return new NodeDelegate(sessionDelegate, state);
+                    public NodeDelegate apply(Tree tree) {
+                        return new NodeDelegate(sessionDelegate, tree);
                     }
                 });
     }
@@ -386,8 +394,7 @@ public class NodeDelegate extends ItemDelegate {
                 new Function<PropertyState, PropertyDelegate>() {
                     @Override
                     public PropertyDelegate apply(PropertyState propertyState) {
-                        return new PropertyDelegate(sessionDelegate, location.getTree(),
-                                propertyState);
+                        return new PropertyDelegate(sessionDelegate, location.getChild(propertyState.getName()));
                     }
                 });
     }
