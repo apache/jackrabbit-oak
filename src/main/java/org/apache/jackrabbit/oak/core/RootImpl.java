@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.core;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.ChangeExtractor;
@@ -27,7 +28,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ConflictHandler;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeValidatorProvider;
 import org.apache.jackrabbit.oak.security.user.UserValidatorProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitEditor;
@@ -139,8 +140,14 @@ public class RootImpl implements Root {
     }
 
     @Override
-    public Tree getTree(String path) {
+    public TreeImpl getTree(String path) {
         return rootTree.getTree(path);
+    }
+
+    @Override
+    public TreeLocation getLocation(String path) {
+        assert path.startsWith("/");
+        return rootTree.getLocation().getChild(path.substring(1));
     }
 
     @Override
