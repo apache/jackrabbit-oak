@@ -41,7 +41,10 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
     /** Base state of this branch */
     private final NodeState base;
 
-    /** Revision of this branch in the Microkernel */
+    /** Revision from which to branch */
+    private final String headRevision;
+
+    /** Revision of this branch in the Microkernel, null if not yet branched */
     private String branchRevision;
 
     /** Current root state of this branch */
@@ -53,8 +56,8 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
     KernelNodeStoreBranch(KernelNodeStore store) {
         this.store = store;
         MicroKernel kernel = store.getKernel();
-        this.branchRevision = kernel.branch(null);
-        this.currentRoot = new KernelNodeState(kernel, "/", branchRevision);
+        this.headRevision = kernel.getHeadRevision();
+        this.currentRoot = new KernelNodeState(kernel, "/", headRevision);
         this.base = currentRoot;
         this.committed = currentRoot;
     }
@@ -120,7 +123,7 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
     }
 
     @Override
-    public KernelNodeState merge(CommitEditor editor) throws CommitFailedException {
+    public NodeState merge(CommitEditor editor) throws CommitFailedException {
         NodeState oldRoot = base;
         CommitEditor commitEditor = editor == null
                 ? store.getEditor()
@@ -129,13 +132,19 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
         setRoot(toCommit);
 
         try {
-            MicroKernel kernel = store.getKernel();
-            String mergedRevision = kernel.merge(branchRevision, null);
-            branchRevision = null;
-            currentRoot = null;
-            committed = null;
-            KernelNodeState committed = new KernelNodeState(kernel, "/", mergedRevision);
-            return committed;
+            if (branchRevision == null) {
+                // Nothing was written to this branch: return initial node state.
+                branchRevision = null;
+                currentRoot = null;
+                return committed;
+            }
+            else {
+                MicroKernel kernel = store.getKernel();
+                String mergedRevision = kernel.merge(branchRevision, null);
+                branchRevision = null;
+                currentRoot = null;
+                return new KernelNodeState(kernel, "/", mergedRevision);
+            }
         }
         catch (MicroKernelException e) {
             throw new CommitFailedException(e);
@@ -159,6 +168,11 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
 
     private void commit(String jsop) {
         MicroKernel kernel = store.getKernel();
+        if (branchRevision == null) {
+            // create the branch if this is the first commit
+            branchRevision = kernel.branch(headRevision);
+        }
+
         branchRevision = kernel.commit("", jsop, branchRevision, null);
         currentRoot = new KernelNodeState(kernel, "/", branchRevision);
         committed = currentRoot;
