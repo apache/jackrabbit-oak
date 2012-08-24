@@ -20,6 +20,7 @@ import java.util.List;
 
 import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
+import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Value;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.PropertyDefinition;
@@ -28,7 +29,7 @@ import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
-import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.util.TODO;
 
 /**
  * {@code PropertyDelegate} serve as internal representations of {@code Property}s.
@@ -77,96 +78,101 @@ public class PropertyDelegate extends ItemDelegate {
      */
     @Nonnull
     public PropertyDefinition getDefinition() {
-        // TODO
-        return new PropertyDefinition() {
+        try {
+            return TODO.dummyImplementation().returnValue(
+                new PropertyDefinition() {
 
-            @Override
-            public int getRequiredType() {
-                return 0;
-            }
+                    @Override
+                    public int getRequiredType() {
+                        return 0;
+                    }
 
-            @Override
-            public String[] getValueConstraints() {
-                // TODO
-                return new String[0];
-            }
+                    @Override
+                    public String[] getValueConstraints() {
+                        // TODO
+                        return new String[0];
+                    }
 
-            @Override
-            public Value[] getDefaultValues() {
-                // TODO
-                return new Value[0];
-            }
+                    @Override
+                    public Value[] getDefaultValues() {
+                        // TODO
+                        return new Value[0];
+                    }
 
-            @Override
-            public boolean isMultiple() {
-                // TODO
-                try {
-                    return getPropertyState().isArray();
-                }
-                catch (InvalidItemStateException e) {
-                    return false;  // todo implement catch e
-                }
-            }
+                    @Override
+                    public boolean isMultiple() {
+                        // TODO
+                        try {
+                            return getPropertyState().isArray();
+                        }
+                        catch (InvalidItemStateException e) {
+                            return false;  // todo implement catch e
+                        }
+                    }
 
-            @Override
-            public String[] getAvailableQueryOperators() {
-                // TODO
-                return new String[0];
-            }
+                    @Override
+                    public String[] getAvailableQueryOperators() {
+                        // TODO
+                        return new String[0];
+                    }
 
-            @Override
-            public boolean isFullTextSearchable() {
-                // TODO
-                return false;
-            }
+                    @Override
+                    public boolean isFullTextSearchable() {
+                        // TODO
+                        return false;
+                    }
 
-            @Override
-            public boolean isQueryOrderable() {
-                // TODO
-                return false;
-            }
+                    @Override
+                    public boolean isQueryOrderable() {
+                        // TODO
+                        return false;
+                    }
 
-            @Override
-            public NodeType getDeclaringNodeType() {
-                // TODO
-                return null;
-            }
+                    @Override
+                    public NodeType getDeclaringNodeType() {
+                        // TODO
+                        return null;
+                    }
 
-            @Override
-            public String getName() {
-                // TODO
-                try {
-                    return getPropertyState().getName();
-                }
-                catch (InvalidItemStateException e) {
-                    return null;  // todo implement catch e
-                }
-            }
+                    @Override
+                    public String getName() {
+                        // TODO
+                        try {
+                            return getPropertyState().getName();
+                        }
+                        catch (InvalidItemStateException e) {
+                            return null;  // todo implement catch e
+                        }
+                    }
 
-            @Override
-            public boolean isAutoCreated() {
-                // TODO
-                return false;
-            }
+                    @Override
+                    public boolean isAutoCreated() {
+                        // TODO
+                        return false;
+                    }
 
-            @Override
-            public boolean isMandatory() {
-                // TODO
-                return false;
-            }
+                    @Override
+                    public boolean isMandatory() {
+                        // TODO
+                        return false;
+                    }
 
-            @Override
-            public int getOnParentVersion() {
-                // TODO
-                return 0;
-            }
+                    @Override
+                    public int getOnParentVersion() {
+                        // TODO
+                        return 0;
+                    }
 
-            @Override
-            public boolean isProtected() {
-                // TODO
-                return false;
-            }
-        };
+                    @Override
+                    public boolean isProtected() {
+                        // TODO
+                        return false;
+                    }
+                });
+        }
+        catch (UnsupportedRepositoryOperationException e) {
+            throw new UnsupportedOperationException(e);
+        }
     }
 
     /**
@@ -196,8 +202,7 @@ public class PropertyDelegate extends ItemDelegate {
 
     @Nonnull
     private PropertyState getPropertyState() throws InvalidItemStateException {
-        resolve();
-        PropertyState property = location.getProperty();
+        PropertyState property = getLocation().getProperty();
         if (property == null) {
             throw new InvalidItemStateException("Property is stale");
         }
@@ -206,24 +211,11 @@ public class PropertyDelegate extends ItemDelegate {
 
     @Nonnull
     private Tree getParentTree() throws InvalidItemStateException {
-        resolve();
-        Tree tree = location.getParent().getTree();
+        Tree tree = getLocation().getParent().getTree();
         if (tree == null) {
             throw new InvalidItemStateException("Parent node is stale");
         }
         return tree;
     }
-
-    @Override
-    protected synchronized void resolve() {
-        String path = location.getPath();
-        if (path != null) {
-            Tree parent = sessionDelegate.getTree(PathUtils.getParentPath(path));
-            if (parent != null) {
-                location = parent.getLocation().getChild(PathUtils.getName(path));
-            }
-        }
-    }
-
 
 }

@@ -33,9 +33,9 @@ public abstract class ItemDelegate {
     protected final SessionDelegate sessionDelegate;
 
     /** The underlying {@link org.apache.jackrabbit.oak.api.TreeLocation} of this item. */
-    protected TreeLocation location;
+    private TreeLocation location;
 
-    protected ItemDelegate(SessionDelegate sessionDelegate, TreeLocation location) {
+    ItemDelegate(SessionDelegate sessionDelegate, TreeLocation location) {
         assert sessionDelegate != null;
         assert location != null;
 
@@ -58,8 +58,7 @@ public abstract class ItemDelegate {
      */
     @Nonnull
     public String getPath() throws InvalidItemStateException {
-        checkStale();
-        return location.getPath();
+        return getLocation().getPath();  // never null
     }
 
     /**
@@ -69,8 +68,7 @@ public abstract class ItemDelegate {
      */
     @CheckForNull
     public NodeDelegate getParent() throws InvalidItemStateException {
-        checkStale();
-        return NodeDelegate.create(sessionDelegate, location.getParent());
+        return NodeDelegate.create(sessionDelegate, getLocation().getParent());
     }
 
     /**
@@ -78,19 +76,7 @@ public abstract class ItemDelegate {
      * @return  {@code true} iff stale
      */
     public boolean isStale() {
-        if (location.getStatus() == Status.REMOVED) {
-            return true;
-        }
-        else {
-            resolve();
-            return location.getStatus() == Status.REMOVED;
-        }
-    }
-
-    public void checkStale() throws InvalidItemStateException {
-        if (isStale()) {
-            throw new InvalidItemStateException("Item is stale");
-        }
+        return getLocationOrNull() == null;
     }
 
     /**
@@ -99,8 +85,7 @@ public abstract class ItemDelegate {
      */
     @Nonnull
     public Status getStatus() throws InvalidItemStateException {
-        checkStale();
-        return location.getStatus();
+        return getLocation().getStatus();  // never null
     }
 
     /**
@@ -112,11 +97,44 @@ public abstract class ItemDelegate {
         return sessionDelegate;
     }
 
+    /**
+     * The underlying {@link org.apache.jackrabbit.oak.api.TreeLocation} of this item.
+     * @return  tree location of the underlying item
+     * @throws InvalidItemStateException if the location points to a stale item
+     */
+    @Nonnull
+    public final TreeLocation getLocation() throws InvalidItemStateException {
+        TreeLocation location = getLocationOrNull();
+        if (location == null) {
+            throw new InvalidItemStateException("Item is stale");
+        }
+        return location;
+    }
+
     @Override
     public String toString() {
-        // don't disturb the state: avoid resolving the tree
+        // don't disturb the state: avoid resolving location
         return getClass().getSimpleName() + '[' + location.getPath() + ']';
     }
 
-    protected abstract void resolve();
+    //------------------------------------------------------------< private >---
+
+    /**
+     * The underlying {@link org.apache.jackrabbit.oak.api.TreeLocation} of this item.
+     * @return  tree location of the underlying item or {@code null} if stale.
+     */
+    @CheckForNull
+    private synchronized TreeLocation getLocationOrNull() {
+        if (isStale(location)) {
+            return null;
+        }
+
+        location = sessionDelegate.getLocation(location.getPath());
+        return isStale(location) ? null : location;
+    }
+
+    private static boolean isStale(TreeLocation location) {
+        return location.getStatus() == Status.REMOVED || location.getPath() == null;
+    }
+
 }
