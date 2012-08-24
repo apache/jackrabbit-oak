@@ -545,10 +545,10 @@ public class TreeImpl implements Tree, PurgeListener {
 
     //------------------------------------------------------------< TreeLocation >---
 
-    private class NodeLocation implements TreeLocation {
+    public class NodeLocation implements TreeLocation {
         private final TreeImpl tree;
 
-        public NodeLocation(TreeImpl tree) {
+        private NodeLocation(TreeImpl tree) {
             assert tree != null;
             this.tree = tree;
         }
@@ -614,7 +614,7 @@ public class TreeImpl implements Tree, PurgeListener {
         private final NodeLocation parent;
         private final PropertyState property;
 
-        public PropertyLocation(NodeLocation parent, PropertyState property) {
+        private PropertyLocation(NodeLocation parent, PropertyState property) {
             assert parent != null;
             assert property != null;
             this.parent = parent;
@@ -707,8 +707,11 @@ public class TreeImpl implements Tree, PurgeListener {
         }
     }
 
-    private static class NullLocation implements TreeLocation {
+    public static class NullLocation implements TreeLocation {
         public static final NullLocation INSTANCE = new NullLocation();
+
+        private NullLocation() {
+        }
 
         @Override
         public TreeLocation getParent() {
