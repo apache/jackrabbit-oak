@@ -51,7 +51,7 @@ public class PropertyDelegate extends ItemDelegate {
         this.location = parent.getLocation().getChild(propertyState.getName());
     }
 
-    public PropertyDelegate(SessionDelegate sessionDelegate, TreeLocation location) {
+    PropertyDelegate(SessionDelegate sessionDelegate, TreeLocation location) {
         super(sessionDelegate);
         assert location != null;
         this.location = location;
@@ -64,7 +64,12 @@ public class PropertyDelegate extends ItemDelegate {
 
     @Override
     public String getPath() throws InvalidItemStateException {
-        return PathUtils.concat(getParent().getPath(), getName());
+        resolve();
+        String path = location.getPath();
+        if (path == null) {
+            throw new InvalidItemStateException("Property is stale");
+        }
+        return path;
     }
 
     @Override
@@ -81,7 +86,8 @@ public class PropertyDelegate extends ItemDelegate {
 
     @Override
     public Status getStatus() throws InvalidItemStateException {
-        Status propertyStatus = getParentTree().getPropertyStatus(getName());
+        resolve();
+        Status propertyStatus = location.getStatus();
         if (propertyStatus == null) {
             throw new InvalidItemStateException("Property is stale");
         }
@@ -91,7 +97,7 @@ public class PropertyDelegate extends ItemDelegate {
 
     @Override
     public String toString() {
-        // don't disturb the state: avoid calling resolve()
+        // don't disturb the state: avoid resolving the tree
         return "PropertyDelegate[" + location.getPath() + ']';
     }
 
