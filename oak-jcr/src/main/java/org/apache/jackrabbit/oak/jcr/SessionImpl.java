@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+
 import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Credentials;
@@ -48,6 +49,7 @@ import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.AbstractSession;
 import org.apache.jackrabbit.commons.iterator.AccessControlPolicyIteratorAdapter;
+import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.security.principal.PrincipalManagerImpl;
 import org.apache.jackrabbit.oak.jcr.xml.XmlImportHandler;
@@ -206,15 +208,40 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     }
 
     @Override
-    public Property getProperty(String absPath) throws RepositoryException {
-        // FIXME OAK-218
-        return super.getProperty(absPath);
+    public Property getProperty(final String absPath) throws RepositoryException {
+        if (absPath.equals("/")) {
+            throw new RepositoryException("The root node is not a property");
+        } else {
+            return dlg.perform(new SessionOperation<PropertyImpl>() {
+                @Override
+                public PropertyImpl perform() throws RepositoryException {
+                    String oakPath = dlg.getOakPathOrThrowNotFound(absPath);
+                    TreeLocation loc = dlg.getLocation(oakPath);
+                    if (loc.getProperty() == null) {
+                        throw new PathNotFoundException(absPath);
+                    }
+                    else {
+                        return new PropertyImpl(new PropertyDelegate(dlg, loc));
+                    }
+                }
+            });
+        }
     }
 
     @Override
-    public boolean propertyExists(String absPath) throws RepositoryException {
-        // FIXME OAK-218
-        return super.propertyExists(absPath);
+    public boolean propertyExists(final String absPath) throws RepositoryException {
+        if (absPath.equals("/")) {
+            throw new RepositoryException("The root node is not a property");
+        } else {
+            return dlg.perform(new SessionOperation<Boolean>() {
+                @Override
+                public Boolean perform() throws RepositoryException {
+                    String oakPath = dlg.getOakPathOrThrowNotFound(absPath);
+                    TreeLocation loc = dlg.getLocation(oakPath);
+                    return loc.getProperty() != null;
+                }
+            });
+        }
     }
 
     @Override
@@ -324,7 +351,8 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
 
         String oakPath = dlg.getOakPathOrNull(absPath);
         if (oakPath == null) {
-            return false; // TODO should we throw an exception here?
+            // TODO should we throw an exception here?
+            return TODO.dummyImplementation().returnValue(false);
         }
 
         // TODO
@@ -418,15 +446,15 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
         new HashMap<String, String>();
 
     @Override
-    public void setNamespacePrefix(String prefix, String uri) throws NamespaceException, RepositoryException {
+    public void setNamespacePrefix(String prefix, String uri) throws RepositoryException {
         if (prefix == null) {
             throw new IllegalArgumentException("Prefix must not be null");
         } else if (uri == null) {
             throw new IllegalArgumentException("Namespace must not be null");
-        } else if (prefix.length() == 0) {
+        } else if (prefix.isEmpty()) {
             throw new NamespaceException(
                     "Empty prefix is reserved and can not be remapped");
-        } else if (uri.length() == 0) {
+        } else if (uri.isEmpty()) {
             throw new NamespaceException(
                     "Default namespace is reserved and can not be remapped");
         } else if (prefix.toLowerCase(Locale.ENGLISH).startsWith("xml")) {
@@ -467,7 +495,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     }
 
     @Override
-    public String getNamespaceURI(String prefix) throws NamespaceException, RepositoryException {
+    public String getNamespaceURI(String prefix) throws RepositoryException {
         synchronized (namespaces) {
             String uri = namespaces.get(prefix);
 
@@ -489,7 +517,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     }
 
     @Override
-    public String getNamespacePrefix(String uri) throws NamespaceException, RepositoryException {
+    public String getNamespacePrefix(String uri) throws RepositoryException {
         synchronized (namespaces) {
             for (Map.Entry<String, String> entry : namespaces.entrySet()) {
                 if (entry.getValue().equals(uri)) {

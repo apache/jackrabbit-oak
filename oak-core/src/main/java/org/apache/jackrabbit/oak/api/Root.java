@@ -78,6 +78,14 @@ public interface Root {
     Tree getTree(String path);
 
     /**
+     * Get a tree location for a given {@code path}
+     * @param path  path to the location
+     * @return  the tree location for {@code path}
+     */
+    @Nonnull
+    TreeLocation getLocation(String path);
+
+    /**
      * Rebase this root instance to the latest revision. After a call to this method,
      * all trees obtained through {@link #getTree(String)} become invalid and fresh
      * instances must be obtained.
