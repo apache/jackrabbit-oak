@@ -50,8 +50,11 @@ public class TreeImpl implements Tree, PurgeListener {
     /** Underlying {@code Root} of this {@code Tree} instance */
     private final RootImpl root;
 
-    /** Parent of this tree. Null for the root and this for removed trees. */
+    /** Parent of this tree. Null for the root. */
     private TreeImpl parent;
+
+    /** Marker for removed trees */
+    private boolean removed;
 
     /** Name of this tree */
     private String name;
@@ -254,7 +257,7 @@ public class TreeImpl implements Tree, PurgeListener {
             NodeBuilder builder = parent.getNodeBuilder();
             builder.removeNode(name);
             parent.children.remove(name);
-            parent = this;
+            removed = true;
             root.purge();
             return true;
         } else {
@@ -390,6 +393,10 @@ public class TreeImpl implements Tree, PurgeListener {
     }
 
     private Status internalGetPropertyStatus(String name) {
+        if (isRemoved()) {
+            return Status.REMOVED;
+        }
+
         NodeState baseState = getBaseState();
         boolean exists = internalGetProperty(name) != null;
         if (baseState == null) {
@@ -433,14 +440,10 @@ public class TreeImpl implements Tree, PurgeListener {
     }
 
     private boolean isRemoved() {
-        return parent == this;
+        return removed || (parent != null && parent.isRemoved());
     }
 
     private void buildPath(StringBuilder sb) {
-        if (isRemoved()) {
-            throw new IllegalStateException("Cannot build the path of a removed tree");
-        }
-
         if (!isRoot()) {
             parent.buildPath(sb);
             sb.append('/').append(name);

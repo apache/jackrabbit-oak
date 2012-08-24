@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
@@ -28,6 +29,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
@@ -286,6 +288,12 @@ public class TreeImplTest extends AbstractCoreTest {
         tree = root.getTree("/");
         assertEquals(Tree.Status.EXISTING, tree.getChild("new").getStatus());
         assertNull(tree.getChild("new").getChild("another"));
+
+        Tree x = root.getTree("/x");
+        Tree y = x.addChild("y");
+        x.remove();
+        assertEquals(Status.REMOVED, x.getStatus());
+        assertEquals(Status.REMOVED, y.getStatus());
     }
 
     @Test
@@ -313,6 +321,11 @@ public class TreeImplTest extends AbstractCoreTest {
 
         tree = root.getTree("/");
         assertNull(tree.getPropertyStatus("new"));
+
+        Tree x = root.getTree("/x");
+        x.setProperty("y", value1);
+        x.remove();
+        assertEquals(Status.REMOVED, x.getPropertyStatus("y"));
     }
 
     @Test
