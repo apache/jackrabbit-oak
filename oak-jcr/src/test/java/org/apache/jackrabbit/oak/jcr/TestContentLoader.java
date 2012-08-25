@@ -73,12 +73,54 @@ public class TestContentLoader {
         }
 
         // test:canSetProperty
+        // TODO: add all property definitions from jackrabbit-core/src/main/resources/org/apache/jackrabbit/core/test-nodetypes.xml
         {
             NodeTypeTemplate nttmpl = ntm.createNodeTypeTemplate();
             nttmpl.setName("test:canSetProperty");
             nttmpl.setDeclaredSuperTypeNames(new String[] { "nt:base" });
 
             // add property definitions
+
+            PropertyDefinitionTemplate pdtmpl = ntm.createPropertyDefinitionTemplate();
+            pdtmpl.setName("String");
+            pdtmpl.setRequiredType(PropertyType.STRING);
+            pdtmpl.setOnParentVersion(OnParentVersionAction.COPY);
+            nttmpl.getPropertyDefinitionTemplates().add(pdtmpl);
+
+            pdtmpl = ntm.createPropertyDefinitionTemplate();
+            pdtmpl.setName("StringConstraints");
+            pdtmpl.setRequiredType(PropertyType.STRING);
+            pdtmpl.setOnParentVersion(OnParentVersionAction.COPY);
+            pdtmpl.setValueConstraints(new String[] { "abc", "def", "ghi" });
+            nttmpl.getPropertyDefinitionTemplates().add(pdtmpl);
+
+            pdtmpl = ntm.createPropertyDefinitionTemplate();
+            pdtmpl.setName("StringMultipleConstraints");
+            pdtmpl.setMultiple(true);
+            pdtmpl.setRequiredType(PropertyType.STRING);
+            pdtmpl.setOnParentVersion(OnParentVersionAction.COPY);
+            nttmpl.getPropertyDefinitionTemplates().add(pdtmpl);
+
+            pdtmpl = ntm.createPropertyDefinitionTemplate();
+            pdtmpl.setName("Binary");
+            pdtmpl.setRequiredType(PropertyType.BINARY);
+            pdtmpl.setOnParentVersion(OnParentVersionAction.COPY);
+            nttmpl.getPropertyDefinitionTemplates().add(pdtmpl);
+
+            pdtmpl = ntm.createPropertyDefinitionTemplate();
+            pdtmpl.setName("BinaryConstraints");
+            pdtmpl.setRequiredType(PropertyType.BINARY);
+            pdtmpl.setOnParentVersion(OnParentVersionAction.COPY);
+            pdtmpl.setValueConstraints(new String[] { "(,100)" });
+            nttmpl.getPropertyDefinitionTemplates().add(pdtmpl);
+
+            pdtmpl = ntm.createPropertyDefinitionTemplate();
+            pdtmpl.setName("BinaryMultipleConstraints");
+            pdtmpl.setMultiple(true);
+            pdtmpl.setRequiredType(PropertyType.BINARY);
+            pdtmpl.setOnParentVersion(OnParentVersionAction.COPY);
+            pdtmpl.setValueConstraints(new String[] { "(,100)" });
+            nttmpl.getPropertyDefinitionTemplates().add(pdtmpl);
 
             ntm.registerNodeType(nttmpl, true);
         }
