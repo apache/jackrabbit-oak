@@ -278,9 +278,13 @@ public final class KernelNodeState extends AbstractNodeState {
                     if (reader.matches('{')) {
                         reader.read('}');
                         String childPath = getChildPath(name);
-                        NodeState child =
-                                new KernelNodeState(kernel, childPath, revision);
+                        NodeState child = new KernelNodeState(
+                                kernel, childPath, revision);
                         entries.add(new MemoryChildNodeEntry(name, child));
+                    } else if (reader.matches('[')) {
+                        while (reader.read() != ']') {
+                            // skip
+                        }
                     } else {
                         reader.read();
                     }
