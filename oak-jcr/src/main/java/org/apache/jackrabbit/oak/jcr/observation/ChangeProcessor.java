@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.jcr.observation;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -46,7 +45,6 @@ class ChangeProcessor implements Runnable {
     private final ChangeExtractor changeExtractor;
     private final EventListener listener;
     private final AtomicReference<ChangeFilter> filterRef;
-    private final CountDownLatch stopped = new CountDownLatch(1);
     private volatile boolean running;
     private volatile boolean stopping;
     private ScheduledFuture<?> future;
@@ -66,6 +64,7 @@ class ChangeProcessor implements Runnable {
     /**
      * Stop this change processor if running. After returning from this methods no further
      * events will be delivered.
+     * @throws IllegalStateException if not yet started or stopped already
      */
     public synchronized void stop() {
         if (future == null) {
@@ -75,11 +74,10 @@ class ChangeProcessor implements Runnable {
         try {
             stopping = true;
             future.cancel(true);
-            if (running) {
-                stopped.await();
+            while (running) {
+                wait();
             }
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
         finally {
@@ -96,6 +94,7 @@ class ChangeProcessor implements Runnable {
         if (future != null) {
             throw new IllegalStateException("Change processor started already");
         }
+        stopping = false;
         future = executor.scheduleWithFixedDelay(this, 100, 1000, TimeUnit.MILLISECONDS);
     }
 
@@ -108,11 +107,11 @@ class ChangeProcessor implements Runnable {
             if (!stopping) {
                 diff.sendEvents();
             }
-        } finally{
-            if (stopping) {
-                stopped.countDown();
+        } finally {
+            synchronized (this) {
+                running = false;
+                notifyAll();
             }
-            running = false;
         }
     }
 
