@@ -65,19 +65,25 @@ class ChangeProcessor implements Runnable {
 
     /**
      * Stop this change processor if running. After returning from this methods no further
-     * events will be delivered. This method has no effect if the change processor is not running.
-     * A change processor is running while execution is inside its {@code run()} method.
+     * events will be delivered.
      */
     public synchronized void stop() {
-        if (running) {
-            try {
-                stopping = true;
-                future.cancel(true);
+        if (future == null) {
+            throw new IllegalStateException("Change processor not started");
+        }
+
+        try {
+            stopping = true;
+            future.cancel(true);
+            if (running) {
                 stopped.await();
             }
-            catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
+        }
+        catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        finally {
+            future = null;
         }
     }
 
@@ -96,13 +102,18 @@ class ChangeProcessor implements Runnable {
     @Override
     public void run() {
         running = true;
-        EventGeneratingNodeStateDiff diff = new EventGeneratingNodeStateDiff();
-        changeExtractor.getChanges(diff);
-        if (!stopping) {
-            diff.sendEvents();
+        try{
+            EventGeneratingNodeStateDiff diff = new EventGeneratingNodeStateDiff();
+            changeExtractor.getChanges(diff);
+            if (!stopping) {
+                diff.sendEvents();
+            }
+        } finally{
+            if (stopping) {
+                stopped.countDown();
+            }
+            running = false;
         }
-        stopped.countDown();
-        running = false;
     }
 
     //------------------------------------------------------------< private >---
