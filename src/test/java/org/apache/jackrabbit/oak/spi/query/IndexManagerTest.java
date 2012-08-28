@@ -21,6 +21,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
@@ -33,6 +34,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
+import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -44,6 +46,7 @@ public class IndexManagerTest extends AbstractOakTest {
     protected ContentSession session;
     private CoreValueFactory vf;
     private final MicroKernel mk = new MicroKernelImpl();
+
     private Root root;
 
     @Override
@@ -68,12 +71,11 @@ public class IndexManagerTest extends AbstractOakTest {
         root.getTree("/").addChild("test").addChild(indexdef);
         root.commit(DefaultConflictHandler.OURS);
 
-        IndexManager im = new IndexManagerImpl("/test/" + indexdef, session, mk);
-        // setup index factory
-        im.registerIndexFactory(new TestIndexFactory());
-        im.init();
+        NodeState ns = new KernelNodeStore(mk).getRoot();
 
-        assertTrue(im.getIndexes().isEmpty());
+        IndexManager im = new IndexManagerImpl("/test/" + indexdef, mk,
+                new TestIndexFactory());
+        assertTrue(im.getIndexDefinitions(ns).isEmpty());
     }
 
     @Test
@@ -89,13 +91,13 @@ public class IndexManagerTest extends AbstractOakTest {
         def.setProperty("other", vf.createValue("other-value"));
         root.commit(DefaultConflictHandler.OURS);
 
-        IndexManager im = new IndexManagerImpl("/test/" + indexdef, session, mk);
-        // setup index factory
-        im.registerIndexFactory(new TestIndexFactory());
-        im.init();
+        NodeState ns = new KernelNodeStore(mk).getRoot();
 
-        assertEquals(1, im.getIndexes().size());
-        IndexDefinition id = im.getIndexes().iterator().next();
+        IndexManager im = new IndexManagerImpl("/test/" + indexdef, mk,
+                new TestIndexFactory());
+
+        assertEquals(1, im.getIndexDefinitions(ns).size());
+        IndexDefinition id = im.getIndexDefinitions(ns).iterator().next();
 
         assertEquals("a", id.getName());
         assertEquals("custom", id.getType());
@@ -114,29 +116,44 @@ public class IndexManagerTest extends AbstractOakTest {
         Tree def1 = test.addChild("a");
         def1.setProperty("type2", vf.createValue("custom"));
         root.commit(DefaultConflictHandler.OURS);
+        NodeState ns = new KernelNodeStore(mk).getRoot();
 
-        IndexManager im = new IndexManagerImpl("/test/" + indexdef, session, mk);
-        // setup index factory
-        im.registerIndexFactory(new TestIndexFactory());
-        im.init();
+        IndexManager im = new IndexManagerImpl("/test/" + indexdef, mk,
+                new TestIndexFactory());
 
-        assertTrue(im.getIndexes().isEmpty());
+        assertTrue(im.getIndexDefinitions(ns).isEmpty());
     }
 
     @Test
-    public void testUnknownDef() throws Exception {
+    public void testObservation() throws Exception {
+
         // setup index definitions
         String indexdef = "indexdefs" + System.currentTimeMillis();
+
         Tree test = root.getTree("/").addChild("test").addChild(indexdef);
-
-        Tree def1 = test.addChild("a");
-        def1.setProperty("type", vf.createValue("custom"));
         root.commit(DefaultConflictHandler.OURS);
+        NodeState ns = new KernelNodeStore(mk).getRoot();
 
-        IndexManager im = new IndexManagerImpl("/test/" + indexdef, session, mk);
-        im.init();
+        IndexManager im = new IndexManagerImpl("/test/" + indexdef, mk,
+                new TestIndexFactory());
+        assertEquals(0, im.getIndexDefinitions(ns).size());
 
-        assertTrue(im.getIndexes().isEmpty());
+        // bug OAK-283
+        test = root.getTree("/test/" + indexdef);
+
+        // add index def after the index manager has been init
+        Tree def = test.addChild("a");
+        def.setProperty("type", vf.createValue("custom"));
+        def.setProperty("other", vf.createValue("other-value"));
+        root.commit(DefaultConflictHandler.OURS);
+        ns = new KernelNodeStore(mk).getRoot();
+
+        assertEquals(1, im.getIndexDefinitions(ns).size());
+        IndexDefinition id = im.getIndexDefinitions(ns).iterator().next();
+        assertEquals("a", id.getName());
+        assertEquals("custom", id.getType());
+        assertNotNull(id.getProperties());
+        assertEquals("other-value", id.getProperties().get("other"));
     }
 
     /**
@@ -147,8 +164,8 @@ public class IndexManagerTest extends AbstractOakTest {
     private static class TestIndexFactory implements IndexFactory {
 
         @Override
-        public Index createIndex(IndexDefinition indexDefinition) {
-            return new TestIndex();
+        public Index getIndex(IndexDefinition indexDefinition) {
+            return new TestIndex(indexDefinition);
         }
 
         @Override
@@ -159,9 +176,26 @@ public class IndexManagerTest extends AbstractOakTest {
         @Override
         public void init(MicroKernel mk) {
         }
+
+        @Override
+        public String toString() {
+            return "TestIndexFactory [getTypes()="
+                    + Arrays.toString(getTypes()) + "]";
+        }
+
+        @Override
+        public void close() throws IOException {
+        }
+
     }
 
     private static class TestIndex implements Index {
+
+        private final IndexDefinition indexDefinition;
+
+        public TestIndex(IndexDefinition indexDefinition) {
+            this.indexDefinition = indexDefinition;
+        }
 
         @Override
         public NodeState editCommit(NodeStore store, NodeState before,
@@ -171,8 +205,7 @@ public class IndexManagerTest extends AbstractOakTest {
 
         @Override
         public IndexDefinition getDefinition() {
-            return new IndexDefinitionImpl("test", "custom", "/test", false,
-                    null);
+            return indexDefinition;
         }
 
         @Override
