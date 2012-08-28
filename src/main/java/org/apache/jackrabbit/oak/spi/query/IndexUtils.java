@@ -18,12 +18,14 @@ package org.apache.jackrabbit.oak.spi.query;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 public class IndexUtils {
 
@@ -32,24 +34,28 @@ public class IndexUtils {
      */
     public static final String DEFAULT_INDEX_HOME = "/oak-index";
 
-    public static IndexDefinition getDefs(String path, Tree tree) {
-        String name = tree.getName();
-        PropertyState typeProp = tree
-                .getProperty(IndexDefinition.TYPE_PROPERTY_NAME);
+    /**
+     * Builds an {@link IndexDefinition} out of a {@link ChildNodeEntry}
+     * 
+     */
+    public static IndexDefinition getDefinition(String path, ChildNodeEntry def) {
+        String name = def.getName();
+        PropertyState typeProp = def.getNodeState().getProperty(
+                IndexDefinition.TYPE_PROPERTY_NAME);
         if (typeProp == null || typeProp.isArray()) {
             return null;
         }
         String type = typeProp.getValue().getString();
 
         boolean unique = false;
-        PropertyState uniqueProp = tree
-                .getProperty(IndexDefinition.UNIQUE_PROPERTY_NAME);
+        PropertyState uniqueProp = def.getNodeState().getProperty(
+                IndexDefinition.UNIQUE_PROPERTY_NAME);
         if (uniqueProp != null && !uniqueProp.isArray()) {
             unique = uniqueProp.getValue().getBoolean();
         }
 
         Map<String, String> props = new HashMap<String, String>();
-        for (PropertyState ps : tree.getProperties()) {
+        for (PropertyState ps : def.getNodeState().getProperties()) {
             if (ps != null && !ps.isArray()) {
                 String v = ps.getValue().getString();
                 props.put(ps.getName(), v);
@@ -75,8 +81,25 @@ public class IndexUtils {
         if (append != null && append.trim().length() != 0) {
             paths.add(append);
         }
-
         return paths.toArray(new String[paths.size()]);
+    }
+
+    /**
+     * @return the 'destination' node if the path exists, null if otherwise
+     */
+    public static NodeState getNode(NodeState nodeState, String destination) {
+        NodeState retval = nodeState;
+        Iterator<String> pathIterator = PathUtils.elements(destination)
+                .iterator();
+        while (pathIterator.hasNext()) {
+            String path = pathIterator.next();
+            if (retval.hasChildNode(path)) {
+                retval = retval.getChildNode(path);
+            } else {
+                return null;
+            }
+        }
+        return retval;
     }
 
 }

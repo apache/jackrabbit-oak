@@ -17,9 +17,13 @@
 package org.apache.jackrabbit.oak.spi.query;
 
 import java.io.Closeable;
-import java.util.Set;
+import java.util.List;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+
+import org.apache.jackrabbit.oak.spi.commit.CommitEditor;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * <p>
@@ -32,28 +36,31 @@ import javax.annotation.Nonnull;
  * </p>
  * 
  * <p>
- * TODO It *should* define an API for managing indexes (CRUD ops)
- * </p>
- * 
- * <p>
  * TODO Document simple node properties to create an index type
  * </p>
  * </p>
  */
-public interface IndexManager extends Closeable {
+public interface IndexManager extends CommitEditor, Closeable {
+
+    void registerIndexFactory(IndexFactory... factory);
+
+    void unregisterIndexFactory(IndexFactory factory);
 
     /**
-     * Creates an index by passing the {@link IndexDefinition} to the registered
-     * {@link IndexFactory}(es)
-     * 
-     * @param indexDefinition
+     * @return the index with the given name
      */
-    void registerIndex(IndexDefinition... indexDefinition);
+    @CheckForNull
+    Index getIndex(String name, NodeState nodeState);
 
-    void registerIndexFactory(IndexFactory factory);
+    /**
+     * @return the index with the given definition
+     */
+    @CheckForNull
+    public Index getIndex(IndexDefinition definition);
 
-    void init();
-
+    /**
+     * @return the existing index definitions
+     */
     @Nonnull
-    Set<IndexDefinition> getIndexes();
+    List<IndexDefinition> getIndexDefinitions(NodeState nodeState);
 }

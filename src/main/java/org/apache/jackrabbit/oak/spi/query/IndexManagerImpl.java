@@ -18,122 +18,155 @@ package org.apache.jackrabbit.oak.spi.query;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.spi.commit.CommitEditor;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.ImmutableSet;
-
-public class IndexManagerImpl implements IndexManager {
-
-    // TODO implement an observation listener so that the {@link
-    // IndexManagerImpl} automatically creates new indexes based on new nodes
-    // added under {@link #indexConfigPath}
+public class IndexManagerImpl implements IndexManager, CommitEditor {
 
     private static final Logger LOG = LoggerFactory
             .getLogger(IndexManagerImpl.class);
 
     private final String indexConfigPath;
 
-    private final ContentSession session;
-
     private final MicroKernel mk;
 
-    private final Map<String, IndexFactory> indexFactories = new ConcurrentHashMap<String, IndexFactory>();
+    private final Map<IndexFactory, String[]> indexFactories = new ConcurrentHashMap<IndexFactory, String[]>();
 
-    private final Map<IndexDefinition, Index> indexes = new ConcurrentHashMap<IndexDefinition, Index>();
-
-    public IndexManagerImpl(String indexConfigPath, ContentSession session,
-            MicroKernel mk) {
+    public IndexManagerImpl(String indexConfigPath, MicroKernel mk,
+            IndexFactory... factories) {
         this.indexConfigPath = indexConfigPath;
-        this.session = session;
         this.mk = mk;
+        internalRegisterIndexFactory(factories);
     }
 
     @Override
-    public void registerIndexFactory(IndexFactory factory) {
-        factory.init(mk);
-        for (String type : factory.getTypes()) {
-            if (indexFactories.remove(type) != null) {
+    public void registerIndexFactory(IndexFactory... factories) {
+        internalRegisterIndexFactory(factories);
+    }
+
+    @Override
+    public void unregisterIndexFactory(IndexFactory factory) {
+        indexFactories.remove(factory);
+    }
+
+    private void internalRegisterIndexFactory(IndexFactory... factories) {
+        if (factories == null) {
+            return;
+        }
+        for (IndexFactory factory : factories) {
+            if (indexFactories.remove(factory) != null) {
                 // TODO is override allowed?
             }
-            indexFactories.put(type, factory);
+            factory.init(mk);
+            indexFactories.put(factory, factory.getTypes());
+            LOG.debug("Registered index factory {}.", factory);
         }
     }
 
-    @Override
-    public void init() {
-        //
-        // TODO hardwire default property indexes first ?
-        // registerIndexFactory(type, factory);
-        Tree definitions = session.getCurrentRoot().getTree(indexConfigPath);
+    /**
+     * Builds a list of the existing index definitions from the repository
+     * 
+     */
+    private static List<IndexDefinition> buildIndexDefinitions(boolean log,
+            NodeState nodeState, String indexConfigPath) {
+
+        NodeState definitions = IndexUtils.getNode(nodeState, indexConfigPath);
         if (definitions == null) {
-            return;
+            return Collections.emptyList();
         }
 
         List<IndexDefinition> defs = new ArrayList<IndexDefinition>();
-        for (Tree c : definitions.getChildren()) {
-            IndexDefinition def = IndexUtils.getDefs(indexConfigPath, c);
+        for (ChildNodeEntry c : definitions.getChildNodeEntries()) {
+            IndexDefinition def = IndexUtils.getDefinition(indexConfigPath, c);
             if (def == null) {
-                LOG.warn("Skipping illegal index definition name {} @ {}",
-                        c.getName(), indexConfigPath);
-                continue;
-            }
-            if (indexes.get(def.getName()) != null) {
-                LOG.warn("Skipping existing index definition name {} @ {}",
-                        c.getName(), indexConfigPath);
+                if (log) {
+                    LOG.warn("Skipping illegal index definition name {} @ {}",
+                            c.getName(), indexConfigPath);
+                }
                 continue;
             }
             defs.add(def);
         }
-        registerIndex(defs.toArray(new IndexDefinition[defs.size()]));
+        return defs;
     }
 
     @Override
-    public void registerIndex(IndexDefinition... indexDefinition) {
-        for (IndexDefinition def : indexDefinition) {
-            if (def == null) {
-                continue;
-            }
-            IndexFactory f = indexFactories.get(def.getType());
-            if (f == null) {
-                LOG.warn(
-                        "Skipping unknown index definition type {}, name {} @ {}",
-                        new String[] { def.getType(), indexConfigPath,
-                                def.getName() });
-                continue;
-            }
-            Index index = f.createIndex(def);
-            if (index != null) {
-                indexes.put(def, index);
+    public Index getIndex(String name, NodeState nodeState) {
+        if (name == null) {
+            return null;
+        }
+        IndexDefinition id = null;
+        for (IndexDefinition def : getIndexDefinitions(nodeState)) {
+            if (name.equals(def.getName())) {
+                id = def;
+                break;
             }
         }
+        return getIndex(id);
     }
 
     @Override
-    public Set<IndexDefinition> getIndexes() {
-        return ImmutableSet.copyOf(indexes.keySet());
+    public Index getIndex(IndexDefinition def) {
+        if (def == null) {
+            return null;
+        }
+        Iterator<IndexFactory> iterator = indexFactories.keySet().iterator();
+        while (iterator.hasNext()) {
+            IndexFactory factory = iterator.next();
+            for (String type : factory.getTypes()) {
+                if (type != null && type.equals(def.getType())) {
+                    return factory.getIndex(def);
+                }
+            }
+        }
+        LOG.debug("Index definition {} doesn't have a known factory.", def);
+        return null;
+    }
+
+    @Override
+    public List<IndexDefinition> getIndexDefinitions(NodeState nodeState) {
+        return buildIndexDefinitions(true, nodeState, indexConfigPath);
     }
 
     @Override
     public synchronized void close() throws IOException {
-        Iterator<IndexDefinition> iterator = indexes.keySet().iterator();
+        Iterator<IndexFactory> iterator = indexFactories.keySet().iterator();
         while (iterator.hasNext()) {
-            IndexDefinition id = iterator.next();
+            IndexFactory factory = iterator.next();
             try {
-                indexes.get(id).close();
+                factory.close();
             } catch (IOException e) {
-                LOG.error("error closing index {}", id.getName(), e);
+                LOG.error("error closing index factory {}", factory, e);
             }
             iterator.remove();
         }
+    }
+
+    @Override
+    public NodeState editCommit(NodeStore store, NodeState before,
+            NodeState after) throws CommitFailedException {
+
+        NodeState newState = after;
+        for (IndexDefinition def : buildIndexDefinitions(true, after,
+                indexConfigPath)) {
+            Index index = getIndex(def);
+            if (index == null) {
+                continue;
+            }
+            newState = index.editCommit(store, before, newState);
+        }
+        return newState;
     }
 }

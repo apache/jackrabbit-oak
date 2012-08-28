@@ -16,14 +16,26 @@
  */
 package org.apache.jackrabbit.oak.plugins.lucene;
 
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.spi.query.Index;
 import org.apache.jackrabbit.oak.spi.query.IndexDefinition;
 import org.apache.jackrabbit.oak.spi.query.IndexFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class LuceneIndexFactory implements IndexFactory {
 
+    private static final Logger LOG = LoggerFactory
+            .getLogger(LuceneIndexFactory.class);
+
     public static final String TYPE = "lucene";
+
+    private final ConcurrentHashMap<IndexDefinition, Index> indexes = new ConcurrentHashMap<IndexDefinition, Index>();
 
     @Override
     public void init(MicroKernel mk) {
@@ -36,8 +48,32 @@ public class LuceneIndexFactory implements IndexFactory {
     }
 
     @Override
-    public Index createIndex(IndexDefinition indexDefinition) {
-        return new LuceneEditor(indexDefinition);
+    public void close() throws IOException {
+        Iterator<IndexDefinition> iterator = indexes.keySet().iterator();
+        while (iterator.hasNext()) {
+            IndexDefinition id = iterator.next();
+            try {
+                indexes.get(id).close();
+            } catch (IOException e) {
+                LOG.error("Error closing index {}.", id.getName(), e);
+            }
+            iterator.remove();
+        }
     }
 
+    @Override
+    public Index getIndex(IndexDefinition indexDefinition) {
+        Index index = indexes.get(indexDefinition);
+        if (index == null) {
+            index = new LuceneEditor(indexDefinition);
+            indexes.put(indexDefinition, index);
+        }
+        return index;
+    }
+
+    @Override
+    public String toString() {
+        return "LuceneIndexFactory [getTypes()=" + Arrays.toString(getTypes())
+                + "]";
+    }
 }
