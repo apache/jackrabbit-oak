@@ -78,7 +78,7 @@ public class RootImpl implements Root {
     private int modCount;
 
     /**
-     * Listeners which needs to be modified as soon as {@link #purgePendingChanges()}
+     * Listeners which needs to be notified as soon as {@link #purgePendingChanges()}
      * is called. Listeners are removed from this list after being called. If further
      * notifications are required, they need to explicitly re-register.
      *
