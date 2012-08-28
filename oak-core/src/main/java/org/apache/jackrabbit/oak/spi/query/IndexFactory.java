@@ -16,12 +16,14 @@
  */
 package org.apache.jackrabbit.oak.spi.query;
 
+import java.io.Closeable;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 
-public interface IndexFactory {
+public interface IndexFactory extends Closeable {
 
     /**
      * initializes the provided factory
@@ -39,6 +41,6 @@ public interface IndexFactory {
      * @return
      */
     @CheckForNull
-    Index createIndex(IndexDefinition indexDefinition);
+    Index getIndex(IndexDefinition indexDefinition);
 
 }

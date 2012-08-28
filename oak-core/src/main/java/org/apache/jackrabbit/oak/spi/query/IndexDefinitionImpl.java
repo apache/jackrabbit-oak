@@ -66,11 +66,21 @@ public class IndexDefinitionImpl implements IndexDefinition {
     }
 
     @Override
+    public String toString() {
+        return "IndexDefinitionImpl [name=" + name + ", type=" + type
+                + ", path=" + path + ", unique=" + unique + ", properties="
+                + properties + "]";
+    }
+
+    @Override
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        result = prime * result + ((path == null) ? 0 : path.hashCode());
+        result = prime * result + ((name == null) ? 0 : name.hashCode());
+        result = prime * result
+                + ((properties == null) ? 0 : properties.hashCode());
         result = prime * result + ((type == null) ? 0 : type.hashCode());
+        result = prime * result + (unique ? 1231 : 1237);
         return result;
     }
 
@@ -83,17 +93,23 @@ public class IndexDefinitionImpl implements IndexDefinition {
         if (getClass() != obj.getClass())
             return false;
         IndexDefinitionImpl other = (IndexDefinitionImpl) obj;
-        if (path == null) {
-            if (other.path != null)
+        if (name == null) {
+            if (other.name != null)
                 return false;
-        } else if (!path.equals(other.path))
+        } else if (!name.equals(other.name))
+            return false;
+        if (properties == null) {
+            if (other.properties != null)
+                return false;
+        } else if (!properties.equals(other.properties))
             return false;
         if (type == null) {
             if (other.type != null)
                 return false;
         } else if (!type.equals(other.type))
             return false;
+        if (unique != other.unique)
+            return false;
         return true;
     }
-
 }
