@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.kernel;
 import static org.apache.jackrabbit.oak.kernel.CoreValueMapper.fromJsopReader;
 import static org.apache.jackrabbit.oak.kernel.CoreValueMapper.listFromJsopReader;
 
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -124,6 +125,10 @@ public final class KernelNodeState extends AbstractNodeState {
             } while (reader.matches(','));
             reader.read('}');
             reader.read(JsopReader.END);
+            // optimize for empty childNodes
+            if (childNodes.isEmpty()) {
+                childNodes = Collections.emptyMap();
+            }
         }
     }
 
