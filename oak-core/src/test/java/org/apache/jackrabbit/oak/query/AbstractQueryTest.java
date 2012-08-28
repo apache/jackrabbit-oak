@@ -16,44 +16,37 @@
  */
 package org.apache.jackrabbit.oak.query;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
-import org.apache.jackrabbit.oak.AbstractOakTest;
-import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.mk.index.IndexWrapper;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.SessionQueryEngine;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
-import org.apache.jackrabbit.oak.plugins.index.PropertyIndexFactory;
-import org.apache.jackrabbit.oak.spi.query.IndexManager;
-import org.apache.jackrabbit.oak.spi.query.IndexManagerImpl;
-import org.apache.jackrabbit.oak.spi.query.IndexUtils;
-import org.junit.Before;
+import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
+
+import javax.jcr.GuestCredentials;
 
 /**
  * AbstractQueryTest...
  */
-public abstract class AbstractQueryTest extends AbstractOakTest {
+public abstract class AbstractQueryTest {
 
-    protected MicroKernel mk;
-    protected ContentSession session;
-    protected CoreValueFactory vf;
-    protected SessionQueryEngine qe;
+    protected final IndexWrapper mk;
+    protected final ContentRepositoryImpl rep;
+    protected final CoreValueFactory vf;
+    protected final SessionQueryEngine qe;
+    protected final ContentSession session;
 
-    @Override
-    protected ContentRepository createRepository() {
-        mk = new MicroKernelImpl();
-        IndexManager im = new IndexManagerImpl(IndexUtils.DEFAULT_INDEX_HOME,
-                mk, new PropertyIndexFactory());
-        return new ContentRepositoryImpl(mk, null, im);
-    }
-
-    @Before
-    public void before() throws Exception {
-        super.before();
-        session = createGuestSession();
-        vf = session.getCoreValueFactory();
-        qe = session.getQueryEngine();
+    {
+        mk = new IndexWrapper(new MicroKernelImpl());
+        rep = new ContentRepositoryImpl(mk, null, (ValidatorProvider) null);
+        try {
+            session = rep.login(new GuestCredentials(), "default");
+            vf = session.getCoreValueFactory();
+            qe = session.getQueryEngine();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
 }
