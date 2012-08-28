@@ -16,10 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.lucene;
 
+import static org.apache.jackrabbit.oak.plugins.lucene.LuceneIndexUtils.DEFAULT_INDEX_NAME;
+import static org.apache.jackrabbit.oak.plugins.lucene.LuceneIndexUtils.createIndexNode;
+import static org.apache.jackrabbit.oak.spi.query.IndexUtils.DEFAULT_INDEX_HOME;
+
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.AbstractOakTest;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -32,6 +37,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
+import org.apache.jackrabbit.oak.plugins.index.PropertyIndexFactory;
 import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.type.DefaultTypeEditor;
@@ -42,11 +48,10 @@ import org.apache.jackrabbit.oak.spi.commit.CompositeEditor;
 import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
 import org.apache.jackrabbit.oak.spi.commit.ValidatingEditor;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
+import org.apache.jackrabbit.oak.spi.query.IndexManager;
+import org.apache.jackrabbit.oak.spi.query.IndexManagerImpl;
+import org.apache.jackrabbit.oak.spi.query.IndexUtils;
 import org.junit.Before;
-
-import static org.apache.jackrabbit.oak.spi.query.IndexUtils.DEFAULT_INDEX_HOME;
-import static org.apache.jackrabbit.oak.plugins.lucene.LuceneIndexUtils.DEFAULT_INDEX_NAME;
-import static org.apache.jackrabbit.oak.plugins.lucene.LuceneIndexUtils.createIndexNode;
 
 /**
  * base class for lucene search tests
@@ -57,6 +62,7 @@ public abstract class AbstractLuceneQueryTest extends AbstractOakTest {
 
     private static final String TEST_INDEX_NAME = DEFAULT_INDEX_NAME;
 
+    protected MicroKernel mk;
     protected ContentSession session;
     protected CoreValueFactory vf;
     protected SessionQueryEngine qe;
@@ -75,16 +81,19 @@ public abstract class AbstractLuceneQueryTest extends AbstractOakTest {
 
     @Override
     protected ContentRepository createRepository() {
-        return new ContentRepositoryImpl(new MicroKernelImpl(),
-                new LuceneIndexProvider(DEFAULT_INDEX_HOME),
-                buildDefaultCommitEditor());
+        mk = new MicroKernelImpl();
+        return new ContentRepositoryImpl(mk, new LuceneIndexProvider(
+                DEFAULT_INDEX_HOME), buildDefaultCommitEditor());
     }
 
-    private static CommitEditor buildDefaultCommitEditor() {
+    private CommitEditor buildDefaultCommitEditor() {
+        IndexManager im = new IndexManagerImpl(IndexUtils.DEFAULT_INDEX_HOME,
+                mk, new PropertyIndexFactory(), new LuceneIndexFactory());
+
         List<CommitEditor> editors = new ArrayList<CommitEditor>();
         editors.add(new DefaultTypeEditor());
         editors.add(new ValidatingEditor(createDefaultValidatorProvider()));
-        editors.add(new LuceneEditor());
+        editors.add(im);
         return new CompositeEditor(editors);
     }
 
