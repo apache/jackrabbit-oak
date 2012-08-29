@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import static org.apache.jackrabbit.oak.jcr.RepositoryTestUtils.buildDefaultCommitEditor;
-
 import java.io.IOException;
 import java.security.Principal;
 import java.util.Properties;
@@ -37,6 +35,8 @@ import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.apache.jackrabbit.test.RepositoryStub;
 
+import static org.apache.jackrabbit.oak.jcr.RepositoryTestUtils.buildDefaultCommitHook;
+
 public class OakRepositoryStub extends RepositoryStub {
 
     private final Repository repository;
@@ -52,7 +52,7 @@ public class OakRepositoryStub extends RepositoryStub {
         super(settings);
 
         MicroKernel microkernel = new MicroKernelImpl("target/mk-tck-" + System.currentTimeMillis());
-        ContentRepository contentRepository = new ContentRepositoryImpl(microkernel, null, buildDefaultCommitEditor());
+        ContentRepository contentRepository = new ContentRepositoryImpl(microkernel, null, buildDefaultCommitHook());
         repository = new RepositoryImpl(contentRepository, Executors.newScheduledThreadPool(1));
 
         Session session = repository.login(superuser);
@@ -87,7 +87,7 @@ public class OakRepositoryStub extends RepositoryStub {
         throw new UnsupportedRepositoryOperationException();
     }
 
-    private static Principal UNKNOWN_PRINCIPAL = new Principal() {
+    private static final Principal UNKNOWN_PRINCIPAL = new Principal() {
         @Override
         public String getName() {
             return "an_unknown_user";

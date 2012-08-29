@@ -26,9 +26,9 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.plugins.type.DefaultTypeEditor;
-import org.apache.jackrabbit.oak.spi.commit.CommitEditor;
-import org.apache.jackrabbit.oak.spi.commit.CompositeEditor;
-import org.apache.jackrabbit.oak.spi.commit.ValidatingEditor;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
+import org.apache.jackrabbit.oak.spi.commit.ValidatingHook;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
@@ -77,16 +77,16 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
     public Object addingService(ServiceReference reference) {
         Object service = context.getService(reference);
         if (service instanceof MicroKernel) {
-            List<CommitEditor> editors = new ArrayList<CommitEditor>();
-            editors.add(new DefaultTypeEditor());
-            editors.add(new ValidatingEditor(validatorProvider));
-            // editors.add(new LuceneEditor());
+            List<CommitHook> hooks = new ArrayList<CommitHook>();
+            hooks.add(new DefaultTypeEditor());
+            hooks.add(new ValidatingHook(validatorProvider));
+            // hooks.add(new LuceneEditor());
 
             MicroKernel kernel = (MicroKernel) service;
             services.put(reference, context.registerService(
                     ContentRepository.class.getName(),
                     new ContentRepositoryImpl(
-                            kernel, indexProvider, new CompositeEditor(editors)),
+                            kernel, indexProvider, new CompositeHook(hooks)),
                     new Properties()));
             return service;
         } else {

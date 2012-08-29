@@ -31,9 +31,9 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeValidatorProvider;
 import org.apache.jackrabbit.oak.security.user.UserValidatorProvider;
-import org.apache.jackrabbit.oak.spi.commit.CommitEditor;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
-import org.apache.jackrabbit.oak.spi.commit.ValidatingEditor;
+import org.apache.jackrabbit.oak.spi.commit.ValidatingHook;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContext;
 import org.apache.jackrabbit.oak.spi.security.authorization.CompiledPermissions;
@@ -63,7 +63,7 @@ public class RootImpl implements Root {
     private final AccessControlContext accessControlContext;
     private CompiledPermissions permissions;
 
-    private final CommitEditor commitEditor;
+    private final CommitHook commitHook;
 
     /** Current branch this root operates on */
     private NodeStoreBranch branch;
@@ -107,7 +107,7 @@ public class RootImpl implements Root {
     public RootImpl(NodeStore store, String workspaceName, AccessControlContext accessControlContext) {
         this.store = store;
         this.accessControlContext = accessControlContext;
-        this.commitEditor = createCommitEditor();
+        this.commitHook = createCommitHook();
         refresh();
     }
 
@@ -172,7 +172,7 @@ public class RootImpl implements Root {
     public void commit(ConflictHandler conflictHandler) throws CommitFailedException {
         rebase(conflictHandler);
         purgePendingChanges();
-        branch.merge(commitEditor);
+        branch.merge(commitHook);
         refresh();
     }
 
@@ -253,7 +253,7 @@ public class RootImpl implements Root {
         }
     }
 
-    private CommitEditor createCommitEditor() {
+    private CommitHook createCommitHook() {
         CoreValueFactory valueFactory = store.getValueFactory();
         List<ValidatorProvider> providers = new ArrayList<ValidatorProvider>();
 
@@ -265,6 +265,6 @@ public class RootImpl implements Root {
         providers.add(new UserValidatorProvider(valueFactory, new UserConfig("admin")));
         providers.add(new PrivilegeValidatorProvider(valueFactory));
 
-        return new ValidatingEditor(new CompositeValidatorProvider(providers));
+        return new ValidatingHook(new CompositeValidatorProvider(providers));
     }
 }

@@ -16,18 +16,18 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
-import javax.annotation.Nonnull;
-
 /**
  * Extension point for validating and modifying content changes. Available
- * commit editors are called in sequence to process incoming content changes
+ * commit hooks are called in sequence to process incoming content changes
  * before they get persisted and shared with other clients.
  * <p>
- * A commit editor can throw a {@link CommitFailedException} for a particular
+ * A commit hook can throw a {@link CommitFailedException} for a particular
  * change to prevent it from being persisted, or it can modify the changes
  * for example to update an in-content index or to add auto-generated content.
  * <p>
@@ -35,7 +35,7 @@ import javax.annotation.Nonnull;
  * editors and validators are better expressed as implementations of the
  * more specific extension interfaces defined in this package.
  */
-public interface CommitEditor {
+public interface CommitHook {
 
     /**
      * Validates and/or modifies the given content change before it gets
@@ -48,7 +48,7 @@ public interface CommitEditor {
      * @throws CommitFailedException if the commit should be rejected
      */
     @Nonnull
-    NodeState editCommit(NodeStore store, NodeState before, NodeState after)
+    NodeState processCommit(NodeStore store, NodeState before, NodeState after)
         throws CommitFailedException;
 
 }

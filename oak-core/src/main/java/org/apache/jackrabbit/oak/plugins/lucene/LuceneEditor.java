@@ -16,14 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.lucene;
 
-import static org.apache.jackrabbit.oak.plugins.lucene.FieldFactory.newPathField;
-import static org.apache.jackrabbit.oak.plugins.lucene.FieldFactory.newPropertyField;
-import static org.apache.jackrabbit.oak.spi.query.IndexUtils.DEFAULT_INDEX_HOME;
-import static org.apache.jackrabbit.oak.plugins.lucene.LuceneIndexUtils.DEFAULT_INDEX_NAME;
-import static org.apache.jackrabbit.oak.plugins.lucene.LuceneIndexUtils.INDEX_DATA_CHILD_NAME;
-import static org.apache.jackrabbit.oak.plugins.lucene.TermFactory.newPathTerm;
-import static org.apache.jackrabbit.oak.spi.query.IndexUtils.split;
-
 import java.io.IOException;
 
 import javax.jcr.PropertyType;
@@ -32,7 +24,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.spi.commit.CommitEditor;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.query.Index;
 import org.apache.jackrabbit.oak.spi.query.IndexDefinition;
 import org.apache.jackrabbit.oak.spi.query.IndexDefinitionImpl;
@@ -50,10 +42,18 @@ import org.apache.lucene.util.Version;
 import org.apache.tika.Tika;
 import org.apache.tika.exception.TikaException;
 
+import static org.apache.jackrabbit.oak.plugins.lucene.FieldFactory.newPathField;
+import static org.apache.jackrabbit.oak.plugins.lucene.FieldFactory.newPropertyField;
+import static org.apache.jackrabbit.oak.plugins.lucene.LuceneIndexUtils.DEFAULT_INDEX_NAME;
+import static org.apache.jackrabbit.oak.plugins.lucene.LuceneIndexUtils.INDEX_DATA_CHILD_NAME;
+import static org.apache.jackrabbit.oak.plugins.lucene.TermFactory.newPathTerm;
+import static org.apache.jackrabbit.oak.spi.query.IndexUtils.DEFAULT_INDEX_HOME;
+import static org.apache.jackrabbit.oak.spi.query.IndexUtils.split;
+
 /**
  * This class updates a Lucene index when node content is changed.
  */
-public class LuceneEditor implements CommitEditor, Index {
+public class LuceneEditor implements CommitHook, Index {
 
     private static final Tika TIKA = new Tika();
 
@@ -94,7 +94,7 @@ public class LuceneEditor implements CommitEditor, Index {
     }
 
     @Override
-    public NodeState editCommit(NodeStore store, NodeState before,
+    public NodeState processCommit(NodeStore store, NodeState before,
             NodeState after) throws CommitFailedException {
         try {
             OakDirectory directory = new OakDirectory(store, after, path);

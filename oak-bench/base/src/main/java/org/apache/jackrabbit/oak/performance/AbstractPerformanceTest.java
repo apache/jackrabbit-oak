@@ -37,7 +37,7 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.jcr.RepositoryImpl;
 import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
-import org.apache.jackrabbit.oak.spi.commit.ValidatingEditor;
+import org.apache.jackrabbit.oak.spi.commit.ValidatingHook;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 
 /**
@@ -175,7 +175,7 @@ public abstract class AbstractPerformanceTest {
         // return new RepositoryImpl();
 
         mk = new IndexWrapper(mk);
-        ValidatingEditor ve =  new ValidatingEditor(
+        ValidatingHook ve =  new ValidatingHook(
                 new CompositeValidatorProvider(Collections.<ValidatorProvider>emptyList()));
         ContentRepository contentRepository = new ContentRepositoryImpl(mk, null, ve);
         return new RepositoryImpl(contentRepository, null);

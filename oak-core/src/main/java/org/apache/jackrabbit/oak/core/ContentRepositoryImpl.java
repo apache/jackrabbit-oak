@@ -26,17 +26,17 @@ import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
-import org.apache.jackrabbit.oak.plugins.index.Indexer;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
+import org.apache.jackrabbit.oak.plugins.index.Indexer;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
 import org.apache.jackrabbit.oak.security.authentication.LoginContextProviderImpl;
 import org.apache.jackrabbit.oak.security.authorization.AccessControlContextImpl;
 import org.apache.jackrabbit.oak.spi.QueryIndexProvider;
-import org.apache.jackrabbit.oak.spi.commit.CommitEditor;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
-import org.apache.jackrabbit.oak.spi.commit.ValidatingEditor;
+import org.apache.jackrabbit.oak.spi.commit.ValidatingHook;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContext;
@@ -67,7 +67,7 @@ public class ContentRepositoryImpl implements ContentRepository {
      * test cases only.
      */
     public ContentRepositoryImpl() {
-        this(new MicroKernelImpl(), null, new ValidatingEditor(
+        this(new MicroKernelImpl(), null, new ValidatingHook(
                 new CompositeValidatorProvider(
                         Collections.<ValidatorProvider> emptyList())));
         // this(new IndexWrapper(new MicroKernelImpl()), null, null);
@@ -89,7 +89,7 @@ public class ContentRepositoryImpl implements ContentRepository {
     public ContentRepositoryImpl(MicroKernel microKernel,
             QueryIndexProvider indexProvider,
             ValidatorProvider validatorProvider) {
-        this(microKernel, indexProvider, new ValidatingEditor(
+        this(microKernel, indexProvider, new ValidatingHook(
                 validatorProvider != null ? validatorProvider
                         : new CompositeValidatorProvider(
                                 Collections.<ValidatorProvider> emptyList())));
@@ -101,13 +101,13 @@ public class ContentRepositoryImpl implements ContentRepository {
      *
      * @param microKernel underlying kernel instance
      * @param indexProvider index provider
-     * @param commitEditor the commit editor
+     * @param commitHook the commit hook
      */
     public ContentRepositoryImpl(MicroKernel microKernel, QueryIndexProvider indexProvider,
-                                 CommitEditor commitEditor) {
+                                 CommitHook commitHook) {
 
         nodeStore = new KernelNodeStore(microKernel);
-        nodeStore.setEditor(commitEditor);
+        nodeStore.setHook(commitHook);
 
         QueryIndexProvider qip = (indexProvider == null) ? getDefaultIndexProvider(microKernel) : indexProvider;
         queryEngine = new QueryEngineImpl(nodeStore, microKernel, qip);

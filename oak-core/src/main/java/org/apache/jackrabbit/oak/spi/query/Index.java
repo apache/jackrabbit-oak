@@ -20,14 +20,14 @@ import java.io.Closeable;
 
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.spi.commit.CommitEditor;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 
 /**
  * An index is a lookup mechanism. It typically uses a tree to store data. It
  * updates the tree whenever a node was changed. The index is updated
  * automatically.
  */
-public interface Index extends CommitEditor, Closeable {
+public interface Index extends CommitHook, Closeable {
 
     /**
      * Get the the index definition. This contains the name, type, uniqueness

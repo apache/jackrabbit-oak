@@ -25,20 +25,23 @@ import org.apache.jackrabbit.oak.plugins.name.NamespaceValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.type.DefaultTypeEditor;
 import org.apache.jackrabbit.oak.plugins.type.TypeValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.value.ConflictValidatorProvider;
-import org.apache.jackrabbit.oak.spi.commit.CommitEditor;
-import org.apache.jackrabbit.oak.spi.commit.CompositeEditor;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
-import org.apache.jackrabbit.oak.spi.commit.ValidatingEditor;
+import org.apache.jackrabbit.oak.spi.commit.ValidatingHook;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 
 public class RepositoryTestUtils {
 
-    public static CommitEditor buildDefaultCommitEditor() {
-        List<CommitEditor> editors = new ArrayList<CommitEditor>();
-        editors.add(new DefaultTypeEditor());
-        editors.add(new ValidatingEditor(createDefaultValidatorProvider()));
-        editors.add(new LuceneEditor());
-        return new CompositeEditor(editors);
+    private RepositoryTestUtils() {
+    }
+
+    public static CommitHook buildDefaultCommitHook() {
+        List<CommitHook> hooks = new ArrayList<CommitHook>();
+        hooks.add(new DefaultTypeEditor());
+        hooks.add(new ValidatingHook(createDefaultValidatorProvider()));
+        hooks.add(new LuceneEditor());
+        return new CompositeHook(hooks);
     }
 
     private static ValidatorProvider createDefaultValidatorProvider() {

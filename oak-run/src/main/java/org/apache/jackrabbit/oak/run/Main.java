@@ -36,10 +36,10 @@ import org.apache.jackrabbit.oak.plugins.name.NamespaceValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.type.DefaultTypeEditor;
 import org.apache.jackrabbit.oak.plugins.type.TypeValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.value.ConflictValidatorProvider;
-import org.apache.jackrabbit.oak.spi.commit.CommitEditor;
-import org.apache.jackrabbit.oak.spi.commit.CompositeEditor;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
-import org.apache.jackrabbit.oak.spi.commit.ValidatingEditor;
+import org.apache.jackrabbit.oak.spi.commit.ValidatingHook;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.webdav.jcr.JCRWebdavServerServlet;
 import org.apache.jackrabbit.webdav.simple.SimpleWebdavServlet;
@@ -51,6 +51,9 @@ public class Main {
 
     public static final int PORT = 8080;
     public static final String URI = "http://localhost:" + PORT + "/";
+
+    private Main() {
+    }
 
     public static void main(String[] args) throws Exception {
         printProductInfo();
@@ -101,7 +104,7 @@ public class Main {
 
         private final MicroKernel[] kernels;
 
-        public HttpServer(String uri, String args[]) {
+        public HttpServer(String uri, String[] args) {
             context = new ServletContextHandler(ServletContextHandler.SECURITY);
             context.setContextPath("/");
 
@@ -144,7 +147,7 @@ public class Main {
 
         private void addServlets(MicroKernel kernel, String path) {
             ContentRepository repository =
-                    new ContentRepositoryImpl(kernel, null, buildDefaultCommitEditor());
+                    new ContentRepositoryImpl(kernel, null, buildDefaultCommitHook());
 
             ServletHolder oak =
                     new ServletHolder(new OakServlet(repository));
@@ -184,12 +187,12 @@ public class Main {
             context.addServlet(davex, path + "/davex/*");
         }
 
-        private static CommitEditor buildDefaultCommitEditor() {
-            List<CommitEditor> editors = new ArrayList<CommitEditor>();
-            editors.add(new DefaultTypeEditor());
-            editors.add(new ValidatingEditor(createDefaultValidatorProvider()));
-            editors.add(new LuceneEditor());
-            return new CompositeEditor(editors);
+        private static CommitHook buildDefaultCommitHook() {
+            List<CommitHook> hooks = new ArrayList<CommitHook>();
+            hooks.add(new DefaultTypeEditor());
+            hooks.add(new ValidatingHook(createDefaultValidatorProvider()));
+            hooks.add(new LuceneEditor());
+            return new CompositeHook(hooks);
         }
 
         private static ValidatorProvider createDefaultValidatorProvider() {
