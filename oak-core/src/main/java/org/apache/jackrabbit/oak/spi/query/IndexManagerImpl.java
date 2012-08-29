@@ -26,14 +26,14 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.spi.commit.CommitEditor;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class IndexManagerImpl implements IndexManager, CommitEditor {
+public class IndexManagerImpl implements IndexManager, CommitHook {
 
     private static final Logger LOG = LoggerFactory
             .getLogger(IndexManagerImpl.class);
@@ -155,7 +155,7 @@ public class IndexManagerImpl implements IndexManager, CommitEditor {
     }
 
     @Override
-    public NodeState editCommit(NodeStore store, NodeState before,
+    public NodeState processCommit(NodeStore store, NodeState before,
             NodeState after) throws CommitFailedException {
 
         NodeState newState = after;
@@ -165,7 +165,7 @@ public class IndexManagerImpl implements IndexManager, CommitEditor {
             if (index == null) {
                 continue;
             }
-            newState = index.editCommit(store, before, newState);
+            newState = index.processCommit(store, before, newState);
         }
         return newState;
     }

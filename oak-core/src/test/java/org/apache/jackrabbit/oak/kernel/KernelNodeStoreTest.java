@@ -23,8 +23,8 @@ import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
-import org.apache.jackrabbit.oak.spi.commit.CommitEditor;
-import org.apache.jackrabbit.oak.spi.commit.EmptyEditor;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -105,7 +105,7 @@ public class KernelNodeStoreTest {
         assertNull(testState.getChildNode("newNode"));
         assertNotNull(testState.getChildNode("x"));
 
-        branch.merge(EmptyEditor.INSTANCE);
+        branch.merge(EmptyHook.INSTANCE);
 
         // Assert changes are present in the trunk
         testState = store.getRoot().getChildNode("test");
@@ -140,7 +140,7 @@ public class KernelNodeStoreTest {
 
         NodeStoreBranch branch = store.branch();
         branch.setRoot(newRoot);
-        branch.merge(EmptyEditor.INSTANCE);
+        branch.merge(EmptyHook.INSTANCE);
         store.getRoot(); // triggers the observer
 
         NodeState before = states[0];
@@ -157,9 +157,9 @@ public class KernelNodeStoreTest {
 
     @Test
     public void beforeCommitHook() throws CommitFailedException {
-        store.setEditor(new CommitEditor() {
+        store.setHook(new CommitHook() {
             @Override
-            public NodeState editCommit(
+            public NodeState processCommit(
                     NodeStore store, NodeState before, NodeState after) {
                 NodeBuilder rootBuilder = store.getBuilder(after);
                 NodeBuilder testBuilder = store.getBuilder(after.getChildNode("test"));
@@ -183,7 +183,7 @@ public class KernelNodeStoreTest {
 
         NodeStoreBranch branch = store.branch();
         branch.setRoot(newRoot);
-        branch.merge(EmptyEditor.INSTANCE);
+        branch.merge(EmptyHook.INSTANCE);
 
         NodeState test = store.getRoot().getChildNode("test");
         assertNotNull(test.getChildNode("newNode"));

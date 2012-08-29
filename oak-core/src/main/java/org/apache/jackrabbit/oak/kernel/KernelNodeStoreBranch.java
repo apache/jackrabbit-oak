@@ -19,8 +19,8 @@ package org.apache.jackrabbit.oak.kernel;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.spi.commit.CommitEditor;
-import org.apache.jackrabbit.oak.spi.commit.CompositeEditor;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 
@@ -123,12 +123,12 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
     }
 
     @Override
-    public NodeState merge(CommitEditor editor) throws CommitFailedException {
+    public NodeState merge(CommitHook hook) throws CommitFailedException {
         NodeState oldRoot = base;
-        CommitEditor commitEditor = editor == null
-                ? store.getEditor()
-                : new CompositeEditor(store.getEditor(), editor);
-        NodeState toCommit = commitEditor.editCommit(store, oldRoot, currentRoot);
+        CommitHook commitHook = hook == null
+                ? store.getHook()
+                : new CompositeHook(store.getHook(), hook);
+        NodeState toCommit = commitHook.processCommit(store, oldRoot, currentRoot);
         setRoot(toCommit);
 
         try {
