@@ -323,6 +323,11 @@ class MicroKernelServlet {
             long pos = request.getParameter("pos", 0L);
             int length = request.getParameter("length", -1);
 
+            if (request.getUserAgent() == null) {
+                // let browsers guess the correct file format
+                response.setContentType("application/octet-stream");
+            }
+            
             OutputStream out = response.getOutputStream();
             if (pos == 0L && length == -1) {
                 /* return the complete binary */
