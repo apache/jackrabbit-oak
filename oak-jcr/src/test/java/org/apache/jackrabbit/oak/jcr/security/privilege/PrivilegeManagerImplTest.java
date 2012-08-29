@@ -16,6 +16,13 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.privilege;
 
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertFalse;
+import static junit.framework.Assert.assertNotNull;
+import static junit.framework.Assert.assertTrue;
+import static org.apache.jackrabbit.oak.jcr.RepositoryTestUtils.buildDefaultCommitEditor;
+import static org.junit.Assert.fail;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -24,17 +31,26 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Executors;
+
 import javax.jcr.AccessDeniedException;
+import javax.jcr.Credentials;
+import javax.jcr.GuestCredentials;
 import javax.jcr.NamespaceException;
+import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
-import javax.jcr.Session;
+import javax.jcr.SimpleCredentials;
+import javax.jcr.Workspace;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
+import org.apache.jackrabbit.mk.core.MicroKernelImpl;
+import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
+import org.apache.jackrabbit.oak.jcr.RepositoryImpl;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants;
-import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -43,19 +59,29 @@ import org.junit.Test;
  *
  * TODO: more tests for cyclic aggregation
  */
-public class PrivilegeManagerImplTest extends AbstractJCRTest implements PrivilegeConstants {
+public class PrivilegeManagerImplTest implements PrivilegeConstants {
+
+    private static final Credentials ADMIN =
+            new SimpleCredentials("admin", "admin".toCharArray());
+
+    private Repository repository;
 
     private PrivilegeManager privilegeManager;
 
     @Before
-    @Override
-    protected void setUp() throws Exception {
-        super.setUp();
-        privilegeManager = getPrivilegeManager(superuser);
+    public void setUp() throws Exception {
+        ContentRepository contentRepository = new ContentRepositoryImpl(
+                new MicroKernelImpl(), null, buildDefaultCommitEditor());
+        repository = new RepositoryImpl(
+                contentRepository, Executors.newScheduledThreadPool(1));
+
+        privilegeManager = getPrivilegeManager(ADMIN);
     }
 
-    private static PrivilegeManager getPrivilegeManager(Session s) throws RepositoryException {
-        return ((JackrabbitWorkspace) s.getWorkspace()).getPrivilegeManager();
+    private PrivilegeManager getPrivilegeManager(Credentials credentials)
+            throws RepositoryException {
+        Workspace workspace = repository.login(credentials).getWorkspace();
+        return ((JackrabbitWorkspace) workspace).getPrivilegeManager();
     }
 
     private static String[] getAggregateNames(String... names) {
@@ -245,14 +271,11 @@ public class PrivilegeManagerImplTest extends AbstractJCRTest implements Privile
 
     @Test
     public void testRegisterPrivilegeWithReadOnly() throws RepositoryException {
-        Session s = getHelper().getReadOnlySession();
         try {
-            ((JackrabbitWorkspace) s.getWorkspace()).getPrivilegeManager().registerPrivilege("test", true, new String[0]);
+            getPrivilegeManager(new GuestCredentials()).registerPrivilege("test", true, new String[0]);
             fail("Only admin is allowed to register privileges.");
         } catch (AccessDeniedException e) {
             // success
-        } finally {
-            s.logout();
         }
     }
 
@@ -369,6 +392,10 @@ public class PrivilegeManagerImplTest extends AbstractJCRTest implements Privile
 
     @Test
     public void testRegisterCustomPrivileges() throws RepositoryException {
+        Workspace workspace = repository.login(ADMIN).getWorkspace();
+        workspace.getNamespaceRegistry().registerNamespace(
+                "test", "http://www.apache.org/jackrabbit/test");
+
         Map<String, String[]> newCustomPrivs = new HashMap<String, String[]>();
         newCustomPrivs.put("new", new String[0]);
         newCustomPrivs.put("test:new", new String[0]);
@@ -419,16 +446,11 @@ public class PrivilegeManagerImplTest extends AbstractJCRTest implements Privile
         String privName = "testCustomPrivilegeVisibleToNewSession";
         privilegeManager.registerPrivilege(privName, isAbstract, new String[0]);
 
-        Session s2 = getHelper().getSuperuserSession();
-        try {
-            PrivilegeManager pm = getPrivilegeManager(s2);
-            Privilege priv = pm.getPrivilege(privName);
-            assertEquals(privName, priv.getName());
-            assertEquals(isAbstract, priv.isAbstract());
-            assertFalse(priv.isAggregate());
-        } finally {
-            s2.logout();
-        }
+        PrivilegeManager pm = getPrivilegeManager(ADMIN);
+        Privilege priv = pm.getPrivilege(privName);
+        assertEquals(privName, priv.getName());
+        assertEquals(isAbstract, priv.isAbstract());
+        assertFalse(priv.isAggregate());
     }
 
 //    FIXME: Session#refresh must refresh privilege definitions
