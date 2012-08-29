@@ -33,9 +33,13 @@ public interface NodeTypeConstants extends JcrConstants {
     String JCR_AVAILABLE_QUERY_OPERATORS = "jcr:availableQueryOperators";
 
     /**
-     * Name of the mixin type to mark merge conflicts
-     * TODO: review where this constant should be located.
+     * Merge conflict handling
      */
     String MIX_REP_MERGE_CONFLICT = "rep:MergeConflict";
-
+    String REP_OURS = "rep:ours";
+    String ADD_EXISTING = "addExisting";
+    String CHANGE_DELETED = "changeDeleted";
+    String CHANGE_CHANGED = "changeChanged";
+    String DELETE_CHANGED = "deleteChanged";
+    String DELETE_DELETED = "deleteDeleted";
 }
