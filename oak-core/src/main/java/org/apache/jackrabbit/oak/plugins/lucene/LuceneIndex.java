@@ -165,7 +165,8 @@ public class LuceneIndex implements QueryIndex {
                 last = pr.last.getString();
             }
 
-            if (first.equals(last) && pr.firstIncluding && pr.lastIncluding) {
+            if (first != null && first.equals(last) && pr.firstIncluding
+                    && pr.lastIncluding) {
                 qs.add(new TermQuery(new Term(name, first)));
             } else {
                 qs.add(TermRangeQuery.newStringRange(name, first, last,
