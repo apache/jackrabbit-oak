@@ -16,13 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.privilege;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.assertTrue;
-import static org.apache.jackrabbit.oak.jcr.RepositoryTestUtils.buildDefaultCommitEditor;
-import static org.junit.Assert.fail;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -54,6 +47,13 @@ import org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants;
 import org.junit.Before;
 import org.junit.Test;
 
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertFalse;
+import static junit.framework.Assert.assertNotNull;
+import static junit.framework.Assert.assertTrue;
+import static org.apache.jackrabbit.oak.jcr.RepositoryTestUtils.buildDefaultCommitHook;
+import static org.junit.Assert.fail;
+
 /**
  * PrivilegeManagerTest...
  *
@@ -71,7 +71,7 @@ public class PrivilegeManagerImplTest implements PrivilegeConstants {
     @Before
     public void setUp() throws Exception {
         ContentRepository contentRepository = new ContentRepositoryImpl(
-                new MicroKernelImpl(), null, buildDefaultCommitEditor());
+                new MicroKernelImpl(), null, buildDefaultCommitHook());
         repository = new RepositoryImpl(
                 contentRepository, Executors.newScheduledThreadPool(1));
 
