@@ -21,8 +21,8 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
-import org.apache.jackrabbit.oak.spi.commit.CommitEditor;
-import org.apache.jackrabbit.oak.spi.commit.EmptyEditor;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyObserver;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -41,10 +41,10 @@ public class KernelNodeStore implements NodeStore {
     private final MicroKernel kernel;
 
     /**
-     * Commit editor.
+     * Commit hook.
      */
     @Nonnull
-    private volatile CommitEditor editor = EmptyEditor.INSTANCE;
+    private volatile CommitHook hook = EmptyHook.INSTANCE;
 
     /**
      * Change observer.
@@ -64,13 +64,13 @@ public class KernelNodeStore implements NodeStore {
     }
 
     @Nonnull
-    public CommitEditor getEditor() {
-        return editor;
+    public CommitHook getHook() {
+        return hook;
     }
 
-    public void setEditor(CommitEditor editor) {
-        assert editor != null;
-        this.editor = editor;
+    public void setHook(CommitHook hook) {
+        assert hook != null;
+        this.hook = hook;
     }
 
     @Nonnull

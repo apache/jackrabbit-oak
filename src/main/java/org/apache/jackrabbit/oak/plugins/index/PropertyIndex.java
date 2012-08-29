@@ -151,7 +151,7 @@ public class PropertyIndex implements PIndex {
     }
 
     @Override
-    public NodeState editCommit(NodeStore store, NodeState before,
+    public NodeState processCommit(NodeStore store, NodeState before,
             NodeState after) throws CommitFailedException {
         // TODO Auto-generated method stub
         return null;

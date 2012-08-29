@@ -16,38 +16,38 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
+import java.util.Arrays;
+import java.util.List;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
-import java.util.Arrays;
-import java.util.List;
-
 /**
- * Composite commit editor. Maintains a list of component editors and takes
+ * Composite commit hook. Maintains a list of component hooks and takes
  * care of calling them in proper sequence in the
- * {@link #editCommit(NodeStore, NodeState, NodeState)} method.
+ * {@link #processCommit(NodeStore, NodeState, NodeState)} method.
  */
-public class CompositeEditor implements CommitEditor {
+public class CompositeHook implements CommitHook {
 
-    private final List<CommitEditor> editors;
+    private final List<CommitHook> hooks;
 
-    public CompositeEditor(List<CommitEditor> editors) {
-        this.editors = editors;
+    public CompositeHook(List<CommitHook> hooks) {
+        this.hooks = hooks;
     }
 
-    public CompositeEditor(CommitEditor... editors) {
-        this(Arrays.asList(editors));
+    public CompositeHook(CommitHook... hooks) {
+        this(Arrays.asList(hooks));
     }
 
     @Override
-    public NodeState editCommit(
+    public NodeState processCommit(
             NodeStore store, NodeState before, NodeState after)
             throws CommitFailedException {
 
         NodeState newState = after;
-        for (CommitEditor editor : editors) {
-            newState = editor.editCommit(store, before, newState);
+        for (CommitHook hook : hooks) {
+            newState = hook.processCommit(store, before, newState);
         }
 
         return newState;

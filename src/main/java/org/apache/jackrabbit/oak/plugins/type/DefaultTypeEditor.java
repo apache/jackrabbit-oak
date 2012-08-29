@@ -20,7 +20,7 @@ import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.spi.commit.CommitEditor;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -31,10 +31,10 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 /**
  * This class updates a Lucene index when node content is changed.
  */
-public class DefaultTypeEditor implements CommitEditor {
+public class DefaultTypeEditor implements CommitHook {
 
     @Override
-    public NodeState editCommit(
+    public NodeState processCommit(
             NodeStore store, NodeState before, NodeState after)
             throws CommitFailedException {
         // TODO: Calculate default type from the node definition

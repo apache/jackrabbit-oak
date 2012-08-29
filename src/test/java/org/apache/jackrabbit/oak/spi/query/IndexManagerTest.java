@@ -16,10 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.query;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
 import java.io.IOException;
 import java.util.Arrays;
 
@@ -41,6 +37,10 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 public class IndexManagerTest extends AbstractOakTest {
 
     protected ContentSession session;
@@ -54,6 +54,7 @@ public class IndexManagerTest extends AbstractOakTest {
         return new ContentRepositoryImpl(mk, null, (ValidatorProvider) null);
     }
 
+    @Override
     @Before
     public void before() throws Exception {
         super.before();
@@ -198,7 +199,7 @@ public class IndexManagerTest extends AbstractOakTest {
         }
 
         @Override
-        public NodeState editCommit(NodeStore store, NodeState before,
+        public NodeState processCommit(NodeStore store, NodeState before,
                 NodeState after) throws CommitFailedException {
             return null;
         }

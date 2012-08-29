@@ -25,11 +25,11 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import static org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState.EMPTY_NODE;
 
 /**
- * This commit editor implementation validates the changes to be committed
+ * This commit hook implementation validates the changes to be committed
  * against all {@link Validator}s provided by the {@link ValidatorProvider}
  * passed to the class' constructor.
  */
-public class ValidatingEditor implements CommitEditor {
+public class ValidatingHook implements CommitHook {
 
     private final ValidatorProvider validatorProvider;
 
@@ -38,12 +38,12 @@ public class ValidatingEditor implements CommitEditor {
      * {@link Validator}s provided by {@code validatorProvider}.
      * @param validatorProvider  validator provider
      */
-    public ValidatingEditor(ValidatorProvider validatorProvider) {
+    public ValidatingHook(ValidatorProvider validatorProvider) {
         this.validatorProvider = validatorProvider;
     }
 
     @Override
-    public NodeState editCommit(
+    public NodeState processCommit(
             NodeStore store, NodeState before, NodeState after)
             throws CommitFailedException {
         Validator validator = validatorProvider.getRootValidator(before, after);

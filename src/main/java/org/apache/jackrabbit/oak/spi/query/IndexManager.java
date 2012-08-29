@@ -22,7 +22,7 @@ import java.util.List;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.spi.commit.CommitEditor;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
@@ -40,7 +40,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * </p>
  * </p>
  */
-public interface IndexManager extends CommitEditor, Closeable {
+public interface IndexManager extends CommitHook, Closeable {
 
     void registerIndexFactory(IndexFactory... factory);
 
@@ -56,7 +56,7 @@ public interface IndexManager extends CommitEditor, Closeable {
      * @return the index with the given definition
      */
     @CheckForNull
-    public Index getIndex(IndexDefinition definition);
+    Index getIndex(IndexDefinition definition);
 
     /**
      * @return the existing index definitions
