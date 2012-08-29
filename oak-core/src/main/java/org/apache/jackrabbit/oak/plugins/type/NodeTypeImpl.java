@@ -40,6 +40,16 @@ import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_CHILDNODEDEFINITION;
+import static org.apache.jackrabbit.JcrConstants.JCR_HASORDERABLECHILDNODES;
+import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
+import static org.apache.jackrabbit.JcrConstants.JCR_NODETYPENAME;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYITEMNAME;
+import static org.apache.jackrabbit.JcrConstants.JCR_PROPERTYDEFINITION;
+import static org.apache.jackrabbit.JcrConstants.JCR_SUPERTYPES;
+import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.JCR_IS_ABSTRACT;
+import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.JCR_IS_QUERYABLE;
+
 /**
  * <pre>
  * [nt:nodeType]
@@ -74,7 +84,7 @@ class NodeTypeImpl implements NodeType {
 
     @Override
     public String getName() {
-        String name = node.getName("jcr:nodeTypeName");
+        String name = node.getName(JCR_NODETYPENAME);
         if (name == null) {
             name = node.getName();
         }
@@ -83,37 +93,37 @@ class NodeTypeImpl implements NodeType {
 
     @Override
     public String[] getDeclaredSupertypeNames() {
-        return node.getNames("jcr:supertypes");
+        return node.getNames(JCR_SUPERTYPES);
     }
 
     @Override
     public boolean isAbstract() {
-        return node.getBoolean("jcr:isAbstract");
+        return node.getBoolean(JCR_IS_ABSTRACT);
     }
 
     @Override
     public boolean isMixin() {
-        return node.getBoolean("jcr:isMixin");
+        return node.getBoolean(JCR_ISMIXIN);
     }
 
     @Override
     public boolean hasOrderableChildNodes() {
-        return node.getBoolean("jcr:hasOrderableChildNodes");
+        return node.getBoolean(JCR_HASORDERABLECHILDNODES);
     }
 
     @Override
     public boolean isQueryable() {
-        return node.getBoolean("jcr:isQueryable");
+        return node.getBoolean(JCR_IS_QUERYABLE);
     }
 
     @Override
     public String getPrimaryItemName() {
-        return node.getName("jcr:primaryItemName");
+        return node.getName(JCR_PRIMARYITEMNAME);
     }
 
     @Override
     public PropertyDefinition[] getDeclaredPropertyDefinitions() {
-        List<NodeUtil> nodes = node.getNodes("jcr:propertyDefinition");
+        List<NodeUtil> nodes = node.getNodes(JCR_PROPERTYDEFINITION);
         PropertyDefinition[] definitions = new PropertyDefinition[nodes.size()];
         for (int i = 0; i < nodes.size(); i++) {
             definitions[i] = new PropertyDefinitionImpl(
@@ -124,7 +134,7 @@ class NodeTypeImpl implements NodeType {
 
     @Override
     public NodeDefinition[] getDeclaredChildNodeDefinitions() {
-        List<NodeUtil> nodes = node.getNodes("jcr:childNodeDefinition");
+        List<NodeUtil> nodes = node.getNodes(JCR_CHILDNODEDEFINITION);
         NodeDefinition[] definitions = new NodeDefinition[nodes.size()];
         for (int i = 0; i < nodes.size(); i++) {
             definitions[i] = new NodeDefinitionImpl(manager, this, nodes.get(i));
