@@ -26,7 +26,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState.EMPTY_NOD
 
 /**
  * This commit hook implementation validates the changes to be committed
- * against all {@link Validator}s provided by the {@link ValidatorProvider}
+ * against the {@link Validator} provided by the {@link ValidatorProvider}
  * passed to the class' constructor.
  */
 public class ValidatingHook implements CommitHook {
