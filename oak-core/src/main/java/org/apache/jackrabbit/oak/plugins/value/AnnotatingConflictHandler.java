@@ -30,7 +30,13 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.ADD_EXISTING;
+import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.CHANGE_CHANGED;
+import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.CHANGE_DELETED;
+import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.DELETE_CHANGED;
+import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.DELETE_DELETED;
 import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.MIX_REP_MERGE_CONFLICT;
+import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.REP_OURS;
 
 /**
  * This {@link ConflictHandler} implementation resolves conflicts to
@@ -50,15 +56,6 @@ import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.MIX_REP_M
  * @see ConflictValidator
  */
 public class AnnotatingConflictHandler implements ConflictHandler {
-
-    // TODO: move these constants to some common location for repository internal node types
-    private static final String REP_OURS = "rep:ours";
-    private static final String ADD_EXISTING = "addExisting";
-    private static final String CHANGE_DELETED = "changeDeleted";
-    private static final String CHANGE_CHANGED = "changeChanged";
-    private static final String DELETE_CHANGED = "deleteChanged";
-    private static final String DELETE_DELETED = "deleteDeleted";
-
     private final CoreValueFactory valueFactory;
 
     public AnnotatingConflictHandler(CoreValueFactory valueFactory) {
