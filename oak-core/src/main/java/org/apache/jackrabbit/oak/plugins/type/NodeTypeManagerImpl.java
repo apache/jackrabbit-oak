@@ -50,6 +50,14 @@ import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 
+import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.JCR_AVAILABLE_QUERY_OPERATORS;
+import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.JCR_IS_ABSTRACT;
+import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.JCR_IS_FULLTEXT_SEARCHABLE;
+import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.JCR_IS_QUERYABLE;
+import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.JCR_IS_QUERY_ORDERABLE;
+import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.JCR_NODE_TYPES;
+import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.NODE_TYPES_PATH;
+
 public class NodeTypeManagerImpl extends AbstractNodeTypeManager {
 
     private final ContentSession session;
@@ -100,9 +108,9 @@ public class NodeTypeManagerImpl extends AbstractNodeTypeManager {
                                     withBase[0] = JcrConstants.NT_BASE;
                                     System.arraycopy(supertypes, 0, withBase, 1, supertypes.length);
                                     template.setDeclaredSuperTypeNames(withBase);
-                                }
                             }
                         }
+                    }
                     }
                     registerNodeTypes(templates.values().toArray(
                             new NodeTypeTemplate[templates.size()]), true);
@@ -118,7 +126,7 @@ public class NodeTypeManagerImpl extends AbstractNodeTypeManager {
 
     @Override
     protected Tree getTypes() {
-        return session.getCurrentRoot().getTree(NodeTypeConstants.NODE_TYPES_PATH);
+        return session.getCurrentRoot().getTree(NODE_TYPES_PATH);
     }
 
     @Override
@@ -191,8 +199,8 @@ public class NodeTypeManagerImpl extends AbstractNodeTypeManager {
         node.setName(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_NODETYPE);
         node.setName(JcrConstants.JCR_NODETYPENAME, jcrName);
         node.setNames(JcrConstants.JCR_SUPERTYPES, ntd.getDeclaredSupertypeNames());
-        node.setBoolean(NodeTypeConstants.JCR_IS_ABSTRACT, ntd.isAbstract());
-        node.setBoolean(NodeTypeConstants.JCR_IS_QUERYABLE, ntd.isQueryable());
+        node.setBoolean(JCR_IS_ABSTRACT, ntd.isAbstract());
+        node.setBoolean(JCR_IS_QUERYABLE, ntd.isQueryable());
         node.setBoolean(JcrConstants.JCR_ISMIXIN, ntd.isMixin());
         node.setBoolean(JcrConstants.JCR_HASORDERABLECHILDNODES, ntd.hasOrderableChildNodes());
         String primaryItemName = ntd.getPrimaryItemName();
@@ -237,9 +245,9 @@ public class NodeTypeManagerImpl extends AbstractNodeTypeManager {
                 JcrConstants.JCR_REQUIREDTYPE,
                 PropertyType.nameFromValue(def.getRequiredType()));
         node.setBoolean(JcrConstants.JCR_MULTIPLE, def.isMultiple());
-        node.setBoolean(NodeTypeConstants.JCR_IS_FULLTEXT_SEARCHABLE, def.isFullTextSearchable());
-        node.setBoolean(NodeTypeConstants.JCR_IS_QUERY_ORDERABLE, def.isQueryOrderable());
-        node.setStrings(NodeTypeConstants.JCR_AVAILABLE_QUERY_OPERATORS, def.getAvailableQueryOperators());
+        node.setBoolean(JCR_IS_FULLTEXT_SEARCHABLE, def.isFullTextSearchable());
+        node.setBoolean(JCR_IS_QUERY_ORDERABLE, def.isQueryOrderable());
+        node.setStrings(JCR_AVAILABLE_QUERY_OPERATORS, def.getAvailableQueryOperators());
 
         String[] constraints = def.getValueConstraints();
         if (constraints != null) {
@@ -266,20 +274,20 @@ public class NodeTypeManagerImpl extends AbstractNodeTypeManager {
     }
 
     private static Tree getOrCreateNodeTypes(Root root) {
-        Tree types = root.getTree(NodeTypeConstants.NODE_TYPES_PATH);
+        Tree types = root.getTree(NODE_TYPES_PATH);
         if (types == null) {
             Tree system = root.getTree('/' + JcrConstants.JCR_SYSTEM);
             if (system == null) {
                 system = root.getTree("/").addChild(JcrConstants.JCR_SYSTEM);
             }
-            types = system.addChild(NodeTypeConstants.JCR_NODE_TYPES);
+            types = system.addChild(JCR_NODE_TYPES);
         }
         return types;
     }
 
     private boolean nodeTypesInContent() {
         Root currentRoot = session.getCurrentRoot();
-        Tree types = currentRoot.getTree(NodeTypeConstants.NODE_TYPES_PATH);
+        Tree types = currentRoot.getTree(NODE_TYPES_PATH);
         return types != null && types.getChildrenCount() > 0;
     }
 
@@ -287,7 +295,7 @@ public class NodeTypeManagerImpl extends AbstractNodeTypeManager {
     public void unregisterNodeType(String name) throws RepositoryException {
         Tree type = null;
         Root root = session.getCurrentRoot();
-        Tree types = root.getTree(NodeTypeConstants.NODE_TYPES_PATH);
+        Tree types = root.getTree(NODE_TYPES_PATH);
         if (types != null) {
             type = types.getChild(getOakName(name));
         }
@@ -307,7 +315,7 @@ public class NodeTypeManagerImpl extends AbstractNodeTypeManager {
     @Override
     public void unregisterNodeTypes(String[] names) throws RepositoryException {
         Root root = session.getCurrentRoot();
-        Tree types = root.getTree(NodeTypeConstants.NODE_TYPES_PATH);
+        Tree types = root.getTree(NODE_TYPES_PATH);
         if (types == null) {
             throw new NoSuchNodeTypeException("Node types can not be unregistered.");
         }

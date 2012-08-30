@@ -16,100 +16,44 @@
  */
 package org.apache.jackrabbit.oak.plugins.type;
 
-import java.util.HashSet;
-import java.util.Set;
-
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
-import org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.core.ReadOnlyTree;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
-import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+
+import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.NODE_TYPES_PATH;
 
 @Component
 @Service(ValidatorProvider.class)
-public class TypeValidatorProvider implements ValidatorProvider, NodeTypeConstants {
+public class TypeValidatorProvider implements ValidatorProvider {
 
     @Override
-    public Validator getRootValidator(NodeState before, NodeState after) {
-        Set<String> types = new HashSet<String>();
+    public Validator getRootValidator(NodeState before, final NodeState after) {
+        return new TypeValidator(new AbstractNodeTypeManager() {
+            private final Tree types = getTypes(after);
 
-        // Default JCR types are always available
-        types.add("nt:base");
-        types.add("nt:hierarchyNode");
-        types.add("nt:file");
-        types.add("nt:linkedFile");
-        types.add("nt:folder");
-        types.add("nt:resource");
-        types.add("mix:title");
-        types.add("mix:created");
-        types.add("mix:lastModified");
-        types.add("mix:language");
-        types.add("mix:mimeType");
-        types.add("nt:address");
-        types.add("mix:etag");
-        types.add("nt:unstructured");
-        types.add("mix:referenceable");
-        types.add("mix:lockable");
-        types.add("mix:shareable");
-        types.add("mix:simpleVersionable");
-        types.add("mix:versionable");
-        types.add("nt:versionHistory");
-        types.add("nt:versionLabels");
-        types.add("nt:version");
-        types.add("nt:frozenNode");
-        types.add("nt:versionedChild");
-        types.add("nt:activity");
-        types.add("nt:configuration");
-        types.add("nt:nodeType");
-        types.add("nt:propertyDefinition");
-        types.add("nt:childNodeDefinition");
-        types.add("nt:query");
-        types.add("mix:lifecycle");
-
-        // Jackrabbit 2.x types are always available
-        types.add("rep:root");
-        types.add("rep:system");
-        types.add("rep:nodeTypes");
-        types.add("rep:versionStorage");
-        types.add("rep:Activities");
-        types.add("rep:Configurations");
-        types.add("rep:VersionReference");
-        types.add("rep:AccessControllable");
-        types.add("rep:RepoAccessControllable");
-        types.add("rep:Policy");
-        types.add("rep:ACL");
-        types.add("rep:ACE");
-        types.add("rep:GrantACE");
-        types.add("rep:DenyACE");
-        types.add("rep:AccessControl");
-        types.add("rep:PrincipalAccessControl");
-        types.add("rep:Authorizable");
-        types.add("rep:Impersonatable");
-        types.add("rep:User");
-        types.add("rep:Group");
-        types.add("rep:AuthorizableFolder");
-        types.add("rep:Members");
-        types.add("rep:RetentionManageable");
-
-        // Oak types are always available
-        types.add(MIX_REP_MERGE_CONFLICT);
-        types.add(PrivilegeConstants.NT_REP_PRIVILEGES);
-        types.add(PrivilegeConstants.NT_REP_PRIVILEGE);
-
-        // Find any extra types from /jcr:system/jcr:nodeTypes
-        NodeState system = after.getChildNode(JCR_SYSTEM);
-        if (system != null) {
-            NodeState registry = system.getChildNode(JCR_NODE_TYPES);
-            if (registry != null) {
-                for (ChildNodeEntry child : registry.getChildNodeEntries()) {
-                    types.add(child.getName());
-                }
+            @Override
+            protected Tree getTypes() {
+                return types;
             }
-        }
 
-        return new TypeValidator(types);
+            private Tree getTypes(NodeState after) {
+                Tree tree = new ReadOnlyTree(after);
+                for (String name : PathUtils.elements(NODE_TYPES_PATH)) {
+                    if (tree == null) {
+                        break;
+                    }
+                    else {
+                        tree = tree.getChild(name);
+                    }
+                }
+                return tree;
+            }
+        });
     }
 
 }

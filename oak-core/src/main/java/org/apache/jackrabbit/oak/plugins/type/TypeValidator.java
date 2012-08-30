@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.type;
 
-import java.util.Set;
-
-import javax.jcr.nodetype.NoSuchNodeTypeException;
+import javax.jcr.RepositoryException;
+import javax.jcr.nodetype.NodeType;
+import javax.jcr.nodetype.NodeTypeManager;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -28,24 +28,25 @@ import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 class TypeValidator implements Validator {
+    private final NodeTypeManager ntm;
 
-    private final Set<String> types;
-
-    public TypeValidator(Set<String> types) {
-        this.types = types;
+    public TypeValidator(NodeTypeManager ntm) {
+        this.ntm = ntm;
     }
 
-    private void checkTypeExists(PropertyState after)
-            throws CommitFailedException {
-        if (JcrConstants.JCR_PRIMARYTYPE.equals(after.getName())
-                || JcrConstants.JCR_MIXINTYPES.equals(after.getName())) {
-            for (CoreValue cv : after.getValues()) {
-                String value = cv.getString();
-                if (!types.contains(value)) {
-                    throw new CommitFailedException(
-                        new NoSuchNodeTypeException("Unknown node type: " + value));
+    private void checkTypeExists(PropertyState after) throws CommitFailedException {
+        if (JcrConstants.JCR_PRIMARYTYPE.equals(after.getName()) || JcrConstants.JCR_MIXINTYPES.equals(after.getName())) {
+            try {
+                for (CoreValue cv : after.getValues()) {
+                    String ntName = cv.getString();
+                    NodeType nt = ntm.getNodeType(ntName);
+                    if (nt.isAbstract()) {
+                        throw new CommitFailedException("Can't create node with abstract type: " + ntName);
+                    }
                 }
-                // TODO: make sure the specified node type isn't abstract
+            }
+            catch (RepositoryException e) {
+                throw new CommitFailedException(e);
             }
         }
     }
