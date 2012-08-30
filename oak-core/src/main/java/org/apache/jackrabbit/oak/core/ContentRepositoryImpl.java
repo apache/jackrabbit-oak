@@ -95,6 +95,11 @@ public class ContentRepositoryImpl implements ContentRepository {
                                 Collections.<ValidatorProvider> emptyList())));
     }
 
+    public ContentRepositoryImpl(
+            MicroKernel microKernel, ValidatorProvider validatorProvider) {
+        this(microKernel, null, validatorProvider);
+    }
+
     /**
      * Creates an Oak repository instance based on the given, already
      * initialized components.

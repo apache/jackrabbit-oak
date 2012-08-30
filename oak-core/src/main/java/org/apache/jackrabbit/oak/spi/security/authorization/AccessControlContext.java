@@ -19,8 +19,6 @@ package org.apache.jackrabbit.oak.spi.security.authorization;
 import java.security.Principal;
 import java.util.Set;
 
-import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
-
 /**
  * PermissionProvider... TODO
  */
@@ -31,7 +29,4 @@ public interface AccessControlContext {
     // TODO define how permissions eval is bound to a particular revision/branch. (passing Tree?)
     CompiledPermissions getPermissions();
 
-    ValidatorProvider getPermissionValidatorProvider();
-
-    ValidatorProvider getAccessControlValidatorProvider();
 }

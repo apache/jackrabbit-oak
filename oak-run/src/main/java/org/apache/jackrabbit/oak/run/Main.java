@@ -36,11 +36,16 @@ import org.apache.jackrabbit.oak.plugins.name.NamespaceValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.type.DefaultTypeEditor;
 import org.apache.jackrabbit.oak.plugins.type.TypeValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.value.ConflictValidatorProvider;
+import org.apache.jackrabbit.oak.security.authorization.AccessControlValidatorProvider;
+import org.apache.jackrabbit.oak.security.authorization.PermissionValidatorProvider;
+import org.apache.jackrabbit.oak.security.privilege.PrivilegeValidatorProvider;
+import org.apache.jackrabbit.oak.security.user.UserValidatorProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
 import org.apache.jackrabbit.oak.spi.commit.ValidatingHook;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
 import org.apache.jackrabbit.webdav.jcr.JCRWebdavServerServlet;
 import org.apache.jackrabbit.webdav.simple.SimpleWebdavServlet;
 import org.eclipse.jetty.server.Server;
@@ -207,6 +212,11 @@ public class Main {
             providers.add(new NamespaceValidatorProvider());
             providers.add(new TypeValidatorProvider());
             providers.add(new ConflictValidatorProvider());
+            providers.add(new PermissionValidatorProvider());
+            providers.add(new AccessControlValidatorProvider());
+            // FIXME: retrieve from user context
+            providers.add(new UserValidatorProvider(new UserConfig("admin")));
+            providers.add(new PrivilegeValidatorProvider());
             return new CompositeValidatorProvider(providers);
         }
 

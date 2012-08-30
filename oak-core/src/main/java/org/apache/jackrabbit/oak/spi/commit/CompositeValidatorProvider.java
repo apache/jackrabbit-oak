@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.spi.commit;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
@@ -31,6 +32,10 @@ public class CompositeValidatorProvider implements ValidatorProvider {
 
     public CompositeValidatorProvider(Collection<ValidatorProvider> providers) {
         this.providers = providers;
+    }
+
+    public CompositeValidatorProvider(ValidatorProvider... providers) {
+        this(Arrays.asList(providers));
     }
 
     @Override

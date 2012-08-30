@@ -28,14 +28,9 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
-import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.apache.jackrabbit.test.RepositoryStub;
-
-import static org.apache.jackrabbit.oak.jcr.RepositoryTestUtils.buildDefaultCommitHook;
 
 public class OakRepositoryStub extends RepositoryStub {
 
@@ -51,9 +46,10 @@ public class OakRepositoryStub extends RepositoryStub {
     public OakRepositoryStub(Properties settings) throws RepositoryException, IOException {
         super(settings);
 
-        MicroKernel microkernel = new MicroKernelImpl("target/mk-tck-" + System.currentTimeMillis());
-        ContentRepository contentRepository = new ContentRepositoryImpl(microkernel, null, buildDefaultCommitHook());
-        repository = new RepositoryImpl(contentRepository, Executors.newScheduledThreadPool(1));
+        String dir = "target/mk-tck-" + System.currentTimeMillis();
+        repository = new RepositoryImpl(
+                new MicroKernelImpl(dir),
+                Executors.newScheduledThreadPool(1));
 
         Session session = repository.login(superuser);
         try {

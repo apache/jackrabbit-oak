@@ -16,12 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.lucene;
 
+import javax.security.auth.Subject;
+
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
 import org.apache.jackrabbit.oak.core.RootImpl;
-import org.apache.jackrabbit.oak.core.TestAcContext;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryValueFactory;
 import org.apache.jackrabbit.oak.query.ast.Operator;
@@ -48,7 +49,7 @@ public class LuceneEditorTest {
 
         KernelNodeStore store = new KernelNodeStore(new MicroKernelImpl());
         store.setHook(new LuceneEditor(testID));
-        Root root = new RootImpl(store, "", new TestAcContext());
+        Root root = new RootImpl(store, null, new Subject());
         Tree tree = root.getTree("/");
 
         tree.setProperty("foo", MemoryValueFactory.INSTANCE.createValue("bar"));

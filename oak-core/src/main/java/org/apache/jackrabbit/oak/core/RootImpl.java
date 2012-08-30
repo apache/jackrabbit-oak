@@ -18,25 +18,24 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
+
+import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.Nonnull;
+import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.oak.api.ChangeExtractor;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ConflictHandler;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.TreeLocation;
-import org.apache.jackrabbit.oak.security.privilege.PrivilegeValidatorProvider;
-import org.apache.jackrabbit.oak.security.user.UserValidatorProvider;
-import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
-import org.apache.jackrabbit.oak.spi.commit.ValidatingHook;
-import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
+import org.apache.jackrabbit.oak.security.authorization.AccessControlContextImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContext;
 import org.apache.jackrabbit.oak.spi.security.authorization.CompiledPermissions;
-import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
@@ -44,9 +43,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 
 public class RootImpl implements Root {
     static final Logger log = LoggerFactory.getLogger(RootImpl.class);
@@ -59,10 +55,7 @@ public class RootImpl implements Root {
     /** The underlying store to which this root belongs */
     private final NodeStore store;
 
-    private final AccessControlContext accessControlContext;
-    private CompiledPermissions permissions;
-
-    private final CommitHook commitHook;
+    private final Subject subject;
 
     /** Current branch this root operates on */
     private NodeStoreBranch branch;
@@ -103,10 +96,9 @@ public class RootImpl implements Root {
      * @param accessControlContext
      */
     @SuppressWarnings("UnusedParameters")
-    public RootImpl(NodeStore store, String workspaceName, AccessControlContext accessControlContext) {
+    public RootImpl(NodeStore store, String workspaceName, Subject subject) {
         this.store = store;
-        this.accessControlContext = accessControlContext;
-        this.commitHook = createCommitHook();
+        this.subject = subject;
         refresh();
     }
 
@@ -164,14 +156,27 @@ public class RootImpl implements Root {
     public final void refresh() {
         branch = store.branch();
         rootTree = TreeImpl.createRoot(this);
-        permissions = this.accessControlContext.getPermissions();
     }
 
     @Override
     public void commit(ConflictHandler conflictHandler) throws CommitFailedException {
         rebase(conflictHandler);
         purgePendingChanges();
-        branch.merge(commitHook);
+        CommitFailedException exception = Subject.doAs(
+                subject, new PrivilegedAction<CommitFailedException>() {
+                    @Override
+                    public CommitFailedException run() {
+                        try {
+                            branch.merge();
+                            return null;
+                        } catch (CommitFailedException e) {
+                            return e;
+                        }
+                    }
+                });
+        if (exception != null) {
+            throw exception;
+        }
         refresh();
     }
 
@@ -229,7 +234,9 @@ public class RootImpl implements Root {
     }
 
     CompiledPermissions getPermissions() {
-        return permissions;
+        AccessControlContext context = new AccessControlContextImpl();
+        context.initialize(subject.getPrincipals());
+        return context.getPermissions();
     }
 
     //------------------------------------------------------------< private >---
@@ -252,17 +259,4 @@ public class RootImpl implements Root {
         }
     }
 
-    private CommitHook createCommitHook() {
-        List<ValidatorProvider> providers = new ArrayList<ValidatorProvider>();
-
-        // TODO: refactor once permissions are read from content (make sure we read from an up to date store)
-        providers.add(accessControlContext.getPermissionValidatorProvider());
-        providers.add(accessControlContext.getAccessControlValidatorProvider());
-        // TODO the following v-providers could be initialized at ContentRepo level
-        // FIXME: retrieve from user context
-        providers.add(new UserValidatorProvider(new UserConfig("admin")));
-        providers.add(new PrivilegeValidatorProvider());
-
-        return new ValidatingHook(new CompositeValidatorProvider(providers));
-    }
 }

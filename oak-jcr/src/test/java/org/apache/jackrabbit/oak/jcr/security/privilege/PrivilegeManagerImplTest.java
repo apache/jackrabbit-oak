@@ -16,6 +16,12 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.privilege;
 
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertFalse;
+import static junit.framework.Assert.assertNotNull;
+import static junit.framework.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -24,7 +30,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Executors;
 
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Credentials;
@@ -39,20 +44,11 @@ import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
-import org.apache.jackrabbit.mk.core.MicroKernelImpl;
-import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.jcr.RepositoryImpl;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.assertTrue;
-import static org.apache.jackrabbit.oak.jcr.RepositoryTestUtils.buildDefaultCommitHook;
-import static org.junit.Assert.fail;
 
 /**
  * PrivilegeManagerTest...
@@ -69,13 +65,15 @@ public class PrivilegeManagerImplTest implements PrivilegeConstants {
     private PrivilegeManager privilegeManager;
 
     @Before
-    public void setUp() throws Exception {
-        ContentRepository contentRepository = new ContentRepositoryImpl(
-                new MicroKernelImpl(), null, buildDefaultCommitHook());
-        repository = new RepositoryImpl(
-                contentRepository, Executors.newScheduledThreadPool(1));
-
+    public void setUp() throws RepositoryException {
+        repository = new RepositoryImpl();
         privilegeManager = getPrivilegeManager(ADMIN);
+    }
+
+    @After
+    public void tearDown() {
+        privilegeManager = null;
+        repository = null;
     }
 
     private PrivilegeManager getPrivilegeManager(Credentials credentials)

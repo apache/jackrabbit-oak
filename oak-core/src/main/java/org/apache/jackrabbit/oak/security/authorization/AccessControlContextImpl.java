@@ -21,7 +21,6 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.CompiledPermissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContext;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
@@ -31,7 +30,6 @@ import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
  */
 public class AccessControlContextImpl implements AccessControlContext {
 
-    private static final CompiledPermissions NO_PERMISSIONS = new SimplePermissions(false);
     private static final CompiledPermissions ADMIN_PERMISSIONS = new SimplePermissions(true);
 
     private Set<Principal> principals;
@@ -44,24 +42,12 @@ public class AccessControlContextImpl implements AccessControlContext {
 
     @Override
     public CompiledPermissions getPermissions() {
-        if (principals == null || principals.isEmpty()) {
-            return NO_PERMISSIONS;
-        } else if (principals.contains(AdminPrincipal.INSTANCE)) {
+        if (principals.contains(AdminPrincipal.INSTANCE)) {
             return ADMIN_PERMISSIONS;
         } else {
             // TODO: replace with permissions based on ac evaluation
             return new CompiledPermissionImpl(principals);
         }
-    }
-
-    @Override
-    public ValidatorProvider getPermissionValidatorProvider() {
-        return new PermissionValidatorProvider(this);
-    }
-
-    @Override
-    public ValidatorProvider getAccessControlValidatorProvider() {
-        return new AccessControlValidatorProvider(this);
     }
 
     //--------------------------------------------------------------------------
