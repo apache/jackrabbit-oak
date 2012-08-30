@@ -28,6 +28,8 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
+
 import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValue;
@@ -191,6 +193,7 @@ public class MembershipProviderImpl extends AuthorizableBaseProvider implements 
                 if (values.contains(toAdd)) {
                     return false;
                 } else {
+                    values = Lists.newArrayList(values);
                     values.add(toAdd);
                 }
             } else {
