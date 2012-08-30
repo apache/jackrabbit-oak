@@ -47,9 +47,9 @@ public class DescendantNodeJoinConditionImpl extends JoinConditionImpl implement
 
     @Override
     public String toString() {
-        String descendant = getDescendantSelectorName();
-        String ancestor = getAncestorSelectorName();
-        return "ISDESCENDANTNODE(" + descendant + ", " + ancestor + ')';
+        return "ISDESCENDANTNODE(" +
+                quoteSelectorName(descendantSelectorName) + ", " +
+                quoteSelectorName(ancestorSelectorName) + ')';
     }
 
 }

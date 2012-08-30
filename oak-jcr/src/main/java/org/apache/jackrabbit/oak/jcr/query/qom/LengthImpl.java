@@ -38,7 +38,7 @@ public class LengthImpl extends DynamicOperandImpl implements Length {
 
     @Override
     public String toString() {
-        return "LENGTH(" + getPropertyValue() + ')';
+        return "LENGTH(" + propertyValue + ')';
     }
 
 }

@@ -45,8 +45,9 @@ public class PropertyExistenceImpl extends ConstraintImpl implements PropertyExi
 
     @Override
     public String toString() {
-        // TODO quote property names?
-        return getSelectorName() + '.' + propertyName + " IS NOT NULL";
+        return quoteSelectorName(selectorName) + '.' +
+                quotePropertyName(propertyName) +
+                " IS NOT NULL";
     }
 
     @Override

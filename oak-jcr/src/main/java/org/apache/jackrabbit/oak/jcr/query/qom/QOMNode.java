@@ -32,7 +32,27 @@ abstract class QOMNode {
     }
 
     protected String quotePath(String path) {
-        return '[' + path + ']';
+        return quoteName(path);
+    }
+
+    protected String quoteSelectorName(String name) {
+        return quoteName(name);
+    }
+
+    protected String quotePropertyName(String name) {
+        return quoteName(name);
+    }
+
+    protected String quoteColumnName(String name) {
+        return quoteName(name);
+    }
+
+    protected String quoteNodeTypeName(String name) {
+        return quoteName(name);
+    }
+
+    private static String quoteName(String name) {
+        return '[' + name + ']';
     }
 
 }

@@ -53,13 +53,12 @@ public class FullTextSearchImpl extends ConstraintImpl implements FullTextSearch
 
     @Override
     public String toString() {
-        // TODO quote property names?
         StringBuilder builder = new StringBuilder();
         builder.append("CONTAINS(");
-        builder.append(getSelectorName());
+        builder.append(quoteSelectorName(selectorName));
         if (propertyName != null) {
             builder.append('.');
-            builder.append(propertyName);
+            builder.append(quotePropertyName(propertyName));
             builder.append(", ");
         } else {
             builder.append(".*, ");

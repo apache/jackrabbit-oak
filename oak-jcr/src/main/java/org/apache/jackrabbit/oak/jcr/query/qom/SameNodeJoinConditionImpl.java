@@ -55,9 +55,9 @@ public class SameNodeJoinConditionImpl extends JoinConditionImpl implements Same
     public String toString() {
         StringBuilder builder = new StringBuilder();
         builder.append("ISSAMENODE(");
-        builder.append(getSelector1Name());
+        builder.append(quoteSelectorName(selector1Name));
         builder.append(", ");
-        builder.append(getSelector2Name());
+        builder.append(quoteSelectorName(selector2Name));
         if (selector2Path != null) {
             builder.append(", ");
             builder.append(quotePath(selector2Path));

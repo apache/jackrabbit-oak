@@ -45,7 +45,9 @@ public class DescendantNodeImpl extends ConstraintImpl implements DescendantNode
 
     @Override
     public String toString() {
-        return "ISDESCENDANTNODE(" + getSelectorName() + ", " + quotePath(ancestorPath) + ')';
+        return "ISDESCENDANTNODE(" +
+                quoteSelectorName(selectorName) + ", " +
+                quotePath(ancestorPath) + ')';
     }
 
     @Override

@@ -51,10 +51,11 @@ public class ColumnImpl extends QOMNode implements Column {
     @Override
     public String toString() {
         if (propertyName != null) {
-            return getSelectorName() + '.' + getPropertyName()
-                    + " AS [" + columnName + "]";
+            return quoteSelectorName(selectorName) + '.' +
+                    quotePropertyName(propertyName) +
+                    " AS " + quoteColumnName(columnName);
         }
-        return getSelectorName() + ".*";
+        return quoteSelectorName(selectorName) + ".*";
     }
 
 }
