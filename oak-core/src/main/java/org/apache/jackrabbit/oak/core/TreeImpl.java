@@ -18,12 +18,8 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -65,7 +61,8 @@ public class TreeImpl implements Tree, PurgeListener {
     /**
      * Cache for child trees that have been accessed before.
      */
-    private final Children children = new Children();
+    private final Map<String, TreeImpl> children =
+            CacheBuilder.newBuilder().weakValues().<String, TreeImpl>build().asMap();
 
     private TreeImpl(RootImpl root, TreeImpl parent, String name) {
         assert root != null;
@@ -497,53 +494,6 @@ public class TreeImpl implements Tree, PurgeListener {
         });
 
         return !isDirty[0];
-    }
-
-    private static class Children implements Iterable<TreeImpl> {
-
-        private final Map<String, TreeImpl> children =
-                CacheBuilder.newBuilder().weakValues().<String, TreeImpl>build().asMap();
-
-        private final Lock readLock;
-        private final Lock writeLock;
-
-        {
-            ReadWriteLock lock = new ReentrantReadWriteLock();
-            readLock = lock.readLock();
-            writeLock = lock.writeLock();
-        }
-
-        public void put(String name, TreeImpl tree) {
-            writeLock.lock();
-            try {
-                children.put(name, tree);
-            } finally {
-                writeLock.unlock();
-            }
-        }
-
-        public TreeImpl get(String name) {
-            readLock.lock();
-            try {
-                return children.get(name);
-            } finally {
-                readLock.unlock();
-            }
-        }
-
-        public void remove(String name) {
-            writeLock.lock();
-            try {
-                children.remove(name);
-            } finally {
-                writeLock.unlock();
-            }
-        }
-
-        @Override
-        public Iterator<TreeImpl> iterator() {
-            return children.values().iterator();
-        }
     }
 
     //------------------------------------------------------------< TreeLocation >---
