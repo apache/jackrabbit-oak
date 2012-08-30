@@ -75,7 +75,13 @@ class PropertyDefinitionImpl extends ItemDefinitionImpl
 
     @Override
     public Value[] getDefaultValues() {
-        return node.getValues("jcr:defaultValues", factory);
+        if (factory != null) {
+            return node.getValues("jcr:defaultValues", factory);
+        }
+        else {
+            log.warn("Cannot create default values: no value factory");
+            return null;
+        }
     }
 
     @Override
