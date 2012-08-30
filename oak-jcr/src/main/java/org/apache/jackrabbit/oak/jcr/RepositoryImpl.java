@@ -27,9 +27,22 @@ import javax.jcr.Value;
 import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.commons.SimpleValueFactory;
+import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
+import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
+import org.apache.jackrabbit.oak.plugins.name.NamespaceValidatorProvider;
+import org.apache.jackrabbit.oak.plugins.type.TypeValidatorProvider;
+import org.apache.jackrabbit.oak.plugins.value.ConflictValidatorProvider;
+import org.apache.jackrabbit.oak.security.authorization.AccessControlValidatorProvider;
+import org.apache.jackrabbit.oak.security.authorization.PermissionValidatorProvider;
+import org.apache.jackrabbit.oak.security.privilege.PrivilegeValidatorProvider;
+import org.apache.jackrabbit.oak.security.user.UserValidatorProvider;
+import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
+import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,6 +56,18 @@ public class RepositoryImpl implements Repository {
      */
     private static final Logger log = LoggerFactory.getLogger(RepositoryImpl.class);
 
+    private static final ValidatorProvider DEFAULT_VALIDATOR =
+            new CompositeValidatorProvider(
+                    new NameValidatorProvider(),
+                    new NamespaceValidatorProvider(),
+                    new TypeValidatorProvider(),
+                    new ConflictValidatorProvider(),
+                    new PermissionValidatorProvider(),
+                    new AccessControlValidatorProvider(),
+                    // FIXME: retrieve from user context
+                    new UserValidatorProvider(new UserConfig("admin")),
+                    new PrivilegeValidatorProvider());
+
     private final Descriptors descriptors = new Descriptors(new SimpleValueFactory());
     private final ContentRepository contentRepository;
 
@@ -55,6 +80,11 @@ public class RepositoryImpl implements Repository {
         this.executor = executor;
     }
 
+    public RepositoryImpl(
+            MicroKernel kernel, ScheduledExecutorService executor) {
+        this(new ContentRepositoryImpl(kernel, DEFAULT_VALIDATOR), executor);
+    }
+
     /**
      * Utility constructor that creates a new in-memory repository for use
      * mostly in test cases. The executor service is initialized with an
@@ -63,7 +93,7 @@ public class RepositoryImpl implements Repository {
      * if such features are needed.
      */
     public RepositoryImpl() {
-        this(new ContentRepositoryImpl(), Executors.newScheduledThreadPool(0));
+        this(new MicroKernelImpl(), Executors.newScheduledThreadPool(0));
     }
 
     //---------------------------------------------------------< Repository >---

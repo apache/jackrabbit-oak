@@ -42,6 +42,10 @@ public class ValidatingHook implements CommitHook {
         this.validatorProvider = validatorProvider;
     }
 
+    public ValidatingHook(ValidatorProvider... providers) {
+        this(new CompositeValidatorProvider(providers));
+    }
+
     @Override
     public NodeState processCommit(
             NodeStore store, NodeState before, NodeState after)

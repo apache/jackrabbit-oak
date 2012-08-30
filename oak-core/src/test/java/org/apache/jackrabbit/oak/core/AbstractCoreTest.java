@@ -16,11 +16,12 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import javax.security.auth.Subject;
+
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContext;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Before;
 import org.slf4j.Logger;
@@ -39,7 +40,6 @@ public abstract class AbstractCoreTest {
     // TODO: use regular oak-repo setup
     protected KernelNodeStore store;
     protected CoreValueFactory valueFactory;
-    protected AccessControlContext acContext;
 
     protected NodeState state;
 
@@ -48,14 +48,12 @@ public abstract class AbstractCoreTest {
         MicroKernel microKernel = new MicroKernelImpl();
         store = new KernelNodeStore(microKernel);
         valueFactory = store.getValueFactory();
-        acContext = new TestAcContext();
-
         state = createInitialState(microKernel);
     }
 
     protected abstract NodeState createInitialState(MicroKernel microKernel);
 
     protected RootImpl createRootImpl(String workspaceName) {
-        return new RootImpl(store, workspaceName, acContext);
+        return new RootImpl(store, workspaceName, new Subject());
     }
 }

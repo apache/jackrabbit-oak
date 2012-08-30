@@ -80,6 +80,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
     @Before
     public void setup() throws RepositoryException {
+        executor = Executors.newScheduledThreadPool(1);
+
         Session session = getAdminSession();
         ValueFactory valueFactory = session.getValueFactory();
         Node root = session.getRootNode();

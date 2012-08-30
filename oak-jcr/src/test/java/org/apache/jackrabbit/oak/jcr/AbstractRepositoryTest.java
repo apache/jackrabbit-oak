@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
 import javax.jcr.GuestCredentials;
@@ -26,10 +25,7 @@ import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
-import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.junit.After;
-
-import static org.apache.jackrabbit.oak.jcr.RepositoryTestUtils.buildDefaultCommitHook;
 
 /**
  * Abstract base class for repository tests providing methods for accessing
@@ -40,7 +36,7 @@ import static org.apache.jackrabbit.oak.jcr.RepositoryTestUtils.buildDefaultComm
  */
 public abstract class AbstractRepositoryTest {
 
-    private ScheduledExecutorService executor = null;
+    protected ScheduledExecutorService executor = null;
 
     private Repository repository = null;
     private Session adminSession = null;
@@ -63,10 +59,11 @@ public abstract class AbstractRepositoryTest {
 
     protected Repository getRepository() throws RepositoryException {
         if (repository == null) {
-            executor = Executors.newScheduledThreadPool(1);
-            repository = new RepositoryImpl(new ContentRepositoryImpl(
-                    new MicroKernelImpl(), null, buildDefaultCommitHook()),
-                    executor);
+            if (executor != null) {
+                repository = new RepositoryImpl(new MicroKernelImpl(), executor);
+            } else {
+                repository = new RepositoryImpl();
+            }
         }
         return repository;
     }
