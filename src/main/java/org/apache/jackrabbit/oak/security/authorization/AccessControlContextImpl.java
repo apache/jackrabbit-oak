@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.security.authorization;
 import java.security.Principal;
 import java.util.Set;
 
-import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
@@ -56,13 +55,13 @@ public class AccessControlContextImpl implements AccessControlContext {
     }
 
     @Override
-    public ValidatorProvider getPermissionValidatorProvider(CoreValueFactory valueFactory) {
-        return new PermissionValidatorProvider(valueFactory, this);
+    public ValidatorProvider getPermissionValidatorProvider() {
+        return new PermissionValidatorProvider(this);
     }
 
     @Override
-    public ValidatorProvider getAccessControlValidatorProvider(CoreValueFactory valueFactory) {
-        return new AccessControlValidatorProvider(valueFactory, this);
+    public ValidatorProvider getAccessControlValidatorProvider() {
+        return new AccessControlValidatorProvider(this);
     }
 
     //--------------------------------------------------------------------------

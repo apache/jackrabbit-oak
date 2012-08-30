@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.security.authorization;
 
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContext;
@@ -36,7 +35,7 @@ class AccessControlValidatorProvider implements ValidatorProvider {
      */
     private static final Logger log = LoggerFactory.getLogger(AccessControlValidatorProvider.class);
 
-    public AccessControlValidatorProvider(CoreValueFactory valueFactory, AccessControlContext accessControlContext) {
+    public AccessControlValidatorProvider(AccessControlContext accessControlContext) {
         // TODO
     }
 

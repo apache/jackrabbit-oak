@@ -37,6 +37,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryValueFactory;
 import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,13 +62,15 @@ public class NodeUtil {
     }
 
     public NodeUtil(Tree tree, CoreValueFactory factory) {
-        this.tree = tree;
-        this.factory = factory;
-        this.mapper = NamePathMapper.DEFAULT;
+        this(tree, factory, NamePathMapper.DEFAULT);
     }
 
     public NodeUtil(Tree tree, ContentSession contentSession) {
         this(tree, contentSession.getCoreValueFactory());
+    }
+
+    public NodeUtil(Tree tree) {
+        this(tree, MemoryValueFactory.INSTANCE);
     }
 
     @Nonnull
