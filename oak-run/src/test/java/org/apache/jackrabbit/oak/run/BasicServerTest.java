@@ -29,11 +29,22 @@ import static org.junit.Assert.assertEquals;
 
 public class BasicServerTest {
 
+    private static final String SERVER_URL;
+
+    static {
+        String p = System.getProperty("jetty.http.port");
+        if (p != null) {
+            SERVER_URL = "http://localhost:" + p + "/";
+        } else {
+            SERVER_URL = Main.URI;
+        }
+    }
+
     private Main.HttpServer server;
 
     @Before
     public void startServer() throws Exception {
-        server = new Main.HttpServer(Main.URI, new String[0]);
+        server = new Main.HttpServer(SERVER_URL, new String[0]);
         server.start();
     }
 
@@ -45,7 +56,7 @@ public class BasicServerTest {
     @Test
     public void testServerOk() throws Exception {
 
-        URL server = new URL(Main.URI);
+        URL server = new URL(SERVER_URL);
         HttpURLConnection conn = (HttpURLConnection) server.openConnection();
         conn.setRequestProperty("Authorization",
                 "Basic " + Base64.encode("a:a"));
