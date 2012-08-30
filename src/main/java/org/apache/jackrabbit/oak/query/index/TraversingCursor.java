@@ -20,9 +20,11 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.Cursor;
 import org.apache.jackrabbit.oak.spi.Filter;
+import org.apache.jackrabbit.oak.spi.Filter.PathRestriction;
 import org.apache.jackrabbit.oak.spi.IndexRow;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Queues;
 
@@ -33,7 +35,7 @@ public class TraversingCursor implements Cursor {
 
     private final Filter filter;
 
-    private final Deque<Iterator<? extends ChildNodeEntry>> nodes =
+    private final Deque<Iterator<? extends ChildNodeEntry>> nodeIterators =
             Queues.newArrayDeque();
 
     private String parentPath;
@@ -62,25 +64,27 @@ public class TraversingCursor implements Cursor {
                 }
             }
         }
-
-        switch (filter.getPathRestriction()) {
+        PathRestriction restriciton = filter.getPathRestriction();
+        switch (restriciton) {
         case EXACT:
         case ALL_CHILDREN:
-            nodes.add(Iterators.singletonIterator(
+            nodeIterators.add(Iterators.singletonIterator(
                     new MemoryChildNodeEntry(currentPath, node)));
             parentPath = "";
             break;
         case PARENT:
             if (parent != null) {
-                nodes.add(Iterators.singletonIterator(
+                nodeIterators.add(Iterators.singletonIterator(
                         new MemoryChildNodeEntry(parentPath, parent)));
                 parentPath = "";
             }
             break;
         case DIRECT_CHILDREN:
-            nodes.add(node.getChildNodeEntries().iterator());
+            nodeIterators.add(node.getChildNodeEntries().iterator());
             parentPath = currentPath;
             break;
+        default:
+            throw new IllegalArgumentException("Unknown restriction: " + restriciton);
         }
     }
 
@@ -91,22 +95,25 @@ public class TraversingCursor implements Cursor {
 
     @Override
     public boolean next() {
-        while (!nodes.isEmpty()) {
-            Iterator<? extends ChildNodeEntry> iterator = nodes.getLast();
+        while (!nodeIterators.isEmpty()) {
+            Iterator<? extends ChildNodeEntry> iterator = nodeIterators.getLast();
             if (iterator.hasNext()) {
                 ChildNodeEntry entry = iterator.next();
                 NodeState node = entry.getNodeState();
 
                 String name = entry.getName();
+                if (NodeStateUtils.isHidden(name)) {
+                    continue;
+                }
                 currentPath = PathUtils.concat(parentPath, name);
 
                 if (filter.getPathRestriction() == ALL_CHILDREN) {
-                    nodes.addLast(node.getChildNodeEntries().iterator());
+                    nodeIterators.addLast(node.getChildNodeEntries().iterator());
                     parentPath = currentPath;
                 }
                 return true;
             } else {
-                nodes.removeLast();
+                nodeIterators.removeLast();
                 parentPath = PathUtils.getParentPath(parentPath);
             }
         }
