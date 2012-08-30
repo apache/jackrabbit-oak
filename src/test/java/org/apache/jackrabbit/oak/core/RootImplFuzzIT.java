@@ -21,6 +21,8 @@ package org.apache.jackrabbit.oak.core;
 import java.util.Iterator;
 import java.util.Random;
 
+import javax.security.auth.Subject;
+
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.CoreValue;
@@ -78,12 +80,12 @@ public class RootImplFuzzIT {
         store1 = new KernelNodeStore(mk1);
         vf = store1.getValueFactory();
         mk1.commit("", "+\"/root\":{}", mk1.getHeadRevision(), "");
-        root1 = new RootImpl(store1, null, new TestAcContext());
+        root1 = new RootImpl(store1, null, new Subject());
 
         MicroKernel mk2 = new MicroKernelImpl("./target/mk2/" + random.nextInt());
         store2 = new KernelNodeStore(mk2);
         mk2.commit("", "+\"/root\":{}", mk2.getHeadRevision(), "");
-        root2 = new RootImpl(store2, null, new TestAcContext());
+        root2 = new RootImpl(store2, null, new Subject());
     }
 
     @Test

@@ -45,7 +45,6 @@ class ContentSessionImpl implements ContentSession {
     private final String workspaceName;
     private final NodeStore store;
     private final SessionQueryEngine queryEngine;
-    private final AccessControlContext accessControlContext;
 
     public ContentSessionImpl(LoginContext loginContext, String workspaceName,
                               NodeStore store, QueryEngineImpl queryEngine,
@@ -57,8 +56,6 @@ class ContentSessionImpl implements ContentSession {
         this.workspaceName = workspaceName;
         this.store = store;
         this.queryEngine = new SessionQueryEngineImpl(this, queryEngine);
-        this.accessControlContext = accessControlContext;
-        this.accessControlContext.initialize(getAuthInfo().getPrincipals());
     }
 
     @Nonnull
@@ -75,7 +72,7 @@ class ContentSessionImpl implements ContentSession {
     @Nonnull
     @Override
     public Root getCurrentRoot() {
-        return new RootImpl(store, workspaceName, accessControlContext);
+        return new RootImpl(store, workspaceName, loginContext.getSubject());
     }
 
     @Override

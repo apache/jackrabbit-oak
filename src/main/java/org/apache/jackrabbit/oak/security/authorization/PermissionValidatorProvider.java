@@ -16,7 +16,12 @@
  */
 package org.apache.jackrabbit.oak.security.authorization;
 
+import java.security.AccessController;
+import java.security.Principal;
+import java.util.Set;
+
 import javax.annotation.Nonnull;
+import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
@@ -25,23 +30,27 @@ import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContext
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 
+import com.google.common.collect.ImmutableSet;
+
 /**
  * PermissionValidatorProvider... TODO
  */
-class PermissionValidatorProvider implements ValidatorProvider {
+public class PermissionValidatorProvider implements ValidatorProvider {
 
-    private final AccessControlContext accessControlContext;
-
-    public PermissionValidatorProvider(AccessControlContext accessControlContext) {
-        this.accessControlContext = accessControlContext;
-    }
-
-    //--------------------------------------------------< ValidatorProvider >---
     @Nonnull
     @Override
     public Validator getRootValidator(NodeState before, NodeState after) {
+        Set<Principal> principals = ImmutableSet.of();
+        Subject subject = Subject.getSubject(AccessController.getContext());
+        if (subject != null) {
+            principals = subject.getPrincipals();
+        }
+
+        AccessControlContext context = new AccessControlContextImpl();
+        context.initialize(principals);
+
         NodeUtil rootBefore = new NodeUtil(new ReadOnlyTree(before));
         NodeUtil rootAfter = new NodeUtil(new ReadOnlyTree(after));
-        return new PermissionValidator(accessControlContext.getPermissions(), rootBefore, rootAfter);
+        return new PermissionValidator(context.getPermissions(), rootBefore, rootAfter);
     }
 }

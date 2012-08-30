@@ -20,7 +20,6 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 
@@ -123,11 +122,9 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
     }
 
     @Override
-    public NodeState merge(CommitHook hook) throws CommitFailedException {
+    public NodeState merge() throws CommitFailedException {
         NodeState oldRoot = base;
-        CommitHook commitHook = hook == null
-                ? store.getHook()
-                : new CompositeHook(store.getHook(), hook);
+        CommitHook commitHook = store.getHook();
         NodeState toCommit = commitHook.processCommit(store, oldRoot, currentRoot);
         setRoot(toCommit);
 
