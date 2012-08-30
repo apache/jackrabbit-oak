@@ -20,7 +20,6 @@ import java.security.Principal;
 import java.text.ParseException;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.Map;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.query.Query;
@@ -30,6 +29,7 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Result;
+import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -190,32 +190,31 @@ class UserProviderImpl extends AuthorizableBaseProvider implements UserProvider 
 
     @Override
     public Tree getAuthorizableByPrincipal(Principal principal) {
-        Tree authorizableTree = null;
         if (principal instanceof TreeBasedPrincipal) {
-            authorizableTree = root.getTree(((TreeBasedPrincipal) principal).getOakPath());
-        } else {
-            // NOTE: in contrast to JR2 the extra shortcut for ID==principalName
-            // can be omitted as principals names are stored in user defined
-            // index as well.
-            try {
-                CoreValue bindValue = valueFactory.createValue(principal.getName());
-                Map<String, CoreValue> bindings = Collections.singletonMap("principalName", bindValue);
-                String stmt = "SELECT * FROM [rep:Authorizable] WHERE [rep:principalName] = $principalName";
-                Result result = queryEngine.executeQuery(stmt,
-                        Query.JCR_SQL2, 1, 0,
-                        Collections.singletonMap("principalName", bindValue),
-                        new NamePathMapper.Default());
-
-                Iterator rows = result.getRows().iterator();
-                if (rows.hasNext()) {
-                    String path = rows.next().toString();
-                    authorizableTree = root.getTree(path);
-                }
-            } catch (ParseException ex) {
-                log.error("query failed", ex);
-            }
+            return root.getTree(((TreeBasedPrincipal) principal).getOakPath());
         }
-        return authorizableTree;
+
+        // NOTE: in contrast to JR2 the extra shortcut for ID==principalName
+        // can be omitted as principals names are stored in user defined
+        // index as well.
+        try {
+            CoreValue bindValue = valueFactory.createValue(principal.getName());
+            String stmt = "SELECT * FROM [rep:Authorizable] WHERE [rep:principalName] = $principalName";
+            Result result = queryEngine.executeQuery(stmt,
+                    Query.JCR_SQL2, 1, 0,
+                    Collections.singletonMap("principalName", bindValue),
+                    new NamePathMapper.Default());
+
+            Iterator<? extends ResultRow> rows = result.getRows().iterator();
+            if (rows.hasNext()) {
+                String path = rows.next().getPath();
+                return root.getTree(path);
+            }
+        } catch (ParseException ex) {
+            log.error("query failed", ex);
+        }
+
+        return null;
     }
 
     @Override

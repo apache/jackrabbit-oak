@@ -142,8 +142,10 @@ public class UserManagerImpl implements UserManager {
         checkValidID(userID);
         checkValidPrincipal(principal, false);
 
-        String oakPath = namePathMapper.getOakPath(intermediatePath);
-        Tree userTree = getUserProvider().createUser(userID, intermediatePath);
+        if (intermediatePath != null) {
+            intermediatePath = namePathMapper.getOakPath(intermediatePath);
+        }
+        Tree userTree = userProvider.createUser(userID, intermediatePath);
         setPrincipal(userTree, principal);
         setPassword(userTree, password, true);
 
@@ -180,8 +182,10 @@ public class UserManagerImpl implements UserManager {
         checkValidID(groupID);
         checkValidPrincipal(principal, true);
 
-        String oakPath = namePathMapper.getOakPath(intermediatePath);
-        Tree groupTree = getUserProvider().createGroup(groupID, oakPath);
+        if (intermediatePath != null) {
+            intermediatePath = namePathMapper.getOakPath(intermediatePath);
+        }
+        Tree groupTree = getUserProvider().createGroup(groupID, intermediatePath);
         setPrincipal(groupTree, principal);
 
         Group group = new GroupImpl(groupTree, this);
