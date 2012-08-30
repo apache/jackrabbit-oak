@@ -45,9 +45,9 @@ public class ChildNodeJoinConditionImpl extends JoinConditionImpl implements Chi
 
     @Override
     public String toString() {
-        String child = getChildSelectorName();
-        String parent = getParentSelectorName();
-        return "ISCHILDNODE(" + child + ", " + parent + ')';
+        return "ISCHILDNODE(" +
+                quoteSelectorName(childSelectorName) + ", " +
+                quoteSelectorName(parentSelectorName) + ")";
     }
 
 }

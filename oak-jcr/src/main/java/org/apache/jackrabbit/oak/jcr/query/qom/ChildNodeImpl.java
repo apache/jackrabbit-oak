@@ -45,7 +45,9 @@ public class ChildNodeImpl extends ConstraintImpl implements ChildNode {
 
     @Override
     public String toString() {
-        return "ISCHILDNODE(" + selectorName + ", " + quotePath(parentPath) + ')';
+        return "ISCHILDNODE(" +
+                quoteSelectorName(selectorName) + ", " +
+                quotePath(parentPath) + ')';
     }
 
     @Override

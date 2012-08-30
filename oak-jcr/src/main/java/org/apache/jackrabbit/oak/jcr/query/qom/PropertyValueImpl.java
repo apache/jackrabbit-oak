@@ -45,8 +45,8 @@ public class PropertyValueImpl extends DynamicOperandImpl implements PropertyVal
 
     @Override
     public String toString() {
-        // TODO quote property names?
-        return getSelectorName() + '.' + propertyName;
+        return quoteSelectorName(selectorName) + '.' +
+                quotePropertyName(propertyName);
     }
 
 }

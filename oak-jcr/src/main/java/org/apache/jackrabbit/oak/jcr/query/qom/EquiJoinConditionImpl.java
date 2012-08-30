@@ -60,9 +60,10 @@ public class EquiJoinConditionImpl extends JoinConditionImpl implements EquiJoin
 
     @Override
     public String toString() {
-        // TODO quote property names?
-        return getSelector1Name() + '.' + getProperty1Name()
-                + " = " + getSelector2Name() + '.' + getProperty2Name();
+        return quoteSelectorName(selector1Name) + '.' +
+                quotePropertyName(property1Name) + " = " +
+                quoteSelectorName(selector2Name) + '.' +
+                quotePropertyName(property2Name);
     }
 
 }
