@@ -116,7 +116,6 @@ select * from [nt:base] as x where isdescendantnode(x, '/')
 /jcr:system/rep:privileges
 /oak-index
 /oak-index/indexes
-/oak-index/indexes/:data
 /test
 /test/jcr:resource
 /test/resource
@@ -198,7 +197,6 @@ select * from [nt:base]
 /jcr:system/rep:privileges
 /oak-index
 /oak-index/indexes
-/oak-index/indexes/:data
 /test
 /test/hello
 /test/world
@@ -223,7 +221,6 @@ select * from [nt:base] where not (id = '1' or x = '2')
 /jcr:system/rep:privileges
 /oak-index
 /oak-index/indexes
-/oak-index/indexes/:data
 /test
 /test/hello
 
@@ -236,7 +233,6 @@ select * from [nt:base] where x is null
 /jcr:system/rep:privileges
 /oak-index
 /oak-index/indexes
-/oak-index/indexes/:data
 /test
 
 commit / - "test"
@@ -249,7 +245,6 @@ commit / + "test4": { "name": "10%" }
 commit / + "test5": { "name": "10 percent" }
 
 select name from [nt:base] order by upper(name)
-null
 null
 null
 null
