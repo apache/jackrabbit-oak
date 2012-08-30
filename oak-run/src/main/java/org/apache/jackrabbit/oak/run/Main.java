@@ -105,17 +105,23 @@ public class Main {
         private final MicroKernel[] kernels;
 
         public HttpServer(String uri, String[] args) {
+            int port = java.net.URI.create(uri).getPort();
+            if (port == -1) {
+                // use default
+                port = PORT;
+            }
+
             context = new ServletContextHandler(ServletContextHandler.SECURITY);
             context.setContextPath("/");
 
             if (args.length == 0) {
                 System.out.println("Starting an in-memory repository");
-                System.out.println(URI + " -> [memory]");
+                System.out.println(uri + " -> [memory]");
                 kernels = new MicroKernel[] { new MicroKernelImpl() };
                 addServlets(kernels[0], "");
             } else if (args.length == 1) {
                 System.out.println("Starting a standalone repository");
-                System.out.println(URI + " -> " + args[0]);
+                System.out.println(uri + " -> " + args[0]);
                 kernels = new MicroKernel[] { new MicroKernelImpl(args[0]) };
                 addServlets(kernels[0], "");
             } else {
@@ -123,13 +129,13 @@ public class Main {
                 kernels = new MicroKernel[args.length];
                 for (int i = 0; i < args.length; i++) {
                     // FIXME: Use a clustered MicroKernel implementation
-                    System.out.println(URI + "/node" + i + "/ -> " + args[i]);
+                    System.out.println(uri + "/node" + i + "/ -> " + args[i]);
                     kernels[i] = new MicroKernelImpl(args[i]);
                     addServlets(kernels[i], "/node" + i);
                 }
             }
 
-            server = new Server(PORT);
+            server = new Server(port);
             server.setHandler(context);
         }
 
