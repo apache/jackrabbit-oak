@@ -86,6 +86,9 @@ public class PropertyValueImpl extends DynamicOperandImpl {
             return matchesPropertyType(p) ? p : null;
         }
         Tree tree = getTree(selector.currentPath());
+        if (tree == null) {
+            return null;
+        }
         if (relative) {
             for (String p : PathUtils.elements(PathUtils.getParentPath(propertyName))) {
                 if (tree == null) {

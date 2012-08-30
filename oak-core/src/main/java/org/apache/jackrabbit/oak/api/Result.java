@@ -21,10 +21,33 @@ package org.apache.jackrabbit.oak.api;
  */
 public interface Result {
 
+    /**
+     * Get the list of column names.
+     *
+     * @return the column names
+     */
     String[] getColumnNames();
 
+    /**
+     * Get the list of selector names.
+     *
+     * @return the selector names
+     */
     String[] getSelectorNames();
 
+    /**
+     * Get the rows.
+     *
+     * @return the rows
+     */
     Iterable<? extends ResultRow> getRows();
+
+    /**
+     * Get the number of rows, if known. If the size is not known, -1 is
+     * returned.
+     *
+     * @return the size or -1 if unknown
+     */
+    long getSize();
 
 }

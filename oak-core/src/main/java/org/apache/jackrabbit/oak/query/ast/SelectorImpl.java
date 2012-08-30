@@ -119,6 +119,9 @@ public class SelectorImpl extends SourceImpl {
                 return true;
             }
             Tree tree = getTree(cursor.currentRow().getPath());
+            if (tree == null) {
+                return false;
+            }
             PropertyState p = tree.getProperty(JCR_PRIMARY_TYPE);
             if (p == null) {
                 return true;
@@ -171,7 +174,8 @@ public class SelectorImpl extends SourceImpl {
         if (path == null) {
             return null;
         }
-        return getTree(path).getProperty(propertyName);
+        Tree t = getTree(path);
+        return t == null ? null : t.getProperty(propertyName);
     }
 
     @Override

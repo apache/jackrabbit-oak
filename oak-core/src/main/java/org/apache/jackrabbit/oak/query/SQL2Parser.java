@@ -1029,6 +1029,7 @@ public class SQL2Parser {
                 // (not in the JCR 1.0 spec)
                 // (confusing isn't it?)
                 currentTokenType = IDENTIFIER;
+                currentToken = currentValue.getString();
             }
             return;
         case CHAR_END:

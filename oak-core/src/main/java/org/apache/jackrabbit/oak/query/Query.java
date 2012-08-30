@@ -13,12 +13,15 @@
  */
 package org.apache.jackrabbit.oak.query;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import javax.jcr.PropertyType;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValue;
@@ -74,6 +77,7 @@ public class Query {
     private boolean explain;
     private long limit = Long.MAX_VALUE;
     private long offset;
+    private long size = -1;
     private boolean prepared;
     private final CoreValueFactory valueFactory;
     private ContentSession session;
@@ -146,7 +150,7 @@ public class Query {
             public boolean visit(FullTextSearchImpl node) {
                 node.setQuery(query);
                 node.bindSelector(source);
-                return true;
+                return super.visit(node);
             }
 
             @Override
@@ -309,6 +313,7 @@ public class Query {
                     ResultRowImpl r = it.next();
                     list.add(r);
                 }
+                size = list.size();
                 Collections.sort(list);
                 it = list.iterator();
             }
@@ -316,22 +321,22 @@ public class Query {
         return it;
     }
 
-    public int compareRows(CoreValue[] orderValues, CoreValue[] orderValues2) {
+    public int compareRows(CoreValue[][] orderValues, CoreValue[][] orderValues2) {
         int comp = 0;
         for (int i = 0, size = orderings.length; i < size; i++) {
-            CoreValue a = orderValues[i];
-            CoreValue b = orderValues2[i];
+            CoreValue[] a = orderValues[i];
+            CoreValue[] b = orderValues2[i];
             if (a == null || b == null) {
                 if (a == b) {
                     comp = 0;
                 } else if (a == null) {
-                    // TODO order by: nulls first, last, low or high?
-                    comp = 1;
-                } else {
+                    // TODO order by: nulls first (it looks like), or low?
                     comp = -1;
+                } else {
+                    comp = 1;
                 }
             } else {
-                comp = a.compareTo(b);
+                comp = compareValues(a, b);
             }
             if (comp != 0) {
                 if (orderings[i].isDescending()) {
@@ -341,6 +346,112 @@ public class Query {
             }
         }
         return comp;
+    }
+
+    public static int compareValues(CoreValue[] orderValues, CoreValue[] orderValues2) {
+        int l1 = orderValues.length;
+        int l2 = orderValues2.length;
+        int len = Math.max(l1, l2);
+        for (int i = 0; i < len; i++) {
+            CoreValue a = i < l1 ? orderValues[i] : null;
+            CoreValue b = i < l2 ? orderValues2[i] : null;
+            int comp;
+            if (a == null) {
+                comp = 1;
+            } else if (b == null) {
+                comp = -1;
+            } else {
+                comp = a.compareTo(b);
+            }
+            if (comp != 0) {
+                return comp;
+            }
+        }
+        return 0;
+    }
+
+    public static int getType(PropertyState p, int ifUnknown) {
+        if (!p.isArray()) {
+            return p.getValue().getType();
+        }
+        Iterator<CoreValue> it = p.getValues().iterator();
+        if (it.hasNext()) {
+            return it.next().getType();
+        }
+        return ifUnknown;
+    }
+
+    public CoreValue convert(CoreValue v, int targetType) {
+        // TODO support full set of conversion features defined in the JCR spec
+        // at 3.6.4 Property Type Conversion
+        // re-use existing code if possible
+        int sourceType = v.getType();
+        if (sourceType == targetType) {
+            return v;
+        }
+        CoreValueFactory vf = getValueFactory();
+        switch (sourceType) {
+        case PropertyType.STRING:
+            switch(targetType) {
+            case PropertyType.BINARY:
+                try {
+                    byte[] data = v.getString().getBytes("UTF-8");
+                    return vf.createValue(new ByteArrayInputStream(data));
+                } catch (IOException e) {
+                    // I don't know in what case that could really occur
+                    // except if UTF-8 isn't supported
+                    throw new IllegalArgumentException(v.getString(), e);
+                }
+            }
+            return vf.createValue(v.getString(), targetType);
+        }
+        switch (targetType) {
+        case PropertyType.STRING:
+            return vf.createValue(v.getString());
+        case PropertyType.BOOLEAN:
+            return vf.createValue(v.getBoolean());
+        case PropertyType.DATE:
+            return vf.createValue(v.getString(), PropertyType.DATE);
+        case PropertyType.LONG:
+            return vf.createValue(v.getLong());
+        case PropertyType.DOUBLE:
+            return vf.createValue(v.getDouble());
+        case PropertyType.DECIMAL:
+            return vf.createValue(v.getString(), PropertyType.DECIMAL);
+        case PropertyType.NAME:
+            return vf.createValue(getOakPath(v.getString()), PropertyType.NAME);
+        case PropertyType.PATH:
+            return vf.createValue(v.getString(), PropertyType.PATH);
+        case PropertyType.REFERENCE:
+            return vf.createValue(v.getString(), PropertyType.REFERENCE);
+        case PropertyType.WEAKREFERENCE:
+            return vf.createValue(v.getString(), PropertyType.WEAKREFERENCE);
+        case PropertyType.URI:
+            return vf.createValue(v.getString(), PropertyType.URI);
+        case PropertyType.BINARY:
+            try {
+                byte[] data = v.getString().getBytes("UTF-8");
+                return vf.createValue(new ByteArrayInputStream(data));
+            } catch (IOException e) {
+                // I don't know in what case that could really occur
+                // except if UTF-8 isn't supported
+                throw new IllegalArgumentException(v.getString(), e);
+            }
+        }
+        throw new IllegalArgumentException("Unknown property type: " + targetType);
+    }
+
+    public String getOakPath(String jcrPath) {
+        NamePathMapper m = getNamePathMapper();
+        if (m == null) {
+            // to simplify testing, a getNamePathMapper isn't required
+            return jcrPath;
+        }
+        String p = m.getOakPath(jcrPath);
+        if (p == null) {
+            throw new IllegalArgumentException("Not a valid JCR path: " + jcrPath);
+        }
+        return p;
     }
 
     void prepare() {
@@ -444,17 +555,24 @@ public class Query {
             PropertyState p = c.currentProperty();
             values[i] = p == null ? null : p.getValue();
         }
-        CoreValue[] orderValues;
+        CoreValue[][] orderValues;
         if (orderings == null) {
             orderValues = null;
         } else {
             int size = orderings.length;
-            orderValues = new CoreValue[size];
+            orderValues = new CoreValue[size][];
             for (int i = 0; i < size; i++) {
                 PropertyState p = orderings[i].getOperand().currentProperty();
-                // TODO how is order by multi-values properties defined?
-                // currently throws an exception
-                orderValues[i] = p == null ? null : p.getValue();
+                CoreValue[] x;
+                if (p == null) {
+                    x = null;
+                } else if (p.isArray()) {
+                    List<CoreValue> list = p.getValues();
+                    x = list.toArray(new CoreValue[list.size()]);
+                } else {
+                    x = new CoreValue[] { p.getValue() };
+                }
+                orderValues[i] = x;
             }
         }
         return new ResultRowImpl(this, paths, values, orderValues);
@@ -548,6 +666,10 @@ public class Query {
             }
         }
         return buff.toString();
+    }
+
+    public long getSize() {
+        return size;
     }
 
 }

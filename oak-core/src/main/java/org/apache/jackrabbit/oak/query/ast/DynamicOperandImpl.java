@@ -29,4 +29,8 @@ public abstract class DynamicOperandImpl extends AstElement {
 
     public abstract void apply(FilterImpl f, Operator operator, CoreValue v);
 
+    public boolean supportsRangeConditions() {
+        return true;
+    }
+
 }

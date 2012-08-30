@@ -29,9 +29,9 @@ public class ResultRowImpl implements ResultRow, Comparable<ResultRowImpl> {
     private final Query query;
     private final String[] paths;
     private final CoreValue[] values;
-    private final CoreValue[] orderValues;
+    private final CoreValue[][] orderValues;
 
-    ResultRowImpl(Query query, String[] paths, CoreValue[] values, CoreValue[] orderValues) {
+    ResultRowImpl(Query query, String[] paths, CoreValue[] values, CoreValue[][] orderValues) {
         this.query = query;
         this.paths = paths;
         this.values = values;
