@@ -571,6 +571,18 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
             }
         }
 
+        // FIXME: Shouldn't be needed
+        for (NodeType nt : getAllNodeTypes(getParent())) {
+            for (PropertyDefinition def : nt.getDeclaredPropertyDefinitions()) {
+                String defName = def.getName();
+                if ((name.equals(defName) || "*".equals(defName))
+                        && type == PropertyType.STRING
+                        && isMultiple() == def.isMultiple()) {
+                    return def;
+                }
+            }
+        }
+
         throw new RepositoryException(
                 "No matching property definition found for " + this);
     }
