@@ -32,14 +32,12 @@ import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.index.Indexer;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
 import org.apache.jackrabbit.oak.security.authentication.LoginContextProviderImpl;
-import org.apache.jackrabbit.oak.security.authorization.AccessControlContextImpl;
 import org.apache.jackrabbit.oak.spi.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
 import org.apache.jackrabbit.oak.spi.commit.ValidatingHook;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContext;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -156,9 +154,6 @@ public class ContentRepositoryImpl implements ContentRepository {
         LoginContext loginContext = loginContextProvider.getLoginContext(credentials, workspaceName);
         loginContext.login();
 
-        // TODO make configurable
-        AccessControlContext acContext = new AccessControlContextImpl();
-
-        return new ContentSessionImpl(loginContext, workspaceName, nodeStore, queryEngine, acContext);
+        return new ContentSessionImpl(loginContext, workspaceName, nodeStore, queryEngine);
     }
 }
