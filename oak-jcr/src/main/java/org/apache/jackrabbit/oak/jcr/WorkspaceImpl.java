@@ -158,7 +158,12 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
         return new NodeTypeManagerImpl(
                 sessionDelegate.getContentSession(),
                 sessionDelegate.getNamePathMapper(),
-                sessionDelegate.getValueFactory());
+                sessionDelegate.getValueFactory()) {
+            @Override
+            protected void refresh() throws RepositoryException {
+                getSession().refresh(true);
+            }
+        };
     }
 
     @Override
