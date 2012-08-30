@@ -26,7 +26,6 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.ChangeExtractor;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ConflictHandler;
-import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeValidatorProvider;
@@ -254,16 +253,15 @@ public class RootImpl implements Root {
     }
 
     private CommitHook createCommitHook() {
-        CoreValueFactory valueFactory = store.getValueFactory();
         List<ValidatorProvider> providers = new ArrayList<ValidatorProvider>();
 
         // TODO: refactor once permissions are read from content (make sure we read from an up to date store)
-        providers.add(accessControlContext.getPermissionValidatorProvider(valueFactory));
-        providers.add(accessControlContext.getAccessControlValidatorProvider(valueFactory));
+        providers.add(accessControlContext.getPermissionValidatorProvider());
+        providers.add(accessControlContext.getAccessControlValidatorProvider());
         // TODO the following v-providers could be initialized at ContentRepo level
         // FIXME: retrieve from user context
-        providers.add(new UserValidatorProvider(valueFactory, new UserConfig("admin")));
-        providers.add(new PrivilegeValidatorProvider(valueFactory));
+        providers.add(new UserValidatorProvider(new UserConfig("admin")));
+        providers.add(new PrivilegeValidatorProvider());
 
         return new ValidatingHook(new CompositeValidatorProvider(providers));
     }

@@ -23,7 +23,6 @@ import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
@@ -41,7 +40,7 @@ class PrivilegeValidator implements PrivilegeConstants, Validator {
     private final Map<String, PrivilegeDefinition> definitions;
     private final PrivilegeDefinitionReader reader;
 
-    PrivilegeValidator(CoreValueFactory valueFactory, Tree rootBefore) {
+    PrivilegeValidator(Tree rootBefore) {
         Tree privilegesBefore = null;
         Tree system = rootBefore.getChild(JcrConstants.JCR_SYSTEM);
         if (system != null) {
@@ -49,7 +48,7 @@ class PrivilegeValidator implements PrivilegeConstants, Validator {
         }
 
         if (privilegesBefore != null) {
-            reader = new PrivilegeDefinitionReader(valueFactory, privilegesBefore);
+            reader = new PrivilegeDefinitionReader(privilegesBefore);
             definitions = PrivilegeRegistry.getAllDefinitions(reader);
         } else {
             reader = null;

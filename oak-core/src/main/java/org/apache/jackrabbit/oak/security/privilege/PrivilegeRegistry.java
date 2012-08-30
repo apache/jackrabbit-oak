@@ -24,7 +24,6 @@ import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
@@ -109,7 +108,6 @@ public class PrivilegeRegistry implements PrivilegeProvider, PrivilegeConstants 
     //------------------------------------------------------------< private >---
 
     private void internalRegisterDefinitions(PrivilegeDefinition toRegister) throws RepositoryException {
-        CoreValueFactory vf = contentSession.getCoreValueFactory();
         Root root = contentSession.getCurrentRoot();
 
         try {
