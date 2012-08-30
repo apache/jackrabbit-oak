@@ -67,7 +67,13 @@ public class ResultImpl implements Result {
             public Iterator<ResultRowImpl> iterator() {
                 return query.getRows(revisionId, root);
             }
+
         };
+    }
+
+    @Override
+    public long getSize() {
+        return query.getSize();
     }
 
 }

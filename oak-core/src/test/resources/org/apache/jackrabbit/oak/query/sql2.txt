@@ -77,6 +77,13 @@ commit / - "test"
 
 # other tests
 
+commit / + "test": { "My Documents": { "x" : {}}}
+
+select [jcr:path] from [nt:base] where name() = 'My_x0020_Documents'
+/test/My Documents
+
+commit / - "test"
+
 commit / + "test": { "jcr:resource": {}, "resource": { "x" : {}}}
 
 select * from [nt:base] where id = -1
@@ -242,20 +249,20 @@ commit / + "test4": { "name": "10%" }
 commit / + "test5": { "name": "10 percent" }
 
 select name from [nt:base] order by upper(name)
+null
+null
+null
+null
+null
+null
+null
+null
+null
 10 percent
 10%
 Hallo
 hello
 World!
-null
-null
-null
-null
-null
-null
-null
-null
-null
 
 select * from [nt:base] where length(name) = 5
 /test

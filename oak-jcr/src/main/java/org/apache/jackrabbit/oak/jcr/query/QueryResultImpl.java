@@ -123,7 +123,11 @@ public class QueryResultImpl implements QueryResult {
             }
 
         };
-        return new RowIteratorAdapter(rowIterator);
+        return new RowIteratorAdapter(rowIterator) {
+            public long getSize() {
+                return result.getSize();
+            }
+        };
     }
 
     @CheckForNull
@@ -184,11 +188,11 @@ public class QueryResultImpl implements QueryResult {
             }
 
         };
-        return new NodeIteratorAdapter(nodeIterator);
+        return new NodeIteratorAdapter(nodeIterator, result.getSize());
     }
 
     Value createValue(CoreValue value) {
-        return sessionDelegate.getValueFactory().createValue(value);
+        return value == null ? null : sessionDelegate.getValueFactory().createValue(value);
     }
 
 }

@@ -18,7 +18,9 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.query.Query;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
 /**
@@ -89,27 +91,49 @@ public class EquiJoinConditionImpl extends JoinConditionImpl {
             return p1.getValue().equals(p2.getValue());
         }
         // TODO what is the expected result of an equi join for multi-valued properties?
-        throw new IllegalArgumentException("Join on multi-valued properties is currently not supported");
+        if (!p1.isArray() && p2.isArray()) {
+            CoreValue x = p1.getValue();
+            for (CoreValue y : p2.getValues()) {
+                if (y.getType() != x.getType()) {
+                    y = query.convert(y, x.getType());
+                }
+                if (x.equals(y)) {
+                    return true;
+                }
+            }
+            return false;
+        } else if (p1.isArray() && !p2.isArray()) {
+            CoreValue x = p2.getValue();
+            for (CoreValue y : p1.getValues()) {
+                if (y.getType() != x.getType()) {
+                    y = query.convert(y, x.getType());
+                }
+                if (x.equals(y)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        CoreValue[] l1 = p1.getValues().toArray(new CoreValue[p1.getValues().size()]);
+        CoreValue[] l2 = p2.getValues().toArray(new CoreValue[p2.getValues().size()]);
+        return Query.compareValues(l1, l2) == 0;
     }
 
     @Override
     public void apply(FilterImpl f) {
-        // TODO what is the expected result of an equi join for multi-valued properties?
         PropertyState p1 = selector1.currentProperty(property1Name);
         PropertyState p2 = selector2.currentProperty(property2Name);
         if (f.getSelector() == selector1 && p2 != null) {
-            if (p2.isArray()) {
-                // TODO what is the expected result of an equi join for multi-valued properties?
-                throw new IllegalArgumentException("Join on multi-valued properties is currently not supported");
+            if (!p2.isArray()) {
+                // TODO support join on multi-valued properties
+                f.restrictProperty(property1Name, Operator.EQUAL, p2.getValue());
             }
-            f.restrictProperty(property1Name, Operator.EQUAL, p2.getValue());
         }
         if (f.getSelector() == selector2 && p1 != null) {
-            if (p1.isArray()) {
-                // TODO what is the expected result of an equi join for multi-valued properties?
-                throw new IllegalArgumentException("Join on multi-valued properties is currently not supported");
+            if (!p1.isArray()) {
+                // TODO support join on multi-valued properties
+                f.restrictProperty(property2Name, Operator.EQUAL, p1.getValue());
             }
-            f.restrictProperty(property2Name, Operator.EQUAL, p1.getValue());
         }
     }
 

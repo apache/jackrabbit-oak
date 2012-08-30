@@ -73,7 +73,7 @@ public abstract class MemoryValue implements CoreValue {
 
         int type = getType();
         if (type != o.getType()) {
-            return type - o.getType();
+            return o.getType() - type;
         } else if (type == PropertyType.LONG) {
             return Long.signum(getLong() - o.getLong());
         } else if (type == PropertyType.DOUBLE) {

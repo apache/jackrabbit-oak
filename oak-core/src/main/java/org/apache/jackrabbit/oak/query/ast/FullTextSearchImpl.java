@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.query.ast.ComparisonImpl.LikePattern;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
 /**
@@ -34,7 +35,6 @@ public class FullTextSearchImpl extends ConstraintImpl {
     private final String propertyName;
     private final StaticOperandImpl fullTextSearchExpression;
     private SelectorImpl selector;
-    private FullTextExpression expr;
 
     public FullTextSearchImpl(String selectorName, String propertyName,
             StaticOperandImpl fullTextSearchExpression) {
@@ -77,46 +77,49 @@ public class FullTextSearchImpl extends ConstraintImpl {
         return builder.toString();
     }
 
-    private boolean evaluateContains(PropertyState p) {
-        for (CoreValue v : p.getValues()) {
-            if (evaluateContains(v)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private boolean evaluateContains(CoreValue value) {
-        String v = value.getString();
-        return expr.evaluate(v);
-    }
-
     @Override
     public boolean evaluate() {
+        StringBuilder buff = new StringBuilder();
         if (propertyName != null) {
             PropertyState p = selector.currentProperty(propertyName);
             if (p == null) {
                 return false;
             }
-            return evaluateContains(p);
-        }
-        Tree tree = getTree(selector.currentPath());
-        for (PropertyState p : tree.getProperties()) {
-            if (evaluateContains(p)) {
-                return true;
+            appendString(buff, p);
+        } else {
+            Tree tree = getTree(selector.currentPath());
+            if (tree == null) {
+                return false;
+            }
+            for (PropertyState p : tree.getProperties()) {
+                appendString(buff, p);
             }
         }
-        return false;
+        // TODO fulltext conditions: need a way to disable evaluation
+        // if a fulltext index is used, to avoid filtering too much
+        // (we don't know what exact options are used in the fulltext index)
+        // (stop word, special characters,...)
+        CoreValue v = fullTextSearchExpression.currentValue();
+        try {
+            FullTextExpression expr = FullTextParser.parse(v.getString());
+            return expr.evaluate(buff.toString());
+        } catch (ParseException e) {
+            throw new IllegalArgumentException("Invalid expression: " + fullTextSearchExpression, e);
+        }
+    }
+
+    private static void appendString(StringBuilder buff, PropertyState p) {
+        if (p.isArray()) {
+            for (CoreValue v : p.getValues()) {
+                buff.append(v.getString()).append(' ');
+            }
+        } else {
+            buff.append(p.getValue().getString()).append(' ');
+        }
     }
 
     public void bindSelector(SourceImpl source) {
         selector = source.getExistingSelector(selectorName);
-        CoreValue v = fullTextSearchExpression.currentValue();
-        try {
-            expr = FullTextParser.parse(v.getString());
-        } catch (ParseException e) {
-            throw new IllegalArgumentException("Invalid expression: " + fullTextSearchExpression, e);
-        }
     }
 
     @Override
@@ -183,15 +186,16 @@ public class FullTextSearchImpl extends ConstraintImpl {
             if (parseIndex >= text.length()) {
                 throw getSyntaxError("term");
             }
-            FullTextTerm term = new FullTextTerm();
+            boolean not = false;
             StringBuilder buff = new StringBuilder();
             char c = text.charAt(parseIndex);
             if (c == '-') {
                 if (++parseIndex >= text.length()) {
                     throw getSyntaxError("term");
                 }
-                term.not = true;
+                not = true;
             }
+            boolean escaped = false;
             if (c == '\"') {
                 parseIndex++;
                 while (true) {
@@ -200,7 +204,7 @@ public class FullTextSearchImpl extends ConstraintImpl {
                     }
                     c = text.charAt(parseIndex++);
                     if (c == '\\') {
-                        // escape
+                        escaped = true;
                         if (parseIndex >= text.length()) {
                             throw getSyntaxError("escaped char");
                         }
@@ -220,7 +224,7 @@ public class FullTextSearchImpl extends ConstraintImpl {
                 do {
                     c = text.charAt(parseIndex++);
                     if (c == '\\') {
-                        // escape
+                        escaped = true;
                         if (parseIndex >= text.length()) {
                             throw getSyntaxError("escaped char");
                         }
@@ -236,7 +240,8 @@ public class FullTextSearchImpl extends ConstraintImpl {
             if (buff.length() == 0) {
                 throw getSyntaxError("term");
             }
-            term.text = buff.toString();
+            String text = buff.toString();
+            FullTextTerm term = new FullTextTerm(text, not, escaped);
             return term.simplify();
         }
 
@@ -335,15 +340,62 @@ public class FullTextSearchImpl extends ConstraintImpl {
      * A fulltext term, or a "not" term.
      */
     static class FullTextTerm extends FullTextExpression {
-        boolean not;
-        String text;
+        private final boolean not;
+        private final String text;
+        private final String filteredText;
+        private final LikePattern like;
+
+        FullTextTerm(String text, boolean not, boolean escaped) {
+            this.text = text;
+            this.not = not;
+            // for testFulltextIntercapSQL
+            // filter special characters such as '
+            // to make tests pass, for example the
+            // FulltextQueryTest.testFulltextExcludeSQL,
+            // which searches for:
+            // "text ''fox jumps'' -other"
+            // (please note the two single quotes instead of
+            // double quotes before for and after jumps)
+            boolean pattern = false;
+            if (escaped) {
+                filteredText = text;
+            } else {
+                StringBuilder buff = new StringBuilder();
+                for (int i = 0; i < text.length(); i++) {
+                    char c = text.charAt(i);
+                    if (c == '*') {
+                        buff.append('%');
+                        pattern = true;
+                    } else if (c == '?') {
+                        buff.append('_');
+                        pattern = true;
+                    } else if (c == '_') {
+                        buff.append("\\_");
+                        pattern = true;
+                    } else if (Character.isLetterOrDigit(c) || " +-:&".indexOf(c) >= 0) {
+                        buff.append(c);
+                    }
+                }
+                this.filteredText = buff.toString().toLowerCase();
+            }
+            if (pattern) {
+                like = new LikePattern("%" + filteredText + "%");
+            } else {
+                like = null;
+            }
+        }
 
         @Override
         public boolean evaluate(String value) {
-            if (not) {
-                return value.indexOf(text) < 0;
+            // for testFulltextIntercapSQL
+            value = value.toLowerCase();
+            if (like != null) {
+                return like.matches(value);
             }
-            return value.indexOf(text) >= 0;
+            if (not) {
+                return value.indexOf(filteredText) < 0;
+            }
+            return value.indexOf(filteredText) >= 0;
         }
 
         @Override

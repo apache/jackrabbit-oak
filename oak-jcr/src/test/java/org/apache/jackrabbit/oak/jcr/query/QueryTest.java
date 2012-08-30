@@ -18,6 +18,10 @@
  */
 package org.apache.jackrabbit.oak.jcr.query;
 
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
+import java.util.NoSuchElementException;
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
@@ -28,13 +32,8 @@ import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.Row;
 import javax.jcr.query.RowIterator;
-
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
 import org.junit.Test;
-
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertTrue;
-import static org.junit.Assert.assertFalse;
 
 /**
  * Tests the query feature.
@@ -81,6 +80,48 @@ public class QueryTest extends AbstractRepositoryTest {
 
         q = qm.createQuery("//*[@id=1]", Query.XPATH);
         q.execute();
+    }
+
+    @Test
+    public void skip() throws RepositoryException {
+        Session session = getAdminSession();
+        Node hello1 = session.getRootNode().addNode("hello1");
+        hello1.setProperty("id",  "1");
+        hello1.setProperty("data",  "x");
+        Node hello2 = session.getRootNode().addNode("hello2");
+        hello2.setProperty("id",  "2");
+        hello2.setProperty("data",  "y");
+        session.save();
+        ValueFactory vf = session.getValueFactory();
+        QueryManager qm = session.getWorkspace().getQueryManager();
+        Query q = qm.createQuery("select id from [nt:base] where data >= $data order by id", Query.JCR_SQL2);
+        q.bindValue("data", vf.createValue("x"));
+        for (int i = -1; i < 4; i++) {
+            QueryResult r = q.execute();
+            RowIterator it = r.getRows();
+            assertEquals(2, r.getRows().getSize());
+            assertEquals(2, r.getNodes().getSize());
+            Row row;
+            try {
+                it.skip(i);
+                assertTrue(i >= 0 && i <= 2);
+            } catch (IllegalArgumentException e) {
+                assertEquals(-1, i);
+            } catch (NoSuchElementException e) {
+                assertTrue(i >= 2);
+            }
+            if (i <= 0) {
+                assertTrue(it.hasNext());
+                row = it.nextRow();
+                assertEquals("1", row.getValue("id").getString());
+            }
+            if (i <= 1) {
+                assertTrue(it.hasNext());
+                row = it.nextRow();
+                assertEquals("2", row.getValue("id").getString());
+            }
+            assertFalse(it.hasNext());
+        }
     }
 
 }
