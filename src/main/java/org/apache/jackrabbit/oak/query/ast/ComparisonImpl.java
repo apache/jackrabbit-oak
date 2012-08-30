@@ -18,13 +18,10 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.util.Iterator;
-import javax.jcr.PropertyType;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.query.Query;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
 /**
@@ -69,22 +66,11 @@ public class ComparisonImpl extends ConstraintImpl {
             return false;
         }
         boolean isArray = p1.isArray();
-        int v1Type;
-        if (isArray) {
-            Iterator<CoreValue> it = p1.getValues().iterator();
-            if (it.hasNext()) {
-                v1Type = it.next().getType();
-            } else {
-                // workaround for OAK-140: PropertyState: data type of empty array property
-                v1Type = v2.getType();
-            }
-        } else {
-            v1Type = p1.getValue().getType();
-        }
+        int v1Type = Query.getType(p1, v2.getType());
         if (v1Type != v2.getType()) {
             // "the value of operand2 is converted to the
             // property type of the value of operand1"
-            v2 = convert(v2, v1Type);
+            v2 = query.convert(v2, v1Type);
         }
         if (!isArray) {
             return evaluate(p1.getValue(), v2);
@@ -119,66 +105,6 @@ public class ComparisonImpl extends ConstraintImpl {
         throw new IllegalArgumentException("Unknown operator: " + operator);
     }
 
-    private CoreValue convert(CoreValue v, int targetType) {
-        // TODO support full set of conversion features defined in the JCR spec
-        // at 3.6.4 Property Type Conversion
-        // re-use existing code if possible
-        int sourceType = v.getType();
-        if (sourceType == targetType) {
-            return v;
-        }
-        CoreValueFactory vf = query.getValueFactory();
-        switch (sourceType) {
-        case PropertyType.STRING:
-            switch(targetType) {
-            case PropertyType.BINARY:
-                try {
-                    byte[] data = v.getString().getBytes("UTF-8");
-                    return vf.createValue(new ByteArrayInputStream(data));
-                } catch (IOException e) {
-                    // I don't know in what case that could really occur
-                    // except if UTF-8 isn't supported
-                    throw new IllegalArgumentException(v.getString(), e);
-                }
-            }
-            return vf.createValue(v.getString(), targetType);
-        }
-        switch (targetType) {
-        case PropertyType.STRING:
-            return vf.createValue(v.getString());
-        case PropertyType.BOOLEAN:
-            return vf.createValue(v.getBoolean());
-        case PropertyType.DATE:
-            return vf.createValue(v.getString(), PropertyType.DATE);
-        case PropertyType.LONG:
-            return vf.createValue(v.getLong());
-        case PropertyType.DOUBLE:
-            return vf.createValue(v.getDouble());
-        case PropertyType.DECIMAL:
-            return vf.createValue(v.getString(), PropertyType.DECIMAL);
-        case PropertyType.NAME:
-            return vf.createValue(getOakPath(v.getString()), PropertyType.NAME);
-        case PropertyType.PATH:
-            return vf.createValue(v.getString(), PropertyType.PATH);
-        case PropertyType.REFERENCE:
-            return vf.createValue(v.getString(), PropertyType.REFERENCE);
-        case PropertyType.WEAKREFERENCE:
-            return vf.createValue(v.getString(), PropertyType.WEAKREFERENCE);
-        case PropertyType.URI:
-            return vf.createValue(v.getString(), PropertyType.URI);
-        case PropertyType.BINARY:
-            try {
-                byte[] data = v.getString().getBytes("UTF-8");
-                return vf.createValue(new ByteArrayInputStream(data));
-            } catch (IOException e) {
-                // I don't know in what case that could really occur
-                // except if UTF-8 isn't supported
-                throw new IllegalArgumentException(v.getString(), e);
-            }
-        }
-        throw new IllegalArgumentException("Unknown property type: " + targetType);
-    }
-
     private static boolean evaluateLike(CoreValue v1, CoreValue v2) {
         LikePattern like = new LikePattern(v2.getString());
         return like.matches(v1.getString());
@@ -206,7 +132,7 @@ public class ComparisonImpl extends ConstraintImpl {
                 String upperBound = p.getUpperBound();
                 if (lowerBound == null && upperBound == null) {
                     // ignore
-                } else {
+                } else if (operand1.supportsRangeConditions()) {
                     CoreValueFactory vf = query.getValueFactory();
                     if (lowerBound != null) {
                         operand1.apply(f, Operator.GREATER_OR_EQUAL, vf.createValue(lowerBound));

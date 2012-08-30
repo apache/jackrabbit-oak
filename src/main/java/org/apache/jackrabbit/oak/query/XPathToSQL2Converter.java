@@ -441,7 +441,11 @@ public class XPathToSQL2Converter {
             read(")");
             return f;
          } else if ("jcr:deref".equals(functionName)) {
+             // TODO support jcr:deref
              throw getSyntaxError("jcr:deref is not supported");
+         } else if ("rep:similar".equals(functionName)) {
+             // TODO support rep:similar
+             throw getSyntaxError("rep:similar is not supported");
         } else {
             throw getSyntaxError("jcr:like | jcr:contains | jcr:score | jcr:deref | fn:lower-case | fn:upper-case");
         }

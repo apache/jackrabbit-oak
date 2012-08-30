@@ -18,16 +18,8 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import org.apache.jackrabbit.mk.json.JsopReader;
-import org.apache.jackrabbit.mk.json.JsopTokenizer;
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.kernel.CoreValueMapper;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.query.Query;
-
-import javax.jcr.PropertyType;
 
 /**
  * The base class for all abstract syntax tree nodes.
@@ -74,59 +66,6 @@ abstract class AstElement {
      */
     protected String getLocalPath(String path) {
         return path;
-    }
-
-    /**
-     * Convert the JSON property value to a core value.
-     *
-     * @param propertyValue JSON property value
-     * @return the core value
-     */
-    protected CoreValue getCoreValue(String propertyValue) {
-        // TODO data type mapping
-        CoreValueFactory vf = query.getValueFactory();
-        JsopReader r = new JsopTokenizer(propertyValue);
-        if (r.matches('[')) {
-            // TODO support arrays, but only for comparisons
-            throw new IllegalArgumentException("Arrays are currently not supported: " + propertyValue);
-        }
-        return CoreValueMapper.fromJsopReader(r, vf);
-    }
-
-    /**
-     * Validate that the given value can be converted to a JCR name.
-     *
-     * @param v the value
-     * @return true if it can be converted
-     */
-    protected boolean isName(CoreValue v) {
-        // TODO correctly validate JCR names - see JCR 2.0 spec 3.2.4 Naming Restrictions
-        switch (v.getType()) {
-        case PropertyType.DATE:
-        case PropertyType.DECIMAL:
-        case PropertyType.DOUBLE:
-        case PropertyType.LONG:
-        case PropertyType.BOOLEAN:
-            return false;
-        }
-        String n = v.getString();
-        if (n.startsWith("[") && !n.endsWith("]")) {
-            return false;
-        }
-        return true;
-    }
-
-    protected String getOakPath(String jcrPath) {
-        NamePathMapper m = query.getNamePathMapper();
-        if (m == null) {
-            // to simplify testing, a getNamePathMapper isn't required
-            return jcrPath;
-        }
-        String p = m.getOakPath(jcrPath);
-        if (p == null) {
-            throw new IllegalArgumentException("Not a valid JCR path: " + jcrPath);
-        }
-        return p;
     }
 
     protected Tree getTree(String path) {

@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.SinglePropertyState;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
+import org.apache.jackrabbit.util.ISO9075;
 
 /**
  * The function "name(..)".
@@ -56,13 +57,16 @@ public class NodeNameImpl extends DynamicOperandImpl {
     }
 
     @Override
+    public boolean supportsRangeConditions() {
+        return false;
+    }
+
+    @Override
     public PropertyState currentProperty() {
-        String name = PathUtils.getName(selector.currentPath());
-        CoreValue v = query.getValueFactory().createValue(name);
-        String path = v.getString();
-        // normalize paths (./name > name)
-        path = getOakPath(path);
-        CoreValue v2 = query.getValueFactory().createValue(path, PropertyType.NAME);
+        String path = selector.currentPath();
+        // Name escaping (convert space to _x0020_)
+        String name = ISO9075.encode(PathUtils.getName(path));
+        CoreValue v2 = query.getValueFactory().createValue(name, PropertyType.NAME);
         return new SinglePropertyState("NAME", v2);
     }
 
@@ -72,8 +76,8 @@ public class NodeNameImpl extends DynamicOperandImpl {
             throw new IllegalArgumentException("Invalid name value: " + v.toString());
         }
         String path = v.getString();
-        // normalize paths (./name > name)
-        path = getOakPath(path);
+        // Name escaping (convert _x0020_ to space)
+        path = decodeName(path);
         if (PathUtils.isAbsolute(path)) {
             throw new IllegalArgumentException("NAME() comparison with absolute path are not allowed: " + path);
         }
@@ -81,6 +85,37 @@ public class NodeNameImpl extends DynamicOperandImpl {
             throw new IllegalArgumentException("NAME() comparison with relative path are not allowed: " + path);
         }
         // TODO support NAME(..) index conditions
+    }
+
+    private String decodeName(String path) {
+        // Name escaping (convert _x0020_ to space)
+        path = ISO9075.decode(path);
+        // normalize paths (./name > name)
+        path = query.getOakPath(path);
+        return path;
+    }
+
+    /**
+     * Validate that the given value can be converted to a JCR name.
+     *
+     * @param v the value
+     * @return true if it can be converted
+     */
+    private static boolean isName(CoreValue v) {
+        // TODO correctly validate JCR names - see JCR 2.0 spec 3.2.4 Naming Restrictions
+        switch (v.getType()) {
+        case PropertyType.DATE:
+        case PropertyType.DECIMAL:
+        case PropertyType.DOUBLE:
+        case PropertyType.LONG:
+        case PropertyType.BOOLEAN:
+            return false;
+        }
+        String n = v.getString();
+        if (n.startsWith("[") && !n.endsWith("]")) {
+            return false;
+        }
+        return true;
     }
 
 }

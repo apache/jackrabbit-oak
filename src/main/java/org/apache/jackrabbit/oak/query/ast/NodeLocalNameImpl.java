@@ -23,6 +23,7 @@ import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.SinglePropertyState;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
+import org.apache.jackrabbit.util.ISO9075;
 
 /**
  * The function "localname(..)".
@@ -57,6 +58,8 @@ public class NodeLocalNameImpl extends DynamicOperandImpl {
     @Override
     public PropertyState currentProperty() {
         String name = PathUtils.getName(selector.currentPath());
+        // Name escaping (convert space to _x0020_)
+        name = ISO9075.encode(name);
         int colon = name.indexOf(':');
         // TODO LOCALNAME: evaluation of local name might not be correct
         String localName = colon < 0 ? name : name.substring(colon + 1);

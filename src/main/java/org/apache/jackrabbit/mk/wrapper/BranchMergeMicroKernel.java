@@ -66,6 +66,9 @@ public class BranchMergeMicroKernel implements MicroKernel {
     }
 
     private static String getBranchId(String revisionId) {
+        if (revisionId == null) {
+            return TRUNK;
+        }
         int idx = revisionId.indexOf('-');
         if (idx <= 0) {
             return TRUNK;
@@ -129,7 +132,7 @@ public class BranchMergeMicroKernel implements MicroKernel {
     public long getChildNodeCount(String path, String revisionId) {
         String branch = getBranchId(revisionId);
         String rev = getRevisionId(branch, revisionId);
-        return getChildNodeCount(path, rev);
+        return base.getChildNodeCount(path, rev);
     }
 
     @Override
