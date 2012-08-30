@@ -58,6 +58,6 @@ public class UserContextImpl implements UserContext {
 
     @Override
     public ValidatorProvider getUserValidatorProvider(CoreValueFactory valueFactory) {
-        return new UserValidatorProvider(valueFactory, config);
+        return new UserValidatorProvider(config);
     }
 }

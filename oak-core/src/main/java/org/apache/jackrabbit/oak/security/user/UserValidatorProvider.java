@@ -18,9 +18,7 @@ package org.apache.jackrabbit.oak.security.user;
 
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
@@ -32,14 +30,10 @@ import org.apache.jackrabbit.oak.util.NodeUtil;
  */
 public class UserValidatorProvider implements ValidatorProvider {
 
-    private final CoreValueFactory valueFactory;
     private final UserConfig config;
 
-    public UserValidatorProvider(CoreValueFactory valueFactory, UserConfig config) {
-        assert valueFactory != null;
+    public UserValidatorProvider(UserConfig config) {
         assert config != null;
-
-        this.valueFactory = valueFactory;
         this.config = config;
     }
     //--------------------------------------------------< ValidatorProvider >---
@@ -47,8 +41,8 @@ public class UserValidatorProvider implements ValidatorProvider {
     @Override
     public Validator getRootValidator(NodeState before, NodeState after) {
 
-        NodeUtil rootBefore = new NodeUtil(new ReadOnlyTree(before), valueFactory, NamePathMapper.DEFAULT);
-        NodeUtil rootAfter = new NodeUtil(new ReadOnlyTree(after), valueFactory, NamePathMapper.DEFAULT);
+        NodeUtil rootBefore = new NodeUtil(new ReadOnlyTree(before));
+        NodeUtil rootAfter = new NodeUtil(new ReadOnlyTree(after));
 
         return new UserValidator(rootBefore, rootAfter, this);
     }
@@ -59,8 +53,4 @@ public class UserValidatorProvider implements ValidatorProvider {
         return config;
     }
 
-    @Nonnull
-    CoreValueFactory getValueFactory() {
-        return valueFactory;
-    }
 }
