@@ -33,10 +33,12 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
+import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.index.PropertyIndexFactory;
 import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.type.DefaultTypeEditor;
+import org.apache.jackrabbit.oak.plugins.type.NodeTypeManagerImpl;
 import org.apache.jackrabbit.oak.plugins.type.TypeValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.value.ConflictValidatorProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -73,6 +75,8 @@ public abstract class AbstractLuceneQueryTest extends AbstractOakTest {
     public void before() throws Exception {
         super.before();
         session = createAdminSession();
+        // FIXME workaround to ensure built in node types are registered
+        new NodeTypeManagerImpl(session, NamePathMapperImpl.DEFAULT, null);
         root = session.getCurrentRoot();
         vf = session.getCoreValueFactory();
         qe = session.getQueryEngine();

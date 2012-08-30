@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.core;
 
 import java.io.IOException;
 import java.util.Set;
+
 import javax.annotation.Nonnull;
 import javax.security.auth.login.LoginContext;
 import javax.security.auth.login.LoginException;
@@ -29,7 +30,6 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.SessionQueryEngine;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
 import org.apache.jackrabbit.oak.query.SessionQueryEngineImpl;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContext;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,11 +47,9 @@ class ContentSessionImpl implements ContentSession {
     private final SessionQueryEngine queryEngine;
 
     public ContentSessionImpl(LoginContext loginContext, String workspaceName,
-                              NodeStore store, QueryEngineImpl queryEngine,
-                              AccessControlContext accessControlContext) {
+                              NodeStore store, QueryEngineImpl queryEngine) {
 
         assert queryEngine != null;
-
         this.loginContext = loginContext;
         this.workspaceName = workspaceName;
         this.store = store;

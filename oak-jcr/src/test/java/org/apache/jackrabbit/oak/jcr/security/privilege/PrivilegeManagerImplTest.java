@@ -16,12 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.privilege;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -49,6 +43,12 @@ import org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertFalse;
+import static junit.framework.Assert.assertNotNull;
+import static junit.framework.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * PrivilegeManagerTest...
@@ -79,6 +79,8 @@ public class PrivilegeManagerImplTest implements PrivilegeConstants {
     private PrivilegeManager getPrivilegeManager(Credentials credentials)
             throws RepositoryException {
         Workspace workspace = repository.login(credentials).getWorkspace();
+        // FIXME workaround to ensure built in node types are registered
+        workspace.getNodeTypeManager();
         return ((JackrabbitWorkspace) workspace).getPrivilegeManager();
     }
 
