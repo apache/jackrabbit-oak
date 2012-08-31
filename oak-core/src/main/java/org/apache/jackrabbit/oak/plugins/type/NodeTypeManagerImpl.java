@@ -244,12 +244,17 @@ public class NodeTypeManagerImpl extends AbstractNodeTypeManager {
         node.setBoolean(JCR_IS_ABSTRACT, ntd.isAbstract());
         node.setBoolean(JCR_IS_QUERYABLE, ntd.isQueryable());
         node.setBoolean(JCR_ISMIXIN, ntd.isMixin());
+
+        // TODO fail if not orderable but a supertype is orderable. See 3.7.6.7 Node Type Attribute Subtyping Rules
         node.setBoolean(JCR_HASORDERABLECHILDNODES, ntd.hasOrderableChildNodes());
         String primaryItemName = ntd.getPrimaryItemName();
+
+        // TODO fail if a supertype specifies a different primary item. See 3.7.6.7 Node Type Attribute Subtyping Rules
         if (primaryItemName != null) {
             node.setName(JCR_PRIMARYITEMNAME, primaryItemName);
         }
 
+        // TODO fail on invalid item definitions. See 3.7.6.8 Item Definitions in Subtypes
         int pdn = 1;
         for (PropertyDefinition pd : ntd.getDeclaredPropertyDefinitions()) {
             NodeUtil def = node.addChild(JCR_PROPERTYDEFINITION + pdn++, NT_PROPERTYDEFINITION);
