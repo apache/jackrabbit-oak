@@ -33,7 +33,7 @@ public class TypeValidatorProvider implements ValidatorProvider {
 
     @Override
     public Validator getRootValidator(NodeState before, final NodeState after) {
-        return new TypeValidator(new AbstractNodeTypeManager() {
+        AbstractNodeTypeManager ntm = new AbstractNodeTypeManager() {
             private final Tree types = getTypes(after);
 
             @Override
@@ -53,7 +53,9 @@ public class TypeValidatorProvider implements ValidatorProvider {
                 }
                 return tree;
             }
-        });
+        };
+
+        return new TypeValidator(ntm, new ReadOnlyTree(after));
     }
 
 }
