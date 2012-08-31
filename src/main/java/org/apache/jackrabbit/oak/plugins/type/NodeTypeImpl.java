@@ -235,6 +235,7 @@ class NodeTypeImpl implements NodeType {
 
     @Override
     public PropertyDefinition[] getPropertyDefinitions() {
+        // TODO distinguish between additive and overriding property definitions. See 3.7.6.8 Item Definitions in Subtypes
         Collection<PropertyDefinition> definitions =
                 new ArrayList<PropertyDefinition>();
         for (NodeType type : getSupertypes()) {
@@ -247,6 +248,7 @@ class NodeTypeImpl implements NodeType {
 
     @Override
     public NodeDefinition[] getChildNodeDefinitions() {
+        // TODO distinguish between additive and overriding node definitions. See 3.7.6.8 Item Definitions in Subtypes
         Collection<NodeDefinition> definitions =
                 new ArrayList<NodeDefinition>();
         for (NodeType type : getSupertypes()) {
