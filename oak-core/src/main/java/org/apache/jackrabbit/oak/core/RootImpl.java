@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.List;
@@ -163,7 +164,7 @@ public class RootImpl implements Root {
         rebase(conflictHandler);
         purgePendingChanges();
         CommitFailedException exception = Subject.doAs(
-                subject, new PrivilegedAction<CommitFailedException>() {
+                getCombinedSubject(), new PrivilegedAction<CommitFailedException>() {
                     @Override
                     public CommitFailedException run() {
                         try {
@@ -178,6 +179,22 @@ public class RootImpl implements Root {
             throw exception;
         }
         refresh();
+    }
+
+    // TODO: find a better solution for passing in additional principals
+    private Subject getCombinedSubject() {
+        Subject accSubject = Subject.getSubject(AccessController.getContext());
+        if (accSubject == null) {
+            return subject;
+        }
+        else {
+            Subject combinedSubject = new Subject(false,
+                    subject.getPrincipals(), subject.getPublicCredentials(), subject.getPrivateCredentials());
+            combinedSubject.getPrincipals().addAll(accSubject.getPrincipals());
+            combinedSubject.getPrivateCredentials().addAll(accSubject.getPrivateCredentials());
+            combinedSubject.getPublicCredentials().addAll((accSubject.getPublicCredentials()));
+            return combinedSubject;
+        }
     }
 
     @Override
