@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.SessionQueryEngine;
+import org.apache.jackrabbit.oak.plugins.type.NodeTypeManagerImpl;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
 import org.apache.jackrabbit.oak.query.SessionQueryEngineImpl;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -45,6 +46,8 @@ class ContentSessionImpl implements ContentSession {
     private final String workspaceName;
     private final NodeStore store;
     private final SessionQueryEngine queryEngine;
+
+    private boolean initialised;
 
     public ContentSessionImpl(LoginContext loginContext, String workspaceName,
                               NodeStore store, QueryEngineImpl queryEngine) {
@@ -70,6 +73,14 @@ class ContentSessionImpl implements ContentSession {
     @Nonnull
     @Override
     public Root getCurrentRoot() {
+        // TODO: improve initial repository/session. See OAK-41
+        synchronized (this) {
+            if (!initialised) {
+                initialised = true;
+                NodeTypeManagerImpl.registerBuiltInNodeTypes(this);
+            }
+        }
+
         return new RootImpl(store, workspaceName, loginContext.getSubject());
     }
 
