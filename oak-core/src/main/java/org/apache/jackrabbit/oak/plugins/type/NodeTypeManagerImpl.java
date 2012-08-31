@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.type;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.security.PrivilegedAction;
 import java.util.List;
 import java.util.Map;
 
@@ -35,6 +36,7 @@ import javax.jcr.nodetype.NodeTypeIterator;
 import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.version.OnParentVersionAction;
+import javax.security.auth.Subject;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -48,6 +50,8 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
+import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
+import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 
 import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.JCR_AVAILABLE_QUERY_OPERATORS;
@@ -70,57 +74,71 @@ public class NodeTypeManagerImpl extends AbstractNodeTypeManager {
         this.session = session;
         this.mapper = mapper;
         this.factory = factory;
+    }
 
+    public static void registerBuiltInNodeTypes(ContentSession session) {
+        new NodeTypeManagerImpl(session, NamePathMapperImpl.DEFAULT, null).registerBuiltinNodeTypes();
+    }
+
+    private void registerBuiltinNodeTypes() {
         // FIXME: migrate custom node types as well.
         // FIXME: registration of built-in node types should be moved to repo-setup
         //        as the jcr:nodetypes tree is protected and the editing session may
         //        not have sufficient permission to register node types or may
         //        even have limited read-permission on the jcr:nodetypes path.
         if (!nodeTypesInContent()) {
-            try {
-                InputStream stream = NodeTypeManagerImpl.class.getResourceAsStream("builtin_nodetypes.cnd");
-                try {
-                    CompactNodeTypeDefReader<NodeTypeTemplate, Map<String, String>> reader =
-                            new CompactNodeTypeDefReader<NodeTypeTemplate, Map<String, String>>(
-                                    new InputStreamReader(stream, "UTF-8"), null, new DefBuilderFactory());
-                    Map<String, NodeTypeTemplate> templates = Maps.newHashMap();
-                    for (NodeTypeTemplate template : reader.getNodeTypeDefinitions()) {
-                        templates.put(template.getName(), template);
-                    }
-                    for (NodeTypeTemplate template : templates.values()) {
-                        if (!template.isMixin()
-                                && !JcrConstants.NT_BASE.equals(template.getName())) {
-                            String[] supertypes =
-                                    template.getDeclaredSupertypeNames();
-                            if (supertypes.length == 0) {
-                                template.setDeclaredSuperTypeNames(
-                                        new String[] {JcrConstants.NT_BASE});
-                            } else {
-                                // Check whether we need to add the implicit "nt:base" supertype
-                                boolean needsNtBase = true;
-                                for (String name : supertypes) {
-                                    if (!templates.get(name).isMixin()) {
-                                        needsNtBase = false;
+            Subject admin = new Subject();
+            admin.getPrincipals().add(AdminPrincipal.INSTANCE);
+            Subject.doAs(admin, new PrivilegedAction<Void>() {
+                @Override
+                public Void run() {
+                    try {
+                        InputStream stream = NodeTypeManagerImpl.class.getResourceAsStream("builtin_nodetypes.cnd");
+                        try {
+                            CompactNodeTypeDefReader<NodeTypeTemplate, Map<String, String>> reader =
+                                    new CompactNodeTypeDefReader<NodeTypeTemplate, Map<String, String>>(
+                                            new InputStreamReader(stream, "UTF-8"), null, new DefBuilderFactory());
+                            Map<String, NodeTypeTemplate> templates = Maps.newHashMap();
+                            for (NodeTypeTemplate template : reader.getNodeTypeDefinitions()) {
+                                templates.put(template.getName(), template);
+                            }
+                            for (NodeTypeTemplate template : templates.values()) {
+                                if (!template.isMixin()
+                                        && !JcrConstants.NT_BASE.equals(template.getName())) {
+                                    String[] supertypes =
+                                            template.getDeclaredSupertypeNames();
+                                    if (supertypes.length == 0) {
+                                        template.setDeclaredSuperTypeNames(
+                                                new String[] {JcrConstants.NT_BASE});
+                                    } else {
+                                        // Check whether we need to add the implicit "nt:base" supertype
+                                        boolean needsNtBase = true;
+                                        for (String name : supertypes) {
+                                            if (!templates.get(name).isMixin()) {
+                                                needsNtBase = false;
+                                            }
+                                        }
+                                        if (needsNtBase) {
+                                            String[] withBase = new String[supertypes.length + 1];
+                                            withBase[0] = JcrConstants.NT_BASE;
+                                            System.arraycopy(supertypes, 0, withBase, 1, supertypes.length);
+                                            template.setDeclaredSuperTypeNames(withBase);
+                                        }
                                     }
                                 }
-                                if (needsNtBase) {
-                                    String[] withBase = new String[supertypes.length + 1];
-                                    withBase[0] = JcrConstants.NT_BASE;
-                                    System.arraycopy(supertypes, 0, withBase, 1, supertypes.length);
-                                    template.setDeclaredSuperTypeNames(withBase);
                             }
+                            registerNodeTypes(templates.values().toArray(
+                                    new NodeTypeTemplate[templates.size()]), true);
+                        } finally {
+                            stream.close();
                         }
+                    } catch (Exception e) {
+                        throw new IllegalStateException(
+                                "Unable to load built-in node types", e);
                     }
-                    }
-                    registerNodeTypes(templates.values().toArray(
-                            new NodeTypeTemplate[templates.size()]), true);
-                } finally {
-                    stream.close();
+                    return null;
                 }
-            } catch (Exception e) {
-                throw new IllegalStateException(
-                        "Unable to load built-in node types", e);
-            }
+            });
         }
     }
 
