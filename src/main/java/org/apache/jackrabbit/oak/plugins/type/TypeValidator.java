@@ -16,25 +16,47 @@
  */
 package org.apache.jackrabbit.oak.plugins.type;
 
+import java.util.List;
+
+import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeManager;
 
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.core.ReadOnlyTree;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 
 class TypeValidator implements Validator {
-    private final NodeTypeManager ntm;
+    private static final Logger log = LoggerFactory.getLogger(TypeValidator.class);
 
-    public TypeValidator(NodeTypeManager ntm) {
+    private final NodeTypeManager ntm;
+    private final Tree parent;
+
+    private EffectiveNodeType parentType;
+
+    @Nonnull
+    private EffectiveNodeType getParentType() throws CommitFailedException {
+        if (parentType == null) {
+            parentType = getEffectiveNodeType(parent);
+        }
+        return parentType;
+    }
+
+    public TypeValidator(NodeTypeManager ntm, Tree parent) {
         this.ntm = ntm;
+        this.parent = parent;
     }
 
     //-------------------------------------------------------< NodeValidator >
@@ -42,38 +64,57 @@ class TypeValidator implements Validator {
     @Override
     public void propertyAdded(PropertyState after) throws CommitFailedException {
         validateType(after);
-        // TODO: validate added property
+        if (!getParentType().canAddProperty(after)) {
+            throwConstraintViolationException(
+                    "Can't add property " + after.getName() + " at " + parent.getPath());
+        }
     }
 
     @Override
     public void propertyChanged(PropertyState before, PropertyState after) throws CommitFailedException {
         validateType(after);
+        if (!getParentType().canSetProperty(after)) {
+            throwConstraintViolationException(
+                    "Can't set property " + after.getName() + " at " + parent.getPath());
+        }
     }
 
     @Override
     public void propertyDeleted(PropertyState before) throws CommitFailedException {
-        // TODO: validate removed property
+        if (!getParentType().canRemoveProperty(before)) {
+            throwConstraintViolationException(
+                    "Can't delete property " + before.getName() + " at " + parent.getPath());
+        }
     }
 
     @Override
     public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
-        // TODO: validate added child node
-        // TODO: get the type for validating the child contents
-        return this;
+        if (!getParentType().canAddChildNode(name, after)) {
+            throwConstraintViolationException(
+                    "Can't add node " + name + " at " + parent.getPath());
+        }
+        return new TypeValidator(ntm, new ReadOnlyTree(after));
     }
 
     @Override
     public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
-        // TODO: validate changed child node
-        // TODO: get the type to validating the child contents
-        return this;
+        if (!getParentType().canChangeChildNode(name, after)) {
+            throwConstraintViolationException(
+                    "Can't modify node " + name + " at " + parent.getPath());
+        }
+        return new TypeValidator(ntm, new ReadOnlyTree(after));
     }
 
     @Override
-    public Validator childNodeDeleted(String name, NodeState before) {
-        // TODO: validate removed child node
-        return null;
+    public Validator childNodeDeleted(String name, NodeState before) throws CommitFailedException {
+        if (!getParentType().canRemoveNode(name, before)) {
+            throwConstraintViolationException(
+                    "Can't delete node " + name + " at " + parent.getPath());
+        }
+        return new TypeValidator(ntm, new ReadOnlyTree(before));
     }
+
+    //------------------------------------------------------------< private >---
 
     private void validateType(PropertyState after) throws CommitFailedException {
         boolean primaryType = JCR_PRIMARYTYPE.equals(after.getName());
@@ -95,13 +136,99 @@ class TypeValidator implements Validator {
                 }
             }
             catch (RepositoryException e) {
-                throw new CommitFailedException(e);
+                throwConstraintViolationException(e);
             }
         }
     }
 
-    private static void throwConstraintViolationException(String message) throws CommitFailedException {
+    private NodeType getPrimaryType(Tree tree) throws CommitFailedException {
+        try {
+            PropertyState jcrPrimaryType = tree.getProperty(JCR_PRIMARYTYPE);
+            if (jcrPrimaryType != null) {
+                for (CoreValue typeName : jcrPrimaryType.getValues()) {
+                    String ntName = typeName.getString();
+                    NodeType type = ntm.getNodeType(ntName);
+                    if (type == null) {
+                        log.warn("Could not find node type {} for item at {}", ntName, tree.getPath());
+                    }
+                    return type;
+                }
+            }
+            log.warn("Item at {} has no primary type", tree.getPath());
+            return null;
+        }
+        catch (RepositoryException e) {
+            return throwConstraintViolationException(e);
+        }
+    }
+
+    private List<NodeType> getMixinTypes(Tree tree) throws CommitFailedException {
+        try {
+            List<NodeType> types = Lists.newArrayList();
+            PropertyState jcrMixinType = tree.getProperty(JCR_MIXINTYPES);
+            if (jcrMixinType != null) {
+                for (CoreValue typeName : jcrMixinType.getValues()) {
+                    String ntName = typeName.getString();
+                    NodeType type = ntm.getNodeType(ntName);
+                    if (type == null) {
+                        log.warn("Could not find mixin type {} for item at {}", ntName, tree.getPath());
+                    }
+                    else {
+                        types.add(type);
+                    }
+                }
+            }
+            return types;
+        }
+        catch (RepositoryException e) {
+            return throwConstraintViolationException(e);
+        }
+    }
+
+    private EffectiveNodeType getEffectiveNodeType(Tree tree) throws CommitFailedException {
+        return new EffectiveNodeType(getPrimaryType(tree), getMixinTypes(tree));
+    }
+
+    private static <T> T throwConstraintViolationException(String message) throws CommitFailedException {
         throw new CommitFailedException(new ConstraintViolationException(message));
+    }
+
+    private static <T> T throwConstraintViolationException(RepositoryException cause) throws CommitFailedException {
+        throw new CommitFailedException(cause);
+    }
+
+    private class EffectiveNodeType {
+        private final NodeType primaryType;
+        private final List<NodeType> mixinTypes;
+
+        public EffectiveNodeType(NodeType primaryType, List<NodeType> mixinTypes) {
+            this.primaryType = primaryType;
+            this.mixinTypes = mixinTypes;
+        }
+
+        public boolean canAddProperty(PropertyState property) {
+            return true; // todo implement canAddProperty
+        }
+
+        public boolean canSetProperty(PropertyState property) {
+            return true; // todo implement canSetProperty
+        }
+
+        public boolean canRemoveProperty(PropertyState property) {
+            return true; // todo implement canRemoveProperty
+        }
+
+        public boolean canAddChildNode(String name, NodeState node) {
+            return true; // todo implement canAddChildNode
+        }
+
+        public boolean canChangeChildNode(String name, NodeState node) {
+            return true; // todo implement canChangeChildNode
+        }
+
+        public boolean canRemoveNode(String name, NodeState node) {
+            return true; // todo implement canRemoveNode
+        }
     }
 
 }
