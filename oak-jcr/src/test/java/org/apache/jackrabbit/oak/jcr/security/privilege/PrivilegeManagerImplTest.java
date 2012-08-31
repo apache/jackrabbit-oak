@@ -79,8 +79,6 @@ public class PrivilegeManagerImplTest implements PrivilegeConstants {
     private PrivilegeManager getPrivilegeManager(Credentials credentials)
             throws RepositoryException {
         Workspace workspace = repository.login(credentials).getWorkspace();
-        // FIXME workaround to ensure built in node types are registered
-        workspace.getNodeTypeManager();
         return ((JackrabbitWorkspace) workspace).getPrivilegeManager();
     }
 
