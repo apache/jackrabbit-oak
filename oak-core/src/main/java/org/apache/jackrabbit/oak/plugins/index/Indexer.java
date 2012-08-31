@@ -416,6 +416,8 @@ public class Indexer implements QueryIndexProvider {
                 // unexpected but possible
                 // this will cause all indexes to be removed, so
                 // it can be ignored here
+            } else {
+                throw e;
             }
         }
     }

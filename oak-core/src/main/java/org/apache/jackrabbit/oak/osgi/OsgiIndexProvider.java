@@ -84,7 +84,7 @@ public class OsgiIndexProvider implements ServiceTrackerCustomizer, QueryIndexPr
         if (providers.isEmpty()) {
             return Collections.emptyList();
         } else if (providers.size() == 1) {
-            return providers.get(0).getQueryIndexes(mk);
+            return providers.entrySet().iterator().next().getValue().getQueryIndexes(mk);
         } else {
             // TODO combine indexes
             return null;
