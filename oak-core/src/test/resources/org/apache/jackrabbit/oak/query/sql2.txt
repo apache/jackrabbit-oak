@@ -326,6 +326,9 @@ select * from [nt:base] where [c1/p] = '1'
 select * from [nt:base] as p where p.[jcr:path] = '/parents'
 /parents
 
+select * from [nt:base] as [p] where [p].[jcr:path] = '/parents'
+/parents
+
 select * from [nt:base] as p inner join [nt:base] as p2 on ischildnode(p2, p) where p.[jcr:path] = '/'
 /, /children
 /, /jcr:system

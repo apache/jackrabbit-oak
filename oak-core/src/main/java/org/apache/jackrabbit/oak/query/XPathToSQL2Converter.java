@@ -47,6 +47,8 @@ public class XPathToSQL2Converter {
     private String currentToken;
     private boolean currentTokenQuoted;
     private ArrayList<String> expected;
+    private Selector currentSelector = new Selector();
+    private ArrayList<Selector> selectors = new ArrayList<Selector>();
 
     /**
      * Convert the query to SQL2.
@@ -67,19 +69,38 @@ public class XPathToSQL2Converter {
         initialize(query);
         expected = new ArrayList<String>();
         read();
+
         String path = "";
         String nodeName = null;
         Expression condition = null;
-        String from = "nt:base";
+
+        currentSelector.name = "a";
+        currentSelector.nodeType = "nt:base";
+        selectors.add(currentSelector);
+
         ArrayList<Expression> columnList = new ArrayList<Expression>();
+
+        // queries of the type
+        // jcr:root/*
+        // jcr:root/test/*
+        // jcr:root/element()
+        // jcr:root/element(*)
         boolean children = false;
+
+        // queries of the type
+        // /jcr:root//...
+        // /jcr:root/test//...
+        // /jcr:root[...]
+        // /jcr:root (just by itself)
         boolean descendants = false;
+
         // TODO support one node matcher ('*' wildcard), example:
         // /jcr:root/content/acme/*/jcr:content[@template='/apps/acme']
+
         // TODO verify '//' is behaving correctly, as specified, example:
         // /jcr:root/content/acme//jcr:content[@template='/apps/acme']
+
         while (true) {
-            String nodeType;
             if (readIf("/")) {
                 if (nodeName != null) {
                     throw getSyntaxError("non-path condition");
@@ -106,8 +127,7 @@ public class XPathToSQL2Converter {
                     descendants = false;
                 }
                 if (readIf("*")) {
-                    nodeType = "nt:base";
-                    from = nodeType;
+                    currentSelector.nodeType = "nt:base";
                     children = true;
                 } else if (readIf("text")) {
                     read("(");
@@ -132,11 +152,9 @@ public class XPathToSQL2Converter {
                             path = PathUtils.concat(path, name);
                         }
                         if (readIf(",")) {
-                            nodeType = readIdentifier();
-                            from = nodeType;
+                            currentSelector.nodeType = readIdentifier();
                         } else {
-                            nodeType = "nt:base";
-                            from = nodeType;
+                            currentSelector.nodeType = "nt:base";
                         }
                         read(")");
                     }
@@ -175,22 +193,29 @@ public class XPathToSQL2Converter {
             }
             if (descendants) {
                 Function c = new Function("isdescendantnode");
+                c.params.add(new SelectorExpr(currentSelector));
                 c.params.add(Literal.newString(path));
                 condition = add(condition, c);
             } else if (children) {
-                Function f = new Function("ischildnode");
-                f.params.add(Literal.newString(path));
-                condition = add(condition, f);
+                Function c = new Function("ischildnode");
+                c.params.add(new SelectorExpr(currentSelector));
+                c.params.add(Literal.newString(path));
+                condition = add(condition, c);
             } else {
                 Function c = new Function("issamenode");
+                c.params.add(new SelectorExpr(currentSelector));
                 c.params.add(Literal.newString(path));
                 condition = add(condition, c);
             }
             if (nodeName != null) {
                 Function f = new Function("name");
+                f.params.add(new SelectorExpr(currentSelector));
                 Condition c = new Condition(f, "=", Literal.newString(nodeName));
                 condition = add(condition, c);
             }
+        }
+        if (selectors.size() == 1) {
+            currentSelector.onlySelector = true;
         }
         ArrayList<Order> orderList = new ArrayList<Order>();
         if (readIf("order")) {
@@ -214,19 +239,29 @@ public class XPathToSQL2Converter {
             buff.append("explain ");
         }
         buff.append("select ");
-        buff.append("[jcr:path], [jcr:score], ");
+        buff.append(new Property(currentSelector, "jcr:path").toString());
+        buff.append(", ");
+        buff.append(new Property(currentSelector, "jcr:score").toString());
         if (columnList.isEmpty()) {
-            buff.append('*');
+            buff.append(", ");
+            buff.append(new Property(currentSelector, "*").toString());
         } else {
             for (int i = 0; i < columnList.size(); i++) {
-                if (i > 0) {
-                    buff.append(", ");
-                }
+                buff.append(", ");
                 buff.append(columnList.get(i).toString());
             }
         }
         buff.append(" from ");
-        buff.append('[' + from + ']');
+        for (int i = 0; i < selectors.size(); i++) {
+            Selector s = selectors.get(i);
+            if (i > 0) {
+                buff.append(" inner join ");
+            }
+            buff.append('[' + s.nodeType + ']').append(" as ").append(s.name);
+            if (s.joinCondition != null) {
+                buff.append(" on ").append(s.joinCondition);
+            }
+        }
         if (condition != null) {
             buff.append(" where ").append(removeParens(condition.toString()));
         }
@@ -267,7 +302,7 @@ public class XPathToSQL2Converter {
 
     private Expression parseCondition() throws ParseException {
         Expression a;
-        if (readIf("not")) {
+        if (readIf("fn:not") || readIf("not")) {
             read("(");
             a = parseConstraint();
             if (a instanceof Condition && ((Condition) a).operator.equals("is not null")) {
@@ -372,7 +407,7 @@ public class XPathToSQL2Converter {
                 } else {
                     buff.append(readIdentifier());
                 }
-                return new Property(buff.toString());
+                return new Property(currentSelector, buff.toString());
             } else {
                 break;
             }
@@ -393,7 +428,7 @@ public class XPathToSQL2Converter {
             } else {
                 buff.append("/*");
             }
-            return new Property(buff.toString());
+            return new Property(currentSelector, buff.toString());
         }
         throw getSyntaxError();
     }
@@ -414,7 +449,7 @@ public class XPathToSQL2Converter {
             return f;
         } else if ("jcr:score".equals(functionName)) {
             Function f = new Function("score");
-            // TODO score: support parameters?
+            f.params.add(new SelectorExpr(currentSelector));
             read(")");
             return f;
         } else if ("xs:dateTime".equals(functionName)) {
@@ -434,16 +469,17 @@ public class XPathToSQL2Converter {
                 read(".");
                 read(")");
             }
+            f.params.add(new SelectorExpr(currentSelector));
             return f;
         } else if ("fn:upper-case".equals(functionName)) {
             Function f = new Function("upper");
             f.params.add(parseExpression());
             read(")");
             return f;
-         } else if ("jcr:deref".equals(functionName)) {
+        } else if ("jcr:deref".equals(functionName)) {
              // TODO support jcr:deref
              throw getSyntaxError("jcr:deref is not supported");
-         } else if ("rep:similar".equals(functionName)) {
+        } else if ("rep:similar".equals(functionName)) {
              // TODO support rep:similar
              throw getSyntaxError("rep:similar is not supported");
         } else {
@@ -477,9 +513,9 @@ public class XPathToSQL2Converter {
 
     private Property readProperty() throws ParseException {
         if (readIf("*")) {
-            return new Property("*");
+            return new Property(currentSelector, "*");
         }
-        return new Property(readIdentifier());
+        return new Property(currentSelector, readIdentifier());
     }
 
     private String readIdentifier() throws ParseException {
@@ -789,12 +825,42 @@ public class XPathToSQL2Converter {
     }
 
     /**
+     * A selector.
+     */
+    static class Selector {
+
+        String name;
+        boolean onlySelector;
+        String nodeType;
+        Expression joinCondition;
+
+    }
+
+    /**
      * An expression.
      */
     abstract static class Expression {
 
         boolean isCondition() {
             return false;
+        }
+
+    }
+
+    /**
+     * A selector parameter.
+     */
+    static class SelectorExpr extends Expression {
+
+        private final Selector selector;
+
+        SelectorExpr(Selector selector) {
+            this.selector = selector;
+        }
+
+        @Override
+        public String toString() {
+            return selector.name;
         }
 
     }
@@ -834,18 +900,26 @@ public class XPathToSQL2Converter {
      */
     static class Property extends Expression {
 
+        final Selector selector;
         final String name;
 
-        Property(String name) {
+        Property(Selector selector, String name) {
+            this.selector = selector;
             this.name = name;
         }
 
         @Override
         public String toString() {
-            if (name.equals("*")) {
-                return name;
+            StringBuilder buff = new StringBuilder();
+            if (!selector.onlySelector) {
+                buff.append(selector.name).append('.');
             }
-            return '[' + name + ']';
+            if (name.equals("*")) {
+                buff.append('*');
+            } else {
+                buff.append('[').append(name).append(']');
+            }
+            return buff.toString();
         }
 
     }

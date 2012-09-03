@@ -25,32 +25,38 @@
 
 # jackrabbit test queries
 
+# xpath2sql //testRoot/*[@text = 'foo']
+# select b.[jcr:path], b.[jcr:score], b.* from [nt:base] as a inner join [nt:base] as b on ischildnode(b, a) where name(a) = 'testRoot' and b.[text] = 'foo'
+
+xpath2sql /testRoot/*[@jcr:primaryType='nt:unstructured' and fn:not(@mytext)]
+select [jcr:path], [jcr:score], * from [nt:base] as a where (([jcr:primaryType] = 'nt:unstructured') and ([mytext] is null)) and ischildnode(a, '/testRoot')
+
 xpath2sql /jcr:root/testroot/*[jcr:contains(., '"quick brown" -cat')]
-select [jcr:path], [jcr:score], * from [nt:base] where contains(*, '"quick brown" -cat') and ischildnode('/testroot')
+select [jcr:path], [jcr:score], * from [nt:base] as a where contains(*, '"quick brown" -cat') and ischildnode(a, '/testroot')
 
 xpath2sql //element(*,rep:Authorizable)[(((jcr:contains(profile/givenName,'**') or jcr:contains(profile/familyName,'**')) or jcr:contains(profile/email,'**')) or (jcr:like(rep:principalName,'%%') or jcr:like(fn:name(.),'%%')))] order by rep:principalName ascending
-select [jcr:path], [jcr:score], * from [rep:Authorizable] where ((contains([profile/givenName/*], '**') or contains([profile/familyName/*], '**')) or contains([profile/email/*], '**')) or (([rep:principalName/*] like '%%') or (name() like '%%')) order by [rep:principalName/*]
+select [jcr:path], [jcr:score], * from [rep:Authorizable] as a where ((contains([profile/givenName/*], '**') or contains([profile/familyName/*], '**')) or contains([profile/email/*], '**')) or (([rep:principalName/*] like '%%') or (name(a) like '%%')) order by [rep:principalName/*]
 
 xpath2sql //element(*,rep:Authorizable)[(((jcr:contains(profile/@givenName,'**') or jcr:contains(profile/@familyName,'**')) or jcr:contains(profile/@email,'**')) or (jcr:like(@rep:principalName,'%%') or jcr:like(fn:name(.),'%%')))] order by @rep:principalName ascending
-select [jcr:path], [jcr:score], * from [rep:Authorizable] where ((contains([profile/givenName], '**') or contains([profile/familyName], '**')) or contains([profile/email], '**')) or (([rep:principalName] like '%%') or (name() like '%%')) order by [rep:principalName]
+select [jcr:path], [jcr:score], * from [rep:Authorizable] as a where ((contains([profile/givenName], '**') or contains([profile/familyName], '**')) or contains([profile/email], '**')) or (([rep:principalName] like '%%') or (name(a) like '%%')) order by [rep:principalName]
 
 xpath2sql /jcr:root/testroot//*[jcr:contains(@jcr:data, 'lazy')]
-select [jcr:path], [jcr:score], * from [nt:base] where contains([jcr:data], 'lazy') and isdescendantnode('/testroot')
+select [jcr:path], [jcr:score], * from [nt:base] as a where contains([jcr:data], 'lazy') and isdescendantnode(a, '/testroot')
 
 xpath2sql /jcr:root/testroot/*[jcr:contains(jcr:content, 'lazy')]
-select [jcr:path], [jcr:score], * from [nt:base] where contains([jcr:content/*], 'lazy') and ischildnode('/testroot')
+select [jcr:path], [jcr:score], * from [nt:base] as a where contains([jcr:content/*], 'lazy') and ischildnode(a, '/testroot')
 
 xpath2sql /jcr:root/testroot/*[jcr:contains(*, 'lazy')]
-select [jcr:path], [jcr:score], * from [nt:base] where contains([*/*], 'lazy') and ischildnode('/testroot')
+select [jcr:path], [jcr:score], * from [nt:base] as a where contains([*/*], 'lazy') and ischildnode(a, '/testroot')
 
 xpath2sql /jcr:root/testroot/*[jcr:contains(*/@jcr:data, 'lazy')]
-select [jcr:path], [jcr:score], * from [nt:base] where contains([*/jcr:data], 'lazy') and ischildnode('/testroot')
+select [jcr:path], [jcr:score], * from [nt:base] as a where contains([*/jcr:data], 'lazy') and ischildnode(a, '/testroot')
 
 xpath2sql /jcr:root/testroot/*[jcr:contains(*/@*, 'lazy')]
-select [jcr:path], [jcr:score], * from [nt:base] where contains([*/*], 'lazy') and ischildnode('/testroot')
+select [jcr:path], [jcr:score], * from [nt:base] as a where contains([*/*], 'lazy') and ischildnode(a, '/testroot')
 
 xpath2sql /jcr:root/testroot/*[@prop1 = 1 and jcr:like(fn:name(), 'F%')]
-select [jcr:path], [jcr:score], * from [nt:base] where (([prop1] = 1) and (name() like 'F%')) and ischildnode('/testroot')
+select [jcr:path], [jcr:score], * from [nt:base] as a where (([prop1] = 1) and (name(a) like 'F%')) and ischildnode(a, '/testroot')
 
 # TODO support rep:excerpt() and rep:similar()? how?
 xpath2sql /jcr:root/testroot/*[jcr:contains(., 'jackrabbit')]/rep:excerpt(.)
@@ -66,228 +72,228 @@ xpath2sql /jcr:root/testroot/people/jcr:deref(@worksfor, '*')
 invalid: Query: /jcr:root/testroot/people/jcr:deref((*)@worksfor, '*'); expected: <end>
 
 xpath2sql /jcr:root[@foo = 'does-not-exist']
-select [jcr:path], [jcr:score], * from [nt:base] where ([foo] = 'does-not-exist') and isdescendantnode('/')
+select [jcr:path], [jcr:score], * from [nt:base] as a where ([foo] = 'does-not-exist') and isdescendantnode(a, '/')
 
 xpath2sql //*[@jcr:primaryType='nt:unstructured' and jcr:like(@foo,"%ar'ba%")]
-select [jcr:path], [jcr:score], * from [nt:base] where ([jcr:primaryType] = 'nt:unstructured') and ([foo] like '%ar''ba%')
+select [jcr:path], [jcr:score], * from [nt:base] as a where ([jcr:primaryType] = 'nt:unstructured') and ([foo] like '%ar''ba%')
 
 xpath2sql /jcr:root/testroot/*[fn:lower-case(@prop1) = 'foo']
-select [jcr:path], [jcr:score], * from [nt:base] where (lower([prop1]) = 'foo') and ischildnode('/testroot')
+select [jcr:path], [jcr:score], * from [nt:base] as a where (lower([prop1]) = 'foo') and ischildnode(a, '/testroot')
 
 xpath2sql /jcr:root/testroot/*[fn:lower-case(@prop1) != 'foo']
-select [jcr:path], [jcr:score], * from [nt:base] where (lower([prop1]) <> 'foo') and ischildnode('/testroot')
+select [jcr:path], [jcr:score], * from [nt:base] as a where (lower([prop1]) <> 'foo') and ischildnode(a, '/testroot')
 
 xpath2sql /jcr:root/testroot/*[fn:lower-case(@prop1) <= 'foo']
-select [jcr:path], [jcr:score], * from [nt:base] where (lower([prop1]) <= 'foo') and ischildnode('/testroot')
+select [jcr:path], [jcr:score], * from [nt:base] as a where (lower([prop1]) <= 'foo') and ischildnode(a, '/testroot')
 
 xpath2sql /jcr:root/testroot/*[fn:lower-case(@prop1) >= 'foo']
-select [jcr:path], [jcr:score], * from [nt:base] where (lower([prop1]) >= 'foo') and ischildnode('/testroot')
+select [jcr:path], [jcr:score], * from [nt:base] as a where (lower([prop1]) >= 'foo') and ischildnode(a, '/testroot')
 
 xpath2sql /jcr:root/testroot/*[fn:lower-case(@prop1) < 'foo']
-select [jcr:path], [jcr:score], * from [nt:base] where (lower([prop1]) < 'foo') and ischildnode('/testroot')
+select [jcr:path], [jcr:score], * from [nt:base] as a where (lower([prop1]) < 'foo') and ischildnode(a, '/testroot')
 
 xpath2sql /jcr:root/testroot/*[fn:lower-case(@prop1) > 'foo']
-select [jcr:path], [jcr:score], * from [nt:base] where (lower([prop1]) > 'foo') and ischildnode('/testroot')
+select [jcr:path], [jcr:score], * from [nt:base] as a where (lower([prop1]) > 'foo') and ischildnode(a, '/testroot')
 
 xpath2sql /jcr:root/testroot/*[fn:lower-case(@prop1) <> 'foo']
-select [jcr:path], [jcr:score], * from [nt:base] where (lower([prop1]) <> 'foo') and ischildnode('/testroot')
+select [jcr:path], [jcr:score], * from [nt:base] as a where (lower([prop1]) <> 'foo') and ischildnode(a, '/testroot')
 
 xpath2sql /jcr:root/testroot/*[@prop1 = 1 and fn:name() = 'node1']
-select [jcr:path], [jcr:score], * from [nt:base] where (([prop1] = 1) and (name() = 'node1')) and ischildnode('/testroot')
+select [jcr:path], [jcr:score], * from [nt:base] as a where (([prop1] = 1) and (name(a) = 'node1')) and ischildnode(a, '/testroot')
 
 # sling queries
 
 xpath2sql //element(*,mix:language)[fn:lower-case(@jcr:language)='en']//element(*,sling:Message)[@sling:message]/(@sling:key|@sling:message)
-select [jcr:path], [jcr:score], [sling:key], [sling:message] from [sling:Message] where (lower([jcr:language]) = 'en') and ([sling:message] is not null)
+select [jcr:path], [jcr:score], [sling:key], [sling:message] from [sling:Message] as a where (lower([jcr:language]) = 'en') and ([sling:message] is not null)
 
 xpath2sql //element(*,mix:language)[fn:upper-case(@jcr:language)='en']//element(*,sling:Message)[@sling:message]/(@sling:key|@sling:message)
-select [jcr:path], [jcr:score], [sling:key], [sling:message] from [sling:Message] where (upper([jcr:language]) = 'en') and ([sling:message] is not null)
+select [jcr:path], [jcr:score], [sling:key], [sling:message] from [sling:Message] as a where (upper([jcr:language]) = 'en') and ([sling:message] is not null)
 
 # jboss example queries
 
 xpath2sql //*
-select [jcr:path], [jcr:score], * from [nt:base]
+select [jcr:path], [jcr:score], * from [nt:base] as a
 
 xpath2sql //element(*,my:type)
-select [jcr:path], [jcr:score], * from [my:type]
+select [jcr:path], [jcr:score], * from [my:type] as a
 
 xpath2sql //element(*,my:type)/@my:title
-select [jcr:path], [jcr:score], [my:title] from [my:type]
+select [jcr:path], [jcr:score], [my:title] from [my:type] as a
 
 xpath2sql //element(*,my:type)/(@my:title | @my:text)
-select [jcr:path], [jcr:score], [my:title], [my:text] from [my:type]
+select [jcr:path], [jcr:score], [my:title], [my:text] from [my:type] as a
 
 # other queries
 
 xpath2sql /jcr:root/testdata/node[@jcr:primaryType]
-select [jcr:path], [jcr:score], * from [nt:base] where ([jcr:primaryType] is not null) and issamenode('/testdata/node')
+select [jcr:path], [jcr:score], * from [nt:base] as a where ([jcr:primaryType] is not null) and issamenode(a, '/testdata/node')
 
 xpath2sql //testroot/*[@jcr:primaryType='nt:unstructured'] order by @prop2, @prop1
 invalid: Query: //testroot/*(*)[@jcr:primaryType='nt:unstructured'] order by @prop2, @prop1; expected: non-path condition
 
 xpath2sql /jcr:root/test//jcr:xmltext
-select [jcr:path], [jcr:score], * from [nt:base] where isdescendantnode('/test') and (name() = 'jcr:xmltext')
+select [jcr:path], [jcr:score], * from [nt:base] as a where isdescendantnode(a, '/test') and (name(a) = 'jcr:xmltext')
 
 xpath2sql /jcr:root/test//text()
-select [jcr:path], [jcr:score], * from [nt:base] where isdescendantnode('/test') and (name() = 'jcr:xmltext')
+select [jcr:path], [jcr:score], * from [nt:base] as a where isdescendantnode(a, '/test') and (name(a) = 'jcr:xmltext')
 
 xpath2sql /jcr:root/test/jcr:xmltext
-select [jcr:path], [jcr:score], * from [nt:base] where issamenode('/test/jcr:xmltext')
+select [jcr:path], [jcr:score], * from [nt:base] as a where issamenode(a, '/test/jcr:xmltext')
 
 xpath2sql /jcr:root/test/text()
-select [jcr:path], [jcr:score], * from [nt:base] where issamenode('/test/jcr:xmltext')
+select [jcr:path], [jcr:score], * from [nt:base] as a where issamenode(a, '/test/jcr:xmltext')
 
 xpath2sql /jcr:root
-select [jcr:path], [jcr:score], * from [nt:base] where isdescendantnode('/')
+select [jcr:path], [jcr:score], * from [nt:base] as a where isdescendantnode(a, '/')
 
 xpath2sql //*[@name='Hello']
-select [jcr:path], [jcr:score], * from [nt:base] where [name] = 'Hello'
+select [jcr:path], [jcr:score], * from [nt:base] as a where [name] = 'Hello'
 
 xpath2sql /jcr:root//*[@name='Hello']
-select [jcr:path], [jcr:score], * from [nt:base] where ([name] = 'Hello') and isdescendantnode('/')
+select [jcr:path], [jcr:score], * from [nt:base] as a where ([name] = 'Hello') and isdescendantnode(a, '/')
 
 xpath2sql content/*
-select [jcr:path], [jcr:score], * from [nt:base] where ischildnode('/content')
+select [jcr:path], [jcr:score], * from [nt:base] as a where ischildnode(a, '/content')
 
 xpath2sql content//*
-select [jcr:path], [jcr:score], * from [nt:base] where isdescendantnode('/content')
+select [jcr:path], [jcr:score], * from [nt:base] as a where isdescendantnode(a, '/content')
 
 xpath2sql content//*[@name='Hello']
-select [jcr:path], [jcr:score], * from [nt:base] where ([name] = 'Hello') and isdescendantnode('/content')
+select [jcr:path], [jcr:score], * from [nt:base] as a where ([name] = 'Hello') and isdescendantnode(a, '/content')
 
 xpath2sql /jcr:root/content//*[@name='Hello']
-select [jcr:path], [jcr:score], * from [nt:base] where ([name] = 'Hello') and isdescendantnode('/content')
+select [jcr:path], [jcr:score], * from [nt:base] as a where ([name] = 'Hello') and isdescendantnode(a, '/content')
 
 xpath2sql //*[jcr:contains(., 'test')] order by @jcr:score
-select [jcr:path], [jcr:score], * from [nt:base] where contains(*, 'test') order by [jcr:score]
+select [jcr:path], [jcr:score], * from [nt:base] as a where contains(*, 'test') order by [jcr:score]
 
 xpath2sql /jcr:root//*[jcr:contains(., 'test')] order by @jcr:score
-select [jcr:path], [jcr:score], * from [nt:base] where contains(*, 'test') and isdescendantnode('/') order by [jcr:score]
+select [jcr:path], [jcr:score], * from [nt:base] as a where contains(*, 'test') and isdescendantnode(a, '/') order by [jcr:score]
 
 xpath2sql /jcr:root//element(*, test)
-select [jcr:path], [jcr:score], * from [test] where isdescendantnode('/')
+select [jcr:path], [jcr:score], * from [test] as a where isdescendantnode(a, '/')
 
 xpath2sql /jcr:root//element(*, user)[test/@jcr:primaryType]
-select [jcr:path], [jcr:score], * from [user] where ([test/jcr:primaryType] is not null) and isdescendantnode('/')
+select [jcr:path], [jcr:score], * from [user] as a where ([test/jcr:primaryType] is not null) and isdescendantnode(a, '/')
 
 xpath2sql /jcr:root/content//*[(@sling:resourceType = 'start')]
-select [jcr:path], [jcr:score], * from [nt:base] where ([sling:resourceType] = 'start') and isdescendantnode('/content')
+select [jcr:path], [jcr:score], * from [nt:base] as a where ([sling:resourceType] = 'start') and isdescendantnode(a, '/content')
 
 xpath2sql /jcr:root/content//*[(@sling:resourceType = 'page')]
-select [jcr:path], [jcr:score], * from [nt:base] where ([sling:resourceType] = 'page') and isdescendantnode('/content')
+select [jcr:path], [jcr:score], * from [nt:base] as a where ([sling:resourceType] = 'page') and isdescendantnode(a, '/content')
 
 xpath2sql /jcr:root/content//*[@offTime > xs:dateTime('2012-03-28T15:56:18.327+02:00') or @onTime > xs:dateTime('2012-03-28T15:56:18.327+02:00')]
-select [jcr:path], [jcr:score], * from [nt:base] where (([offTime] > cast('2012-03-28T15:56:18.327+02:00' as date)) or ([onTime] > cast('2012-03-28T15:56:18.327+02:00' as date))) and isdescendantnode('/content')
+select [jcr:path], [jcr:score], * from [nt:base] as a where (([offTime] > cast('2012-03-28T15:56:18.327+02:00' as date)) or ([onTime] > cast('2012-03-28T15:56:18.327+02:00' as date))) and isdescendantnode(a, '/content')
 
 xpath2sql /jcr:root/content/campaigns//*[@jcr:primaryType='Page'] order by jcr:content/@lastModified descending
-select [jcr:path], [jcr:score], * from [nt:base] where ([jcr:primaryType] = 'Page') and isdescendantnode('/content/campaigns') order by [jcr:content/lastModified] desc
+select [jcr:path], [jcr:score], * from [nt:base] as a where ([jcr:primaryType] = 'Page') and isdescendantnode(a, '/content/campaigns') order by [jcr:content/lastModified] desc
 
 xpath2sql /jcr:root/content/campaigns//element(*, PageContent)[(@sling:resourceType = 'teaser' or @sling:resourceType = 'newsletter' or @teaserPageType = 'newsletter' or @teaserPageType = 'tweet') and ((@onTime < xs:dateTime('2012-04-01T00:00:00.000+02:00')) or not(@onTime)) and ((@offTime >= xs:dateTime('2012-02-26T00:00:00.000+01:00')) or not(@offTime))] order by @onTime
-select [jcr:path], [jcr:score], * from [PageContent] where (((((([sling:resourceType] = 'teaser') or ([sling:resourceType] = 'newsletter')) or ([teaserPageType] = 'newsletter')) or ([teaserPageType] = 'tweet')) and (([onTime] < cast('2012-04-01T00:00:00.000+02:00' as date)) or ([onTime] is null))) and (([offTime] >= cast('2012-02-26T00:00:00.000+01:00' as date)) or ([offTime] is null))) and isdescendantnode('/content/campaigns') order by [onTime]
+select [jcr:path], [jcr:score], * from [PageContent] as a where (((((([sling:resourceType] = 'teaser') or ([sling:resourceType] = 'newsletter')) or ([teaserPageType] = 'newsletter')) or ([teaserPageType] = 'tweet')) and (([onTime] < cast('2012-04-01T00:00:00.000+02:00' as date)) or ([onTime] is null))) and (([offTime] >= cast('2012-02-26T00:00:00.000+01:00' as date)) or ([offTime] is null))) and isdescendantnode(a, '/content/campaigns') order by [onTime]
 
 xpath2sql /jcr:root/content/dam//element(*, asset)
-select [jcr:path], [jcr:score], * from [asset] where isdescendantnode('/content/dam')
+select [jcr:path], [jcr:score], * from [asset] as a where isdescendantnode(a, '/content/dam')
 
 xpath2sql /jcr:root/content/dam//element(*, asset)[jcr:content/metadata/@dam:scene]
-select [jcr:path], [jcr:score], * from [asset] where ([jcr:content/metadata/dam:scene] is not null) and isdescendantnode('/content/dam')
+select [jcr:path], [jcr:score], * from [asset] as a where ([jcr:content/metadata/dam:scene] is not null) and isdescendantnode(a, '/content/dam')
 
 xpath2sql /jcr:root/etc/cloud//*[(@sling:resourceType = 'framework')]
-select [jcr:path], [jcr:score], * from [nt:base] where ([sling:resourceType] = 'framework') and isdescendantnode('/etc/cloud')
+select [jcr:path], [jcr:score], * from [nt:base] as a where ([sling:resourceType] = 'framework') and isdescendantnode(a, '/etc/cloud')
 
 xpath2sql /jcr:root/etc/cloud//*[(@sling:resourceType = 'analytics')]
-select [jcr:path], [jcr:score], * from [nt:base] where ([sling:resourceType] = 'analytics') and isdescendantnode('/etc/cloud')
+select [jcr:path], [jcr:score], * from [nt:base] as a where ([sling:resourceType] = 'analytics') and isdescendantnode(a, '/etc/cloud')
 
 xpath2sql /jcr:root/etc/reports//*[@jcr:primaryType='Page'] order by jcr:content/@lastModified descending
-select [jcr:path], [jcr:score], * from [nt:base] where ([jcr:primaryType] = 'Page') and isdescendantnode('/etc/reports') order by [jcr:content/lastModified] desc
+select [jcr:path], [jcr:score], * from [nt:base] as a where ([jcr:primaryType] = 'Page') and isdescendantnode(a, '/etc/reports') order by [jcr:content/lastModified] desc
 
 xpath2sql /jcr:root/etc/segment//*[@jcr:primaryType='Page'] order by jcr:content/@lastModified descending
-select [jcr:path], [jcr:score], * from [nt:base] where ([jcr:primaryType] = 'Page') and isdescendantnode('/etc/segment') order by [jcr:content/lastModified] desc
+select [jcr:path], [jcr:score], * from [nt:base] as a where ([jcr:primaryType] = 'Page') and isdescendantnode(a, '/etc/segment') order by [jcr:content/lastModified] desc
 
 xpath2sql /jcr:root/etc/workflow//element(*,Item)[not(meta/@archived) and not(meta/@archived = true)]
-select [jcr:path], [jcr:score], * from [Item] where (([meta/archived] is null) and not([meta/archived] = true)) and isdescendantnode('/etc/workflow')
+select [jcr:path], [jcr:score], * from [Item] as a where (([meta/archived] is null) and not([meta/archived] = true)) and isdescendantnode(a, '/etc/workflow')
 
 xpath2sql /jcr:root/home//element()
-select [jcr:path], [jcr:score], * from [nt:base] where isdescendantnode('/home')
+select [jcr:path], [jcr:score], * from [nt:base] as a where isdescendantnode(a, '/home')
 
 xpath2sql /jcr:root/home//element(*)
-select [jcr:path], [jcr:score], * from [nt:base] where isdescendantnode('/home')
+select [jcr:path], [jcr:score], * from [nt:base] as a where isdescendantnode(a, '/home')
 
 # other queries
 
 xpath2sql //*
-select [jcr:path], [jcr:score], * from [nt:base]
+select [jcr:path], [jcr:score], * from [nt:base] as a
 
 xpath2sql //element(*, my:type)
-select [jcr:path], [jcr:score], * from [my:type]
+select [jcr:path], [jcr:score], * from [my:type] as a
 
 xpath2sql //element(*, my:type)/@my:title
-select [jcr:path], [jcr:score], [my:title] from [my:type]
+select [jcr:path], [jcr:score], [my:title] from [my:type] as a
 
 xpath2sql //element(*, my:type)/(@my:title | @my:text)
-select [jcr:path], [jcr:score], [my:title], [my:text] from [my:type]
+select [jcr:path], [jcr:score], [my:title], [my:text] from [my:type] as a
 
 xpath2sql /jcr:root/nodes//element(*, my:type)
-select [jcr:path], [jcr:score], * from [my:type] where isdescendantnode('/nodes')
+select [jcr:path], [jcr:score], * from [my:type] as a where isdescendantnode(a, '/nodes')
 
 xpath2sql /jcr:root/some/element(nodes, my:type)
-select [jcr:path], [jcr:score], * from [my:type] where issamenode('/some/nodes')
+select [jcr:path], [jcr:score], * from [my:type] as a where issamenode(a, '/some/nodes')
 
 xpath2sql /jcr:root/some/nodes/element(*, my:type)
-select [jcr:path], [jcr:score], * from [my:type] where ischildnode('/some/nodes')
+select [jcr:path], [jcr:score], * from [my:type] as a where ischildnode(a, '/some/nodes')
 
 xpath2sql /jcr:root/some/nodes//element(*, my:type)
-select [jcr:path], [jcr:score], * from [my:type] where isdescendantnode('/some/nodes')
+select [jcr:path], [jcr:score], * from [my:type] as a where isdescendantnode(a, '/some/nodes')
 
 xpath2sql //element(*, my:type)[@my:title = 'JSR 170']
-select [jcr:path], [jcr:score], * from [my:type] where [my:title] = 'JSR 170'
+select [jcr:path], [jcr:score], * from [my:type] as a where [my:title] = 'JSR 170'
 
 xpath2sql //element(*, my:type)[jcr:like(@title,'%Java%')]
-select [jcr:path], [jcr:score], * from [my:type] where [title] like '%Java%'
+select [jcr:path], [jcr:score], * from [my:type] as a where [title] like '%Java%'
 
 xpath2sql //element(*, my:type)[jcr:contains(., 'JSR 170')]
-select [jcr:path], [jcr:score], * from [my:type] where contains(*, 'JSR 170')
+select [jcr:path], [jcr:score], * from [my:type] as a where contains(*, 'JSR 170')
 
 xpath2sql //element(*, my:type)[@my:title]
-select [jcr:path], [jcr:score], * from [my:type] where [my:title] is not null
+select [jcr:path], [jcr:score], * from [my:type] as a where [my:title] is not null
 
 xpath2sql //element(*, my:type)[not(@my:title)]
-select [jcr:path], [jcr:score], * from [my:type] where [my:title] is null
+select [jcr:path], [jcr:score], * from [my:type] as a where [my:title] is null
 
 xpath2sql //element(*, my:type)[@my:value < -1.0]
-select [jcr:path], [jcr:score], * from [my:type] where [my:value] < -1.0
+select [jcr:path], [jcr:score], * from [my:type] as a where [my:value] < -1.0
 
 xpath2sql //element(*, my:type)[@my:value > +10123123123]
-select [jcr:path], [jcr:score], * from [my:type] where [my:value] > 10123123123
+select [jcr:path], [jcr:score], * from [my:type] as a where [my:value] > 10123123123
 
 xpath2sql //element(*, my:type)[@my:value <= 10.3e-3]
-select [jcr:path], [jcr:score], * from [my:type] where [my:value] <= 10.3e-3
+select [jcr:path], [jcr:score], * from [my:type] as a where [my:value] <= 10.3e-3
 
 xpath2sql //element(*, my:type)[@my:value >= 0e3]
-select [jcr:path], [jcr:score], * from [my:type] where [my:value] >= 0e3
+select [jcr:path], [jcr:score], * from [my:type] as a where [my:value] >= 0e3
 
 xpath2sql //element(*, my:type)[@my:value <> 'Joe''s Caffee']
-select [jcr:path], [jcr:score], * from [my:type] where [my:value] <> 'Joe''s Caffee'
+select [jcr:path], [jcr:score], * from [my:type] as a where [my:value] <> 'Joe''s Caffee'
 
 xpath2sql //element(*, my:type)[(not(@my:title) and @my:subject)]
-select [jcr:path], [jcr:score], * from [my:type] where ([my:title] is null) and ([my:subject] is not null)
+select [jcr:path], [jcr:score], * from [my:type] as a where ([my:title] is null) and ([my:subject] is not null)
 
 xpath2sql //element(*, my:type)[not(@my:title) or @my:subject]
-select [jcr:path], [jcr:score], * from [my:type] where ([my:title] is null) or ([my:subject] is not null)
+select [jcr:path], [jcr:score], * from [my:type] as a where ([my:title] is null) or ([my:subject] is not null)
 
 xpath2sql //element(*, my:type)[not(@my:value > 0 and @my:value < 100)]
-select [jcr:path], [jcr:score], * from [my:type] where not(([my:value] > 0) and ([my:value] < 100))
+select [jcr:path], [jcr:score], * from [my:type] as a where not(([my:value] > 0) and ([my:value] < 100))
 
 xpath2sql //element(*, my:type) order by @jcr:lastModified
-select [jcr:path], [jcr:score], * from [my:type] order by [jcr:lastModified]
+select [jcr:path], [jcr:score], * from [my:type] as a order by [jcr:lastModified]
 
 xpath2sql //element(*, my:type) order by @my:date descending, @my:title ascending
-select [jcr:path], [jcr:score], * from [my:type] order by [my:date] desc, [my:title]
+select [jcr:path], [jcr:score], * from [my:type] as a order by [my:date] desc, [my:title]
 
 xpath2sql //element(*, my:type)[jcr:contains(., 'jcr')] order by jcr:score() descending
-select [jcr:path], [jcr:score], * from [my:type] where contains(*, 'jcr') order by score() desc
+select [jcr:path], [jcr:score], * from [my:type] as a where contains(*, 'jcr') order by score(a) desc
 
 xpath2sql //element(*, my:type)[jcr:contains(@my:title, 'jcr')] order by jcr:score() descending
-select [jcr:path], [jcr:score], * from [my:type] where contains([my:title], 'jcr') order by score() desc
+select [jcr:path], [jcr:score], * from [my:type] as a where contains([my:title], 'jcr') order by score(a) desc
 
 xpath2sql [invalid/query
 invalid: Query: /jcr:root/[(*)invalid/query; expected: identifier
@@ -311,7 +317,7 @@ xpath2sql //element(*, my:type)[jcr:strike(@title,'%Java%')]
 invalid: Query: //element(*, my:type)[jcr:strike(@(*)title,'%Java%')]; expected: jcr:like | jcr:contains | jcr:score | jcr:deref | fn:lower-case | fn:upper-case
 
 xpath2sql //element(*, my:type)[
-invalid: Query: //element(*, my:type)(*)[; expected: not, (, @, true, false, -, +, *, ., @, (
+invalid: Query: //element(*, my:type)(*)[; expected: fn:not, not, (, @, true, false, -, +, *, ., @, (
 
 xpath2sql //element(*, my:type)[@my:value >= %]
 invalid: Query: //element(*, my:type)[@my:value >= %(*)]; expected: @, true, false, -, +, *, ., @, (
