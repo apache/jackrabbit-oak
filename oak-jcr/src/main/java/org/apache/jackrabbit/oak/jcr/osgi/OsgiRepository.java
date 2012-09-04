@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,34 +14,42 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.sling;
+package org.apache.jackrabbit.oak.jcr.osgi;
 
 import java.util.concurrent.ScheduledExecutorService;
 
+import javax.jcr.Credentials;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.jcr.osgi.OsgiRepository;
-import org.apache.sling.jcr.api.SlingRepository;
+import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
+import org.apache.jackrabbit.oak.jcr.RepositoryImpl;
 
-public class SlingRepositoryImpl
-        extends OsgiRepository implements SlingRepository {
+/**
+ * Workaround to a JAAS class loading issue in OSGi environments.
+ *
+ * @see <a href="https://issues.apache.org/jira/browse/OAK-256">OAK-256</a>
+ */
+public class OsgiRepository extends RepositoryImpl {
 
-    public SlingRepositoryImpl(
+    public OsgiRepository(
             ContentRepository repository, ScheduledExecutorService executor) {
         super(repository, executor);
     }
 
     @Override
-    public String getDefaultWorkspace() {
-        return "default";
-    }
-
-    @Override
-    public Session loginAdministrative(String workspace)
+    public Session login(Credentials credentials, String workspace)
             throws RepositoryException {
-        return login(workspace);
+        Thread thread = Thread.currentThread();
+        ClassLoader loader = thread.getContextClassLoader();
+        try {
+            thread.setContextClassLoader(
+                    ContentRepositoryImpl.class.getClassLoader());
+            return super.login(credentials, workspace);
+        } finally {
+            thread.setContextClassLoader(loader);
+        }
     }
 
 }
