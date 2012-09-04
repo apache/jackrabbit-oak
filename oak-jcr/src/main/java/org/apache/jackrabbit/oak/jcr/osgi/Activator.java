@@ -25,7 +25,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import javax.jcr.Repository;
 
 import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.jcr.RepositoryImpl;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
@@ -70,7 +69,7 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
             ContentRepository repository = (ContentRepository) service;
             services.put(reference, context.registerService(
                     Repository.class.getName(),
-                    new RepositoryImpl(repository, executor),
+                    new OsgiRepository(repository, executor),
                     new Properties()));
             return service;
         } else {
