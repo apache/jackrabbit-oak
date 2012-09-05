@@ -126,7 +126,7 @@ public class QueryEngineImpl {
         return best;
     }
 
-    private List<QueryIndex> getIndexes() {
+    private List<? extends QueryIndex> getIndexes() {
         return indexProvider.getQueryIndexes(mk);
     }
 
