@@ -92,7 +92,7 @@ public class IndexManagerImpl implements IndexManager, CommitHook {
             IndexDefinition def = IndexUtils.getDefinition(indexConfigPath, c);
             if (def == null) {
                 if (log) {
-                    LOG.warn("Skipping illegal index definition name {} @ {}",
+                    LOG.warn("Skipping illegal index definition '{}' @ {}",
                             c.getName(), indexConfigPath);
                 }
                 continue;
