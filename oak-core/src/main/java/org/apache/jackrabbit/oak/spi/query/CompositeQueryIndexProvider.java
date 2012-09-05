@@ -47,10 +47,10 @@ public class CompositeQueryIndexProvider implements QueryIndexProvider {
     }
 
     @Override
-    public List<QueryIndex> getQueryIndexes(MicroKernel mk) {
+    public List<? extends QueryIndex> getQueryIndexes(MicroKernel mk) {
         List<QueryIndex> indexes = new ArrayList<QueryIndex>();
         for (QueryIndexProvider qip : providers) {
-            List<QueryIndex> t = qip.getQueryIndexes(mk);
+            List<? extends QueryIndex> t = qip.getQueryIndexes(mk);
             if (t != null) {
                 indexes.addAll(t);
             }
