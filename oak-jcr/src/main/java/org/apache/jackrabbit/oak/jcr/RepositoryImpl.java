@@ -35,12 +35,15 @@ import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.type.TypeValidatorProvider;
+import org.apache.jackrabbit.oak.plugins.unique.UniqueIndexHook;
 import org.apache.jackrabbit.oak.plugins.value.ConflictValidatorProvider;
 import org.apache.jackrabbit.oak.security.authorization.AccessControlValidatorProvider;
 import org.apache.jackrabbit.oak.security.authorization.PermissionValidatorProvider;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeValidatorProvider;
 import org.apache.jackrabbit.oak.security.user.UserValidatorProvider;
+import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
+import org.apache.jackrabbit.oak.spi.commit.ValidatingHook;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
 import org.slf4j.Logger;
@@ -82,7 +85,11 @@ public class RepositoryImpl implements Repository {
 
     public RepositoryImpl(
             MicroKernel kernel, ScheduledExecutorService executor) {
-        this(new ContentRepositoryImpl(kernel, DEFAULT_VALIDATOR), executor);
+        this(new ContentRepositoryImpl(
+                kernel, null, new CompositeHook(
+                        new ValidatingHook(DEFAULT_VALIDATOR),
+                        new UniqueIndexHook())),
+                executor);
     }
 
     /**
