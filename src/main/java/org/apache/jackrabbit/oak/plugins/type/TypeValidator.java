@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.type;
 
+import java.util.Collections;
 import java.util.List;
 
 import javax.annotation.Nonnull;
@@ -24,6 +25,8 @@ import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeManager;
 
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.CoreValue;
@@ -37,12 +40,13 @@ import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 
 class TypeValidator implements Validator {
     private static final Logger log = LoggerFactory.getLogger(TypeValidator.class);
 
     private final NodeTypeManager ntm;
-    private final Tree parent;
+    private final ReadOnlyTree parent;
 
     private EffectiveNodeType parentType;
 
@@ -54,17 +58,19 @@ class TypeValidator implements Validator {
         return parentType;
     }
 
-    public TypeValidator(NodeTypeManager ntm, Tree parent) {
+    public TypeValidator(NodeTypeManager ntm, ReadOnlyTree parent) {
         this.ntm = ntm;
         this.parent = parent;
     }
 
     //-------------------------------------------------------< NodeValidator >
 
+    // TODO check presence of mandatory items
+
     @Override
     public void propertyAdded(PropertyState after) throws CommitFailedException {
         validateType(after);
-        if (!getParentType().canAddProperty(after)) {
+        if (!getParentType().canSetProperty(after)) {
             throwConstraintViolationException(
                     "Can't add property " + after.getName() + " at " + parent.getPath());
         }
@@ -89,29 +95,35 @@ class TypeValidator implements Validator {
 
     @Override
     public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
-        if (!getParentType().canAddChildNode(name, after)) {
-            throwConstraintViolationException(
-                    "Can't add node " + name + " at " + parent.getPath());
+        PropertyState type = after.getProperty(JCR_PRIMARYTYPE);
+        if (type == null || type.getValues().isEmpty()) {
+            if (!getParentType().canAddChildNode(name)) {
+                throwConstraintViolationException(
+                        "Can't add node " + name + " at " + parent.getPath());
+            }
         }
-        return new TypeValidator(ntm, new ReadOnlyTree(after));
+        else {
+            String ntName = type.getValues().get(0).getString();
+            if (!getParentType().canAddChildNode(name, ntName)) {
+                throwConstraintViolationException(
+                        "Can't add node " + name + " at " + parent.getPath());
+            }
+        }
+        return new TypeValidator(ntm, new ReadOnlyTree(parent, name, after));
     }
 
     @Override
     public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
-        if (!getParentType().canChangeChildNode(name, after)) {
-            throwConstraintViolationException(
-                    "Can't modify node " + name + " at " + parent.getPath());
-        }
-        return new TypeValidator(ntm, new ReadOnlyTree(after));
+        return new TypeValidator(ntm, new ReadOnlyTree(parent, name, after));
     }
 
     @Override
     public Validator childNodeDeleted(String name, NodeState before) throws CommitFailedException {
-        if (!getParentType().canRemoveNode(name, before)) {
+        if (!getParentType().canRemoveNode(name)) {
             throwConstraintViolationException(
                     "Can't delete node " + name + " at " + parent.getPath());
         }
-        return new TypeValidator(ntm, new ReadOnlyTree(before));
+        return null;
     }
 
     //------------------------------------------------------------< private >---
@@ -154,8 +166,8 @@ class TypeValidator implements Validator {
                     return type;
                 }
             }
-            log.warn("Item at {} has no primary type", tree.getPath());
-            return null;
+            log.warn("Item at {} has no primary type. Assuming nt:base", tree.getPath());
+            return ntm.getNodeType(NT_BASE);
         }
         catch (RepositoryException e) {
             return throwConstraintViolationException(e);
@@ -200,35 +212,78 @@ class TypeValidator implements Validator {
     private class EffectiveNodeType {
         private final NodeType primaryType;
         private final List<NodeType> mixinTypes;
+        private final Iterable<NodeType> allTypes;
 
         public EffectiveNodeType(NodeType primaryType, List<NodeType> mixinTypes) {
             this.primaryType = primaryType;
             this.mixinTypes = mixinTypes;
-        }
-
-        public boolean canAddProperty(PropertyState property) {
-            return true; // todo implement canAddProperty
+            this.allTypes = Iterables.concat(mixinTypes, Collections.singleton(primaryType));
         }
 
         public boolean canSetProperty(PropertyState property) {
-            return true; // todo implement canSetProperty
+            return property.isArray()
+                ? canSetProperty(property.getName(), property.getValues())
+                : canSetProperty(property.getName(), property.getValue());
+        }
+
+        private boolean canSetProperty(final String propertyName, final List<CoreValue> values) {
+            return Iterables.any(allTypes, new Predicate<NodeType>() {
+                @Override
+                public boolean apply(NodeType nt) {
+                    return true;
+                    // TODO return nt.canSetProperty(propertyName, values);
+                }
+            });
+        }
+
+        private boolean canSetProperty(final String propertyName, final CoreValue value) {
+            return Iterables.any(allTypes, new Predicate<NodeType>() {
+                @Override
+                public boolean apply(NodeType nt) {
+                    return true;
+                    // TODO return nt.canSetProperty(propertyName, value);
+                }
+            });
         }
 
         public boolean canRemoveProperty(PropertyState property) {
-            return true; // todo implement canRemoveProperty
+            final String name = property.getName();
+            return Iterables.any(allTypes, new Predicate<NodeType>() {
+                @Override
+                public boolean apply(NodeType nt) {
+                    return nt.canRemoveProperty(name);
+                }
+            });
         }
 
-        public boolean canAddChildNode(String name, NodeState node) {
-            return true; // todo implement canAddChildNode
+        public boolean canRemoveNode(final String name) {
+            return Iterables.any(allTypes, new Predicate<NodeType>() {
+                @Override
+                public boolean apply(NodeType nt) {
+                    return nt.canRemoveProperty(name);
+                }
+            });
         }
 
-        public boolean canChangeChildNode(String name, NodeState node) {
-            return true; // todo implement canChangeChildNode
+        public boolean canAddChildNode(final String name) {
+            return Iterables.any(allTypes, new Predicate<NodeType>() {
+                @Override
+                public boolean apply(NodeType nt) {
+                    return nt.canAddChildNode(name);
+                }
+            });
         }
 
-        public boolean canRemoveNode(String name, NodeState node) {
-            return true; // todo implement canRemoveNode
+        public boolean canAddChildNode(final String name, final String ntName) {
+            return Iterables.any(allTypes, new Predicate<NodeType>() {
+                @Override
+                public boolean apply(NodeType nt) {
+                    return true;
+                    // TODO return nt.canAddChildNode(name, ntName);
+                }
+            });
         }
+
     }
 
 }
