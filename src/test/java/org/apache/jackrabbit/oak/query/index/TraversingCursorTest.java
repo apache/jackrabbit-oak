@@ -30,16 +30,32 @@ import org.apache.jackrabbit.oak.kernel.KernelNodeState;
 import org.apache.jackrabbit.oak.spi.Cursor;
 import org.junit.Test;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+
 /**
  * Tests the TraversingCursor.
  */
 public class TraversingCursorTest {
 
+    private final MicroKernel mk = new MicroKernelImpl();
+
+    private final LoadingCache<String, KernelNodeState> cache =
+            CacheBuilder.newBuilder().build(new CacheLoader<String, KernelNodeState>() {
+                @Override
+                public KernelNodeState load(String key) throws Exception {
+                    int slash = key.indexOf('/');
+                    String revision = key.substring(0, slash);
+                    String path = key.substring(slash);
+                    return new KernelNodeState(mk, path, revision, cache);
+                }
+            });
+
     @Test
     public void traverse() throws Exception {
         TraversingIndex t = new TraversingIndex();
 
-        MicroKernel mk = new MicroKernelImpl();
         String head = mk.getHeadRevision();
         head = mk.commit("/", "+ \"parents\": { \"p0\": {\"id\": \"0\"}, \"p1\": {\"id\": \"1\"}, \"p2\": {\"id\": \"2\"}}", head, "");
         head = mk.commit("/", "+ \"children\": { \"c1\": {\"p\": \"1\"}, \"c2\": {\"p\": \"1\"}, \"c3\": {\"p\": \"2\"}, \"c4\": {\"p\": \"3\"}}", head, "");
@@ -47,7 +63,7 @@ public class TraversingCursorTest {
 
         f.setPath("/");
         List<String> paths = new ArrayList<String>();
-        Cursor c = t.query(f, head, new KernelNodeState(mk, "/", head));
+        Cursor c = t.query(f, head, new KernelNodeState(mk, "/", head, cache));
         while (c.next()) {
             paths.add(c.currentRow().getPath());
         }
@@ -62,7 +78,7 @@ public class TraversingCursorTest {
         assertFalse(c.next());
 
         f.setPath("/nowhere");
-        c = t.query(f, head, new KernelNodeState(mk, "/", head));
+        c = t.query(f, head, new KernelNodeState(mk, "/", head, cache));
         assertFalse(c.next());
         // endure it stays false
         assertFalse(c.next());
