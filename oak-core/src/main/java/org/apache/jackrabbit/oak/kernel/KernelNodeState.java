@@ -26,22 +26,27 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.concurrent.ExecutionException;
 
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.plugins.memory.MultiPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.SinglePropertyState;
+import org.apache.jackrabbit.oak.spi.state.AbstractChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
+import com.google.common.base.Function;
+import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
@@ -68,8 +73,9 @@ public final class KernelNodeState extends AbstractNodeState {
 
     private String hash;
 
-    // TODO: WeakReference?
-    private Map<String, NodeState> childNodes;
+    private Map<String, String> childPaths;
+
+    private final LoadingCache<String, KernelNodeState> cache;
 
     /**
      * Create a new instance of this class representing the node at the
@@ -80,7 +86,9 @@ public final class KernelNodeState extends AbstractNodeState {
      * @param path
      * @param revision
      */
-    public KernelNodeState(MicroKernel kernel, String path, String revision) {
+    public KernelNodeState(
+            MicroKernel kernel, String path, String revision,
+            LoadingCache<String, KernelNodeState> cache) {
         assert kernel != null;
         assert path != null;
         assert revision != null;
@@ -88,6 +96,7 @@ public final class KernelNodeState extends AbstractNodeState {
         this.kernel = kernel;
         this.path = path;
         this.revision = revision;
+        this.cache = cache;
     }
 
     private synchronized void init() {
@@ -99,7 +108,7 @@ public final class KernelNodeState extends AbstractNodeState {
             JsopReader reader = new JsopTokenizer(json);
             reader.read('{');
             properties = new LinkedHashMap<String, PropertyState>();
-            childNodes = new LinkedHashMap<String, NodeState>();
+            childPaths = new LinkedHashMap<String, String>();
             do {
                 String name = reader.readString();
                 reader.read(':');
@@ -114,7 +123,7 @@ public final class KernelNodeState extends AbstractNodeState {
                     if ("/".equals(path)) {
                         childPath = '/' + name;
                     }
-                    childNodes.put(name, new KernelNodeState(kernel, childPath, revision));
+                    childPaths.put(name, childPath);
                 } else if (reader.matches('[')) {
                     List<CoreValue> values = listFromJsopReader(reader, kernel);
                     properties.put(name, new MultiPropertyState(name, values));
@@ -126,8 +135,8 @@ public final class KernelNodeState extends AbstractNodeState {
             reader.read('}');
             reader.read(JsopReader.END);
             // optimize for empty childNodes
-            if (childNodes.isEmpty()) {
-                childNodes = Collections.emptyMap();
+            if (childPaths.isEmpty()) {
+                childPaths = Collections.emptyMap();
             }
         }
     }
@@ -159,25 +168,31 @@ public final class KernelNodeState extends AbstractNodeState {
     @Override
     public NodeState getChildNode(String name) {
         init();
-        NodeState child = childNodes.get(name);
-        if (child == null && childNodeCount > MAX_CHILD_NODE_NAMES) {
-            String childPath = getChildPath(name);
-            if (kernel.nodeExists(childPath, revision)) {
-                child = new KernelNodeState(kernel, childPath, revision);
+        String childPath = childPaths.get(name);
+        if (childPath == null && childNodeCount > MAX_CHILD_NODE_NAMES) {
+            String path = getChildPath(name);
+            if (kernel.nodeExists(path, revision)) {
+                childPath = path;
             }
         }
-        return child;
+        if (childPath == null) {
+            return null;
+        }
+        try {
+            return cache.get(revision + childPath);
+        } catch (ExecutionException e) {
+            throw new MicroKernelException(e);
+        }
     }
 
     @Override
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
         init();
-        Iterable<ChildNodeEntry> iterable =
-                MemoryChildNodeEntry.iterable(childNodes.entrySet());
-        if (childNodeCount > childNodes.size()) {
+        Iterable<ChildNodeEntry> iterable = iterable(childPaths.entrySet());
+        if (childNodeCount > childPaths.size()) {
             List<Iterable<ChildNodeEntry>> iterables = Lists.newArrayList();
             iterables.add(iterable);
-            long offset = childNodes.size();
+            long offset = childPaths.size();
             while (offset < childNodeCount) {
                 iterables.add(getChildNodeEntries(offset, MAX_CHILD_NODE_NAMES));
                 offset += MAX_CHILD_NODE_NAMES;
@@ -283,9 +298,7 @@ public final class KernelNodeState extends AbstractNodeState {
                     if (reader.matches('{')) {
                         reader.read('}');
                         String childPath = getChildPath(name);
-                        NodeState child = new KernelNodeState(
-                                kernel, childPath, revision);
-                        entries.add(new MemoryChildNodeEntry(name, child));
+                        entries.add(new KernelChildNodeEntry(name, childPath));
                     } else if (reader.matches('[')) {
                         while (reader.read() != ']') {
                             // skip
@@ -307,6 +320,65 @@ public final class KernelNodeState extends AbstractNodeState {
         } else {
             return path + '/' + name;
         }
+    }
+
+    private Iterable<ChildNodeEntry> iterable(
+            Iterable<Entry<String, String>> set) {
+        return Iterables.transform(
+                set,
+                new Function<Entry<String, String>, ChildNodeEntry>() {
+                    @Override
+                    public ChildNodeEntry apply(Entry<String, String> input) {
+                        return new KernelChildNodeEntry(input);
+                    }
+                });
+    }
+
+    private class KernelChildNodeEntry extends AbstractChildNodeEntry {
+
+        private final String name;
+
+        private final String path;
+
+        /**
+         * Creates a child node entry with the given name and referenced
+         * child node state.
+         *
+         * @param name child node name
+         * @param path child node path
+         */
+        public KernelChildNodeEntry(String name, String path) {
+            assert name != null;
+            assert path != null;
+
+            this.name = name;
+            this.path = path;
+        }
+
+        /**
+         * Utility constructor that copies the name and referenced
+         * child node state from the given map entry.
+         *
+         * @param entry map entry
+         */
+        public KernelChildNodeEntry(Map.Entry<String, String> entry) {
+            this(entry.getKey(), entry.getValue());
+        }
+
+        @Override
+        public String getName() {
+            return name;
+        }
+
+        @Override
+        public NodeState getNodeState() {
+            try {
+                return cache.get(revision + path);
+            } catch (ExecutionException e) {
+                throw new MicroKernelException(e);
+            }
+        }
+
     }
 
 }

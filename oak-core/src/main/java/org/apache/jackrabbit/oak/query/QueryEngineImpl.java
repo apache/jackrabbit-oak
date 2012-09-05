@@ -26,7 +26,6 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
-import org.apache.jackrabbit.oak.kernel.KernelNodeState;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.query.index.TraversingIndex;
@@ -44,11 +43,13 @@ public class QueryEngineImpl {
     static final String XPATH = "xpath";
     static final String JQOM = "JCR-JQOM";
 
+    private final NodeStore store;
     private final MicroKernel mk;
     private final CoreValueFactory vf;
     private final QueryIndexProvider indexProvider;
 
     public QueryEngineImpl(NodeStore store, MicroKernel mk, QueryIndexProvider indexProvider) {
+        this.store = store;
         this.mk = mk;
         this.vf = store.getValueFactory();
         this.indexProvider = indexProvider;
@@ -108,7 +109,7 @@ public class QueryEngineImpl {
         q.setQueryEngine(this);
         q.prepare();
         String revision = mk.getHeadRevision();
-        return q.executeQuery(revision, new KernelNodeState(mk, "/", revision));
+        return q.executeQuery(revision, store.getRoot());
     }
 
     public QueryIndex getBestIndex(FilterImpl filter) {
