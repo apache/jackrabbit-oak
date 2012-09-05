@@ -152,8 +152,8 @@ public class PrefixIndex implements PIndex {
     @Override
     public NodeState processCommit(NodeStore store, NodeState before,
             NodeState after) throws CommitFailedException {
-        // TODO Auto-generated method stub
-        return null;
+        // TODO wire-in the processCommit mechanism
+        return after;
     }
 
 }
