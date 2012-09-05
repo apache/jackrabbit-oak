@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.unique;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.Map;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -27,6 +29,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
+import com.google.common.base.Charsets;
 import com.google.common.collect.Maps;
 
 public class UniqueIndexValidator implements Validator {
@@ -93,7 +96,11 @@ public class UniqueIndexValidator implements Validator {
     }
 
     private String encode(String value) {
-        return value; // TODO: escape to valid name
+        try {
+            return URLEncoder.encode(value, Charsets.UTF_8.name());
+        } catch (UnsupportedEncodingException e) {
+            return value;
+        }
     }
 
     private void insert(Iterable<CoreValue> values)

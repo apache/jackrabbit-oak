@@ -80,7 +80,7 @@ public class OsgiIndexProvider implements ServiceTrackerCustomizer, QueryIndexPr
     }
 
     @Override
-    public List<QueryIndex> getQueryIndexes(MicroKernel mk) {
+    public List<? extends QueryIndex> getQueryIndexes(MicroKernel mk) {
         if (providers.isEmpty()) {
             return Collections.emptyList();
         } else if (providers.size() == 1) {
