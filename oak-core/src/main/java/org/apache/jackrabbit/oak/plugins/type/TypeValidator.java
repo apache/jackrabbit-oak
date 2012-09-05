@@ -278,8 +278,7 @@ class TypeValidator implements Validator {
             return Iterables.any(allTypes, new Predicate<NodeType>() {
                 @Override
                 public boolean apply(NodeType nt) {
-                    return true;
-                    // TODO return nt.canAddChildNode(name, ntName);
+                    return nt.canAddChildNode(name, ntName);
                 }
             });
         }
