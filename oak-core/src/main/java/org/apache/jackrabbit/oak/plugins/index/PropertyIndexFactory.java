@@ -45,7 +45,7 @@ public class PropertyIndexFactory implements IndexFactory {
 
     @Override
     public void init(MicroKernel mk) {
-        this.indexer = new Indexer(mk);
+        this.indexer = Indexer.getInstance(mk);
     }
 
     @Override

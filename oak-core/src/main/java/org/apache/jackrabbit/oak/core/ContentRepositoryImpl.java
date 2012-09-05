@@ -29,7 +29,6 @@ import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
-import org.apache.jackrabbit.oak.plugins.index.Indexer;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
 import org.apache.jackrabbit.oak.security.authentication.LoginContextProviderImpl;
 import org.apache.jackrabbit.oak.spi.QueryIndexProvider;
@@ -37,6 +36,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
 import org.apache.jackrabbit.oak.spi.commit.ValidatingHook;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
+import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
@@ -65,10 +65,9 @@ public class ContentRepositoryImpl implements ContentRepository {
      * test cases only.
      */
     public ContentRepositoryImpl() {
-        this(new MicroKernelImpl(), null, new ValidatingHook(
-                new CompositeValidatorProvider(
+        this(new MicroKernelImpl(), new CompositeQueryIndexProvider(),
+                new ValidatingHook(new CompositeValidatorProvider(
                         Collections.<ValidatorProvider> emptyList())));
-        // this(new IndexWrapper(new MicroKernelImpl()), null, null);
     }
 
     /**
@@ -112,7 +111,8 @@ public class ContentRepositoryImpl implements ContentRepository {
         nodeStore = new KernelNodeStore(microKernel);
         nodeStore.setHook(commitHook);
 
-        QueryIndexProvider qip = (indexProvider == null) ? getDefaultIndexProvider(microKernel) : indexProvider;
+        QueryIndexProvider qip = indexProvider != null ? indexProvider
+                : new CompositeQueryIndexProvider();
         queryEngine = new QueryEngineImpl(nodeStore, microKernel, qip);
 
         // TODO: use configurable context provider
@@ -133,10 +133,6 @@ public class ContentRepositoryImpl implements ContentRepository {
                     "\"jcr:activities\"     :{\"jcr:primaryType\":\"nam:rep:Activities\"}," +
                     "\"rep:privileges\"     :{\"jcr:primaryType\":\"nam:rep:Privileges\"}}", null, null);
         }
-    }
-
-    private static QueryIndexProvider getDefaultIndexProvider(MicroKernel mk) {
-        return Indexer.getInstance(mk);
     }
 
     @Nonnull
