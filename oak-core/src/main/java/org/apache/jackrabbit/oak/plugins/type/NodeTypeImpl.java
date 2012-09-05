@@ -336,7 +336,7 @@ class NodeTypeImpl implements NodeType {
 
     @Override
     public boolean canRemoveNode(String nodeName) {
-        for (PropertyDefinition definition : getPropertyDefinitions()) {
+        for (NodeDefinition definition : getChildNodeDefinitions()) {
             String name = definition.getName();
             if (matches(nodeName, name)) {
                 if (definition.isMandatory() || definition.isProtected()) {
