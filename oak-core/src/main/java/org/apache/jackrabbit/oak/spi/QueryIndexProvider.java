@@ -34,6 +34,6 @@ public interface QueryIndexProvider {
      * @param mk the MicroKernel instance
      * @return the list of indexes
      */
-    List<QueryIndex> getQueryIndexes(MicroKernel mk);
+    List<? extends QueryIndex> getQueryIndexes(MicroKernel mk);
 
 }

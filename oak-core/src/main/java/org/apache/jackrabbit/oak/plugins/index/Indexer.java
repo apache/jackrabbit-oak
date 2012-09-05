@@ -33,6 +33,7 @@ import org.apache.jackrabbit.mk.simple.NodeImpl;
 import org.apache.jackrabbit.mk.simple.NodeMap;
 import org.apache.jackrabbit.mk.util.SimpleLRUCache;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.unique.UniqueIndex;
 import org.apache.jackrabbit.oak.query.index.PrefixContentIndex;
 import org.apache.jackrabbit.oak.query.index.PropertyContentIndex;
 import org.apache.jackrabbit.oak.spi.QueryIndex;
@@ -685,6 +686,7 @@ public class Indexer implements QueryIndexProvider {
                 }
                 queryIndexList.add(qi);
             }
+            queryIndexList.add(new UniqueIndex());
         }
         return queryIndexList;
     }

@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.query.QueryEngineImpl;
 import org.apache.jackrabbit.oak.security.authentication.LoginContextProviderImpl;
 import org.apache.jackrabbit.oak.spi.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
 import org.apache.jackrabbit.oak.spi.commit.ValidatingHook;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
@@ -65,9 +66,11 @@ public class ContentRepositoryImpl implements ContentRepository {
      * test cases only.
      */
     public ContentRepositoryImpl() {
-        this(new MicroKernelImpl(), new CompositeQueryIndexProvider(),
-                new ValidatingHook(new CompositeValidatorProvider(
-                        Collections.<ValidatorProvider> emptyList())));
+        this(new CompositeHook());
+    }
+
+    public ContentRepositoryImpl(CommitHook hook) {
+        this(new MicroKernelImpl(), new CompositeQueryIndexProvider(), hook);
     }
 
     /**
@@ -127,7 +130,7 @@ public class ContentRepositoryImpl implements ContentRepository {
             microKernel.commit("/", "^\"jcr:primaryType\":\"nam:rep:root\"" +
                 "+\"jcr:system\":{" +
                     "\"jcr:primaryType\"    :\"nam:rep:system\"," +
-                    "\":unique\"            :{\"jcr:uuid\":{}}," +
+                    "\":unique\"            :{\"jcr:uuid\":{},\"rep:authorizableId\":{},\"rep:principalName\":{}}," +
                     "\"jcr:versionStorage\" :{\"jcr:primaryType\":\"nam:rep:versionStorage\"}," +
                     "\"jcr:nodeTypes\"      :{\"jcr:primaryType\":\"nam:rep:nodeTypes\"}," +
                     "\"jcr:activities\"     :{\"jcr:primaryType\":\"nam:rep:Activities\"}," +

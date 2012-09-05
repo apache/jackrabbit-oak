@@ -16,14 +16,11 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import java.util.Set;
-import javax.annotation.Nonnull;
 import javax.jcr.nodetype.ConstraintViolationException;
 
-import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.spi.commit.UniquePropertyValidator;
+import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
@@ -34,11 +31,7 @@ import org.apache.jackrabbit.util.Text;
 /**
  * UserValidator... TODO
  */
-class UserValidator extends UniquePropertyValidator implements UserConstants {
-
-    private final static Set<String> PROPERTY_NAMES = ImmutableSet.copyOf(new String[] {
-            REP_AUTHORIZABLE_ID, REP_PRINCIPAL_NAME
-    });
+class UserValidator extends DefaultValidator implements UserConstants {
 
     private final UserValidatorProvider provider;
 
@@ -52,32 +45,14 @@ class UserValidator extends UniquePropertyValidator implements UserConstants {
         this.provider = provider;
     }
 
-    @Nonnull
-    @Override
-    protected Set<String> getPropertyNames() {
-        // TODO: make configurable
-        return PROPERTY_NAMES;
-    }
-
     //----------------------------------------------------------< Validator >---
-    @Override
-    public void propertyAdded(PropertyState after) throws CommitFailedException {
-        super.propertyAdded(after);
-    }
 
     @Override
     public void propertyChanged(PropertyState before, PropertyState after) throws CommitFailedException {
-        super.propertyChanged(before, after);
-
         String name = before.getName();
         if (REP_PRINCIPAL_NAME.equals(name) || REP_AUTHORIZABLE_ID.equals(name)) {
             throw new CommitFailedException("Authorizable property " + name + " may not be altered after user/group creation.");
         }
-    }
-
-    @Override
-    public void propertyDeleted(PropertyState before) throws CommitFailedException {
-        // nothing to do
     }
 
     @Override
@@ -99,12 +74,6 @@ class UserValidator extends UniquePropertyValidator implements UserConstants {
     public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
         // TODO: anything to do here?
         return new UserValidator(parentBefore.getChild(name), parentAfter.getChild(name), provider);
-    }
-
-    @Override
-    public Validator childNodeDeleted(String name, NodeState before) throws CommitFailedException {
-        // nothing to do
-        return null;
     }
 
     //------------------------------------------------------------< private >---
