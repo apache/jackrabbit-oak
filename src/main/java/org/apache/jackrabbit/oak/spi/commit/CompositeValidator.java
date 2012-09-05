@@ -21,6 +21,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -28,10 +29,14 @@ import java.util.List;
  * a single validator.
  */
 public class CompositeValidator implements Validator {
-    private final List<Validator> validators;
+    private final List<? extends Validator> validators;
 
-    public CompositeValidator(List<Validator> validators) {
+    public CompositeValidator(List<? extends Validator> validators) {
         this.validators = validators;
+    }
+
+    public CompositeValidator(Validator... validators) {
+        this(Arrays.asList(validators));
     }
 
     @Override

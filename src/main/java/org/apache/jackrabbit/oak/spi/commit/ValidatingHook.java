@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
+import java.util.Arrays;
+import java.util.List;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -44,6 +47,24 @@ public class ValidatingHook implements CommitHook {
 
     public ValidatingHook(ValidatorProvider... providers) {
         this(new CompositeValidatorProvider(providers));
+    }
+
+    public ValidatingHook(final Validator validator) {
+        this(new ValidatorProvider() {
+            @Override
+            public Validator getRootValidator(
+                    NodeState before, NodeState after) {
+                return validator;
+            }
+        });
+    }
+
+    public ValidatingHook(List<? extends Validator> validators) {
+        this(new CompositeValidator(validators));
+    }
+
+    public ValidatingHook(Validator... validators) {
+        this(Arrays.asList(validators));
     }
 
     @Override

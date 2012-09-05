@@ -127,6 +127,7 @@ public class ContentRepositoryImpl implements ContentRepository {
             microKernel.commit("/", "^\"jcr:primaryType\":\"nam:rep:root\"" +
                 "+\"jcr:system\":{" +
                     "\"jcr:primaryType\"    :\"nam:rep:system\"," +
+                    "\":unique\"            :{\"jcr:uuid\":{}}," +
                     "\"jcr:versionStorage\" :{\"jcr:primaryType\":\"nam:rep:versionStorage\"}," +
                     "\"jcr:nodeTypes\"      :{\"jcr:primaryType\":\"nam:rep:nodeTypes\"}," +
                     "\"jcr:activities\"     :{\"jcr:primaryType\":\"nam:rep:Activities\"}," +
