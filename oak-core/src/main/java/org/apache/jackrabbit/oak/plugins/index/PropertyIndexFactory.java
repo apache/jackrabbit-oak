@@ -33,6 +33,9 @@ public class PropertyIndexFactory implements IndexFactory {
     public static final String TYPE_PROPERTY = "property";
     public static final String TYPE_PREFIX = "prefix";
 
+    public static final String PROPERTY_NAME_PROPERTY = "property";
+    public static final String PROPERTY_NAME_PREFIX = "prefix";
+
     private static final Logger LOG = LoggerFactory
             .getLogger(PropertyIndexFactory.class);
 
@@ -52,14 +55,15 @@ public class PropertyIndexFactory implements IndexFactory {
 
     private Index createIndex(IndexDefinition indexDefinition) {
         if (TYPE_PREFIX.equals(indexDefinition.getType())) {
-            String prefix = indexDefinition.getProperties().get("prefix");
+            String prefix = indexDefinition.getProperties().get(
+                    PROPERTY_NAME_PREFIX);
             if (prefix != null) {
                 return new PrefixIndex(indexer, prefix, indexDefinition);
             }
-            return null;
         }
         if (TYPE_PROPERTY.equals(indexDefinition.getType())) {
-            String name = indexDefinition.getProperties().get("pname");
+            String name = indexDefinition.getProperties().get(
+                    PROPERTY_NAME_PROPERTY);
             if (name != null) {
                 return new PropertyIndex(indexer, name,
                         indexDefinition.isUnique(), indexDefinition);
