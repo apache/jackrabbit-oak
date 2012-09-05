@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.lucene;
 
+import static org.apache.jackrabbit.oak.plugins.lucene.LuceneIndexUtils.DEFAULT_INDEX_NAME;
+import static org.apache.jackrabbit.oak.plugins.lucene.LuceneIndexUtils.createIndexNode;
+import static org.apache.jackrabbit.oak.spi.query.IndexUtils.DEFAULT_INDEX_HOME;
+
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,19 +43,17 @@ import org.apache.jackrabbit.oak.plugins.name.NamespaceValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.type.DefaultTypeEditor;
 import org.apache.jackrabbit.oak.plugins.type.TypeValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.value.ConflictValidatorProvider;
+import org.apache.jackrabbit.oak.spi.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
 import org.apache.jackrabbit.oak.spi.commit.ValidatingHook;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
+import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.IndexManager;
 import org.apache.jackrabbit.oak.spi.query.IndexManagerImpl;
 import org.apache.jackrabbit.oak.spi.query.IndexUtils;
 import org.junit.Before;
-
-import static org.apache.jackrabbit.oak.plugins.lucene.LuceneIndexUtils.DEFAULT_INDEX_NAME;
-import static org.apache.jackrabbit.oak.plugins.lucene.LuceneIndexUtils.createIndexNode;
-import static org.apache.jackrabbit.oak.spi.query.IndexUtils.DEFAULT_INDEX_HOME;
 
 /**
  * base class for lucene search tests
@@ -83,8 +85,9 @@ public abstract class AbstractLuceneQueryTest extends AbstractOakTest {
     @Override
     protected ContentRepository createRepository() {
         mk = new MicroKernelImpl();
-        return new ContentRepositoryImpl(mk, new LuceneIndexProvider(
-                DEFAULT_INDEX_HOME), buildDefaultCommitHook());
+        QueryIndexProvider indexer = new LuceneIndexProvider(DEFAULT_INDEX_HOME);
+        QueryIndexProvider qip = new CompositeQueryIndexProvider(indexer);
+        return new ContentRepositoryImpl(mk, qip, buildDefaultCommitHook());
     }
 
     private CommitHook buildDefaultCommitHook() {

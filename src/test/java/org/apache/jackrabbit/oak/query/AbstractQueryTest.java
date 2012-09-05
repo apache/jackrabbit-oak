@@ -18,35 +18,46 @@ package org.apache.jackrabbit.oak.query;
 
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.mk.index.IndexWrapper;
+import org.apache.jackrabbit.oak.AbstractOakTest;
+import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.SessionQueryEngine;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
-import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
-
-import javax.jcr.GuestCredentials;
+import org.apache.jackrabbit.oak.plugins.index.PropertyIndexFactory;
+import org.apache.jackrabbit.oak.spi.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.query.IndexManager;
+import org.apache.jackrabbit.oak.spi.query.IndexManagerImpl;
+import org.apache.jackrabbit.oak.spi.query.IndexUtils;
+import org.junit.Before;
 
 /**
  * AbstractQueryTest...
  */
-public abstract class AbstractQueryTest {
+public abstract class AbstractQueryTest extends AbstractOakTest {
 
-    protected final IndexWrapper mk;
-    protected final ContentRepositoryImpl rep;
-    protected final CoreValueFactory vf;
-    protected final SessionQueryEngine qe;
-    protected final ContentSession session;
+    protected IndexWrapper mk;
+    protected CoreValueFactory vf;
+    protected SessionQueryEngine qe;
+    protected ContentSession session;
 
-    {
+    @Override
+    protected ContentRepository createRepository() {
         mk = new IndexWrapper(new MicroKernelImpl());
-        rep = new ContentRepositoryImpl(mk, null, (ValidatorProvider) null);
-        try {
-            session = rep.login(new GuestCredentials(), "default");
-            vf = session.getCoreValueFactory();
-            qe = session.getQueryEngine();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        QueryIndexProvider indexer = mk.getIndexer();
+        QueryIndexProvider qip = new CompositeQueryIndexProvider(indexer);
+        IndexManager im = new IndexManagerImpl(IndexUtils.DEFAULT_INDEX_HOME,
+                mk, new PropertyIndexFactory());
+        return new ContentRepositoryImpl(mk, qip, im);
+    }
+
+    @Before
+    public void before() throws Exception {
+        super.before();
+        session = createAdminSession();
+        vf = session.getCoreValueFactory();
+        qe = session.getQueryEngine();
     }
 
 }
