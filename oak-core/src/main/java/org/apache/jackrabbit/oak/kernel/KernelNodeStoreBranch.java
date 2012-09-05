@@ -52,11 +52,10 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
     /** Last state which was committed to this branch */
     private NodeState committed;
 
-    KernelNodeStoreBranch(KernelNodeStore store) {
+    KernelNodeStoreBranch(KernelNodeStore store, KernelNodeState root) {
         this.store = store;
-        MicroKernel kernel = store.getKernel();
-        this.headRevision = kernel.getHeadRevision();
-        this.currentRoot = new KernelNodeState(kernel, "/", headRevision);
+        this.headRevision = root.getRevision();
+        this.currentRoot = root;
         this.base = currentRoot;
         this.committed = currentRoot;
     }
@@ -140,7 +139,7 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
                 String mergedRevision = kernel.merge(branchRevision, null);
                 branchRevision = null;
                 currentRoot = null;
-                return new KernelNodeState(kernel, "/", mergedRevision);
+                return store.getRootState(mergedRevision);
             }
         }
         catch (MicroKernelException e) {
@@ -171,7 +170,7 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
         }
 
         branchRevision = kernel.commit("", jsop, branchRevision, null);
-        currentRoot = new KernelNodeState(kernel, "/", branchRevision);
+        currentRoot = store.getRootState(branchRevision);
         committed = currentRoot;
     }
 }

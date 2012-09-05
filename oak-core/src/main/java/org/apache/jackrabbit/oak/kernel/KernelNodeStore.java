@@ -16,9 +16,12 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
+import java.util.concurrent.ExecutionException;
+
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -29,6 +32,10 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
+
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 
 /**
  * {@code NodeStore} implementations against {@link MicroKernel}.
@@ -52,6 +59,19 @@ public class KernelNodeStore implements NodeStore {
     @Nonnull
     private volatile Observer observer = EmptyObserver.INSTANCE;
 
+    private final LoadingCache<String, KernelNodeState> cache =
+            CacheBuilder.newBuilder().maximumSize(100000).build(
+                    new CacheLoader<String, KernelNodeState>() {
+                        @Override
+                        public KernelNodeState load(String key) {
+                            int slash = key.indexOf('/');
+                            String revision = key.substring(0, slash);
+                            String path = key.substring(slash);
+                            return new KernelNodeState(
+                                    kernel, path, revision, cache);
+                        }
+                    });
+
     /**
      * State of the current root node.
      */
@@ -60,7 +80,11 @@ public class KernelNodeStore implements NodeStore {
     public KernelNodeStore(MicroKernel kernel) {
         assert kernel != null;
         this.kernel = kernel;
-        this.root = new KernelNodeState(kernel, "/", kernel.getHeadRevision());
+        try {
+            this.root = cache.get(kernel.getHeadRevision() + "/");
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Nonnull
@@ -86,11 +110,11 @@ public class KernelNodeStore implements NodeStore {
     //----------------------------------------------------------< NodeStore >---
 
     @Override
-    public synchronized NodeState getRoot() {
+    public synchronized KernelNodeState getRoot() {
         String revision = kernel.getHeadRevision();
         if (!revision.equals(root.getRevision())) {
             NodeState before = root;
-            root = new KernelNodeState(kernel, "/", kernel.getHeadRevision());
+            root = getRootState(revision);
             observer.contentChanged(this, before, root);
         }
         return root;
@@ -98,7 +122,7 @@ public class KernelNodeStore implements NodeStore {
 
     @Override
     public NodeStoreBranch branch() {
-        return new KernelNodeStoreBranch(this);
+        return new KernelNodeStoreBranch(this, getRoot());
     }
 
     @Override
@@ -106,7 +130,7 @@ public class KernelNodeStore implements NodeStore {
         if (base instanceof KernelNodeState) {
             KernelNodeState kbase = (KernelNodeState) base;
             if ("/".equals(kbase.getPath())) {
-                return new KernelRootBuilder(kernel, kbase.getRevision());
+                return new KernelRootBuilder(kernel, kbase);
             }
         }
         return new MemoryNodeBuilder(base);
@@ -122,6 +146,14 @@ public class KernelNodeStore implements NodeStore {
     @Nonnull
     MicroKernel getKernel() {
         return kernel;
+    }
+
+    KernelNodeState getRootState(String revision) {
+        try {
+            return cache.get(revision + "/");
+        } catch (ExecutionException e) {
+            throw new MicroKernelException(e);
+        }
     }
 
 }

@@ -235,6 +235,8 @@ public class H2Persistence implements GCPersistence {
         }
     }
 
+    private static final NotFoundException NFE = new NotFoundException();
+
     public ChildNodeEntriesMap readCNEMap(Id id) throws NotFoundException, Exception {
         Connection con = cp.getConnection();
         try {
@@ -246,7 +248,7 @@ public class H2Persistence implements GCPersistence {
                     ByteArrayInputStream in = new ByteArrayInputStream(rs.getBytes(1));
                     return ChildNodeEntriesMap.deserialize(new BinaryBinding(in));
                 } else {
-                    throw new NotFoundException(id.toString());
+                    throw NFE; // new NotFoundException(id.toString());
                 }
             } finally {
                 stmt.close();

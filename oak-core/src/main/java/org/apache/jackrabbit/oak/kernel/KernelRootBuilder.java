@@ -45,10 +45,10 @@ class KernelRootBuilder extends MemoryNodeBuilder {
 
     private int updates = 0;
 
-    public KernelRootBuilder(MicroKernel kernel, String revision) {
-        super(new KernelNodeState(kernel, "/", revision));
+    public KernelRootBuilder(MicroKernel kernel, KernelNodeState state) {
+        super(checkNotNull(state));
         this.kernel = checkNotNull(kernel);
-        this.baseRevision = checkNotNull(revision);
+        this.baseRevision = state.getRevision();
         this.branchRevision = null;
     }
 
