@@ -46,7 +46,7 @@ snapshot of the current state of the content tree:
 
     ContentSession session = ...;
     Root root = session.getCurrentRoot();
-    Tree tree = root.getTree();
+    Tree tree = root.getTree("/");
 
 The returned `Tree` instance belongs to the client and its state is only
 modified in response to method calls made by the client. `Tree` instances
@@ -59,11 +59,11 @@ Content trees are recursive data structures that consist of named properties
 and subtrees that share the same namespace, but are accessed through separate 
 methods like outlined below:
 
-    ContentTree tree = ...;
+    Tree tree = ...;
     for (PropertyState property : tree.getProperties()) {
         ...;
     }
-    for (Tree subtree : tree.getSubtrees()) {
+    for (Tree subtree : tree.getChildren()) {
         ...;
     }
 
@@ -71,9 +71,9 @@ The repository content snapshot exposed by a `Tree` instance may become
 invalid over time due to garbage collection of old content, at which point
 an outdated snapshot will start throwing `IllegalStateExceptions` to
 indicate that the snapshot is no longer available. To access more recent
-content, a client should either call `getCurrentRoot()` to acquire a fresh
-new content snapshot or use the `refresh()` method to update a given `Root`
-to the latest state of the content repository:
+content, a client should either call `ContentSession.getCurrentRoot()` to
+acquire a fresh new content snapshot or use the `refresh()` method to update
+a given `Root` to the latest state of the content repository:
 
     Root root = ...;
     root.refresh();
