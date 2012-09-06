@@ -58,7 +58,7 @@ public interface ContentRepository {
      * rather take the arguments to be passed to the relevant
      * JAAS {@link javax.security.auth.login.LoginContext} constructor?
      * <p>
-     * The client should explicitly {@link ContentSession#close()} the
+     * The client must explicitly {@link ContentSession#close()} the
      * returned session once it is no longer used. The recommended access
      * pattern is:
      * <pre>
