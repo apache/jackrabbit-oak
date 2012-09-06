@@ -69,6 +69,13 @@ public class TestContentLoader {
 
             nttmpl.getPropertyDefinitionTemplates().add(pdtmpl);
 
+            pdtmpl = ntm.createPropertyDefinitionTemplate();
+            pdtmpl.setName("*");
+            pdtmpl.setMultiple(true);
+            pdtmpl.setOnParentVersion(OnParentVersionAction.COPY);
+
+            nttmpl.getPropertyDefinitionTemplates().add(pdtmpl);
+
             ntm.registerNodeType(nttmpl, true);
         }
 
