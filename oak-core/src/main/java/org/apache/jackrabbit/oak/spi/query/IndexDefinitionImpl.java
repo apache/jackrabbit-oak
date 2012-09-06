@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.query;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -26,6 +27,10 @@ public class IndexDefinitionImpl implements IndexDefinition {
     private final String path;
     private final boolean unique;
     private final Map<String, String> properties;
+
+    public IndexDefinitionImpl(String name, String type, String path) {
+        this(name, type, path, false, Collections.<String, String> emptyMap());
+    }
 
     public IndexDefinitionImpl(String name, String type, String path,
             boolean unique, Map<String, String> properties) {

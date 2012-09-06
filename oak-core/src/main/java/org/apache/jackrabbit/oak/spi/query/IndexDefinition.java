@@ -45,7 +45,7 @@ public interface IndexDefinition {
     String getType();
 
     /**
-     * @return the index path, includung the name as the last segment
+     * @return the index path, including the name as the last segment
      */
     @Nonnull
     String getPath();

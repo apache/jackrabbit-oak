@@ -38,33 +38,4 @@ public interface Index extends CommitHook, Closeable {
     @Nonnull
     IndexDefinition getDefinition();
 
-//    /**
-//     * The given node was added or removed.
-//     *
-//     * @param node the node including (old or new) data
-//     * @param add true if added, false if removed
-//     */
-//    void addOrRemoveNode(NodeImpl node, boolean add);
-//
-//    /**
-//     * The given property was added or removed.
-//     *
-//     * @param nodePath the path of the node
-//     * @param propertyName the property name
-//     * @param value the old (when deleting) or new (when adding) value
-//     * @param add true if added, false if removed
-//     */
-//    void addOrRemoveProperty(String nodePath, String propertyName,
-//            String value, boolean add);
-//
-//    /**
-//     * Get an iterator over the paths for the given value. For unique
-//     * indexes, the iterator will contain at most one element.
-//     *
-//     * @param value the value, or null to return all indexed rows
-//     * @param revision the revision
-//     * @return an iterator of the paths (an empty iterator if not found)
-//     */
-//    Iterator<String> getPaths(String value, String revision);
-
 }
