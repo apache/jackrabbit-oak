@@ -28,7 +28,8 @@ public interface Root {
 
     /**
      * Move the child located at {@code sourcePath} to a child at {@code destPath}.
-     * Both paths must resolve to a child located beneath this root.<br>
+     * Both paths must be absolute and resolve to a child located beneath this
+     * root.<br>
      *
      * This method does nothing and returns {@code false} if
      * <ul>
@@ -40,15 +41,15 @@ public interface Root {
      * editing content session this method succeeds but a subsequent
      * {@link #commit(ConflictHandler)} will detect the violation and fail.
      *
-     * @param sourcePath The source path relative to this root
-     * @param destPath The destination path relative to this root
+     * @param sourcePath The source path
+     * @param destPath The destination path
      * @return {@code true} on success, {@code false} otherwise.
      */
     boolean move(String sourcePath, String destPath);
 
     /**
      * Copy the child located at {@code sourcePath} to a child at {@code destPath}.
-     * Both paths must resolve to a child located in this root.<br>
+     * Both paths must be absolute and resolve to a child located in this root.<br>
      *
      * This method does nothing an returns {@code false} if
      * <ul>
@@ -60,27 +61,28 @@ public interface Root {
      * editing content session this method succeeds but a subsequent
      * {@link #commit(ConflictHandler)} will detect the violation and fail.
      *
-     * @param sourcePath source path relative to this root
-     * @param destPath destination path relative to this root
+     * @param sourcePath source path
+     * @param destPath destination path
      * @return  {@code true} on success, {@code false} otherwise.
      */
     boolean copy(String sourcePath, String destPath);
 
     /**
-     * Retrieve the {@code Tree} at the given {@code path}. The path must resolve to
-     * a tree in this root.
+     * Retrieve the {@code Tree} at the given absolute {@code path}. The path
+     * must resolve to a tree in this root.
      *
-     * @param path  path to the tree
+     * @param path absolute path to the tree
      * @return tree at the given path or {@code null} if no such tree exists or
-     * if the tree at {@code path} is not accessible.
+     *         if the tree at {@code path} is not accessible.
      */
     @CheckForNull
     Tree getTree(String path);
 
     /**
-     * Get a tree location for a given {@code path}
-     * @param path  path to the location
-     * @return  the tree location for {@code path}
+     * Get a tree location for a given absolute {@code path}
+     *
+     * @param path absolute path to the location
+     * @return the tree location for {@code path}
      */
     @Nonnull
     TreeLocation getLocation(String path);
