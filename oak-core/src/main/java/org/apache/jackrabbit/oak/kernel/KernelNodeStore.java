@@ -60,7 +60,7 @@ public class KernelNodeStore implements NodeStore {
     private volatile Observer observer = EmptyObserver.INSTANCE;
 
     private final LoadingCache<String, KernelNodeState> cache =
-            CacheBuilder.newBuilder().maximumSize(100000).build(
+            CacheBuilder.newBuilder().maximumSize(10000).build(
                     new CacheLoader<String, KernelNodeState>() {
                         @Override
                         public KernelNodeState load(String key) {
