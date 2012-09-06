@@ -29,6 +29,7 @@ import java.util.Set;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
+import javax.jcr.nodetype.ItemDefinition;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeType;
@@ -266,7 +267,7 @@ class NodeTypeImpl implements NodeType {
     public boolean canSetProperty(String propertyName, Value value) {
         for (PropertyDefinition definition : getPropertyDefinitions()) {
             String name = definition.getName();
-            if ((propertyName.equals(name) && !definition.isProtected())
+            if ((propertyName.equals(name) && !isProtected(definition))
                     || "*".equals(name)) {
                 if (!definition.isMultiple()) {
                     // TODO: Check value type, constraints, etc.
@@ -281,7 +282,7 @@ class NodeTypeImpl implements NodeType {
     public boolean canSetProperty(String propertyName, Value[] values) {
         for (PropertyDefinition definition : getPropertyDefinitions()) {
             String name = definition.getName();
-            if ((propertyName.equals(name) && !definition.isProtected())
+            if ((propertyName.equals(name) && !isProtected(definition))
                     || "*".equals(name)) {
                 if (definition.isMultiple()) {
                     // TODO: Check value type, constraints, etc.
@@ -365,10 +366,10 @@ class NodeTypeImpl implements NodeType {
         return childNodeName.startsWith(name);
     }
 
-    private static boolean isProtected(NodeDefinition definition) {
+    private static boolean isProtected(ItemDefinition definition) {
         // TODO need a better way for setting protected items internally
         Subject subject = Subject.getSubject(AccessController.getContext());
-        return !subject.getPrincipals().contains(AdminPrincipal.INSTANCE) && definition.isProtected();
+        return (subject == null || !subject.getPrincipals().contains(AdminPrincipal.INSTANCE)) && definition.isProtected();
     }
 
 }
