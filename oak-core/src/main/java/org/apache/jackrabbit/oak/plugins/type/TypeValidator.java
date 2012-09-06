@@ -16,11 +16,18 @@
  */
 package org.apache.jackrabbit.oak.plugins.type;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.math.BigDecimal;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
 
 import javax.annotation.Nonnull;
+import javax.jcr.Binary;
 import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+import javax.jcr.ValueFormatException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeManager;
@@ -35,12 +42,13 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.JcrConstants.NT_BASE;
+import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 
 class TypeValidator implements Validator {
     private static final Logger log = LoggerFactory.getLogger(TypeValidator.class);
@@ -64,8 +72,6 @@ class TypeValidator implements Validator {
     }
 
     //-------------------------------------------------------< NodeValidator >
-
-    // TODO check presence of mandatory items
 
     @Override
     public void propertyAdded(PropertyState after) throws CommitFailedException {
@@ -109,11 +115,13 @@ class TypeValidator implements Validator {
                         "Can't add node " + name + " at " + parent.getPath());
             }
         }
+        // TODO check presence of mandatory items
         return new TypeValidator(ntm, new ReadOnlyTree(parent, name, after));
     }
 
     @Override
     public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
+        // TODO check presence of mandatory items
         return new TypeValidator(ntm, new ReadOnlyTree(parent, name, after));
     }
 
@@ -166,8 +174,8 @@ class TypeValidator implements Validator {
                     return type;
                 }
             }
-            log.warn("Item at {} has no primary type. Assuming nt:base", tree.getPath());
-            return ntm.getNodeType(NT_BASE);
+            log.warn("Item at {} has no primary type. Assuming nt:unstructured", tree.getPath());
+            return ntm.getNodeType(NT_UNSTRUCTURED);
         }
         catch (RepositoryException e) {
             return throwConstraintViolationException(e);
@@ -209,14 +217,10 @@ class TypeValidator implements Validator {
         throw new CommitFailedException(cause);
     }
 
-    private class EffectiveNodeType {
-        private final NodeType primaryType;
-        private final List<NodeType> mixinTypes;
+    private static class EffectiveNodeType {
         private final Iterable<NodeType> allTypes;
 
         public EffectiveNodeType(NodeType primaryType, List<NodeType> mixinTypes) {
-            this.primaryType = primaryType;
-            this.mixinTypes = mixinTypes;
             this.allTypes = Iterables.concat(mixinTypes, Collections.singleton(primaryType));
         }
 
@@ -230,8 +234,7 @@ class TypeValidator implements Validator {
             return Iterables.any(allTypes, new Predicate<NodeType>() {
                 @Override
                 public boolean apply(NodeType nt) {
-                    return true;
-                    // TODO return nt.canSetProperty(propertyName, values);
+                    return nt.canSetProperty(propertyName, jcrValues(values));
                 }
             });
         }
@@ -240,8 +243,7 @@ class TypeValidator implements Validator {
             return Iterables.any(allTypes, new Predicate<NodeType>() {
                 @Override
                 public boolean apply(NodeType nt) {
-                    return true;
-                    // TODO return nt.canSetProperty(propertyName, value);
+                    return nt.canSetProperty(propertyName, jcrValue(value));
                 }
             });
         }
@@ -283,6 +285,128 @@ class TypeValidator implements Validator {
             });
         }
 
+        private static Value[] jcrValues(List<CoreValue> values) {
+            Value[] jcrValues = new  Value[values.size()];
+
+            int k = 0;
+            for (CoreValue value : values) {
+                jcrValues[k++] = jcrValue(value);
+            }
+
+            return jcrValues;
+        }
+
+        private static Value jcrValue(final CoreValue value) {
+            return new JcrValue(value);
+        }
+
     }
 
+    private static class JcrValue implements Value {
+        private final CoreValue value;
+
+        public JcrValue(CoreValue value) {
+            this.value = value;
+        }
+
+        @Override
+        public String getString() {
+            return value.getString();
+        }
+
+        @Override
+        public InputStream getStream() {
+            return value.getNewStream();
+        }
+
+        @Override
+        public Binary getBinary() {
+            return new JcrBinary(value);
+        }
+
+        @Override
+        public long getLong() {
+            return value.getLong();
+        }
+
+        @Override
+        public double getDouble() {
+            return value.getDouble();
+        }
+
+        @Override
+        public BigDecimal getDecimal() {
+            return value.getDecimal();
+        }
+
+        @Override
+        public Calendar getDate() throws ValueFormatException {
+            Calendar cal = ISO8601.parse(getString());
+            if (cal == null) {
+                throw new ValueFormatException("Not a date string: " + getString());
+            }
+            return cal;
+        }
+
+        @Override
+        public boolean getBoolean() {
+            return value.getBoolean();
+        }
+
+        @Override
+        public int getType() {
+            return value.getType();
+        }
+
+        @Override
+        public int hashCode() {
+            return super.hashCode();
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            return other instanceof JcrValue && value.equals(((JcrValue) other).value);
+        }
+
+        @Override
+        public String toString() {
+            return super.toString();
+        }
+    }
+
+    private static class JcrBinary implements Binary {
+        private final CoreValue value;
+
+        public JcrBinary(CoreValue value) {
+            this.value = value;
+        }
+
+        @Override
+        public InputStream getStream() {
+            return value.getNewStream();
+        }
+
+        @Override
+        public int read(byte[] b, long position) throws IOException {
+            InputStream stream = value.getNewStream();
+            try {
+                if (position != stream.skip(position)) {
+                    throw new IOException("Can't skip to position " + position);
+                }
+                return stream.read(b);
+            }
+            finally {
+                stream.close();
+            }
+        }
+
+        @Override
+        public long getSize() {
+            return value.length();
+        }
+
+        @Override
+        public void dispose() {
+        }
+    }
 }
