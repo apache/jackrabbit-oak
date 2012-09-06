@@ -265,6 +265,10 @@ class NodeTypeImpl implements NodeType {
 
     @Override
     public boolean canSetProperty(String propertyName, Value value) {
+        if (value == null) {
+            return canRemoveProperty(propertyName);
+        }
+
         for (PropertyDefinition definition : getPropertyDefinitions()) {
             String name = definition.getName();
             if ((propertyName.equals(name) && !isProtected(definition))
@@ -280,6 +284,10 @@ class NodeTypeImpl implements NodeType {
 
     @Override
     public boolean canSetProperty(String propertyName, Value[] values) {
+        if (values == null) {
+            return canRemoveProperty(propertyName);
+        }
+
         for (PropertyDefinition definition : getPropertyDefinitions()) {
             String name = definition.getName();
             if ((propertyName.equals(name) && !isProtected(definition))
