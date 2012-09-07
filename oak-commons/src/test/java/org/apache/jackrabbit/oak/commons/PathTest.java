@@ -196,6 +196,9 @@ public class PathTest extends TestCase {
         assertEquals(false, PathUtils.isAbsolute(parent + "/" + child));
 
         // isAncestor
+        assertFalse(PathUtils.isAncestor("/", "/"));
+        assertFalse(PathUtils.isAncestor("/" + parent, "/" + parent));
+        assertFalse(PathUtils.isAncestor(parent, parent));
         assertTrue(PathUtils.isAncestor("/", "/" + parent));
         assertTrue(PathUtils.isAncestor(parent, parent + "/" + child));
         assertFalse(PathUtils.isAncestor("/", parent + "/" + child));
