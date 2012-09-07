@@ -38,21 +38,19 @@ public abstract class NumericConstraint<T> implements Predicate<Value> {
 
     protected NumericConstraint(String definition) {
         // format: '(<min>, <max>)',  '[<min>, <max>]', '(, <max>)' etc.
-        Pattern pattern = Pattern.compile("([\\(\\[])[^,]*,[^\\)\\]]*([\\)\\]])");
+        Pattern pattern = Pattern.compile("([\\(\\[])([^,]*),([^\\)\\]]*)([\\)\\]])");
         Matcher matcher = pattern.matcher(definition);
         if (matcher.matches()) {
             try {
-                // group 1 is lower inclusive/exclusive
-                String match = matcher.group(1);
-                lowerInclusive = "[".equals(match);
+                // group 1 is lower bound inclusive/exclusive
+                lowerInclusive = "[".equals(matcher.group(1));
 
-                // group 2 is lower, group 3 is upper  bound
+                // group 2 is lower, group 3 is upper bound
                 lowerBound = getBound(matcher.group(2));
                 upperBound = getBound(matcher.group(3));
 
-                // group 4 is lower inclusive/exclusive
-                match = matcher.group(4);
-                upperInclusive = "]".equals(match);
+                // group 4 is upper bound inclusive/exclusive
+                upperInclusive = "]".equals(matcher.group(4));
             }
             catch (NumberFormatException e) {
                 invalid(definition);
