@@ -60,7 +60,13 @@ public class StringConstraint implements Predicate<Value> {
             return matcher.matches();
         }
         catch (RepositoryException e) {
+            log.warn("Error checking string constraint " + this, e);
             return false;
         }
+    }
+
+    @Override
+    public String toString() {
+        return "'" + pattern + '\'';
     }
 }

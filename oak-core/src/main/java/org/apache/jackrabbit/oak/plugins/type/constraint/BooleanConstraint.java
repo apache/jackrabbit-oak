@@ -37,7 +37,7 @@ public class BooleanConstraint implements Predicate<Value> {
         }
         else {
             requiredValue = null;
-            log.warn('\'' + definition + "' is not a valid value constraint format for BOOLEAN values");
+            log.warn('\'' + definition + "' is not a valid value constraint format for boolean values");
         }
     }
 
@@ -47,8 +47,13 @@ public class BooleanConstraint implements Predicate<Value> {
             return value != null && requiredValue != null && value.getBoolean() == requiredValue;
         }
         catch (RepositoryException e) {
-            log.warn("Error checking boolean constraint", e);
+            log.warn("Error checking boolean constraint " + this, e);
             return false;
         }
+    }
+
+    @Override
+    public String toString() {
+        return "'" + requiredValue + '\'';
     }
 }
