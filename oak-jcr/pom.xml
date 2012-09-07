@@ -53,7 +53,6 @@ org.apache.jackrabbit.test.api.NodeOrderableChildNodesTest#testOrderBeforePlaceA
 org.apache.jackrabbit.test.api.NodeOrderableChildNodesTest#testOrderBeforePlaceAtEndSessionSave<!--OAK-169-->
 org.apache.jackrabbit.test.api.SetPropertyAssumeTypeTest#testValueConstraintViolationExceptionBecauseOfInvalidTypeParameter
 org.apache.jackrabbit.test.api.SetPropertyAssumeTypeTest#testStringConstraintViolationExceptionBecauseOfInvalidTypeParameter
-org.apache.jackrabbit.test.api.SetPropertyAssumeTypeTest#testValuesConstraintViolationExceptionBecauseOfInvalidTypeParameter
 org.apache.jackrabbit.test.api.NodeAddMixinTest#testAddInheritedMixin
 org.apache.jackrabbit.test.api.ValueFactoryTest#testValueFormatException<!--OAK-204-->
 org.apache.jackrabbit.test.api.WorkspaceCopySameNameSibsTest
@@ -66,7 +65,6 @@ org.apache.jackrabbit.test.api.ImpersonateTest
 org.apache.jackrabbit.test.api.CheckPermissionTest
 org.apache.jackrabbit.test.api.DocumentViewImportTest
 org.apache.jackrabbit.test.api.SerializationTest
-org.apache.jackrabbit.test.api.SessionRemoveItemTest#testRemoveItem4
 org.apache.jackrabbit.test.api.HasPermissionTest
 org.apache.jackrabbit.test.api.lock.LockManagerTest#testAddInvalidLockToken
 org.apache.jackrabbit.test.api.lock.LockManagerTest#testLockNonLockable
@@ -84,7 +82,6 @@ org.apache.jackrabbit.test.api.query.SaveTest#testItemExistsException<!-- OAK-20
 org.apache.jackrabbit.test.api.query.SimpleSelectionTest#testSingleProperty
 org.apache.jackrabbit.test.api.query.qom.ColumnTest#testExpandColumnsForNodeType
 org.apache.jackrabbit.test.api.query.qom.SelectorTest#testUnknownNodeType
-org.apache.jackrabbit.test.api.util
 org.apache.jackrabbit.test.api.observation.EventTest#testGetUserId
 org.apache.jackrabbit.test.api.observation.NodeMovedTest#testMoveNode
 org.apache.jackrabbit.test.api.observation.NodeMovedTest#testMoveTree
