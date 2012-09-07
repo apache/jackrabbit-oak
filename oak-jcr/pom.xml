@@ -70,8 +70,6 @@ org.apache.jackrabbit.test.api.SessionRemoveItemTest#testRemoveItem4
 org.apache.jackrabbit.test.api.HasPermissionTest
 org.apache.jackrabbit.test.api.lock.LockManagerTest#testAddInvalidLockToken
 org.apache.jackrabbit.test.api.lock.LockManagerTest#testLockNonLockable
-org.apache.jackrabbit.test.api.SetPropertyConstraintViolationExceptionTest<!-- OAK-66 -->
-org.apache.jackrabbit.test.api.SetValueConstraintViolationExceptionTest<!-- OAK-66 -->
 org.apache.jackrabbit.test.api.nodetype.PropertyDefTest#testIsMandatory
 org.apache.jackrabbit.test.api.nodetype.CanSetPropertyDateTest#testConversions
 org.apache.jackrabbit.test.api.nodetype.CanSetPropertyPathTest#testConversions
