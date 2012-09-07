@@ -75,7 +75,6 @@ org.apache.jackrabbit.test.api.SetValueConstraintViolationExceptionTest<!-- OAK-
 org.apache.jackrabbit.test.api.nodetype.PropertyDefTest#testIsMandatory
 org.apache.jackrabbit.test.api.nodetype.CanSetPropertyBinaryTest#testValueConstraintNotSatisfied<!-- OAK-66 -->
 org.apache.jackrabbit.test.api.nodetype.CanSetPropertyBinaryTest#testValueConstraintNotSatisfiedMultiple<!-- OAK-66 -->
-org.apache.jackrabbit.test.api.nodetype.CanSetPropertyStringTest#testValueConstraintNotSatisfied<!-- OAK-66 -->
 org.apache.jackrabbit.test.api.nodetype.CanSetPropertyDateTest#testConversions
 org.apache.jackrabbit.test.api.nodetype.CanSetPropertyPathTest#testConversions
 org.apache.jackrabbit.test.api.nodetype.CanAddChildNodeCallWithNodeTypeTest#testCanAddAbstractType <!-- OAK-66 -->
