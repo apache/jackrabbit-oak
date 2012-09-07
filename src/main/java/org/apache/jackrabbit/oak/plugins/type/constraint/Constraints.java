@@ -88,7 +88,7 @@ public class Constraints {
     }
 
     private static Predicate<Value> nameConstraint(String constraint) {
-        return Predicates.alwaysTrue(); // todo implement nameConstraint
+        return new NameConstraint(constraint);
     }
 
     private static Predicate<Value> pathConstraint(String constraint) {
