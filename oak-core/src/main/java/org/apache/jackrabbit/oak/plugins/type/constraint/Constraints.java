@@ -104,7 +104,7 @@ public class Constraints {
     }
 
     private static Predicate<Value> uriConstraint(String constraint) {
-        return Predicates.alwaysTrue(); // todo implement uriConstraint
+        return new StringConstraint(constraint);
     }
 
     private static Predicate<Value> decimalConstraint(String constraint) {
