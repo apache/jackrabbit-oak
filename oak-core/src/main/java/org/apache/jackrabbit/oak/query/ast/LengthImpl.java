@@ -86,4 +86,9 @@ public class LengthImpl extends DynamicOperandImpl {
         // TODO LENGTH(x) conditions: can use IS NOT NULL as a condition?
     }
 
+    @Override
+    public boolean canRestrictSelector(SelectorImpl s) {
+        return propertyValue.canRestrictSelector(s);
+    }
+
 }

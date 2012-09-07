@@ -72,7 +72,7 @@ public class ChildNodeJoinConditionImpl extends JoinConditionImpl {
     }
 
     @Override
-    public void apply(FilterImpl f) {
+    public void restrict(FilterImpl f) {
         String p = parentSelector.currentPath();
         String c = childSelector.currentPath();
         if (f.getSelector() == parentSelector && c != null) {
@@ -81,6 +81,11 @@ public class ChildNodeJoinConditionImpl extends JoinConditionImpl {
         if (f.getSelector() == childSelector && p != null) {
             f.restrictPath(p, Filter.PathRestriction.DIRECT_CHILDREN);
         }
+    }
+
+    @Override
+    public void restrictPushDown(SelectorImpl s) {
+        // nothing to do
     }
 
 }

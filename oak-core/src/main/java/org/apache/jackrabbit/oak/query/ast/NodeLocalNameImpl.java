@@ -72,4 +72,9 @@ public class NodeLocalNameImpl extends DynamicOperandImpl {
         // TODO support LOCALNAME index conditions
     }
 
+    @Override
+    public boolean canRestrictSelector(SelectorImpl s) {
+        return s == selector;
+    }
+
 }

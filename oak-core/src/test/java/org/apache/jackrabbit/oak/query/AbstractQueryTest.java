@@ -52,6 +52,7 @@ public abstract class AbstractQueryTest extends AbstractOakTest {
         return new ContentRepositoryImpl(mk, qip, im);
     }
 
+    @Override
     @Before
     public void before() throws Exception {
         super.before();

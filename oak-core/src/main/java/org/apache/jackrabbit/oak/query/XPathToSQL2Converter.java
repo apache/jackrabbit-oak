@@ -62,6 +62,10 @@ public class XPathToSQL2Converter {
         if (explain) {
             query = query.substring("explain ".length());
         }
+        boolean measure = query.startsWith("measure");
+        if (measure) {
+            query = query.substring("measure ".length());
+        }
         // TODO verify this is correct
         if (!query.startsWith("/")) {
             query = "/jcr:root/" + query;
@@ -70,150 +74,141 @@ public class XPathToSQL2Converter {
         expected = new ArrayList<String>();
         read();
 
-        String path = "";
-        String nodeName = null;
-        Expression condition = null;
-
         currentSelector.name = "a";
         currentSelector.nodeType = "nt:base";
-        selectors.add(currentSelector);
 
         ArrayList<Expression> columnList = new ArrayList<Expression>();
-
-        // queries of the type
-        // jcr:root/*
-        // jcr:root/test/*
-        // jcr:root/element()
-        // jcr:root/element(*)
-        boolean children = false;
-
-        // queries of the type
-        // /jcr:root//...
-        // /jcr:root/test//...
-        // /jcr:root[...]
-        // /jcr:root (just by itself)
-        boolean descendants = false;
 
         // TODO support one node matcher ('*' wildcard), example:
         // /jcr:root/content/acme/*/jcr:content[@template='/apps/acme']
 
         // TODO verify '//' is behaving correctly, as specified, example:
         // /jcr:root/content/acme//jcr:content[@template='/apps/acme']
+        
+        String pathPattern = "";
 
         while (true) {
-            if (readIf("/")) {
-                if (nodeName != null) {
-                    throw getSyntaxError("non-path condition");
+            boolean shortcut = false;
+            boolean slash = readIf("/");
+            if (!slash) {
+                break;
+            } else if (readIf("jcr:root")) {
+                // "/jcr:root" may only appear at the beginning
+                if (!pathPattern.isEmpty()) {
+                    throw getSyntaxError("jcr:root needs to be at the beginning");
                 }
                 if (readIf("/")) {
-                    descendants = true;
-                } else if (readIf("jcr:root")) {
-                    path = "/";
+                    // "/jcr:root/"
+                    currentSelector.path = "/";
+                    pathPattern = "/";
                     if (readIf("/")) {
-                        if (readIf("/")) {
-                            descendants = true;
-                        }
-                    } else {
-                        descendants = true;
-                        if (readIf("[")) {
-                            Expression c = parseConstraint();
-                            condition = add(condition, c);
-                            read("]");
-                        }
-                        // expected end of statement
-                        break;
+                        // "/jcr:root//"
+                        pathPattern = "//";
+                        currentSelector.isDescendant = true;
                     }
                 } else {
-                    descendants = false;
+                    // for example "/jcr:root[condition]"
+                    pathPattern = "/%";
+                    currentSelector.path = "/";
+                    currentSelector.isDescendant = true;
+                    shortcut = true;
                 }
-                if (readIf("*")) {
-                    currentSelector.nodeType = "nt:base";
-                    children = true;
-                } else if (readIf("text")) {
-                    read("(");
-                    read(")");
-                    if (descendants) {
-                        nodeName = "jcr:xmltext";
-                    } else {
-                        path = PathUtils.concat(path, "jcr:xmltext");
-                    }
-                } else if (readIf("element")) {
-                    read("(");
-                    if (readIf(")")) {
+            } else if (readIf("/")) {
+                // "//" was read
+                pathPattern += "%";
+                currentSelector.isDescendant = true;
+            } else {
+                // the token "/" was read
+                pathPattern += "/";
+            }
+            if (shortcut) {
+                // query of the style: "/jcr:root[condition]"
+            } else if (readIf("*")) {
+                // "...*"
+                pathPattern += "%";
+                currentSelector.nodeType = "nt:base";
+                currentSelector.isChild = true;
+            } else if (readIf("text")) {
+                // "...text()"
+                pathPattern += "jcr:xmltext";
+                read("(");
+                read(")");
+                if (currentSelector.isDescendant) {
+                    currentSelector.nodeName = "jcr:xmltext";
+                } else {
+                    currentSelector.path = PathUtils.concat(currentSelector.path, "jcr:xmltext");
+                }
+            } else if (readIf("element")) {
+                // "...element(..."
+                read("(");
+                if (readIf(")")) {
+                    // any
+                    currentSelector.isChild = true;
+                } else {
+                    if (readIf("*")) {
                         // any
-                        children = true;
+                        currentSelector.isChild = true;
+                        pathPattern += "%";
                     } else {
-                        if (readIf("*")) {
-                            // any
-                            children = true;
-                        } else {
-                            children = false;
-                            String name = readIdentifier();
-                            path = PathUtils.concat(path, name);
-                        }
-                        if (readIf(",")) {
-                            currentSelector.nodeType = readIdentifier();
-                        } else {
-                            currentSelector.nodeType = "nt:base";
-                        }
-                        read(")");
+                        currentSelector.isChild = false;
+                        String name = readIdentifier();
+                        pathPattern += name;
+                        currentSelector.path = PathUtils.concat(currentSelector.path, name);
                     }
-                } else if (readIf("@")) {
+                    if (readIf(",")) {
+                        currentSelector.nodeType = readIdentifier();
+                    } else {
+                        currentSelector.nodeType = "nt:base";
+                    }
+                    read(")");
+                }
+            } else if (readIf("@")) {
+                Property p = readProperty();
+                columnList.add(p);
+            } else if (readIf("(")) {
+                // special case: ".../(@prop)" is actually not a child node, 
+                // but the same node (selector) as before 
+                if (selectors.size() > 0) {
+                    currentSelector = selectors.remove(selectors.size() - 1);
+                    // prevent (join) conditions are added again
+                    currentSelector.isChild = false;
+                    currentSelector.isDescendant = false;
+                    currentSelector.path = "";
+                    currentSelector.nodeName = null;
+                }
+                if (currentSelector.nodeType == null) {
+                    currentSelector.nodeType = "nt:base";
+                }
+                do {
+                    read("@");
                     Property p = readProperty();
                     columnList.add(p);
-                } else if (readIf("(")) {
-                    do {
-                        read("@");
-                        Property p = readProperty();
-                        columnList.add(p);
-                    } while (readIf("|"));
-                    read(")");
+                } while (readIf("|"));
+                read(")");
+            } else {
+                // path restriction
+                String name = readIdentifier();
+                if (currentSelector.isDescendant) {
+                    pathPattern += name;
+                    currentSelector.nodeName = name;
                 } else {
-                    if (descendants) {
-                        nodeName = readIdentifier();
-                    } else {
-                        String name = readIdentifier();
-                        path = PathUtils.concat(path, name);
-                    }
+                    pathPattern += name;
+                    currentSelector.path = PathUtils.concat(currentSelector.path, name);
                 }
-                if (readIf("[")) {
-                    Expression c = parseConstraint();
-                    condition = add(condition, c);
-                    read("]");
-                }
-            } else {
-                break;
             }
+            if (readIf("[")) {
+                Expression c = parseConstraint();
+                currentSelector.condition = add(currentSelector.condition, c);
+                read("]");
+            }
+            nextSelector(false);
         }
-        if (path.isEmpty()) {
-            // no condition
-        } else {
-            if (!PathUtils.isAbsolute(path)) {
-                path = PathUtils.concat("/", path);
-            }
-            if (descendants) {
-                Function c = new Function("isdescendantnode");
-                c.params.add(new SelectorExpr(currentSelector));
-                c.params.add(Literal.newString(path));
-                condition = add(condition, c);
-            } else if (children) {
-                Function c = new Function("ischildnode");
-                c.params.add(new SelectorExpr(currentSelector));
-                c.params.add(Literal.newString(path));
-                condition = add(condition, c);
-            } else {
-                Function c = new Function("issamenode");
-                c.params.add(new SelectorExpr(currentSelector));
-                c.params.add(Literal.newString(path));
-                condition = add(condition, c);
-            }
-            if (nodeName != null) {
-                Function f = new Function("name");
-                f.params.add(new SelectorExpr(currentSelector));
-                Condition c = new Condition(f, "=", Literal.newString(nodeName));
-                condition = add(condition, c);
-            }
+        if (selectors.size() == 0) {
+            nextSelector(true);
         }
+        // the current selector wasn't used so far
+        // go back to the last one
+        currentSelector = selectors.get(selectors.size() - 1);
         if (selectors.size() == 1) {
             currentSelector.onlySelector = true;
         }
@@ -235,9 +230,15 @@ public class XPathToSQL2Converter {
             throw getSyntaxError("<end>");
         }
         StringBuilder buff = new StringBuilder();
+        
+        // explain | measure ...
         if (explain) {
             buff.append("explain ");
+        } else if (measure) {
+            buff.append("measure ");
         }
+        
+        // select ...
         buff.append("select ");
         buff.append(new Property(currentSelector, "jcr:path").toString());
         buff.append(", ");
@@ -251,6 +252,8 @@ public class XPathToSQL2Converter {
                 buff.append(columnList.get(i).toString());
             }
         }
+        
+        // from ...
         buff.append(" from ");
         for (int i = 0; i < selectors.size(); i++) {
             Selector s = selectors.get(i);
@@ -262,9 +265,23 @@ public class XPathToSQL2Converter {
                 buff.append(" on ").append(s.joinCondition);
             }
         }
-        if (condition != null) {
-            buff.append(" where ").append(removeParens(condition.toString()));
+        
+        // where ...
+        StringBuilder condition = new StringBuilder();
+        for (int i = 0; i < selectors.size(); i++) {
+            Selector s = selectors.get(i);
+            if (s.condition != null) {
+                if (condition.length() > 0) {
+                    condition.append(" and ");
+                }
+                condition.append(s.condition);
+            }
         }
+        if (condition.length() > 0) {
+            buff.append(" where ").append(condition.toString());
+        }
+        
+        // order by ...
         if (!orderList.isEmpty()) {
             buff.append(" order by ");
             for (int i = 0; i < orderList.size(); i++) {
@@ -276,18 +293,90 @@ public class XPathToSQL2Converter {
         }
         return buff.toString();
     }
+    
+    private void nextSelector(boolean force) throws ParseException {
+        boolean isFirstSelector = selectors.size() == 0;
+        String path = currentSelector.path;
+        Expression condition = currentSelector.condition;
+        Expression joinCondition = currentSelector.joinCondition;
+        if (currentSelector.nodeName != null) {
+            Function f = new Function("name");
+            f.params.add(new SelectorExpr(currentSelector));
+            Condition c = new Condition(f, "=", 
+                    Literal.newString(currentSelector.nodeName), 
+                    Expression.PRECEDENCE_CONDITION);
+            condition = add(condition, c);
+        }
+        if (currentSelector.isDescendant) {
+            if (isFirstSelector) {
+                if (!path.isEmpty()) {
+                    if (!PathUtils.isAbsolute(path)) {
+                        path = PathUtils.concat("/", path);
+                    }
+                    Function c = new Function("isdescendantnode");
+                    c.params.add(new SelectorExpr(currentSelector));
+                    c.params.add(Literal.newString(path));
+                    condition = add(condition, c);
+                }
+            } else {
+                Function c = new Function("isdescendantnode");
+                c.params.add(new SelectorExpr(currentSelector));
+                c.params.add(new SelectorExpr(selectors.get(selectors.size() - 1)));
+                joinCondition = c;
+            } 
+        } else if (currentSelector.isChild) {
+            if (isFirstSelector) {
+                if (!path.isEmpty()) {
+                    if (!PathUtils.isAbsolute(path)) {
+                        path = PathUtils.concat("/", path);
+                    }
+                    Function c = new Function("ischildnode");
+                    c.params.add(new SelectorExpr(currentSelector));
+                    c.params.add(Literal.newString(path));
+                    condition = add(condition, c);
+                }
+            } else {
+                Function c = new Function("ischildnode");
+                c.params.add(new SelectorExpr(currentSelector));
+                c.params.add(new SelectorExpr(selectors.get(selectors.size() - 1)));
+                joinCondition = c;
+            }
+        } else {
+            if (!force && condition == null && joinCondition == null) {
+                // a child node of a given path, such as "/test"
+                // use the same selector for now, and extend the path
+            } else if (PathUtils.isAbsolute(path)) {
+                Function c = new Function("issamenode");
+                c.params.add(new SelectorExpr(currentSelector));
+                c.params.add(Literal.newString(path));
+                condition = add(condition, c);
+            }
+        }
+        if (force || condition != null || joinCondition != null) {
+            String nextSelectorName = "" + (char) (currentSelector.name.charAt(0) + 1);
+            if (nextSelectorName.compareTo("x") > 0) {
+                throw getSyntaxError("too many joins");
+            }
+            Selector nextSelector = new Selector();
+            nextSelector.name = nextSelectorName;
+            currentSelector.condition = condition;
+            currentSelector.joinCondition = joinCondition;
+            selectors.add(currentSelector);
+            currentSelector = nextSelector;
+        }
+    }
 
     private static Expression add(Expression old, Expression add) {
         if (old == null) {
             return add;
         }
-        return new Condition(old, "and", add);
+        return new Condition(old, "and", add, Expression.PRECEDENCE_AND);
     }
 
     private Expression parseConstraint() throws ParseException {
         Expression a = parseAnd();
         while (readIf("or")) {
-            a = new Condition(a, "or", parseAnd());
+            a = new Condition(a, "or", parseAnd(), Expression.PRECEDENCE_OR);
         }
         return a;
     }
@@ -295,7 +384,7 @@ public class XPathToSQL2Converter {
     private Expression parseAnd() throws ParseException {
         Expression a = parseCondition();
         while (readIf("and")) {
-            a = new Condition(a, "and", parseCondition());
+            a = new Condition(a, "and", parseCondition(), Expression.PRECEDENCE_AND);
         }
         return a;
     }
@@ -308,7 +397,7 @@ public class XPathToSQL2Converter {
             if (a instanceof Condition && ((Condition) a).operator.equals("is not null")) {
                 // not(@property) -> @property is null
                 Condition c = (Condition) a;
-                c = new Condition(c.left, "is null", null);
+                c = new Condition(c.left, "is null", null, Expression.PRECEDENCE_CONDITION);
                 a = c;
             } else {
                 Function f = new Function("not");
@@ -332,21 +421,21 @@ public class XPathToSQL2Converter {
     private Condition parseCondition(Expression left) throws ParseException {
         Condition c;
         if (readIf("=")) {
-            c = new Condition(left, "=", parseExpression());
+            c = new Condition(left, "=", parseExpression(), Expression.PRECEDENCE_CONDITION);
         } else if (readIf("<>")) {
-            c = new Condition(left, "<>", parseExpression());
+            c = new Condition(left, "<>", parseExpression(), Expression.PRECEDENCE_CONDITION);
         } else if (readIf("!=")) {
-            c = new Condition(left, "<>", parseExpression());
+            c = new Condition(left, "<>", parseExpression(), Expression.PRECEDENCE_CONDITION);
         } else if (readIf("<")) {
-            c = new Condition(left, "<", parseExpression());
+            c = new Condition(left, "<", parseExpression(), Expression.PRECEDENCE_CONDITION);
         } else if (readIf(">")) {
-            c = new Condition(left, ">", parseExpression());
+            c = new Condition(left, ">", parseExpression(), Expression.PRECEDENCE_CONDITION);
         } else if (readIf("<=")) {
-            c = new Condition(left, "<=", parseExpression());
+            c = new Condition(left, "<=", parseExpression(), Expression.PRECEDENCE_CONDITION);
         } else if (readIf(">=")) {
-            c = new Condition(left, ">=", parseExpression());
+            c = new Condition(left, ">=", parseExpression(), Expression.PRECEDENCE_CONDITION);
         } else {
-            c = new Condition(left, "is not null", null);
+            c = new Condition(left, "is not null", null, Expression.PRECEDENCE_CONDITION);
         }
         return c;
     }
@@ -435,7 +524,7 @@ public class XPathToSQL2Converter {
 
     private Expression parseFunction(String functionName) throws ParseException {
         if ("jcr:like".equals(functionName)) {
-            Condition c = new Condition(parseExpression(), "like", null);
+            Condition c = new Condition(parseExpression(), "like", null, Expression.PRECEDENCE_CONDITION);
             read(",");
             c.right = parseExpression();
             read(")");
@@ -817,32 +906,94 @@ public class XPathToSQL2Converter {
         return new ParseException("Query:\n" + query, index);
     }
 
-    static String removeParens(String s) {
-        if (s.startsWith("(") && s.endsWith(")")) {
-            return s.substring(1, s.length() - 1);
-        }
-        return s;
-    }
-
     /**
      * A selector.
      */
     static class Selector {
 
+        /**
+         * The selector name.
+         */
         String name;
+        
+        /**
+         * Whether this is the only selector in the query.
+         */
         boolean onlySelector;
+        
+        /**
+         * The node type, if set, or null.
+         */
         String nodeType;
-        Expression joinCondition;
+        
+        /**
+         * Whether this is a child node of the previous selector or a given path.
+         */
+        // queries of the type
+        // jcr:root/*
+        // jcr:root/test/*
+        // jcr:root/element()
+        // jcr:root/element(*)
+        boolean isChild;
 
+        /**
+         * Whether this is a descendant of the previous selector or a given path.
+         */
+        // queries of the type
+        // /jcr:root//...
+        // /jcr:root/test//...
+        // /jcr:root[...]
+        // /jcr:root (just by itself)
+        boolean isDescendant;
+        
+        /**
+         * The path (only used for the first selector).
+         */
+        String path = "";
+        
+        /**
+         * The node name, if set.
+         */
+        String nodeName;
+        
+        /**
+         * The condition for this selector.
+         */
+        Expression condition;
+        
+        /**
+         * The join condition from the previous selector.
+         */
+        Expression joinCondition;
+        
     }
 
     /**
      * An expression.
      */
     abstract static class Expression {
-
+        
+        static final int PRECEDENCE_OR = 1, PRECEDENCE_AND = 2, 
+                PRECEDENCE_CONDITION = 3, PRECEDENCE_OPERAND = 4;
+        
+        /**
+         * Whether this is a condition.
+         * 
+         * @return true if it is 
+         */
         boolean isCondition() {
             return false;
+        }
+        
+        /**
+         * Get the operator / operation precedence. The JCR specification uses:
+         * 1=OR, 2=AND, 3=condition, 4=operand  
+         * 
+         * @return the precedence (as an example, multiplication needs to return
+         *         a higher number than addition)
+         */
+        int getPrecedence() {
+            return PRECEDENCE_OPERAND;
         }
 
     }
@@ -932,21 +1083,49 @@ public class XPathToSQL2Converter {
         final Expression left;
         final String operator;
         Expression right;
+        final int precedence;
 
-        Condition(Expression left, String operator, Expression right) {
+        /**
+         * Create a new condition.
+         * 
+         * @param left the left hand side operator, or null
+         * @param operator the operator
+         * @param right the right hand side operator, or null
+         * @param precedence the operator precedence (Expression.PRECEDENCE_...)
+         */
+        Condition(Expression left, String operator, Expression right, int precedence) {
             this.left = left;
             this.operator = operator;
             this.right = right;
+            this.precedence = precedence;
+        }
+        
+        @Override
+        int getPrecedence() {
+            return precedence;
         }
 
         @Override
         public String toString() {
-            return
-                "(" +
-                (left == null ? "" : left + " ") +
-                operator +
-                (right == null ? "" : " " + right) +
-                ")";
+            StringBuilder buff = new StringBuilder();
+            if (left != null) {
+                if (left.getPrecedence() < precedence) {
+                    buff.append('(').append(left.toString()).append(')');
+                } else {
+                    buff.append(left.toString());
+                }
+                buff.append(' ');
+            }
+            buff.append(operator);
+            if (right != null) {
+                buff.append(' ');
+                if (right.getPrecedence() < precedence) {
+                    buff.append('(').append(right.toString()).append(')');
+                } else {
+                    buff.append(right.toString());
+                }
+            }
+            return buff.toString();
         }
 
         @Override
@@ -976,7 +1155,7 @@ public class XPathToSQL2Converter {
                 if (i > 0) {
                     buff.append(", ");
                 }
-                buff.append(removeParens(params.get(i).toString()));
+                buff.append(params.get(i).toString());
             }
             buff.append(')');
             return buff.toString();
@@ -1005,7 +1184,7 @@ public class XPathToSQL2Converter {
         @Override
         public String toString() {
             StringBuilder buff = new StringBuilder("cast(");
-            buff.append(removeParens(expr.toString()));
+            buff.append(expr.toString());
             buff.append(" as ").append(type).append(')');
             return buff.toString();
         }

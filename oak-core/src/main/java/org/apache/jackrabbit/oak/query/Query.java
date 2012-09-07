@@ -74,7 +74,7 @@ public class Query {
     private QueryEngineImpl queryEngine;
     private final OrderingImpl[] orderings;
     private ColumnImpl[] columns;
-    private boolean explain;
+    private boolean explain, measure;
     private long limit = Long.MAX_VALUE;
     private long offset;
     private long size = -1;
@@ -244,8 +244,8 @@ public class Query {
             }
 
         }.visit(this);
-        source.init(this);
         source.setQueryConstraint(constraint);
+        source.init(this);
         for (ColumnImpl column : columns) {
             column.bindSelector(source);
         }
@@ -291,6 +291,10 @@ public class Query {
         this.explain = explain;
     }
 
+    public void setMeasure(boolean measure) {
+        this.measure = measure;
+    }
+
     public ResultImpl executeQuery(String revisionId, NodeState root) {
         return new ResultImpl(this, revisionId, root);
     }
@@ -301,10 +305,14 @@ public class Query {
         if (explain) {
             String plan = source.getPlan();
             columns = new ColumnImpl[] { new ColumnImpl("explain", "plan", "plan")};
-            ResultRowImpl r = new ResultRowImpl(this, new String[0], new CoreValue[] { getValueFactory().createValue(plan) }, null);
+            ResultRowImpl r = new ResultRowImpl(this,
+                    new String[0],
+                    new CoreValue[] { getValueFactory().createValue(plan) },
+                    null);
             it = Arrays.asList(r).iterator();
         } else {
             it = new RowIterator(revisionId, root, limit, offset);
+            long resultCount = 0;
             if (orderings != null) {
                 // TODO "order by" is not necessary if the used index returns
                 // rows in the same order
@@ -313,8 +321,39 @@ public class Query {
                     ResultRowImpl r = it.next();
                     list.add(r);
                 }
-                size = list.size();
+                resultCount = size = list.size();
                 Collections.sort(list);
+                it = list.iterator();
+            } else if (measure) {
+                while (it.hasNext()) {
+                    resultCount++;
+                    it.next();
+                }
+            }
+            if (measure) {
+                columns = new ColumnImpl[] {
+                        new ColumnImpl("measure", "selector", "selector"),
+                        new ColumnImpl("measure", "scanCount", "scanCount")
+                };
+                ArrayList<ResultRowImpl> list = new ArrayList<ResultRowImpl>();
+                ResultRowImpl r = new ResultRowImpl(this,
+                        new String[0],
+                        new CoreValue[] {
+                            getValueFactory().createValue("query"),
+                            getValueFactory().createValue(resultCount),
+                            },
+                        null);
+                list.add(r);
+                for (SelectorImpl selector : selectors) {
+                    r = new ResultRowImpl(this,
+                            new String[0],
+                            new CoreValue[] {
+                                getValueFactory().createValue(selector.getSelectorName()),
+                                getValueFactory().createValue(selector.getScanCount()),
+                                },
+                            null);
+                    list.add(r);
+                }
                 it = list.iterator();
             }
         }
@@ -458,6 +497,7 @@ public class Query {
         if (prepared) {
             return;
         }
+        prepared = true;
         source.prepare(mk);
     }
 

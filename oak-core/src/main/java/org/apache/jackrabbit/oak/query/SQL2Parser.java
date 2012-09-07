@@ -109,7 +109,12 @@ public class SQL2Parser {
         expected = new ArrayList<String>();
         bindVariables = new HashMap<String, BindVariableValueImpl>();
         read();
-        boolean explain = readIf("EXPLAIN");
+        boolean explain = false, measure = false;
+        if (readIf("EXPLAIN")) {
+            explain = true;
+        } else if (readIf("MEASURE")) {
+            measure = true;
+        }
         read("SELECT");
         ArrayList<ColumnOrWildcard> list = parseColumns();
         if (supportSQL1) {
@@ -133,6 +138,7 @@ public class SQL2Parser {
         }
         Query q = new Query(source, constraint, orderings, columnArray, valueFactory);
         q.setExplain(explain);
+        q.setMeasure(measure);
         try {
             q.init();
         } catch (Exception e) {

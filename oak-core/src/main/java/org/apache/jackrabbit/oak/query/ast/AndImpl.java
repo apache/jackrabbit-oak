@@ -56,9 +56,15 @@ public class AndImpl extends ConstraintImpl {
     }
 
     @Override
-    public void apply(FilterImpl f) {
-        constraint1.apply(f);
-        constraint2.apply(f);
+    public void restrict(FilterImpl f) {
+        constraint1.restrict(f);
+        constraint2.restrict(f);
+    }
+
+    @Override
+    public void restrictPushDown(SelectorImpl s) {
+        constraint1.restrictPushDown(s);
+        constraint2.restrictPushDown(s);
     }
 
 }

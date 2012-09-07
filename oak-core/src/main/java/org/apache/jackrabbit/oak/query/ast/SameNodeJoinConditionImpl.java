@@ -84,7 +84,7 @@ public class SameNodeJoinConditionImpl extends JoinConditionImpl {
     }
 
     @Override
-    public void apply(FilterImpl f) {
+    public void restrict(FilterImpl f) {
         String p1 = selector1.currentPath();
         String p2 = selector2.currentPath();
         if (f.getSelector() == selector1) {
@@ -93,6 +93,11 @@ public class SameNodeJoinConditionImpl extends JoinConditionImpl {
         if (f.getSelector() == selector2) {
             f.restrictPath(p1, Filter.PathRestriction.EXACT);
         }
+    }
+
+    @Override
+    public void restrictPushDown(SelectorImpl s) {
+        // nothing to do
     }
 
 }

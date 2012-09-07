@@ -29,6 +29,17 @@ public abstract class DynamicOperandImpl extends AstElement {
 
     public abstract void apply(FilterImpl f, Operator operator, CoreValue v);
 
+    /**
+     * Check whether the condition can be applied to a selector (to restrict the
+     * selector). The method may return true if the operand can be evaluated
+     * when the given selector and all previous selectors in the join can be
+     * evaluated.
+     *
+     * @param s the selector
+     * @return true if the condition can be applied
+     */
+    public abstract boolean canRestrictSelector(SelectorImpl s);
+
     public boolean supportsRangeConditions() {
         return true;
     }
