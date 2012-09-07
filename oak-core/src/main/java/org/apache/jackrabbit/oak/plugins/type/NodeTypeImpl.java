@@ -39,6 +39,7 @@ import javax.jcr.nodetype.PropertyDefinition;
 import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
+import org.apache.jackrabbit.oak.plugins.type.constraint.Constraints;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.slf4j.Logger;
@@ -274,7 +275,12 @@ class NodeTypeImpl implements NodeType {
             if ((propertyName.equals(name) && !isProtected(definition))
                     || "*".equals(name)) {
                 if (!definition.isMultiple()) {
-                    // TODO: Check value type, constraints, etc.
+
+                    // TODO: Check value type, etc.
+                    if (!meetsValueConstraints(value, definition.getValueConstraints())) {
+                        return false;
+                    }
+
                     return true;
                 }
             }
@@ -298,6 +304,20 @@ class NodeTypeImpl implements NodeType {
                 }
             }
         }
+        return false;
+    }
+
+    private static boolean meetsValueConstraints(Value value, String[] constraints) {
+        if (constraints == null || constraints.length == 0) {
+            return true;
+        }
+
+        for (String constraint : constraints) {
+            if (Constraints.valueConstraint(value.getType(), constraint).apply(value)) {
+                return true;
+            }
+        }
+
         return false;
     }
 
