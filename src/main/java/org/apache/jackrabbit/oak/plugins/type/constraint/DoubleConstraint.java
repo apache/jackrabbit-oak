@@ -30,21 +30,10 @@ public class DoubleConstraint extends NumericConstraint<Double> {
     }
 
     @Override
-    protected void setBounds(String lowerBound, String upperBound) {
-        try {
-            this.lowerBound = lowerBound == null || lowerBound.isEmpty()
-                ? null
-                : Double.parseDouble(lowerBound);
-
-            this.upperBound = upperBound == null || upperBound.isEmpty()
-                ? null
-                : Double.parseDouble(upperBound);
-        }
-        catch (NumberFormatException e) {
-            this.lowerBound = 1.0;
-            this.upperBound = 0.0;
-            log.warn("Invalid bound for numeric constraint" + this, e);
-        }
+    protected Double getBound(String bound) {
+        return  bound == null || bound.isEmpty()
+            ? null
+            : Double.parseDouble(bound);
     }
 
     @Override
