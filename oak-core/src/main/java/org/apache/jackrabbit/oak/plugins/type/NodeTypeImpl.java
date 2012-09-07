@@ -355,6 +355,9 @@ class NodeTypeImpl implements NodeType {
         NodeType type;
         try {
             type = manager.getNodeType(nodeTypeName);
+            if (type.isAbstract()) {
+                return false;
+            }
         } catch (NoSuchNodeTypeException e) {
             return false;
         } catch (RepositoryException e) {
