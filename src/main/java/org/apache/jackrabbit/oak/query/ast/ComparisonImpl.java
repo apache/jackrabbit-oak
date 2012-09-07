@@ -121,7 +121,7 @@ public class ComparisonImpl extends ConstraintImpl {
     }
 
     @Override
-    public void apply(FilterImpl f) {
+    public void restrict(FilterImpl f) {
         CoreValue v = operand2.currentValue();
         if (v != null) {
             if (operator == Operator.LIKE) {
@@ -143,6 +143,16 @@ public class ComparisonImpl extends ConstraintImpl {
                 }
             } else {
                 operand1.apply(f, operator, v);
+            }
+        }
+    }
+
+    @Override
+    public void restrictPushDown(SelectorImpl s) {
+        CoreValue v = operand2.currentValue();
+        if (v != null) {
+            if (operand1.canRestrictSelector(s)) {
+                s.restrictSelector(this);
             }
         }
     }

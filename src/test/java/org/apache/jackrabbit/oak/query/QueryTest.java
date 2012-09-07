@@ -15,6 +15,7 @@ package org.apache.jackrabbit.oak.query;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -78,7 +79,8 @@ public class QueryTest extends AbstractQueryTest {
         result = executeQuery("explain select * from [nt:base] where id = 1 order by id",
                 QueryEngineImpl.SQL2, null).getRows().iterator();
         assertTrue(result.hasNext());
-        assertEquals("nt:base as nt:base /* traverse \"//*\" */",
+        assertEquals("[nt:base] as nt:base " +
+                "/* traverse \"//*\" where nt:base.id = cast('1' as long) */",
                 result.next().getValue("plan").getString());
 
     }
@@ -103,23 +105,24 @@ public class QueryTest extends AbstractQueryTest {
                     w.println("xpath2sql " + line);
                     XPathToSQL2Converter c = new XPathToSQL2Converter();
                     String got;
-                    boolean failed;
                     try {
                         got = c.convert(line);
-                        failed = false;
+                        executeQuery(got, QueryEngineImpl.SQL2, null);
                     } catch (ParseException e) {
                         got = "invalid: " + e.getMessage().replace('\n', ' ');
-                        failed = true;
+                    } catch (Exception e) {
+                        // e.printStackTrace();
+                        got = "error: " + e.toString().replace('\n', ' ');
                     }
                     line = r.readLine().trim();
                     w.println(got);
                     if (!line.equals(got)) {
                         errors = true;
                     }
-                    if (!failed) {
-                        executeQuery(got, QueryEngineImpl.SQL2, null);
-                    }
-                } else if (line.startsWith("select") || line.startsWith("explain") || line.startsWith("sql1")) {
+                } else if (line.startsWith("select") ||
+                        line.startsWith("explain") ||
+                        line.startsWith("measure") ||
+                        line.startsWith("sql1")) {
                     w.println(line);
                     String language = QueryEngineImpl.SQL2;
                     if (line.startsWith("sql1")) {
@@ -169,6 +172,7 @@ public class QueryTest extends AbstractQueryTest {
                     String diff = line.substring(spaceIndex).trim();
                     mk.commit(path, diff, mk.getHeadRevision(), "");
                 }
+                w.flush();
             }
         } finally {
             w.close();
@@ -181,6 +185,7 @@ public class QueryTest extends AbstractQueryTest {
     }
 
     private List<String> executeQuery(String query, String language) {
+        long time = System.currentTimeMillis();
         List<String> lines = new ArrayList<String>();
         try {
             Result result = executeQuery(query, language, null);
@@ -194,6 +199,10 @@ public class QueryTest extends AbstractQueryTest {
             lines.add(e.toString());
         } catch (IllegalArgumentException e) {
             lines.add(e.toString());
+        }
+        time = System.currentTimeMillis() - time;
+        if (time > 3000) {
+            fail("Query took too long: " + query + " took " + time + " ms");
         }
         return lines;
     }

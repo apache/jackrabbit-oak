@@ -123,13 +123,20 @@ public class FullTextSearchImpl extends ConstraintImpl {
     }
 
     @Override
-    public void apply(FilterImpl f) {
+    public void restrict(FilterImpl f) {
         if (propertyName != null) {
             if (f.getSelector() == selector) {
                 f.restrictProperty(propertyName, Operator.NOT_EQUAL, (CoreValue) null);
             }
         }
         f.restrictFulltextCondition(fullTextSearchExpression.currentValue().getString());
+    }
+
+    @Override
+    public void restrictPushDown(SelectorImpl s) {
+        if (s == selector) {
+            selector.restrictSelector(this);
+        }
     }
 
     /**

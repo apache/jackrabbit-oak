@@ -67,4 +67,9 @@ public class LowerCaseImpl extends DynamicOperandImpl {
         // TODO UPPER(x) conditions: can use IS NOT NULL?
     }
 
+    @Override
+    public boolean canRestrictSelector(SelectorImpl s) {
+        return operand.canRestrictSelector(s);
+    }
+
 }

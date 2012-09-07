@@ -79,36 +79,31 @@ public class JoinImpl extends SourceImpl {
     public void init(Query query) {
         switch (joinType) {
         case INNER:
-            left.setQueryConstraint(queryConstraint);
-            right.setQueryConstraint(queryConstraint);
-            right.setJoinCondition(joinCondition);
-            left.init(query);
-            right.init(query);
+            left.addJoinCondition(joinCondition, false);
+            right.addJoinCondition(joinCondition, true);
             break;
         case LEFT_OUTER:
-            left.setQueryConstraint(queryConstraint);
             right.setOuterJoin(true);
-            right.setQueryConstraint(queryConstraint);
-            right.setJoinCondition(joinCondition);
-            left.init(query);
-            right.init(query);
+            left.addJoinCondition(joinCondition, false);
+            right.addJoinCondition(joinCondition, true);
             break;
         case RIGHT_OUTER:
-            right.setQueryConstraint(queryConstraint);
-            left.setOuterJoin(true);
-            left.setQueryConstraint(queryConstraint);
-            left.setJoinCondition(joinCondition);
-            right.init(query);
-            left.init(query);
+            // swap left and right
             // TODO right outer join: verify whether converting
             // to left outer join is always correct (given the current restrictions)
             joinType = JoinType.LEFT_OUTER;
-            // swap left and right
             SourceImpl temp = left;
             left = right;
             right = temp;
+            right.setOuterJoin(true);
+            left.addJoinCondition(joinCondition, false);
+            right.addJoinCondition(joinCondition, true);
             break;
         }
+        left.setQueryConstraint(queryConstraint);
+        right.setQueryConstraint(queryConstraint);
+        right.init(query);
+        left.init(query);
     }
 
     @Override

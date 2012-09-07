@@ -63,4 +63,9 @@ public class FullTextSearchScoreImpl extends DynamicOperandImpl {
         // TODO support fulltext index conditions (score)
     }
 
+    @Override
+    public boolean canRestrictSelector(SelectorImpl s) {
+        return s == selector;
+    }
+
 }

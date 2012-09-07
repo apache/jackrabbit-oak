@@ -120,7 +120,7 @@ public class EquiJoinConditionImpl extends JoinConditionImpl {
     }
 
     @Override
-    public void apply(FilterImpl f) {
+    public void restrict(FilterImpl f) {
         PropertyState p1 = selector1.currentProperty(property1Name);
         PropertyState p2 = selector2.currentProperty(property2Name);
         if (f.getSelector() == selector1 && p2 != null) {
@@ -134,6 +134,20 @@ public class EquiJoinConditionImpl extends JoinConditionImpl {
                 // TODO support join on multi-valued properties
                 f.restrictProperty(property2Name, Operator.EQUAL, p1.getValue());
             }
+        }
+    }
+
+    @Override
+    public void restrictPushDown(SelectorImpl s) {
+        // both properties may not be null
+        if (s == selector1) {
+            PropertyExistenceImpl ex = new PropertyExistenceImpl(s.getSelectorName(), property1Name);
+            ex.bindSelector(s);
+            s.restrictSelector(ex);
+        } else if (s == selector2) {
+            PropertyExistenceImpl ex = new PropertyExistenceImpl(s.getSelectorName(), property2Name);
+            ex.bindSelector(s);
+            s.restrictSelector(ex);
         }
     }
 

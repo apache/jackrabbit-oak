@@ -71,7 +71,7 @@ public class DescendantNodeJoinConditionImpl extends JoinConditionImpl {
     }
 
     @Override
-    public void apply(FilterImpl f) {
+    public void restrict(FilterImpl f) {
         String d = descendantSelector.currentPath();
         String a = ancestorSelector.currentPath();
         if (d != null && f.getSelector() == ancestorSelector) {
@@ -80,6 +80,11 @@ public class DescendantNodeJoinConditionImpl extends JoinConditionImpl {
         if (a != null && f.getSelector() == descendantSelector) {
             f.restrictPath(a, Filter.PathRestriction.DIRECT_CHILDREN);
         }
+    }
+
+    @Override
+    public void restrictPushDown(SelectorImpl s) {
+        // nothing to do
     }
 
 }

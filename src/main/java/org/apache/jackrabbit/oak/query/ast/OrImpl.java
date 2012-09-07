@@ -57,9 +57,18 @@ public class OrImpl extends ConstraintImpl {
     }
 
     @Override
-    public void apply(FilterImpl f) {
+    public void restrict(FilterImpl f) {
         // ignore
         // TODO convert OR conditions to UNION
+    }
+
+    @Override
+    public void restrictPushDown(SelectorImpl s) {
+        // ignore
+        // TODO some OR conditions can be applied to a selector,
+        // for example WHERE X.ID = 1 OR X.ID = 2
+        // can be applied to X as a whole,
+        // but X.ID = 1 OR Y.ID = 2 can't be applied to either
     }
 
 }
