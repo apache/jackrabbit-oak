@@ -92,7 +92,7 @@ public class Constraints {
     }
 
     private static Predicate<Value> pathConstraint(String constraint) {
-        return Predicates.alwaysTrue(); // todo implement pathConstraint
+        return new PathConstraint(constraint);
     }
 
     private static Predicate<Value> referenceConstraint(String constraint) {
