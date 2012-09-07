@@ -360,7 +360,7 @@ class TypeValidator implements Validator {
 
         @Override
         public int hashCode() {
-            return super.hashCode();
+            return value.hashCode();
         }
 
         @Override
@@ -370,7 +370,7 @@ class TypeValidator implements Validator {
 
         @Override
         public String toString() {
-            return super.toString();
+            return value.toString();
         }
     }
 
