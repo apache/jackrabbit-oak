@@ -68,7 +68,7 @@ public class Constraints {
     }
 
     private static Predicate<Value> binaryConstraint(String constraint) {
-        return Predicates.alwaysTrue(); // todo implement binaryConstraint
+        return new BinaryConstraint(constraint);
     }
 
     private static Predicate<Value> longConstraint(String constraint) {
