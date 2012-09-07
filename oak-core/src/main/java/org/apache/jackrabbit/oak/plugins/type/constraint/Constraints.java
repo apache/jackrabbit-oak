@@ -80,7 +80,7 @@ public class Constraints {
     }
 
     private static Predicate<Value> dateConstraint(String constraint) {
-        return Predicates.alwaysTrue(); // todo implement dateConstraint
+        return new DateConstraint(constraint);
     }
 
     private static BooleanConstraint booleanConstraint(String constraint) {
