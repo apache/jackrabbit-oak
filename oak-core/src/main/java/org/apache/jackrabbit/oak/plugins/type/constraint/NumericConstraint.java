@@ -30,9 +30,10 @@ import org.slf4j.LoggerFactory;
 public abstract class NumericConstraint<T> implements Predicate<Value> {
     private static final Logger log = LoggerFactory.getLogger(NumericConstraint.class);
 
+    private boolean invalid;
     private boolean lowerInclusive;
-    protected T lowerBound;
-    protected T upperBound;
+    private T lowerBound;
+    private T upperBound;
     private boolean upperInclusive;
 
     protected NumericConstraint(String definition) {
@@ -40,28 +41,38 @@ public abstract class NumericConstraint<T> implements Predicate<Value> {
         Pattern pattern = Pattern.compile("([\\(\\[])[^,]*,[^\\)\\]]*([\\)\\]])");
         Matcher matcher = pattern.matcher(definition);
         if (matcher.matches()) {
-            // group 1 is lower inclusive/exclusive
-            String match = matcher.group(1);
-            lowerInclusive = "[".equals(match);
+            try {
+                // group 1 is lower inclusive/exclusive
+                String match = matcher.group(1);
+                lowerInclusive = "[".equals(match);
 
-            // group 2 is lower, group 3 is upper  bound
-            setBounds(matcher.group(2), matcher.group(3));
+                // group 2 is lower, group 3 is upper  bound
+                lowerBound = getBound(matcher.group(2));
+                upperBound = getBound(matcher.group(3));
 
-            // group 4 is lower inclusive/exclusive
-            match = matcher.group(4);
-            upperInclusive = "]".equals(match);
+                // group 4 is lower inclusive/exclusive
+                match = matcher.group(4);
+                upperInclusive = "]".equals(match);
+            }
+            catch (NumberFormatException e) {
+                invalid(definition);
+            }
         }
         else {
-            String msg = '\'' + definition + "' is not a valid value constraint format for numeric values";
-            log.warn(msg);
+            invalid(definition);
         }
     }
 
-    protected abstract void setBounds(String lowerBound, String upperBound);
+    private void invalid(String definition) {
+        invalid = true;
+        log.warn('\'' + definition + "' is not a valid value constraint format for numeric values");
+    }
+
+    protected abstract T getBound(String bound);
 
     @Override
     public boolean apply(@Nullable Value value) {
-        if (value == null) {
+        if (value == null || invalid) {
             return false;
         }
 

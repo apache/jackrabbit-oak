@@ -30,21 +30,10 @@ public class LongConstraint extends NumericConstraint<Long> {
     }
 
     @Override
-    protected void setBounds(String lowerBound, String upperBound) {
-        try {
-            this.lowerBound = lowerBound == null || lowerBound.isEmpty()
-                ? null
-                : Long.parseLong(lowerBound);
-
-            this.upperBound = upperBound == null || upperBound.isEmpty()
-                ? null
-                : Long.parseLong(upperBound);
-        }
-        catch (NumberFormatException e) {
-            this.lowerBound = 1L;
-            this.upperBound = 0L;
-            log.warn("Invalid bound for numeric constraint" + this, e);
-        }
+    protected Long getBound(String bound) {
+        return  bound == null || bound.isEmpty()
+            ? null
+            : Long.parseLong(bound);
     }
 
     @Override
