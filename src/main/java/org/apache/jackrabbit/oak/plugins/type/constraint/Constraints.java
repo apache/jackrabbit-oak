@@ -72,7 +72,7 @@ public class Constraints {
     }
 
     private static Predicate<Value> longConstraint(String constraint) {
-        return Predicates.alwaysTrue(); // todo implement longConstraint
+        return new LongConstraint(constraint);
     }
 
     private static Predicate<Value> doubleConstraint(String constraint) {
