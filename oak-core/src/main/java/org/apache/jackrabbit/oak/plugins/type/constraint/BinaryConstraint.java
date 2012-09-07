@@ -28,5 +28,4 @@ public class BinaryConstraint extends LongConstraint {
     protected Long getValue(Value value) throws RepositoryException {
         return value.getBinary().getSize();
     }
-
 }
