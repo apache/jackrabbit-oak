@@ -275,12 +275,10 @@ class NodeTypeImpl implements NodeType {
             if ((propertyName.equals(name) && !isProtected(definition))
                     || "*".equals(name)) {
                 if (!definition.isMultiple()) {
-
-                    // TODO: Check value type, etc.
                     if (!meetsValueConstraints(value, definition.getValueConstraints())) {
                         return false;
                     }
-
+                    // TODO: Check value type, etc.
                     return true;
                 }
             }
@@ -299,7 +297,10 @@ class NodeTypeImpl implements NodeType {
             if ((propertyName.equals(name) && !isProtected(definition))
                     || "*".equals(name)) {
                 if (definition.isMultiple()) {
-                    // TODO: Check value type, constraints, etc.
+                    if (!meetsValueConstraints(values, definition.getValueConstraints())) {
+                        return false;
+                    }
+                    // TODO: Check value type, etc.
                     return true;
                 }
             }
@@ -312,6 +313,7 @@ class NodeTypeImpl implements NodeType {
             return true;
         }
 
+        // Any of the constraints must be met
         for (String constraint : constraints) {
             if (Constraints.valueConstraint(value.getType(), constraint).apply(value)) {
                 return true;
@@ -319,6 +321,21 @@ class NodeTypeImpl implements NodeType {
         }
 
         return false;
+    }
+
+    private static boolean meetsValueConstraints(Value[] values, String[] constraints) {
+        if (constraints == null || constraints.length == 0) {
+            return true;
+        }
+
+        // Constraints must be met by all values
+        for (Value value : values) {
+            if (!meetsValueConstraints(value, constraints)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     @Override
