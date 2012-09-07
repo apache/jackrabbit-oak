@@ -22,11 +22,11 @@ import javax.jcr.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class LongConstraint extends NumericConstraint<Long> {
-    private static final Logger log = LoggerFactory.getLogger(LongConstraint.class);
+public class DoubleConstraint extends NumericConstraint<Double> {
+    private static final Logger log = LoggerFactory.getLogger(DoubleConstraint.class);
 
-    public LongConstraint(String definition) {
-        super(definition);
+    public DoubleConstraint(String constraint) {
+        super(constraint);
     }
 
     @Override
@@ -34,26 +34,26 @@ public class LongConstraint extends NumericConstraint<Long> {
         try {
             this.lowerBound = lowerBound == null || lowerBound.isEmpty()
                 ? null
-                : Long.parseLong(lowerBound);
+                : Double.parseDouble(lowerBound);
 
             this.upperBound = upperBound == null || upperBound.isEmpty()
                 ? null
-                : Long.parseLong(upperBound);
+                : Double.parseDouble(upperBound);
         }
         catch (NumberFormatException e) {
-            this.lowerBound = 1L;
-            this.upperBound = 0L;
+            this.lowerBound = 1.0;
+            this.upperBound = 0.0;
             log.warn("Invalid bound for numeric constraint" + this, e);
         }
     }
 
     @Override
-    protected Long getValue(Value value) throws RepositoryException {
-        return value.getLong();
+    protected Double getValue(Value value) throws RepositoryException {
+        return value.getDouble();
     }
 
     @Override
-    protected boolean less(Long val, Long bound) {
+    protected boolean less(Double val, Double bound) {
         return val < bound;
     }
 }
