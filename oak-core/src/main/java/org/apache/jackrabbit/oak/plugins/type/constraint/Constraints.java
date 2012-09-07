@@ -76,7 +76,7 @@ public class Constraints {
     }
 
     private static Predicate<Value> doubleConstraint(String constraint) {
-        return Predicates.alwaysTrue(); // todo implement doubleConstraint
+        return new DoubleConstraint(constraint);
     }
 
     private static Predicate<Value> dateConstraint(String constraint) {
