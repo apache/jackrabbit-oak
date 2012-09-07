@@ -25,8 +25,8 @@ import org.slf4j.LoggerFactory;
 public class DoubleConstraint extends NumericConstraint<Double> {
     private static final Logger log = LoggerFactory.getLogger(DoubleConstraint.class);
 
-    public DoubleConstraint(String constraint) {
-        super(constraint);
+    public DoubleConstraint(String definition) {
+        super(definition);
     }
 
     @Override
