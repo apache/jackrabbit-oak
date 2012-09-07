@@ -16,33 +16,35 @@
  */
 package org.apache.jackrabbit.oak.plugins.type.constraint;
 
+import java.math.BigDecimal;
+
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-public class LongConstraint extends NumericConstraint<Long> {
-    private static final Logger log = LoggerFactory.getLogger(LongConstraint.class);
-
-    public LongConstraint(String definition) {
+public class DecimalConstraint extends NumericConstraint<BigDecimal> {
+    public DecimalConstraint(String definition) {
         super(definition);
     }
 
     @Override
-    protected Long getBound(String bound) {
+    protected BigDecimal getBound(String bound) {
         return bound == null || bound.isEmpty()
             ? null
-            : Long.parseLong(bound);
+            : new BigDecimal(bound);
     }
 
     @Override
-    protected Long getValue(Value value) throws RepositoryException {
-        return value.getLong();
+    protected BigDecimal getValue(Value value) throws RepositoryException {
+        return value.getDecimal();
     }
 
     @Override
-    protected boolean less(Long val, Long bound) {
-        return val < bound;
+    protected boolean less(BigDecimal val, BigDecimal bound) {
+        return val.compareTo(bound) < 0;
+    }
+
+    @Override
+    protected boolean equals(BigDecimal val, BigDecimal bound) {
+        return val.compareTo(bound) == 0;
     }
 }

@@ -108,6 +108,6 @@ public class Constraints {
     }
 
     private static Predicate<Value> decimalConstraint(String constraint) {
-        return Predicates.alwaysTrue(); // todo implement decimalConstraint
+        return new DecimalConstraint(constraint);
     }
 }
