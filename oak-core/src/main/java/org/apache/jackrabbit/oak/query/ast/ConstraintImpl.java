@@ -37,6 +37,14 @@ public abstract class ConstraintImpl extends AstElement {
      *
      * @param f the filter
      */
-    public abstract void apply(FilterImpl f);
+    public abstract void restrict(FilterImpl f);
+
+    /**
+     * Push as much of the condition down to this selector, further restricting
+     * the selector condition if possible.
+     *
+     * @param s the selector
+     */
+    public abstract void restrictPushDown(SelectorImpl s);
 
 }

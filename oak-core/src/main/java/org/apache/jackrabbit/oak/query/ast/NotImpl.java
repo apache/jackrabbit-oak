@@ -51,7 +51,13 @@ public class NotImpl extends ConstraintImpl {
     }
 
     @Override
-    public void apply(FilterImpl f) {
+    public void restrict(FilterImpl f) {
+        // ignore
+        // TODO convert NOT conditions
+    }
+
+    @Override
+    public void restrictPushDown(SelectorImpl s) {
         // ignore
         // TODO convert NOT conditions
     }

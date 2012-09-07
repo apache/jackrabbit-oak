@@ -22,6 +22,8 @@ public abstract class JoinConditionImpl extends AstElement {
 
     public abstract boolean evaluate();
 
-    public abstract void apply(FilterImpl f);
+    public abstract void restrict(FilterImpl f);
+
+    public abstract void restrictPushDown(SelectorImpl selectorImpl);
 
 }

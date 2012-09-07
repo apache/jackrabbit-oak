@@ -66,9 +66,16 @@ public class PropertyExistenceImpl extends ConstraintImpl {
     }
 
     @Override
-    public void apply(FilterImpl f) {
+    public void restrict(FilterImpl f) {
         if (f.getSelector() == selector) {
             f.restrictProperty(propertyName, Operator.NOT_EQUAL, (CoreValue) null);
+        }
+    }
+
+    @Override
+    public void restrictPushDown(SelectorImpl s) {
+        if (s == selector) {
+            s.restrictSelector(this);
         }
     }
 

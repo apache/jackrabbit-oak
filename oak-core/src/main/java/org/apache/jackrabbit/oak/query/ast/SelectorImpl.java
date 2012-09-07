@@ -48,6 +48,16 @@ public class SelectorImpl extends SourceImpl {
 
     private final String nodeTypeName, selectorName;
     private Cursor cursor;
+    private int scanCount;
+
+    /**
+     * The selector condition can be evaluated when the given selector is
+     * evaluated. For example, for the query
+     * "select * from nt:base a inner join nt:base b where a.x = 1 and b.y = 2",
+     * the condition "a.x = 1" can be evaluated when evaluating selector a. The
+     * other part of the condition can't be evaluated until b is available.
+     */
+    private ConstraintImpl selectorCondition;
 
     public SelectorImpl(String nodeTypeName, String selectorName) {
         this.nodeTypeName = nodeTypeName;
@@ -69,13 +79,18 @@ public class SelectorImpl extends SourceImpl {
 
     @Override
     public String toString() {
-        // TODO quote nodeTypeName?
-        return nodeTypeName + " as " + getSelectorName();
+        return "[" + nodeTypeName + "] as " + selectorName;
     }
 
 
     @Override
     public void prepare(MicroKernel mk) {
+        if (queryConstraint != null) {
+            queryConstraint.restrictPushDown(this);
+        }
+        for (JoinConditionImpl c : allJoinConditions) {
+            c.restrictPushDown(this);
+        }
         index = query.getBestIndex(createFilter());
     }
 
@@ -86,20 +101,27 @@ public class SelectorImpl extends SourceImpl {
 
     @Override
     public String getPlan() {
-        return  nodeTypeName + " as " + getSelectorName() + " /* " + index.getPlan(createFilter()) + " */";
+        StringBuilder buff = new StringBuilder();
+        buff.append(toString());
+        buff.append(" /* ").append(index.getPlan(createFilter()));
+        if (selectorCondition != null) {
+            buff.append(" where ").append(selectorCondition);
+        }
+        buff.append(" */");
+        return buff.toString();
     }
 
     private FilterImpl createFilter() {
         FilterImpl f = new FilterImpl(this);
         f.setNodeType(nodeTypeName);
         if (joinCondition != null) {
-            joinCondition.apply(f);
+            joinCondition.restrict(f);
         }
         if (!outerJoin) {
             // for outer joins, query constraints can't be applied to the
             // filter, because that would alter the result
             if (queryConstraint != null) {
-                queryConstraint.apply(f);
+                queryConstraint.restrict(f);
             }
         }
         return f;
@@ -107,9 +129,25 @@ public class SelectorImpl extends SourceImpl {
 
     @Override
     public boolean next() {
+        while (true) {
+            if (!nextNode()) {
+                return false;
+            }
+            if (selectorCondition != null && !selectorCondition.evaluate()) {
+                continue;
+            }
+            if (joinCondition != null && !joinCondition.evaluate()) {
+                continue;
+            }
+            return true;
+        }
+    }
+
+    private boolean nextNode() {
         if (cursor == null) {
             return false;
         }
+        scanCount++;
         while (true) {
             boolean result = cursor.next();
             if (!result) {
@@ -189,6 +227,18 @@ public class SelectorImpl extends SourceImpl {
             return this;
         }
         return null;
+    }
+
+    public long getScanCount() {
+        return scanCount;
+    }
+
+    public void restrictSelector(ConstraintImpl constraint) {
+        if (selectorCondition == null) {
+            selectorCondition = constraint;
+        } else {
+            selectorCondition = new AndImpl(selectorCondition, constraint);
+        }
     }
 
 }

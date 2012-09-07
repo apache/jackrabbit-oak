@@ -87,6 +87,11 @@ public class NodeNameImpl extends DynamicOperandImpl {
         // TODO support NAME(..) index conditions
     }
 
+    @Override
+    public boolean canRestrictSelector(SelectorImpl s) {
+        return s == selector;
+    }
+
     private String decodeName(String path) {
         // Name escaping (convert _x0020_ to space)
         path = ISO9075.decode(path);

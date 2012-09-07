@@ -65,12 +65,19 @@ public class SameNodeImpl extends ConstraintImpl {
     }
 
     @Override
-    public void apply(FilterImpl f) {
+    public void restrict(FilterImpl f) {
         if (f.getSelector() == selector) {
             String p = getAbsolutePath(path);
             f.restrictPath(p, Filter.PathRestriction.EXACT);
         }
         // TODO validate absolute path
+    }
+
+    @Override
+    public void restrictPushDown(SelectorImpl s) {
+        if (s == selector) {
+            s.restrictSelector(this);
+        }
     }
 
 }
