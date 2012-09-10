@@ -26,6 +26,8 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 /**
  * Multi-valued property state.
  */
@@ -35,9 +37,8 @@ public class MultiPropertyState extends EmptyPropertyState {
 
     public MultiPropertyState(String name, List<CoreValue> values) {
         super(name);
-        assert values != null;
         this.values = Collections.unmodifiableList(
-                new ArrayList<CoreValue>(values));
+                new ArrayList<CoreValue>(checkNotNull(values)));
     }
 
     @Override

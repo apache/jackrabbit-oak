@@ -28,6 +28,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 /**
  * Basic JavaBean implementation of a child node entry.
  */
@@ -57,11 +59,8 @@ public class MemoryChildNodeEntry extends AbstractChildNodeEntry {
      * @param node child node state
      */
     public MemoryChildNodeEntry(String name, NodeState node) {
-        assert name != null;
-        assert node != null;
-
-        this.name = name;
-        this.node = node;
+        this.name = checkNotNull(name);
+        this.node = checkNotNull(node);
     }
 
     /**

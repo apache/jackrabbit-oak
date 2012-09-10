@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.kernel.CoreValueMapper.fromJsopReader;
 import static org.apache.jackrabbit.oak.kernel.CoreValueMapper.listFromJsopReader;
 
@@ -82,21 +83,18 @@ public final class KernelNodeState extends AbstractNodeState {
      * given {@code path} and {@code revision}. It is an error if the
      * underlying Microkernel does not contain such a node.
      *
-     * @param kernel
-     * @param path
-     * @param revision
+     * @param kernel the underlying MicroKernel
+     * @param path the path of this KernelNodeState
+     * @param revision the revision of the node to read from the kernel.
+     * @param cache the KernelNodeState cache
      */
     public KernelNodeState(
             MicroKernel kernel, String path, String revision,
             LoadingCache<String, KernelNodeState> cache) {
-        assert kernel != null;
-        assert path != null;
-        assert revision != null;
-
-        this.kernel = kernel;
-        this.path = path;
-        this.revision = revision;
-        this.cache = cache;
+        this.kernel = checkNotNull(kernel);
+        this.path = checkNotNull(path);
+        this.revision = checkNotNull(revision);
+        this.cache = checkNotNull(cache);
     }
 
     private synchronized void init() {
@@ -348,11 +346,8 @@ public final class KernelNodeState extends AbstractNodeState {
          * @param path child node path
          */
         public KernelChildNodeEntry(String name, String path) {
-            assert name != null;
-            assert path != null;
-
-            this.name = name;
-            this.path = path;
+            this.name = checkNotNull(name);
+            this.path = checkNotNull(path);
         }
 
         /**

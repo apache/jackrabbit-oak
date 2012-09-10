@@ -37,6 +37,8 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 /**
  * {@code NodeStore} implementations against {@link MicroKernel}.
  */
@@ -78,8 +80,7 @@ public class KernelNodeStore implements NodeStore {
     private KernelNodeState root;
 
     public KernelNodeStore(MicroKernel kernel) {
-        assert kernel != null;
-        this.kernel = kernel;
+        this.kernel = checkNotNull(kernel);
         try {
             this.root = cache.get(kernel.getHeadRevision() + "/");
         } catch (Exception e) {
@@ -93,8 +94,7 @@ public class KernelNodeStore implements NodeStore {
     }
 
     public void setHook(CommitHook hook) {
-        assert hook != null;
-        this.hook = hook;
+        this.hook = checkNotNull(hook);
     }
 
     @Nonnull
@@ -103,8 +103,7 @@ public class KernelNodeStore implements NodeStore {
     }
 
     public void setObserver(Observer observer) {
-        assert observer != null;
-        this.observer = observer;
+        this.observer = checkNotNull(observer);
     }
 
     //----------------------------------------------------------< NodeStore >---

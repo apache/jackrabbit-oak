@@ -25,6 +25,8 @@ import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 /**
  * UserManagerConfig provides utilities to retrieve configuration options
  * related to user management. In addition it defines some constants that
@@ -92,9 +94,7 @@ public class UserConfig {
     }
 
     public UserConfig(String adminId, Map<String, Object> options, Set<AuthorizableAction> actions) {
-        assert adminId != null;
-
-        this.adminId = adminId;
+        this.adminId = checkNotNull(adminId);
         this.options = (options == null) ? Collections.<String, Object>emptyMap() : Collections.unmodifiableMap(options);
         this.actions = (actions == null) ? Collections.<AuthorizableAction>emptySet() : Collections.unmodifiableSet(actions);
     }

@@ -23,6 +23,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
@@ -150,7 +151,7 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
     //------------------------------------------------------------< private >---
 
     private NodeState getNode(String path) {
-        assert path.startsWith("/");
+        checkArgument(path.startsWith("/"));
         NodeState node = getRoot();
         for (String name : elements(path)) {
             node = node.getChildNode(name);
