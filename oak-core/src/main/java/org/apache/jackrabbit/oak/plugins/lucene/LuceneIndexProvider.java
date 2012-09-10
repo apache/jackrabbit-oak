@@ -16,91 +16,50 @@
  */
 package org.apache.jackrabbit.oak.plugins.lucene;
 
-import static org.apache.jackrabbit.oak.plugins.lucene.LuceneIndexUtils.getIndexInfos;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.spi.QueryIndex;
 import org.apache.jackrabbit.oak.spi.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.IndexDefinition;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.query.IndexUtils;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A provider for Lucene indexes. There is exactly one Lucene index instance per
- * MicroKernel.
+ * A provider for Lucene indexes.
  */
-public class LuceneIndexProvider implements QueryIndexProvider {
+public class LuceneIndexProvider implements QueryIndexProvider,
+        LuceneIndexConstants {
 
     private static final Logger LOG = LoggerFactory
             .getLogger(LuceneIndexProvider.class);
 
     private final String indexPath;
 
-    private boolean init;
-
-    /**
-     * The indexes list
-     * 
-     * lazy init
-     */
-    private List<QueryIndex> indexes = null;
-
     public LuceneIndexProvider(String indexPath) {
         this.indexPath = indexPath;
     }
 
-    private void init(MicroKernel mk) {
-        if (init) {
-            return;
-        }
-        LOG.debug("initializing indexes");
-
+    @Override
+    public List<QueryIndex> getQueryIndexes(NodeStore store) {
         if (!PathUtils.isValid(indexPath)) {
             LOG.warn("index path is not valid {}", indexPath);
-            indexes = Collections.<QueryIndex> emptyList();
-            init = true;
-            return;
+            return Collections.<QueryIndex> emptyList();
         }
-
-        NodeStore store = new KernelNodeStore(mk);
-        NodeState index = store.getRoot();
-        for (String e : PathUtils.elements(indexPath)) {
-            if (PathUtils.denotesRoot(e)) {
-                continue;
-            }
-            index = index.getChildNode(e);
-            if (index == null) {
-                break;
-            }
-        }
-
-        if (index == null) {
-            // TODO what should happen when the index node doesn't exist?
-            indexes = Collections.<QueryIndex> emptyList();
-            init = true;
-            return;
-        }
-
+        NodeBuilder builder = IndexUtils.getChildBuilder(store, indexPath);
         List<QueryIndex> tempIndexes = new ArrayList<QueryIndex>();
-        for (IndexDefinition childIndex : getIndexInfos(index, indexPath)) {
-            LOG.debug("adding a new lucene index instance @ {}", childIndex);
-            tempIndexes.add(new LuceneIndex(store, childIndex));
+        for (IndexDefinition child : IndexUtils.buildIndexDefinitions(
+                store.getRoot(), indexPath, TYPE)) {
+            // add :data node
+            builder.getChildBuilder(child.getName()).getChildBuilder(
+                    INDEX_DATA_CHILD_NAME);
+            tempIndexes.add(new LuceneIndex(store, child));
         }
-        indexes = new ArrayList<QueryIndex>(tempIndexes);
-        init = true;
-    }
-
-    @Override
-    public List<QueryIndex> getQueryIndexes(MicroKernel mk) {
-        init(mk);
-        return indexes;
+        return tempIndexes;
     }
 }

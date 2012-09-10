@@ -19,14 +19,20 @@ package org.apache.jackrabbit.oak.plugins.index;
 import java.util.Iterator;
 
 import org.apache.jackrabbit.mk.simple.NodeImpl;
-import org.apache.jackrabbit.oak.spi.query.Index;
 
 /**
  * An index is a lookup mechanism. It typically uses a tree to store data. It
  * updates the tree whenever a node was changed. The index is updated
  * automatically.
  */
-public interface PIndex extends Index{
+public interface PIndex {
+
+    /**
+     * Get the unique index name. This is also the name of the index node.
+     *
+     * @return the index name
+     */
+    String getIndexNodeName();
 
     /**
      * The given node was added or removed.
@@ -56,5 +62,12 @@ public interface PIndex extends Index{
      * @return an iterator of the paths (an empty iterator if not found)
      */
     Iterator<String> getPaths(String value, String revision);
+
+    /**
+     * Whether each value may only appear once in the index.
+     *
+     * @return true if unique
+     */
+    boolean isUnique();
 
 }

@@ -21,9 +21,10 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.spi.QueryIndex;
 import org.apache.jackrabbit.oak.spi.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
  * This {@code QueryIndexProvider} aggregates a list of query index providers
@@ -47,10 +48,10 @@ public class CompositeQueryIndexProvider implements QueryIndexProvider {
     }
 
     @Override
-    public List<? extends QueryIndex> getQueryIndexes(MicroKernel mk) {
+    public List<? extends QueryIndex> getQueryIndexes(NodeStore nodeStore) {
         List<QueryIndex> indexes = new ArrayList<QueryIndex>();
         for (QueryIndexProvider qip : providers) {
-            List<? extends QueryIndex> t = qip.getQueryIndexes(mk);
+            List<? extends QueryIndex> t = qip.getQueryIndexes(nodeStore);
             if (t != null) {
                 indexes.addAll(t);
             }

@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.index;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map.Entry;
 
 import org.apache.jackrabbit.mk.ExceptionFactory;
@@ -33,49 +32,13 @@ import org.apache.jackrabbit.mk.simple.NodeImpl;
 import org.apache.jackrabbit.mk.simple.NodeMap;
 import org.apache.jackrabbit.mk.util.SimpleLRUCache;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.unique.UniqueIndex;
-import org.apache.jackrabbit.oak.query.index.PrefixContentIndex;
-import org.apache.jackrabbit.oak.query.index.PropertyContentIndex;
-import org.apache.jackrabbit.oak.spi.QueryIndex;
-import org.apache.jackrabbit.oak.spi.QueryIndexProvider;
-import org.apache.jackrabbit.oak.spi.query.Index;
-import org.apache.jackrabbit.oak.spi.query.IndexUtils;
 
 /**
  * A index mechanism. An index is bound to a certain repository, and supports
  * one or more indexes.
+ * 
  */
-public class Indexer implements QueryIndexProvider {
-
-    /**
-     * The root node of the index definition (configuration) nodes.
-     */
-    // TODO OAK-178 discuss where to store index config data
-    public static final String INDEX_CONFIG_PATH = IndexUtils.DEFAULT_INDEX_HOME + "/indexes";
-            //"/jcr:system/indexes";
-
-    /**
-     * For each index, the index content is stored relative to the index
-     * definition below this node. There is also such a node just below the
-     * index definition node, to store the last revision and for temporary data.
-     */
-    public static final String INDEX_CONTENT = ":data";
-
-    /**
-     * The node name prefix of a prefix index.
-     */
-    public static final String TYPE_PREFIX = "prefix@";
-
-    /**
-     * The node name prefix of a property index.
-     */
-    // TODO support multi-property indexes
-    public static final String TYPE_PROPERTY = "property@";
-
-    /**
-     * Marks a unique index.
-     */
-    public static final String UNIQUE = "unique";
+public class Indexer implements PropertyIndexConstants, BTreeHelper {
 
     /**
      * The maximum length of the write buffer.
@@ -86,10 +49,9 @@ public class Indexer implements QueryIndexProvider {
 
     private MicroKernel mk;
     private String revision;
-    private String indexRootNode = INDEX_CONFIG_PATH;
-    private int indexRootNodeDepth;
+    private final String indexRootNode;
+    private final int indexRootNodeDepth;
     private StringBuilder buffer;
-    private ArrayList<QueryIndex> queryIndexList;
     private HashMap<String, BTreePage> modified = new HashMap<String, BTreePage>();
     private SimpleLRUCache<String, BTreePage> cache = SimpleLRUCache.newInstance(100);
     private String readRevision;
@@ -110,8 +72,17 @@ public class Indexer implements QueryIndexProvider {
      */
     private final HashMap<String, PropertyIndex> propertyIndexes = new HashMap<String, PropertyIndex>();
 
-    public Indexer(MicroKernel mk) {
+    public Indexer(MicroKernel mk, String indexConfigPath) {
         this.mk = mk;
+        this.indexRootNode = indexConfigPath;
+        this.indexRootNodeDepth = PathUtils.getDepth(indexRootNode);
+    }
+
+    /**
+     * TODO test-only
+     */
+    public Indexer(MicroKernel mk) {
+        this(mk, INDEX_CONFIG_PATH);
     }
 
     /**
@@ -140,10 +111,6 @@ public class Indexer implements QueryIndexProvider {
             return;
         }
         init = true;
-        if (!PathUtils.isAbsolute(indexRootNode)) {
-            indexRootNode = "/" + indexRootNode;
-        }
-        indexRootNodeDepth = PathUtils.getDepth(indexRootNode);
         revision = mk.getHeadRevision();
         readRevision = revision;
         boolean exists = mk.nodeExists(indexRootNode, revision);
@@ -162,15 +129,13 @@ public class Indexer implements QueryIndexProvider {
                 String k = n.getChildNodeName(i);
                 PropertyIndex prop = PropertyIndex.fromNodeName(this, k);
                 if (prop != null) {
-                    indexes.put(prop.getDefinition().getName(), prop);
+                    indexes.put(prop.getIndexNodeName(), prop);
                     propertyIndexes.put(prop.getPropertyName(), prop);
-                    queryIndexList = null;
                 }
                 PrefixIndex pref = PrefixIndex.fromNodeName(this, k);
                 if (pref != null) {
-                    indexes.put(pref.getDefinition().getName(), pref);
+                    indexes.put(pref.getIndexNodeName(), pref);
                     prefixIndexes.put(pref.getPrefix(), pref);
-                    queryIndexList = null;
                 }
             }
         }
@@ -178,8 +143,7 @@ public class Indexer implements QueryIndexProvider {
 
     private void removePropertyIndex(String property, boolean unique) {
         PropertyIndex index = propertyIndexes.remove(property);
-        indexes.remove(index.getDefinition().getName());
-        queryIndexList = null;
+        indexes.remove(index.getIndexNodeName());
     }
 
     public PropertyIndex createPropertyIndex(String property, boolean unique) {
@@ -189,16 +153,14 @@ public class Indexer implements QueryIndexProvider {
         }
         PropertyIndex index = new PropertyIndex(this, property, unique);
         buildIndex(index);
-        indexes.put(index.getDefinition().getName(), index);
+        indexes.put(index.getIndexNodeName(), index);
         propertyIndexes.put(index.getPropertyName(), index);
-        queryIndexList = null;
         return index;
     }
 
     private void removePrefixIndex(String prefix) {
          PrefixIndex index = prefixIndexes.remove(prefix);
-         indexes.remove(index.getDefinition().getName());
-         queryIndexList = null;
+         indexes.remove(index.getIndexNodeName());
     }
 
     public PrefixIndex createPrefixIndex(String prefix) {
@@ -208,9 +170,8 @@ public class Indexer implements QueryIndexProvider {
         }
         PrefixIndex index = new PrefixIndex(this, prefix);
         buildIndex(index);
-        indexes.put(index.getDefinition().getName(), index);
+        indexes.put(index.getIndexNodeName(), index);
         prefixIndexes.put(index.getPrefix(), index);
-        queryIndexList = null;
         return index;
     }
 
@@ -670,25 +631,6 @@ public class Indexer implements QueryIndexProvider {
 
     private boolean needFlush() {
         return buffer != null && buffer.length() > MAX_BUFFER_LENGTH;
-    }
-
-    @Override
-    public List<QueryIndex> getQueryIndexes(MicroKernel mk) {
-        init();
-        if (queryIndexList == null) {
-            queryIndexList = new ArrayList<QueryIndex>();
-            for (Index index : indexes.values()) {
-                QueryIndex qi = null;
-                if (index instanceof PropertyIndex) {
-                    qi = new PropertyContentIndex((PropertyIndex) index);
-                } else if (index instanceof PrefixIndex) {
-                    qi = new PrefixContentIndex((PrefixIndex) index);
-                }
-                queryIndexList.add(qi);
-            }
-            queryIndexList.add(new UniqueIndex());
-        }
-        return queryIndexList;
     }
 
     public PrefixIndex getPrefixIndex(String prefix) {

@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.lucene;
 
-import static org.apache.jackrabbit.oak.plugins.lucene.LuceneIndexUtils.DEFAULT_INDEX_NAME;
-import static org.apache.jackrabbit.oak.plugins.lucene.LuceneIndexUtils.createIndexNode;
 import static org.apache.jackrabbit.oak.spi.query.IndexUtils.DEFAULT_INDEX_HOME;
 
 import java.text.ParseException;
@@ -33,11 +31,7 @@ import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.SessionQueryEngine;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
-import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
-import org.apache.jackrabbit.oak.plugins.index.PropertyIndexFactory;
 import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.type.DefaultTypeEditor;
@@ -50,19 +44,15 @@ import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
 import org.apache.jackrabbit.oak.spi.commit.ValidatingHook;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
-import org.apache.jackrabbit.oak.spi.query.IndexManager;
-import org.apache.jackrabbit.oak.spi.query.IndexManagerImpl;
-import org.apache.jackrabbit.oak.spi.query.IndexUtils;
 import org.junit.Before;
 
 /**
  * base class for lucene search tests
  */
-public abstract class AbstractLuceneQueryTest extends AbstractOakTest {
+public abstract class AbstractLuceneQueryTest extends AbstractOakTest implements
+        LuceneIndexConstants {
 
     protected static final String SQL2 = "JCR-SQL2";
-
-    private static final String TEST_INDEX_NAME = DEFAULT_INDEX_NAME;
 
     protected MicroKernel mk;
     protected ContentSession session;
@@ -78,8 +68,6 @@ public abstract class AbstractLuceneQueryTest extends AbstractOakTest {
         root = session.getCurrentRoot();
         vf = session.getCoreValueFactory();
         qe = session.getQueryEngine();
-        cleanupIndexNode();
-
     }
 
     @Override
@@ -91,13 +79,10 @@ public abstract class AbstractLuceneQueryTest extends AbstractOakTest {
     }
 
     private CommitHook buildDefaultCommitHook() {
-        IndexManager im = new IndexManagerImpl(IndexUtils.DEFAULT_INDEX_HOME,
-                mk, new PropertyIndexFactory(), new LuceneIndexFactory());
-
         List<CommitHook> hooks = new ArrayList<CommitHook>();
         hooks.add(new DefaultTypeEditor());
         hooks.add(new ValidatingHook(createDefaultValidatorProvider()));
-        hooks.add(im);
+        hooks.add(new LuceneHook(DEFAULT_INDEX_HOME));
         return new CompositeHook(hooks);
     }
 
@@ -108,33 +93,6 @@ public abstract class AbstractLuceneQueryTest extends AbstractOakTest {
         providers.add(new TypeValidatorProvider());
         providers.add(new ConflictValidatorProvider());
         return new CompositeValidatorProvider(providers);
-    }
-
-    /**
-     * Recreates an empty index node, ready to be used in tests
-     * 
-     * @throws Exception
-     */
-    private void cleanupIndexNode() throws Exception {
-        Tree index = root.getTree(DEFAULT_INDEX_HOME);
-        if (index != null) {
-            index = index.getChild(TEST_INDEX_NAME);
-            if (index != null) {
-                index.remove();
-            }
-        } else {
-            index = root.getTree("/");
-            for (String p : PathUtils.elements(DEFAULT_INDEX_HOME)) {
-                if (index.hasChild(p)) {
-                    index = index.getChild(p);
-                } else {
-                    index = index.addChild(p);
-                }
-            }
-        }
-
-        createIndexNode(root.getTree(DEFAULT_INDEX_HOME), TEST_INDEX_NAME, vf);
-        root.commit(DefaultConflictHandler.OURS);
     }
 
     protected Result executeQuery(String statement) throws ParseException {
