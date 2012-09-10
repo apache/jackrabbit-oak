@@ -17,10 +17,12 @@
 package org.apache.jackrabbit.oak.spi.commit;
 
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Validator that detects changes to a specified subtree and delegates the
@@ -41,9 +43,9 @@ public class SubtreeValidator extends DefaultValidator {
     }
 
     private SubtreeValidator(Validator validator, List<String> path) {
-        assert validator != null;
-        assert path != null && !path.isEmpty();
-        this.validator = validator;
+        this.validator = checkNotNull(validator);
+        checkNotNull(path);
+        checkArgument(!path.isEmpty());
         this.head = path.get(0);
         this.tail = path.subList(1, path.size());
     }

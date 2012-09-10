@@ -35,6 +35,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 /**
  * {@code MicroKernel}-based implementation of the {@link ContentSession} interface.
  */
@@ -52,11 +54,10 @@ class ContentSessionImpl implements ContentSession {
     public ContentSessionImpl(LoginContext loginContext, String workspaceName,
                               NodeStore store, QueryEngineImpl queryEngine) {
 
-        assert queryEngine != null;
         this.loginContext = loginContext;
         this.workspaceName = workspaceName;
         this.store = store;
-        this.queryEngine = new SessionQueryEngineImpl(this, queryEngine);
+        this.queryEngine = new SessionQueryEngineImpl(this, checkNotNull(queryEngine));
     }
 
     @Nonnull

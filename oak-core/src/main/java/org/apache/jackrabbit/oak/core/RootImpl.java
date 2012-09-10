@@ -42,6 +42,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 
@@ -138,7 +139,7 @@ public class RootImpl implements Root {
 
     @Override
     public TreeLocation getLocation(String path) {
-        assert path.startsWith("/");
+        checkArgument(path.startsWith("/"));
         return rootTree.getLocation().getChild(path.substring(1));
     }
 

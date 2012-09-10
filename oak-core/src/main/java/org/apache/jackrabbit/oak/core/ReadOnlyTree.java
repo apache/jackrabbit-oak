@@ -28,6 +28,9 @@ import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 public class ReadOnlyTree implements Tree {
 
     /** Parent of this tree, {@code null} for the root */
@@ -44,13 +47,10 @@ public class ReadOnlyTree implements Tree {
     }
 
     public ReadOnlyTree(ReadOnlyTree parent, String name, NodeState state) {
-        assert name != null;
-        assert !name.isEmpty() || parent == null;
-        assert state != null;
-
         this.parent = parent;
-        this.name = name;
-        this.state = state;
+        this.name = checkNotNull(name);
+        this.state = checkNotNull(state);
+        checkArgument(!name.isEmpty() || parent == null);
     }
 
     @Override

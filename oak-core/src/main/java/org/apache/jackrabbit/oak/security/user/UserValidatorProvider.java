@@ -25,6 +25,8 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 /**
  * Provides a validator for user and group management.
  */
@@ -33,8 +35,7 @@ public class UserValidatorProvider implements ValidatorProvider {
     private final UserConfig config;
 
     public UserValidatorProvider(UserConfig config) {
-        assert config != null;
-        this.config = config;
+        this.config = checkNotNull(config);
     }
     //--------------------------------------------------< ValidatorProvider >---
     @Nonnull
