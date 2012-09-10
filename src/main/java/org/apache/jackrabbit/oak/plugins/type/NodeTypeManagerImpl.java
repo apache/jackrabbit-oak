@@ -292,7 +292,7 @@ public class NodeTypeManagerImpl extends AbstractNodeTypeManager {
 
         node.setString(
                 JCR_REQUIREDTYPE,
-                PropertyType.nameFromValue(def.getRequiredType()));
+                PropertyType.nameFromValue(def.getRequiredType()).toUpperCase());
         node.setBoolean(JCR_MULTIPLE, def.isMultiple());
         node.setBoolean(JCR_IS_FULLTEXT_SEARCHABLE, def.isFullTextSearchable());
         node.setBoolean(JCR_IS_QUERY_ORDERABLE, def.isQueryOrderable());
