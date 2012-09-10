@@ -21,7 +21,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 /**
  * An index page.
  */
-abstract public class BTreePage {
+abstract public class BTreePage implements PropertyIndexConstants {
 
     protected final BTree tree;
     protected BTreeNode parent;
@@ -44,16 +44,16 @@ abstract public class BTreePage {
     void setParent(BTreeNode newParent, String newName, boolean parentIsNew) {
         if (newParent != null) {
             String oldPath = getPath();
-            String temp = PathUtils.concat(Indexer.INDEX_CONTENT, "temp");
+            String temp = PathUtils.concat(INDEX_CONTENT, "temp");
             tree.bufferMove(
-                    PathUtils.concat(tree.getName(), Indexer.INDEX_CONTENT, getPath()),
+                    PathUtils.concat(tree.getName(), INDEX_CONTENT, getPath()),
                     temp);
             if (parentIsNew) {
                 newParent.writeCreate();
             }
             tree.bufferMove(
                     temp,
-                    PathUtils.concat(tree.getName(), Indexer.INDEX_CONTENT, getParentPath(), newName));
+                    PathUtils.concat(tree.getName(), INDEX_CONTENT, getParentPath(), newName));
             parent = newParent;
             name = newName;
             tree.moveCache(oldPath);

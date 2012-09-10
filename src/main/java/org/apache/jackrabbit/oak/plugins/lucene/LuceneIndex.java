@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.lucene;
 
 import static org.apache.jackrabbit.oak.plugins.lucene.FieldNames.PATH;
 import static org.apache.jackrabbit.oak.plugins.lucene.FieldNames.PATH_SELECTOR;
-import static org.apache.jackrabbit.oak.plugins.lucene.LuceneIndexUtils.INDEX_DATA_CHILD_NAME;
 import static org.apache.jackrabbit.oak.plugins.lucene.TermFactory.newPathTerm;
 import static org.apache.jackrabbit.oak.spi.query.IndexUtils.split;
 
@@ -55,7 +54,7 @@ import org.apache.lucene.store.Directory;
 /**
  * This index uses internally runs a query against a Lucene index.
  */
-public class LuceneIndex implements QueryIndex {
+public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
 
     private final NodeStore store;
 

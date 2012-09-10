@@ -16,60 +16,39 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import java.io.IOException;
 import java.util.Iterator;
 
 import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.mk.simple.NodeImpl;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.spi.query.IndexDefinition;
-import org.apache.jackrabbit.oak.spi.query.IndexDefinitionImpl;
-import org.apache.jackrabbit.oak.spi.query.IndexUtils;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
  * An index for all values with a given prefix.
  */
-public class PrefixIndex implements PIndex {
+public class PrefixIndex implements PIndex, PropertyIndexConstants {
 
-    private final Indexer indexer;
+    private final BTreeHelper indexer;
     private final BTree tree;
     private final String prefix;
 
-    private final IndexDefinition indexDefinition;
-
-    public PrefixIndex(Indexer indexer, String prefix) {
-        this(indexer, prefix, new IndexDefinitionImpl(prefix,
-                PropertyIndexFactory.TYPE_PREFIX, PathUtils.concat(
-                        IndexUtils.DEFAULT_INDEX_HOME, prefix), false, null));
-    }
-
-    public PrefixIndex(Indexer indexer, String prefix, IndexDefinition indexDefinition) {
+    public PrefixIndex(BTreeHelper indexer, String prefix) {
         this.indexer = indexer;
         this.prefix = prefix;
-        this.tree = new BTree(indexer, Indexer.TYPE_PREFIX + prefix, false);
+        this.tree = new BTree(indexer, TYPE_PREFIX + prefix, false);
         tree.setMinSize(10);
-        this.indexDefinition = indexDefinition;
     }
 
-    public static PrefixIndex fromNodeName(Indexer indexer, String nodeName) {
-        if (!nodeName.startsWith(Indexer.TYPE_PREFIX)) {
+    public static PrefixIndex fromNodeName(BTreeHelper indexer, String nodeName) {
+        if (!nodeName.startsWith(TYPE_PREFIX)) {
             return null;
         }
-        String prefix = nodeName.substring(Indexer.TYPE_PREFIX.length());
+        String prefix = nodeName.substring(TYPE_PREFIX.length());
         return new PrefixIndex(indexer, prefix);
     }
 
     public String getPrefix() {
         return prefix;
-    }
-
-    @Override
-    public IndexDefinition getDefinition() {
-        return indexDefinition;
     }
 
     @Override
@@ -145,15 +124,13 @@ public class PrefixIndex implements PIndex {
     }
 
     @Override
-    public void close() throws IOException {
-        // not needed
+    public String getIndexNodeName() {
+        return tree.getName();
     }
 
     @Override
-    public NodeState processCommit(NodeStore store, NodeState before,
-            NodeState after) throws CommitFailedException {
-        // TODO wire-in the processCommit mechanism
-        return after;
+    public boolean isUnique() {
+        return tree.isUnique();
     }
 
 }

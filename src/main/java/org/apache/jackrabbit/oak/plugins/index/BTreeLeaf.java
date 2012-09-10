@@ -25,7 +25,7 @@ import org.apache.jackrabbit.oak.util.ArrayUtils;
 /**
  * An index leaf page.
  */
-public class BTreeLeaf extends BTreePage {
+public class BTreeLeaf extends BTreePage implements PropertyIndexConstants {
 
     public BTreeLeaf(BTree tree, BTreeNode parent, String name, String[] data, String[] paths) {
         super(tree, parent, name, data, paths);
@@ -92,7 +92,7 @@ public class BTreeLeaf extends BTreePage {
 
     private String getJsop() {
         JsopBuilder jsop = new JsopBuilder();
-        jsop.tag('+').key(PathUtils.concat(tree.getName(), Indexer.INDEX_CONTENT, getPath())).object();
+        jsop.tag('+').key(PathUtils.concat(tree.getName(), INDEX_CONTENT, getPath())).object();
         jsop.key("keys").array();
         for (String k : keys) {
             jsop.value(k);

@@ -36,6 +36,7 @@ explain select * from [nt:base] where property(id, 'REFERENCE') = CAST('123' AS 
 select * from [nt:base] where property([*], 'REFERENCE') = CAST('123' AS REFERENCE)
 /test/a
 
+commit /oak-index/indexes + "type:": "property"
 commit /oak-index/indexes + "prefix@ref:": {}
 
 explain select * from [nt:base] where property([*], 'REFERENCE') = CAST('123' AS REFERENCE)

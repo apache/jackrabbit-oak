@@ -16,69 +16,46 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import java.io.IOException;
 import java.util.Iterator;
 
 import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.mk.simple.NodeImpl;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.spi.query.IndexDefinition;
-import org.apache.jackrabbit.oak.spi.query.IndexDefinitionImpl;
-import org.apache.jackrabbit.oak.spi.query.IndexUtils;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
  * A node handler that maps the property value to the key, and the path of the
  * node to the value. Only string and numbers are indexes (arrays, true, false,
  * and null are not indexes).
  */
-public class PropertyIndex implements PIndex {
+public class PropertyIndex implements PIndex, PropertyIndexConstants {
 
-    private final Indexer indexer;
+    private final BTreeHelper indexer;
     private final BTree tree;
     private final String propertyName;
 
-    private final IndexDefinition indexDefinition;
-
-    public PropertyIndex(Indexer indexer, String propertyName, boolean unique) {
-        this(indexer, propertyName, unique, new IndexDefinitionImpl(
-                propertyName, PropertyIndexFactory.TYPE_PREFIX,
-                PathUtils.concat(IndexUtils.DEFAULT_INDEX_HOME, propertyName),
-                false, null));
-    }
-
-    public PropertyIndex(Indexer indexer, String propertyName, boolean unique, IndexDefinition indexDefinition) {
+    public PropertyIndex(BTreeHelper indexer, String propertyName, boolean unique) {
         this.indexer = indexer;
         this.propertyName = propertyName;
-        this.tree = new BTree(indexer, Indexer.TYPE_PROPERTY + propertyName +
-                (unique ? "," + Indexer.UNIQUE : ""), unique);
+        this.tree = new BTree(indexer, TYPE_PROPERTY + propertyName 
+                + (unique ? "," + UNIQUE : ""), unique);
         tree.setMinSize(10);
-        this.indexDefinition = indexDefinition;
     }
 
-    public static PropertyIndex fromNodeName(Indexer indexer, String nodeName) {
-        if (!nodeName.startsWith(Indexer.TYPE_PROPERTY)) {
+    public static PropertyIndex fromNodeName(BTreeHelper indexer, String nodeName) {
+        if (!nodeName.startsWith(TYPE_PROPERTY)) {
             return null;
         }
         boolean unique = false;
-        if (nodeName.endsWith(Indexer.UNIQUE)) {
+        if (nodeName.endsWith(UNIQUE)) {
             unique = true;
-            nodeName = nodeName.substring(0, nodeName.length() - Indexer.UNIQUE.length() - 1);
+            nodeName = nodeName.substring(0, nodeName.length() - UNIQUE.length() - 1);
         }
-        String property = nodeName.substring(Indexer.TYPE_PROPERTY.length());
+        String property = nodeName.substring(TYPE_PROPERTY.length());
         return new PropertyIndex(indexer, property, unique);
     }
 
     public String getPropertyName() {
         return propertyName;
-    }
-
-    @Override
-    public IndexDefinition getDefinition() {
-        return indexDefinition;
     }
 
     @Override
@@ -151,15 +128,13 @@ public class PropertyIndex implements PIndex {
     }
 
     @Override
-    public NodeState processCommit(NodeStore store, NodeState before,
-            NodeState after) throws CommitFailedException {
-        // TODO wire-in the processCommit mechanism
-        return after;
+    public String getIndexNodeName() {
+        return tree.getName();
     }
 
     @Override
-    public void close() throws IOException {
-        // not needed
+    public boolean isUnique() {
+        return tree.isUnique();
     }
 
 }

@@ -49,7 +49,7 @@ public class PropertyContentIndex implements QueryIndex {
             // only support equality matches (for now)
             return Double.MAX_VALUE;
         }
-        boolean unique = index.getDefinition().isUnique();
+        boolean unique = index.isUnique();
         return unique ? 2 : 20;
     }
 
@@ -76,7 +76,7 @@ public class PropertyContentIndex implements QueryIndex {
 
     @Override
     public String getIndexName() {
-        return index.getDefinition().getName();
+        return index.getIndexNodeName();
     }
 
     /**

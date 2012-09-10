@@ -25,7 +25,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 /**
  * An index node page.
  */
-public class BTreeNode extends BTreePage {
+public class BTreeNode extends BTreePage implements PropertyIndexConstants {
 
     private String[] children;
 
@@ -71,8 +71,8 @@ public class BTreeNode extends BTreePage {
         n2.writeCreate();
         for (String c : n2.children) {
             tree.bufferMove(
-                    PathUtils.concat(tree.getName(), Indexer.INDEX_CONTENT, getPath(), c),
-                    PathUtils.concat(tree.getName(), Indexer.INDEX_CONTENT, getParentPath(), siblingName, c)
+                    PathUtils.concat(tree.getName(), INDEX_CONTENT, getPath(), c),
+                    PathUtils.concat(tree.getName(), INDEX_CONTENT, getParentPath(), siblingName, c)
             );
         }
         tree.moveCache(getPath());
@@ -152,7 +152,7 @@ public class BTreeNode extends BTreePage {
 
     private String getJsop() {
         JsopBuilder jsop = new JsopBuilder();
-        jsop.tag('+').key(PathUtils.concat(tree.getName(), Indexer.INDEX_CONTENT, getPath())).object();
+        jsop.tag('+').key(PathUtils.concat(tree.getName(), INDEX_CONTENT, getPath())).object();
         jsop.key("keys").array();
         for (String k : keys) {
             jsop.value(k);
