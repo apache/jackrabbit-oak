@@ -14,28 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.query;
+package org.apache.jackrabbit.oak.plugins.index;
 
-import java.io.Closeable;
+public interface BTreeHelper {
 
-import javax.annotation.Nonnull;
+    BTreePage getPageIfCached(BTree tree, BTreeNode parent, String name);
 
-import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+    BTreePage getPage(BTree tree, BTreeNode parent, String name);
 
-/**
- * An index is a lookup mechanism. It typically uses a tree to store data. It
- * updates the tree whenever a node was changed. The index is updated
- * automatically.
- */
-public interface Index extends CommitHook, Closeable {
+    void modified(BTree tree, BTreePage page, boolean deleted);
 
-    /**
-     * Get the the index definition. This contains the name, type, uniqueness
-     * and other properties.
-     * 
-     * @return the index definition
-     */
-    @Nonnull
-    IndexDefinition getDefinition();
+    void moveCache(BTree tree, String oldPath);
+
+    void createNodes(String path);
+
+    void buffer(String diff);
+
+    void updateUntil(String toRevision);
 
 }

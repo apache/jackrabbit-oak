@@ -24,12 +24,10 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.SessionQueryEngine;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
-import org.apache.jackrabbit.oak.plugins.index.PropertyIndexFactory;
+import org.apache.jackrabbit.oak.plugins.index.PropertyIndexer;
 import org.apache.jackrabbit.oak.spi.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
-import org.apache.jackrabbit.oak.spi.query.IndexManager;
-import org.apache.jackrabbit.oak.spi.query.IndexManagerImpl;
-import org.apache.jackrabbit.oak.spi.query.IndexUtils;
 import org.junit.Before;
 
 /**
@@ -45,11 +43,10 @@ public abstract class AbstractQueryTest extends AbstractOakTest {
     @Override
     protected ContentRepository createRepository() {
         mk = new IndexWrapper(new MicroKernelImpl());
-        QueryIndexProvider indexer = mk.getIndexer();
-        QueryIndexProvider qip = new CompositeQueryIndexProvider(indexer);
-        IndexManager im = new IndexManagerImpl(IndexUtils.DEFAULT_INDEX_HOME,
-                mk, new PropertyIndexFactory());
-        return new ContentRepositoryImpl(mk, qip, im);
+        PropertyIndexer pi = new PropertyIndexer(mk.getIndexer());
+        QueryIndexProvider qip = new CompositeQueryIndexProvider(pi);
+        CompositeHook hook = new CompositeHook(pi);
+        return new ContentRepositoryImpl(mk, qip, hook);
     }
 
     @Override

@@ -98,7 +98,7 @@ public class PrefixContentIndex implements QueryIndex {
 
     @Override
     public String getIndexName() {
-        return index.getDefinition().getName();
+        return index.getIndexNodeName();
     }
 
     /**

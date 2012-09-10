@@ -19,7 +19,8 @@
 package org.apache.jackrabbit.oak.spi;
 
 import java.util.List;
-import org.apache.jackrabbit.mk.api.MicroKernel;
+
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
  * A mechanism to index data. Indexes might be added or removed at runtime,
@@ -29,11 +30,10 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 public interface QueryIndexProvider {
 
     /**
-     * Get the currently configured indexes for the given MicroKernel instance.
-     *
-     * @param mk the MicroKernel instance
+     * Get the currently configured indexes.
+     * 
      * @return the list of indexes
      */
-    List<? extends QueryIndex> getQueryIndexes(MicroKernel mk);
+    List<? extends QueryIndex> getQueryIndexes(NodeStore nodeStore);
 
 }

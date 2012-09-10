@@ -16,6 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.lucene;
 
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertFalse;
+import static junit.framework.Assert.assertTrue;
+import static org.apache.jackrabbit.oak.spi.query.IndexUtils.DEFAULT_INDEX_HOME;
+
 import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
@@ -34,18 +39,12 @@ import org.apache.jackrabbit.oak.spi.query.IndexDefinition;
 import org.apache.jackrabbit.oak.spi.query.IndexDefinitionImpl;
 import org.junit.Test;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertTrue;
-import static org.apache.jackrabbit.oak.plugins.lucene.LuceneIndexUtils.DEFAULT_INDEX_NAME;
-import static org.apache.jackrabbit.oak.spi.query.IndexUtils.DEFAULT_INDEX_HOME;
-
-public class LuceneEditorTest {
+public class LuceneEditorTest implements LuceneIndexConstants {
 
     @Test
     public void testLucene() throws Exception {
         IndexDefinition testID = new IndexDefinitionImpl(DEFAULT_INDEX_NAME,
-                LuceneIndexFactory.TYPE, DEFAULT_INDEX_HOME, false, null);
+                TYPE, DEFAULT_INDEX_HOME, false, null);
 
         KernelNodeStore store = new KernelNodeStore(new MicroKernelImpl());
         store.setHook(new LuceneEditor(testID));

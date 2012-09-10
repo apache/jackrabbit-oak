@@ -16,6 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.lucene;
 
+import static org.apache.jackrabbit.oak.plugins.lucene.FieldFactory.newPathField;
+import static org.apache.jackrabbit.oak.plugins.lucene.FieldFactory.newPropertyField;
+import static org.apache.jackrabbit.oak.plugins.lucene.TermFactory.newPathTerm;
+import static org.apache.jackrabbit.oak.spi.query.IndexUtils.split;
+
 import java.io.IOException;
 
 import javax.jcr.PropertyType;
@@ -23,11 +28,8 @@ import javax.jcr.PropertyType;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.query.Index;
 import org.apache.jackrabbit.oak.spi.query.IndexDefinition;
-import org.apache.jackrabbit.oak.spi.query.IndexDefinitionImpl;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
@@ -42,18 +44,10 @@ import org.apache.lucene.util.Version;
 import org.apache.tika.Tika;
 import org.apache.tika.exception.TikaException;
 
-import static org.apache.jackrabbit.oak.plugins.lucene.FieldFactory.newPathField;
-import static org.apache.jackrabbit.oak.plugins.lucene.FieldFactory.newPropertyField;
-import static org.apache.jackrabbit.oak.plugins.lucene.LuceneIndexUtils.DEFAULT_INDEX_NAME;
-import static org.apache.jackrabbit.oak.plugins.lucene.LuceneIndexUtils.INDEX_DATA_CHILD_NAME;
-import static org.apache.jackrabbit.oak.plugins.lucene.TermFactory.newPathTerm;
-import static org.apache.jackrabbit.oak.spi.query.IndexUtils.DEFAULT_INDEX_HOME;
-import static org.apache.jackrabbit.oak.spi.query.IndexUtils.split;
-
 /**
  * This class updates a Lucene index when node content is changed.
  */
-public class LuceneEditor implements CommitHook, Index {
+class LuceneEditor implements CommitHook, LuceneIndexConstants {
 
     private static final Tika TIKA = new Tika();
 
@@ -75,22 +69,10 @@ public class LuceneEditor implements CommitHook, Index {
         }
     }
 
-    private final IndexDefinition indexDefinition;
-
     private final String[] path;
 
     public LuceneEditor(IndexDefinition indexDefinition) {
-        this.indexDefinition = indexDefinition;
         this.path = split(indexDefinition.getPath(), INDEX_DATA_CHILD_NAME);
-    }
-
-    /**
-     * Used for testing purposes only
-     */
-    public LuceneEditor() {
-        this(new IndexDefinitionImpl(DEFAULT_INDEX_NAME,
-                LuceneIndexFactory.TYPE, PathUtils.concat(DEFAULT_INDEX_HOME,
-                        DEFAULT_INDEX_NAME), false, null));
     }
 
     @Override
@@ -250,13 +232,4 @@ public class LuceneEditor implements CommitHook, Index {
 
     }
 
-    @Override
-    public void close() throws IOException {
-        // TODO implement close
-    }
-
-    @Override
-    public IndexDefinition getDefinition() {
-        return indexDefinition;
-    }
 }

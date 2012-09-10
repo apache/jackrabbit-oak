@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.spi.query;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -25,7 +26,9 @@ import java.util.Map;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 public class IndexUtils {
 
@@ -33,6 +36,8 @@ public class IndexUtils {
      * switch to "oak:index" as soon as it is possible
      */
     public static final String DEFAULT_INDEX_HOME = "/oak-index";
+
+    private static final String TYPE_UNKNOWN = "unknown";
 
     /**
      * Builds an {@link IndexDefinition} out of a {@link ChildNodeEntry}
@@ -42,10 +47,10 @@ public class IndexUtils {
         String name = def.getName();
         PropertyState typeProp = def.getNodeState().getProperty(
                 IndexDefinition.TYPE_PROPERTY_NAME);
-        if (typeProp == null || typeProp.isArray()) {
-            return null;
+        String type = TYPE_UNKNOWN;
+        if (typeProp != null && !typeProp.isArray()) {
+            type = typeProp.getValue().getString();
         }
-        String type = typeProp.getValue().getString();
 
         boolean unique = false;
         PropertyState uniqueProp = def.getNodeState().getProperty(
@@ -100,6 +105,42 @@ public class IndexUtils {
             }
         }
         return retval;
+    }
+
+    /**
+     * Builds a list of the existing index definitions from the repository
+     * 
+     */
+    public static List<IndexDefinition> buildIndexDefinitions(
+            NodeState nodeState, String indexConfigPath, String typeFilter) {
+        NodeState definitions = getNode(nodeState, indexConfigPath);
+        if (definitions == null) {
+            return Collections.emptyList();
+        }
+
+        List<IndexDefinition> defs = new ArrayList<IndexDefinition>();
+        for (ChildNodeEntry c : definitions.getChildNodeEntries()) {
+            IndexDefinition def = IndexUtils.getDefinition(indexConfigPath, c);
+            if (def == null
+                    || (typeFilter != null && !typeFilter.equals(def.getType()))) {
+                continue;
+            }
+            defs.add(def);
+        }
+        return defs;
+    }
+
+    public static NodeBuilder getChildBuilder(NodeStore store, String path) {
+        return getChildBuilder(store, store.getRoot(), path);
+    }
+
+    public static NodeBuilder getChildBuilder(NodeStore store, NodeState state,
+            String path) {
+        NodeBuilder builder = store.getBuilder(state);
+        for (String p : PathUtils.elements(path)) {
+            builder = builder.getChildBuilder(p);
+        }
+        return builder;
     }
 
 }

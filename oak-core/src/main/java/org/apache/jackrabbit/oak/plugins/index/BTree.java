@@ -23,21 +23,21 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
  * A tree allows to query a value for a given key, similar to
  * {@code java.util.SortedMap}.
  */
-public class BTree {
+public class BTree implements PropertyIndexConstants {
 
     private static final int DEFAULT_MIN_SIZE = 2;
 
-    private Indexer indexer;
+    private BTreeHelper indexer;
 
     private String name;
     private boolean unique = true;
     private int minSize = DEFAULT_MIN_SIZE;
 
-    public BTree(Indexer indexer, String name, boolean unique) {
+    public BTree(BTreeHelper indexer, String name, boolean unique) {
         this.indexer = indexer;
         this.name = name;
         this.unique = unique;
-        indexer.createNodes(PathUtils.concat(name, Indexer.INDEX_CONTENT));
+        indexer.createNodes(PathUtils.concat(name, INDEX_CONTENT));
     }
 
     public void setMinSize(int minSize) {
@@ -123,7 +123,7 @@ public class BTree {
 
     void bufferSetArray(String path, String propertyName, String[] data) {
         JsopBuilder jsop = new JsopBuilder();
-        path = PathUtils.concat(name, Indexer.INDEX_CONTENT, path);
+        path = PathUtils.concat(name, INDEX_CONTENT, path);
         jsop.tag('^').key(PathUtils.concat(path, propertyName));
         if (data == null) {
             jsop.value(null);
@@ -147,7 +147,7 @@ public class BTree {
 
     void bufferDelete(String path) {
         JsopBuilder jsop = new JsopBuilder();
-        jsop.tag('-').value(PathUtils.concat(name, Indexer.INDEX_CONTENT, path));
+        jsop.tag('-').value(PathUtils.concat(name, INDEX_CONTENT, path));
         jsop.newline();
         indexer.buffer(jsop.toString());
     }

@@ -30,7 +30,7 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.http.OakServlet;
 import org.apache.jackrabbit.oak.jcr.RepositoryImpl;
-import org.apache.jackrabbit.oak.plugins.lucene.LuceneEditor;
+import org.apache.jackrabbit.oak.plugins.lucene.LuceneHook;
 import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.type.DefaultTypeEditor;
@@ -202,7 +202,7 @@ public class Main {
             List<CommitHook> hooks = new ArrayList<CommitHook>();
             hooks.add(new DefaultTypeEditor());
             hooks.add(new ValidatingHook(createDefaultValidatorProvider()));
-            hooks.add(new LuceneEditor());
+            hooks.add(new LuceneHook());
             return new CompositeHook(hooks);
         }
 
