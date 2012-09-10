@@ -16,6 +16,7 @@ package org.apache.jackrabbit.oak.query;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -28,9 +29,13 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
+import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
+import org.apache.jackrabbit.oak.util.JsopUtil;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -44,11 +49,13 @@ public class QueryTest extends AbstractQueryTest {
     }
 
     @Test
+    @Ignore("OAK-288")
     public void sql2() throws Exception {
         test("sql2.txt");
     }
 
     @Test
+    @Ignore("OAK-288")
     public void sql2Explain() throws Exception {
         test("sql2_explain.txt");
     }
@@ -60,8 +67,12 @@ public class QueryTest extends AbstractQueryTest {
 
     @Test
     public void bindVariableTest() throws Exception {
-        mk.commit("/", "+ \"test\": { \"hello\": {\"id\": \"1\"}, \"world\": {\"id\": \"2\"}}",
-                null, null);
+        JsopUtil.apply(
+                root,
+                "/ + \"test\": { \"hello\": {\"id\": \"1\"}, \"world\": {\"id\": \"2\"}}",
+                vf);
+        root.commit(DefaultConflictHandler.OURS);
+
         HashMap<String, CoreValue> sv = new HashMap<String, CoreValue>();
         sv.put("id", vf.createValue("1"));
         Iterator<? extends ResultRow> result;
@@ -167,10 +178,8 @@ public class QueryTest extends AbstractQueryTest {
                 } else if (line.startsWith("commit")) {
                     w.println(line);
                     line = line.substring("commit".length()).trim();
-                    int spaceIndex = line.indexOf(' ');
-                    String path = line.substring(0, spaceIndex).trim();
-                    String diff = line.substring(spaceIndex).trim();
-                    mk.commit(path, diff, mk.getHeadRevision(), "");
+                    JsopUtil.apply(root, line, vf);
+                    root.commit(DefaultConflictHandler.OURS);
                 }
                 w.flush();
             }
