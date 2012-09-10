@@ -37,7 +37,7 @@ import org.apache.jackrabbit.oak.plugins.index.PropertyIndex;
 /**
  * The index mechanism, as a wrapper.
  * 
- * @deprecated - see OAK-289
+ * @deprecated - see OAK-298
  */
 public class IndexWrapper extends MicroKernelWrapperBase implements MicroKernel {
 
