@@ -16,30 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.spi;
+package org.apache.jackrabbit.oak.spi.query;
 
-import org.apache.jackrabbit.oak.api.CoreValue;
+import java.util.List;
+
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
- * A row returned by the index.
+ * A mechanism to index data. Indexes might be added or removed at runtime,
+ * possibly by changing content in the repository. The provider knows about the
+ * indexes available at a given time.
  */
-public interface IndexRow {
+public interface QueryIndexProvider {
 
     /**
-     * The path of the node, if available.
-     *
-     * @return the path
+     * Get the currently configured indexes.
+     * 
+     * @return the list of indexes
      */
-    String getPath();
-
-    /**
-     * The value of the given property, if available. This might be a property
-     * of the given node, or a pseudo-property (a property that is only
-     * available in the index but not in the node itself, such as "jcr:score").
-     *
-     * @param columnName the column name
-     * @return the value, or null if not available
-     */
-    CoreValue getValue(String columnName);
+    List<? extends QueryIndex> getQueryIndexes(NodeStore nodeStore);
 
 }

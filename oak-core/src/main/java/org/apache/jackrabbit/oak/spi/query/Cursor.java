@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.spi;
+package org.apache.jackrabbit.oak.spi.query;
 
 /**
  * A cursor to read a number of nodes sequentially.

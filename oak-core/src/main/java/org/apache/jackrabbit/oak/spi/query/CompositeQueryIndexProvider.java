@@ -21,9 +21,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import org.apache.jackrabbit.oak.spi.QueryIndex;
-import org.apache.jackrabbit.oak.spi.QueryIndexProvider;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
