@@ -48,7 +48,7 @@
               org.apache.jackrabbit.oak.plugins.type,
               org.apache.jackrabbit.oak.plugins.unique,
               org.apache.jackrabbit.oak.plugins.value,
-              org.apache.jackrabbit.oak.spi,
+              org.apache.jackrabbit.oak.spi.query,
               org.apache.jackrabbit.oak.spi.commit,
               org.apache.jackrabbit.oak.spi.state,
               org.apache.jackrabbit.oak.spi.security.authentication,
