@@ -18,12 +18,15 @@
  */
 package org.apache.jackrabbit.oak.jcr.query;
 
+import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
+import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
+import static org.apache.jackrabbit.oak.commons.PathUtils.relativize;
+
 import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
 import org.apache.jackrabbit.commons.iterator.RowIteratorAdapter;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.NodeImpl;
 import org.apache.jackrabbit.oak.jcr.SessionDelegate;
@@ -70,7 +73,8 @@ public class QueryResultImpl implements QueryResult {
         if (path == null) {
             // a row without path (explain,...)
             return true;
-        } else if (PathUtils.isAncestor(pathFilter, path)) {
+        }
+        if (isAncestor(pathFilter, path) || pathFilter.equals(path)) {
             // a row within this workspace
             return true;
         }
@@ -137,7 +141,7 @@ public class QueryResultImpl implements QueryResult {
     }
 
     String getLocalPath(String path) {
-        return PathUtils.concat("/", PathUtils.relativize(pathFilter, path));
+        return concat("/", relativize(pathFilter, path));
     }
 
     @Override
