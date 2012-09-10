@@ -22,7 +22,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
-import org.apache.jackrabbit.oak.spi.Filter;
+import org.apache.jackrabbit.oak.spi.query.Filter;
 
 import java.util.ArrayList;
 import java.util.Collection;

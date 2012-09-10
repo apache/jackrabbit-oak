@@ -29,12 +29,12 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.query.index.IndexRowImpl;
-import org.apache.jackrabbit.oak.spi.Cursor;
-import org.apache.jackrabbit.oak.spi.Filter;
-import org.apache.jackrabbit.oak.spi.Filter.PropertyRestriction;
-import org.apache.jackrabbit.oak.spi.IndexRow;
-import org.apache.jackrabbit.oak.spi.QueryIndex;
+import org.apache.jackrabbit.oak.spi.query.Cursor;
+import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.IndexDefinition;
+import org.apache.jackrabbit.oak.spi.query.IndexRow;
+import org.apache.jackrabbit.oak.spi.query.QueryIndex;
+import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.lucene.index.DirectoryReader;

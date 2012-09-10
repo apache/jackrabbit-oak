@@ -13,15 +13,16 @@
  */
 package org.apache.jackrabbit.oak.query.index;
 
-import static org.apache.jackrabbit.oak.spi.Filter.PathRestriction.ALL_CHILDREN;
+import static org.apache.jackrabbit.oak.spi.query.Filter.PathRestriction.ALL_CHILDREN;
+
 import java.util.Deque;
 import java.util.Iterator;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
-import org.apache.jackrabbit.oak.spi.Cursor;
-import org.apache.jackrabbit.oak.spi.Filter;
-import org.apache.jackrabbit.oak.spi.Filter.PathRestriction;
-import org.apache.jackrabbit.oak.spi.IndexRow;
+import org.apache.jackrabbit.oak.spi.query.Cursor;
+import org.apache.jackrabbit.oak.spi.query.Filter;
+import org.apache.jackrabbit.oak.spi.query.IndexRow;
+import org.apache.jackrabbit.oak.spi.query.Filter.PathRestriction;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;

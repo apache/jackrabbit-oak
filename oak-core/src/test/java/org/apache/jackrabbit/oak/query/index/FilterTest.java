@@ -26,7 +26,7 @@ import java.util.Random;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.query.ast.Operator;
-import org.apache.jackrabbit.oak.spi.Filter;
+import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.junit.Test;
 
 /**

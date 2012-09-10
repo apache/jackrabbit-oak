@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
-import org.apache.jackrabbit.oak.spi.Filter;
+import org.apache.jackrabbit.oak.spi.query.Filter;
 
 /**
  * The function "issamenode(..)".

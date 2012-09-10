@@ -27,7 +27,7 @@ import java.util.List;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.kernel.KernelNodeState;
-import org.apache.jackrabbit.oak.spi.Cursor;
+import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.junit.Test;
 
 import com.google.common.cache.CacheBuilder;
