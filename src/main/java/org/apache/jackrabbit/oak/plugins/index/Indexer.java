@@ -37,7 +37,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
  * A index mechanism. An index is bound to a certain repository, and supports
  * one or more indexes.
  * 
- * @deprecated use {@link PropertyIndexer} - see OAK-289
+ * @deprecated use {@link PropertyIndexer} - see OAK-298
  */
 public class Indexer implements PropertyIndexConstants, BTreeHelper {
 
