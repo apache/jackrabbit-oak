@@ -385,7 +385,8 @@ class NodeTypeImpl implements NodeType {
 
     @Override
     public boolean canRemoveNode(String nodeName) {
-        for (NodeDefinition definition : getChildNodeDefinitions()) {
+        NodeDefinition[] childNodeDefinitions = getChildNodeDefinitions();
+        for (NodeDefinition definition : childNodeDefinitions) {
             String name = definition.getName();
             if (matches(nodeName, name)) {
                 if (definition.isMandatory() || definition.isProtected()) {
@@ -393,12 +394,13 @@ class NodeTypeImpl implements NodeType {
                 }
             }
         }
-        return true;
+        return childNodeDefinitions.length > 0;
     }
 
     @Override
     public boolean canRemoveProperty(String propertyName) {
-        for (PropertyDefinition definition : getPropertyDefinitions()) {
+        PropertyDefinition[] propertyDefinitions = getPropertyDefinitions();
+        for (PropertyDefinition definition : propertyDefinitions) {
             String name = definition.getName();
             if (propertyName.equals(name)) {
                 if (definition.isMandatory() || definition.isProtected()) {
@@ -406,7 +408,7 @@ class NodeTypeImpl implements NodeType {
                 }
             }
         }
-        return true;
+        return propertyDefinitions.length > 0;
     }
 
     private static boolean matches(String childNodeName, String name) {
