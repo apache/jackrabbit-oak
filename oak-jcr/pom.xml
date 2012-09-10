@@ -73,7 +73,6 @@ org.apache.jackrabbit.test.api.nodetype.CanSetPropertyDateTest#testConversions
 org.apache.jackrabbit.test.api.nodetype.CanSetPropertyPathTest#testConversions
 org.apache.jackrabbit.test.api.nodetype.CanAddChildNodeCallWithoutNodeTypeTest#testDefinedWithoutDefault <!-- OAK-66 -->
 org.apache.jackrabbit.test.api.nodetype.CanAddChildNodeCallWithoutNodeTypeTest#testResidualWithoutDefault <!-- OAK-66 -->
-org.apache.jackrabbit.test.api.nodetype.CanRemoveItemTest#testMandatoryProperty <!-- OAK-66 -->
 org.apache.jackrabbit.test.api.LifecycleTest
 org.apache.jackrabbit.test.api.query.ElementTest#testElementTestNameTestSomeNTWithSNS<!-- OAK-203 -->
 org.apache.jackrabbit.test.api.query.GetPropertyNamesTest#testGetPropertyNames
