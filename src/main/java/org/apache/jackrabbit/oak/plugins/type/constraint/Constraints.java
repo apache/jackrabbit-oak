@@ -17,10 +17,12 @@
 package org.apache.jackrabbit.oak.plugins.type.constraint;
 
 import javax.jcr.PropertyType;
+import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Value;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import org.apache.jackrabbit.oak.util.TODO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -96,11 +98,25 @@ public class Constraints {
     }
 
     private static Predicate<Value> referenceConstraint(String constraint) {
-        return Predicates.alwaysTrue(); // todo implement referenceConstraint
+        try {
+            // todo implement referenceConstraint
+            Predicate<Value> truePredicate = Predicates.alwaysTrue();
+            return TODO.dummyImplementation().returnValue(truePredicate);
+        }
+        catch (UnsupportedRepositoryOperationException e) {
+            throw new UnsupportedOperationException(e);
+        }
     }
 
     private static Predicate<Value> weakRefConstraint(String constraint) {
-        return Predicates.alwaysTrue(); // todo implement weakRefConstraint
+        try {
+            // todo implement referenceConstraint
+            Predicate<Value> truePredicate = Predicates.alwaysTrue();
+            return TODO.dummyImplementation().returnValue(truePredicate);
+        }
+        catch (UnsupportedRepositoryOperationException e) {
+            throw new UnsupportedOperationException(e);
+        }
     }
 
     private static Predicate<Value> uriConstraint(String constraint) {
