@@ -293,8 +293,7 @@ public class PathUtils {
             if (denotesRoot(path)) {
                 return false;
             }
-        }
-        else {
+        } else {
             ancestor += "/";
         }
         return path.startsWith(ancestor);
