@@ -35,10 +35,7 @@ public class StringConstraint implements Predicate<Value> {
     public StringConstraint(String definition) {
         Pattern p;
         try {
-            // FIXME matching case insensitive as a workaround for
-            // for OAK-294: nt:propertyDefinition has incorrect value constraints for property types
-            int ignoreCase = Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE;
-            p = Pattern.compile(definition, ignoreCase);
+            p = Pattern.compile(definition);
         }
         catch (PatternSyntaxException pse) {
             String msg = '\'' + definition + "' is not valid regular expression syntax";

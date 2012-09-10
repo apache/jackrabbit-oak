@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.type;
 
-import javax.jcr.PropertyType;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 import javax.jcr.nodetype.NodeType;
@@ -26,6 +25,33 @@ import javax.jcr.query.qom.QueryObjectModelConstants;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static javax.jcr.PropertyType.BINARY;
+import static javax.jcr.PropertyType.BOOLEAN;
+import static javax.jcr.PropertyType.DATE;
+import static javax.jcr.PropertyType.DECIMAL;
+import static javax.jcr.PropertyType.DOUBLE;
+import static javax.jcr.PropertyType.LONG;
+import static javax.jcr.PropertyType.NAME;
+import static javax.jcr.PropertyType.PATH;
+import static javax.jcr.PropertyType.REFERENCE;
+import static javax.jcr.PropertyType.STRING;
+import static javax.jcr.PropertyType.TYPENAME_BINARY;
+import static javax.jcr.PropertyType.TYPENAME_BOOLEAN;
+import static javax.jcr.PropertyType.TYPENAME_DATE;
+import static javax.jcr.PropertyType.TYPENAME_DECIMAL;
+import static javax.jcr.PropertyType.TYPENAME_DOUBLE;
+import static javax.jcr.PropertyType.TYPENAME_LONG;
+import static javax.jcr.PropertyType.TYPENAME_NAME;
+import static javax.jcr.PropertyType.TYPENAME_PATH;
+import static javax.jcr.PropertyType.TYPENAME_REFERENCE;
+import static javax.jcr.PropertyType.TYPENAME_STRING;
+import static javax.jcr.PropertyType.TYPENAME_UNDEFINED;
+import static javax.jcr.PropertyType.TYPENAME_URI;
+import static javax.jcr.PropertyType.TYPENAME_WEAKREFERENCE;
+import static javax.jcr.PropertyType.UNDEFINED;
+import static javax.jcr.PropertyType.URI;
+import static javax.jcr.PropertyType.WEAKREFERENCE;
 
 /**
  * <pre>
@@ -56,14 +82,56 @@ class PropertyDefinitionImpl extends ItemDefinitionImpl
         this.factory = factory;
     }
 
+    /**
+     * Returns the numeric constant value of the type with the specified name.
+     *
+     * In contrast to {@link javax.jcr.PropertyType#valueFromName(String)} this method
+     * requires all type names to be all upper case.
+     * See also: OAK-294 and http://java.net/jira/browse/JSR_283-811
+     *
+     * @param name the name of the property type.
+     * @return the numeric constant value.
+     * @throws IllegalArgumentException if {@code name} is not a valid property type name.
+     */
+    public static int valueFromName(String name) {
+        if (name.equals(TYPENAME_STRING.toUpperCase())) {
+            return STRING;
+        } else if (name.equals(TYPENAME_BINARY.toUpperCase())) {
+            return BINARY;
+        } else if (name.equals(TYPENAME_BOOLEAN.toUpperCase())) {
+            return BOOLEAN;
+        } else if (name.equals(TYPENAME_LONG.toUpperCase())) {
+            return LONG;
+        } else if (name.equals(TYPENAME_DOUBLE.toUpperCase())) {
+            return DOUBLE;
+        } else if (name.equals(TYPENAME_DECIMAL.toUpperCase())) {
+            return DECIMAL;
+        } else if (name.equals(TYPENAME_DATE.toUpperCase())) {
+            return DATE;
+        } else if (name.equals(TYPENAME_NAME.toUpperCase())) {
+            return NAME;
+        } else if (name.equals(TYPENAME_PATH.toUpperCase())) {
+            return PATH;
+        } else if (name.equals(TYPENAME_REFERENCE.toUpperCase())) {
+            return REFERENCE;
+        } else if (name.equals(TYPENAME_WEAKREFERENCE.toUpperCase())) {
+            return WEAKREFERENCE;
+        } else if (name.equals(TYPENAME_URI.toUpperCase())) {
+            return URI;
+        } else if (name.equals(TYPENAME_UNDEFINED.toUpperCase())) {
+            return UNDEFINED;
+        } else {
+            throw new IllegalArgumentException("unknown type: " + name);
+        }
+    }
+
     @Override
     public int getRequiredType() {
         try {
-            return PropertyType.valueFromName(node.getString(
-                    "jcr:requiredType", PropertyType.TYPENAME_UNDEFINED));
+            return valueFromName(node.getString("jcr:requiredType", TYPENAME_UNDEFINED));
         } catch (IllegalArgumentException e) {
             log.warn("Unexpected jcr:requiredType value", e);
-            return PropertyType.UNDEFINED;
+            return UNDEFINED;
         }
     }
 
