@@ -43,6 +43,8 @@ import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 /**
  * User provider implementation and manager for group memberships with the
  * following characteristics:
@@ -219,7 +221,7 @@ class UserProviderImpl extends AuthorizableBaseProvider implements UserProvider 
 
     @Override
     public String getAuthorizableId(Tree authorizableTree, Type authorizableType) {
-        assert authorizableTree != null;
+        checkNotNull(authorizableTree);
         if (isAuthorizableTree(authorizableTree, authorizableType)) {
             PropertyState idProp = authorizableTree.getProperty(UserConstants.REP_AUTHORIZABLE_ID);
             if (idProp != null) {
@@ -244,13 +246,13 @@ class UserProviderImpl extends AuthorizableBaseProvider implements UserProvider 
 
     @Override
     public boolean isAdminUser(Tree userTree) {
-        assert userTree != null;
+        checkNotNull(userTree);
         return adminId.equals(getAuthorizableId(userTree, Type.USER));
     }
 
     @Override
     public void setProtectedProperty(Tree authorizableTree, String propertyName, String value, int propertyType) {
-        assert authorizableTree != null;
+        checkNotNull(authorizableTree);
 
         if (value == null) {
             authorizableTree.removeProperty(propertyName);
@@ -262,7 +264,7 @@ class UserProviderImpl extends AuthorizableBaseProvider implements UserProvider 
 
     @Override
     public void setProtectedProperty(Tree authorizableTree, String propertyName, String[] values, int propertyType) {
-        assert authorizableTree != null;
+        checkNotNull(authorizableTree);
 
         if (values == null) {
             authorizableTree.removeProperty(propertyName);

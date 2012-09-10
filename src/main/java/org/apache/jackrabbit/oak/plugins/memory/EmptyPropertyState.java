@@ -26,6 +26,8 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 /**
  * Property state that contains an empty array of values. Used as a base
  * class for {@link SinglePropertyState} and {@link MultiPropertyState}.
@@ -35,8 +37,7 @@ class EmptyPropertyState implements PropertyState {
     private final String name;
 
     public EmptyPropertyState(String name) {
-        assert name != null;
-        this.name = name;
+        this.name = checkNotNull(name);
     }
 
     @Override

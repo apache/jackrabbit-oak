@@ -42,6 +42,9 @@ import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
+
 /**
  * The {@code PrincipalProviderImpl} is a principal provider implementation
  * that operates on principal information read from user information exposed by
@@ -138,8 +141,8 @@ public class PrincipalProviderImpl implements PrincipalProvider {
     }
 
     private boolean isGroup(Tree authorizableTree) {
-        assert authorizableTree != null;
-        assert authorizableTree.hasProperty(JcrConstants.JCR_PRIMARYTYPE);
+        checkNotNull(authorizableTree);
+        checkState(authorizableTree.hasProperty(JcrConstants.JCR_PRIMARYTYPE));
 
         String ntName = authorizableTree.getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue().getString();
         return UserConstants.NT_REP_GROUP.equals(ntName);

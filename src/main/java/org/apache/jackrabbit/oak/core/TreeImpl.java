@@ -38,6 +38,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState.EMPTY_NODE;
 
@@ -65,12 +67,9 @@ public class TreeImpl implements Tree, PurgeListener {
             CacheBuilder.newBuilder().weakValues().<String, TreeImpl>build().asMap();
 
     private TreeImpl(RootImpl root, TreeImpl parent, String name) {
-        assert root != null;
-        assert name != null;
-
-        this.root = root;
+        this.root = checkNotNull(root);
         this.parent = parent;
-        this.name = name;
+        this.name = checkNotNull(name);
     }
 
     @Nonnull
@@ -363,7 +362,7 @@ public class TreeImpl implements Tree, PurgeListener {
      */
     @CheckForNull
     TreeImpl getTree(String path) {
-        assert path.startsWith("/");
+        checkArgument(path.startsWith("/"));
         TreeImpl child = this;
         for (String name : elements(path)) {
             child = child.internalGetChild(name);
@@ -502,8 +501,7 @@ public class TreeImpl implements Tree, PurgeListener {
         private final TreeImpl tree;
 
         private NodeLocation(TreeImpl tree) {
-            assert tree != null;
-            this.tree = tree;
+            this.tree = checkNotNull(tree);
         }
 
         @Override
@@ -515,7 +513,7 @@ public class TreeImpl implements Tree, PurgeListener {
 
         @Override
         public TreeLocation getChild(String relPath) {
-            assert !relPath.startsWith("/");
+            checkArgument(!relPath.startsWith("/"));
             if (relPath.isEmpty()) {
                 return this;
             }
@@ -568,10 +566,8 @@ public class TreeImpl implements Tree, PurgeListener {
         private final PropertyState property;
 
         private PropertyLocation(NodeLocation parent, PropertyState property) {
-            assert parent != null;
-            assert property != null;
-            this.parent = parent;
-            this.property = property;
+            this.parent = checkNotNull(parent);
+            this.property = checkNotNull(property);
         }
 
         @Override

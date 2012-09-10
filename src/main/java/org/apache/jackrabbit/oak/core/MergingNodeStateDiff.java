@@ -25,6 +25,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.api.ConflictHandler.Resolution.MERGED;
 import static org.apache.jackrabbit.oak.api.ConflictHandler.Resolution.OURS;
 
@@ -48,10 +50,8 @@ class MergingNodeStateDiff implements NodeStateDiff {
 
     static void merge(NodeState fromState, NodeState toState, final TreeImpl target,
             final ConflictHandler conflictHandler) {
-
-        assert target != null;
-
-        toState.compareAgainstBaseState(fromState, new MergingNodeStateDiff(target, conflictHandler));
+        toState.compareAgainstBaseState(fromState, new MergingNodeStateDiff(
+                checkNotNull(target), conflictHandler));
     }
 
     //------------------------------------------------------< NodeStateDiff >---
@@ -79,7 +79,8 @@ class MergingNodeStateDiff implements NodeStateDiff {
 
     @Override
     public void propertyChanged(PropertyState before, PropertyState after) {
-        assert before.getName().equals(after.getName());
+        checkArgument(before.getName().equals(after.getName()),
+                "before and after must have the same name");
 
         ConflictHandler.Resolution resolution;
         PropertyState p = target.getProperty(after.getName());

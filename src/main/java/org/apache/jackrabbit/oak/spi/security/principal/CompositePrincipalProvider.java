@@ -27,6 +27,8 @@ import com.google.common.collect.Iterators;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 /**
  * {@code PrincipalProvider} implementation that aggregates a list of principal
  * providers into a single.
@@ -38,8 +40,7 @@ public class CompositePrincipalProvider implements PrincipalProvider {
     private final List<PrincipalProvider> providers;
 
     public CompositePrincipalProvider(List<PrincipalProvider> providers) {
-        assert providers != null;
-        this.providers = providers;
+        this.providers = checkNotNull(providers);
     }
 
     //--------------------------------------------------< PrincipalProvider >---
