@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.spi;
+package org.apache.jackrabbit.oak.spi.query;
 
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 

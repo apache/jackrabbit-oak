@@ -32,11 +32,11 @@ import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryValueFactory;
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
-import org.apache.jackrabbit.oak.spi.Cursor;
-import org.apache.jackrabbit.oak.spi.Filter;
-import org.apache.jackrabbit.oak.spi.QueryIndex;
+import org.apache.jackrabbit.oak.spi.query.Cursor;
+import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.IndexDefinition;
 import org.apache.jackrabbit.oak.spi.query.IndexDefinitionImpl;
+import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.junit.Test;
 
 public class LuceneEditorTest implements LuceneIndexConstants {
