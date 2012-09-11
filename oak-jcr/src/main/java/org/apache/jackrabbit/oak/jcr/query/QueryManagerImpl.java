@@ -92,6 +92,13 @@ public class QueryManagerImpl implements QueryManager {
         return list.toArray(new String[list.size()]);
     }
 
+    /**
+     * Parse the query and get the bind variable names.
+     * 
+     * @param statement the query statement
+     * @param language the query language
+     * @return the bind variable names
+     */
     public List<String> parse(String statement, String language) throws InvalidQueryException {
         try {
             return queryEngine.getBindVariableNames(statement, language);
@@ -122,7 +129,7 @@ public class QueryManagerImpl implements QueryManager {
         return map;
     }
 
-    SessionDelegate getSessionDelegate() {
+    public SessionDelegate getSessionDelegate() {
         return sessionDelegate;
     }
 
