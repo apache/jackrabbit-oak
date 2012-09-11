@@ -48,6 +48,9 @@ commit / + "test": { "a": { "id": "10" }, "b": { "id" : "20" }}
 select * from [nt:base] where id is not null and not id = '100' and id <> '20'
 /test/a
 
+select * from [nt:base] where id < '1000'
+/test/a
+
 select * from [nt:base] where id is not null and not (id = '100' and id <> '20')
 /test/a
 /test/b
@@ -76,6 +79,9 @@ select * from [nt:base] where contains(*, 'hello')
 commit / - "test"
 
 # other tests
+
+select [jcr:path] from [nt:base] as a where issamenode(a, '/')
+/
 
 commit / + "test": { "My Documents": { "x" : {}}}
 

@@ -21,7 +21,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 /**
  * An index page.
  */
-abstract public class BTreePage implements PropertyIndexConstants {
+public abstract class BTreePage implements PropertyIndexConstants {
 
     protected final BTree tree;
     protected BTreeNode parent;

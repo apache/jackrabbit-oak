@@ -629,7 +629,8 @@ public class Query {
     public int getColumnIndex(String columnName) {
         for (int i = 0, size = columns.length; i < size; i++) {
             ColumnImpl c = columns[i];
-            if (c.getColumnName().equals(columnName)) {
+            String cn = c.getColumnName();
+            if (cn != null && cn.equals(columnName)) {
                 return i;
             }
         }
