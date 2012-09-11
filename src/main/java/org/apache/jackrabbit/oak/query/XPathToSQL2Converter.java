@@ -58,40 +58,55 @@ public class XPathToSQL2Converter {
      * @throws ParseException if parsing fails
      */
     public String convert(String query) throws ParseException {
+        query = query.trim();
         boolean explain = query.startsWith("explain ");
         if (explain) {
-            query = query.substring("explain ".length());
+            query = query.substring("explain".length()).trim();
         }
         boolean measure = query.startsWith("measure");
         if (measure) {
-            query = query.substring("measure ".length());
+            query = query.substring("measure".length()).trim();
         }
-        // TODO verify this is correct
-        if (!query.startsWith("/")) {
-            query = "/jcr:root/" + query;
+        
+        if (query.isEmpty()) {
+            // special case, will always result in an empty result
+            query = "//jcr:root";
         }
+        
         initialize(query);
+        
         expected = new ArrayList<String>();
         read();
+        
+        if (currentTokenType == END) {
+            throw getSyntaxError("the query may not be empty");
+        }
 
         currentSelector.name = "a";
-        currentSelector.nodeType = "nt:base";
 
         ArrayList<Expression> columnList = new ArrayList<Expression>();
 
-        // TODO support one node matcher ('*' wildcard), example:
-        // /jcr:root/content/acme/*/jcr:content[@template='/apps/acme']
-
-        // TODO verify '//' is behaving correctly, as specified, example:
-        // /jcr:root/content/acme//jcr:content[@template='/apps/acme']
+        // TODO support "..", example:
+        // /jcr:root/etc/..
         
         String pathPattern = "";
+        boolean startOfQuery = true;
 
         while (true) {
+            
+            // if true, path or nodeType conditions are not allowed
             boolean shortcut = false;
             boolean slash = readIf("/");
+            
             if (!slash) {
-                break;
+                if (startOfQuery) {
+                    // the query doesn't start with "/"
+                    currentSelector.path = "/";
+                    pathPattern = "/";
+                    currentSelector.isChild = true;
+                } else {
+                    break;
+                }
             } else if (readIf("jcr:root")) {
                 // "/jcr:root" may only appear at the beginning
                 if (!pathPattern.isEmpty()) {
@@ -105,12 +120,13 @@ public class XPathToSQL2Converter {
                         // "/jcr:root//"
                         pathPattern = "//";
                         currentSelector.isDescendant = true;
+                    } else {
+                        currentSelector.isChild = true;
                     }
                 } else {
                     // for example "/jcr:root[condition]"
                     pathPattern = "/%";
                     currentSelector.path = "/";
-                    currentSelector.isDescendant = true;
                     shortcut = true;
                 }
             } else if (readIf("/")) {
@@ -120,16 +136,26 @@ public class XPathToSQL2Converter {
             } else {
                 // the token "/" was read
                 pathPattern += "/";
+                if (startOfQuery) {
+                    currentSelector.path = "/";
+                } else {
+                    currentSelector.isChild = true;
+                }
             }
             if (shortcut) {
-                // query of the style: "/jcr:root[condition]"
+                // "*" and so on are not allowed now
             } else if (readIf("*")) {
                 // "...*"
                 pathPattern += "%";
-                currentSelector.nodeType = "nt:base";
-                currentSelector.isChild = true;
+                if (!currentSelector.isDescendant) {
+                    if (selectors.size() == 0 && currentSelector.path.equals("")) {
+                        // the query /* is special
+                        currentSelector.path = "/";
+                    }
+                }
             } else if (readIf("text")) {
                 // "...text()"
+                currentSelector.isChild = false;
                 pathPattern += "jcr:xmltext";
                 read("(");
                 read(")");
@@ -143,11 +169,10 @@ public class XPathToSQL2Converter {
                 read("(");
                 if (readIf(")")) {
                     // any
-                    currentSelector.isChild = true;
+                    pathPattern += "%";
                 } else {
                     if (readIf("*")) {
                         // any
-                        currentSelector.isChild = true;
                         pathPattern += "%";
                     } else {
                         currentSelector.isChild = false;
@@ -157,8 +182,6 @@ public class XPathToSQL2Converter {
                     }
                     if (readIf(",")) {
                         currentSelector.nodeType = readIdentifier();
-                    } else {
-                        currentSelector.nodeType = "nt:base";
                     }
                     read(")");
                 }
@@ -176,31 +199,41 @@ public class XPathToSQL2Converter {
                     currentSelector.path = "";
                     currentSelector.nodeName = null;
                 }
-                if (currentSelector.nodeType == null) {
-                    currentSelector.nodeType = "nt:base";
-                }
                 do {
                     read("@");
                     Property p = readProperty();
                     columnList.add(p);
                 } while (readIf("|"));
                 read(")");
-            } else {
+            } else if (currentTokenType == IDENTIFIER) {
                 // path restriction
                 String name = readIdentifier();
-                if (currentSelector.isDescendant) {
-                    pathPattern += name;
+                pathPattern += name;
+                if (!currentSelector.isChild) {
                     currentSelector.nodeName = name;
                 } else {
-                    pathPattern += name;
-                    currentSelector.path = PathUtils.concat(currentSelector.path, name);
+                    if (selectors.size() > 0) {
+                        // no explicit path restriction - so it's a node name restriction
+                        currentSelector.isChild = true;
+                        currentSelector.nodeName = name;
+                    } else {
+                        if (currentSelector.isChild) {
+                            currentSelector.isChild = false;
+                            String oldPath = currentSelector.path;
+                            // further extending the path
+                            currentSelector.path = PathUtils.concat(oldPath, name);
+                        }
+                    }
                 }
+            } else {
+                throw getSyntaxError();
             }
             if (readIf("[")) {
                 Expression c = parseConstraint();
                 currentSelector.condition = add(currentSelector.condition, c);
                 read("]");
             }
+            startOfQuery = false;
             nextSelector(false);
         }
         if (selectors.size() == 0) {
@@ -241,15 +274,26 @@ public class XPathToSQL2Converter {
         // select ...
         buff.append("select ");
         buff.append(new Property(currentSelector, "jcr:path").toString());
+        if (selectors.size() > 1) {
+            buff.append(" as [jcr:path]");
+        }
         buff.append(", ");
         buff.append(new Property(currentSelector, "jcr:score").toString());
+        if (selectors.size() > 1) {
+            buff.append(" as [jcr:score]");
+        }
         if (columnList.isEmpty()) {
             buff.append(", ");
             buff.append(new Property(currentSelector, "*").toString());
         } else {
             for (int i = 0; i < columnList.size(); i++) {
                 buff.append(", ");
-                buff.append(columnList.get(i).toString());
+                Expression e = columnList.get(i);
+                String columnName = e.toString();
+                buff.append(columnName);
+                if (selectors.size() > 1) {
+                    buff.append(" as [").append(e.getColumnAliasName()).append("]");
+                }
             }
         }
         
@@ -260,7 +304,11 @@ public class XPathToSQL2Converter {
             if (i > 0) {
                 buff.append(" inner join ");
             }
-            buff.append('[' + s.nodeType + ']').append(" as ").append(s.name);
+            String nodeType = s.nodeType;
+            if (nodeType == null) {
+                nodeType = "nt:base";
+            }
+            buff.append('[' + nodeType + ']').append(" as ").append(s.name);
             if (s.joinCondition != null) {
                 buff.append(" on ").append(s.joinCondition);
             }
@@ -434,6 +482,9 @@ public class XPathToSQL2Converter {
             c = new Condition(left, "<=", parseExpression(), Expression.PRECEDENCE_CONDITION);
         } else if (readIf(">=")) {
             c = new Condition(left, ">=", parseExpression(), Expression.PRECEDENCE_CONDITION);
+        // TODO support "x eq y"? it seems this only matches for single value properties?  
+        // } else if (readIf("eq")) {
+        //    c = new Condition(left, "==", parseExpression(), Expression.PRECEDENCE_CONDITION);
         } else {
             c = new Condition(left, "is not null", null, Expression.PRECEDENCE_CONDITION);
         }
@@ -898,7 +949,7 @@ public class XPathToSQL2Converter {
     }
 
     private ParseException getSyntaxError(String expected) {
-        int index = Math.min(parseIndex, statement.length() - 1);
+        int index = Math.max(0, Math.min(parseIndex, statement.length() - 1));
         String query = statement.substring(0, index) + "(*)" + statement.substring(index).trim();
         if (expected != null) {
             query += "; expected: " + expected;
@@ -995,6 +1046,17 @@ public class XPathToSQL2Converter {
         int getPrecedence() {
             return PRECEDENCE_OPERAND;
         }
+        
+        /**
+         * Get the column alias name of an expression. For a property, this is the
+         * property name (no matter how many selectors the query contains); for
+         * other expressions it matches the toString() method.
+         * 
+         * @return the simple column name
+         */
+        String getColumnAliasName() {
+            return toString();
+        }
 
     }
 
@@ -1071,6 +1133,11 @@ public class XPathToSQL2Converter {
                 buff.append('[').append(name).append(']');
             }
             return buff.toString();
+        }
+        
+        @Override
+        public String getColumnAliasName() {
+            return name;
         }
 
     }

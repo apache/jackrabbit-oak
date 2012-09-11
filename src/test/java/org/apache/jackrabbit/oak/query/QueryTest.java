@@ -27,6 +27,7 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 
@@ -100,6 +101,7 @@ public class QueryTest extends AbstractQueryTest {
         LineNumberReader r = new LineNumberReader(new InputStreamReader(in));
         PrintWriter w = new PrintWriter(new OutputStreamWriter(
                 new FileOutputStream("target/" + file)));
+        HashSet<String> knownQueries = new HashSet<String>();
         boolean errors = false;
         try {
             while (true) {
@@ -123,6 +125,9 @@ public class QueryTest extends AbstractQueryTest {
                     } catch (Exception e) {
                         // e.printStackTrace();
                         got = "error: " + e.toString().replace('\n', ' ');
+                    }
+                    if (!knownQueries.add(line)) {
+                        got = "duplicate xpath2sql query";
                     }
                     line = r.readLine().trim();
                     w.println(got);
