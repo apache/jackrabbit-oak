@@ -310,7 +310,7 @@ public class Indexer implements PropertyIndexConstants, BTreeHelper {
         }
     }
 
-    synchronized public void updateUntil(String toRevision) {
+    public synchronized void updateUntil(String toRevision) {
         if (DISABLED) {
             return;
         }
@@ -505,20 +505,20 @@ public class Indexer implements PropertyIndexConstants, BTreeHelper {
             // actually not required, just to make sure
             if (PathUtils.getParentPath(path).equals(indexRootNode)) {
                 String name = PathUtils.getName(path);
-                if (name.startsWith(Indexer.TYPE_PREFIX)) {
-                    String prefix = name.substring(Indexer.TYPE_PREFIX.length());
+                if (name.startsWith(PropertyIndexConstants.TYPE_PREFIX)) {
+                    String prefix = name.substring(PropertyIndexConstants.TYPE_PREFIX.length());
                     if (remove) {
                         removePrefixIndex(prefix);
                     }
                     if (add) {
                         createPrefixIndex(prefix);
                     }
-                } else if (name.startsWith(Indexer.TYPE_PROPERTY)) {
-                    String property = name.substring(Indexer.TYPE_PROPERTY.length());
+                } else if (name.startsWith(PropertyIndexConstants.TYPE_PROPERTY)) {
+                    String property = name.substring(PropertyIndexConstants.TYPE_PROPERTY.length());
                     boolean unique = false;
-                    if (property.endsWith("," + Indexer.UNIQUE)) {
+                    if (property.endsWith("," + PropertyIndexConstants.UNIQUE)) {
                         unique = true;
-                        property = property.substring(0, property.length() - Indexer.UNIQUE.length() - 1);
+                        property = property.substring(0, property.length() - PropertyIndexConstants.UNIQUE.length() - 1);
                     }
                     if (remove) {
                         removePropertyIndex(property, unique);
