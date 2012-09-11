@@ -38,6 +38,9 @@ public class FullTextSearchScoreImpl extends DynamicOperandImpl implements FullT
 
     @Override
     public String toString() {
+        if (selectorName == null) {
+            return "SCORE()";
+        }
         return "SCORE(" + quoteSelectorName(selectorName) + ')';
     }
 

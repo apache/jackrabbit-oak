@@ -55,14 +55,16 @@ public class FullTextSearchImpl extends ConstraintImpl implements FullTextSearch
     public String toString() {
         StringBuilder builder = new StringBuilder();
         builder.append("CONTAINS(");
-        builder.append(quoteSelectorName(selectorName));
-        if (propertyName != null) {
+        if (selectorName != null) {
+            builder.append(quoteSelectorName(selectorName));
             builder.append('.');
-            builder.append(quotePropertyName(propertyName));
-            builder.append(", ");
-        } else {
-            builder.append(".*, ");
         }
+        if (propertyName != null) {
+            builder.append(quotePropertyName(propertyName));
+        } else {
+            builder.append('*');
+        }
+        builder.append(", ");
         builder.append(getFullTextSearchExpression());
         builder.append(')');
         return builder.toString();

@@ -38,6 +38,9 @@ public class NodeNameImpl extends DynamicOperandImpl implements NodeName {
 
     @Override
     public String toString() {
+        if (selectorName == null) {
+            return "NAME()";
+        }
         return "NAME(" + quoteSelectorName(selectorName) + ')';
     }
 

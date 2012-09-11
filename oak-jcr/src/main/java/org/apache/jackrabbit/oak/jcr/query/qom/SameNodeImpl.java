@@ -45,8 +45,13 @@ public class SameNodeImpl extends ConstraintImpl implements SameNode {
 
     @Override
     public String toString() {
-        return "ISSAMENODE(" + quoteSelectorName(selectorName) +
-                ", " + quotePath(path) + ')';
+        StringBuilder buff = new StringBuilder();
+        buff.append("ISSAMENODE(");
+        if (selectorName != null) {
+            buff.append(quoteSelectorName(selectorName)).append(", ");
+        }
+        buff.append(quotePath(path)).append(')');
+        return buff.toString();
     }
 
     @Override

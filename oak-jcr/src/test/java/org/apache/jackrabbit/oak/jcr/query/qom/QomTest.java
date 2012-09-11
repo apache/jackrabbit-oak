@@ -18,10 +18,12 @@
  */
 package org.apache.jackrabbit.oak.jcr.query.qom;
 
+import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
+import javax.jcr.nodetype.NodeType;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.qom.And;
@@ -77,6 +79,33 @@ public class QomTest extends AbstractRepositoryTest {
         QueryManager qm = session.getWorkspace().getQueryManager();
         f = qm.getQOMFactory();
     }
+    
+    @Test
+    public void jcrNameConversion() throws RepositoryException {
+        assertEquals("[nt:base]", 
+                f.column(null, NodeType.NT_BASE, null).toString());
+        assertEquals("[s1].[nt:base] = [s2].[nt:base]", 
+                f.equiJoinCondition("s1", NodeType.NT_BASE, "s2", NodeType.NT_BASE).toString());
+        assertEquals("CONTAINS([nt:base], null)", 
+                f.fullTextSearch(null, NodeType.NT_BASE, null).toString());
+        assertEquals("CAST('nt:base' AS NAME)", 
+                f.literal(vf.createValue(NodeType.NT_BASE, PropertyType.NAME)).toString());
+        assertEquals("[nt:base] IS NOT NULL", 
+                f.propertyExistence(null, NodeType.NT_BASE).toString());
+        assertEquals("[nt:base]", 
+                f.propertyValue(null, NodeType.NT_BASE).toString());
+        assertEquals("[nt:base]", 
+                f.selector(NodeType.NT_BASE, null).toString());
+        
+        Source source1 = f.selector(NodeType.NT_BASE, "selector");
+        Column[] columns = new Column[] { f.column("selector", null, null) };
+        Constraint constraint2 = f.childNode("selector", "/");
+        QueryObjectModel qom = f.createQuery(source1, constraint2, null,
+                columns);
+        assertEquals("select [selector].* from " + 
+                "[nt:base] AS [selector] " + 
+                "where ISCHILDNODE([selector], [/])", qom.toString());
+    }
 
     @Test
     public void and() throws RepositoryException {
@@ -110,6 +139,8 @@ public class QomTest extends AbstractRepositoryTest {
         assertEquals("selectorName", cn.getSelectorName());
         assertEquals("parentPath", cn.getParentPath());
         assertEquals("ISCHILDNODE([selectorName], [parentPath])", cn.toString());
+        
+        assertEquals("ISCHILDNODE([p])", f.childNode(null, "p").toString());
     }
 
     @Test
@@ -129,6 +160,15 @@ public class QomTest extends AbstractRepositoryTest {
         assertEquals("propertyName", c.getPropertyName());
         assertEquals("columnName", c.getColumnName());
         assertEquals("[selectorName].[propertyName] AS [columnName]", c.toString());
+        
+        assertEquals("[p]", f.column(null, "p", null).toString());
+        assertEquals("[p] AS [c]", f.column(null, "p", "c").toString());
+        assertEquals("[s].[p]", f.column("s", "p", null).toString());
+        assertEquals("[s].[p] AS [c]", f.column("s", "p", "c").toString());
+        assertEquals("[s].* AS [c]", f.column("s", null, "c").toString());
+        assertEquals("* AS [c]", f.column(null, null, "c").toString());
+        assertEquals("*", f.column(null, null, null).toString());
+        assertEquals("[s].*", f.column("s", null, null).toString());
     }
 
     @Test
@@ -148,6 +188,9 @@ public class QomTest extends AbstractRepositoryTest {
         assertEquals("selectorName", d.getSelectorName());
         assertEquals("path", d.getAncestorPath());
         assertEquals("ISDESCENDANTNODE([selectorName], [path])", d.toString());
+        
+        assertEquals("ISDESCENDANTNODE([p])", 
+                f.descendantNode(null, "p").toString());
     }
 
     @Test
@@ -189,6 +232,11 @@ public class QomTest extends AbstractRepositoryTest {
         assertEquals("propertyName", x.getPropertyName());
         assertEquals(l, x.getFullTextSearchExpression());
         assertEquals("CONTAINS([selectorName].[propertyName], 1)", x.toString());
+        
+        assertEquals("CONTAINS([p], null)", f.fullTextSearch(null,  "p",  null).toString());
+        assertEquals("CONTAINS([s].[p], null)", f.fullTextSearch("s",  "p",  null).toString());
+        assertEquals("CONTAINS([s].*, null)", f.fullTextSearch("s",  null,  null).toString());
+        assertEquals("CONTAINS(*, null)", f.fullTextSearch(null,  null,  null).toString());
     }
 
     @Test
@@ -196,6 +244,9 @@ public class QomTest extends AbstractRepositoryTest {
         FullTextSearchScore x = f.fullTextSearchScore("selectorName");
         assertEquals("selectorName", x.getSelectorName());
         assertEquals("SCORE([selectorName])", x.toString());
+        
+        assertEquals("SCORE()", f.fullTextSearchScore(null).toString());
+
     }
 
     @Test
@@ -243,6 +294,7 @@ public class QomTest extends AbstractRepositoryTest {
         NodeLocalName n = f.nodeLocalName("selectorName");
         assertEquals("selectorName", n.getSelectorName());
         assertEquals("LOCALNAME([selectorName])", n.toString());
+        assertEquals("LOCALNAME()", f.nodeLocalName(null).toString());
     }
 
     @Test
@@ -250,6 +302,7 @@ public class QomTest extends AbstractRepositoryTest {
         NodeName n = f.nodeName("selectorName");
         assertEquals("selectorName", n.getSelectorName());
         assertEquals("NAME([selectorName])", n.toString());
+        assertEquals("NAME()", f.nodeName(null).toString());
     }
 
     @Test
@@ -258,6 +311,11 @@ public class QomTest extends AbstractRepositoryTest {
         Not n = f.not(c);
         assertEquals(c, n.getConstraint());
         assertEquals("[x].[c0] IS NOT NULL", c.toString());
+        
+        assertEquals("* IS NOT NULL", f.propertyExistence(null, null).toString());
+        assertEquals("[s].* IS NOT NULL", f.propertyExistence("s", null).toString());
+        assertEquals("[p] IS NOT NULL", f.propertyExistence(null, "p").toString());
+        assertEquals("[s].[p] IS NOT NULL", f.propertyExistence("s", "p").toString());
     }
 
     @Test
@@ -276,6 +334,15 @@ public class QomTest extends AbstractRepositoryTest {
         assertEquals("selectorName", pe.getSelectorName());
         assertEquals("propertyName", pe.getPropertyName());
         assertEquals("[selectorName].[propertyName] IS NOT NULL", pe.toString());
+        
+        assertEquals("* IS NOT NULL", 
+                f.propertyExistence(null, null).toString());
+        assertEquals("[s].* IS NOT NULL", 
+                f.propertyExistence("s", null).toString());
+        assertEquals("[p] IS NOT NULL", 
+                f.propertyExistence(null, "p").toString());
+        assertEquals("[s].[p] IS NOT NULL", 
+                f.propertyExistence("s", "p").toString());
     }
 
     @Test
@@ -284,6 +351,11 @@ public class QomTest extends AbstractRepositoryTest {
         assertEquals("selectorName", pv.getSelectorName());
         assertEquals("propertyName", pv.getPropertyName());
         assertEquals("[selectorName].[propertyName]", pv.toString());
+        
+        assertEquals("*", f.propertyValue(null, null).toString());
+        assertEquals("[s].*", f.propertyValue("s", null).toString());
+        assertEquals("[p]", f.propertyValue(null, "p").toString());
+        assertEquals("[s].[p]", f.propertyValue("s", "p").toString());
     }
 
     @Test
@@ -292,6 +364,10 @@ public class QomTest extends AbstractRepositoryTest {
         assertEquals("selectorName", s.getSelectorName());
         assertEquals("path", s.getPath());
         assertEquals("ISSAMENODE([selectorName], [path])", s.toString());
+        
+        assertEquals("ISSAMENODE([path])", f.sameNode(null, "path").toString());
+        assertEquals("ISSAMENODE([s], [path])", f.sameNode("s", "path").toString());
+
     }
 
     @Test
@@ -310,7 +386,8 @@ public class QomTest extends AbstractRepositoryTest {
         assertEquals("nodeTypeName", s.getNodeTypeName());
         assertEquals("selectorName", s.getSelectorName());
         assertEquals("[nodeTypeName] AS [selectorName]", s.toString());
-    }
+        assertEquals("[n]", f.selector("n",  null).toString());
+           }
 
     @Test
     public void upperCase() throws RepositoryException {

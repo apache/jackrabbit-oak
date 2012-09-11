@@ -22,7 +22,7 @@ package org.apache.jackrabbit.oak.jcr.query.qom;
  * The base class for all QOM nodes.
  */
 abstract class QOMNode {
-
+    
     protected String protect(Object expression) {
         String str = expression.toString();
         if (str.indexOf(' ') >= 0) {
