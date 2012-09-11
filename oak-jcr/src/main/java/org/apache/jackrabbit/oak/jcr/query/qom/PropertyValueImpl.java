@@ -45,8 +45,16 @@ public class PropertyValueImpl extends DynamicOperandImpl implements PropertyVal
 
     @Override
     public String toString() {
-        return quoteSelectorName(selectorName) + '.' +
-                quotePropertyName(propertyName);
+        StringBuilder buff = new StringBuilder();
+        if (selectorName != null) {
+            buff.append(quoteSelectorName(selectorName)).append('.');
+        }
+        if (propertyName != null) {
+            buff.append(quotePropertyName(propertyName));
+        } else {
+            buff.append("*");
+        }
+        return buff.toString();
     }
 
 }

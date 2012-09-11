@@ -45,9 +45,17 @@ public class PropertyExistenceImpl extends ConstraintImpl implements PropertyExi
 
     @Override
     public String toString() {
-        return quoteSelectorName(selectorName) + '.' +
-                quotePropertyName(propertyName) +
-                " IS NOT NULL";
+        StringBuilder buff = new StringBuilder();
+        if (selectorName != null) {
+            buff.append(quoteSelectorName(selectorName)).append('.');
+        }
+        if (propertyName != null) {
+            buff.append(quotePropertyName(propertyName));
+        } else {
+            buff.append("*");
+        }
+        buff.append(" IS NOT NULL");
+        return buff.toString();
     }
 
     @Override

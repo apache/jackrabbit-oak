@@ -50,12 +50,20 @@ public class ColumnImpl extends QOMNode implements Column {
 
     @Override
     public String toString() {
-        if (propertyName != null) {
-            return quoteSelectorName(selectorName) + '.' +
-                    quotePropertyName(propertyName) +
-                    " AS " + quoteColumnName(columnName);
+        StringBuilder buff = new StringBuilder();
+        if (selectorName != null) {
+            buff.append(quoteSelectorName(selectorName));
+            buff.append('.');
         }
-        return quoteSelectorName(selectorName) + ".*";
+        if (propertyName != null) {
+            buff.append(quotePropertyName(propertyName));
+        } else {
+            buff.append('*');
+        }
+        if (columnName != null) {
+            buff.append(" AS ").append(quoteColumnName(columnName));
+        }
+        return buff.toString();
     }
 
 }

@@ -38,6 +38,9 @@ public class NodeLocalNameImpl extends DynamicOperandImpl implements NodeLocalNa
 
     @Override
     public String toString() {
+        if (selectorName == null) {
+            return "LOCALNAME()";
+        }
         return "LOCALNAME(" + quoteSelectorName(selectorName) + ')';
     }
 
