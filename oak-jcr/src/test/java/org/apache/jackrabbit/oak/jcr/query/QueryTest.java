@@ -62,6 +62,9 @@ public class QueryTest extends AbstractRepositoryTest {
         assertTrue(it.hasNext());
         Row row = it.nextRow();
         assertEquals("hello world", row.getValue("text").getString());
+        String[] columns = r.getColumnNames();
+        assertEquals(1, columns.length);
+        assertEquals("text", columns[0]);
         assertFalse(it.hasNext());
 
         r = q.execute();
@@ -74,12 +77,22 @@ public class QueryTest extends AbstractRepositoryTest {
         // SQL
 
         q = qm.createQuery("select text from [nt:base] where id = 1", Query.SQL);
-        q.execute();
+        r = q.execute();
+        columns = r.getColumnNames();
+        assertEquals(3, columns.length);
+        assertEquals("text", columns[0]);
+        assertEquals("jcr:path", columns[1]);
+        assertEquals("jcr:score", columns[2]);
 
         // XPath
 
         q = qm.createQuery("//*[@id=1]", Query.XPATH);
-        q.execute();
+        r = q.execute();
+        columns = r.getColumnNames();
+        assertEquals(3, columns.length);
+        assertEquals("jcr:path", columns[0]);
+        assertEquals("jcr:score", columns[1]);
+        assertEquals("*", columns[2]);
     }
 
     @Test

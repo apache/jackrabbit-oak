@@ -18,18 +18,8 @@
  */
 package org.apache.jackrabbit.oak.jcr.query;
 
-import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
-import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
-import static org.apache.jackrabbit.oak.commons.PathUtils.relativize;
-
-import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
-import org.apache.jackrabbit.commons.iterator.RowIteratorAdapter;
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.Result;
-import org.apache.jackrabbit.oak.api.ResultRow;
-import org.apache.jackrabbit.oak.jcr.NodeDelegate;
-import org.apache.jackrabbit.oak.jcr.NodeImpl;
-import org.apache.jackrabbit.oak.jcr.SessionDelegate;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
 
 import javax.annotation.CheckForNull;
 import javax.jcr.NodeIterator;
@@ -37,9 +27,16 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.RowIterator;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
+
+import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
+import org.apache.jackrabbit.commons.iterator.RowIteratorAdapter;
+import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.Result;
+import org.apache.jackrabbit.oak.api.ResultRow;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.jcr.NodeDelegate;
+import org.apache.jackrabbit.oak.jcr.NodeImpl;
+import org.apache.jackrabbit.oak.jcr.SessionDelegate;
 
 /**
  * The implementation of the corresponding JCR interface.
@@ -74,7 +71,7 @@ public class QueryResultImpl implements QueryResult {
             // a row without path (explain,...)
             return true;
         }
-        if (isAncestor(pathFilter, path) || pathFilter.equals(path)) {
+        if (PathUtils.isAncestor(pathFilter, path) || pathFilter.equals(path)) {
             // a row within this workspace
             return true;
         }
@@ -141,14 +138,20 @@ public class QueryResultImpl implements QueryResult {
     }
 
     String getLocalPath(String path) {
-        return concat("/", relativize(pathFilter, path));
+        return PathUtils.concat("/", PathUtils.relativize(pathFilter, path));
     }
 
     @Override
     public NodeIterator getNodes() throws RepositoryException {
+        String[] selectorNames = getSelectorNames();
+        final String selectorName = selectorNames[0];
         if (getSelectorNames().length > 1) {
-            throw new RepositoryException("Query contains more than one selector: " +
-                    Arrays.toString(getSelectorNames()));
+            // use the first selector
+            // TODO verify using the first selector is allowed according to the specification,
+            // otherwise just allow it when using XPath queries, or make XPath queries
+            // look like they only contain one selector
+            // throw new RepositoryException("Query contains more than one selector: " +
+            //        Arrays.toString(getSelectorNames()));
         }
         Iterator<NodeImpl> nodeIterator = new Iterator<NodeImpl>() {
 
@@ -163,7 +166,7 @@ public class QueryResultImpl implements QueryResult {
                 current = null;
                 while (it.hasNext()) {
                     ResultRow r = it.next();
-                    String path = r.getPath();
+                    String path = r.getPath(selectorName);
                     if (includeRow(path)) {
                         current = getNode(getLocalPath(path));
                         break;
