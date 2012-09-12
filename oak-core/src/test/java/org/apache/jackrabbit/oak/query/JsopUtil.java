@@ -52,42 +52,34 @@ public class JsopUtil {
      * </p>
      * 
      * @param root
-     * @param commit
-     *            - the commit string
+     * @param commit the commit string
+     * @param vf the value factory
+     * @throws UnsupportedOperationException if the operation is not supported
      */
     public static void apply(Root root, String commit, CoreValueFactory vf)
-            throws Exception {
+            throws UnsupportedOperationException {
         int index = commit.indexOf(' ');
         String path = commit.substring(0, index).trim();
-        commit = commit.substring(index).trim();
-
-        index = commit.indexOf(' ');
-        String op = commit.substring(0, index).trim();
-        commit = commit.substring(index).trim();
-
-        if (!"+".equals(op) && !"-".equals(op)) {
-            throw new Exception("Unknown operation " + op
-                    + ". This should be either '+' or '-'.");
-        }
-        if (commit.length() == 0) {
-            return;
-        }
-        boolean isAdd = "+".equals(op);
         Tree c = root.getTree(path);
         if (c == null) {
             // TODO create intermediary?
-            throw new Exception("non existing path " + path);
+            throw new UnsupportedOperationException("Non existing path " + path);
         }
-        if (isAdd) {
-            addTree(c, commit, vf);
+        commit = commit.substring(index);
+        JsopTokenizer tokenizer = new JsopTokenizer(commit);
+        if (tokenizer.matches('-')) {
+            removeTree(c, tokenizer);
+        } else if (tokenizer.matches('+')) {
+            addTree(c, tokenizer, vf);
         } else {
-            removeTree(c, commit);
+            throw new UnsupportedOperationException(
+                    "Unsupported " + (char) tokenizer.read() + 
+                    ". This should be either '+' or '-'.");
         }
     }
 
-    private static void removeTree(Tree t, String pathIn) {
-        String path = new JsopTokenizer(pathIn).readString();
-
+    private static void removeTree(Tree t, JsopTokenizer tokenizer) {
+        String path = tokenizer.readString();
         Iterator<String> pathIterator = PathUtils.elements(path).iterator();
         while (pathIterator.hasNext()) {
             String p = pathIterator.next();
@@ -99,39 +91,26 @@ public class JsopUtil {
         t.remove();
     }
 
-    private static void addTree(Tree t, String pathIn, CoreValueFactory vf)
-            throws Exception {
-        addTree(t, new JsopTokenizer(pathIn), vf);
-    }
-
-    private static void addTree(Tree t, JsopTokenizer tokenizer,
-            CoreValueFactory vf) throws Exception {
-        if (!tokenizer.matches('}')) {
-            do {
-                String key = tokenizer.readString();
-                tokenizer.read(':');
-                if (tokenizer.matches('{')) {
-                    addTree(t.addChild(key), tokenizer, vf);
-                } else {
-                    String val = tokenizer.readRawValue();
-                    if (val.startsWith("[")) {
-                        val = val.substring(val.indexOf('[') + 1,
-                                val.indexOf(']'));
-                        List<CoreValue> mvp = new ArrayList<CoreValue>();
-                        for (String v : val.split(",")) {
-                            mvp.add(vf.createValue(JsopTokenizer.decodeQuoted(v
-                                    .trim())));
-                        }
-                        t.setProperty(key, mvp);
-                    } else {
-                        t.setProperty(key, vf.createValue(JsopTokenizer
-                                .decodeQuoted(val.trim())));
-                    }
+    private static void addTree(Tree t, JsopTokenizer tokenizer, CoreValueFactory vf) {
+        do {
+            String key = tokenizer.readString();
+            tokenizer.read(':');
+            if (tokenizer.matches('{')) {
+                Tree c = t.addChild(key);
+                if (!tokenizer.matches('}')) {
+                    addTree(c, tokenizer, vf);
+                    tokenizer.read('}');
                 }
-            } while (tokenizer.matches(','));
-            if (tokenizer.getPos() != tokenizer.getLastPos()) {
-                tokenizer.read('}');
+            } else if (tokenizer.matches('[')) {
+                List<CoreValue> mvp = new ArrayList<CoreValue>();
+                do {
+                    mvp.add(vf.createValue(tokenizer.readString()));
+                } while (tokenizer.matches(','));
+                tokenizer.read(']');
+                t.setProperty(key, mvp);
+            } else {
+                t.setProperty(key, vf.createValue(tokenizer.readString()));
             }
-        }
+        } while (tokenizer.matches(','));
     }
 }
