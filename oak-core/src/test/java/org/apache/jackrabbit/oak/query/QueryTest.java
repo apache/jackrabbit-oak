@@ -35,7 +35,6 @@ import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -54,7 +53,6 @@ public class QueryTest extends AbstractQueryTest {
     }
 
     @Test
-    @Ignore("OAK-288")
     public void sql2Explain() throws Exception {
         test("sql2_explain.txt");
     }
