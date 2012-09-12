@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.type;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.security.AccessController;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -25,7 +27,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
+import java.util.UUID;
 
+import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
@@ -275,11 +279,8 @@ class NodeTypeImpl implements NodeType {
             if ((propertyName.equals(name) && !isProtected(definition))
                     || "*".equals(name)) {
                 if (!definition.isMultiple()) {
-                    if (!meetsValueConstraints(value, definition.getValueConstraints())) {
-                        return false;
-                    }
-                    // TODO: Check value type, etc.
-                    return true;
+                    return meetsTypeConstraints(value, definition.getRequiredType()) &&
+                           meetsValueConstraints(value, definition.getValueConstraints());
                 }
             }
         }
@@ -297,15 +298,80 @@ class NodeTypeImpl implements NodeType {
             if ((propertyName.equals(name) && !isProtected(definition))
                     || "*".equals(name)) {
                 if (definition.isMultiple()) {
-                    if (!meetsValueConstraints(values, definition.getValueConstraints())) {
-                        return false;
-                    }
-                    // TODO: Check value type, etc.
-                    return true;
+                    return meetsTypeConstraints(values, definition.getRequiredType()) &&
+                           meetsValueConstraints(values, definition.getValueConstraints());
                 }
             }
         }
         return false;
+    }
+
+    private static boolean meetsTypeConstraints(Value value, int requiredType) {
+        try {
+            switch (requiredType) {
+                case PropertyType.STRING:
+                    value.getString();
+                    return true;
+                case PropertyType.BINARY:
+                    value.getBinary();
+                    return true;
+                case PropertyType.LONG:
+                    value.getLong();
+                    return true;
+                case PropertyType.DOUBLE:
+                    value.getDouble();
+                    return true;
+                case PropertyType.DATE:
+                    value.getDate();
+                    return true;
+                case PropertyType.BOOLEAN:
+                    value.getBoolean();
+                    return true;
+                case PropertyType.NAME:
+                    // TODO check type constraint for name
+                    value.getString();
+                    return true;
+                case PropertyType.PATH:
+                    // TODO check type constraint for path
+                    value.getString();
+                    return true;
+                case PropertyType.REFERENCE:
+                case PropertyType.WEAKREFERENCE:
+                    UUID.fromString(value.getString());
+                    return true;
+                case PropertyType.URI:
+                    new URI(value.getString());
+                    return true;
+                case PropertyType.DECIMAL:
+                    value.getDecimal();
+                    return true;
+                case PropertyType.UNDEFINED:
+                    return true;
+                default:
+                    log.warn("Invalid property type value: " + requiredType);
+                    return false;
+            }
+        }
+        catch (RepositoryException e) {
+            return false;
+        }
+        catch (URISyntaxException e) {
+            return false;
+        }
+        catch (IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    private static boolean meetsTypeConstraints(Value[] values, int requiredType) {
+        // Constraints must be met by all values
+        for (Value value : values) {
+            if (!meetsTypeConstraints(value, requiredType)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static boolean meetsValueConstraints(Value value, String[] constraints) {
