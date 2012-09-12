@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.kernel.CoreValueMapper;
 
 /**
  * Utility class for working with jsop string diffs
@@ -104,12 +105,13 @@ public class JsopUtil {
             } else if (tokenizer.matches('[')) {
                 List<CoreValue> mvp = new ArrayList<CoreValue>();
                 do {
-                    mvp.add(vf.createValue(tokenizer.readString()));
+                    mvp.add(CoreValueMapper.fromJsopReader(tokenizer, vf));
                 } while (tokenizer.matches(','));
                 tokenizer.read(']');
                 t.setProperty(key, mvp);
             } else {
-                t.setProperty(key, vf.createValue(tokenizer.readString()));
+                t.setProperty(key, 
+                        CoreValueMapper.fromJsopReader(tokenizer, vf));
             }
         } while (tokenizer.matches(','));
     }
