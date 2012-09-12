@@ -29,10 +29,11 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFormatException;
 import javax.jcr.nodetype.ConstraintViolationException;
+import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeManager;
+import javax.jcr.nodetype.PropertyDefinition;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -115,13 +116,15 @@ class TypeValidator implements Validator {
                         "Can't add node " + name + " at " + parent.getPath());
             }
         }
-        // TODO check presence of mandatory items
+
+        ReadOnlyTree addedTree = new ReadOnlyTree(parent, name, after);
+        EffectiveNodeType addedType = getEffectiveNodeType(addedTree);
+        addedType.checkMandatoryItems(addedTree);
         return new TypeValidator(ntm, new ReadOnlyTree(parent, name, after));
     }
 
     @Override
     public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
-        // TODO check presence of mandatory items
         return new TypeValidator(ntm, new ReadOnlyTree(parent, name, after));
     }
 
@@ -231,61 +234,81 @@ class TypeValidator implements Validator {
         }
 
         private boolean canSetProperty(final String propertyName, final List<CoreValue> values) {
-            return Iterables.any(allTypes, new Predicate<NodeType>() {
-                @Override
-                public boolean apply(NodeType nt) {
-                    return nt.canSetProperty(propertyName, jcrValues(values));
+            Value[] jcrValues = jcrValues(values);
+            for (NodeType nodeType : allTypes) {
+                if (nodeType.canSetProperty(propertyName, jcrValues)) {
+                    return true;
                 }
-            });
+            }
+            return false;
         }
 
         private boolean canSetProperty(final String propertyName, final CoreValue value) {
-            return Iterables.any(allTypes, new Predicate<NodeType>() {
-                @Override
-                public boolean apply(NodeType nt) {
-                    return nt.canSetProperty(propertyName, jcrValue(value));
+            Value jcrValue = jcrValue(value);
+            for (NodeType nodeType : allTypes) {
+                if (nodeType.canSetProperty(propertyName, jcrValue)) {
+                    return true;
                 }
-            });
+            }
+            return false;
         }
 
         public boolean canRemoveProperty(PropertyState property) {
             final String name = property.getName();
-            return Iterables.any(allTypes, new Predicate<NodeType>() {
-                @Override
-                public boolean apply(NodeType nt) {
-                    return nt.canRemoveProperty(name);
+            for (NodeType nodeType : allTypes) {
+                if (nodeType.canRemoveProperty(name)) {
+                    return true;
                 }
-            });
+            }
+            return false;
         }
 
         public boolean canRemoveNode(final String name) {
-            return Iterables.any(allTypes, new Predicate<NodeType>() {
-                @Override
-                public boolean apply(NodeType nt) {
-                    return nt.canRemoveProperty(name);
+            for (NodeType nodeType : allTypes) {
+                if (nodeType.canRemoveProperty(name)) {
+                    return true;
                 }
-            });
+            }
+            return false;
         }
 
         public boolean canAddChildNode(final String name) {
-            return Iterables.any(allTypes, new Predicate<NodeType>() {
-                @Override
-                public boolean apply(NodeType nt) {
-                    return nt.canAddChildNode(name);
+            for (NodeType nodeType : allTypes) {
+                if (nodeType.canAddChildNode(name)) {
+                    return true;
                 }
-            });
+            }
+            return false;
         }
 
         public boolean canAddChildNode(final String name, final String ntName) {
-            return Iterables.any(allTypes, new Predicate<NodeType>() {
-                @Override
-                public boolean apply(NodeType nt) {
-                    return nt.canAddChildNode(name, ntName);
+            for (NodeType nodeType : allTypes) {
+                if (nodeType.canAddChildNode(name, ntName)) {
+                    return true;
                 }
-            });
+            }
+            return false;
         }
 
-        private static Value[] jcrValues(List<CoreValue> values) {
+        public void checkMandatoryItems(final ReadOnlyTree tree) throws CommitFailedException {
+            for (NodeType nodeType : allTypes) {
+                for (PropertyDefinition pd : nodeType.getPropertyDefinitions()) {
+                    String name = pd.getName();
+                    if (pd.isMandatory() && !pd.isProtected() && tree.getProperty(name) == null) {
+                        throwConstraintViolationException(name + " in " + nodeType.getName() + " is mandatory");
+                    }
+                }
+                for (NodeDefinition nd : nodeType.getChildNodeDefinitions()) {
+                    String name = nd.getName();
+                    if (nd.isMandatory() && !nd.isProtected() && tree.getChild(name) == null) {
+                        throwConstraintViolationException(name + " in " + nodeType.getName() + " is mandatory");
+                    }
+                }
+            }
+        }
+    }
+
+    private static Value[] jcrValues(List<CoreValue> values) {
             Value[] jcrValues = new  Value[values.size()];
 
             int k = 0;
@@ -299,8 +322,6 @@ class TypeValidator implements Validator {
         private static Value jcrValue(final CoreValue value) {
             return new JcrValue(value);
         }
-
-    }
 
     private static class JcrValue implements Value {
         private final CoreValue value;
