@@ -420,6 +420,13 @@ public class Query {
         return ifUnknown;
     }
 
+    /**
+     * Convert a value to the given target type, if possible.
+     * 
+     * @param v the value to convert
+     * @param targetType the target property type
+     * @return the converted value, or null if converting is not possible
+     */
     public CoreValue convert(CoreValue v, int targetType) {
         // TODO support full set of conversion features defined in the JCR spec
         // at 3.6.4 Property Type Conversion
@@ -444,40 +451,49 @@ public class Query {
             }
             return vf.createValue(v.getString(), targetType);
         }
-        switch (targetType) {
-        case PropertyType.STRING:
-            return vf.createValue(v.getString());
-        case PropertyType.BOOLEAN:
-            return vf.createValue(v.getBoolean());
-        case PropertyType.DATE:
-            return vf.createValue(v.getString(), PropertyType.DATE);
-        case PropertyType.LONG:
-            return vf.createValue(v.getLong());
-        case PropertyType.DOUBLE:
-            return vf.createValue(v.getDouble());
-        case PropertyType.DECIMAL:
-            return vf.createValue(v.getString(), PropertyType.DECIMAL);
-        case PropertyType.NAME:
-            return vf.createValue(getOakPath(v.getString()), PropertyType.NAME);
-        case PropertyType.PATH:
-            return vf.createValue(v.getString(), PropertyType.PATH);
-        case PropertyType.REFERENCE:
-            return vf.createValue(v.getString(), PropertyType.REFERENCE);
-        case PropertyType.WEAKREFERENCE:
-            return vf.createValue(v.getString(), PropertyType.WEAKREFERENCE);
-        case PropertyType.URI:
-            return vf.createValue(v.getString(), PropertyType.URI);
-        case PropertyType.BINARY:
-            try {
-                byte[] data = v.getString().getBytes("UTF-8");
-                return vf.createValue(new ByteArrayInputStream(data));
-            } catch (IOException e) {
-                // I don't know in what case that could really occur
-                // except if UTF-8 isn't supported
-                throw new IllegalArgumentException(v.getString(), e);
+        try {
+            switch (targetType) {
+            case PropertyType.STRING:
+                return vf.createValue(v.getString());
+            case PropertyType.BOOLEAN:
+                return vf.createValue(v.getBoolean());
+            case PropertyType.DATE:
+                return vf.createValue(v.getString(), PropertyType.DATE);
+            case PropertyType.LONG:
+                return vf.createValue(v.getLong());
+            case PropertyType.DOUBLE:
+                return vf.createValue(v.getDouble());
+            case PropertyType.DECIMAL:
+                return vf.createValue(v.getString(), PropertyType.DECIMAL);
+            case PropertyType.NAME:
+                return vf.createValue(getOakPath(v.getString()), PropertyType.NAME);
+            case PropertyType.PATH:
+                return vf.createValue(v.getString(), PropertyType.PATH);
+            case PropertyType.REFERENCE:
+                return vf.createValue(v.getString(), PropertyType.REFERENCE);
+            case PropertyType.WEAKREFERENCE:
+                return vf.createValue(v.getString(), PropertyType.WEAKREFERENCE);
+            case PropertyType.URI:
+                return vf.createValue(v.getString(), PropertyType.URI);
+            case PropertyType.BINARY:
+                try {
+                    byte[] data = v.getString().getBytes("UTF-8");
+                    return vf.createValue(new ByteArrayInputStream(data));
+                } catch (IOException e) {
+                    // I don't know in what case that could really occur
+                    // except if UTF-8 isn't supported
+                    throw new IllegalArgumentException(v.getString(), e);
+                }
             }
+            throw new IllegalArgumentException("Unknown property type: " + targetType);
+        } catch (UnsupportedOperationException e) {
+            // TODO detect unsupported conversions, so that no exception is thrown
+            // because exceptions are slow
+            return null;
+            // throw new IllegalArgumentException("<unsupported conversion of " + 
+            //        v + " (" + PropertyType.nameFromValue(v.getType()) + ") to type " + 
+            //        PropertyType.nameFromValue(targetType) + ">");
         }
-        throw new IllegalArgumentException("Unknown property type: " + targetType);
     }
 
     public String getOakPath(String jcrPath) {
