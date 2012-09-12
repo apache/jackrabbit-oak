@@ -27,7 +27,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
-import java.util.UUID;
 
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
@@ -43,6 +42,7 @@ import javax.jcr.nodetype.PropertyDefinition;
 import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
+import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.type.constraint.Constraints;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.util.NodeUtil;
@@ -337,8 +337,7 @@ class NodeTypeImpl implements NodeType {
                     return true;
                 case PropertyType.REFERENCE:
                 case PropertyType.WEAKREFERENCE:
-                    UUID.fromString(value.getString());
-                    return true;
+                    return IdentifierManager.isValidUUID(value.getString());
                 case PropertyType.URI:
                     new URI(value.getString());
                     return true;
@@ -356,9 +355,6 @@ class NodeTypeImpl implements NodeType {
             return false;
         }
         catch (URISyntaxException e) {
-            return false;
-        }
-        catch (IllegalArgumentException e) {
             return false;
         }
     }
