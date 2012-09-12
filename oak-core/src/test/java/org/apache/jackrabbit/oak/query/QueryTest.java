@@ -35,7 +35,6 @@ import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
-import org.apache.jackrabbit.oak.util.JsopUtil;
 import org.junit.Ignore;
 import org.junit.Test;
 

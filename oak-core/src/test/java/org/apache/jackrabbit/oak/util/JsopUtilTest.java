@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
+import org.apache.jackrabbit.oak.query.JsopUtil;
 import org.junit.Before;
 import org.junit.Test;
 
