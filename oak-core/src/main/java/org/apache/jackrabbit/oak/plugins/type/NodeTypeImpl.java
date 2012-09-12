@@ -344,7 +344,7 @@ class NodeTypeImpl implements NodeType {
             String name = definition.getName();
             if ((matches(childNodeName, name) && !isProtected(definition))
                     || "*".equals(name)) {
-                return true;
+                return definition.getDefaultPrimaryType() != null;
             }
         }
         return false;
