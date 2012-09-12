@@ -166,11 +166,20 @@ public interface NodeState {
     Iterable<String> getChildNodeNames();
 
     /**
-     * Returns an iterable of the child node entries of this instance.
-     * Multiple iterations are guaranteed to return the child nodes in
-     * the same order, but the specific order used is implementation
-     * dependent and may change across different states of the same node.
-     * @return  child node entries in some stable order
+     * Returns an iterable of the child node entries of this instance. Multiple
+     * iterations are guaranteed to return the child nodes in the same order,
+     * but the specific order used is implementation dependent and may change
+     * across different states of the same node.
+     * <p/>
+     * <i>Note on cost and performance:</i> while it is possible to iterate over
+     * all child <code>NodeState</code>s with the two methods {@link
+     * #getChildNodeNames()} and {@link #getChildNode(String)}, this method is
+     * considered more efficient because an implementation can potentially
+     * perform the retrieval of the name and <code>NodeState</code> in one call.
+     * This results in O(n) vs. O(n log n) when iterating over the child node
+     * names and then look up the <code>NodeState</code> by name.
+     *
+     * @return child node entries in some stable order
      */
     @Nonnull
     Iterable<? extends ChildNodeEntry> getChildNodeEntries();
