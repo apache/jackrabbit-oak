@@ -97,7 +97,7 @@ public class EquiJoinConditionImpl extends JoinConditionImpl {
                 if (y.getType() != x.getType()) {
                     y = query.convert(y, x.getType());
                 }
-                if (x.equals(y)) {
+                if (y != null && x.equals(y)) {
                     return true;
                 }
             }
