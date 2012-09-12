@@ -69,7 +69,6 @@ org.apache.jackrabbit.test.api.HasPermissionTest
 org.apache.jackrabbit.test.api.lock.LockManagerTest#testAddInvalidLockToken
 org.apache.jackrabbit.test.api.lock.LockManagerTest#testLockNonLockable
 org.apache.jackrabbit.test.api.nodetype.PropertyDefTest#testIsMandatory
-org.apache.jackrabbit.test.api.nodetype.CanSetPropertyPathTest#testConversions
 org.apache.jackrabbit.test.api.LifecycleTest
 org.apache.jackrabbit.test.api.query.ElementTest#testElementTestNameTestSomeNTWithSNS<!-- OAK-203 -->
 org.apache.jackrabbit.test.api.query.GetPropertyNamesTest#testGetPropertyNames

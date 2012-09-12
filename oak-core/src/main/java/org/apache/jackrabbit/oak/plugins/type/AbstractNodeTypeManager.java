@@ -37,6 +37,7 @@ import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryValueFactory;
 import org.apache.jackrabbit.oak.util.NodeUtil;
@@ -89,6 +90,11 @@ public abstract class AbstractNodeTypeManager implements NodeTypeManager {
     }
 
     @Nonnull
+    protected NamePathMapper getNamePathMapper() {
+        return NamePathMapper.DEFAULT;
+    }
+
+    @Nonnull
     protected CoreValueFactory getCoreValueFactory() {
         return MemoryValueFactory.INSTANCE;
     }
@@ -112,7 +118,7 @@ public abstract class AbstractNodeTypeManager implements NodeTypeManager {
         if (types != null) {
             Tree type = types.getChild(getOakName(name));
             if (type != null) {
-                return new NodeTypeImpl(this, getValueFactory(),
+                return new NodeTypeImpl(this, getValueFactory(), getNamePathMapper(),
                         new NodeUtil(type, getCoreValueFactory(), getNameMapper()));
             }
         }
@@ -125,7 +131,7 @@ public abstract class AbstractNodeTypeManager implements NodeTypeManager {
         Tree types = getTypes();
         if (types != null) {
             for (Tree type : types.getChildren()) {
-                list.add(new NodeTypeImpl(this, getValueFactory(),
+                list.add(new NodeTypeImpl(this, getValueFactory(), getNamePathMapper(),
                         new NodeUtil(type, getCoreValueFactory(), getNameMapper())));
 
             }
