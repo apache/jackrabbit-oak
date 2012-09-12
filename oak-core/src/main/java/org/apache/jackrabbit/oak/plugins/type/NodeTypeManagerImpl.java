@@ -22,6 +22,7 @@ import java.security.PrivilegedAction;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
@@ -49,6 +50,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.util.NodeUtil;
@@ -90,11 +92,11 @@ public class NodeTypeManagerImpl extends AbstractNodeTypeManager {
 
     private final ContentSession session;
 
-    private final NameMapper mapper;
+    private final NamePathMapper mapper;
 
     private final ValueFactory factory;
 
-    public NodeTypeManagerImpl(ContentSession session, NameMapper mapper, ValueFactory factory) {
+    public NodeTypeManagerImpl(ContentSession session, NamePathMapper mapper, ValueFactory factory) {
         this.session = session;
         this.mapper = mapper;
         this.factory = factory;
@@ -174,6 +176,12 @@ public class NodeTypeManagerImpl extends AbstractNodeTypeManager {
     @Override
     protected ValueFactory getValueFactory() {
         return factory;
+    }
+
+    @Nonnull
+    @Override
+    protected NamePathMapper getNamePathMapper() {
+        return mapper;
     }
 
     @Override
@@ -267,7 +275,7 @@ public class NodeTypeManagerImpl extends AbstractNodeTypeManager {
             internalRegisterNodeDefinition(def, nd);
         }
 
-        return new NodeTypeImpl(this, this.factory, node);
+        return new NodeTypeImpl(this, this.factory, this.mapper, node);
     }
 
     private static void internalRegisterItemDefinition(
