@@ -71,6 +71,9 @@ public class ComparisonImpl extends ConstraintImpl {
             // "the value of operand2 is converted to the
             // property type of the value of operand1"
             v2 = query.convert(v2, v1Type);
+            if (v2 == null) {
+                return false;
+            }
         }
         if (!isArray) {
             return evaluate(p1.getValue(), v2);
