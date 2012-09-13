@@ -155,7 +155,7 @@ class NodeDefinitionTemplateImpl
     @Override
     public NodeType[] getRequiredPrimaryTypes() {
         if (requiredPrimaryTypeNames == null) {
-            return new NodeType[0];
+            return null;
         } else {
             List<NodeType> types =
                     new ArrayList<NodeType>(requiredPrimaryTypeNames.length);
