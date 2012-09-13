@@ -42,7 +42,8 @@ import javax.jcr.nodetype.PropertyDefinition;
 import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.namepath.JcrNameParser;
+import org.apache.jackrabbit.oak.namepath.JcrPathParser;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.type.constraint.Constraints;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
@@ -81,16 +82,13 @@ class NodeTypeImpl implements NodeType {
 
     private final NodeTypeManager manager;
 
-    private final NamePathMapper mapper;
-
     private final ValueFactory factory;
 
     private final NodeUtil node;
 
     public NodeTypeImpl(
-            NodeTypeManager manager, ValueFactory factory, NamePathMapper mapper, NodeUtil node) {
+            NodeTypeManager manager, ValueFactory factory, NodeUtil node) {
         this.manager = manager;
-        this.mapper = mapper;
         this.factory = factory;
         this.node = node;
     }
@@ -310,7 +308,7 @@ class NodeTypeImpl implements NodeType {
         return false;
     }
 
-    private boolean meetsTypeConstraints(Value value, int requiredType) {
+    private static boolean meetsTypeConstraints(Value value, int requiredType) {
         try {
             switch (requiredType) {
                 case PropertyType.STRING:
@@ -332,13 +330,13 @@ class NodeTypeImpl implements NodeType {
                     value.getBoolean();
                     return true;
                 case PropertyType.NAME:
-                    return mapper.getOakName(value.getString()) != null;
+                    return JcrNameParser.validate(value.getString());
                 case PropertyType.PATH:
                     int type = value.getType();
                     return type != PropertyType.DOUBLE &&
                            type != PropertyType.LONG &&
                            type != PropertyType.BOOLEAN &&
-                           mapper.getOakPath(value.getString()) != null;
+                            JcrPathParser.validate(value.getString());
                 case PropertyType.REFERENCE:
                 case PropertyType.WEAKREFERENCE:
                     return IdentifierManager.isValidUUID(value.getString());

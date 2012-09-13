@@ -209,4 +209,17 @@ public class JcrNameParser {
         return listener.name(jcrName, index);
     }
 
+    public static boolean validate(String jcrName) {
+        Listener listener = new Listener() {
+            @Override
+            public void error(String message) {
+            }
+
+            @Override
+            public boolean name(String name, int index) {
+                return true;
+            }
+        };
+        return parse(jcrName, listener, 0);
+    }
 }

@@ -41,26 +41,26 @@ public class JcrPathParser {
         boolean parent();
     }
 
-    public static void parse(String jcrPath, Listener listener) {
+    public static boolean parse(String jcrPath, Listener listener) {
         // check for length
         int len = jcrPath == null ? 0 : jcrPath.length();
 
         // shortcut for root path
         if (len == 1 && jcrPath.charAt(0) == '/') {
             listener.root();
-            return;
+            return true;
         }
 
         // short cut for empty path
         if (len == 0) {
-            return;
+            return true;
         }
 
         // check if absolute path
         int pos = 0;
         if (jcrPath.charAt(0) == '/') {
             if (!listener.root()) {
-                return;
+                return false;
             }
             pos++;
         }
@@ -88,7 +88,7 @@ public class JcrPathParser {
                     if (state == STATE_PREFIX_START && c != EOF) {
                         listener.error('\'' + jcrPath + "' is not a valid path. " +
                                 "double slash '//' not allowed.");
-                        return;
+                        return false;
                     }
                     if (state == STATE_PREFIX
                             || state == STATE_NAME
@@ -100,13 +100,13 @@ public class JcrPathParser {
                             if (wasSlash) {
                                 listener.error('\'' + jcrPath + "' is not a valid path: " +
                                         "Trailing slashes not allowed in prefixes and names.");
-                                return;
+                                return false;
                             }
                             name = jcrPath.substring(lastPos, pos - 1);
                         }
 
                         if (!JcrNameParser.parse(name, listener, index)) {
-                            return;
+                            return false;
                         }
                         state = STATE_PREFIX_START;
                         lastPos = pos;
@@ -114,13 +114,13 @@ public class JcrPathParser {
                         index = 0;
                     } else if (state == STATE_DOT) {
                         if (!listener.current()) {
-                            return;
+                            return false;
                         }
                         lastPos = pos;
                         state = STATE_PREFIX_START;
                     } else if (state == STATE_DOTDOT) {
                         if (!listener.parent()) {
-                            return;
+                            return false;
                         }
                         lastPos = pos;
                         state = STATE_PREFIX_START;
@@ -128,7 +128,7 @@ public class JcrPathParser {
                             && !(state == STATE_PREFIX_START && c == EOF)) { // ignore trailing slash
                         listener.error('\'' + jcrPath + "' is not a valid path. '" + c +
                                 "' not a valid name character.");
-                        return;
+                        return false;
                     }
                     break;
 
@@ -142,7 +142,7 @@ public class JcrPathParser {
                     } else if (state == STATE_INDEX_END) {
                         listener.error('\'' + jcrPath + "' is not a valid path. '" + c +
                                 "' not valid after index. '/' expected.");
-                        return;
+                        return false;
                     }
                     break;
 
@@ -150,19 +150,19 @@ public class JcrPathParser {
                     if (state == STATE_PREFIX_START) {
                         listener.error('\'' + jcrPath + "' is not a valid path. Prefix " +
                                 "must not be empty");
-                        return;
+                        return false;
                     } else if (state == STATE_PREFIX) {
                         if (wasSlash) {
                             listener.error('\'' + jcrPath + "' is not a valid path: " +
                                     "Trailing slashes not allowed in prefixes and names.");
-                            return;
+                            return false;
                         }
                         state = STATE_NAME_START;
                         // don't reset the lastPos/pos since prefix+name are passed together to the NameResolver
                     } else if (state != STATE_URI) {
                         listener.error('\'' + jcrPath + "' is not a valid path. '" + c +
                                 "' not valid name character");
-                        return;
+                        return false;
                     }
                     break;
 
@@ -171,7 +171,7 @@ public class JcrPathParser {
                         if (wasSlash) {
                             listener.error('\'' + jcrPath + "' is not a valid path: " +
                                     "Trailing slashes not allowed in prefixes and names.");
-                            return;
+                            return false;
                         }
                         state = STATE_INDEX;
                         name = jcrPath.substring(lastPos, pos - 1);
@@ -187,18 +187,18 @@ public class JcrPathParser {
                             listener.error('\'' + jcrPath + "' is not a valid path. " +
                                     "NumberFormatException in index: " +
                                     jcrPath.substring(lastPos, pos - 1));
-                            return;
+                            return false;
                         }
                         if (index < 0) {
                             listener.error('\'' + jcrPath + "' is not a valid path. " +
                                     "Index number invalid: " + index);
-                            return;
+                            return false;
                         }
                         state = STATE_INDEX_END;
                     } else {
                         listener.error('\'' + jcrPath + "' is not a valid path. '" + c +
                                 "' not a valid name character.");
-                        return;
+                        return false;
                     }
                     break;
 
@@ -206,11 +206,11 @@ public class JcrPathParser {
                     if (state == STATE_PREFIX_START || state == STATE_NAME_START) {
                         listener.error('\'' + jcrPath + "' is not a valid path. '" + c +
                                 "' not valid name start");
-                        return;
+                        return false;
                     } else if (state == STATE_INDEX_END) {
                         listener.error('\'' + jcrPath + "' is not a valid path. '" + c +
                                 "' not valid after index. '/' expected.");
-                        return;
+                        return false;
                     } else if (state == STATE_DOT || state == STATE_DOTDOT) {
                         state = STATE_PREFIX;
                     }
@@ -219,12 +219,12 @@ public class JcrPathParser {
                 case '\t':
                     listener.error('\'' + jcrPath + "' is not a valid path. " +
                             "Whitespace not a allowed in name.");
-                    return;
+                    return false;
                 case '*':
                 case '|':
                     listener.error('\'' + jcrPath + "' is not a valid path. '" + c +
                             "' not a valid name character.");
-                    return;
+                    return false;
                 case '{':
                     if (state == STATE_PREFIX_START && lastPos == pos-1) {
                         // '{' marks the start of a uri enclosed in an expanded name
@@ -251,11 +251,48 @@ public class JcrPathParser {
                     } else if (state == STATE_INDEX_END) {
                         listener.error('\'' + jcrPath + "' is not a valid path. '" + c +
                                 "' not valid after index. '/' expected.");
-                        return;
+                        return false;
                     }
             }
             wasSlash = c == ' ';
         }
+        return true;
     }
 
+    public static boolean validate(String jcrPath) {
+        Listener listener = new Listener() {
+            boolean hasRoot;
+            @Override
+            public boolean root() {
+                if (hasRoot) {
+                    return false;
+                }
+                else {
+                    hasRoot = true;
+                    return true;
+                }
+            }
+
+            @Override
+            public boolean current() {
+                return true;
+            }
+
+            @Override
+            public boolean parent() {
+                return true;
+            }
+
+            @Override
+            public void error(String message) {
+            }
+
+            @Override
+            public boolean name(String name, int index) {
+                return true;
+            }
+
+        };
+        return parse(jcrPath, listener);
+    }
 }

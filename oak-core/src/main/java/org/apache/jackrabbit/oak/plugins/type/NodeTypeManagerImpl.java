@@ -22,7 +22,6 @@ import java.security.PrivilegedAction;
 import java.util.List;
 import java.util.Map;
 
-import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
@@ -196,12 +195,6 @@ public class NodeTypeManagerImpl extends AbstractNodeTypeManager {
         return factory;
     }
 
-    @Nonnull
-    @Override
-    protected NamePathMapper getNamePathMapper() {
-        return mapper;
-    }
-
     @Override
     protected CoreValueFactory getCoreValueFactory() {
         return session.getCoreValueFactory();
@@ -293,7 +286,7 @@ public class NodeTypeManagerImpl extends AbstractNodeTypeManager {
             internalRegisterNodeDefinition(def, nd);
         }
 
-        return new NodeTypeImpl(this, this.factory, this.mapper, node);
+        return new NodeTypeImpl(this, this.factory, node);
     }
 
     private static void internalRegisterItemDefinition(
