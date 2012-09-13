@@ -75,8 +75,6 @@ org.apache.jackrabbit.test.api.nodetype.NodeTypeCreationTest#testPropertyDefinit
 org.apache.jackrabbit.test.api.nodetype.NodeTypeCreationTest#testEmptyNodeDefinitionTemplate      <!-- OAK-66 -->
 org.apache.jackrabbit.test.api.nodetype.NodeTypeCreationTest#testNodeDefinitionTemplate   <!-- OAK-66 -->
 org.apache.jackrabbit.test.api.nodetype.NodeTypeCreationTest#testInvalidJCRNames          <!-- OAK-66 -->
-org.apache.jackrabbit.test.api.nodetype.NodeTypeCreationTest#testUnregisterNodeType       <!-- OAK-66 -->
-org.apache.jackrabbit.test.api.nodetype.NodeTypeCreationTest#testUnregisterNodeTypes      <!-- OAK-66 -->
 org.apache.jackrabbit.test.api.SetPropertyAssumeTypeTest#testValueConstraintViolationExceptionBecauseOfInvalidTypeParameter
 org.apache.jackrabbit.test.api.SetPropertyAssumeTypeTest#testValuesConstraintViolationExceptionBecauseOfInvalidTypeParameter
 org.apache.jackrabbit.test.api.SetPropertyAssumeTypeTest#testStringConstraintViolationExceptionBecauseOfInvalidTypeParameter
