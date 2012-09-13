@@ -70,7 +70,6 @@ org.apache.jackrabbit.test.api.nodetype.CanSetPropertyLongTest#testConversionsMu
 org.apache.jackrabbit.test.api.nodetype.CanSetPropertyNameTest#testConversions            <!-- OAK-66 -->
 org.apache.jackrabbit.test.api.nodetype.CanSetPropertyNameTest#testConversionsMultiple    <!-- OAK-66 -->
 org.apache.jackrabbit.test.api.nodetype.NodeTypeCreationTest#testEmptyNodeTypeTemplate    <!-- OAK-66 -->
-org.apache.jackrabbit.test.api.nodetype.NodeTypeCreationTest#testNonEmptyNodeTypeTemplate <!-- OAK-66 -->
 org.apache.jackrabbit.test.api.nodetype.NodeTypeCreationTest#testNewNodeTypeTemplate      <!-- OAK-66 -->
 org.apache.jackrabbit.test.api.nodetype.NodeTypeCreationTest#testEmptyPropertyDefinitionTemplate  <!-- OAK-66 -->
 org.apache.jackrabbit.test.api.nodetype.NodeTypeCreationTest#testPropertyDefinitionTemplate       <!-- OAK-66 -->

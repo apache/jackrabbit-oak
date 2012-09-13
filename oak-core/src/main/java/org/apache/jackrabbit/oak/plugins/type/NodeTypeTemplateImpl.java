@@ -74,7 +74,7 @@ class NodeTypeTemplateImpl
         setPrimaryItemName(ntd.getPrimaryItemName());
         setDeclaredSuperTypeNames(ntd.getDeclaredSupertypeNames());
 
-        for (PropertyDefinition pd : getDeclaredPropertyDefinitions()) {
+        for (PropertyDefinition pd : ntd.getDeclaredPropertyDefinitions()) {
             PropertyDefinitionTemplateImpl pdt = newPropertyDefinitionBuilder();
             pdt.setDeclaringNodeType(pd.getDeclaringNodeType().getName());
             pdt.setName(pd.getName());
@@ -92,7 +92,7 @@ class NodeTypeTemplateImpl
             pdt.build();
         }
 
-        for (NodeDefinition nd : getDeclaredChildNodeDefinitions()) {
+        for (NodeDefinition nd : ntd.getDeclaredChildNodeDefinitions()) {
             NodeDefinitionTemplateImpl ndt = newNodeDefinitionBuilder();
             ndt.setDeclaringNodeType(nd.getDeclaringNodeType().getName());
             ndt.setName(nd.getName());
