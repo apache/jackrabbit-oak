@@ -211,7 +211,7 @@ public class QueryTest extends AbstractQueryTest {
             lines.add(e.toString());
         }
         time = System.currentTimeMillis() - time;
-        if (time > 3000) {
+        if (time > 3000 && !isDebugModeEnabled()) {
             fail("Query took too long: " + query + " took " + time + " ms");
         }
         return lines;
@@ -232,6 +232,16 @@ public class QueryTest extends AbstractQueryTest {
 
     private Result executeQuery(String statement, String language, HashMap<String, CoreValue> sv) throws ParseException {
         return qe.executeQuery(statement, language, Long.MAX_VALUE, 0, sv, null);
+    }
+
+    /**
+     * Check whether the test is running in debug mode.
+     * 
+     * @return true if debug most is (most likely) enabled
+     */
+    private static boolean isDebugModeEnabled() {
+        return java.lang.management.ManagementFactory.getRuntimeMXBean().
+                getInputArguments().toString().indexOf("-agentlib:jdwp") > 0;
     }
 
 }
