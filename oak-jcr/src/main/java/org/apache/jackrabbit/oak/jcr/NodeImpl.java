@@ -72,6 +72,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
 import org.apache.jackrabbit.oak.jcr.value.ValueConverter;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
+import org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants;
 import org.apache.jackrabbit.oak.util.TODO;
 import org.apache.jackrabbit.value.ValueHelper;
 import org.slf4j.Logger;
@@ -1382,11 +1383,13 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
     }
 
     // TODO: hack to filter for a subset of supported mixins for now
-    // this allows exactly one (harmless) mixin type so that other code like
-    // addMixin gets test coverage
+    // this allows only harmless mixin types so that other code like addMixin gets test coverage
     private boolean isSupportedMixinName(String mixinName) throws RepositoryException {
         String oakName = sessionDelegate.getOakPathOrThrow(mixinName);
-        return "mix:title".equals(oakName);
+        return "mix:title".equals(oakName) ||
+            NodeTypeConstants.MIX_REFERENCEABLE.equals(oakName) ||
+            NodeTypeConstants.MIX_VERSIONABLE.equals(oakName) ||
+            NodeTypeConstants.MIX_LOCKABLE.equals(oakName);
     }
 
     private void checkValidWorkspace(String workspaceName) throws RepositoryException {
