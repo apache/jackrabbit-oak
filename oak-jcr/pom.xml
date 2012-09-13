@@ -57,6 +57,18 @@ org.apache.jackrabbit.test.api.nodetype.CanSetPropertyLongTest#testConversions  
 org.apache.jackrabbit.test.api.nodetype.CanSetPropertyLongTest#testConversionsMultiple    <!-- OAK-66 -->
 org.apache.jackrabbit.test.api.nodetype.CanSetPropertyNameTest#testConversions            <!-- OAK-66 -->
 org.apache.jackrabbit.test.api.nodetype.CanSetPropertyNameTest#testConversionsMultiple    <!-- OAK-66 -->
+org.apache.jackrabbit.test.api.nodetype.NodeTypeCreationTest#testEmptyNodeTypeTemplate    <!-- OAK-66 -->
+org.apache.jackrabbit.test.api.nodetype.NodeTypeCreationTest#testNonEmptyNodeTypeTemplate <!-- OAK-66 -->
+org.apache.jackrabbit.test.api.nodetype.NodeTypeCreationTest#testNewNodeTypeTemplate      <!-- OAK-66 -->
+org.apache.jackrabbit.test.api.nodetype.NodeTypeCreationTest#testEmptyPropertyDefinitionTemplate  <!-- OAK-66 -->
+org.apache.jackrabbit.test.api.nodetype.NodeTypeCreationTest#testPropertyDefinitionTemplate       <!-- OAK-66 -->
+org.apache.jackrabbit.test.api.nodetype.NodeTypeCreationTest#testEmptyNodeDefinitionTemplate      <!-- OAK-66 -->
+org.apache.jackrabbit.test.api.nodetype.NodeTypeCreationTest#testNodeDefinitionTemplate   <!-- OAK-66 -->
+org.apache.jackrabbit.test.api.nodetype.NodeTypeCreationTest#testInvalidJCRNames          <!-- OAK-66 -->
+org.apache.jackrabbit.test.api.nodetype.NodeTypeCreationTest#testRegisterNodeType         <!-- OAK-66 -->
+org.apache.jackrabbit.test.api.nodetype.NodeTypeCreationTest#testUnregisterNodeType       <!-- OAK-66 -->
+org.apache.jackrabbit.test.api.nodetype.NodeTypeCreationTest#testUnregisterNodeTypes      <!-- OAK-66 -->
+org.apache.jackrabbit.test.api.nodetype.NodeTypeCreationTest#testRegisterNodeTypes        <!-- OAK-66 -->
 org.apache.jackrabbit.test.api.SetPropertyAssumeTypeTest#testValueConstraintViolationExceptionBecauseOfInvalidTypeParameter
 org.apache.jackrabbit.test.api.SetPropertyAssumeTypeTest#testValuesConstraintViolationExceptionBecauseOfInvalidTypeParameter
 org.apache.jackrabbit.test.api.SetPropertyAssumeTypeTest#testStringConstraintViolationExceptionBecauseOfInvalidTypeParameter
