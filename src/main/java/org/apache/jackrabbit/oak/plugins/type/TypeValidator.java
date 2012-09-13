@@ -84,6 +84,10 @@ class TypeValidator implements Validator {
             throw new CommitFailedException(
                     "Cannot add property '" + after.getName() + "' at " + parent.getPath(), e);
         }
+        catch (IllegalStateException e) {
+            throw new CommitFailedException(
+                    "Cannot add property '" + after.getName() + "' at " + parent.getPath(), e);
+        }
     }
 
     @Override
@@ -96,6 +100,10 @@ class TypeValidator implements Validator {
             throw new CommitFailedException(
                     "Cannot set property '" + after.getName() + "' at " + parent.getPath(), e);
         }
+        catch (IllegalStateException e) {
+            throw new CommitFailedException(
+                    "Cannot set property '" + after.getName() + "' at " + parent.getPath(), e);
+        }
     }
 
     @Override
@@ -104,6 +112,10 @@ class TypeValidator implements Validator {
             getParentType().checkRemoveProperty(before);
         }
         catch (RepositoryException e) {
+            throw new CommitFailedException(
+                    "Cannot remove property '" + before.getName() + "' at " + parent.getPath(), e);
+        }
+        catch (IllegalStateException e) {
             throw new CommitFailedException(
                     "Cannot remove property '" + before.getName() + "' at " + parent.getPath(), e);
         }
@@ -130,6 +142,10 @@ class TypeValidator implements Validator {
             throw new CommitFailedException(
                     "Cannot add node '" + name + "' at " + parent.getPath(), e);
         }
+        catch (IllegalStateException e) {
+            throw new CommitFailedException(
+                    "Cannot add node '" + name + "' at " + parent.getPath(), e);
+        }
     }
 
     @Override
@@ -146,6 +162,10 @@ class TypeValidator implements Validator {
         catch (RepositoryException e) {
             throw new CommitFailedException(
                     "Cannot remove node '" + name + "' at " + parent.getPath(), e);
+        }
+        catch (IllegalStateException e) {
+            throw new CommitFailedException(
+                    "Cannot add node '" + name + "' at " + parent.getPath(), e);
         }
     }
 
