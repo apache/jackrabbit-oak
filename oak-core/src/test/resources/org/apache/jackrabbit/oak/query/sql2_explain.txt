@@ -37,14 +37,14 @@ select * from [nt:base] where property([*], 'REFERENCE') = CAST('123' AS REFEREN
 /test/a
 
 commit / + "oak-index": {}
-commit /oak-index + "indexes": {}
+commit /oak-index + "indexes": { "type": "property" }
 commit /oak-index/indexes + "prefix@ref:": {}
 
-# explain select * from [nt:base] where property([*], 'REFERENCE') = CAST('123' AS REFERENCE)
-# [nt:base] as nt:base /* prefixIndex "ref:123" where property(nt:base.*, 'reference') = cast('123' as reference) */
+explain select * from [nt:base] where property([*], 'REFERENCE') = CAST('123' AS REFERENCE)
+[nt:base] as nt:base /* prefixIndex "ref:123" where property(nt:base.*, 'reference') = cast('123' as reference) */
 
-# explain select * from [nt:base] where property(id, 'REFERENCE') = CAST('123' AS REFERENCE)
-# [nt:base] as nt:base /* prefixIndex "ref:123" where property(nt:base.id, 'reference') = cast('123' as reference) */
+explain select * from [nt:base] where property(id, 'REFERENCE') = CAST('123' AS REFERENCE)
+[nt:base] as nt:base /* prefixIndex "ref:123" where property(nt:base.id, 'reference') = cast('123' as reference) */
 
 select * from [nt:base] where property([*], 'REFERENCE') = CAST('123' AS REFERENCE)
 /test/a
@@ -69,8 +69,8 @@ select * from [nt:base] where id is not null and not (id = '100' and id <> '20')
 /test/a
 /test/b
 
-# explain select * from [nt:base] where id = '10'
-# [nt:base] as nt:base /* propertyIndex "id [10..10]" where nt:base.id = cast('10' as string) */
+explain select * from [nt:base] where id = '10'
+[nt:base] as nt:base /* propertyIndex "id [10..10]" where nt:base.id = cast('10' as string) */
 
 select * from [nt:base] where id = '10'
 /test/a

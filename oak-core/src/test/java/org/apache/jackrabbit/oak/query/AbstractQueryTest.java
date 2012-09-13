@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.query;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
+import org.apache.jackrabbit.mk.index.IndexWrapper;
 import org.apache.jackrabbit.oak.AbstractOakTest;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -44,10 +44,15 @@ public abstract class AbstractQueryTest extends AbstractOakTest {
 
     @Override
     protected ContentRepository createRepository() {
-        MicroKernel mk = new MicroKernelImpl();
-        Indexer indexer = new Indexer(mk);
-        PropertyIndexer pi = new PropertyIndexer(indexer);
+        
+        // the property and prefix index currently require the index wrapper
+        IndexWrapper mk = new IndexWrapper(new MicroKernelImpl());
+        Indexer indexer = mk.getIndexer();
+        
+        // MicroKernel mk = new MicroKernelImpl();
+        // Indexer indexer = new Indexer(mk);
 
+        PropertyIndexer pi = new PropertyIndexer(indexer);
         QueryIndexProvider qip = new CompositeQueryIndexProvider(pi);
         CompositeHook hook = new CompositeHook(pi);
         return new ContentRepositoryImpl(mk, qip, hook);
