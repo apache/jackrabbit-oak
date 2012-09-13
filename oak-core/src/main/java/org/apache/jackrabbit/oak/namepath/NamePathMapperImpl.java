@@ -201,7 +201,7 @@ public class NamePathMapperImpl implements NamePathMapper {
         // try a shortcut
         if (!hasNameStartingWithDot && !hasClarkBrackets && !hasIndexBrackets) {
             if (!hasColon || !hasSessionLocalMappings()) {
-                return removeTrailingSlash(jcrPath);
+                return validateJcrPath(jcrPath);
             }
         }
 
@@ -286,13 +286,65 @@ public class NamePathMapperImpl implements NamePathMapper {
         return oakPath.toString();
     }
 
-    private static String removeTrailingSlash(String path) {
-        if ("/".equals(path) || path.isEmpty()) {
-            return path;
-        } else if (path.endsWith("/")) {
-            return path.substring(0, path.length() - 1);
-        } else {
-            return path;
+    /**
+     * Validate a jcrPath assuming it doesn't contain any of the following
+     * characters: {@code {, }, [, ], ., :}.
+     * @param jcrPath  path to validate
+     * @return  {@code jcrPath} i.e. the same string instance if valid.
+     *      {@code null} otherwise.
+     */
+    private String validateJcrPath(String jcrPath) {
+        final StringBuilder parseErrors = new StringBuilder();
+        JcrPathParser.Listener listener = new JcrPathParser.Listener() {
+            boolean hasRoot;
+
+            @Override
+            public boolean root() {
+                if (hasRoot) {
+                    parseErrors.append("/ on non-empty path");
+                    return false;
+                }
+                else {
+                    hasRoot = true;
+                    return true;
+                }
+            }
+
+            @Override
+            public boolean current() {
+                return true;
+            }
+
+            @Override
+            public boolean parent() {
+                return true;
+            }
+
+            @Override
+            public void error(String message) {
+                parseErrors.append(message);
+            }
+
+            @Override
+            public boolean name(String name, int index) {
+                String p = nameMapper.getOakName(name);
+                if (p == null) {
+                    parseErrors.append("Invalid name: ").append(name);
+                    return false;
+                }
+                else {
+                    return true;
+                }
+            }
+        };
+
+        JcrPathParser.parse(jcrPath, listener);
+        if (parseErrors.length() != 0) {
+            log.debug("Could not parse path " + jcrPath + ": " + parseErrors.toString());
+            return null;
+        }
+        else {
+            return jcrPath;
         }
     }
 }
