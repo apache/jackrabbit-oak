@@ -42,5 +42,51 @@ Implementations that use mutable data structures like caches or otherwise
 aren't thread-safe by default, are expected to use other mechanisms like
 synchronization to ensure thread-safety.
 
- 
+## The NodeState interface
+
+The above design principles are reflected in the `NodeState` interface
+in the `org.apache.jackrabbit.oak.spi.state` package of oak-core. The
+interface consits of three sets of methods:
+
+  * Methods for accessing properties
+  * Methods for accessing child nodes
+  * The `compareAgainstBaseState` method for comparing states
+
+You can request a property or a child node by name, get the number of
+properties or child nodes, or iterate through all of them. Even though
+properties and child nodes are accessed through separate methods, they
+share the same namespace so a given name can either refer to a property
+or a child node, but not to both at the same time.
+
+Iteration order of properties and child nodes is _unspecified but stable_,
+so that re-iterating through the items of a _specific NodeState instance_
+will return the items in the same order as before, but the specific ordering
+is not defined nor does it necessarily remain the same across different
+instances.
+
+The `compareAgainstBaseState` method takes another NodeState instance and
+a `NodeStateDiff` object, compares the two node states, and reports all
+differences by invoking appropriate methods on the given diff handler object.
+
+See the `NodeState` javadocs for full details of how the interface works.
+
+## Comparing node states
+
+TODO
+
+## Building new node states
+
+TODO
+
+## The commit hook mechanism
+
+TODO
+
+## Commit validation
+
+TODO
+
+## Commit modification
+
+TODO
 
