@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.Indexer;
 import org.apache.jackrabbit.oak.plugins.index.PrefixIndex;
 import org.apache.jackrabbit.oak.plugins.index.PropertyIndex;
+import org.apache.jackrabbit.oak.plugins.index.PropertyIndexConstants;
 
 /**
  * The index mechanism, as a wrapper.
@@ -141,8 +142,8 @@ public class IndexWrapper extends MicroKernelWrapperBase implements MicroKernel 
         index = index.substring(0, idx);
         JsopStream s = new JsopStream();
         s.array();
-        if (index.startsWith(Indexer.TYPE_PREFIX)) {
-            String prefix = index.substring(Indexer.TYPE_PREFIX.length());
+        if (index.startsWith(PropertyIndexConstants.TYPE_PREFIX)) {
+            String prefix = index.substring(PropertyIndexConstants.TYPE_PREFIX.length());
             PrefixIndex prefixIndex = indexer.getPrefixIndex(prefix);
             if (prefixIndex == null) {
                 throw ExceptionFactory.get("Unknown index: " + index);
@@ -151,12 +152,12 @@ public class IndexWrapper extends MicroKernelWrapperBase implements MicroKernel 
             while (it.hasNext()) {
                 s.value(it.next());
             }
-        } else if (index.startsWith(Indexer.TYPE_PROPERTY)) {
-            String property = index.substring(Indexer.TYPE_PROPERTY.length());
+        } else if (index.startsWith(PropertyIndexConstants.TYPE_PROPERTY)) {
+            String property = index.substring(PropertyIndexConstants.TYPE_PROPERTY.length());
             boolean unique = false;
-            if (property.endsWith("," + Indexer.UNIQUE)) {
+            if (property.endsWith("," + PropertyIndexConstants.UNIQUE)) {
                 unique = true;
-                property = property.substring(0, property.length() - Indexer.UNIQUE.length() - 1);
+                property = property.substring(0, property.length() - PropertyIndexConstants.UNIQUE.length() - 1);
             }
             PropertyIndex propertyIndex = indexer.getPropertyIndex(property);
             if (propertyIndex == null) {
