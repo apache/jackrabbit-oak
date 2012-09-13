@@ -86,6 +86,8 @@ public abstract class AbstractNameMapper implements NameMapper {
         } else if (pos == 0) {
             // Internal name, should not be visible to JCR clients
             throw new IllegalStateException("internal Oak name: " + oakName);
+        } else if (!hasSessionLocalMappings()) {
+            return oakName;
         } else {
             String pref = oakName.substring(0, pos);
             String name = oakName.substring(pos + 1);
