@@ -51,7 +51,14 @@ org.apache.jackrabbit.test.api.NodeUUIDTest#testSaveMovedRefNode<!--OAK-66-->
 org.apache.jackrabbit.test.api.NodeOrderableChildNodesTest#testOrderBeforeUnsupportedRepositoryOperationException<!--OAK-169-->
 org.apache.jackrabbit.test.api.NodeOrderableChildNodesTest#testOrderBeforePlaceAtEndParentSave<!--OAK-169-->
 org.apache.jackrabbit.test.api.NodeOrderableChildNodesTest#testOrderBeforePlaceAtEndSessionSave<!--OAK-169-->
+org.apache.jackrabbit.test.api.nodetype.CanSetPropertyDoubleTest#testConversions          <!-- OAK-66 -->
+org.apache.jackrabbit.test.api.nodetype.CanSetPropertyDoubleTest#testConversionsMultiple  <!-- OAK-66 -->
+org.apache.jackrabbit.test.api.nodetype.CanSetPropertyLongTest#testConversions            <!-- OAK-66 -->
+org.apache.jackrabbit.test.api.nodetype.CanSetPropertyLongTest#testConversionsMultiple    <!-- OAK-66 -->
+org.apache.jackrabbit.test.api.nodetype.CanSetPropertyNameTest#testConversions            <!-- OAK-66 -->
+org.apache.jackrabbit.test.api.nodetype.CanSetPropertyNameTest#testConversionsMultiple    <!-- OAK-66 -->
 org.apache.jackrabbit.test.api.SetPropertyAssumeTypeTest#testValueConstraintViolationExceptionBecauseOfInvalidTypeParameter
+org.apache.jackrabbit.test.api.SetPropertyAssumeTypeTest#testValuesConstraintViolationExceptionBecauseOfInvalidTypeParameter
 org.apache.jackrabbit.test.api.SetPropertyAssumeTypeTest#testStringConstraintViolationExceptionBecauseOfInvalidTypeParameter
 org.apache.jackrabbit.test.api.NodeAddMixinTest#testAddInheritedMixin
 org.apache.jackrabbit.test.api.ValueFactoryTest#testValueFormatException<!--OAK-204-->
