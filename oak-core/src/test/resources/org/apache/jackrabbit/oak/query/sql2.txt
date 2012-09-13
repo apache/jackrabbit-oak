@@ -116,6 +116,8 @@ select * from [nt:base] as b where localname(b) = 'resource'
 
 select * from [nt:base] as x where isdescendantnode(x, '/') and not isdescendantnode(x, '/jcr:system')
 /jcr:system
+/oak-index
+/oak-index/indexes
 /test
 /test/jcr:resource
 /test/resource
@@ -139,6 +141,7 @@ select * from [nt:base] as [p] where [p].[jcr:path] = '/parents'
 select * from [nt:base] as p inner join [nt:base] as p2 on ischildnode(p2, p) where p.[jcr:path] = '/'
 /, /children
 /, /jcr:system
+/, /oak-index
 /, /parents
 
 select * from [nt:base] as p inner join [nt:base] as p2 on isdescendantnode(p2, p) where p.[jcr:path] = '/parents'
@@ -163,8 +166,8 @@ select id from [nt:base] where id is not null order by id desc
 0
 
 measure select * from [nt:base] as c right outer join [nt:base] as p on p.id = c.p where p.id is not null and not isdescendantnode(p, '/jcr:system')
-c, 624
-p, 208
+c, 630
+p, 210
 query, 4
 
 select * from [nt:base] as c right outer join [nt:base] as p on p.id = c.p where p.id is not null and not isdescendantnode(p, '/jcr:system')
@@ -174,8 +177,8 @@ select * from [nt:base] as c right outer join [nt:base] as p on p.id = c.p where
 null, /parents/p0
 
 measure select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null
-c, 624
-p, 208
+c, 630
+p, 210
 query, 4
 
 select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null
@@ -185,16 +188,16 @@ select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where 
 /parents/p2, /children/c3
 
 measure select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null and c.p is null
-c, 624
-p, 208
+c, 630
+p, 210
 query, 1
 
 select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null and c.p is null
 /parents/p0, null
 
 measure select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null and c.p is not null
-c, 624
-p, 208
+c, 630
+p, 210
 query, 3
 
 select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null and c.p is not null
@@ -206,8 +209,8 @@ explain select * from [nt:base] as p inner join [nt:base] as c on p.id = c.p
 [nt:base] as p /* traverse "//*" where p.id is not null */ inner join [nt:base] as c /* traverse "//*" where c.p is not null */ on p.id = c.p
 
 measure select * from [nt:base] as p inner join [nt:base] as c on p.id = c.p
-c, 624
-p, 208
+c, 630
+p, 210
 query, 3
 
 select * from [nt:base] as p inner join [nt:base] as c on p.id = c.p
@@ -224,6 +227,8 @@ commit / + "test2": { "id":"1", "x": "2" }
 select * from [nt:base] where not isdescendantnode('/jcr:system')
 /
 /jcr:system
+/oak-index
+/oak-index/indexes
 /test
 /test/hello
 /test/world
@@ -242,12 +247,16 @@ select * from [nt:base] where id = '1' or x = '2'
 select * from [nt:base] where not (id = '1' or x = '2') and not isdescendantnode('/jcr:system')
 /
 /jcr:system
+/oak-index
+/oak-index/indexes
 /test
 /test/hello
 
 select * from [nt:base] where x is null and not isdescendantnode('/jcr:system')
 /
 /jcr:system
+/oak-index
+/oak-index/indexes
 /test
 
 commit / - "test"
