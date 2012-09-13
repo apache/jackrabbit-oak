@@ -99,7 +99,7 @@ public class Descriptors {
                 trueValue, true, true));
         put(new Descriptor(
                 OPTION_NODE_TYPE_MANAGEMENT_SUPPORTED,
-                falseValue, true, true));
+                trueValue, true, true));
         put(new Descriptor(
                 NODE_TYPE_MANAGEMENT_AUTOCREATED_DEFINITIONS_SUPPORTED,
                 trueValue, true, true));
@@ -144,10 +144,10 @@ public class Descriptors {
                 trueValue, true, true));
         put(new Descriptor(
                 NODE_TYPE_MANAGEMENT_SAME_NAME_SIBLINGS_SUPPORTED,
-                falseValue, true, true));
+                trueValue, true, true));
         put(new Descriptor(
                 NODE_TYPE_MANAGEMENT_VALUE_CONSTRAINTS_SUPPORTED,
-                falseValue, true, true));
+                trueValue, true, true));
         put(new Descriptor(
                 NODE_TYPE_MANAGEMENT_UPDATE_IN_USE_SUPORTED,
                 falseValue, true, true));
@@ -168,7 +168,7 @@ public class Descriptors {
                 trueValue, true, true));
         put(new Descriptor(
                 OPTION_NODE_AND_PROPERTY_WITH_SAME_NAME_SUPPORTED,
-                trueValue, true, true));
+                falseValue, true, true));
         put(new Descriptor(
                 OPTION_QUERY_SQL_SUPPORTED,
                 falseValue, true, true));
