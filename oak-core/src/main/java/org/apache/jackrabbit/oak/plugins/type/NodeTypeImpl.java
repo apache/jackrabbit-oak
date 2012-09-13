@@ -484,6 +484,7 @@ class NodeTypeImpl implements NodeType {
 
     private static boolean isProtected(ItemDefinition definition) {
         // TODO need a better way for setting protected items internally
+        // FIXME admins should not be able to set protected items
         Subject subject = Subject.getSubject(AccessController.getContext());
         return (subject == null || !subject.getPrincipals().contains(AdminPrincipal.INSTANCE)) && definition.isProtected();
     }
