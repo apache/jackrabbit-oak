@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.jcr;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.Calendar;
 
 import javax.jcr.Node;
@@ -25,14 +27,13 @@ import javax.jcr.PathNotFoundException;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.jcr.Value;
 import javax.jcr.ValueFactory;
-import javax.jcr.nodetype.NodeDefinitionTemplate;
 import javax.jcr.nodetype.NodeTypeManager;
-import javax.jcr.nodetype.NodeTypeTemplate;
-import javax.jcr.nodetype.PropertyDefinitionTemplate;
-import javax.jcr.version.OnParentVersionAction;
 
 import org.apache.jackrabbit.commons.JcrUtils;
+import org.apache.jackrabbit.commons.cnd.ParseException;
+import org.apache.jackrabbit.oak.plugins.type.NodeTypeManagerImpl;
 import org.apache.jackrabbit.value.BinaryValue;
 
 public class TestContentLoader {
@@ -42,106 +43,37 @@ public class TestContentLoader {
      */
     private static final String ENCODING = "UTF-8";
 
-    public void loadTestContent(Session session) throws RepositoryException, IOException {
+    public void loadTestContent(Session session) throws RepositoryException, IOException, ParseException {
         session.getWorkspace().getNamespaceRegistry().registerNamespace(
                 "test", "http://www.apache.org/jackrabbit/test");
 
-        NodeTypeManager ntm = session.getWorkspace().getNodeTypeManager();
-
-        // TEST NODE TYPES (in Jackrabbit-core: imported from XML file using JackrabbitNodeTypeManager)
-
-        // test:setProperty
-        {
-            NodeTypeTemplate nttmpl = ntm.createNodeTypeTemplate();
-            nttmpl.setName("test:setProperty");
-            nttmpl.setDeclaredSuperTypeNames(new String[] { "nt:base", "mix:referenceable" });
-
-            NodeDefinitionTemplate ndtmpl = ntm.createNodeDefinitionTemplate();
-            ndtmpl.setName("*");
-            ndtmpl.setRequiredPrimaryTypeNames(new String[] { "test:setProperty" });
-            ndtmpl.setOnParentVersion(OnParentVersionAction.COPY);
-
-            nttmpl.getNodeDefinitionTemplates().add(ndtmpl);
-
-            PropertyDefinitionTemplate pdtmpl = ntm.createPropertyDefinitionTemplate();
-            pdtmpl.setName("*");
-            pdtmpl.setOnParentVersion(OnParentVersionAction.COPY);
-
-            nttmpl.getPropertyDefinitionTemplates().add(pdtmpl);
-
-            pdtmpl = ntm.createPropertyDefinitionTemplate();
-            pdtmpl.setName("*");
-            pdtmpl.setMultiple(true);
-            pdtmpl.setOnParentVersion(OnParentVersionAction.COPY);
-
-            nttmpl.getPropertyDefinitionTemplates().add(pdtmpl);
-
-            ntm.registerNodeType(nttmpl, true);
-        }
-
-        // test:canSetProperty
-        // TODO: add all property definitions from jackrabbit-core/src/main/resources/org/apache/jackrabbit/core/test-nodetypes.xml
-        {
-            NodeTypeTemplate nttmpl = ntm.createNodeTypeTemplate();
-            nttmpl.setName("test:canSetProperty");
-            nttmpl.setDeclaredSuperTypeNames(new String[] { "nt:base" });
-
-            // add property definitions
-
-            PropertyDefinitionTemplate pdtmpl = ntm.createPropertyDefinitionTemplate();
-            pdtmpl.setName("String");
-            pdtmpl.setRequiredType(PropertyType.STRING);
-            pdtmpl.setOnParentVersion(OnParentVersionAction.COPY);
-            nttmpl.getPropertyDefinitionTemplates().add(pdtmpl);
-
-            pdtmpl = ntm.createPropertyDefinitionTemplate();
-            pdtmpl.setName("StringConstraints");
-            pdtmpl.setRequiredType(PropertyType.STRING);
-            pdtmpl.setOnParentVersion(OnParentVersionAction.COPY);
-            pdtmpl.setValueConstraints(new String[] { "abc", "def", "ghi" });
-            nttmpl.getPropertyDefinitionTemplates().add(pdtmpl);
-
-            pdtmpl = ntm.createPropertyDefinitionTemplate();
-            pdtmpl.setName("StringMultipleConstraints");
-            pdtmpl.setMultiple(true);
-            pdtmpl.setRequiredType(PropertyType.STRING);
-            pdtmpl.setOnParentVersion(OnParentVersionAction.COPY);
-            nttmpl.getPropertyDefinitionTemplates().add(pdtmpl);
-
-            pdtmpl = ntm.createPropertyDefinitionTemplate();
-            pdtmpl.setName("Binary");
-            pdtmpl.setRequiredType(PropertyType.BINARY);
-            pdtmpl.setOnParentVersion(OnParentVersionAction.COPY);
-            nttmpl.getPropertyDefinitionTemplates().add(pdtmpl);
-
-            pdtmpl = ntm.createPropertyDefinitionTemplate();
-            pdtmpl.setName("BinaryConstraints");
-            pdtmpl.setRequiredType(PropertyType.BINARY);
-            pdtmpl.setOnParentVersion(OnParentVersionAction.COPY);
-            pdtmpl.setValueConstraints(new String[] { "(,100)" });
-            nttmpl.getPropertyDefinitionTemplates().add(pdtmpl);
-
-            pdtmpl = ntm.createPropertyDefinitionTemplate();
-            pdtmpl.setName("BinaryMultipleConstraints");
-            pdtmpl.setMultiple(true);
-            pdtmpl.setRequiredType(PropertyType.BINARY);
-            pdtmpl.setOnParentVersion(OnParentVersionAction.COPY);
-            pdtmpl.setValueConstraints(new String[] { "(,100)" });
-            nttmpl.getPropertyDefinitionTemplates().add(pdtmpl);
-
-            ntm.registerNodeType(nttmpl, true);
-        }
+        registerTestNodeTypes(session.getWorkspace().getNodeTypeManager());
 
         Node data = getOrAddNode(session.getRootNode(), "testdata");
         addPropertyTestData(getOrAddNode(data, "property"));
         addQueryTestData(getOrAddNode(data, "query"));
         addNodeTestData(getOrAddNode(data, "node"));
+        // TODO add lifecycle test data
+        // addLifecycleTestData(getOrAddNode(data, "lifecycle"));
         addExportTestData(getOrAddNode(data, "docViewTest"));
+
+        // TODO add retention test data
+        // Node conf = getOrAddNode(session.getRootNode(), "testconf");
+        // addRetentionTestData(getOrAddNode(conf, "retentionTest"));
 
         session.save();
     }
 
-    private Node getOrAddNode(Node node, String name) throws RepositoryException {
+    private static void registerTestNodeTypes(NodeTypeManager ntm) throws RepositoryException, ParseException, IOException {
+        InputStream stream = TestContentLoader.class.getResourceAsStream("test_nodetypes.cnd");
+        try {
+            NodeTypeManagerImpl.registerNodeTypes(ntm, new InputStreamReader(stream, "UTF-8"));
+        } finally {
+            stream.close();
+        }
+    }
+
+    private static Node getOrAddNode(Node node, String name) throws RepositoryException {
         try {
             return node.getNode(name);
         } catch (PathNotFoundException e) {
@@ -153,10 +85,10 @@ public class TestContentLoader {
      * Creates a boolean, double, long, calendar and a path property at the
      * given node.
      */
-    private void addPropertyTestData(Node node) throws RepositoryException {
+    private static void addPropertyTestData(Node node) throws RepositoryException {
         node.setProperty("boolean", true);
         node.setProperty("double", Math.PI);
-        node.setProperty("long", 90834953485278298l);
+        node.setProperty("long", 90834953485278298L);
         Calendar c = Calendar.getInstance();
         c.set(2005, 6, 18, 17, 30);
         node.setProperty("calendar", c);
@@ -165,11 +97,20 @@ public class TestContentLoader {
         node.setProperty("multi", new String[] { "one", "two", "three" });
     }
 
+    // TODO add retention test data
+    /**
+     * Creates a node with a RetentionPolicy
+     */
+    // private  void addRetentionTestData(Node node) throws RepositoryException {
+    //    RetentionPolicy rp = RetentionPolicyImpl.createRetentionPolicy("testRetentionPolicy", node.getSession());
+    //    node.getSession().getRetentionManager().setRetentionPolicy(node.getPath(), rp);
+    // }
+
     /**
      * Creates four nodes under the given node. Each node has a String property
      * named "prop1" with some content set.
      */
-    private void addQueryTestData(Node node) throws RepositoryException {
+    private static void addQueryTestData(Node node) throws RepositoryException {
         while (node.hasNode("node1")) {
             node.getNode("node1").remove();
         }
@@ -183,7 +124,7 @@ public class TestContentLoader {
      * Creates three nodes under the given node: one of type nt:resource and the
      * other nodes referencing it.
      */
-    private void addNodeTestData(Node node) throws RepositoryException, IOException {
+    private static void addNodeTestData(Node node) throws RepositoryException, IOException {
         if (node.hasNode("multiReference")) {
             node.getNode("multiReference").remove();
         }
@@ -202,24 +143,39 @@ public class TestContentLoader {
         resource.setProperty("jcr:data", new BinaryValue("Hello w\u00F6rld.".getBytes(ENCODING)));
         resource.setProperty("jcr:lastModified", Calendar.getInstance());
 
-        // TODO: re-add once we have referenceable nodes
-        // Node resReference = getOrAddNode(node, "reference");
-        // resReference.setProperty("ref", resource);
-        // // make this node itself referenceable
-        // resReference.addMixin("mix:referenceable");
-        //
-        // Node multiReference = node.addNode("multiReference");
-        // ValueFactory factory = node.getSession().getValueFactory();
-        // multiReference.setProperty("ref", new Value[] {
-        // factory.createValue(resource),
-        // factory.createValue(resReference)
-        // });
+        Node resReference = getOrAddNode(node, "reference");
+        resReference.setProperty("ref", resource);
+        // make this node itself referenceable
+        resReference.addMixin("mix:referenceable");
+
+        Node multiReference = node.addNode("multiReference");
+        ValueFactory factory = node.getSession().getValueFactory();
+        multiReference.setProperty("ref", new Value[] {
+            factory.createValue(resource),
+            factory.createValue(resReference)
+        });
 
         // NodeDefTest requires a test node with a mandatory child node
         JcrUtils.putFile(node, "testFile", "text/plain", new ByteArrayInputStream("Hello, World!".getBytes("UTF-8")));
     }
 
-    private void addExportTestData(Node node) throws RepositoryException, IOException {
+    // TODO add lifecycle test data
+    /**
+     * Creates a lifecycle policy node and another node with a lifecycle
+     * referencing that policy.
+     */
+    // private  void addLifecycleTestData(Node node) throws RepositoryException {
+    //    Node policy = getOrAddNode(node, "policy");
+    //    policy.addMixin(NodeType.MIX_REFERENCEABLE);
+    //    Node transitions = getOrAddNode(policy, "transitions");
+    //    Node transition = getOrAddNode(transitions, "identity");
+    //    transition.setProperty("from", "identity");
+    //    transition.setProperty("to", "identity");
+    //    Node lifecycle = getOrAddNode(node, "node");
+    //    ((NodeImpl) lifecycle).assignLifecyclePolicy(policy, "identity");
+    //}
+
+    private static void addExportTestData(Node node) throws RepositoryException, IOException {
         getOrAddNode(node, "invalidXmlName").setProperty("propName", "some text");
 
         // three nodes which should be serialized as xml text in docView export
@@ -245,7 +201,7 @@ public class TestContentLoader {
      * create nodes with following properties binary & single binary & multival
      * notbinary & single notbinary & multival
      */
-    private void addExportValues(Node node, String name) throws RepositoryException, IOException {
+    private static void addExportValues(Node node, String name) throws RepositoryException, IOException {
         String prefix = "valid";
         if (name.indexOf('<') != -1) {
             prefix = "invalid";

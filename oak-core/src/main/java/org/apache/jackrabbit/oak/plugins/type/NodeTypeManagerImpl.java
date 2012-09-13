@@ -34,6 +34,7 @@ import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeDefinition;
 import javax.jcr.nodetype.NodeTypeExistsException;
 import javax.jcr.nodetype.NodeTypeIterator;
+import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.version.OnParentVersionAction;
@@ -42,6 +43,7 @@ import javax.security.auth.Subject;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.commons.cnd.CompactNodeTypeDefReader;
+import org.apache.jackrabbit.commons.cnd.ParseException;
 import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -121,40 +123,7 @@ public class NodeTypeManagerImpl extends AbstractNodeTypeManager {
                     try {
                         InputStream stream = NodeTypeManagerImpl.class.getResourceAsStream("builtin_nodetypes.cnd");
                         try {
-                            CompactNodeTypeDefReader<NodeTypeTemplate, Map<String, String>> reader =
-                                    new CompactNodeTypeDefReader<NodeTypeTemplate, Map<String, String>>(
-                                            new InputStreamReader(stream, "UTF-8"), null, new DefBuilderFactory());
-                            Map<String, NodeTypeTemplate> templates = Maps.newHashMap();
-                            for (NodeTypeTemplate template : reader.getNodeTypeDefinitions()) {
-                                templates.put(template.getName(), template);
-                            }
-                            for (NodeTypeTemplate template : templates.values()) {
-                                if (!template.isMixin()
-                                        && !NT_BASE.equals(template.getName())) {
-                                    String[] supertypes =
-                                            template.getDeclaredSupertypeNames();
-                                    if (supertypes.length == 0) {
-                                        template.setDeclaredSuperTypeNames(
-                                                new String[] {NT_BASE});
-                                    } else {
-                                        // Check whether we need to add the implicit "nt:base" supertype
-                                        boolean needsNtBase = true;
-                                        for (String name : supertypes) {
-                                            if (!templates.get(name).isMixin()) {
-                                                needsNtBase = false;
-                                            }
-                                        }
-                                        if (needsNtBase) {
-                                            String[] withBase = new String[supertypes.length + 1];
-                                            withBase[0] = NT_BASE;
-                                            System.arraycopy(supertypes, 0, withBase, 1, supertypes.length);
-                                            template.setDeclaredSuperTypeNames(withBase);
-                                        }
-                                    }
-                                }
-                            }
-                            registerNodeTypes(templates.values().toArray(
-                                    new NodeTypeTemplate[templates.size()]), true);
+                            registerNodeTypes(NodeTypeManagerImpl.this, new InputStreamReader(stream, "UTF-8"));
                         } finally {
                             stream.close();
                         }
@@ -166,6 +135,55 @@ public class NodeTypeManagerImpl extends AbstractNodeTypeManager {
                 }
             });
         }
+    }
+
+    /**
+     * Utility method for registering node types from a CND format.
+     * @param nodeTypeManager  mode type manager where the node types are registered.
+     * @param cnd  reader for the CND
+     * @throws ParseException  if parsing the CND fails
+     * @throws RepositoryException  if registering the node types fails
+     */
+    public static void registerNodeTypes(NodeTypeManager nodeTypeManager, InputStreamReader cnd)
+            throws ParseException, RepositoryException {
+        CompactNodeTypeDefReader<NodeTypeTemplate, Map<String, String>> reader =
+                new CompactNodeTypeDefReader<NodeTypeTemplate, Map<String, String>>(
+                        cnd, null, new DefBuilderFactory());
+        Map<String, NodeTypeTemplate> templates = Maps.newHashMap();
+        for (NodeTypeTemplate template : reader.getNodeTypeDefinitions()) {
+            templates.put(template.getName(), template);
+        }
+        for (NodeTypeTemplate template : templates.values()) {
+            if (!template.isMixin()
+                    && !NT_BASE.equals(template.getName())) {
+                String[] supertypes =
+                        template.getDeclaredSupertypeNames();
+                if (supertypes.length == 0) {
+                    template.setDeclaredSuperTypeNames(
+                            new String[] {NT_BASE});
+                } else {
+                    // Check whether we need to add the implicit "nt:base" supertype
+                    boolean needsNtBase = true;
+                    for (String name : supertypes) {
+                        NodeTypeDefinition st = templates.get(name);
+                        if (st == null) {
+                            st = nodeTypeManager.getNodeType(name);
+                        }
+                        if (st != null && !st.isMixin()) {
+                            needsNtBase = false;
+                        }
+                    }
+                    if (needsNtBase) {
+                        String[] withBase = new String[supertypes.length + 1];
+                        withBase[0] = NT_BASE;
+                        System.arraycopy(supertypes, 0, withBase, 1, supertypes.length);
+                        template.setDeclaredSuperTypeNames(withBase);
+                    }
+                }
+            }
+        }
+        nodeTypeManager.registerNodeTypes(templates.values().toArray(
+                new NodeTypeTemplate[templates.size()]), true);
     }
 
     @Override
