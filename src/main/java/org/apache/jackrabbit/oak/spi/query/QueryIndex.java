@@ -23,6 +23,21 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 /**
  * Represents an index. The index should use the data in the filter if possible
  * to speed up reading.
+ * <p>
+ * The query engine will pick the index that returns the lowest cost for the
+ * given filter conditions.
+ * <p>
+ * The index should only use that part of the filter that speeds up data lookup.
+ * All other filter conditions should be ignored and not evaluated within this
+ * index, because the query engine will in any case evaluate the condition (and
+ * join condition), so that evaluating the conditions within the index would
+ * actually slow down processing. For example, an index on the property
+ * "lastName" should not try to evaluate any other restrictions than those on
+ * the property "lastName", even if the query contains other restrictions. For
+ * the query "where lastName = 'x' and firstName = 'y'", the query engine will
+ * set two filter conditions, one for "lastName" and another for "firstName".
+ * The index on "lastName" should not evaluate the condition on "firstName",
+ * even thought it will be set in the filter.
  */
 public interface QueryIndex {
 
