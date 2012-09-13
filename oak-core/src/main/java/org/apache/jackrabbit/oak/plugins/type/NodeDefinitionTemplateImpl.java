@@ -24,6 +24,7 @@ import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.nodetype.NodeDefinitionTemplate;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeTemplate;
+import javax.jcr.version.OnParentVersionAction;
 
 import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory.AbstractNodeDefinitionBuilder;
 import org.slf4j.Logger;
@@ -42,6 +43,10 @@ class NodeDefinitionTemplateImpl
 
     protected NodeType getNodeType(String name) throws RepositoryException {
         throw new UnsupportedRepositoryOperationException();
+    }
+
+    public NodeDefinitionTemplateImpl() {
+        onParent = OnParentVersionAction.COPY;
     }
 
     @Override

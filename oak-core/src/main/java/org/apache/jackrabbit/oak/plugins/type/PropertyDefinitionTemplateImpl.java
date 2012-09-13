@@ -16,12 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.type;
 
+import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Value;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
+import javax.jcr.version.OnParentVersionAction;
 
 import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory.AbstractPropertyDefinitionBuilder;
 
@@ -32,6 +34,11 @@ class PropertyDefinitionTemplateImpl
     private String[] valueConstraints;
 
     private Value[] defaultValues;
+
+    public PropertyDefinitionTemplateImpl() {
+        onParent = OnParentVersionAction.COPY;
+        requiredType = PropertyType.STRING;
+    }
 
     protected Value createValue(String value) throws RepositoryException {
         throw new UnsupportedRepositoryOperationException();
