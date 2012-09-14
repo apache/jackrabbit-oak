@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.namepath;
 
+import javax.jcr.nodetype.ConstraintViolationException;
+
 import org.apache.jackrabbit.util.XMLChar;
 
 /**
@@ -221,5 +223,11 @@ public class JcrNameParser {
             }
         };
         return parse(jcrName, listener, 0);
+    }
+
+    public static void checkName(String jcrName, boolean allowResidual) throws ConstraintViolationException {
+        if (jcrName == null || !(allowResidual && "*".equals(jcrName) || validate(jcrName))) {
+            throw new ConstraintViolationException("Not a valid JCR name '" + jcrName + '\'');
+        }
     }
 }
