@@ -63,12 +63,10 @@ org.apache.jackrabbit.test.api.WorkspaceMoveVersionableTest#testMoveNodesVersion
 org.apache.jackrabbit.test.api.SessionRemoveItemTest#testRemoveLockedNode
 org.apache.jackrabbit.test.api.SessionRemoveItemTest#testRemoveLockedChildItem
 org.apache.jackrabbit.test.api.SessionRemoveItemTest#testRemoveCheckedInItem
-org.apache.jackrabbit.test.api.nodetype.CanSetPropertyDoubleTest#testConversions          <!-- OAK-66 -->
-org.apache.jackrabbit.test.api.nodetype.CanSetPropertyDoubleTest#testConversionsMultiple  <!-- OAK-66 -->
-org.apache.jackrabbit.test.api.nodetype.CanSetPropertyLongTest#testConversions            <!-- OAK-66 -->
-org.apache.jackrabbit.test.api.nodetype.CanSetPropertyLongTest#testConversionsMultiple    <!-- OAK-66 -->
-org.apache.jackrabbit.test.api.nodetype.CanSetPropertyNameTest#testConversions            <!-- OAK-66 -->
-org.apache.jackrabbit.test.api.nodetype.CanSetPropertyNameTest#testConversionsMultiple    <!-- OAK-66 -->
+org.apache.jackrabbit.test.api.nodetype.CanSetPropertyDoubleTest#testConversions          <!-- OAK-302 -->
+org.apache.jackrabbit.test.api.nodetype.CanSetPropertyDoubleTest#testConversionsMultiple  <!-- OAK-302 -->
+org.apache.jackrabbit.test.api.nodetype.CanSetPropertyLongTest#testConversions            <!-- OAK-302 -->
+org.apache.jackrabbit.test.api.nodetype.CanSetPropertyLongTest#testConversionsMultiple    <!-- OAK-302 -->
 org.apache.jackrabbit.test.api.nodetype.NodeTypeCreationTest#testNewNodeTypeTemplate      <!-- OAK-66 -->
 org.apache.jackrabbit.test.api.nodetype.NodeTypeCreationTest#testPropertyDefinitionTemplate       <!-- OAK-66 -->
 org.apache.jackrabbit.test.api.nodetype.NodeTypeCreationTest#testNodeDefinitionTemplate   <!-- OAK-66 -->
@@ -207,7 +205,7 @@ org.apache.jackrabbit.test.api.lock.SessionScopedLockTest#testHoldsLockNewChild
 org.apache.jackrabbit.test.api.lock.SessionScopedLockTest#testGetLockOnChild
 org.apache.jackrabbit.test.api.lock.SessionScopedLockTest#testGetLockOnNewChild
 org.apache.jackrabbit.test.api.lock.SessionScopedLockTest#testRemoveMixLockableFromLockedNode
-org.apache.jackrabbit.test.api.nodetype.PropertyDefTest#testIsMandatory
+org.apache.jackrabbit.test.api.nodetype.PropertyDefTest#testIsMandatory  <!-- OAK-66 -->
 org.apache.jackrabbit.test.api.LifecycleTest
 org.apache.jackrabbit.test.api.query.ElementTest#testElementTestNameTestSomeNTWithSNS<!-- OAK-203 -->
 org.apache.jackrabbit.test.api.query.GetPropertyNamesTest#testGetPropertyNames

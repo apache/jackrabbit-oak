@@ -329,14 +329,20 @@ class NodeTypeImpl implements NodeType {
                 case PropertyType.BOOLEAN:
                     value.getBoolean();
                     return true;
-                case PropertyType.NAME:
-                    return JcrNameParser.validate(value.getString());
-                case PropertyType.PATH:
+                case PropertyType.NAME: {
                     int type = value.getType();
                     return type != PropertyType.DOUBLE &&
                            type != PropertyType.LONG &&
                            type != PropertyType.BOOLEAN &&
-                            JcrPathParser.validate(value.getString());
+                           JcrNameParser.validate(value.getString());
+                }
+                case PropertyType.PATH: {
+                    int type = value.getType();
+                    return type != PropertyType.DOUBLE &&
+                           type != PropertyType.LONG &&
+                           type != PropertyType.BOOLEAN &&
+                           JcrPathParser.validate(value.getString());
+                }
                 case PropertyType.REFERENCE:
                 case PropertyType.WEAKREFERENCE:
                     return IdentifierManager.isValidUUID(value.getString());
@@ -361,7 +367,7 @@ class NodeTypeImpl implements NodeType {
         }
     }
 
-    private boolean meetsTypeConstraints(Value[] values, int requiredType) {
+    private static boolean meetsTypeConstraints(Value[] values, int requiredType) {
         // Constraints must be met by all values
         for (Value value : values) {
             if (!meetsTypeConstraints(value, requiredType)) {
