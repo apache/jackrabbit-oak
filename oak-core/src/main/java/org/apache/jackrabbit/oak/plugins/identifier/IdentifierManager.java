@@ -192,7 +192,7 @@ public class IdentifierManager {
 
                 Result result = queryEngine.executeQuery(
                         "SELECT * FROM [nt:base] WHERE PROPERTY([" + pName + "], '" + reference + "') = $uuid",
-                        Query.JCR_SQL2, Long.MAX_VALUE, 0, bindings, new NamePathMapper.Default());
+                        Query.JCR_SQL2, Long.MAX_VALUE, 0, bindings, root, new NamePathMapper.Default());
 
                 Iterable<String> paths = Iterables.transform(result.getRows(),
                         new Function<ResultRow, String>() {
@@ -291,8 +291,9 @@ public class IdentifierManager {
     private String resolveUUID(CoreValue uuid) {
         try {
             Map<String, CoreValue> bindings = Collections.singletonMap("id", uuid);
-            Result result = queryEngine.executeQuery("SELECT * FROM [nt:base] WHERE [jcr:uuid] = $id", Query.JCR_SQL2,
-                    Long.MAX_VALUE, 0, bindings, new NamePathMapper.Default());
+            Result result = queryEngine.executeQuery(
+                    "SELECT * FROM [nt:base] WHERE [jcr:uuid] = $id", Query.JCR_SQL2,
+                    Long.MAX_VALUE, 0, bindings, root, new NamePathMapper.Default());
 
             String path = null;
             for (ResultRow rr : result.getRows()) {

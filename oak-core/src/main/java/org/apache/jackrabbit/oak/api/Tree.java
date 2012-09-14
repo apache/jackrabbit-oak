@@ -42,6 +42,10 @@ import javax.annotation.Nonnull;
  * threads. Instances are however thread-safe for read access, so
  * implementations need to ensure that all reading clients see a
  * coherent state.
+ * <p>
+ * The data returned by this class and intermediary objects such as
+ * {@link PropertyState} is filtered for the access rights that are set in the
+ * {@link ContentSession} that created the {@link Root} of this object.
  */
 public interface Tree {
 
