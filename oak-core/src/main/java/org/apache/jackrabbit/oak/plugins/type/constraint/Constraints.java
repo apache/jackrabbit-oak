@@ -17,12 +17,9 @@
 package org.apache.jackrabbit.oak.plugins.type.constraint;
 
 import javax.jcr.PropertyType;
-import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Value;
 
 import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import org.apache.jackrabbit.oak.util.TODO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,29 +32,29 @@ public class Constraints {
     public static Predicate<Value> valueConstraint(int type, String constraint) {
         switch (type) {
             case PropertyType.STRING:
-                return stringConstraint(constraint);
+                return new StringConstraint(constraint);
             case PropertyType.BINARY:
-                return binaryConstraint(constraint);
+                return new BinaryConstraint(constraint);
             case PropertyType.LONG:
-                return longConstraint(constraint);
+                return new LongConstraint(constraint);
             case PropertyType.DOUBLE:
-                return doubleConstraint(constraint);
+                return new DoubleConstraint(constraint);
             case PropertyType.DATE:
-                return dateConstraint(constraint);
+                return new DateConstraint(constraint);
             case PropertyType.BOOLEAN:
-                return booleanConstraint(constraint);
+                return new BooleanConstraint(constraint);
             case PropertyType.NAME:
-                return nameConstraint(constraint);
+                return new NameConstraint(constraint);
             case PropertyType.PATH:
-                return pathConstraint(constraint);
+                return new PathConstraint(constraint);
             case PropertyType.REFERENCE:
-                return referenceConstraint(constraint);
+                return new ReferenceConstraint(constraint);
             case PropertyType.WEAKREFERENCE:
-                return weakRefConstraint(constraint);
+                return new ReferenceConstraint(constraint);
             case PropertyType.URI:
-                return uriConstraint(constraint);
+                return new StringConstraint(constraint);
             case PropertyType.DECIMAL:
-                return decimalConstraint(constraint);
+                return new DecimalConstraint(constraint);
             default:
                 String msg = "Invalid property type: " + type;
                 log.warn(msg);
@@ -65,65 +62,4 @@ public class Constraints {
         }
     }
 
-    private static Predicate<Value> stringConstraint(String constraint) {
-        return new StringConstraint(constraint);
-    }
-
-    private static Predicate<Value> binaryConstraint(String constraint) {
-        return new BinaryConstraint(constraint);
-    }
-
-    private static Predicate<Value> longConstraint(String constraint) {
-        return new LongConstraint(constraint);
-    }
-
-    private static Predicate<Value> doubleConstraint(String constraint) {
-        return new DoubleConstraint(constraint);
-    }
-
-    private static Predicate<Value> dateConstraint(String constraint) {
-        return new DateConstraint(constraint);
-    }
-
-    private static BooleanConstraint booleanConstraint(String constraint) {
-        return new BooleanConstraint(constraint);
-    }
-
-    private static Predicate<Value> nameConstraint(String constraint) {
-        return new NameConstraint(constraint);
-    }
-
-    private static Predicate<Value> pathConstraint(String constraint) {
-        return new PathConstraint(constraint);
-    }
-
-    private static Predicate<Value> referenceConstraint(String constraint) {
-        try {
-            // todo implement referenceConstraint
-            Predicate<Value> truePredicate = Predicates.alwaysTrue();
-            return TODO.dummyImplementation().returnValue(truePredicate);
-        }
-        catch (UnsupportedRepositoryOperationException e) {
-            throw new UnsupportedOperationException(e);
-        }
-    }
-
-    private static Predicate<Value> weakRefConstraint(String constraint) {
-        try {
-            // todo implement referenceConstraint
-            Predicate<Value> truePredicate = Predicates.alwaysTrue();
-            return TODO.dummyImplementation().returnValue(truePredicate);
-        }
-        catch (UnsupportedRepositoryOperationException e) {
-            throw new UnsupportedOperationException(e);
-        }
-    }
-
-    private static Predicate<Value> uriConstraint(String constraint) {
-        return new StringConstraint(constraint);
-    }
-
-    private static Predicate<Value> decimalConstraint(String constraint) {
-        return new DecimalConstraint(constraint);
-    }
 }
