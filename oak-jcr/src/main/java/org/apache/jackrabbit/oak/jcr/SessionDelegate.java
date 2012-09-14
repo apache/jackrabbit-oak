@@ -171,8 +171,13 @@ public class SessionDelegate {
     }
 
     @CheckForNull
-    public NodeDelegate getRoot() {
+    public NodeDelegate getRootNode() {
         return getNode("/");
+    }
+    
+    @CheckForNull
+    public Root getRoot() {
+        return root;
     }
 
     /**

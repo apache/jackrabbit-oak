@@ -231,7 +231,8 @@ public class QueryTest extends AbstractQueryTest {
     }
 
     private Result executeQuery(String statement, String language, HashMap<String, CoreValue> sv) throws ParseException {
-        return qe.executeQuery(statement, language, Long.MAX_VALUE, 0, sv, null);
+        return qe.executeQuery(statement, language, Long.MAX_VALUE, 0, sv,
+                session.getCurrentRoot(), null);
     }
 
     /**

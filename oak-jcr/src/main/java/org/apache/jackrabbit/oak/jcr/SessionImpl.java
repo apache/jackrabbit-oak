@@ -130,7 +130,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
         return dlg.perform(new SessionOperation<NodeImpl>() {
             @Override
             public NodeImpl perform() throws AccessDeniedException {
-                NodeDelegate nd = dlg.getRoot();
+                NodeDelegate nd = dlg.getRootNode();
                 if (nd == null) {
                     throw new AccessDeniedException("Root node is not accessible.");
                 } else {

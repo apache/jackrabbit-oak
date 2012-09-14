@@ -67,11 +67,17 @@ public interface ContentSession extends Closeable {
     String getWorkspaceName();
 
     /**
-     * The current root as seen by this content session. Use
-     * {@link Root#commit(ConflictHandler)} to atomically apply the changes made in that
-     * subtree the underlying Microkernel.
-     *
-     * @return  the current root
+     * The current head root as seen by this content session. Use
+     * {@link Root#commit(ConflictHandler)} to atomically apply the changes made
+     * in that subtree the underlying Microkernel.
+     * <p>
+     * The root instance gives you a stable view of the tree at the time the
+     * root is acquired.
+     * <p>
+     * Please note this method is possibly expensive because it internally reads
+     * from the backend to detect if there were any changes (from any session).
+     * 
+     * @return the current head root
      */
     @Nonnull
     Root getCurrentRoot();
