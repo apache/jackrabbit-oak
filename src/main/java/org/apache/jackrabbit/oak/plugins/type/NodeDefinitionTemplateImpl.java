@@ -29,6 +29,7 @@ import javax.jcr.version.OnParentVersionAction;
 
 import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory.AbstractNodeDefinitionBuilder;
 import org.apache.jackrabbit.oak.namepath.JcrNameParser;
+import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,13 +42,15 @@ class NodeDefinitionTemplateImpl
 
     private String defaultPrimaryTypeName;
 
+    private final NameMapper mapper;
     private String[] requiredPrimaryTypeNames;
 
     protected NodeType getNodeType(String name) throws RepositoryException {
         throw new UnsupportedRepositoryOperationException();
     }
 
-    public NodeDefinitionTemplateImpl() {
+    public NodeDefinitionTemplateImpl(NameMapper mapper) {
+        this.mapper = mapper;
         onParent = OnParentVersionAction.COPY;
     }
 
@@ -69,7 +72,7 @@ class NodeDefinitionTemplateImpl
     @Override
     public void setName(String name) throws ConstraintViolationException {
         JcrNameParser.checkName(name, true);
-        this.name = name;
+        this.name = mapper.getJcrName(mapper.getOakName(name));
     }
 
     @Override
@@ -152,7 +155,7 @@ class NodeDefinitionTemplateImpl
         }
         else {
             JcrNameParser.checkName(name, false);
-            this.defaultPrimaryTypeName = name;
+            this.defaultPrimaryTypeName = mapper.getJcrName(mapper.getOakName(name));
         }
     }
 
@@ -191,21 +194,24 @@ class NodeDefinitionTemplateImpl
         if (names == null) {
             throw new ConstraintViolationException("null is not a valid array of JCR names");
         }
+        int k = 0;
+        String[] n = new String[names.length];
         for (String name : names) {
             JcrNameParser.checkName(name, false);
+            n[k++] = mapper.getJcrName(mapper.getOakName(name));
         }
-        this.requiredPrimaryTypeNames = names;
+        this.requiredPrimaryTypeNames = n;
     }
 
     @Override
     public void addRequiredPrimaryType(String name) throws ConstraintViolationException {
         JcrNameParser.checkName(name, false);
         if (requiredPrimaryTypeNames == null) {
-            requiredPrimaryTypeNames = new String[] { name };
+            requiredPrimaryTypeNames = new String[] { mapper.getJcrName(mapper.getOakName(name)) };
         } else {
             String[] names = new String[requiredPrimaryTypeNames.length + 1];
             System.arraycopy(requiredPrimaryTypeNames, 0, names, 0, requiredPrimaryTypeNames.length);
-            names[requiredPrimaryTypeNames.length] = name;
+            names[requiredPrimaryTypeNames.length] = mapper.getJcrName(mapper.getOakName(name));
             requiredPrimaryTypeNames = names;
         }
 

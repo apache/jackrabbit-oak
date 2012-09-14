@@ -22,15 +22,21 @@ import java.util.Map;
 import javax.jcr.nodetype.NodeTypeTemplate;
 
 import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory;
+import org.apache.jackrabbit.oak.namepath.NameMapper;
 
 class DefBuilderFactory extends
         DefinitionBuilderFactory<NodeTypeTemplate, Map<String, String>> {
 
+    private final NameMapper mapper;
     private Map<String, String> namespaces = new HashMap<String, String>();
+
+    public DefBuilderFactory(NameMapper mapper) {
+        this.mapper = mapper;
+    }
 
     @Override
     public NodeTypeTemplateImpl newNodeTypeDefinitionBuilder() {
-        return new NodeTypeTemplateImpl();
+        return new NodeTypeTemplateImpl(mapper);
     }
 
     @Override
