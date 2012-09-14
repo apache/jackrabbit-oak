@@ -20,12 +20,14 @@ import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Value;
+import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
 import javax.jcr.version.OnParentVersionAction;
 
 import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory.AbstractPropertyDefinitionBuilder;
+import org.apache.jackrabbit.oak.namepath.JcrNameParser;
 
 class PropertyDefinitionTemplateImpl
         extends AbstractPropertyDefinitionBuilder<NodeTypeTemplate>
@@ -60,7 +62,8 @@ class PropertyDefinitionTemplateImpl
     }
 
     @Override
-    public void setName(String name) {
+    public void setName(String name) throws ConstraintViolationException {
+        JcrNameParser.checkName(name, true);
         this.name = name;
     }
 

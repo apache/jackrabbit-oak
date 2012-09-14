@@ -22,6 +22,7 @@ import java.util.List;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
+import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeDefinitionTemplate;
 import javax.jcr.nodetype.NodeType;
@@ -32,9 +33,10 @@ import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
 
 import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory.AbstractNodeTypeDefinitionBuilder;
+import org.apache.jackrabbit.oak.namepath.JcrNameParser;
 import org.apache.jackrabbit.value.ValueFactoryImpl;
 
-class NodeTypeTemplateImpl
+final class NodeTypeTemplateImpl
     extends AbstractNodeTypeDefinitionBuilder<NodeTypeTemplate>
     implements NodeTypeTemplate {
 
@@ -63,7 +65,7 @@ class NodeTypeTemplateImpl
 
     public NodeTypeTemplateImpl(
             NodeTypeManager manager, ValueFactory factory,
-            NodeTypeDefinition ntd) {
+            NodeTypeDefinition ntd) throws ConstraintViolationException {
         this(manager, factory);
 
         setName(ntd.getName());
@@ -71,7 +73,10 @@ class NodeTypeTemplateImpl
         setMixin(ntd.isMixin());
         setOrderableChildNodes(ntd.hasOrderableChildNodes());
         setQueryable(ntd.isQueryable());
-        setPrimaryItemName(ntd.getPrimaryItemName());
+        String name = ntd.getPrimaryItemName();
+        if (name != null) {
+            setPrimaryItemName(name);
+        }
         setDeclaredSuperTypeNames(ntd.getDeclaredSupertypeNames());
 
         for (PropertyDefinition pd : ntd.getDeclaredPropertyDefinitions()) {
@@ -116,8 +121,7 @@ class NodeTypeTemplateImpl
     public PropertyDefinitionTemplateImpl newPropertyDefinitionBuilder() {
         return new PropertyDefinitionTemplateImpl() {
             @Override
-            protected Value createValue(String value)
-                    throws RepositoryException {
+            protected Value createValue(String value) {
                 return factory.createValue(value);
             }
             @Override
@@ -152,7 +156,8 @@ class NodeTypeTemplateImpl
     }
 
     @Override
-    public void setName(String name) {
+    public void setName(String name) throws ConstraintViolationException {
+        JcrNameParser.checkName(name, false);
         this.name = name;
     }
 
@@ -202,7 +207,8 @@ class NodeTypeTemplateImpl
     }
 
     @Override
-    public void setPrimaryItemName(String name) {
+    public void setPrimaryItemName(String name) throws ConstraintViolationException {
+        JcrNameParser.checkName(name, false);
         this.primaryItemName = name;
     }
 
@@ -212,12 +218,16 @@ class NodeTypeTemplateImpl
     }
 
     @Override
-    public void setDeclaredSuperTypeNames(String[] names) {
+    public void setDeclaredSuperTypeNames(String[] names) throws ConstraintViolationException {
+        for (String name : names) {
+            JcrNameParser.checkName(name, false);
+        }
         this.superTypeNames = names;
     }
 
     @Override
     public void addSupertype(String name) throws RepositoryException {
+        JcrNameParser.checkName(name, false);
         String[] names = new String[superTypeNames.length + 1];
         System.arraycopy(superTypeNames, 0, names, 0, superTypeNames.length);
         names[superTypeNames.length] = name;

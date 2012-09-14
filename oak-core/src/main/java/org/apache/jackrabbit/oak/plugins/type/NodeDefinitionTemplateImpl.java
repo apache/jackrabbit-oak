@@ -21,12 +21,14 @@ import java.util.List;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
+import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NodeDefinitionTemplate;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.version.OnParentVersionAction;
 
 import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory.AbstractNodeDefinitionBuilder;
+import org.apache.jackrabbit.oak.namepath.JcrNameParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,7 +67,8 @@ class NodeDefinitionTemplateImpl
     }
 
     @Override
-    public void setName(String name) {
+    public void setName(String name) throws ConstraintViolationException {
+        JcrNameParser.checkName(name, true);
         this.name = name;
     }
 
@@ -143,12 +146,13 @@ class NodeDefinitionTemplateImpl
     }
 
     @Override
-    public void setDefaultPrimaryTypeName(String name) {
+    public void setDefaultPrimaryTypeName(String name) throws ConstraintViolationException {
+        JcrNameParser.checkName(name, false);
         this.defaultPrimaryTypeName  = name;
     }
 
     @Override
-    public void setDefaultPrimaryType(String name) {
+    public void setDefaultPrimaryType(String name) throws ConstraintViolationException {
         setDefaultPrimaryTypeName(name);
     }
 
@@ -178,12 +182,16 @@ class NodeDefinitionTemplateImpl
     }
 
     @Override
-    public void setRequiredPrimaryTypeNames(String[] names) {
+    public void setRequiredPrimaryTypeNames(String[] names) throws ConstraintViolationException {
+        for (String name : names) {
+            JcrNameParser.checkName(name, false);
+        }
         this.requiredPrimaryTypeNames = names;
     }
 
     @Override
-    public void addRequiredPrimaryType(String name) {
+    public void addRequiredPrimaryType(String name) throws ConstraintViolationException {
+        JcrNameParser.checkName(name, false);
         if (requiredPrimaryTypeNames == null) {
             requiredPrimaryTypeNames = new String[] { name };
         } else {
