@@ -274,16 +274,22 @@ public class NodeTypeManagerImpl extends AbstractNodeTypeManager {
         }
 
         // TODO fail on invalid item definitions. See 3.7.6.8 Item Definitions in Subtypes
-        int pdn = 1;
-        for (PropertyDefinition pd : ntd.getDeclaredPropertyDefinitions()) {
-            NodeUtil def = node.addChild(JCR_PROPERTYDEFINITION + pdn++, NT_PROPERTYDEFINITION);
-            internalRegisterPropertyDefinition(def, pd);
+        PropertyDefinition[] propertyDefinitions = ntd.getDeclaredPropertyDefinitions();
+        if (propertyDefinitions != null) {
+            int pdn = 1;
+            for (PropertyDefinition pd : propertyDefinitions) {
+                NodeUtil def = node.addChild(JCR_PROPERTYDEFINITION + pdn++, NT_PROPERTYDEFINITION);
+                internalRegisterPropertyDefinition(def, pd);
+            }
         }
 
-        int ndn = 1;
-        for (NodeDefinition nd : ntd.getDeclaredChildNodeDefinitions()) {
-            NodeUtil def = node.addChild(JCR_CHILDNODEDEFINITION + ndn++, NT_CHILDNODEDEFINITION);
-            internalRegisterNodeDefinition(def, nd);
+        NodeDefinition[] nodeDefinitions = ntd.getDeclaredChildNodeDefinitions();
+        if (nodeDefinitions != null) {
+            int ndn = 1;
+            for (NodeDefinition nd : nodeDefinitions) {
+                NodeUtil def = node.addChild(JCR_CHILDNODEDEFINITION + ndn++, NT_CHILDNODEDEFINITION);
+                internalRegisterNodeDefinition(def, nd);
+            }
         }
 
         return new NodeTypeImpl(this, this.factory, node);

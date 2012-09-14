@@ -48,11 +48,9 @@ final class NodeTypeTemplateImpl
 
     private String[] superTypeNames = new String[0];
 
-    private final List<PropertyDefinitionTemplate> propertyDefinitionTemplates =
-            new ArrayList<PropertyDefinitionTemplate>();
+    private List<PropertyDefinitionTemplate> propertyDefinitionTemplates;
 
-    private final List<NodeDefinitionTemplate> nodeDefinitionTemplates =
-            new ArrayList<NodeDefinitionTemplate>();
+    private List<NodeDefinitionTemplate> nodeDefinitionTemplates;
 
     public NodeTypeTemplateImpl(NodeTypeManager manager, ValueFactory factory) {
         this.manager = manager;
@@ -79,6 +77,7 @@ final class NodeTypeTemplateImpl
         }
         setDeclaredSuperTypeNames(ntd.getDeclaredSupertypeNames());
 
+        getPropertyDefinitionTemplates();  // Make sure propertyDefinitionTemplates is initialised
         for (PropertyDefinition pd : ntd.getDeclaredPropertyDefinitions()) {
             PropertyDefinitionTemplateImpl pdt = newPropertyDefinitionBuilder();
             pdt.setDeclaringNodeType(pd.getDeclaringNodeType().getName());
@@ -97,6 +96,7 @@ final class NodeTypeTemplateImpl
             pdt.build();
         }
 
+        getNodeDefinitionTemplates();   // Make sure nodeDefinitionTemplates is initialised
         for (NodeDefinition nd : ntd.getDeclaredChildNodeDefinitions()) {
             NodeDefinitionTemplateImpl ndt = newNodeDefinitionBuilder();
             ndt.setDeclaringNodeType(nd.getDeclaringNodeType().getName());
@@ -126,7 +126,7 @@ final class NodeTypeTemplateImpl
             }
             @Override
             public void build() {
-                propertyDefinitionTemplates.add(this);
+                getPropertyDefinitionTemplates().add(this);
             }
         };
     }
@@ -145,7 +145,7 @@ final class NodeTypeTemplateImpl
             }
             @Override
             public void build() {
-                nodeDefinitionTemplates.add(this);
+                getNodeDefinitionTemplates().add(this);
             }
         };
     }
@@ -236,23 +236,33 @@ final class NodeTypeTemplateImpl
 
     @Override
     public List<PropertyDefinitionTemplate> getPropertyDefinitionTemplates() {
+        if (propertyDefinitionTemplates == null) {
+            propertyDefinitionTemplates = new ArrayList<PropertyDefinitionTemplate>();
+        }
         return propertyDefinitionTemplates;
     }
 
     @Override
     public List<NodeDefinitionTemplate> getNodeDefinitionTemplates() {
+        if (nodeDefinitionTemplates == null) {
+            nodeDefinitionTemplates = new ArrayList<NodeDefinitionTemplate>();
+        }
         return nodeDefinitionTemplates;
     }
 
     @Override
     public PropertyDefinition[] getDeclaredPropertyDefinitions() {
-        return propertyDefinitionTemplates.toArray(
+        return propertyDefinitionTemplates == null
+            ? null
+            : propertyDefinitionTemplates.toArray(
                 new PropertyDefinition[propertyDefinitionTemplates.size()]);
     }
 
     @Override
     public NodeDefinition[] getDeclaredChildNodeDefinitions() {
-        return nodeDefinitionTemplates.toArray(
+        return nodeDefinitionTemplates == null
+            ? null
+            : nodeDefinitionTemplates.toArray(
                 new NodeDefinition[nodeDefinitionTemplates.size()]);
     }
 
