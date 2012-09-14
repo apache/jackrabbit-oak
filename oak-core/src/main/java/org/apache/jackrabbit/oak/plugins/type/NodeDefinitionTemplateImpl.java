@@ -147,8 +147,13 @@ class NodeDefinitionTemplateImpl
 
     @Override
     public void setDefaultPrimaryTypeName(String name) throws ConstraintViolationException {
-        JcrNameParser.checkName(name, false);
-        this.defaultPrimaryTypeName  = name;
+        if (name == null) {
+            this.defaultPrimaryTypeName = null;
+        }
+        else {
+            JcrNameParser.checkName(name, false);
+            this.defaultPrimaryTypeName = name;
+        }
     }
 
     @Override
@@ -183,6 +188,9 @@ class NodeDefinitionTemplateImpl
 
     @Override
     public void setRequiredPrimaryTypeNames(String[] names) throws ConstraintViolationException {
+        if (names == null) {
+            throw new ConstraintViolationException("null is not a valid array of JCR names");
+        }
         for (String name : names) {
             JcrNameParser.checkName(name, false);
         }

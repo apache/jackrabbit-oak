@@ -208,8 +208,13 @@ final class NodeTypeTemplateImpl
 
     @Override
     public void setPrimaryItemName(String name) throws ConstraintViolationException {
-        JcrNameParser.checkName(name, false);
-        this.primaryItemName = name;
+        if (name == null) {
+            this.primaryItemName = null;
+        }
+        else {
+            JcrNameParser.checkName(name, false);
+            this.primaryItemName = name;
+        }
     }
 
     @Override
@@ -219,6 +224,9 @@ final class NodeTypeTemplateImpl
 
     @Override
     public void setDeclaredSuperTypeNames(String[] names) throws ConstraintViolationException {
+        if (names == null) {
+            throw new ConstraintViolationException("null is not a valid array of JCR names");
+        }
         for (String name : names) {
             JcrNameParser.checkName(name, false);
         }
