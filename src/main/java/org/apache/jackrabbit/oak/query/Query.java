@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.query.ast.AstVisitorBase;
@@ -60,7 +61,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * Represents a parsed query. Lifecycle: use the constructor to create a new
- * object. Call init() to initialize the bind variable map.
+ * object. Call init() to initialize the bind variable map. If the query is
+ * re-executed, a new instance is created.
  */
 public class Query {
 
@@ -81,6 +83,7 @@ public class Query {
     private boolean prepared;
     private final CoreValueFactory valueFactory;
     private ContentSession session;
+    private Root root;
     private NamePathMapper namePathMapper;
 
     Query(SourceImpl source, ConstraintImpl constraint, OrderingImpl[] orderings,
@@ -669,10 +672,6 @@ public class Query {
         return new ArrayList<String>(bindVariableMap.keySet());
     }
 
-    public String getWorkspaceName() {
-        return session.getWorkspaceName();
-    }
-
     public void setQueryEngine(QueryEngineImpl queryEngine) {
         this.queryEngine = queryEngine;
     }
@@ -684,6 +683,10 @@ public class Query {
     public void setSession(ContentSession session) {
         this.session = session;
     }
+    
+    public void setRoot(Root root) {
+        this.root = root;
+    }
 
     public void setNamePathMapper(NamePathMapper namePathMapper) {
         this.namePathMapper = namePathMapper;
@@ -694,7 +697,7 @@ public class Query {
     }
 
     public Tree getTree(String path) {
-        return session.getCurrentRoot().getTree(path);
+        return root.getTree(path);
     }
 
     @Override

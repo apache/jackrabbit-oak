@@ -26,6 +26,7 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.query.index.TraversingIndex;
@@ -92,11 +93,13 @@ public class QueryEngineImpl {
         return q;
     }
 
-    public ResultImpl executeQuery(String statement, String language, ContentSession session,
+    public ResultImpl executeQuery(String statement, String language, 
             long limit, long offset, Map<String, ? extends CoreValue> bindings,
+            ContentSession session, Root root,
             NamePathMapper namePathMapper) throws ParseException {
         Query q = parseQuery(statement, language);
         q.setSession(session);
+        q.setRoot(root);
         q.setNamePathMapper(namePathMapper);
         q.setLimit(limit);
         q.setOffset(offset);

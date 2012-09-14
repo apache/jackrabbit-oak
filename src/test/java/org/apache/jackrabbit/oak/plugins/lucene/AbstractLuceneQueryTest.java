@@ -96,6 +96,6 @@ public abstract class AbstractLuceneQueryTest extends AbstractOakTest implements
     }
 
     protected Result executeQuery(String statement) throws ParseException {
-        return qe.executeQuery(statement, SQL2, Long.MAX_VALUE, 0, null, null);
+        return qe.executeQuery(statement, SQL2, Long.MAX_VALUE, 0, null, session.getCurrentRoot(), null);
     }
 }

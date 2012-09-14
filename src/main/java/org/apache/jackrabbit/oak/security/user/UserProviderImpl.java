@@ -205,7 +205,7 @@ class UserProviderImpl extends AuthorizableBaseProvider implements UserProvider 
             Result result = queryEngine.executeQuery(stmt,
                     Query.JCR_SQL2, 1, 0,
                     Collections.singletonMap("principalName", bindValue),
-                    new NamePathMapper.Default());
+                    root, new NamePathMapper.Default());
 
             Iterator<? extends ResultRow> rows = result.getRows().iterator();
             if (rows.hasNext()) {
