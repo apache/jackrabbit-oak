@@ -28,6 +28,7 @@ import javax.jcr.version.OnParentVersionAction;
 
 import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory.AbstractPropertyDefinitionBuilder;
 import org.apache.jackrabbit.oak.namepath.JcrNameParser;
+import org.apache.jackrabbit.oak.namepath.NameMapper;
 
 class PropertyDefinitionTemplateImpl
         extends AbstractPropertyDefinitionBuilder<NodeTypeTemplate>
@@ -35,9 +36,11 @@ class PropertyDefinitionTemplateImpl
 
     private String[] valueConstraints;
 
+    private final NameMapper mapper;
     private Value[] defaultValues;
 
-    public PropertyDefinitionTemplateImpl() {
+    public PropertyDefinitionTemplateImpl(NameMapper mapper) {
+        this.mapper = mapper;
         onParent = OnParentVersionAction.COPY;
         requiredType = PropertyType.STRING;
     }
@@ -64,7 +67,7 @@ class PropertyDefinitionTemplateImpl
     @Override
     public void setName(String name) throws ConstraintViolationException {
         JcrNameParser.checkName(name, true);
-        this.name = name;
+        this.name = mapper.getJcrName(mapper.getOakName(name));
     }
 
     @Override

@@ -67,7 +67,10 @@ public class TestContentLoader {
     private static void registerTestNodeTypes(NodeTypeManager ntm) throws RepositoryException, ParseException, IOException {
         InputStream stream = TestContentLoader.class.getResourceAsStream("test_nodetypes.cnd");
         try {
-            NodeTypeManagerImpl.registerNodeTypes(ntm, new InputStreamReader(stream, "UTF-8"));
+            if (!(ntm instanceof NodeTypeManagerImpl)) {
+                throw new IllegalArgumentException("Need NodeTypeManagerImpl");
+            }
+            ((NodeTypeManagerImpl)ntm).registerNodeTypes(new InputStreamReader(stream, "UTF-8"));
         } finally {
             stream.close();
         }

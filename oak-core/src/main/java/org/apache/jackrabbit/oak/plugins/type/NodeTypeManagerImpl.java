@@ -33,7 +33,6 @@ import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeDefinition;
 import javax.jcr.nodetype.NodeTypeExistsException;
 import javax.jcr.nodetype.NodeTypeIterator;
-import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.version.OnParentVersionAction;
@@ -122,7 +121,7 @@ public class NodeTypeManagerImpl extends AbstractNodeTypeManager {
                     try {
                         InputStream stream = NodeTypeManagerImpl.class.getResourceAsStream("builtin_nodetypes.cnd");
                         try {
-                            registerNodeTypes(NodeTypeManagerImpl.this, new InputStreamReader(stream, "UTF-8"));
+                            registerNodeTypes(new InputStreamReader(stream, "UTF-8"));
                         } finally {
                             stream.close();
                         }
@@ -138,16 +137,14 @@ public class NodeTypeManagerImpl extends AbstractNodeTypeManager {
 
     /**
      * Utility method for registering node types from a CND format.
-     * @param nodeTypeManager  mode type manager where the node types are registered.
      * @param cnd  reader for the CND
      * @throws ParseException  if parsing the CND fails
      * @throws RepositoryException  if registering the node types fails
      */
-    public static void registerNodeTypes(NodeTypeManager nodeTypeManager, InputStreamReader cnd)
-            throws ParseException, RepositoryException {
+    public void registerNodeTypes(InputStreamReader cnd) throws ParseException, RepositoryException {
         CompactNodeTypeDefReader<NodeTypeTemplate, Map<String, String>> reader =
                 new CompactNodeTypeDefReader<NodeTypeTemplate, Map<String, String>>(
-                        cnd, null, new DefBuilderFactory());
+                        cnd, null, new DefBuilderFactory(mapper));
         Map<String, NodeTypeTemplate> templates = Maps.newHashMap();
         for (NodeTypeTemplate template : reader.getNodeTypeDefinitions()) {
             templates.put(template.getName(), template);
@@ -166,7 +163,7 @@ public class NodeTypeManagerImpl extends AbstractNodeTypeManager {
                     for (String name : supertypes) {
                         NodeTypeDefinition st = templates.get(name);
                         if (st == null) {
-                            st = nodeTypeManager.getNodeType(name);
+                            st = getNodeType(name);
                         }
                         if (st != null && !st.isMixin()) {
                             needsNtBase = false;
@@ -181,8 +178,7 @@ public class NodeTypeManagerImpl extends AbstractNodeTypeManager {
                 }
             }
         }
-        nodeTypeManager.registerNodeTypes(templates.values().toArray(
-                new NodeTypeTemplate[templates.size()]), true);
+        registerNodeTypes(templates.values().toArray(new NodeTypeTemplate[templates.size()]), true);
     }
 
     @Override
