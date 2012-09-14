@@ -34,6 +34,7 @@ import javax.jcr.nodetype.PropertyDefinitionTemplate;
 
 import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory.AbstractNodeTypeDefinitionBuilder;
 import org.apache.jackrabbit.oak.namepath.JcrNameParser;
+import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.value.ValueFactoryImpl;
 
 final class NodeTypeTemplateImpl
@@ -41,6 +42,8 @@ final class NodeTypeTemplateImpl
     implements NodeTypeTemplate {
 
     private final NodeTypeManager manager;
+
+    private final NameMapper mapper;
 
     private final ValueFactory factory;
 
@@ -52,19 +55,20 @@ final class NodeTypeTemplateImpl
 
     private List<NodeDefinitionTemplate> nodeDefinitionTemplates;
 
-    public NodeTypeTemplateImpl(NodeTypeManager manager, ValueFactory factory) {
+    public NodeTypeTemplateImpl(NodeTypeManager manager, NameMapper mapper, ValueFactory factory) {
         this.manager = manager;
+        this.mapper = mapper;
         this.factory = factory;
     }
 
-    public NodeTypeTemplateImpl() {
-        this(null, ValueFactoryImpl.getInstance());
+    public NodeTypeTemplateImpl(NameMapper mapper) {
+        this(null, mapper, ValueFactoryImpl.getInstance());
     }
 
     public NodeTypeTemplateImpl(
-            NodeTypeManager manager, ValueFactory factory,
+            NodeTypeManager manager, NameMapper mapper, ValueFactory factory,
             NodeTypeDefinition ntd) throws ConstraintViolationException {
-        this(manager, factory);
+        this(manager, mapper, factory);
 
         setName(ntd.getName());
         setAbstract(ntd.isAbstract());
@@ -119,7 +123,7 @@ final class NodeTypeTemplateImpl
 
     @Override
     public PropertyDefinitionTemplateImpl newPropertyDefinitionBuilder() {
-        return new PropertyDefinitionTemplateImpl() {
+        return new PropertyDefinitionTemplateImpl(mapper) {
             @Override
             protected Value createValue(String value) {
                 return factory.createValue(value);
@@ -133,7 +137,7 @@ final class NodeTypeTemplateImpl
 
     @Override
     public NodeDefinitionTemplateImpl newNodeDefinitionBuilder() {
-        return new NodeDefinitionTemplateImpl() {
+        return new NodeDefinitionTemplateImpl(mapper) {
             @Override
             protected NodeType getNodeType(String name)
                     throws RepositoryException  {
@@ -158,7 +162,7 @@ final class NodeTypeTemplateImpl
     @Override
     public void setName(String name) throws ConstraintViolationException {
         JcrNameParser.checkName(name, false);
-        this.name = name;
+        this.name = mapper.getJcrName(mapper.getOakName(name));
     }
 
     @Override
@@ -213,7 +217,7 @@ final class NodeTypeTemplateImpl
         }
         else {
             JcrNameParser.checkName(name, false);
-            this.primaryItemName = name;
+            this.primaryItemName = mapper.getJcrName(mapper.getOakName(name));
         }
     }
 
@@ -227,10 +231,13 @@ final class NodeTypeTemplateImpl
         if (names == null) {
             throw new ConstraintViolationException("null is not a valid array of JCR names");
         }
+        int k = 0;
+        String[] n = new String[names.length];
         for (String name : names) {
             JcrNameParser.checkName(name, false);
+            n[k++] = mapper.getJcrName(mapper.getOakName(name));
         }
-        this.superTypeNames = names;
+        this.superTypeNames = n;
     }
 
     @Override
@@ -238,7 +245,7 @@ final class NodeTypeTemplateImpl
         JcrNameParser.checkName(name, false);
         String[] names = new String[superTypeNames.length + 1];
         System.arraycopy(superTypeNames, 0, names, 0, superTypeNames.length);
-        names[superTypeNames.length] = name;
+        names[superTypeNames.length] = mapper.getJcrName(mapper.getOakName(name));
         superTypeNames = names;
     }
 

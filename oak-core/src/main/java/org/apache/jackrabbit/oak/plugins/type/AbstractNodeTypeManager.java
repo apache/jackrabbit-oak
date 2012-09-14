@@ -161,22 +161,22 @@ public abstract class AbstractNodeTypeManager implements NodeTypeManager {
 
     @Override
     public NodeTypeTemplate createNodeTypeTemplate() throws RepositoryException {
-        return new NodeTypeTemplateImpl(this, getValueFactory());
+        return new NodeTypeTemplateImpl(this, getNameMapper(), getValueFactory());
     }
 
     @Override
     public NodeTypeTemplate createNodeTypeTemplate(NodeTypeDefinition ntd) throws RepositoryException {
-        return new NodeTypeTemplateImpl(this, getValueFactory(), ntd);
+        return new NodeTypeTemplateImpl(this, getNameMapper(), getValueFactory(), ntd);
     }
 
     @Override
     public NodeDefinitionTemplate createNodeDefinitionTemplate() {
-        return new NodeDefinitionTemplateImpl();
+        return new NodeDefinitionTemplateImpl(getNameMapper());
     }
 
     @Override
     public PropertyDefinitionTemplate createPropertyDefinitionTemplate() {
-        return new PropertyDefinitionTemplateImpl();
+        return new PropertyDefinitionTemplateImpl(getNameMapper());
     }
 
     @Override
