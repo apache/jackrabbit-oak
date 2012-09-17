@@ -72,7 +72,10 @@ public interface ContentSession extends Closeable {
      * in that subtree the underlying Microkernel.
      * <p>
      * The root instance gives you a stable view of the tree at the time the
-     * root is acquired.
+     * root is acquired. Changes by other sessions that were committed at the
+     * time this method is called are usually visible, even thought there are no
+     * strict guarantees that all changes are visible, specially when clustering
+     * is used.
      * <p>
      * Please note this method is possibly expensive because it internally reads
      * from the backend to detect if there were any changes (from any session).
