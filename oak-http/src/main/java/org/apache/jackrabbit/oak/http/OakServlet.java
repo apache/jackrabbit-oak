@@ -70,7 +70,7 @@ public class OakServlet extends HttpServlet {
         try {
             ContentSession session = repository.login(new GuestCredentials(), null);
             try {
-                Root root = session.getCurrentRoot();
+                Root root = session.getLatestRoot();
                 Tree tree = root.getTree(request.getPathInfo());
                 request.setAttribute("root", root);
                 request.setAttribute("tree", tree);
