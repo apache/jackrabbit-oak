@@ -111,6 +111,8 @@ public class QueryEngineImpl {
         }
         q.setQueryEngine(this);
         q.prepare();
+        // TODO which revision to use? Root does not provide this info
+        // TODO which node state to use? it should come from the Root
         String revision = mk.getHeadRevision();
         return q.executeQuery(revision, store.getRoot());
     }

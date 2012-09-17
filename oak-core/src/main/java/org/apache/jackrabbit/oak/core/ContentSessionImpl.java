@@ -73,7 +73,7 @@ class ContentSessionImpl implements ContentSession {
 
     @Nonnull
     @Override
-    public Root getCurrentRoot() {
+    public Root getLatestRoot() {
         // TODO: improve initial repository/session. See OAK-41
         synchronized (this) {
             if (!initialised) {

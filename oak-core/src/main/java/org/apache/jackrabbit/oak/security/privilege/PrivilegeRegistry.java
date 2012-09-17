@@ -108,7 +108,7 @@ public class PrivilegeRegistry implements PrivilegeProvider, PrivilegeConstants 
     //------------------------------------------------------------< private >---
 
     private void internalRegisterDefinitions(PrivilegeDefinition toRegister) throws RepositoryException {
-        Root root = contentSession.getCurrentRoot();
+        Root root = contentSession.getLatestRoot();
 
         try {
             // make sure the privileges path is defined

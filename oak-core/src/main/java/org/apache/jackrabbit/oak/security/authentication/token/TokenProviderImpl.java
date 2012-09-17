@@ -84,7 +84,7 @@ public class TokenProviderImpl implements TokenProvider {
 
     public TokenProviderImpl(ContentSession contentSession, long tokenExpiration, UserContext userContext) {
         this.contentSession = contentSession;
-        this.root = contentSession.getCurrentRoot();
+        this.root = contentSession.getLatestRoot();
         this.tokenExpiration = tokenExpiration;
 
         this.userProvider = userContext.getUserProvider(contentSession, root);

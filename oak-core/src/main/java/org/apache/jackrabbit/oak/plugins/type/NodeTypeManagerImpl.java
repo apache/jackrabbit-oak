@@ -183,7 +183,7 @@ public class NodeTypeManagerImpl extends AbstractNodeTypeManager {
 
     @Override
     protected Tree getTypes() {
-        return session.getCurrentRoot().getTree(NODE_TYPES_PATH);
+        return session.getLatestRoot().getTree(NODE_TYPES_PATH);
     }
 
     @Override
@@ -206,7 +206,7 @@ public class NodeTypeManagerImpl extends AbstractNodeTypeManager {
     @Override
     public NodeType registerNodeType(NodeTypeDefinition ntd, boolean allowUpdate) throws RepositoryException {
         // TODO proper node type registration... (OAK-66)
-        Root root = session.getCurrentRoot();
+        Root root = session.getLatestRoot();
         Tree types = getOrCreateNodeTypes(root);
         try {
             NodeType type = internalRegister(types, ntd, allowUpdate);
@@ -221,7 +221,7 @@ public class NodeTypeManagerImpl extends AbstractNodeTypeManager {
     public final NodeTypeIterator registerNodeTypes(NodeTypeDefinition[] ntds, boolean allowUpdate)
             throws RepositoryException {
         // TODO handle inter-type dependencies (OAK-66)
-        Root root = session.getCurrentRoot();
+        Root root = session.getLatestRoot();
         Tree types = getOrCreateNodeTypes(root);
         try {
             List<NodeType> list = Lists.newArrayList();
@@ -356,7 +356,7 @@ public class NodeTypeManagerImpl extends AbstractNodeTypeManager {
     }
 
     private boolean nodeTypesInContent() {
-        Root currentRoot = session.getCurrentRoot();
+        Root currentRoot = session.getLatestRoot();
         Tree types = currentRoot.getTree(NODE_TYPES_PATH);
         return types != null && types.getChildrenCount() > 0;
     }
@@ -364,7 +364,7 @@ public class NodeTypeManagerImpl extends AbstractNodeTypeManager {
     @Override
     public void unregisterNodeType(String name) throws RepositoryException {
         Tree type = null;
-        Root root = session.getCurrentRoot();
+        Root root = session.getLatestRoot();
         Tree types = root.getTree(NODE_TYPES_PATH);
         if (types != null) {
             type = types.getChild(getOakName(name));
@@ -384,7 +384,7 @@ public class NodeTypeManagerImpl extends AbstractNodeTypeManager {
 
     @Override
     public void unregisterNodeTypes(String[] names) throws RepositoryException {
-        Root root = session.getCurrentRoot();
+        Root root = session.getLatestRoot();
         Tree types = root.getTree(NODE_TYPES_PATH);
         if (types == null) {
             throw new NoSuchNodeTypeException("Node types can not be unregistered.");
