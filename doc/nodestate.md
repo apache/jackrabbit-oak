@@ -68,11 +68,43 @@ The `compareAgainstBaseState` method takes another NodeState instance and
 a `NodeStateDiff` object, compares the two node states, and reports all
 differences by invoking appropriate methods on the given diff handler object.
 
-See the `NodeState` javadocs for full details of how the interface works.
+See the `NodeState` javadocs for full details on how the interface works.
 
 ## Comparing node states
 
-TODO
+As a node evolves through a sequence of states, it's often important to be
+able to tell what has changed between two states of the node. As mentioned
+above, this functionality is available through the `compareAgainstBaseState`
+method. The method takes two arguments:
+
+  * A _base state_ for the comparison. The comparison will report all changes
+    necessary for moving from the given base state to the node state on which
+    the comparison method is invoked.
+  * A `NodeStateDiff` instance to which all detected changes are reported.
+    The diff interface contains callback methods for reporting added, modified
+    or removed properties or child nodes.
+
+The comparison method can actually be used to compare any two nodes, but the
+implementations of the method are typically heavily optimized for the case
+when the given base state actually is an earlier version of the same node.
+In practice this is by far the most common scenario for node state comparisons,
+and can typically be executed in `O(d)` time where `d` is the number of
+changes between the two states. The fallback strategy for comparing two
+completely unrelated node states can be much more expensive.
+
+An important detail of the `NodeStateDiff` mechanism is the `childNodeChanged`
+method that will get called if there are _any_ changes in the subtree starting
+at the named child node. The comparison method should thus be able to
+efficiently detect differences at any depth below the given nodes. On the
+other hand the `childNodeChanged` method is called only for the direct child
+node, and the diff implementation should explicitly recurse down the tree
+if it want's to know what exactly did change under that subtree. The code
+for such recursion typically looks something like this:
+
+    public void childNodeChanged(
+            String name, NodeState before, NodeState after) {
+        after.compareAgainstBaseState(before, ...);
+    }
 
 ## Building new node states
 
