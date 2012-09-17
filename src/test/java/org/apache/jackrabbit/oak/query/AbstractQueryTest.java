@@ -65,7 +65,7 @@ public abstract class AbstractQueryTest extends AbstractOakTest {
         session = createAdminSession();
         vf = session.getCoreValueFactory();
         qe = session.getQueryEngine();
-        root = session.getCurrentRoot();
+        root = session.getLatestRoot();
     }
 
 }

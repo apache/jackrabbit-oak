@@ -65,7 +65,7 @@ public abstract class AbstractLuceneQueryTest extends AbstractOakTest implements
     public void before() throws Exception {
         super.before();
         session = createAdminSession();
-        root = session.getCurrentRoot();
+        root = session.getLatestRoot();
         vf = session.getCoreValueFactory();
         qe = session.getQueryEngine();
     }
@@ -96,6 +96,6 @@ public abstract class AbstractLuceneQueryTest extends AbstractOakTest implements
     }
 
     protected Result executeQuery(String statement) throws ParseException {
-        return qe.executeQuery(statement, SQL2, Long.MAX_VALUE, 0, null, session.getCurrentRoot(), null);
+        return qe.executeQuery(statement, SQL2, Long.MAX_VALUE, 0, null, session.getLatestRoot(), null);
     }
 }

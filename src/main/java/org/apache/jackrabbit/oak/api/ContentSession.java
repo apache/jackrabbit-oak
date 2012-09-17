@@ -80,7 +80,7 @@ public interface ContentSession extends Closeable {
      * @return the current head root
      */
     @Nonnull
-    Root getCurrentRoot();
+    Root getLatestRoot();
 
     /**
      * Get the query engine.
