@@ -75,7 +75,7 @@ public class UserProviderImplTest extends AbstractOakTest {
     @Before
     public void setUp() throws Exception {
         contentSession = createAdminSession();
-        root = contentSession.getCurrentRoot();
+        root = contentSession.getLatestRoot();
 
         defaultConfig = new UserConfig("admin");
         defaultUserPath = defaultConfig.getConfigValue(UserConfig.PARAM_USER_PATH, UserConstants.DEFAULT_USER_PATH);

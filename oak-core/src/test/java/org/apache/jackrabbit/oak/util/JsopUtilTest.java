@@ -42,7 +42,7 @@ public class JsopUtilTest extends AbstractOakTest {
     public void before() throws Exception {
         super.before();
         session = createAdminSession();
-        root = session.getCurrentRoot();
+        root = session.getLatestRoot();
         vf = session.getCoreValueFactory();
     }
 

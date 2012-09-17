@@ -1218,7 +1218,7 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
         try {
             ContentSession session = sessionDelegate.getContentSession();
             CoreValueFactory factory = session.getCoreValueFactory();
-            Root root = session.getCurrentRoot();
+            Root root = session.getLatestRoot();
             Tree tree = root.getTree(dlg.getPath());
             if (tree == null) {
                 throw new ItemNotFoundException();
@@ -1291,7 +1291,7 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
         String lockOwner = sessionDelegate.getOakPathOrThrow(JCR_LOCK_OWNER);
         String lockIsDeep = sessionDelegate.getOakPathOrThrow(JCR_LOCK_IS_DEEP);
         try {
-            Root root = sessionDelegate.getContentSession().getCurrentRoot();
+            Root root = sessionDelegate.getContentSession().getLatestRoot();
             Tree tree = root.getTree(dlg.getPath());
             if (tree == null) {
                 throw new ItemNotFoundException();

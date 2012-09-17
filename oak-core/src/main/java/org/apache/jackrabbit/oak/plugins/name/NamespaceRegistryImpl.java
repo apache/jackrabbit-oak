@@ -59,7 +59,7 @@ public class NamespaceRegistryImpl implements NamespaceRegistry, NamespaceConsta
     public void registerNamespace(String prefix, String uri)
             throws RepositoryException {
         try {
-            Root root = session.getCurrentRoot();
+            Root root = session.getLatestRoot();
             Tree namespaces = getOrCreate(root, JcrConstants.JCR_SYSTEM, REP_NAMESPACES);
             namespaces.setProperty(
                     prefix, session.getCoreValueFactory().createValue(uri));
@@ -76,7 +76,7 @@ public class NamespaceRegistryImpl implements NamespaceRegistry, NamespaceConsta
 
     @Override
     public void unregisterNamespace(String prefix) throws RepositoryException {
-        Root root = session.getCurrentRoot();
+        Root root = session.getLatestRoot();
         Tree namespaces = root.getTree(NAMESPACES_PATH);
         if (namespaces == null || !namespaces.hasProperty(prefix)) {
             throw new NamespaceException(
@@ -114,7 +114,7 @@ public class NamespaceRegistryImpl implements NamespaceRegistry, NamespaceConsta
     @Nonnull
     public String[] getPrefixes() throws RepositoryException {
         try {
-            Tree root = session.getCurrentRoot().getTree("/");
+            Tree root = session.getLatestRoot().getTree("/");
             Map<String, String> map = Namespaces.getNamespaceMap(root);
             String[] prefixes = map.keySet().toArray(new String[map.size()]);
             Arrays.sort(prefixes);
@@ -130,7 +130,7 @@ public class NamespaceRegistryImpl implements NamespaceRegistry, NamespaceConsta
     @Nonnull
     public String[] getURIs() throws RepositoryException {
         try {
-            Tree root = session.getCurrentRoot().getTree("/");
+            Tree root = session.getLatestRoot().getTree("/");
             Map<String, String> map = Namespaces.getNamespaceMap(root);
             String[] uris = map.values().toArray(new String[map.size()]);
             Arrays.sort(uris);
@@ -146,7 +146,7 @@ public class NamespaceRegistryImpl implements NamespaceRegistry, NamespaceConsta
     @Nonnull
     public String getURI(String prefix) throws RepositoryException {
         try {
-            Tree root = session.getCurrentRoot().getTree("/");
+            Tree root = session.getLatestRoot().getTree("/");
             Map<String, String> map = Namespaces.getNamespaceMap(root);
             String uri = map.get(prefix);
             if (uri == null) {
@@ -166,7 +166,7 @@ public class NamespaceRegistryImpl implements NamespaceRegistry, NamespaceConsta
     @Nonnull
     public String getPrefix(String uri) throws RepositoryException {
         try {
-            Tree root = session.getCurrentRoot().getTree("/");
+            Tree root = session.getLatestRoot().getTree("/");
             Map<String, String> map = Namespaces.getNamespaceMap(root);
             for (Map.Entry<String, String> entry : map.entrySet()) {
                 if (entry.getValue().equals(uri)) {

@@ -92,7 +92,7 @@ public class SessionDelegate {
         this.contentSession = contentSession;
         this.workspace = new WorkspaceImpl(this);
         this.session = new SessionImpl(this);
-        this.root = contentSession.getCurrentRoot();
+        this.root = contentSession.getLatestRoot();
         this.conflictHandler = new AnnotatingConflictHandler(contentSession.getCoreValueFactory());
         this.autoRefresh = autoRefresh;
         this.idManager = new IdentifierManager(contentSession.getQueryEngine(), root);
@@ -371,7 +371,7 @@ public class SessionDelegate {
         }
 
         try {
-            Root currentRoot = contentSession.getCurrentRoot();
+            Root currentRoot = contentSession.getLatestRoot();
             currentRoot.copy(srcPath, destPath);
             currentRoot.commit(DefaultConflictHandler.OURS);
         }
@@ -390,7 +390,7 @@ public class SessionDelegate {
     public void move(String srcPath, String destPath, boolean transientOp)
             throws RepositoryException {
 
-        Root moveRoot = transientOp ? root : contentSession.getCurrentRoot();
+        Root moveRoot = transientOp ? root : contentSession.getLatestRoot();
 
         // check destination
         Tree dest = moveRoot.getTree(destPath);

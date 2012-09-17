@@ -62,7 +62,7 @@ class PrivilegeDefinitionReader {
     }
 
     PrivilegeDefinitionReader(ContentSession contentSession) {
-        this(contentSession.getCurrentRoot().getTree(PRIVILEGES_PATH));
+        this(contentSession.getLatestRoot().getTree(PRIVILEGES_PATH));
     }
 
     Map<String, PrivilegeDefinition> readDefinitions() {
