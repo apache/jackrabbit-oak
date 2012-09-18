@@ -37,9 +37,29 @@ import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
 public abstract class NamespaceRegistryImpl
         implements NamespaceRegistry, NamespaceConstants {
 
-    abstract protected Root getReadRoot();
+    /**
+     * Called by the {@link NamespaceRegistry} implementation methods
+     * to acquire a root {@link Tree} instance from which to read the
+     * namespace mappings (under <code>jcr:system/rep:namespaces</code>).
+     *
+     * @return root {@link Tree} for reading the namespace mappings
+     */
+    abstract protected Tree getReadTree();
 
-    abstract protected Root getWriteRoot();
+    /**
+     * Called by the {@link #registerNamespace(String, String)} and
+     * {@link #unregisterNamespace(String)} methods to acquire a fresh
+     * {@link Root} instance that can be used to persist the requested
+     * namespace changes (and nothing else).
+     * <p>
+     * The default implementation of this method throws an
+     * {@link UnsupportedOperationException}.
+     *
+     * @return fresh {@link Root} instance
+     */
+    protected Root getWriteRoot() {
+        throw new UnsupportedOperationException();
+    }
 
     /**
      * Called by the {@link NamespaceRegistry} implementation methods to
@@ -59,7 +79,8 @@ public abstract class NamespaceRegistryImpl
             throws RepositoryException {
         try {
             Root root = getWriteRoot();
-            Tree namespaces = getOrCreate(root, JcrConstants.JCR_SYSTEM, REP_NAMESPACES);
+            Tree namespaces =
+                    getOrCreate(root, JcrConstants.JCR_SYSTEM, REP_NAMESPACES);
             namespaces.setProperty(prefix, new StringValue(uri));
             root.commit(DefaultConflictHandler.OURS);
             refresh();
@@ -112,7 +133,7 @@ public abstract class NamespaceRegistryImpl
     @Nonnull
     public String[] getPrefixes() throws RepositoryException {
         try {
-            Tree root = getReadRoot().getTree("/");
+            Tree root = getReadTree();
             Map<String, String> map = Namespaces.getNamespaceMap(root);
             String[] prefixes = map.keySet().toArray(new String[map.size()]);
             Arrays.sort(prefixes);
@@ -127,7 +148,7 @@ public abstract class NamespaceRegistryImpl
     @Nonnull
     public String[] getURIs() throws RepositoryException {
         try {
-            Tree root = getReadRoot().getTree("/");
+            Tree root = getReadTree();
             Map<String, String> map = Namespaces.getNamespaceMap(root);
             String[] uris = map.values().toArray(new String[map.size()]);
             Arrays.sort(uris);
@@ -142,7 +163,7 @@ public abstract class NamespaceRegistryImpl
     @Nonnull
     public String getURI(String prefix) throws RepositoryException {
         try {
-            Tree root = getReadRoot().getTree("/");
+            Tree root = getReadTree();
             Map<String, String> map = Namespaces.getNamespaceMap(root);
             String uri = map.get(prefix);
             if (uri == null) {
@@ -161,7 +182,7 @@ public abstract class NamespaceRegistryImpl
     @Nonnull
     public String getPrefix(String uri) throws RepositoryException {
         try {
-            Tree root = getReadRoot().getTree("/");
+            Tree root = getReadTree();
             Map<String, String> map = Namespaces.getNamespaceMap(root);
             for (Map.Entry<String, String> entry : map.entrySet()) {
                 if (entry.getValue().equals(uri)) {
