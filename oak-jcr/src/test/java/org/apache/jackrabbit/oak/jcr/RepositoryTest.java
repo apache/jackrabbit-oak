@@ -40,6 +40,7 @@ import javax.jcr.Binary;
 import javax.jcr.GuestCredentials;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.Item;
+import javax.jcr.NamespaceException;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.Node;
@@ -1422,6 +1423,49 @@ public class RepositoryTest extends AbstractRepositoryTest {
         nsReg.unregisterNamespace("foo");
         assertFalse(asList(nsReg.getPrefixes()).contains("foo"));
         assertFalse(asList(nsReg.getURIs()).contains("file:///foo"));
+    }
+
+    @Test
+    public void sessionRemappedNamespace() throws RepositoryException {
+        NamespaceRegistry nsReg =
+                getAdminSession().getWorkspace().getNamespaceRegistry();
+        nsReg.registerNamespace("foo", "file:///foo");
+
+        getAdminSession().getRootNode().addNode("foo:test");
+        getAdminSession().save();
+
+        Session s = createAdminSession();
+        s.setNamespacePrefix("bar", "file:///foo");
+        assertTrue(s.getRootNode().hasNode("bar:test"));
+        Node n = s.getRootNode().getNode("bar:test");
+        assertEquals("bar:test", n.getName());
+        s.logout();
+
+        getAdminSession().getRootNode().getNode("foo:test").remove();
+        getAdminSession().save();
+        nsReg.unregisterNamespace("foo");
+    }
+
+    @Test
+    public void registryRemappedNamespace() throws RepositoryException {
+        NamespaceRegistry nsReg =
+                getAdminSession().getWorkspace().getNamespaceRegistry();
+        nsReg.registerNamespace("foo", "file:///foo");
+
+        getAdminSession().getRootNode().addNode("foo:test");
+        getAdminSession().save();
+
+        try {
+            nsReg.registerNamespace("bar", "file:///foo");
+            fail("Remapping namespace through NamespaceRegistry must not be allowed");
+        } catch (NamespaceException e) {
+            // expected
+        } finally {
+            getAdminSession().getRootNode().getNode("foo:test").remove();
+            getAdminSession().save();
+
+            nsReg.unregisterNamespace("foo");
+        }
     }
 
     @Test

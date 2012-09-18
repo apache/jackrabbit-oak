@@ -49,7 +49,12 @@ class NamespaceValidator extends DefaultValidator {
             } else if (prefix.toLowerCase(Locale.ENGLISH).startsWith("xml")) {
                 throw new NamespaceValidatorException(
                         "XML prefixes are reserved", prefix);
+            } else if (map.containsValue(after.getValue().getString())) {
+                throw modificationNotAllowed(prefix);
             }
+        } else {
+            throw new NamespaceValidatorException(
+                    "Not a valid namespace prefix", prefix);
         }
     }
 
@@ -57,8 +62,7 @@ class NamespaceValidator extends DefaultValidator {
     public void propertyChanged(PropertyState before, PropertyState after)
             throws CommitFailedException {
         if (map.containsKey(after.getName())) {
-            throw new NamespaceValidatorException(
-                    "Namespace modification not allowed", after.getName());
+            throw modificationNotAllowed(after.getName());
         }
     }
 
@@ -68,6 +72,11 @@ class NamespaceValidator extends DefaultValidator {
         if (map.containsKey(before.getName())) {
             // TODO: Check whether this namespace is still used in content
         }
+    }
+
+    private static NamespaceValidatorException modificationNotAllowed(String prefix) {
+        return new NamespaceValidatorException(
+                "Namespace modification not allowed", prefix);
     }
 
 }
