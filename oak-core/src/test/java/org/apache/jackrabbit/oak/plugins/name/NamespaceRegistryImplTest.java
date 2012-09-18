@@ -22,6 +22,7 @@ import org.apache.jackrabbit.oak.AbstractOakTest;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -38,8 +39,8 @@ public class NamespaceRegistryImplTest extends AbstractOakTest {
         final ContentSession session = createAdminSession();
         NamespaceRegistry r = new NamespaceRegistryImpl() {
             @Override
-            protected Root getReadRoot() {
-                return session.getLatestRoot();
+            protected Tree getReadTree() {
+                return session.getLatestRoot().getTree("/");
             }
             @Override
             protected Root getWriteRoot() {

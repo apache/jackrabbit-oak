@@ -33,6 +33,7 @@ import javax.jcr.version.VersionManager;
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.lock.LockManagerImpl;
 import org.apache.jackrabbit.oak.jcr.query.QueryManagerImpl;
@@ -152,8 +153,8 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
                 getSession().refresh(true);
             }
             @Override
-            protected Root getReadRoot() {
-                return sessionDelegate.getRoot();
+            protected Tree getReadTree() {
+                return sessionDelegate.getRoot().getTree("/");
             }
             @Override
             protected Root getWriteRoot() {
