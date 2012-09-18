@@ -21,6 +21,7 @@ import javax.jcr.NamespaceRegistry;
 import org.apache.jackrabbit.oak.AbstractOakTest;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.Root;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -34,8 +35,17 @@ public class NamespaceRegistryImplTest extends AbstractOakTest {
 
     @Test
     public void testMappings() throws Exception {
-        ContentSession session = createAdminSession();
-        NamespaceRegistry r = new NamespaceRegistryImpl(session);
+        final ContentSession session = createAdminSession();
+        NamespaceRegistry r = new NamespaceRegistryImpl() {
+            @Override
+            protected Root getReadRoot() {
+                return session.getLatestRoot();
+            }
+            @Override
+            protected Root getWriteRoot() {
+                return session.getLatestRoot();
+            }
+        };
 
         assertEquals("", r.getURI(""));
         assertEquals("http://www.jcp.org/jcr/1.0", r.getURI("jcr"));

@@ -22,8 +22,8 @@ import javax.jcr.NamespaceRegistry;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.plugins.name.NamespaceRegistryImpl;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
+import org.apache.jackrabbit.oak.util.TODO;
 
 /**
  * PrivilegeMigrator is a utility to migrate custom privilege definitions from
@@ -50,7 +50,9 @@ public class PrivilegeMigrator {
         // new FileSystemResource(fs, "/privileges/custom_privileges.xml").getInputStream()
         if (stream != null) {
             try {
-                NamespaceRegistry nsRegistry = new NamespaceRegistryImpl(contentSession);
+                // TODO: should get a proper namespace registry from somewhere
+                NamespaceRegistry nsRegistry =
+                        TODO.dummyImplementation().returnValue(null);
                 PrivilegeDefinition[] custom = PrivilegeDefinitionReader.readCustomDefinitons(stream, nsRegistry);
 
                 for (PrivilegeDefinition def : custom) {

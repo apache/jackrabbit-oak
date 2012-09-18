@@ -32,6 +32,7 @@ import javax.jcr.version.VersionManager;
 
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.lock.LockManagerImpl;
 import org.apache.jackrabbit.oak.jcr.query.QueryManagerImpl;
@@ -145,10 +146,18 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
 
     @Override
     public NamespaceRegistry getNamespaceRegistry() {
-        return new NamespaceRegistryImpl(sessionDelegate.getContentSession()) {
+        return new NamespaceRegistryImpl() {
             @Override
             protected void refresh() throws RepositoryException {
                 getSession().refresh(true);
+            }
+            @Override
+            protected Root getReadRoot() {
+                return sessionDelegate.getRoot();
+            }
+            @Override
+            protected Root getWriteRoot() {
+                return sessionDelegate.getContentSession().getLatestRoot();
             }
         };
     }
