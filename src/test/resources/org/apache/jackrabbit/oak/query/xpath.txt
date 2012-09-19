@@ -367,7 +367,7 @@ xpath2sql //element(*, my:type)[@my:value = ['x']
 invalid: Query: //element(*, my:type)[@my:value = [(*)'x']; expected: @, true, false, -, +, *, ., @, (
 
 xpath2sql //element(*, my:type)[jcr:strike(@title,'%Java%')]
-invalid: Query: //element(*, my:type)[jcr:strike(@(*)title,'%Java%')]; expected: jcr:like | jcr:contains | jcr:score | jcr:deref | fn:lower-case | fn:upper-case
+invalid: Query: //element(*, my:type)[jcr:strike(@(*)title,'%Java%')]; expected: jcr:like | jcr:contains | jcr:score | xs:dateTime | fn:lower-case | fn:upper-case | fn:name
 
 xpath2sql //element(*, my:type)[
 invalid: Query: //element(*, my:type)(*)[; expected: fn:not, not, (, @, true, false, -, +, *, ., @, (
