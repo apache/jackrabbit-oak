@@ -57,6 +57,12 @@ public class NamePathMapperImplTest {
     }
 
     @Test
+    public void testTrailingSlash() {
+        assertEquals("/oak-foo:bar/oak-quu:qux",npMapper.getOakPath("/foo:bar/quu:qux/"));
+        assertEquals("/a/b/c",npMapper.getOakPath("/a/b/c/"));
+    }
+
+    @Test
     public void testJcrToOak() {
         assertEquals("/", npMapper.getOakPath("/"));
         assertEquals("foo", npMapper.getOakPath("{}foo"));
