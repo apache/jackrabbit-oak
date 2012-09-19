@@ -127,6 +127,17 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
     }
 
     /**
+     * Called by the {@link ReadWriteNodeTypeManager} implementation methods to
+     * refresh the state of the session associated with this instance.
+     * That way the session is kept in sync with the latest global state
+     * seen by the node type manager.
+     *
+     * @throws RepositoryException if the session could not be refreshed
+     */
+    protected void refresh() throws RepositoryException {
+    }
+
+    /**
      * Registers built in node types using the given {@link Root}.
      *
      * @param root the {@link Root} instance.
