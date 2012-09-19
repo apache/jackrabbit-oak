@@ -78,7 +78,7 @@ class ContentSessionImpl implements ContentSession {
         synchronized (this) {
             if (!initialised) {
                 initialised = true;
-                NodeTypeManagerImpl.registerBuiltInNodeTypes(this);
+                NodeTypeManagerImpl.registerBuiltInNodeTypes(getLatestRoot());
             }
         }
 

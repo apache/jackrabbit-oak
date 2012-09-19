@@ -35,12 +35,19 @@ import javax.jcr.nodetype.PropertyDefinitionTemplate;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryValueFactory;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 
+/**
+ * Base implementation of a {@link NodeTypeManager} with support for reading
+ * node types from the {@link Tree} returned by {@link #getTypes()}. Methods
+ * related to node type modifications throw
+ * {@link UnsupportedRepositoryOperationException}.
+ */
 public abstract class AbstractNodeTypeManager implements NodeTypeManager {
 
     /**
@@ -88,11 +95,27 @@ public abstract class AbstractNodeTypeManager implements NodeTypeManager {
         return null;
     }
 
+    /**
+     * Returns a {@link CoreValueFactory} to be used by this node type manager.
+     * This implementation returns a {@link MemoryValueFactory#INSTANCE}. A
+     * subclass may override this method and provide a different
+     * implementation.
+     *
+     * @return {@link CoreValueFactory} instance.
+     */
     @Nonnull
     protected CoreValueFactory getCoreValueFactory() {
         return MemoryValueFactory.INSTANCE;
     }
 
+    /**
+     * Returns a {@link NameMapper} to be used by this node type manager. This
+     * implementation returns the {@link NamePathMapperImpl#DEFAULT} instance. A
+     * subclass may override this method and provide a different
+     * implementation.
+     *
+     * @return {@link NameMapper} instance.
+     */
     @Nonnull
     protected NameMapper getNameMapper() {
         return NamePathMapperImpl.DEFAULT;
@@ -179,21 +202,33 @@ public abstract class AbstractNodeTypeManager implements NodeTypeManager {
         return new PropertyDefinitionTemplateImpl(getNameMapper());
     }
 
+    /**
+     * This implementation always throws a {@link UnsupportedRepositoryOperationException}.
+     */
     @Override
     public NodeType registerNodeType(NodeTypeDefinition ntd, boolean allowUpdate) throws RepositoryException {
         throw new UnsupportedRepositoryOperationException();
     }
 
+    /**
+     * This implementation always throws a {@link UnsupportedRepositoryOperationException}.
+     */
     @Override
     public NodeTypeIterator registerNodeTypes(NodeTypeDefinition[] ntds, boolean allowUpdate) throws RepositoryException {
         throw new UnsupportedRepositoryOperationException();
     }
 
+    /**
+     * This implementation always throws a {@link UnsupportedRepositoryOperationException}.
+     */
     @Override
     public void unregisterNodeType(String name) throws RepositoryException {
         throw new UnsupportedRepositoryOperationException();
     }
 
+    /**
+     * This implementation always throws a {@link UnsupportedRepositoryOperationException}.
+     */
     @Override
     public void unregisterNodeTypes(String[] names) throws RepositoryException {
         throw new UnsupportedRepositoryOperationException();
