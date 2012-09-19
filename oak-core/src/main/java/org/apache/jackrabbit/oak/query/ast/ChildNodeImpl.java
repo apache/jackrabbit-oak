@@ -36,14 +36,6 @@ public class ChildNodeImpl extends ConstraintImpl {
         this.parentPath = parentPath;
     }
 
-    public String getSelectorName() {
-        return selectorName;
-    }
-
-    public String getParentPath() {
-        return parentPath;
-    }
-
     @Override
     boolean accept(AstVisitor v) {
         return v.visit(this);
@@ -51,7 +43,7 @@ public class ChildNodeImpl extends ConstraintImpl {
 
     @Override
     public String toString() {
-        return "ischildnode(" + selectorName + ", " + quotePath(parentPath) + ')';
+        return "ischildnode(" + quote(selectorName) + ", " + quote(parentPath) + ')';
     }
 
     public void bindSelector(SourceImpl source) {

@@ -118,8 +118,8 @@ public class SQL2Parser {
         read("SELECT");
         ArrayList<ColumnOrWildcard> list = parseColumns();
         if (supportSQL1) {
-            addColumnIfNecessary(list, "jcr:path", "jcr:path");
-            addColumnIfNecessary(list, "jcr:score", "jcr:score");
+            addColumnIfNecessary(list, Query.JCR_PATH, Query.JCR_PATH);
+            addColumnIfNecessary(list, Query.JCR_SCORE, Query.JCR_SCORE);
         }
         read("FROM");
         SourceImpl source = parseSource();

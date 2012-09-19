@@ -87,8 +87,8 @@ public class QueryTest extends AbstractQueryTest {
         result = executeQuery("explain select * from [nt:base] where id = 1 order by id",
                 QueryEngineImpl.SQL2, null).getRows().iterator();
         assertTrue(result.hasNext());
-        assertEquals("[nt:base] as nt:base " +
-                "/* traverse \"//*\" where nt:base.id = cast('1' as long) */",
+        assertEquals("[nt:base] as [nt:base] " +
+                "/* traverse \"//*\" where [nt:base].[id] = cast('1' as long) */",
                 result.next().getValue("plan").getString());
 
     }

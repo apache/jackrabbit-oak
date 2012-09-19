@@ -20,6 +20,8 @@ package org.apache.jackrabbit.oak.query.ast;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.SinglePropertyState;
+import org.apache.jackrabbit.oak.query.Query;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
 /**
@@ -34,10 +36,6 @@ public class FullTextSearchScoreImpl extends DynamicOperandImpl {
         this.selectorName = selectorName;
     }
 
-    public String getSelectorName() {
-        return selectorName;
-    }
-
     @Override
     boolean accept(AstVisitor v) {
         return v.visit(this);
@@ -45,13 +43,18 @@ public class FullTextSearchScoreImpl extends DynamicOperandImpl {
 
     @Override
     public String toString() {
-        return "score(" + getSelectorName() + ')';
+        return "score(" + quote(selectorName) + ')';
     }
 
     @Override
     public PropertyState currentProperty() {
-        // TODO support evaluating fulltext conditions (score)
-        return null;
+        PropertyState p = selector.currentProperty(Query.JCR_SCORE);
+        if (p == null) {
+            // TODO if score() is not supported by the index, use the value 0.0?
+            CoreValue v = query.getValueFactory().createValue(0.0);
+            p = new SinglePropertyState(Query.JCR_SCORE, v);
+        }
+        return p;
     }
 
     public void bindSelector(SourceImpl source) {
@@ -59,8 +62,14 @@ public class FullTextSearchScoreImpl extends DynamicOperandImpl {
     }
 
     @Override
-    public void apply(FilterImpl f, Operator operator, CoreValue v) {
-        // TODO support fulltext index conditions (score)
+    public void restrict(FilterImpl f, Operator operator, CoreValue v) {
+        if (f.getSelector() == selector) {
+            if (operator == Operator.NOT_EQUAL && v != null) {
+                // not supported
+                return;
+            }
+            f.restrictProperty(Query.JCR_SCORE, operator, v);
+        }
     }
 
     @Override

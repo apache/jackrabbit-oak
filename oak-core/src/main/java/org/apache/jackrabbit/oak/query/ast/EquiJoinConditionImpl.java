@@ -43,22 +43,6 @@ public class EquiJoinConditionImpl extends JoinConditionImpl {
         this.property2Name = property2Name;
     }
 
-    public String getSelector1Name() {
-        return selector1Name;
-    }
-
-    public String getProperty1Name() {
-        return property1Name;
-    }
-
-    public String getSelector2Name() {
-        return selector2Name;
-    }
-
-    public String getProperty2Name() {
-        return property2Name;
-    }
-
     @Override
     boolean accept(AstVisitor v) {
         return v.visit(this);
@@ -66,9 +50,8 @@ public class EquiJoinConditionImpl extends JoinConditionImpl {
 
     @Override
     public String toString() {
-        // TODO quote property names?
-        return getSelector1Name() + '.' + getProperty1Name()
-                + " = " + getSelector2Name() + '.' + getProperty2Name();
+        return quote(selector1Name) + '.' + quote(property1Name) +
+                " = " + quote(selector2Name) + '.' + quote(property2Name);
     }
 
     public void bindSelector(SourceImpl source) {

@@ -38,14 +38,6 @@ public class DescendantNodeJoinConditionImpl extends JoinConditionImpl {
         this.ancestorSelectorName = ancestorSelectorName;
     }
 
-    public String getDescendantSelectorName() {
-        return descendantSelectorName;
-    }
-
-    public String getAncestorSelectorName() {
-        return ancestorSelectorName;
-    }
-
     @Override
     boolean accept(AstVisitor v) {
         return v.visit(this);
@@ -53,9 +45,9 @@ public class DescendantNodeJoinConditionImpl extends JoinConditionImpl {
 
     @Override
     public String toString() {
-        String descendant = getDescendantSelectorName();
-        String ancestor = getAncestorSelectorName();
-        return "isdescendantnode(" + descendant + ", " + ancestor + ')';
+        return "isdescendantnode(" + 
+                quote(descendantSelectorName) + 
+                ", " + quote(ancestorSelectorName) + ')';
     }
 
     public void bindSelector(SourceImpl source) {

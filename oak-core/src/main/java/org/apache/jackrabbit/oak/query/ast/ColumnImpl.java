@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.query.ast;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.SinglePropertyState;
+import org.apache.jackrabbit.oak.query.Query;
 
 /**
  * A result column expression.
@@ -35,17 +36,9 @@ public class ColumnImpl extends AstElement {
         this.propertyName = propertyName;
         this.columnName = columnName;
     }
-
+    
     public String getColumnName() {
         return columnName;
-    }
-
-    public String getPropertyName() {
-        return propertyName;
-    }
-
-    public String getSelectorName() {
-        return selectorName;
     }
 
     @Override
@@ -56,10 +49,10 @@ public class ColumnImpl extends AstElement {
     @Override
     public String toString() {
         if (propertyName != null) {
-            return getSelectorName() + '.' + getPropertyName()
-                    + " as [" + columnName + "]";
+            return quote(selectorName) + '.' + quote(propertyName) + 
+                    " as " + quote(columnName);
         } else {
-            return getSelectorName() + ".*";
+            return quote(selectorName) + ".*";
         }
     }
 
@@ -71,7 +64,7 @@ public class ColumnImpl extends AstElement {
                 return null;
             }
             CoreValue v = query.getValueFactory().createValue(p);
-            return new SinglePropertyState(SelectorImpl.PATH, v);
+            return new SinglePropertyState(Query.JCR_PATH, v);
         }
         return selector.currentProperty(propertyName);
     }

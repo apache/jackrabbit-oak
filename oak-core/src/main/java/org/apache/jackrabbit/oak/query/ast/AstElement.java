@@ -39,8 +39,8 @@ abstract class AstElement {
         }
     }
 
-    protected String quotePath(String path) {
-        return '[' + path + ']';
+    protected String quote(String pathOrName) {
+        return '[' + pathOrName + ']';
     }
 
     public void setQuery(Query query) {

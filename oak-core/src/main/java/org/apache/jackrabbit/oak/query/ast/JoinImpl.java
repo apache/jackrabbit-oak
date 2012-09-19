@@ -46,10 +46,6 @@ public class JoinImpl extends SourceImpl {
         return joinCondition;
     }
 
-    public String getJoinType() {
-        return joinType.toString();
-    }
-
     public SourceImpl getLeft() {
         return left;
     }
@@ -167,12 +163,6 @@ public class JoinImpl extends SourceImpl {
                 return true;
             }
         }
-    }
-
-    @Override
-    public String currentPath() {
-        // TODO join: what is the path of a join? it this method ever called?
-        return left.currentPath();
     }
 
 }
