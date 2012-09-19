@@ -42,6 +42,21 @@ import org.apache.jackrabbit.oak.jcr.SessionDelegate;
  * The implementation of the corresponding JCR interface.
  */
 public class QueryResultImpl implements QueryResult {
+    
+    /**
+     * The minimum number of rows / nodes to pre-fetch.
+     */ 
+    private static final int PREFETCH_MIN = 20;
+
+    /**
+     * The maximum number of rows / nodes to pre-fetch.
+     */
+    private static final int PREFETCH_MAX = 100;
+
+    /**
+     * The maximum number of milliseconds to prefetch rows / nodes.
+     */
+    private static final int PREFETCH_TIMEOUT = 100;
 
     final SessionDelegate sessionDelegate;
     final Result result;
@@ -124,9 +139,14 @@ public class QueryResultImpl implements QueryResult {
             }
 
         };
-        return new RowIteratorAdapter(rowIterator) {
+        final PrefetchIterator<RowImpl> prefIt = new  PrefetchIterator<RowImpl>(
+                rowIterator, 
+                PREFETCH_MIN, PREFETCH_TIMEOUT, PREFETCH_MAX, 
+                result.getSize());
+        return new RowIteratorAdapter(prefIt) {
+            @Override
             public long getSize() {
-                return result.getSize();
+                return prefIt.size();
             }
         };
     }
@@ -195,7 +215,16 @@ public class QueryResultImpl implements QueryResult {
             }
 
         };
-        return new NodeIteratorAdapter(nodeIterator, result.getSize());
+        final PrefetchIterator<NodeImpl> prefIt = new  PrefetchIterator<NodeImpl>(
+                nodeIterator, 
+                PREFETCH_MIN, PREFETCH_TIMEOUT, PREFETCH_MAX, 
+                result.getSize());
+        return new NodeIteratorAdapter(prefIt) {
+            @Override
+            public long getSize() {
+                return prefIt.size();
+            }
+        };
     }
 
     Value createValue(CoreValue value) {
