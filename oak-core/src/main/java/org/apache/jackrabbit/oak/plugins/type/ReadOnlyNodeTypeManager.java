@@ -35,7 +35,6 @@ import javax.jcr.nodetype.PropertyDefinitionTemplate;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
-import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
@@ -48,7 +47,7 @@ import org.apache.jackrabbit.oak.util.NodeUtil;
  * related to node type modifications throw
  * {@link UnsupportedRepositoryOperationException}.
  */
-public abstract class AbstractNodeTypeManager implements NodeTypeManager {
+public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager {
 
     /**
      * Returns the internal name for the specified JCR name.
