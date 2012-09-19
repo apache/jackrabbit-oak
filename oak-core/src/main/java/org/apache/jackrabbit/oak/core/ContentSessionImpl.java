@@ -28,7 +28,7 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.SessionQueryEngine;
-import org.apache.jackrabbit.oak.plugins.type.ReadWriteNodeTypeManager;
+import org.apache.jackrabbit.oak.plugins.type.BuiltInNodeTypes;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
 import org.apache.jackrabbit.oak.query.SessionQueryEngineImpl;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -78,7 +78,7 @@ class ContentSessionImpl implements ContentSession {
         synchronized (this) {
             if (!initialised) {
                 initialised = true;
-                ReadWriteNodeTypeManager.registerBuiltInNodeTypes(getLatestRoot());
+                BuiltInNodeTypes.register(getLatestRoot());
             }
         }
 

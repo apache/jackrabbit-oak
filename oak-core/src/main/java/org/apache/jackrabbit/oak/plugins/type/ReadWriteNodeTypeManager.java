@@ -16,9 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.type;
 
-import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.security.PrivilegedAction;
 import java.util.List;
 import java.util.Map;
 
@@ -36,7 +34,6 @@ import javax.jcr.nodetype.NodeTypeIterator;
 import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.version.OnParentVersionAction;
-import javax.security.auth.Subject;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -47,7 +44,6 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
-import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_AUTOCREATED;
@@ -135,56 +131,6 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
      * @throws RepositoryException if the session could not be refreshed
      */
     protected void refresh() throws RepositoryException {
-    }
-
-    /**
-     * Registers built in node types using the given {@link Root}.
-     *
-     * @param root the {@link Root} instance.
-     */
-    public static void registerBuiltInNodeTypes(final Root root) {
-        ReadWriteNodeTypeManager ntMgr = new ReadWriteNodeTypeManager() {
-            @Override
-            protected Tree getTypes() {
-                return root.getTree(NODE_TYPES_PATH);
-            }
-
-            @Nonnull
-            @Override
-            protected Root getWriteRoot() {
-                return root;
-            }
-        };
-        ntMgr.registerBuiltinNodeTypes();
-    }
-
-    private void registerBuiltinNodeTypes() {
-        // FIXME: migrate custom node types as well.
-        // FIXME: registration of built-in node types should be moved to repo-setup
-        //        as the jcr:nodetypes tree is protected and the editing session may
-        //        not have sufficient permission to register node types or may
-        //        even have limited read-permission on the jcr:nodetypes path.
-        if (!nodeTypesInContent()) {
-            Subject admin = new Subject();
-            admin.getPrincipals().add(AdminPrincipal.INSTANCE);
-            Subject.doAs(admin, new PrivilegedAction<Void>() {
-                @Override
-                public Void run() {
-                    try {
-                        InputStream stream = ReadWriteNodeTypeManager.class.getResourceAsStream("builtin_nodetypes.cnd");
-                        try {
-                            registerNodeTypes(new InputStreamReader(stream, "UTF-8"));
-                        } finally {
-                            stream.close();
-                        }
-                    } catch (Exception e) {
-                        throw new IllegalStateException(
-                                "Unable to load built-in node types", e);
-                    }
-                    return null;
-                }
-            });
-        }
     }
 
     /**
@@ -387,11 +333,6 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
             types = system.addChild(JCR_NODE_TYPES);
         }
         return types;
-    }
-
-    private boolean nodeTypesInContent() {
-        Tree types = getTypes();
-        return types != null && types.getChildrenCount() > 0;
     }
 
     @Override
