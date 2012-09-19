@@ -151,9 +151,6 @@ public class NamePathMapperImpl implements NamePathMapper {
     }
 
     private String getOakPath(String jcrPath, final boolean keepIndex) {
-        final List<String> elements = new ArrayList<String>();
-        final StringBuilder parseErrors = new StringBuilder();
-
         if ("/".equals(jcrPath)) {
             // avoid the need to special case the root path later on
             return "/";
@@ -180,6 +177,7 @@ public class NamePathMapperImpl implements NamePathMapper {
         boolean hasIndexBrackets = false;
         boolean hasColon = false;
         boolean hasNameStartingWithDot = false;
+        boolean hasTrailingSlash = false;
 
         char prev = 0;
         for (int i = 0; i < length; i++) {
@@ -193,6 +191,8 @@ public class NamePathMapperImpl implements NamePathMapper {
                 hasColon = true;
             } else if (c == '.' && (prev == 0 || prev == '/')) {
                 hasNameStartingWithDot = true;
+            } else if(c == '/' && i == (length - 1)){
+                hasTrailingSlash = true;
             }
 
             prev = c;
@@ -202,6 +202,9 @@ public class NamePathMapperImpl implements NamePathMapper {
         if (!hasNameStartingWithDot && !hasClarkBrackets && !hasIndexBrackets) {
             if (!hasColon || !hasSessionLocalMappings()) {
                 if (JcrPathParser.validate(jcrPath)) {
+                    if(hasTrailingSlash){
+                        return jcrPath.substring(0, length - 1);
+                    }
                     return jcrPath;
                 }
                 else {
@@ -210,6 +213,9 @@ public class NamePathMapperImpl implements NamePathMapper {
                 }
             }
         }
+
+        final List<String> elements = new ArrayList<String>();
+        final StringBuilder parseErrors = new StringBuilder();
 
         JcrPathParser.Listener listener = new JcrPathParser.Listener() {
 
