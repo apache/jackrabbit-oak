@@ -575,7 +575,8 @@ public class XPathToSQL2Converter {
 
     private Expression parseFunction(String functionName) throws ParseException {
         if ("jcr:like".equals(functionName)) {
-            Condition c = new Condition(parseExpression(), "like", null, Expression.PRECEDENCE_CONDITION);
+            Condition c = new Condition(parseExpression(), 
+                    "like", null, Expression.PRECEDENCE_CONDITION);
             read(",");
             c.right = parseExpression();
             read(")");
@@ -602,6 +603,11 @@ public class XPathToSQL2Converter {
             f.params.add(parseExpression());
             read(")");
             return f;
+        } else if ("fn:upper-case".equals(functionName)) {
+            Function f = new Function("upper");
+            f.params.add(parseExpression());
+            read(")");
+            return f;
         } else if ("fn:name".equals(functionName)) {
             Function f = new Function("name");
             if (!readIf(")")) {
@@ -611,19 +617,19 @@ public class XPathToSQL2Converter {
             }
             f.params.add(new SelectorExpr(currentSelector));
             return f;
-        } else if ("fn:upper-case".equals(functionName)) {
-            Function f = new Function("upper");
-            f.params.add(parseExpression());
-            read(")");
-            return f;
         } else if ("jcr:deref".equals(functionName)) {
-             // TODO support jcr:deref
+             // TODO maybe support jcr:deref
              throw getSyntaxError("jcr:deref is not supported");
         } else if ("rep:similar".equals(functionName)) {
-             // TODO support rep:similar
+             // TODO maybe support rep:similar
              throw getSyntaxError("rep:similar is not supported");
+        } else if ("rep:spellcheck".equals(functionName)) {
+            // TODO maybe support rep:spellcheck as in
+            // /jcr:root[rep:spellcheck('${query}')]/(rep:spellcheck())            
+            throw getSyntaxError("rep:spellcheck is not supported");
         } else {
-            throw getSyntaxError("jcr:like | jcr:contains | jcr:score | jcr:deref | fn:lower-case | fn:upper-case");
+            throw getSyntaxError("jcr:like | jcr:contains | jcr:score | xs:dateTime | " + 
+                    "fn:lower-case | fn:upper-case | fn:name");
         }
     }
 
