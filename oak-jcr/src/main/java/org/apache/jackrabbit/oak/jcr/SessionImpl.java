@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import java.security.AccessControlException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Locale;
@@ -433,11 +434,11 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
 
     //--------------------------------------------------< Namespaces >---
 
-    // The code below is copied from JCR Commons AbstractSession, but provides information
-    // the "hasRemappings" information
+    // The code below was initially copied from JCR Commons AbstractSession, but
+    // provides information the "hasRemappings" information
 
     /**
-     * Local namespace mappings. Prefixes as keys and namespace URIs as values.
+     * Local namespace remappings. Prefixes as keys and namespace URIs as values.
      * <p>
      * This map is only accessed from synchronized methods (see
      * <a href="https://issues.apache.org/jira/browse/JCR-1793">JCR-1793</a>).
@@ -485,13 +486,17 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
 
     @Override
     public String[] getNamespacePrefixes() throws RepositoryException {
-        for (String uri : getWorkspace().getNamespaceRegistry().getURIs()) {
-            getNamespacePrefix(uri);
-        }
-
+        Set<String> uris = new HashSet<String>();
+        uris.addAll(Arrays.asList(getWorkspace().getNamespaceRegistry().getURIs()));
         synchronized (namespaces) {
-            return namespaces.keySet().toArray(new String[namespaces.size()]);
+            // Add namespace uris only visible to session
+            uris.addAll(namespaces.values());
         }
+        Set<String> prefixes = new HashSet<String>();
+        for (String uri : uris) {
+            prefixes.add(getNamespacePrefix(uri));
+        }
+        return prefixes.toArray(new String[prefixes.size()]);
     }
 
     @Override
@@ -507,9 +512,6 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
                     // so there are no mappings for this prefix
                     throw new NamespaceException("Namespace not found: " + prefix);
                 }
-                // Add the mapping to the local set, we already know that
-                // the prefix is not taken
-                namespaces.put(prefix, uri);
             }
 
             return uri;
@@ -534,7 +536,9 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
                 prefix = base + i;
             }
 
-            namespaces.put(prefix, uri);
+            if (!base.equals(prefix)) {
+                namespaces.put(prefix, uri);
+            }
             return prefix;
         }
     }
