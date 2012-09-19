@@ -67,8 +67,7 @@ public class PropertyValueImpl extends DynamicOperandImpl {
 
     @Override
     public String toString() {
-        // TODO quote property names?
-        String s = getSelectorName() + '.' + propertyName;
+        String s = quote(selectorName) + '.' + quote(propertyName);
         if (propertyType != PropertyType.UNDEFINED) {
             s = "property(" + s + ", '" +
                     PropertyType.nameFromValue(propertyType).toLowerCase(Locale.ENGLISH) +
@@ -152,7 +151,7 @@ public class PropertyValueImpl extends DynamicOperandImpl {
     }
 
     @Override
-    public void apply(FilterImpl f, Operator operator, CoreValue v) {
+    public void restrict(FilterImpl f, Operator operator, CoreValue v) {
         if (f.getSelector() == selector) {
             if (operator == Operator.NOT_EQUAL && v != null) {
                 // not supported

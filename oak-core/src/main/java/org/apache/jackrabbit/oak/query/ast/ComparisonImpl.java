@@ -62,7 +62,8 @@ public class ComparisonImpl extends ConstraintImpl {
         // "operand2 always evaluates to a scalar value"
         CoreValue v2 = operand2.currentValue();
         if (v2 == null) {
-            // TODO comparison: what about (null <> x) ?
+            // if the property doesn't exist, the result is always false
+            // even for "null <> 'x'" (same as in SQL) 
             return false;
         }
         boolean isArray = p1.isArray();
@@ -138,14 +139,14 @@ public class ComparisonImpl extends ConstraintImpl {
                 } else if (operand1.supportsRangeConditions()) {
                     CoreValueFactory vf = query.getValueFactory();
                     if (lowerBound != null) {
-                        operand1.apply(f, Operator.GREATER_OR_EQUAL, vf.createValue(lowerBound));
+                        operand1.restrict(f, Operator.GREATER_OR_EQUAL, vf.createValue(lowerBound));
                     }
                     if (upperBound != null) {
-                        operand1.apply(f, Operator.LESS_OR_EQUAL, vf.createValue(upperBound));
+                        operand1.restrict(f, Operator.LESS_OR_EQUAL, vf.createValue(upperBound));
                     }
                 }
             } else {
-                operand1.apply(f, operator, v);
+                operand1.restrict(f, operator, v);
             }
         }
     }

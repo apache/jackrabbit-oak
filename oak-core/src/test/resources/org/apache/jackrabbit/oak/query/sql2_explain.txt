@@ -28,10 +28,10 @@
 commit / + "test": { "a": { "id": "ref:123" }, "b": { "id" : "str:123" }}
 
 explain select * from [nt:base] where property([*], 'REFERENCE') = CAST('123' AS REFERENCE)
-[nt:base] as nt:base /* traverse "//*" where property(nt:base.*, 'reference') = cast('123' as reference) */
+[nt:base] as [nt:base] /* traverse "//*" where property([nt:base].[*], 'reference') = cast('123' as reference) */
 
 explain select * from [nt:base] where property(id, 'REFERENCE') = CAST('123' AS REFERENCE)
-[nt:base] as nt:base /* traverse "//*" where property(nt:base.id, 'reference') = cast('123' as reference) */
+[nt:base] as [nt:base] /* traverse "//*" where property([nt:base].[id], 'reference') = cast('123' as reference) */
 
 select * from [nt:base] where property([*], 'REFERENCE') = CAST('123' AS REFERENCE)
 /test/a
@@ -41,10 +41,10 @@ commit /oak-index + "indexes": { "type": "property" }
 commit /oak-index/indexes + "prefix@ref:": {}
 
 explain select * from [nt:base] where property([*], 'REFERENCE') = CAST('123' AS REFERENCE)
-[nt:base] as nt:base /* prefixIndex "ref:123" where property(nt:base.*, 'reference') = cast('123' as reference) */
+[nt:base] as [nt:base] /* prefixIndex "ref:123" where property([nt:base].[*], 'reference') = cast('123' as reference) */
 
 explain select * from [nt:base] where property(id, 'REFERENCE') = CAST('123' AS REFERENCE)
-[nt:base] as nt:base /* prefixIndex "ref:123" where property(nt:base.id, 'reference') = cast('123' as reference) */
+[nt:base] as [nt:base] /* prefixIndex "ref:123" where property([nt:base].[id], 'reference') = cast('123' as reference) */
 
 select * from [nt:base] where property([*], 'REFERENCE') = CAST('123' AS REFERENCE)
 /test/a
@@ -70,7 +70,7 @@ select * from [nt:base] where id is not null and not (id = '100' and id <> '20')
 /test/b
 
 explain select * from [nt:base] where id = '10'
-[nt:base] as nt:base /* propertyIndex "id [10..10]" where nt:base.id = cast('10' as string) */
+[nt:base] as [nt:base] /* propertyIndex "id [10..10]" where [nt:base].[id] = cast('10' as string) */
 
 select * from [nt:base] where id = '10'
 /test/a
@@ -79,7 +79,7 @@ select [jcr:path], * from [nt:base] where id = '10'
 /test/a, null
 
 explain select * from [nt:base] where id > '10'
-[nt:base] as nt:base /* traverse "//*" where nt:base.id > cast('10' as string) */
+[nt:base] as [nt:base] /* traverse "//*" where [nt:base].[id] > cast('10' as string) */
 
 commit / - "test"
 commit /oak-index/indexes - "property@id,unique"
@@ -89,10 +89,10 @@ commit /oak-index/indexes - "property@id,unique"
 commit / + "test": { "jcr:resource": {}, "resource": { "x" : {}}}
 
 explain select * from [nt:base] as b where ischildnode(b, '/test')
-[nt:base] as b /* traverse "/test/*" where ischildnode(b, [/test]) */
+[nt:base] as [b] /* traverse "/test/*" where ischildnode([b], [/test]) */
 
 explain select * from [nt:base] as b where isdescendantnode(b, '/test')
-[nt:base] as b /* traverse "/test//*" where isdescendantnode(b, [/test]) */
+[nt:base] as [b] /* traverse "/test//*" where isdescendantnode([b], [/test]) */
 
 commit / - "test"
 
@@ -100,7 +100,7 @@ commit / + "parents": { "p0": {"id": "0"}, "p1": {"id": "1"}, "p2": {"id": "2"}}
 commit / + "children": { "c1": {"p": "1"}, "c2": {"p": "1"}, "c3": {"p": "2"}, "c4": {"p": "3"}}
 
 explain select * from [nt:base] as p inner join [nt:base] as c on p.id = c.p
-[nt:base] as p /* traverse "//*" where p.id is not null */ inner join [nt:base] as c /* traverse "//*" where c.p is not null */ on p.id = c.p
+[nt:base] as [p] /* traverse "//*" where [p].[id] is not null */ inner join [nt:base] as [c] /* traverse "//*" where [c].[p] is not null */ on [p].[id] = [c].[p]
 
 commit / - "parents"
 commit / - "children"

@@ -38,10 +38,6 @@ public class NodeNameImpl extends DynamicOperandImpl {
         this.selectorName = selectorName;
     }
 
-    public String getSelectorName() {
-        return selectorName;
-    }
-
     @Override
     boolean accept(AstVisitor v) {
         return v.visit(this);
@@ -49,7 +45,7 @@ public class NodeNameImpl extends DynamicOperandImpl {
 
     @Override
     public String toString() {
-        return "name(" + getSelectorName() + ')';
+        return "name(" + quote(selectorName) + ')';
     }
 
     public void bindSelector(SourceImpl source) {
@@ -71,7 +67,7 @@ public class NodeNameImpl extends DynamicOperandImpl {
     }
 
     @Override
-    public void apply(FilterImpl f, Operator operator, CoreValue v) {
+    public void restrict(FilterImpl f, Operator operator, CoreValue v) {
         if (!isName(v)) {
             throw new IllegalArgumentException("Invalid name value: " + v.toString());
         }

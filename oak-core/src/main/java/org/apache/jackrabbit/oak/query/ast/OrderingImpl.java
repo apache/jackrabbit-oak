@@ -36,10 +36,6 @@ public class OrderingImpl extends AstElement {
         return operand;
     }
 
-    public String getOrder() {
-        return order.getName();
-    }
-
     @Override
     boolean accept(AstVisitor v) {
         return v.visit(this);

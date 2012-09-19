@@ -35,14 +35,6 @@ public class SameNodeImpl extends ConstraintImpl {
         this.path = path;
     }
 
-    public String getSelectorName() {
-        return selectorName;
-    }
-
-    public String getPath() {
-        return path;
-    }
-
     @Override
     public boolean evaluate() {
         String p = getAbsolutePath(path);
@@ -57,7 +49,8 @@ public class SameNodeImpl extends ConstraintImpl {
 
     @Override
     public String toString() {
-        return "issamenode(" + getSelectorName() + ", " + quotePath(path) + ')';
+        return "issamenode(" +  quote(selectorName) + 
+                ", " + quote(path) + ')';
     }
 
     public void bindSelector(SourceImpl source) {

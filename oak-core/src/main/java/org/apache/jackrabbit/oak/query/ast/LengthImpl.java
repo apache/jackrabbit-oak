@@ -46,7 +46,7 @@ public class LengthImpl extends DynamicOperandImpl {
 
     @Override
     public String toString() {
-        return "length(" + getPropertyValue() + ')';
+        return "length(" + propertyValue + ')';
     }
 
     @Override
@@ -65,7 +65,7 @@ public class LengthImpl extends DynamicOperandImpl {
     }
 
     @Override
-    public void apply(FilterImpl f, Operator operator, CoreValue v) {
+    public void restrict(FilterImpl f, Operator operator, CoreValue v) {
         switch (v.getType()) {
         case PropertyType.LONG:
         case PropertyType.DECIMAL:
@@ -83,7 +83,8 @@ public class LengthImpl extends DynamicOperandImpl {
                             + PropertyType.nameFromValue(v.getType()) +
                             " and value " + v.toString());
         }
-        // TODO LENGTH(x) conditions: can use IS NOT NULL as a condition?
+        // LENGTH(x) implies x is not null
+        propertyValue.restrict(f, Operator.NOT_EQUAL, null);
     }
 
     @Override

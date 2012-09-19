@@ -37,14 +37,6 @@ public class ChildNodeJoinConditionImpl extends JoinConditionImpl {
         this.parentSelectorName = parentSelectorName;
     }
 
-    public String getChildSelectorName() {
-        return childSelectorName;
-    }
-
-    public String getParentSelectorName() {
-        return parentSelectorName;
-    }
-
     @Override
     boolean accept(AstVisitor v) {
         return v.visit(this);
@@ -52,9 +44,8 @@ public class ChildNodeJoinConditionImpl extends JoinConditionImpl {
 
     @Override
     public String toString() {
-        String child = getChildSelectorName();
-        String parent = getParentSelectorName();
-        return "ischildnode(" + child + ", " + parent + ')';
+        return "ischildnode(" + quote(childSelectorName) + 
+                ", " + quote(parentSelectorName) + ')';
     }
 
     public void bindSelector(SourceImpl source) {

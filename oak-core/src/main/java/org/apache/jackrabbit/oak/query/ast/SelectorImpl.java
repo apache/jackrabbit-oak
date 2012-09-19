@@ -36,9 +36,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  */
 public class SelectorImpl extends SourceImpl {
 
-    // TODO jcr:path isn't an official feature, support it?
-    public static final String PATH = "jcr:path";
-
     private static final String JCR_PRIMARY_TYPE = "jcr:primaryType";
 
     private static final String TYPE_BASE = "nt:base";
@@ -64,10 +61,6 @@ public class SelectorImpl extends SourceImpl {
         this.selectorName = selectorName;
     }
 
-    public String getNodeTypeName() {
-        return nodeTypeName;
-    }
-
     public String getSelectorName() {
         return selectorName;
     }
@@ -79,7 +72,7 @@ public class SelectorImpl extends SourceImpl {
 
     @Override
     public String toString() {
-        return "[" + nodeTypeName + "] as " + selectorName;
+        return quote(nodeTypeName) + " as " + quote(selectorName);
     }
 
 
@@ -180,13 +173,17 @@ public class SelectorImpl extends SourceImpl {
         }
     }
 
-    @Override
+    /**
+     * Get the current absolute path (including workspace name)
+     *
+     * @return the path
+     */
     public String currentPath() {
         return cursor == null ? null : cursor.currentRow().getPath();
     }
 
     public PropertyState currentProperty(String propertyName) {
-        if (propertyName.equals(PATH)) {
+        if (propertyName.equals(Query.JCR_PATH)) {
             String p = currentPath();
             if (p == null) {
                 return null;
@@ -197,7 +194,7 @@ public class SelectorImpl extends SourceImpl {
                 return null;
             }
             CoreValue v = query.getValueFactory().createValue(local);
-            return new SinglePropertyState(PATH, v);
+            return new SinglePropertyState(Query.JCR_PATH, v);
         }
         if (cursor == null) {
             return null;

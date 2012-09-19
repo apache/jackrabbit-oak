@@ -39,18 +39,6 @@ public class SameNodeJoinConditionImpl extends JoinConditionImpl {
         this.selector2Path = selector2Path;
     }
 
-    public String getSelector1Name() {
-        return selector1Name;
-    }
-
-    public String getSelector2Name() {
-        return selector2Name;
-    }
-
-    public String getSelector2Path() {
-        return selector2Path;
-    }
-
     @Override
     boolean accept(AstVisitor v) {
         return v.visit(this);
@@ -60,12 +48,12 @@ public class SameNodeJoinConditionImpl extends JoinConditionImpl {
     public String toString() {
         StringBuilder builder = new StringBuilder();
         builder.append("issamenode(");
-        builder.append(getSelector1Name());
+        builder.append(quote(selector1Name));
         builder.append(", ");
-        builder.append(getSelector2Name());
+        builder.append(quote(selector2Name));
         if (selector2Path != null) {
             builder.append(", ");
-            builder.append(quotePath(selector2Path));
+            builder.append(quote(selector2Path));
         }
         builder.append(')');
         return builder.toString();
