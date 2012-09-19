@@ -47,14 +47,6 @@ public class FullTextSearchImpl extends ConstraintImpl {
         return fullTextSearchExpression;
     }
 
-    public String getPropertyName() {
-        return propertyName;
-    }
-
-    public String getSelectorName() {
-        return selectorName;
-    }
-
     @Override
     boolean accept(AstVisitor v) {
         return v.visit(this);
@@ -64,10 +56,10 @@ public class FullTextSearchImpl extends ConstraintImpl {
     public String toString() {
         StringBuilder builder = new StringBuilder();
         builder.append("contains(");
-        builder.append(getSelectorName());
+        builder.append(quote(selectorName));
         if (propertyName != null) {
             builder.append('.');
-            builder.append(propertyName);
+            builder.append(quote(propertyName));
             builder.append(", ");
         } else {
             builder.append(".*, ");

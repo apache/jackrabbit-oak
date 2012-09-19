@@ -27,7 +27,7 @@ public abstract class DynamicOperandImpl extends AstElement {
 
     public abstract PropertyState currentProperty();
 
-    public abstract void apply(FilterImpl f, Operator operator, CoreValue v);
+    public abstract void restrict(FilterImpl f, Operator operator, CoreValue v);
 
     /**
      * Check whether the condition can be applied to a selector (to restrict the

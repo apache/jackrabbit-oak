@@ -62,9 +62,9 @@ public class LowerCaseImpl extends DynamicOperandImpl {
     }
 
     @Override
-    public void apply(FilterImpl f, Operator operator, CoreValue v) {
-        // ignore
-        // TODO UPPER(x) conditions: can use IS NOT NULL?
+    public void restrict(FilterImpl f, Operator operator, CoreValue v) {
+        // LOWER(x) implies x is not null
+        operand.restrict(f, Operator.NOT_EQUAL, null);        
     }
 
     @Override

@@ -154,11 +154,4 @@ public abstract class SourceImpl extends AstElement {
      */
     public abstract boolean next();
 
-    /**
-     * Get the current absolute path (including workspace name)
-     *
-     * @return the path
-     */
-    public abstract String currentPath();
-
 }

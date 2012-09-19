@@ -21,7 +21,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+
 import javax.jcr.PropertyType;
+
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValue;
@@ -65,6 +67,17 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * re-executed, a new instance is created.
  */
 public class Query {
+    
+    /**
+     * The "jcr:path" pseudo-property.
+     */
+    // TODO jcr:path isn't an official feature, support it?
+    public static final String JCR_PATH = "jcr:path";
+
+    /**
+     * The "jcr:score" pseudo-property.
+     */
+    public static final String JCR_SCORE = "jcr:score";
 
     final SourceImpl source;
     final ConstraintImpl constraint;

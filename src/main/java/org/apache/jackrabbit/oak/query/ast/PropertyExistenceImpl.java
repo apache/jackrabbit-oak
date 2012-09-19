@@ -36,14 +36,6 @@ public class PropertyExistenceImpl extends ConstraintImpl {
         this.propertyName = propertyName;
     }
 
-    public String getPropertyName() {
-        return propertyName;
-    }
-
-    public String getSelectorName() {
-        return selectorName;
-    }
-
     @Override
     public boolean evaluate() {
         PropertyState p = selector.currentProperty(propertyName);
@@ -57,8 +49,7 @@ public class PropertyExistenceImpl extends ConstraintImpl {
 
     @Override
     public String toString() {
-        // TODO quote property names?
-        return getSelectorName() + '.' + propertyName + " is not null";
+        return quote(selectorName) + '.' + quote(propertyName) + " is not null";
     }
 
     public void bindSelector(SourceImpl source) {

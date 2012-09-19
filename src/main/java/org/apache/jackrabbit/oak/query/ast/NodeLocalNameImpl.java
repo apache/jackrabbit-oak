@@ -37,10 +37,6 @@ public class NodeLocalNameImpl extends DynamicOperandImpl {
         this.selectorName = selectorName;
     }
 
-    public String getSelectorName() {
-        return selectorName;
-    }
-
     @Override
     boolean accept(AstVisitor v) {
         return v.visit(this);
@@ -48,7 +44,7 @@ public class NodeLocalNameImpl extends DynamicOperandImpl {
 
     @Override
     public String toString() {
-        return "localname(" + getSelectorName() + ')';
+        return "localname(" + quote(selectorName) + ')';
     }
 
     public void bindSelector(SourceImpl source) {
@@ -68,7 +64,7 @@ public class NodeLocalNameImpl extends DynamicOperandImpl {
     }
 
     @Override
-    public void apply(FilterImpl f, Operator operator, CoreValue v) {
+    public void restrict(FilterImpl f, Operator operator, CoreValue v) {
         // TODO support LOCALNAME index conditions
     }
 
