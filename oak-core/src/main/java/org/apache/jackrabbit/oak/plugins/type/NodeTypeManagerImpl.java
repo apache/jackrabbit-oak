@@ -22,10 +22,10 @@ import java.security.PrivilegedAction;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
-import javax.jcr.ValueFactory;
 import javax.jcr.nodetype.ItemDefinition;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.nodetype.NodeDefinition;
@@ -44,14 +44,9 @@ import org.apache.jackrabbit.commons.cnd.CompactNodeTypeDefReader;
 import org.apache.jackrabbit.commons.cnd.ParseException;
 import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
-import org.apache.jackrabbit.oak.namepath.NameMapper;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 
@@ -88,22 +83,68 @@ import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.JCR_IS_QU
 import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.JCR_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.NODE_TYPES_PATH;
 
-public class NodeTypeManagerImpl extends AbstractNodeTypeManager {
+/**
+ * <code>NodeTypeManagerImpl</code> extends the {@link AbstractNodeTypeManager}
+ * and add support for operations that modify node types:
+ * <ul>
+ *     <li>{@link #registerNodeType(NodeTypeDefinition, boolean)}</li>
+ *     <li>{@link #registerNodeTypes(NodeTypeDefinition[], boolean)}</li>
+ *     <li>{@link #unregisterNodeType(String)}</li>
+ *     <li>{@link #unregisterNodeTypes(String[])}</li>
+ * </ul>
+ * Calling any of the above methods will result in a {@link #refresh()} callback
+ * to e.g. inform an associated session that it should refresh to make the
+ * changes visible.
+ * </p>
+ * Subclass responsibility is to provide an implementation of
+ * {@link #getTypes()} for read only access to the tree where node types are
+ * stored in content and {@link #getWriteRoot()} for write access to the
+ * repository in order to modify node types stored in content. A subclass may
+ * also want to override the default implementation of
+ * {@link AbstractNodeTypeManager} for the following methods:
+ * <ul>
+ *     <li>{@link #getValueFactory()}</li>
+ *     <li>{@link #getCoreValueFactory()}</li>
+ *     <li>{@link #getNameMapper()}</li>
+ * </ul>
+ */
+public abstract class NodeTypeManagerImpl extends AbstractNodeTypeManager {
 
-    private final ContentSession session;
-
-    private final NamePathMapper mapper;
-
-    private final ValueFactory factory;
-
-    public NodeTypeManagerImpl(ContentSession session, NamePathMapper mapper, ValueFactory factory) {
-        this.session = session;
-        this.mapper = mapper;
-        this.factory = factory;
+    /**
+     * Called by the methods {@link #registerNodeType(NodeTypeDefinition,boolean)},
+     * {@link #registerNodeTypes(NodeTypeDefinition[], boolean)},
+     * {@link #unregisterNodeType(String)} and {@link #unregisterNodeTypes(String[])}
+     * to acquire a fresh {@link Root} instance that can be used to persist the
+     * requested node type changes (and nothing else).
+     * <p/>
+     * This default implementation throws an {@link UnsupportedOperationException}.
+     *
+     * @return fresh {@link Root} instance.
+     */
+    @Nonnull
+    protected Root getWriteRoot() {
+        throw new UnsupportedOperationException();
     }
 
-    public static void registerBuiltInNodeTypes(ContentSession session) {
-        new NodeTypeManagerImpl(session, NamePathMapperImpl.DEFAULT, null).registerBuiltinNodeTypes();
+    /**
+     * Registers built in node types using the given {@link Root}.
+     *
+     * @param root the {@link Root} instance.
+     */
+    public static void registerBuiltInNodeTypes(final Root root) {
+        NodeTypeManagerImpl ntMgr = new NodeTypeManagerImpl() {
+            @Override
+            protected Tree getTypes() {
+                return root.getTree(NODE_TYPES_PATH);
+            }
+
+            @Nonnull
+            @Override
+            protected Root getWriteRoot() {
+                return root;
+            }
+        };
+        ntMgr.registerBuiltinNodeTypes();
     }
 
     private void registerBuiltinNodeTypes() {
@@ -144,7 +185,7 @@ public class NodeTypeManagerImpl extends AbstractNodeTypeManager {
     public void registerNodeTypes(InputStreamReader cnd) throws ParseException, RepositoryException {
         CompactNodeTypeDefReader<NodeTypeTemplate, Map<String, String>> reader =
                 new CompactNodeTypeDefReader<NodeTypeTemplate, Map<String, String>>(
-                        cnd, null, new DefBuilderFactory(mapper));
+                        cnd, null, new DefBuilderFactory(getNameMapper()));
         Map<String, NodeTypeTemplate> templates = Maps.newHashMap();
         for (NodeTypeTemplate template : reader.getNodeTypeDefinitions()) {
             templates.put(template.getName(), template);
@@ -181,36 +222,17 @@ public class NodeTypeManagerImpl extends AbstractNodeTypeManager {
         registerNodeTypes(templates.values().toArray(new NodeTypeTemplate[templates.size()]), true);
     }
 
-    @Override
-    protected Tree getTypes() {
-        return session.getLatestRoot().getTree(NODE_TYPES_PATH);
-    }
-
-    @Override
-    protected ValueFactory getValueFactory() {
-        return factory;
-    }
-
-    @Override
-    protected CoreValueFactory getCoreValueFactory() {
-        return session.getCoreValueFactory();
-    }
-
-    @Override
-    protected NameMapper getNameMapper() {
-        return mapper;
-    }
-
     //----------------------------------------------------< NodeTypeManager >---
 
     @Override
     public NodeType registerNodeType(NodeTypeDefinition ntd, boolean allowUpdate) throws RepositoryException {
         // TODO proper node type registration... (OAK-66)
-        Root root = session.getLatestRoot();
+        Root root = getWriteRoot();
         Tree types = getOrCreateNodeTypes(root);
         try {
             NodeType type = internalRegister(types, ntd, allowUpdate);
             root.commit(DefaultConflictHandler.OURS);
+            refresh();
             return type;
         } catch (CommitFailedException e) {
             throw new RepositoryException(e);
@@ -221,7 +243,7 @@ public class NodeTypeManagerImpl extends AbstractNodeTypeManager {
     public final NodeTypeIterator registerNodeTypes(NodeTypeDefinition[] ntds, boolean allowUpdate)
             throws RepositoryException {
         // TODO handle inter-type dependencies (OAK-66)
-        Root root = session.getLatestRoot();
+        Root root = getWriteRoot();
         Tree types = getOrCreateNodeTypes(root);
         try {
             List<NodeType> list = Lists.newArrayList();
@@ -229,6 +251,7 @@ public class NodeTypeManagerImpl extends AbstractNodeTypeManager {
                 list.add(internalRegister(types, ntd, allowUpdate));
             }
             root.commit(DefaultConflictHandler.OURS);
+            refresh();
             return new NodeTypeIteratorAdapter(list);
         } catch (CommitFailedException e) {
             throw new RepositoryException(e);
@@ -252,7 +275,7 @@ public class NodeTypeManagerImpl extends AbstractNodeTypeManager {
         }
         type = types.addChild(oakName);
 
-        NodeUtil node = new NodeUtil(type, getCoreValueFactory(), mapper);
+        NodeUtil node = new NodeUtil(type, getCoreValueFactory(), getNameMapper());
         node.setName(JCR_PRIMARYTYPE, NT_NODETYPE);
         node.setName(JCR_NODETYPENAME, jcrName);
         node.setNames(JCR_SUPERTYPES, ntd.getDeclaredSupertypeNames());
@@ -288,7 +311,7 @@ public class NodeTypeManagerImpl extends AbstractNodeTypeManager {
             }
         }
 
-        return new NodeTypeImpl(this, this.factory, node);
+        return new NodeTypeImpl(this, getValueFactory(), node);
     }
 
     private static void internalRegisterItemDefinition(
@@ -356,15 +379,14 @@ public class NodeTypeManagerImpl extends AbstractNodeTypeManager {
     }
 
     private boolean nodeTypesInContent() {
-        Root currentRoot = session.getLatestRoot();
-        Tree types = currentRoot.getTree(NODE_TYPES_PATH);
+        Tree types = getTypes();
         return types != null && types.getChildrenCount() > 0;
     }
 
     @Override
     public void unregisterNodeType(String name) throws RepositoryException {
         Tree type = null;
-        Root root = session.getLatestRoot();
+        Root root = getWriteRoot();
         Tree types = root.getTree(NODE_TYPES_PATH);
         if (types != null) {
             type = types.getChild(getOakName(name));
@@ -384,7 +406,7 @@ public class NodeTypeManagerImpl extends AbstractNodeTypeManager {
 
     @Override
     public void unregisterNodeTypes(String[] names) throws RepositoryException {
-        Root root = session.getLatestRoot();
+        Root root = getWriteRoot();
         Tree types = root.getTree(NODE_TYPES_PATH);
         if (types == null) {
             throw new NoSuchNodeTypeException("Node types can not be unregistered.");

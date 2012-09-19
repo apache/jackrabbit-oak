@@ -19,10 +19,12 @@ package org.apache.jackrabbit.oak.jcr;
 import java.io.IOException;
 import java.io.InputStream;
 
+import javax.annotation.Nonnull;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
+import javax.jcr.ValueFactory;
 import javax.jcr.lock.LockManager;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.observation.ObservationManager;
@@ -32,6 +34,7 @@ import javax.jcr.version.VersionManager;
 
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
+import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -39,12 +42,15 @@ import org.apache.jackrabbit.oak.jcr.lock.LockManagerImpl;
 import org.apache.jackrabbit.oak.jcr.query.QueryManagerImpl;
 import org.apache.jackrabbit.oak.jcr.security.privilege.PrivilegeManagerImpl;
 import org.apache.jackrabbit.oak.jcr.version.VersionManagerImpl;
+import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceRegistryImpl;
 import org.apache.jackrabbit.oak.plugins.type.NodeTypeManagerImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.InputSource;
+
+import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.NODE_TYPES_PATH;
 
 /**
  * {@code WorkspaceImpl}...
@@ -165,13 +171,38 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
 
     @Override
     public NodeTypeManager getNodeTypeManager() {
-        return new NodeTypeManagerImpl(
-                sessionDelegate.getContentSession(),
-                sessionDelegate.getNamePathMapper(),
-                sessionDelegate.getValueFactory()) {
+        return new NodeTypeManagerImpl() {
             @Override
             protected void refresh() throws RepositoryException {
                 getSession().refresh(true);
+            }
+
+            @Override
+            protected Tree getTypes() {
+                return sessionDelegate.getRoot().getTree(NODE_TYPES_PATH);
+            }
+
+            @Nonnull
+            @Override
+            protected Root getWriteRoot() {
+                return sessionDelegate.getContentSession().getLatestRoot();
+            }
+
+            @Nonnull
+            @Override
+            protected CoreValueFactory getCoreValueFactory() {
+                return sessionDelegate.getContentSession().getCoreValueFactory();
+            }
+
+            @Override
+            protected ValueFactory getValueFactory() {
+                return sessionDelegate.getValueFactory();
+            }
+
+            @Nonnull
+            @Override
+            protected NameMapper getNameMapper() {
+                return sessionDelegate.getNamePathMapper();
             }
         };
     }
