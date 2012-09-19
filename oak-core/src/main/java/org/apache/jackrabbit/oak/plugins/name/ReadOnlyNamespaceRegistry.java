@@ -23,19 +23,18 @@ import javax.annotation.Nonnull;
 import javax.jcr.NamespaceException;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.RepositoryException;
+import javax.jcr.UnsupportedRepositoryOperationException;
 
-import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.StringValue;
-import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
 
 /**
- * Implementation of {@link NamespaceRegistry}.
+ * Read-only namespace registry. Used mostly internally when access to the
+ * in-content registered namespaces is needed. See the
+ * {@link ReadWriteNamespaceRegistry} subclass for a more complete registry
+ * implementation that supports also namespace modifications and that's thus
+ * better suited for use in in implementing the full JCR API.
  */
-public abstract class NamespaceRegistryImpl
+public abstract class ReadOnlyNamespaceRegistry
         implements NamespaceRegistry, NamespaceConstants {
 
     /**
@@ -45,95 +44,19 @@ public abstract class NamespaceRegistryImpl
      *
      * @return root {@link Tree} for reading the namespace mappings
      */
-    abstract protected Tree getReadTree();
-
-    /**
-     * Called by the {@link #registerNamespace(String, String)} and
-     * {@link #unregisterNamespace(String)} methods to acquire a fresh
-     * {@link Root} instance that can be used to persist the requested
-     * namespace changes (and nothing else).
-     * <p>
-     * The default implementation of this method throws an
-     * {@link UnsupportedOperationException}.
-     *
-     * @return fresh {@link Root} instance
-     */
-    protected Root getWriteRoot() {
-        throw new UnsupportedOperationException();
-    }
-
-    /**
-     * Called by the {@link NamespaceRegistry} implementation methods to
-     * refresh the state of the session associated with this instance.
-     * That way the session is kept in sync with the latest global state
-     * seen by the namespace registry.
-     *
-     * @throws RepositoryException if the session could not be refreshed
-     */
-    protected void refresh() throws RepositoryException {
-    }
+    protected abstract Tree getReadTree();
 
     //--------------------------------------------------< NamespaceRegistry >---
 
     @Override
     public void registerNamespace(String prefix, String uri)
             throws RepositoryException {
-        try {
-            Root root = getWriteRoot();
-            Tree namespaces =
-                    getOrCreate(root, JcrConstants.JCR_SYSTEM, REP_NAMESPACES);
-            // remove existing mapping to given uri
-            for (PropertyState p : namespaces.getProperties()) {
-                if (!p.isArray() && p.getValue().getString().equals(uri)) {
-                    namespaces.removeProperty(p.getName());
-                }
-            }
-            namespaces.setProperty(prefix, new StringValue(uri));
-            root.commit(DefaultConflictHandler.OURS);
-            refresh();
-        } catch (NamespaceValidatorException e) {
-            throw e.getNamespaceException();
-        } catch (CommitFailedException e) {
-            throw new RepositoryException(
-                    "Failed to register namespace mapping from "
-                    + prefix + " to " + uri, e);
-        }
+        throw new UnsupportedRepositoryOperationException();
     }
 
     @Override
     public void unregisterNamespace(String prefix) throws RepositoryException {
-        Root root = getWriteRoot();
-        Tree namespaces = root.getTree(NAMESPACES_PATH);
-        if (namespaces == null || !namespaces.hasProperty(prefix)) {
-            throw new NamespaceException(
-                    "Namespace mapping from " + prefix + " to "
-                    + getURI(prefix) + " can not be unregistered");
-        }
-
-        try {
-            namespaces.removeProperty(prefix);
-            root.commit(DefaultConflictHandler.OURS);
-            refresh();
-        } catch (NamespaceValidatorException e) {
-            throw e.getNamespaceException();
-        } catch (CommitFailedException e) {
-            throw new RepositoryException(
-                    "Failed to unregister namespace mapping for prefix "
-                    + prefix, e);
-        }
-    }
-
-    private static Tree getOrCreate(Root root, String... path) {
-        Tree tree = root.getTree("/");
-        assert tree != null;
-        for (String name : path) {
-            Tree child = tree.getChild(name);
-            if (child == null) {
-                child = tree.addChild(name);
-            }
-            tree = child;
-        }
-        return tree;
+        throw new UnsupportedRepositoryOperationException();
     }
 
     @Override

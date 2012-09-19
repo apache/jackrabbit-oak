@@ -27,7 +27,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
-public class NamespaceRegistryImplTest extends AbstractOakTest {
+public class ReadWriteNamespaceRegistryTest extends AbstractOakTest {
 
     @Override
     protected ContentRepository createRepository() {
@@ -37,7 +37,7 @@ public class NamespaceRegistryImplTest extends AbstractOakTest {
     @Test
     public void testMappings() throws Exception {
         final ContentSession session = createAdminSession();
-        NamespaceRegistry r = new NamespaceRegistryImpl() {
+        NamespaceRegistry r = new ReadWriteNamespaceRegistry() {
             @Override
             protected Tree getReadTree() {
                 return session.getLatestRoot().getTree("/");

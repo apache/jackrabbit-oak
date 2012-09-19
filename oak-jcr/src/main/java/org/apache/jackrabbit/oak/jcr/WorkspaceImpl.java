@@ -43,7 +43,7 @@ import org.apache.jackrabbit.oak.jcr.query.QueryManagerImpl;
 import org.apache.jackrabbit.oak.jcr.security.privilege.PrivilegeManagerImpl;
 import org.apache.jackrabbit.oak.jcr.version.VersionManagerImpl;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
-import org.apache.jackrabbit.oak.plugins.name.NamespaceRegistryImpl;
+import org.apache.jackrabbit.oak.plugins.name.ReadWriteNamespaceRegistry;
 import org.apache.jackrabbit.oak.plugins.type.ReadWriteNodeTypeManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -153,11 +153,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
 
     @Override
     public NamespaceRegistry getNamespaceRegistry() {
-        return new NamespaceRegistryImpl() {
-            @Override
-            protected void refresh() throws RepositoryException {
-                getSession().refresh(true);
-            }
+        return new ReadWriteNamespaceRegistry() {
             @Override
             protected Tree getReadTree() {
                 return sessionDelegate.getRoot().getTree("/");
@@ -165,6 +161,10 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
             @Override
             protected Root getWriteRoot() {
                 return sessionDelegate.getContentSession().getLatestRoot();
+            }
+            @Override
+            protected void refresh() throws RepositoryException {
+                getSession().refresh(true);
             }
         };
     }
