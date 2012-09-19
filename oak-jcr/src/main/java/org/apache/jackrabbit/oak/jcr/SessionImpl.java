@@ -356,8 +356,8 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
             return TODO.dummyImplementation().returnValue(false);
         }
 
-        // TODO
-        return false;
+        // TODO implement hasPermission
+        return TODO.dummyImplementation().returnValue(true);
     }
 
     /**
