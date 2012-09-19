@@ -74,17 +74,6 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager {
     protected abstract Tree getTypes();
 
     /**
-     * Called by the {@link NodeTypeManager} implementation methods to
-     * refresh the state of the session associated with this instance.
-     * That way the session is kept in sync with the latest global state
-     * seen by the node type manager.
-     *
-     * @throws RepositoryException if the session could not be refreshed
-     */
-    protected void refresh() throws RepositoryException {
-    }
-
-    /**
      * The value factory to be used by {@link org.apache.jackrabbit.oak.plugins.type.PropertyDefinitionImpl#getDefaultValues()}.
      * If {@code null} the former returns {@code null}.
      * @return  {@code ValueFactory} instance or {@code null}.
