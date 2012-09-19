@@ -44,7 +44,7 @@ import org.apache.jackrabbit.oak.jcr.security.privilege.PrivilegeManagerImpl;
 import org.apache.jackrabbit.oak.jcr.version.VersionManagerImpl;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceRegistryImpl;
-import org.apache.jackrabbit.oak.plugins.type.NodeTypeManagerImpl;
+import org.apache.jackrabbit.oak.plugins.type.ReadWriteNodeTypeManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.ContentHandler;
@@ -171,7 +171,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
 
     @Override
     public NodeTypeManager getNodeTypeManager() {
-        return new NodeTypeManagerImpl() {
+        return new ReadWriteNodeTypeManager() {
             @Override
             protected void refresh() throws RepositoryException {
                 getSession().refresh(true);

@@ -84,7 +84,7 @@ import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.JCR_NODE_
 import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.NODE_TYPES_PATH;
 
 /**
- * <code>NodeTypeManagerImpl</code> extends the {@link AbstractNodeTypeManager}
+ * <code>ReadWriteNodeTypeManager</code> extends the {@link ReadOnlyNodeTypeManager}
  * and add support for operations that modify node types:
  * <ul>
  *     <li>{@link #registerNodeType(NodeTypeDefinition, boolean)}</li>
@@ -101,14 +101,14 @@ import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.NODE_TYPE
  * stored in content and {@link #getWriteRoot()} for write access to the
  * repository in order to modify node types stored in content. A subclass may
  * also want to override the default implementation of
- * {@link AbstractNodeTypeManager} for the following methods:
+ * {@link ReadOnlyNodeTypeManager} for the following methods:
  * <ul>
  *     <li>{@link #getValueFactory()}</li>
  *     <li>{@link #getCoreValueFactory()}</li>
  *     <li>{@link #getNameMapper()}</li>
  * </ul>
  */
-public abstract class NodeTypeManagerImpl extends AbstractNodeTypeManager {
+public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
 
     /**
      * Called by the methods {@link #registerNodeType(NodeTypeDefinition,boolean)},
@@ -132,7 +132,7 @@ public abstract class NodeTypeManagerImpl extends AbstractNodeTypeManager {
      * @param root the {@link Root} instance.
      */
     public static void registerBuiltInNodeTypes(final Root root) {
-        NodeTypeManagerImpl ntMgr = new NodeTypeManagerImpl() {
+        ReadWriteNodeTypeManager ntMgr = new ReadWriteNodeTypeManager() {
             @Override
             protected Tree getTypes() {
                 return root.getTree(NODE_TYPES_PATH);
@@ -160,7 +160,7 @@ public abstract class NodeTypeManagerImpl extends AbstractNodeTypeManager {
                 @Override
                 public Void run() {
                     try {
-                        InputStream stream = NodeTypeManagerImpl.class.getResourceAsStream("builtin_nodetypes.cnd");
+                        InputStream stream = ReadWriteNodeTypeManager.class.getResourceAsStream("builtin_nodetypes.cnd");
                         try {
                             registerNodeTypes(new InputStreamReader(stream, "UTF-8"));
                         } finally {

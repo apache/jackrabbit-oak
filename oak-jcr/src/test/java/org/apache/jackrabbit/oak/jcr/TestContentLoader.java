@@ -33,7 +33,7 @@ import javax.jcr.nodetype.NodeTypeManager;
 
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.commons.cnd.ParseException;
-import org.apache.jackrabbit.oak.plugins.type.NodeTypeManagerImpl;
+import org.apache.jackrabbit.oak.plugins.type.ReadWriteNodeTypeManager;
 import org.apache.jackrabbit.value.BinaryValue;
 
 public class TestContentLoader {
@@ -67,10 +67,10 @@ public class TestContentLoader {
     private static void registerTestNodeTypes(NodeTypeManager ntm) throws RepositoryException, ParseException, IOException {
         InputStream stream = TestContentLoader.class.getResourceAsStream("test_nodetypes.cnd");
         try {
-            if (!(ntm instanceof NodeTypeManagerImpl)) {
-                throw new IllegalArgumentException("Need NodeTypeManagerImpl");
+            if (!(ntm instanceof ReadWriteNodeTypeManager)) {
+                throw new IllegalArgumentException("Need ReadWriteNodeTypeManager");
             }
-            ((NodeTypeManagerImpl)ntm).registerNodeTypes(new InputStreamReader(stream, "UTF-8"));
+            ((ReadWriteNodeTypeManager)ntm).registerNodeTypes(new InputStreamReader(stream, "UTF-8"));
         } finally {
             stream.close();
         }
