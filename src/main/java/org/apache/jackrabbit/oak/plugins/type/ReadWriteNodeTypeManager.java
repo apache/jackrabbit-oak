@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.type;
 
-import java.io.InputStreamReader;
+import java.io.Reader;
 import java.util.List;
 import java.util.Map;
 
@@ -139,7 +139,7 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
      * @throws ParseException  if parsing the CND fails
      * @throws RepositoryException  if registering the node types fails
      */
-    public void registerNodeTypes(InputStreamReader cnd) throws ParseException, RepositoryException {
+    public void registerNodeTypes(Reader cnd) throws ParseException, RepositoryException {
         CompactNodeTypeDefReader<NodeTypeTemplate, Map<String, String>> reader =
                 new CompactNodeTypeDefReader<NodeTypeTemplate, Map<String, String>>(
                         cnd, null, new DefBuilderFactory(getNameMapper()));
