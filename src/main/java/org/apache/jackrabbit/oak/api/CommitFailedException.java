@@ -39,10 +39,31 @@ public class CommitFailedException extends Exception {
     }
 
     /**
-     * Throw this exception wrapped into a {@link RepositoryException}
+     * Rethrow this exception cast into a {@link RepositoryException}: if the cause
+     * for this exception already is a {@code RepositoryException}, this exception is
+     * wrapped into the actual type of the cause and rethrown. If creating an instance
+     * of the actual type of the cause fails, cause is simply re-thrown.
+     * If the cause for this exception is not a {@code RepositoryException} then  a
+     * new {@code RepositoryException} instance with this {@code CommitFailedException}
+     * is thrown.
      * @throws RepositoryException
      */
     public void throwRepositoryException() throws RepositoryException {
-        throw new RepositoryException(this);
+        Throwable cause = getCause();
+        if (cause instanceof RepositoryException) {
+            RepositoryException e;
+            try {
+                e = (RepositoryException) cause.getClass().getConstructor().newInstance();
+                e.initCause(this);
+            }
+            catch (Exception ex) {
+                e = (RepositoryException) cause;
+            }
+
+            throw e;
+        }
+        else {
+            throw new RepositoryException(cause);
+        }
     }
 }
