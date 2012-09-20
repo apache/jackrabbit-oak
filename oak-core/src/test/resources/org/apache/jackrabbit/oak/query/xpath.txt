@@ -25,6 +25,9 @@
 
 # jackrabbit test queries
 
+xpath /jcr:root/testroot//*[0]
+java.text.ParseException: /jcr:root/testroot//*[0] converted to SQL-2 Query: select [jcr:path], [jcr:score], * from [nt:base] as a where 0(*)is not null and isdescendantnode(a, '/testroot'); expected: NOT, (
+
 xpath2sql /test
 select [jcr:path], [jcr:score], * from [nt:base] as a where name(a) = 'test' and issamenode(a, '/')
 
