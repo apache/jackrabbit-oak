@@ -86,7 +86,11 @@ public class QueryEngineImpl {
             XPathToSQL2Converter converter = new XPathToSQL2Converter();
             String sql2 = converter.convert(statement);
             SQL2Parser parser = new SQL2Parser(vf);
-            q = parser.parse(sql2);
+            try {
+                q = parser.parse(sql2);
+            } catch (ParseException e) {
+                throw new ParseException(statement + " converted to SQL-2 " + e.getMessage(), 0);
+            }
         } else {
             throw new ParseException("Unsupported language: " + language, 0);
         }

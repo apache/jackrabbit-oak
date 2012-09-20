@@ -134,12 +134,16 @@ public class QueryTest extends AbstractQueryTest {
                 } else if (line.startsWith("select") ||
                         line.startsWith("explain") ||
                         line.startsWith("measure") ||
-                        line.startsWith("sql1")) {
+                        line.startsWith("sql1") ||
+                        line.startsWith("xpath")) {
                     w.println(line);
                     String language = QueryEngineImpl.SQL2;
-                    if (line.startsWith("sql1")) {
+                    if (line.startsWith("sql1 ")) {
                         language = QueryEngineImpl.SQL;
                         line = line.substring("sql1 ".length());
+                    } else if (line.startsWith("xpath ")) {
+                        language = QueryEngineImpl.XPATH;
+                        line = line.substring("xpath ".length());
                     }
                     boolean readEnd = true;
                     for (String resultLine : executeQuery(line, language)) {
