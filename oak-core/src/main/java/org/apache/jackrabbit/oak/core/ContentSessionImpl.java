@@ -86,7 +86,7 @@ class ContentSessionImpl implements ContentSession {
     }
 
     @Override
-    public void close() throws IOException {
+    public synchronized void close() throws IOException {
         try {
             loginContext.logout();
         } catch (LoginException e) {
