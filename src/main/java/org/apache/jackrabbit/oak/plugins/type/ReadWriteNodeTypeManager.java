@@ -80,7 +80,7 @@ import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.JCR_NODE_
 import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.NODE_TYPES_PATH;
 
 /**
- * <code>ReadWriteNodeTypeManager</code> extends the {@link ReadOnlyNodeTypeManager}
+ * {@code ReadWriteNodeTypeManager} extends the {@link ReadOnlyNodeTypeManager}
  * and add support for operations that modify node types:
  * <ul>
  *     <li>{@link #registerNodeType(NodeTypeDefinition, boolean)}</li>
