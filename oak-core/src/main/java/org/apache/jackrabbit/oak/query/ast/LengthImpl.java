@@ -66,22 +66,24 @@ public class LengthImpl extends DynamicOperandImpl {
 
     @Override
     public void restrict(FilterImpl f, Operator operator, CoreValue v) {
-        switch (v.getType()) {
-        case PropertyType.LONG:
-        case PropertyType.DECIMAL:
-        case PropertyType.DOUBLE:
-            // ok - comparison with a number
-            break;
-        case PropertyType.BINARY:
-        case PropertyType.STRING:
-        case PropertyType.DATE:
-            // ok - compare with a string literal
-            break;
-        default:
-            throw new IllegalArgumentException(
-                    "Can not compare the length with a constant of type "
-                            + PropertyType.nameFromValue(v.getType()) +
-                            " and value " + v.toString());
+        if (v != null) {
+            switch (v.getType()) {
+            case PropertyType.LONG:
+            case PropertyType.DECIMAL:
+            case PropertyType.DOUBLE:
+                // ok - comparison with a number
+                break;
+            case PropertyType.BINARY:
+            case PropertyType.STRING:
+            case PropertyType.DATE:
+                // ok - compare with a string literal
+                break;
+            default:
+                throw new IllegalArgumentException(
+                        "Can not compare the length with a constant of type "
+                                + PropertyType.nameFromValue(v.getType()) +
+                                " and value " + v.toString());
+            }
         }
         // LENGTH(x) implies x is not null
         propertyValue.restrict(f, Operator.NOT_EQUAL, null);
