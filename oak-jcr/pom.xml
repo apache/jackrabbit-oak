@@ -33,8 +33,6 @@
 
   <properties>
     <known.issues>
-org.apache.jackrabbit.test.api.query.qom.UpperLowerCaseTest#testLength
-org.apache.jackrabbit.test.api.query.qom.UpperLowerCaseTest#testNodeName
 org.apache.jackrabbit.test.api.AddNodeTest#testSameNameSiblings<!-- OAK-203 -->
 org.apache.jackrabbit.test.api.SessionTest#testMoveConstraintViolationExceptionSrc<!--OAK-132-->
 org.apache.jackrabbit.test.api.SessionTest#testMoveConstraintViolationExceptionDest<!--OAK-132-->
