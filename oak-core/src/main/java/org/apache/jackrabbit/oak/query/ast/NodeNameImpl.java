@@ -68,6 +68,9 @@ public class NodeNameImpl extends DynamicOperandImpl {
 
     @Override
     public void restrict(FilterImpl f, Operator operator, CoreValue v) {
+        if (v == null) {
+            return;
+        }
         if (!isName(v)) {
             throw new IllegalArgumentException("Invalid name value: " + v.toString());
         }
