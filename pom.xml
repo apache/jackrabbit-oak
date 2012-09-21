@@ -90,8 +90,6 @@
     <profile>
       <id>mongomk</id>
       <modules>
-        <module>oak-mongomk-api</module>
-        <module>oak-mongomk-impl</module>
         <module>oak-mongomk</module>
         <module>oak-mongomk-test</module>
         <module>oak-mongomk-perf</module>
