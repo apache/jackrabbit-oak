@@ -48,6 +48,7 @@
     <module>oak-run</module>
     <module>oak-it</module>
     <module>oak-bench</module>
+    <module>oak-mk-perf</module>
   </modules>
 
   <scm>
