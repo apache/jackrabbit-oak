@@ -7,7 +7,7 @@ Oak extensions.
 
 ## Background
 
-Oak organizes all content in a large tree hierarcy that consists of nodes
+Oak organizes all content in a large tree hierarchy that consists of nodes
 and properties. Each snapshot or revision of this content tree is immutable,
 and changes to the tree are expressed as a sequence of new revisions. The
 MicroKernel of an Oak repository is responsible for managing the content
@@ -46,7 +46,7 @@ synchronization to ensure thread-safety.
 
 The above design principles are reflected in the `NodeState` interface
 in the `org.apache.jackrabbit.oak.spi.state` package of oak-core. The
-interface consits of three sets of methods:
+interface consists of three sets of methods:
 
   * Methods for accessing properties
   * Methods for accessing child nodes
@@ -98,7 +98,7 @@ at the named child node. The comparison method should thus be able to
 efficiently detect differences at any depth below the given nodes. On the
 other hand the `childNodeChanged` method is called only for the direct child
 node, and the diff implementation should explicitly recurse down the tree
-if it want's to know what exactly did change under that subtree. The code
+if it wants to know what exactly did change under that subtree. The code
 for such recursion typically looks something like this:
 
     public void childNodeChanged(
