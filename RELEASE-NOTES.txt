@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 0.4
+Release Notes -- Apache Jackrabbit Oak -- Version 0.5
 
 Introduction
 ------------
@@ -10,8 +10,63 @@ other demanding content applications.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Jackrabbit Oak 0.4 is to be considered alpha-level software. Use at your own risk 
+Jackrabbit Oak 0.5 is to be considered alpha-level software. Use at your own risk 
 with no stability or compatibility guarantees.
+
+Changes in Oak 0.5
+------------------
+
+Improvements
+
+[OAK-239] - MicroKernel.getRevisionHistory: maxEntries behavior should be documented
+[OAK-255] - Implement Node#getReferences() both for REFERENCE and WEAKREFERENCE
+[OAK-258] - Dummy implementation for session scoped locks
+[OAK-263] - Type of bindings should be covariant in SessionQueryEngine.executeQuery()
+[OAK-264] - MicroKernel.diff for depth limited, unspecified changes
+[OAK-274] - Split NodeFilter into its own class
+[OAK-275] - Introduce TreeLocation interface
+[OAK-282] - Use random port in oak-run tests
+[OAK-284] - Reduce memory usage of KernelNodeState
+[OAK-285] - Split CommitEditor into CommitEditor and Validator interfaces
+[OAK-289] - Remove TreeImpl.Children
+[OAK-290] - Move Query related interfaces in oak.spi.query
+[OAK-292] - Use Guava preconditions instead of asserts to enforce contract
+[OAK-315] - Separate built-in node types from ReadWriteNodeTypeManager
+
+Bug fixes
+
+[OAK-136] - NodeDelegate leakage from NodeImpl
+[OAK-221] - Clarify nature of 'path' parameter in oak-api
+[OAK-228] - inconsistent paths used in oak tests
+[OAK-229] - Review root-node shortcut in NamePathMapperImpl
+[OAK-230] - Review and fix inconsistent usage of oak-path in oak-jcr
+[OAK-238] - ValueFactory: Missing identifier validation when creating (weak)reference value from String
+[OAK-240] - mix:mergeConflict violates naming convention
+[OAK-242] - Mixin rep:MergeConflict is not a registered node type
+[OAK-243] - NodeImpl.getParent() not fully encapsulated in a SessionOperation
+[OAK-245] - Add import for org.h2 in oak-mk bundle
+[OAK-248] - Review path constants in the oak source code
+[OAK-252] - Stop sending observation events on shutdown
+[OAK-254] - waitForCommit returns null in certain situations
+[OAK-256] - JAAS Authentication failing in OSGi env due to classloading issue
+[OAK-257] - NPE in o.a.j.oak.security.privilege.PrivilegeDefinitionImpl constructor
+[OAK-265] - waitForCommit gets wrongly triggered on private branch commits
+[OAK-268] - XPathQueryEvaluator generates incorrect XPath query
+[OAK-272] - every session login causes a mk.branch operation
+[OAK-278] - Tree.getStatus() and Tree.getPropertyStatus() fail for items whose parent has been removed
+[OAK-279] - ChangeProcessor getting stuck while shutdown
+[OAK-286] - Possible NPE in LuceneIndex
+[OAK-287] - PrivilegeManagerImplTest.testJcrAll assumes that there are no custom privileges
+[OAK-291] - Clarify paths in Root and Tree
+[OAK-294] - nt:propertyDefinition has incorrect value constraints for property types
+[OAK-296] - PathUtils.isAncestor("/", "/") should return false but returns true
+[OAK-299] - Node Type support: SQL2QueryResultTest fails
+[OAK-311] - Remapping a namespace breaks existing content
+[OAK-313] - Trailing slash not removed for simple path in JCR to Oak path conversion
+[OAK-316] - CommitFailedException.throwRepositoryException swallows parts of the stack traces
+[OAK-330] - Some MongoMK tests do not use CommitImpl constructor correctly
+[OAK-332] - [MongoMK] Node is not visible in head revision
+[OAK-334] - Add read-only lucene directory
 
 Changes in Oak 0.4
 ------------------
