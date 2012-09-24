@@ -51,7 +51,7 @@ public class MkConfigProvider {
 		
 		Properties properties = new Properties();
 		properties.load(is);
-		System.out.println(properties.toString());
+		//System.out.println(properties.toString());
 		is.close();
 		return new Configuration(properties);
 	}

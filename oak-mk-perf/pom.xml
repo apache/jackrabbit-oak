@@ -109,7 +109,7 @@
 									<version>2.12.3</version>
 								</dependency>
 							</dependencies>
-							<argLine>-Xmx1024m</argLine>
+							<argLine>-Xmx2048m</argLine>
 							<testFailureIgnore>true</testFailureIgnore>
 							<includes>
 								<include>**/*Test.java</include>
