@@ -31,12 +31,13 @@ import java.util.List;
 import org.apache.jackrabbit.oak.query.index.IndexRowImpl;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
+import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.query.IndexDefinition;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
-import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.Term;
@@ -50,20 +51,22 @@ import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TermRangeQuery;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.Directory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This index uses internally runs a query against a Lucene index.
  */
 public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
 
-    private final NodeStore store;
+    private static final Logger LOG = LoggerFactory
+            .getLogger(LuceneIndex.class);
 
     private final IndexDefinition index;
 
     private final String[] indexDataPath;
 
-    public LuceneIndex(NodeStore store, IndexDefinition indexDefinition) {
-        this.store = store;
+    public LuceneIndex(IndexDefinition indexDefinition) {
         this.index = indexDefinition;
         this.indexDataPath = split(indexDefinition.getPath(),
                 INDEX_DATA_CHILD_NAME);
@@ -86,8 +89,15 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
 
     @Override
     public Cursor query(Filter filter, String revisionId, NodeState root) {
+
+        NodeBuilder builder = new ReadOnlyBuilder(root);
+        for (String name : indexDataPath) {
+            builder = builder.getChildBuilder(name);
+        }
+        Directory directory = new ReadOnlyOakDirectory(builder);
+        long s = System.currentTimeMillis();
+
         try {
-            Directory directory = new OakDirectory(store, root, indexDataPath);
             try {
                 IndexReader reader = DirectoryReader.open(directory);
                 try {
@@ -108,7 +118,8 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
                             }
                         }
                     }
-
+                    LOG.debug("query via {} took {} ms.", this,
+                            System.currentTimeMillis() - s);
                     return new PathCursor(paths);
                 } finally {
                     reader.close();
@@ -214,6 +225,11 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
             return new IndexRowImpl(path);
         }
 
+    }
+
+    @Override
+    public String toString() {
+        return "LuceneIndex [index=" + index + "]";
     }
 
 }
