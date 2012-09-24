@@ -165,21 +165,11 @@ select id from [nt:base] where id is not null order by id desc
 1
 0
 
-measure select * from [nt:base] as c right outer join [nt:base] as p on p.id = c.p where p.id is not null and not isdescendantnode(p, '/jcr:system')
-c, 630
-p, 210
-query, 4
-
 select * from [nt:base] as c right outer join [nt:base] as p on p.id = c.p where p.id is not null and not isdescendantnode(p, '/jcr:system')
 /children/c1, /parents/p1
 /children/c2, /parents/p1
 /children/c3, /parents/p2
 null, /parents/p0
-
-measure select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null
-c, 630
-p, 210
-query, 4
 
 select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null
 /parents/p0, null
@@ -187,28 +177,13 @@ select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where 
 /parents/p1, /children/c2
 /parents/p2, /children/c3
 
-measure select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null and c.p is null
-c, 630
-p, 210
-query, 1
-
 select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null and c.p is null
 /parents/p0, null
-
-measure select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null and c.p is not null
-c, 630
-p, 210
-query, 3
 
 select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null and c.p is not null
 /parents/p1, /children/c1
 /parents/p1, /children/c2
 /parents/p2, /children/c3
-
-measure select * from [nt:base] as p inner join [nt:base] as c on p.id = c.p
-c, 630
-p, 210
-query, 3
 
 select * from [nt:base] as p inner join [nt:base] as c on p.id = c.p
 /parents/p1, /children/c1
