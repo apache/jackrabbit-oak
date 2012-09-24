@@ -19,10 +19,7 @@ package org.apache.jackrabbit.oak.plugins.lucene;
 import static org.apache.jackrabbit.oak.spi.query.IndexUtils.DEFAULT_INDEX_HOME;
 
 import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.List;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.AbstractOakTest;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -31,17 +28,10 @@ import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.SessionQueryEngine;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
-import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
-import org.apache.jackrabbit.oak.plugins.name.NamespaceValidatorProvider;
-import org.apache.jackrabbit.oak.plugins.type.DefaultTypeEditor;
-import org.apache.jackrabbit.oak.plugins.type.TypeValidatorProvider;
-import org.apache.jackrabbit.oak.plugins.value.ConflictValidatorProvider;
-import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
-import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
-import org.apache.jackrabbit.oak.spi.commit.ValidatingHook;
-import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
+import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.junit.Before;
@@ -54,7 +44,6 @@ public abstract class AbstractLuceneQueryTest extends AbstractOakTest implements
 
     protected static final String SQL2 = "JCR-SQL2";
 
-    protected MicroKernel mk;
     protected ContentSession session;
     protected CoreValueFactory vf;
     protected SessionQueryEngine qe;
@@ -68,34 +57,33 @@ public abstract class AbstractLuceneQueryTest extends AbstractOakTest implements
         root = session.getLatestRoot();
         vf = session.getCoreValueFactory();
         qe = session.getQueryEngine();
+        createIndexNode();
     }
 
     @Override
     protected ContentRepository createRepository() {
-        mk = new MicroKernelImpl();
         QueryIndexProvider indexer = new LuceneIndexProvider(DEFAULT_INDEX_HOME);
         QueryIndexProvider qip = new CompositeQueryIndexProvider(indexer);
-        return new ContentRepositoryImpl(mk, qip, buildDefaultCommitHook());
+        return new ContentRepositoryImpl(new MicroKernelImpl(), qip,
+                new LuceneHook(DEFAULT_INDEX_HOME));
     }
 
-    private CommitHook buildDefaultCommitHook() {
-        List<CommitHook> hooks = new ArrayList<CommitHook>();
-        hooks.add(new DefaultTypeEditor());
-        hooks.add(new ValidatingHook(createDefaultValidatorProvider()));
-        hooks.add(new LuceneHook(DEFAULT_INDEX_HOME));
-        return new CompositeHook(hooks);
-    }
-
-    private static ValidatorProvider createDefaultValidatorProvider() {
-        List<ValidatorProvider> providers = new ArrayList<ValidatorProvider>();
-        providers.add(new NameValidatorProvider());
-        providers.add(new NamespaceValidatorProvider());
-        providers.add(new TypeValidatorProvider());
-        providers.add(new ConflictValidatorProvider());
-        return new CompositeValidatorProvider(providers);
+    private void createIndexNode() throws Exception {
+        Tree index = root.getTree("/");
+        for (String p : PathUtils.elements(DEFAULT_INDEX_HOME)) {
+            if (index.hasChild(p)) {
+                index = index.getChild(p);
+            } else {
+                index = index.addChild(p);
+            }
+        }
+        index.addChild("test-lucene").setProperty("type",
+                vf.createValue("lucene"));
+        root.commit(DefaultConflictHandler.OURS);
     }
 
     protected Result executeQuery(String statement) throws ParseException {
-        return qe.executeQuery(statement, SQL2, Long.MAX_VALUE, 0, null, session.getLatestRoot(), null);
+        return qe.executeQuery(statement, SQL2, Long.MAX_VALUE, 0, null,
+                session.getLatestRoot(), null);
     }
 }

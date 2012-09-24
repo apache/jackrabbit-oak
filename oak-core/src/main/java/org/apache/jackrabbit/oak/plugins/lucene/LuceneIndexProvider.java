@@ -25,7 +25,6 @@ import org.apache.jackrabbit.oak.spi.query.IndexDefinition;
 import org.apache.jackrabbit.oak.spi.query.IndexUtils;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,14 +50,11 @@ public class LuceneIndexProvider implements QueryIndexProvider,
             LOG.warn("index path is not valid {}", indexPath);
             return Collections.<QueryIndex> emptyList();
         }
-        NodeBuilder builder = IndexUtils.getChildBuilder(store, indexPath);
         List<QueryIndex> tempIndexes = new ArrayList<QueryIndex>();
         for (IndexDefinition child : IndexUtils.buildIndexDefinitions(
                 store.getRoot(), indexPath, TYPE)) {
-            // add :data node
-            builder.getChildBuilder(child.getName()).getChildBuilder(
-                    INDEX_DATA_CHILD_NAME);
-            tempIndexes.add(new LuceneIndex(store, child));
+            LOG.debug("found a lucene index definition {}", child);
+            tempIndexes.add(new LuceneIndex(child));
         }
         return tempIndexes;
     }
