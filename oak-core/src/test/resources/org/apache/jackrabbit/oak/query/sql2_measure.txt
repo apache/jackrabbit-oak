@@ -51,3 +51,28 @@ c, 630
 p, 210
 query, 3
 
+measure select * from [nt:base] as c right outer join [nt:base] as p on p.id = c.p where p.id is not null and not isdescendantnode(p, '/jcr:system')
+c, 630
+p, 210
+query, 4
+
+measure select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null
+c, 630
+p, 210
+query, 4
+
+measure select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null and c.p is null
+c, 630
+p, 210
+query, 1
+
+measure select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null and c.p is not null
+c, 630
+p, 210
+query, 3
+
+measure select * from [nt:base] as p inner join [nt:base] as c on p.id = c.p
+c, 630
+p, 210
+query, 3
+
