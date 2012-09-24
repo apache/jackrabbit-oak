@@ -120,7 +120,7 @@ public class IndexUtils {
 
         List<IndexDefinition> defs = new ArrayList<IndexDefinition>();
         for (ChildNodeEntry c : definitions.getChildNodeEntries()) {
-            IndexDefinition def = IndexUtils.getDefinition(indexConfigPath, c);
+            IndexDefinition def = getDefinition(indexConfigPath, c);
             if (def == null
                     || (typeFilter != null && !typeFilter.equals(def.getType()))) {
                 continue;

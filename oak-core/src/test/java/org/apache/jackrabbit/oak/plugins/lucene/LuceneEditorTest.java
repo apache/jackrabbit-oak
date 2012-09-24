@@ -54,7 +54,7 @@ public class LuceneEditorTest implements LuceneIndexConstants {
         tree.setProperty("foo", MemoryValueFactory.INSTANCE.createValue("bar"));
         root.commit(DefaultConflictHandler.OURS);
 
-        QueryIndex index = new LuceneIndex(store, testID);
+        QueryIndex index = new LuceneIndex(testID);
         FilterImpl filter = new FilterImpl(null);
         filter.restrictPath("/", Filter.PathRestriction.EXACT);
         filter.restrictProperty("foo", Operator.EQUAL,

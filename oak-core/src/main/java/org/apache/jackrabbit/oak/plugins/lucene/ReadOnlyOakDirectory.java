@@ -16,19 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.lucene;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
 
-import javax.annotation.Nonnull;
+import javax.jcr.UnsupportedRepositoryOperationException;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
@@ -38,32 +34,17 @@ import org.apache.lucene.store.NoLockFactory;
 import com.google.common.collect.Iterables;
 
 /**
- * An implementation of the Lucene directory (a flat list of files) that allows
- * to store Lucene index content in an Oak repository.
+ * A read-only implementation of the Lucene {@link Directory} (a flat list of
+ * files) that only allows reading of the Lucene index content stored in an Oak
+ * repository.
  */
-class OakDirectory extends Directory {
+class ReadOnlyOakDirectory extends Directory {
 
-    private final CoreValueFactory factory;
+    protected final NodeBuilder directoryBuilder;
 
-    private final NodeBuilder rootBuilder;
-
-    private final NodeBuilder directoryBuilder;
-
-    public OakDirectory(NodeStore store, NodeState root, String... path) {
+    public ReadOnlyOakDirectory(NodeBuilder directoryBuilder) {
         this.lockFactory = NoLockFactory.getNoLockFactory();
-        this.factory = store.getValueFactory();
-        this.rootBuilder = store.getBuilder(root);
-
-        NodeBuilder builder = rootBuilder;
-        for (String name : path) {
-            builder = builder.getChildBuilder(name);
-        }
-        this.directoryBuilder = builder;
-    }
-
-    @Nonnull
-    NodeState getRoot() {
-        return rootBuilder.getNodeState();
+        this.directoryBuilder = directoryBuilder;
     }
 
     @Override
@@ -96,12 +77,11 @@ class OakDirectory extends Directory {
 
         return property.getValue().length();
     }
-    
 
     @Override
     public IndexOutput createOutput(String name, IOContext context)
             throws IOException {
-        return new OakIndexOutput(name);
+        throw new IOException(new UnsupportedRepositoryOperationException());
     }
 
     @Override
@@ -120,7 +100,7 @@ class OakDirectory extends Directory {
         // do nothing
     }
 
-    private byte[] readFile(String name) throws IOException {
+    protected byte[] readFile(String name) throws IOException {
         if (!fileExists(name)) {
             return new byte[0];
         }
@@ -149,86 +129,6 @@ class OakDirectory extends Directory {
             return buffer;
         } finally {
             stream.close();
-        }
-    }
-
-    private final class OakIndexOutput extends IndexOutput {
-
-        private final String name;
-
-        private byte[] buffer;
-
-        private int size;
-
-        private int position;
-
-        public OakIndexOutput(String name) throws IOException {
-            this.name = name;
-            this.buffer = readFile(name);
-            this.size = buffer.length;
-            this.position = 0;
-        }
-
-        @Override
-        public long length() {
-            return size;
-        }
-
-        @Override
-        public long getFilePointer() {
-            return position;
-        }
-
-        @Override
-        public void seek(long pos) throws IOException {
-            if (pos < 0 || pos > Integer.MAX_VALUE) {
-                throw new IOException("Invalid file position: " + pos);
-            }
-            this.position = (int) pos;
-        }
-
-        @Override
-        public void writeBytes(byte[] b, int offset, int length) {
-            while (position + length > buffer.length) {
-                byte[] tmp = new byte[Math.max(4096, buffer.length * 2)];
-                System.arraycopy(buffer, 0, tmp, 0, size);
-                buffer = tmp;
-            }
-
-            System.arraycopy(b, offset, buffer, position, length);
-
-            position += length;
-            if (position > size) {
-                size = position;
-            }
-        }
-
-        @Override
-        public void writeByte(byte b) {
-            writeBytes(new byte[] { b }, 0, 1);
-        }
-
-        @Override
-        public void flush() throws IOException {
-            byte[] data = buffer;
-            if (data.length > size) {
-                data = new byte[size];
-                System.arraycopy(buffer, 0, data, 0, size);
-            }
-
-            NodeBuilder fileBuilder =
-                    directoryBuilder.getChildBuilder(name);
-            fileBuilder.setProperty(
-                    "jcr:lastModified",
-                    factory.createValue(System.currentTimeMillis()));
-            fileBuilder.setProperty(
-                    "jcr:data",
-                    factory.createValue(new ByteArrayInputStream(data)));
-        }
-
-        @Override
-        public void close() throws IOException {
-            flush();
         }
     }
 

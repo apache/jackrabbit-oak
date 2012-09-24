@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.query.IndexDefinition;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
@@ -40,6 +41,7 @@ import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.Version;
 import org.apache.tika.Tika;
 import org.apache.tika.exception.TikaException;
@@ -78,9 +80,15 @@ class LuceneEditor implements CommitHook, LuceneIndexConstants {
     @Override
     public NodeState processCommit(NodeStore store, NodeState before,
             NodeState after) throws CommitFailedException {
-        try {
-            OakDirectory directory = new OakDirectory(store, after, path);
+        NodeBuilder rootBuilder = store.getBuilder(after);
+        NodeBuilder builder = rootBuilder;
+        for (String name : path) {
+            builder = builder.getChildBuilder(name);
+        }
+        Directory directory = new ReadWriteOakDirectory(builder,
+                store.getValueFactory());
 
+        try {
             IndexWriter writer = new IndexWriter(directory, config);
             try {
                 LuceneDiff diff = new LuceneDiff(writer, "");
@@ -90,8 +98,7 @@ class LuceneEditor implements CommitHook, LuceneIndexConstants {
             } finally {
                 writer.close();
             }
-
-            return directory.getRoot();
+            return rootBuilder.getNodeState();
         } catch (IOException e) {
             e.printStackTrace();
             throw new CommitFailedException(
