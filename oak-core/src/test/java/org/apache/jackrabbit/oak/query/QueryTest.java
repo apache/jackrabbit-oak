@@ -58,6 +58,11 @@ public class QueryTest extends AbstractQueryTest {
     }
 
     @Test
+    public void sql2_measure() throws Exception {
+        test("sql2_measure.txt");
+    }
+
+    @Test
     public void xpath() throws Exception {
         test("xpath.txt");
     }

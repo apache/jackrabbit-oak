@@ -102,6 +102,12 @@ commit / + "children": { "c1": {"p": "1"}, "c2": {"p": "1"}, "c3": {"p": "2"}, "
 explain select * from [nt:base] as p inner join [nt:base] as c on p.id = c.p
 [nt:base] as [p] /* traverse "//*" where [p].[id] is not null */ inner join [nt:base] as [c] /* traverse "//*" where [c].[p] is not null */ on [p].[id] = [c].[p]
 
+explain select * from [nt:base] as p inner join [nt:base] as p2 on issamenode(p2, p) where p.[jcr:path] = '/parents'
+[nt:base] as [p] /* traverse "//*" where [p].[jcr:path] = cast('/parents' as string) */ inner join [nt:base] as [p2] /* traverse "" */ on issamenode([p2], [p], [.])
+
+explain select * from [nt:base] as p inner join [nt:base] as c on p.id = c.p
+[nt:base] as [p] /* traverse "//*" where [p].[id] is not null */ inner join [nt:base] as [c] /* traverse "//*" where [c].[p] is not null */ on [p].[id] = [c].[p]
+
 commit / - "parents"
 commit / - "children"
 

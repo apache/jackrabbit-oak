@@ -34,7 +34,7 @@ select * from [nt:base] where name = 'Hello'
 select * from [nt:base] where name = 'World'
 /test/a
 
-select * from [nt:base] where isdescendantnode('/test') and name = 'World' and score() >= 0.0
+select * from [nt:base] where isdescendantnode('/test') and name = 'World'
 /test/a
 
 commit / - "test"
@@ -152,9 +152,6 @@ select * from [nt:base] as p inner join [nt:base] as p2 on isdescendantnode(p2, 
 /parents, /parents/p1
 /parents, /parents/p2
 
-explain select * from [nt:base] as p inner join [nt:base] as p2 on issamenode(p2, p) where p.[jcr:path] = '/parents'
-[nt:base] as [p] /* traverse "//*" where [p].[jcr:path] = cast('/parents' as string) */ inner join [nt:base] as [p2] /* traverse "" */ on issamenode([p2], [p], [.])
-
 select * from [nt:base] as p inner join [nt:base] as p2 on issamenode(p2, p) where p.[jcr:path] = '/parents'
 /parents, /parents
 
@@ -207,9 +204,6 @@ select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where 
 /parents/p1, /children/c1
 /parents/p1, /children/c2
 /parents/p2, /children/c3
-
-explain select * from [nt:base] as p inner join [nt:base] as c on p.id = c.p
-[nt:base] as [p] /* traverse "//*" where [p].[id] is not null */ inner join [nt:base] as [c] /* traverse "//*" where [c].[p] is not null */ on [p].[id] = [c].[p]
 
 measure select * from [nt:base] as p inner join [nt:base] as c on p.id = c.p
 c, 630
