@@ -27,7 +27,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-bench-parent</artifactId>
-    <version>0.5-SNAPSHOT</version>
+    <version>0.5</version>
     <relativePath>parent/pom.xml</relativePath>
   </parent>
 
