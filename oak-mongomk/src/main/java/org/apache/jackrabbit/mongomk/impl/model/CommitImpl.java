@@ -46,7 +46,7 @@ public class CommitImpl implements Commit {
      * @param diff The diff.
      * @param message The message.
      */
-    public CommitImpl(String path,String diff, String message) {
+    public CommitImpl(String path, String diff, String message) {
         this(path, diff, message, new LinkedList<Instruction>());
     }
 

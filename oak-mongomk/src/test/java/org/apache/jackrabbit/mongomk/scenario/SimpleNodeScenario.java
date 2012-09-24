@@ -67,8 +67,9 @@ public class SimpleNodeScenario { // TODO this should be refactored to use class
         instructions.add(new AddPropertyInstructionImpl("/a/b", "string", "foo"));
         instructions.add(new AddPropertyInstructionImpl("/a/c", "bool", true));
 
-        Commit commit = new CommitImpl("This is the simple node scenario with nodes /, /a, /a/b, /a/c", "/",
-                "+a : { \"int\" : 1 , \"b\" : { \"string\" : \"foo\" } , \"c\" : { \"bool\" : true } } }", instructions);
+        Commit commit = new CommitImpl("/",
+                "+a : { \"int\" : 1 , \"b\" : { \"string\" : \"foo\" } , \"c\" : { \"bool\" : true } } }",
+                "This is the simple node scenario with nodes /, /a, /a/b, /a/c", instructions);
         CommitCommandMongo command = new CommitCommandMongo(mongoConnection, commit);
         String revisionId = command.execute();
 
@@ -80,7 +81,7 @@ public class SimpleNodeScenario { // TODO this should be refactored to use class
         for (int i = 1; i <= count; i++) {
             List<Instruction> instructions = new LinkedList<Instruction>();
             instructions.add(new AddNodeInstructionImpl("/a", "child" + i));
-            Commit commit = new CommitImpl("Add child" + i, "/a", "TODO", instructions);
+            Commit commit = new CommitImpl("/a", "TODO", "Add child" + i, instructions);
             CommitCommandMongo command = new CommitCommandMongo(mongoConnection, commit);
             revisionId = command.execute();
         }
@@ -102,7 +103,8 @@ public class SimpleNodeScenario { // TODO this should be refactored to use class
         List<Instruction> instructions = new LinkedList<Instruction>();
         instructions.add(new RemoveNodeInstructionImpl("/", "a"));
 
-        Commit commit = new CommitImpl("This is a commit with deleted /a", "/", "-a", instructions);
+        Commit commit = new CommitImpl("/", "-a", "This is a commit with deleted /a",
+                instructions);
         CommitCommandMongo command = new CommitCommandMongo(mongoConnection, commit);
         String revisionId = command.execute();
 
@@ -112,7 +114,8 @@ public class SimpleNodeScenario { // TODO this should be refactored to use class
     public String delete_B() throws Exception {
         List<Instruction> instructions = new LinkedList<Instruction>();
         instructions.add(new RemoveNodeInstructionImpl("/a", "b"));
-        Commit commit = new CommitImpl("This is a commit with deleted /a/b", "/a", "-b", instructions);
+        Commit commit = new CommitImpl("/a", "-b", "This is a commit with deleted /a/b",
+                instructions);
         CommitCommandMongo command = new CommitCommandMongo(mongoConnection, commit);
         return command.execute();
     }
@@ -137,7 +140,7 @@ public class SimpleNodeScenario { // TODO this should be refactored to use class
         instructions.add(new AddPropertyInstructionImpl("/a/b/e", "array", new Object[] { 123, null, 123.456D,
                 "for:bar", Boolean.TRUE }));
 
-        Commit commit = new CommitImpl("This is a commit with updated /a and added /a/d and /a/b/e", "", "TODO",
+        Commit commit = new CommitImpl("", "TODO", "This is a commit with updated /a and added /a/d and /a/b/e",
                 instructions);
         CommitCommandMongo command = new CommitCommandMongo(mongoConnection, commit);
         String revisionId = command.execute();

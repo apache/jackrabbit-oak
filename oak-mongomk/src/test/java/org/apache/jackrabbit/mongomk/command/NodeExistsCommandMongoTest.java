@@ -30,7 +30,6 @@ import org.apache.jackrabbit.mongomk.impl.model.AddNodeInstructionImpl;
 import org.apache.jackrabbit.mongomk.impl.model.CommitImpl;
 import org.apache.jackrabbit.mongomk.impl.model.RemoveNodeInstructionImpl;
 import org.apache.jackrabbit.mongomk.scenario.SimpleNodeScenario;
-import org.junit.Ignore;
 import org.junit.Test;
 
 @SuppressWarnings("javadoc")
@@ -119,7 +118,7 @@ public class NodeExistsCommandMongoTest extends BaseMongoTest {
         instructions.add(new AddNodeInstructionImpl("/a/b", "c"));
         instructions.add(new AddNodeInstructionImpl("/a/b/c", "d"));
 
-        Commit commit = new CommitImpl("Add nodes", "/", "TODO", instructions);
+        Commit commit = new CommitImpl("/", "TODO", "Add nodes", instructions);
         CommitCommandMongo command = new CommitCommandMongo(mongoConnection,
                 commit);
         command.execute();
@@ -127,7 +126,7 @@ public class NodeExistsCommandMongoTest extends BaseMongoTest {
         // Remove b.
         instructions = new LinkedList<Instruction>();
         instructions.add(new RemoveNodeInstructionImpl("/a", "b"));
-        commit = new CommitImpl("Delete /b", "/a", "-b", instructions);
+        commit = new CommitImpl("/a", "-b", "Delete /b", instructions);
         command = new CommitCommandMongo(mongoConnection, commit);
         command.execute();
 
@@ -136,6 +135,34 @@ public class NodeExistsCommandMongoTest extends BaseMongoTest {
                 mongoConnection, "/a/b/c/d", null);
         boolean exists = existsCommand.execute();
         assertFalse(exists);
+    }
+
+    @Test
+    public void existsInHeadRevision() throws Exception {
+
+        List<Instruction> instructions = new LinkedList<Instruction>();
+
+        // Add /a
+        instructions.add(new AddNodeInstructionImpl("/", "a"));
+        Commit commit1 = new CommitImpl("/", "+a : {}", "Add node a",
+                instructions);
+        CommitCommandMongo command = new CommitCommandMongo(mongoConnection,
+                commit1);
+        command.execute();
+
+        // Add /a/b
+        instructions = new LinkedList<Instruction>();
+        instructions.add(new AddNodeInstructionImpl("/a", "b"));
+        Commit commit2 = new CommitImpl("/a", "+b : {}", "Add node a/b",
+                instructions);
+        command = new CommitCommandMongo(mongoConnection, commit2);
+        command.execute();
+
+        // Verify /a is visible in the head revision
+        NodeExistsCommandMongo command2 = new NodeExistsCommandMongo(
+                mongoConnection, "/a", null);
+        boolean exists = command2.execute();
+        assertTrue("The node a is not found in the head revision!", exists);
     }
 
     @Test
@@ -169,66 +196,4 @@ public class NodeExistsCommandMongoTest extends BaseMongoTest {
         exists = command.execute();
         assertTrue(exists);
     }
-
-    @Test
-    @Ignore
-    public void testNodeNotFound() throws Exception {
-
-        // adds nodes /a,/a/b,/a/b/c , checks if node a exists
-        List<Instruction> instructions = new LinkedList<Instruction>();
-
-        // commit node /a
-        instructions.add(new AddNodeInstructionImpl("/", "a"));
-        Commit commit1 = new CommitImpl("/", "+a : {}", "Add node a",
-                instructions);
-        CommitCommandMongo command = new CommitCommandMongo(mongoConnection,
-                commit1);
-        command.execute();
-
-        // commit node /a/b
-        instructions = new LinkedList<Instruction>();
-        instructions.add(new AddNodeInstructionImpl("/a", "b"));
-        Commit commit2 = new CommitImpl("/a", "+b : {}", "Add node a/b",
-                instructions);
-        command = new CommitCommandMongo(mongoConnection, commit2);
-        command.execute();
-
-        // commit node /a/b/c
-        instructions = new LinkedList<Instruction>();
-        instructions.add(new AddNodeInstructionImpl("/a/b", "c"));
-        Commit commit3 = new CommitImpl("a/b", "+c : {}", "Add node a/b/c",
-                instructions);
-        command = new CommitCommandMongo(mongoConnection, commit3);
-        command.execute();
-
-        // verify if node a is visible in the head revision
-        NodeExistsCommandMongo isNodeVisible = new NodeExistsCommandMongo(
-                mongoConnection, "/a", null);
-        boolean exists = isNodeVisible.execute();
-        assertTrue("The node a is not found in the head revision!", exists);
-
-    }
-
-    @Test
-    @Ignore
-    public void testTreeDepth() throws Exception {
-
-        String path = "/";
-        List<Instruction> instructions = new LinkedList<Instruction>();
-
-        for (int i = 0; i < 1000; i++) {
-            instructions.clear();
-            instructions.add(new AddNodeInstructionImpl(path, "N" + i));
-            Commit commit1 = new CommitImpl(path, "+N" + i + " : {}",
-                    "Add node N" + i, instructions);
-            CommitCommandMongo command = new CommitCommandMongo(
-                    mongoConnection, commit1);
-            command.execute();
-            path = (path.endsWith("/")) ? (path = path + "N" + i)
-                    : (path = path + "/N" + i);
-            //System.out.println("*********" + path.length() + "*****");
-        }
-
-    }
-
 }
