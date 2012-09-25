@@ -32,6 +32,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.runners.Parameterized.Parameters;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -94,7 +95,7 @@ public abstract class AbstractMicroKernelIT {
      * @param nodeCount number of nodes that the test cluster should contain
      */
     protected AbstractMicroKernelIT(MicroKernelFixture fixture, int nodeCount) {
-        assert nodeCount > 0;
+        checkArgument(nodeCount > 0);
         this.fixture = fixture;
         this.mks = new MicroKernel[nodeCount];
     }
