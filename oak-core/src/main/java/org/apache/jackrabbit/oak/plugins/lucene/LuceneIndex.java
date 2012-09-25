@@ -178,7 +178,12 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
 
             if (first != null && first.equals(last) && pr.firstIncluding
                     && pr.lastIncluding) {
-                qs.add(new TermQuery(new Term(name, first)));
+                if (org.apache.jackrabbit.oak.query.Query.JCR_PATH.equals(name)) {
+                    qs.add(new TermQuery(newPathTerm(first)));
+                } else {
+                    qs.add(new TermQuery(new Term(name, first)));
+                }
+
             } else {
                 qs.add(TermRangeQuery.newStringRange(name, first, last,
                         pr.firstIncluding, pr.lastIncluding));
