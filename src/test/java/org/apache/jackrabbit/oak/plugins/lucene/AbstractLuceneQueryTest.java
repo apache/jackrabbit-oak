@@ -32,6 +32,8 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.junit.Before;
@@ -62,13 +64,14 @@ public abstract class AbstractLuceneQueryTest extends AbstractOakTest implements
 
     @Override
     protected ContentRepository createRepository() {
-        QueryIndexProvider indexer = new LuceneIndexProvider(DEFAULT_INDEX_HOME);
-        QueryIndexProvider qip = new CompositeQueryIndexProvider(indexer);
-        return new ContentRepositoryImpl(new MicroKernelImpl(), qip,
-                new LuceneHook(DEFAULT_INDEX_HOME));
+        QueryIndexProvider qip = new CompositeQueryIndexProvider(
+                new LuceneIndexProvider(DEFAULT_INDEX_HOME));
+        CommitHook ch = new CompositeHook(new LuceneHook(DEFAULT_INDEX_HOME),
+                new LuceneReindexHook(DEFAULT_INDEX_HOME));
+        return new ContentRepositoryImpl(new MicroKernelImpl(), qip, ch);
     }
 
-    private void createIndexNode() throws Exception {
+    protected void createIndexNode() throws Exception {
         Tree index = root.getTree("/");
         for (String p : PathUtils.elements(DEFAULT_INDEX_HOME)) {
             if (index.hasChild(p)) {

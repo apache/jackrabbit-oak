@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.index.IndexRowImpl;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
@@ -137,29 +138,29 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
         List<Query> qs = new ArrayList<Query>();
 
         String path = filter.getPath();
-        if (path.equals("/")) {
-            path = "";
-        }
         switch (filter.getPathRestriction()) {
         case ALL_CHILDREN:
-            qs.add(new PrefixQuery(newPathTerm(path + "/")));
+            if (!path.endsWith("/")) {
+                path += "/";
+            }
+            qs.add(new PrefixQuery(newPathTerm(path)));
             break;
         case DIRECT_CHILDREN:
             // FIXME
-            qs.add(new PrefixQuery(newPathTerm(path + "/")));
+            if (!path.endsWith("/")) {
+                path += "/";
+            }
+            qs.add(new PrefixQuery(newPathTerm(path)));
             break;
         case EXACT:
             qs.add(new TermQuery(newPathTerm(path)));
             break;
         case PARENT:
-            int slash = path.lastIndexOf('/');
-            if (slash != -1) {
-                String parent = path.substring(0, slash);
-                qs.add(new TermQuery(newPathTerm(parent)));
-            } else {
+            if (PathUtils.denotesRoot(path)) {
                 // there's no parent of the root node
                 return null;
             }
+            qs.add(new TermQuery(newPathTerm(PathUtils.getParentPath(path))));
             break;
         }
 
