@@ -60,6 +60,8 @@ import org.apache.jackrabbit.oak.util.TODO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 public class SessionDelegate {
     static final Logger log = LoggerFactory.getLogger(SessionDelegate.class);
 
@@ -84,12 +86,10 @@ public class SessionDelegate {
             Repository repository, ScheduledExecutorService executor,
             ContentSession contentSession, boolean autoRefresh)
             throws RepositoryException {
-        assert repository != null;
-        assert contentSession != null;
 
-        this.repository = repository;
+        this.repository = checkNotNull(repository);
         this.executor = executor;
-        this.contentSession = contentSession;
+        this.contentSession = checkNotNull(contentSession);
         this.workspace = new WorkspaceImpl(this);
         this.session = new SessionImpl(this);
         this.root = contentSession.getLatestRoot();
