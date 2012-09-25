@@ -53,10 +53,12 @@ public class CommitFailedException extends Exception {
         if (cause instanceof RepositoryException) {
             RepositoryException e;
             try {
+                // Try to preserve all parts of the stack trace
                 e = (RepositoryException) cause.getClass().getConstructor().newInstance();
                 e.initCause(this);
             }
             catch (Exception ex) {
+                // Fall back to the initial cause on failure
                 e = (RepositoryException) cause;
             }
 
