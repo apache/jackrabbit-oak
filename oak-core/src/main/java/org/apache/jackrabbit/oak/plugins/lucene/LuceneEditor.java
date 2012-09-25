@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.lucene;
 
+import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.plugins.lucene.FieldFactory.newPathField;
 import static org.apache.jackrabbit.oak.plugins.lucene.FieldFactory.newPropertyField;
 import static org.apache.jackrabbit.oak.plugins.lucene.TermFactory.newPathTerm;
@@ -77,6 +78,11 @@ class LuceneEditor implements CommitHook, LuceneIndexConstants {
         this.path = split(indexDefinition.getPath(), INDEX_DATA_CHILD_NAME);
     }
 
+    /*
+     * 
+     * If before is null, then the #processCommit call is treated as a full
+     * reindex call
+     */
     @Override
     public NodeState processCommit(NodeStore store, NodeState before,
             NodeState after) throws CommitFailedException {
@@ -91,8 +97,16 @@ class LuceneEditor implements CommitHook, LuceneIndexConstants {
         try {
             IndexWriter writer = new IndexWriter(directory, config);
             try {
-                LuceneDiff diff = new LuceneDiff(writer, "");
-                after.compareAgainstBaseState(before, diff);
+                LuceneDiff diff = new LuceneDiff(writer, "/");
+                if (before != null) {
+                    // normal diff
+                    after.compareAgainstBaseState(before, diff);
+                } else {
+                    // trigger re-indexing
+                    diff.childNodeDeleted("", after);
+                    diff.childNodeAdded("", after);
+                }
+
                 diff.postProcess(after);
                 writer.commit();
             } finally {
@@ -153,10 +167,21 @@ class LuceneEditor implements CommitHook, LuceneIndexConstants {
             }
             if (exception == null) {
                 try {
-                    addSubtree(path + "/" + name, after);
+                    addSubtree(path + name, after);
                 } catch (IOException e) {
                     exception = e;
                 }
+            }
+        }
+
+        private void addSubtree(String path, NodeState state)
+                throws IOException {
+            writer.addDocument(makeDocument(path, state));
+            for (ChildNodeEntry entry : state.getChildNodeEntries()) {
+                if (NodeStateUtils.isHidden(entry.getName())) {
+                    continue;
+                }
+                addSubtree(concat(path, entry.getName()), entry.getNodeState());
             }
         }
 
@@ -168,7 +193,7 @@ class LuceneEditor implements CommitHook, LuceneIndexConstants {
             }
             if (exception == null) {
                 try {
-                    LuceneDiff diff = new LuceneDiff(writer, path + "/" + name);
+                    LuceneDiff diff = new LuceneDiff(writer, path + name);
                     after.compareAgainstBaseState(before, diff);
                     diff.postProcess(after);
                 } catch (IOException e) {
@@ -184,18 +209,10 @@ class LuceneEditor implements CommitHook, LuceneIndexConstants {
             }
             if (exception == null) {
                 try {
-                    deleteSubtree(path + "/" + name, before);
+                    deleteSubtree(path + name, before);
                 } catch (IOException e) {
                     exception = e;
                 }
-            }
-        }
-
-        private void addSubtree(String path, NodeState state)
-                throws IOException {
-            writer.addDocument(makeDocument(path, state));
-            for (ChildNodeEntry entry : state.getChildNodeEntries()) {
-                addSubtree(path + "/" + entry.getName(), entry.getNodeState());
             }
         }
 
@@ -203,7 +220,10 @@ class LuceneEditor implements CommitHook, LuceneIndexConstants {
                 throws IOException {
             writer.deleteDocuments(newPathTerm(path));
             for (ChildNodeEntry entry : state.getChildNodeEntries()) {
-                deleteSubtree(path + "/" + entry.getName(),
+                if (NodeStateUtils.isHidden(entry.getName())) {
+                    continue;
+                }
+                deleteSubtree(concat(path, entry.getName()),
                         entry.getNodeState());
             }
         }
