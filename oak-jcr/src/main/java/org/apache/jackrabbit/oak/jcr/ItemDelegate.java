@@ -25,6 +25,8 @@ import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 /**
  * Abstract base class for {@link NodeDelegate} and {@link PropertyDelegate}
  */
@@ -36,11 +38,8 @@ public abstract class ItemDelegate {
     private TreeLocation location;
 
     ItemDelegate(SessionDelegate sessionDelegate, TreeLocation location) {
-        assert sessionDelegate != null;
-        assert location != null;
-
-        this.sessionDelegate = sessionDelegate;
-        this.location = location;
+        this.sessionDelegate = checkNotNull(sessionDelegate);
+        this.location = checkNotNull(location);
     }
 
     /**

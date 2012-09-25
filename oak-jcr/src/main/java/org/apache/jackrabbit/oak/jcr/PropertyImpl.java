@@ -16,13 +16,12 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import static javax.jcr.PropertyType.UNDEFINED;
-
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+
 import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Binary;
@@ -43,6 +42,9 @@ import org.apache.jackrabbit.oak.jcr.value.ValueConverter;
 import org.apache.jackrabbit.value.ValueHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static javax.jcr.PropertyType.UNDEFINED;
 
 /**
  * {@code PropertyImpl}...
@@ -663,7 +665,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
      * @throws RepositoryException
      */
     private void setValue(Value value, int requiredType) throws RepositoryException {
-        assert (requiredType != PropertyType.UNDEFINED);
+        checkArgument(requiredType != PropertyType.UNDEFINED);
 
         // TODO check again if definition validation should be respected here.
         if (isMultiple()) {
@@ -683,7 +685,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
      * @throws RepositoryException
      */
     private void setValues(Value[] values, int requiredType) throws RepositoryException {
-        assert (requiredType != PropertyType.UNDEFINED);
+        checkArgument(requiredType != PropertyType.UNDEFINED);
 
         // TODO check again if definition validation should be respected here.
         if (!isMultiple()) {
