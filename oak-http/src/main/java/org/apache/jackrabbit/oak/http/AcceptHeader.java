@@ -22,6 +22,8 @@ import java.util.List;
 import org.apache.tika.mime.MediaType;
 import org.apache.tika.mime.MediaTypeRegistry;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 public class AcceptHeader {
 
     private static final MediaTypeRegistry registry =
@@ -44,7 +46,7 @@ public class AcceptHeader {
     }
 
     public Representation resolve(Representation... representations) {
-        assert representations != null && representations.length > 0;
+        checkArgument(representations != null && representations.length > 0);
         int maxIndex = 0;
         double maxQ = 0.0;
         for (int i = 0; i < representations.length; i++) {
