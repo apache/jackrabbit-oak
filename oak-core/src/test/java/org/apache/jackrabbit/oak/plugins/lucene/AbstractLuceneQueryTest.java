@@ -31,7 +31,6 @@ import org.apache.jackrabbit.oak.api.SessionQueryEngine;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
-import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
@@ -82,7 +81,7 @@ public abstract class AbstractLuceneQueryTest extends AbstractOakTest implements
         }
         index.addChild("test-lucene").setProperty("type",
                 vf.createValue("lucene"));
-        root.commit(DefaultConflictHandler.OURS);
+        root.commit();
     }
 
     protected Result executeQuery(String statement) throws ParseException {

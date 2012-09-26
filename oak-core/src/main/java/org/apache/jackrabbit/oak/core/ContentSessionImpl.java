@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.api.SessionQueryEngine;
 import org.apache.jackrabbit.oak.plugins.type.BuiltInNodeTypes;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
 import org.apache.jackrabbit.oak.query.SessionQueryEngineImpl;
+import org.apache.jackrabbit.oak.spi.commit.ConflictHandlerProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,16 +48,18 @@ class ContentSessionImpl implements ContentSession {
     private final LoginContext loginContext;
     private final String workspaceName;
     private final NodeStore store;
+    private final ConflictHandlerProvider conflictHandlerProvider;
     private final SessionQueryEngine queryEngine;
 
     private boolean initialised;
 
     public ContentSessionImpl(LoginContext loginContext, String workspaceName,
-                              NodeStore store, QueryEngineImpl queryEngine) {
-
+            NodeStore store, ConflictHandlerProvider conflictHandlerProvider,
+            QueryEngineImpl queryEngine) {
         this.loginContext = loginContext;
         this.workspaceName = workspaceName;
         this.store = store;
+        this.conflictHandlerProvider = conflictHandlerProvider;
         this.queryEngine = new SessionQueryEngineImpl(this, checkNotNull(queryEngine));
     }
 
@@ -82,7 +85,11 @@ class ContentSessionImpl implements ContentSession {
             }
         }
 
-        return new RootImpl(store, workspaceName, loginContext.getSubject());
+        RootImpl root = new RootImpl(store, workspaceName, loginContext.getSubject());
+        if (conflictHandlerProvider != null) {
+            root.setConflictHandler(conflictHandlerProvider.getConflictHandler(getCoreValueFactory()));
+        }
+        return root;
     }
 
     @Override

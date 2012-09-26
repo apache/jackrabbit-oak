@@ -69,7 +69,6 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
 import org.apache.jackrabbit.oak.jcr.value.ValueConverter;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants;
@@ -1225,7 +1224,7 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
             }
             tree.setProperty(lockOwner, factory.createValue(userID));
             tree.setProperty(lockIsDeep, factory.createValue(isDeep));
-            root.commit(DefaultConflictHandler.OURS); // TODO: fail instead?
+            root.commit(); // TODO: fail instead?
         } catch (CommitFailedException e) {
             throw new RepositoryException("Unable to lock " + this, e);
         }
@@ -1298,7 +1297,7 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
             }
             tree.removeProperty(lockOwner);
             tree.removeProperty(lockIsDeep);
-            root.commit(DefaultConflictHandler.OURS);
+            root.commit();
         } catch (CommitFailedException e) {
             throw new RepositoryException("Unable to unlock " + this, e);
         }

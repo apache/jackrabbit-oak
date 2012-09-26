@@ -42,7 +42,7 @@ public interface Root {
      * </ul>
      * If a tree at {@code destinationPath} exists but is not accessible to the
      * editing content session this method succeeds but a subsequent
-     * {@link #commit(ConflictHandler)} will detect the violation and fail.
+     * {@link #commit()} will detect the violation and fail.
      *
      * @param sourcePath The source path
      * @param destPath The destination path
@@ -62,7 +62,7 @@ public interface Root {
      * </ul>
      * If a tree at {@code destinationPath} exists but is not accessible to the
      * editing content session this method succeeds but a subsequent
-     * {@link #commit(ConflictHandler)} will detect the violation and fail.
+     * {@link #commit()} will detect the violation and fail.
      *
      * @param sourcePath source path
      * @param destPath destination path
@@ -94,10 +94,8 @@ public interface Root {
      * Rebase this root instance to the latest revision. After a call to this method,
      * all trees obtained through {@link #getTree(String)} become invalid and fresh
      * instances must be obtained.
-     *
-     * @param conflictHandler A {@link ConflictHandler} for resolving conflicts.
      */
-    void rebase(ConflictHandler conflictHandler);
+    void rebase();
 
     /**
      * Reverts all changes made to this root and refreshed to the latest trunk.
@@ -112,10 +110,9 @@ public interface Root {
      * all trees obtained through {@link #getTree(String)} become invalid and fresh
      * instances must be obtained.
      *
-     * @param conflictHandler  {@link ConflictHandler} for resolving conflicts.
      * @throws CommitFailedException
      */
-    void commit(ConflictHandler conflictHandler) throws CommitFailedException;
+    void commit() throws CommitFailedException;
 
     /**
      * Determine whether there are changes on this tree

@@ -29,11 +29,13 @@ import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
+import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandlerProvider;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
 import org.apache.jackrabbit.oak.security.authentication.LoginContextProviderImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
+import org.apache.jackrabbit.oak.spi.commit.ConflictHandlerProvider;
 import org.apache.jackrabbit.oak.spi.commit.ValidatingHook;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
@@ -55,8 +57,10 @@ public class ContentRepositoryImpl implements ContentRepository {
     // TODO: retrieve default wsp-name from configuration
     private static final String DEFAULT_WORKSPACE_NAME = "default";
 
-    private final LoginContextProvider loginContextProvider;
+    private static final ConflictHandlerProvider DEFAULT_CONFLICT_HANDLER_PROVIDER =
+            new AnnotatingConflictHandlerProvider();
 
+    private final LoginContextProvider loginContextProvider;
     private final QueryEngineImpl queryEngine;
     private final KernelNodeStore nodeStore;
 
@@ -156,6 +160,7 @@ public class ContentRepositoryImpl implements ContentRepository {
         LoginContext loginContext = loginContextProvider.getLoginContext(credentials, workspaceName);
         loginContext.login();
 
-        return new ContentSessionImpl(loginContext, workspaceName, nodeStore, queryEngine);
+        return new ContentSessionImpl(loginContext, workspaceName, nodeStore, DEFAULT_CONFLICT_HANDLER_PROVIDER,
+                queryEngine);
     }
 }
