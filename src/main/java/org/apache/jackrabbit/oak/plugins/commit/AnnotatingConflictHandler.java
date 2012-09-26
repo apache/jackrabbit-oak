@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.value;
+package org.apache.jackrabbit.oak.plugins.commit;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.jcr.PropertyType;
 
-import org.apache.jackrabbit.oak.api.ConflictHandler;
+import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;

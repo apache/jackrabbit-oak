@@ -27,6 +27,7 @@ import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Map;
+
 import javax.annotation.CheckForNull;
 import javax.jcr.Credentials;
 import javax.jcr.SimpleCredentials;
@@ -39,7 +40,6 @@ import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
 import org.apache.jackrabbit.oak.spi.security.user.PasswordUtility;
 import org.apache.jackrabbit.oak.spi.security.user.Type;
 import org.apache.jackrabbit.oak.spi.security.user.UserContext;
@@ -140,7 +140,7 @@ public class TokenProviderImpl implements TokenProvider {
                             tokenNode.setString(name, attr);
                         }
                     }
-                    root.commit(DefaultConflictHandler.OURS);
+                    root.commit();
 
                     // also set the new token to the simple credentials.
                     sc.setAttribute(TOKEN_ATTRIBUTE, token);
@@ -180,7 +180,7 @@ public class TokenProviderImpl implements TokenProvider {
         if (tokenTree != null) {
             try {
                 if (tokenTree.remove()) {
-                    root.commit(DefaultConflictHandler.OURS);
+                    root.commit();
                     return true;
                 }
             } catch (CommitFailedException e) {
@@ -200,7 +200,7 @@ public class TokenProviderImpl implements TokenProvider {
                 long expirationTime = loginTime + tokenExpiration;
                 try {
                     tokenNode.setDate(TOKEN_ATTRIBUTE_EXPIRY, expirationTime);
-                    root.commit(DefaultConflictHandler.OURS);
+                    root.commit();
                     return true;
                 } catch (CommitFailedException e) {
                     log.warn("Error while resetting token expiration", e.getMessage());

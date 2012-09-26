@@ -28,7 +28,8 @@ import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.oak.api.ChangeExtractor;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.ConflictHandler;
+import org.apache.jackrabbit.oak.plugins.commit.DefaultConflictHandler;
+import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.security.authorization.AccessControlContextImpl;
@@ -83,6 +84,8 @@ public class RootImpl implements Root {
      */
     private List<PurgeListener> purgePurgeListeners = new ArrayList<PurgeListener>();
 
+    private volatile ConflictHandler conflictHandler = DefaultConflictHandler.OURS;
+
     /**
      * Purge listener.
      * @see #purgePurgeListeners
@@ -102,6 +105,14 @@ public class RootImpl implements Root {
         this.store = store;
         this.subject = subject;
         refresh();
+    }
+
+    public void setConflictHandler(ConflictHandler conflictHandler) {
+        this.conflictHandler = conflictHandler;
+    }
+
+    public ConflictHandler getConflictHandler() {
+        return conflictHandler;
     }
 
     //---------------------------------------------------------------< Root >---
@@ -144,7 +155,7 @@ public class RootImpl implements Root {
     }
 
     @Override
-    public void rebase(ConflictHandler conflictHandler) {
+    public void rebase() {
         if (!store.getRoot().equals(rootTree.getBaseState())) {
             purgePendingChanges();
             NodeState base = getBaseState();
@@ -161,8 +172,8 @@ public class RootImpl implements Root {
     }
 
     @Override
-    public void commit(ConflictHandler conflictHandler) throws CommitFailedException {
-        rebase(conflictHandler);
+    public void commit() throws CommitFailedException {
+        rebase();
         purgePendingChanges();
         CommitFailedException exception = Subject.doAs(
                 getCombinedSubject(), new PrivilegedAction<CommitFailedException>() {

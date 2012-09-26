@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.AbstractOakTest;
@@ -30,7 +31,6 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
-import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
 import org.apache.jackrabbit.oak.plugins.unique.UniqueIndexHook;
 import org.apache.jackrabbit.oak.spi.security.user.Type;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
@@ -223,7 +223,7 @@ public class UserProviderImplTest extends AbstractOakTest {
         for (String uid : colliding.keySet()) {
             try {
                 Tree c = userProvider.createUser(uid, colliding.get(uid));
-                root.commit(DefaultConflictHandler.OURS);
+                root.commit();
                 fail("userID collision must be detected");
             } catch (CommitFailedException e) {
                 // success
@@ -233,7 +233,7 @@ public class UserProviderImplTest extends AbstractOakTest {
         for (String uid : colliding.keySet()) {
             try {
                 Tree c = userProvider.createGroup(uid, colliding.get(uid));
-                root.commit(DefaultConflictHandler.OURS);
+                root.commit();
                 fail("userID collision must be detected");
             } catch (CommitFailedException e) {
                 // success
@@ -253,7 +253,7 @@ public class UserProviderImplTest extends AbstractOakTest {
 
         for (String uid : m.keySet()) {
             Tree user = userProvider.createUser(uid, null);
-            root.commit(DefaultConflictHandler.OURS);
+            root.commit();
 
             assertEquals(defaultUserPath + m.get(uid), user.getPath());
             assertEquals(uid, userProvider.getAuthorizableId(user));
@@ -272,7 +272,7 @@ public class UserProviderImplTest extends AbstractOakTest {
 
         Tree user = up.createUser(userID, null);
         Tree group = up.createGroup(groupID, null);
-        root.commit(DefaultConflictHandler.OURS);
+        root.commit();
 
         Tree a = up.getAuthorizable(userID);
         assertNotNull(a);
@@ -289,7 +289,7 @@ public class UserProviderImplTest extends AbstractOakTest {
 
         String userID = "thabit";
         Tree user = up.createUser(userID, null);
-        root.commit(DefaultConflictHandler.OURS);
+        root.commit();
 
         Tree a = up.getAuthorizable(userID, Type.USER);
         assertNotNull(a);
@@ -300,7 +300,7 @@ public class UserProviderImplTest extends AbstractOakTest {
 
         String groupID = "hr";
         Tree group = up.createGroup(groupID, null);
-        root.commit(DefaultConflictHandler.OURS);
+        root.commit();
 
         Tree g = up.getAuthorizable(groupID, Type.GROUP);
         assertNotNull(a);
