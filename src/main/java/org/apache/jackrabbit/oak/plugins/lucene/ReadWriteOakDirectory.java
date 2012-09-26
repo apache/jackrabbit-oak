@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.lucene;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 
-import org.apache.jackrabbit.oak.api.CoreValueFactory;
+import org.apache.jackrabbit.oak.plugins.memory.BinaryValue;
+import org.apache.jackrabbit.oak.plugins.memory.LongValue;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.IOContext;
@@ -31,12 +31,8 @@ import org.apache.lucene.store.IndexOutput;
  */
 public class ReadWriteOakDirectory extends ReadOnlyOakDirectory {
 
-    private final CoreValueFactory factory;
-
-    public ReadWriteOakDirectory(NodeBuilder directoryBuilder,
-            CoreValueFactory vf) {
+    public ReadWriteOakDirectory(NodeBuilder directoryBuilder) {
         super(directoryBuilder);
-        this.factory = vf;
     }
 
     @Override
@@ -110,10 +106,10 @@ public class ReadWriteOakDirectory extends ReadOnlyOakDirectory {
             }
 
             NodeBuilder fileBuilder = directoryBuilder.getChildBuilder(name);
-            fileBuilder.setProperty("jcr:lastModified",
-                    factory.createValue(System.currentTimeMillis()));
-            fileBuilder.setProperty("jcr:data",
-                    factory.createValue(new ByteArrayInputStream(data)));
+            fileBuilder.setProperty(
+                    "jcr:lastModified",
+                    new LongValue(System.currentTimeMillis()));
+            fileBuilder.setProperty("jcr:data", new BinaryValue(data));
         }
 
         @Override

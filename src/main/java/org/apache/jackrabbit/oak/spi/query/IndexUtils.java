@@ -136,7 +136,7 @@ public class IndexUtils {
 
     public static NodeBuilder getChildBuilder(NodeStore store, NodeState state,
             String path) {
-        NodeBuilder builder = store.getBuilder(state);
+        NodeBuilder builder = state.getBuilder();
         for (String p : PathUtils.elements(path)) {
             builder = builder.getChildBuilder(p);
         }

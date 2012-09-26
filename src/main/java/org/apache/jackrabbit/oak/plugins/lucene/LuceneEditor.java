@@ -36,7 +36,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
@@ -84,15 +83,14 @@ class LuceneEditor implements CommitHook, LuceneIndexConstants {
      * reindex call
      */
     @Override
-    public NodeState processCommit(NodeStore store, NodeState before,
-            NodeState after) throws CommitFailedException {
-        NodeBuilder rootBuilder = store.getBuilder(after);
+    public NodeState processCommit(NodeState before, NodeState after)
+            throws CommitFailedException {
+        NodeBuilder rootBuilder = after.getBuilder();
         NodeBuilder builder = rootBuilder;
         for (String name : path) {
             builder = builder.getChildBuilder(name);
         }
-        Directory directory = new ReadWriteOakDirectory(builder,
-                store.getValueFactory());
+        Directory directory = new ReadWriteOakDirectory(builder);
 
         try {
             IndexWriter writer = new IndexWriter(directory, config);

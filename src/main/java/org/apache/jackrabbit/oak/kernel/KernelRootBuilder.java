@@ -85,6 +85,7 @@ class KernelRootBuilder extends MemoryNodeBuilder {
         private final Set<String> deleted;
 
         public CopyAndMoveAwareJsopDiff() {
+            super(kernel);
             added = Maps.newHashMap();
             deleted = Sets.newHashSet();
         }
@@ -92,7 +93,7 @@ class KernelRootBuilder extends MemoryNodeBuilder {
         private CopyAndMoveAwareJsopDiff(
                 JsopBuilder jsop, String path,
                 Map<String, NodeState> added, Set<String> deleted) {
-            super(jsop, path);
+            super(kernel, jsop, path);
             this.added = added;
             this.deleted = deleted;
         }
@@ -114,7 +115,7 @@ class KernelRootBuilder extends MemoryNodeBuilder {
 
                 if (state != kstate) {
                     state.compareAgainstBaseState(
-                            kstate, new JsopDiff(jsop, path));
+                            kstate, new JsopDiff(kernel, jsop, path));
                 }
             }
 
