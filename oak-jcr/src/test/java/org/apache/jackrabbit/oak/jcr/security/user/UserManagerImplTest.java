@@ -54,6 +54,30 @@ public class UserManagerImplTest extends AbstractUserTest {
     }
 
     @Test
+    public void testGetNewAuthorizable() throws RepositoryException, NotExecutableException {
+        String uid = "testGetNewAuthorizable";
+        User user = userMgr.createUser(uid, uid);
+
+        assertEquals(uid, user.getID());
+        assertNotNull(userMgr.getAuthorizable(uid));
+        assertEquals(user,  userMgr.getAuthorizable(uid));
+
+        assertNotNull(((UserImpl) user).getTree());
+    }
+
+    public void testGetAuthorizable() throws RepositoryException, NotExecutableException {
+        String uid = "testGetNewAuthorizable";
+        User user = userMgr.createUser(uid, uid);
+        superuser.save();
+
+        assertEquals(uid, user.getID());
+        assertNotNull(userMgr.getAuthorizable(uid));
+        assertEquals(user,  userMgr.getAuthorizable(uid));
+
+        assertNotNull(((UserImpl) user).getTree());
+    }
+
+    @Test
     public void testGetAuthorizableByPath() throws RepositoryException, NotExecutableException {
         String uid = superuser.getUserID();
         Authorizable a = userMgr.getAuthorizable(uid);
@@ -728,7 +752,7 @@ public class UserManagerImplTest extends AbstractUserTest {
 
     @Test
     public void testEnforceAuthorizableFolderHierarchy() throws RepositoryException {
-        Authorizable auth = userMgr.getAuthorizable(superuser.getUserID());
+        Authorizable auth = userMgr.getAuthorizable(user.getID());
         Node userNode = superuser.getNode(auth.getPath());
 
         Node folder = userNode.addNode("folder", UserConstants.NT_REP_AUTHORIZABLE_FOLDER);
@@ -739,6 +763,8 @@ public class UserManagerImplTest extends AbstractUserTest {
             try {
                 Principal p = getTestPrincipal();
                 a = userMgr.createUser(p.getName(), p.getName(), p, path);
+                superuser.save();
+
                 fail("Users may not be nested.");
             } catch (RepositoryException e) {
                 // success
@@ -748,6 +774,7 @@ public class UserManagerImplTest extends AbstractUserTest {
                 }
             }
         } finally {
+            superuser.refresh(false);
             if (superuser.nodeExists(path)) {
                 folder.remove();
                 superuser.save();
@@ -762,6 +789,8 @@ public class UserManagerImplTest extends AbstractUserTest {
             try {
                 Principal p = getTestPrincipal();
                 a = userMgr.createUser(p.getName(), p.getName(), p, someContent.getPath());
+                superuser.save();
+
                 fail("Users may not be nested.");
             } catch (RepositoryException e) {
                 // success
@@ -781,6 +810,8 @@ public class UserManagerImplTest extends AbstractUserTest {
             try {
                 Principal p = getTestPrincipal();
                 a = userMgr.createUser(p.getName(), p.getName(), p, folder.getPath());
+                superuser.save();
+
                 fail("Users may not be nested.");
             } catch (RepositoryException e) {
                 // success
@@ -812,13 +843,33 @@ public class UserManagerImplTest extends AbstractUserTest {
                 User user = userMgr.createUser(uid, "pw", p, path);
                 superuser.save();
 
-                fail("intermediate path may not point outside of the user tree.");
+                fail("intermediate path '"+ path +"' outside of the user tree.");
                 user.remove();
                 superuser.save();
 
             } catch (Exception e) {
                 // success
                 assertNull(userMgr.getAuthorizable(uid));
+            } finally {
+                superuser.refresh(false);
+            }
+        }
+    }
+
+    @Test
+    public void testCreateWithAbsoluteIntermediatePath() throws Exception {
+        Principal p = getTestPrincipal();
+        String uid = p.getName();
+
+        User test = null;
+        try {
+            test = userMgr.createUser(uid, "pw", p, UserConstants.DEFAULT_USER_PATH + "/test");
+            superuser.save();
+            assertTrue(test.getPath().startsWith(UserConstants.DEFAULT_USER_PATH + "/test"));
+        } finally {
+            if (test != null) {
+                test.remove();
+                superuser.save();
             }
         }
     }

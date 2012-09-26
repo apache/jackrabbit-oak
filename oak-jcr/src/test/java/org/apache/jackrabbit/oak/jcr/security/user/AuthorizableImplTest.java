@@ -16,14 +16,12 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.user;
 
-import org.apache.jackrabbit.api.security.user.Authorizable;
-import org.apache.jackrabbit.api.security.user.Group;
-import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.apache.jackrabbit.test.NotExecutableException;
-import org.apache.jackrabbit.value.StringValue;
-import org.junit.Test;
-
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.PropertyIterator;
@@ -33,12 +31,14 @@ import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Value;
 import javax.jcr.nodetype.ConstraintViolationException;
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
+
+import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.apache.jackrabbit.test.NotExecutableException;
+import org.apache.jackrabbit.value.StringValue;
+import org.junit.Test;
 
 /**
  * AuthorizableImplTest...
@@ -65,10 +65,13 @@ public class AuthorizableImplTest extends AbstractUserTest {
     }
 
     @Test
-    public void testRemoveAdmin() {
+    public void testRemoveAdmin() throws NotExecutableException {
         String adminID = superuser.getUserID();
         try {
             Authorizable admin = userMgr.getAuthorizable(adminID);
+            if (admin == null) {
+                throw new NotExecutableException("Admin user does not exist");
+            }
             admin.remove();
             fail("The admin user cannot be removed.");
         } catch (RepositoryException e) {
@@ -87,6 +90,8 @@ public class AuthorizableImplTest extends AbstractUserTest {
                 fail("changing the '" + pName + "' property on a User should fail.");
             } catch (RepositoryException e) {
                 // success
+            } finally {
+                superuser.refresh(false);
             }
         }
 
@@ -97,6 +102,8 @@ public class AuthorizableImplTest extends AbstractUserTest {
                 fail("changing the '" + pName + "' property on a Group should fail.");
             } catch (RepositoryException e) {
                 // success
+            } finally {
+                superuser.refresh(false);
             }
         }
     }
@@ -110,6 +117,8 @@ public class AuthorizableImplTest extends AbstractUserTest {
                 fail("removing the '" + pName + "' property on a User should fail.");
             } catch (RepositoryException e) {
                 // success
+            } finally {
+                superuser.refresh(false);
             }
         }
         for (String pName : protectedGroupProps) {
@@ -119,6 +128,8 @@ public class AuthorizableImplTest extends AbstractUserTest {
                 fail("removing the '" + pName + "' property on a Group should fail.");
             } catch (RepositoryException e) {
                 // success
+            } finally {
+                superuser.refresh(false);
             }
         }
     }
@@ -128,7 +139,9 @@ public class AuthorizableImplTest extends AbstractUserTest {
         UserImpl user = (UserImpl) getTestUser(superuser);
         Node n = user.getNode();
 
-        checkProtected(n.getProperty(UserConstants.REP_PASSWORD));
+        if (n.hasProperty(UserConstants.REP_PASSWORD)) {
+            checkProtected(n.getProperty(UserConstants.REP_PASSWORD));
+        }
         if (n.hasProperty(UserConstants.REP_PRINCIPAL_NAME)) {
             checkProtected(n.getProperty(UserConstants.REP_PRINCIPAL_NAME));
         }
