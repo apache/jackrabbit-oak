@@ -297,7 +297,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
 
     @Test
     public void snapshotIsolation() {
-        final int NUM_COMMITS = 1000;
+        final int NUM_COMMITS = 100;
 
         String[] revs = new String[NUM_COMMITS];
 
@@ -1025,16 +1025,21 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
     }
 
     @Test
-    public void testBlobs() {
-        // test with small blobs
-        testBlobs(1234);
-        // test with medium sized blobs
-        testBlobs(1234567);
-        // test with large blobs
-        testBlobs(32 * 1024 * 1024);
+    public void testSmallBlob() {
+        testBlobs(1234, 8 * 1024);
     }
 
-    private void testBlobs(int size) {
+    @Test
+    public void testMediumBlob() {
+        testBlobs(1234567, 8 * 1024);
+    }
+
+    @Test
+    public void testLargeBlob() {
+        testBlobs(32 * 1024 * 1024, 1024 * 1024);
+    }
+
+    private void testBlobs(int size, int bufferSize) {
         // write data
         TestInputStream in = new TestInputStream(size);
         String id = mk.write(in);
@@ -1054,7 +1059,8 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
 
         // verify data
         InputStream in1 = new TestInputStream(size);
-        InputStream in2 = new BufferedInputStream(new MicroKernelInputStream(mk, id));
+        InputStream in2 = new BufferedInputStream(
+                new MicroKernelInputStream(mk, id), bufferSize);
         try {
             while (true) {
                 int x = in1.read();

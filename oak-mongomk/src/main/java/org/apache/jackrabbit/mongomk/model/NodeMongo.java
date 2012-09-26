@@ -255,16 +255,16 @@ public class NodeMongo extends BasicDBObject {
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append(super.toString());
-        sb.append(" internal props: ");
-        sb.append("AddedChildren = ");
+        sb.deleteCharAt(sb.length() - 1);
+        sb.append(", addedChildren : ");
         sb.append(addedChildren);
-        sb.append(", RemovedChildren = ");
+        sb.append(", removedChildren : ");
         sb.append(removedChildren);
-        sb.append(", AddedProps = ");
+        sb.append(", addedProps : ");
         sb.append(addedProps);
-        sb.append(", RemovedProps = ");
+        sb.append(", removedProps : ");
         sb.append(removedProps);
-
+        sb.append(" }");
         return sb.toString();
     }
 }

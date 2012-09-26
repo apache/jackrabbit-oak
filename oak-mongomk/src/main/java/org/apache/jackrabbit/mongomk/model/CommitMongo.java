@@ -86,7 +86,7 @@ public class CommitMongo extends BasicDBObject {
 
     @SuppressWarnings("unchecked")
     public List<String> getAffectedPaths() {
-        return (List<String>) this.get(KEY_AFFECTED_PATH);
+        return (List<String>) get(KEY_AFFECTED_PATH);
     }
 
     public long getBaseRevisionId() {
@@ -110,7 +110,7 @@ public class CommitMongo extends BasicDBObject {
     }
 
     public boolean hasFailed() {
-        return this.getBoolean(KEY_FAILED);
+        return getBoolean(KEY_FAILED);
     }
 
     public void setAffectedPaths(List<String> affectedPaths) {
@@ -142,7 +142,7 @@ public class CommitMongo extends BasicDBObject {
     }
 
     public void setRevisionId(String revisionId) {
-        this.setRevisionId(MongoUtil.toMongoRepresentation(revisionId));
+        setRevisionId(MongoUtil.toMongoRepresentation(revisionId));
     }
 
     public void setTimestamp(long timestamp) {
