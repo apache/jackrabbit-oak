@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.jcr.security.user;
 
 import java.util.Iterator;
-import javax.annotation.Nullable;
 import javax.jcr.RangeIterator;
 import javax.jcr.RepositoryException;
 
@@ -103,7 +102,7 @@ class AuthorizableIterator implements Iterator {
         }
 
         @Override
-        public Authorizable apply(@Nullable String oakPath) {
+        public Authorizable apply(String oakPath) {
             String jcrPath = userManager.getNamePathMapper().getJcrPath(oakPath);
             try {
                 Authorizable a = userManager.getAuthorizableByPath(jcrPath);
@@ -126,7 +125,7 @@ class AuthorizableIterator implements Iterator {
         }
 
         @Override
-        public Authorizable apply(@Nullable Tree authorizableTree) {
+        public Authorizable apply(Tree authorizableTree) {
             try {
                 return userManager.getAuthorizable(authorizableTree);
             } catch (RepositoryException e) {
