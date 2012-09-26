@@ -17,8 +17,6 @@
 package org.apache.jackrabbit.oak.spi.commit;
 
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
-
 
 /**
  * Basic content change observer that doesn't do anything. Useful as a
@@ -33,8 +31,7 @@ public class EmptyObserver implements Observer {
     public static final EmptyObserver INSTANCE = new EmptyObserver();
 
     @Override
-    public void contentChanged(
-            NodeStore store, NodeState before, NodeState after) {
+    public void contentChanged(NodeState before, NodeState after) {
         // do nothing
     }
 
