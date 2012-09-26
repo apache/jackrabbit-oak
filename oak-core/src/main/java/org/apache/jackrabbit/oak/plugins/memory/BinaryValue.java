@@ -21,7 +21,7 @@ import java.io.InputStream;
 
 import javax.jcr.PropertyType;
 
-final class BinaryValue extends MemoryValue {
+public final class BinaryValue extends MemoryValue {
 
     private final byte[] value;
 

@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.spi.commit;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
  * Basic commit hook implementation that by default doesn't do anything.
@@ -43,8 +42,7 @@ public class EmptyHook implements CommitHook {
     public static final CommitHook INSTANCE = new EmptyHook();
 
     @Override
-    public NodeState processCommit(
-            NodeStore store, NodeState before, NodeState after)
+    public NodeState processCommit(NodeState before, NodeState after)
             throws CommitFailedException {
         return after;
     }

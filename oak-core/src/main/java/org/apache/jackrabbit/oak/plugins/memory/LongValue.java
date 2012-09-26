@@ -20,7 +20,7 @@ import java.math.BigDecimal;
 
 import javax.jcr.PropertyType;
 
-final class LongValue extends MemoryValue {
+public final class LongValue extends MemoryValue {
 
     private final long value;
 

@@ -23,7 +23,6 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 import static org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState.EMPTY_NODE;
 
@@ -68,8 +67,7 @@ public class ValidatingHook implements CommitHook {
     }
 
     @Override
-    public NodeState processCommit(
-            NodeStore store, NodeState before, NodeState after)
+    public NodeState processCommit(NodeState before, NodeState after)
             throws CommitFailedException {
         Validator validator = validatorProvider.getRootValidator(before, after);
         ValidatorDiff.validate(validator, before, after);

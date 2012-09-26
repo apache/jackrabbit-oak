@@ -44,8 +44,8 @@ public class PropertyIndexer implements QueryIndexProvider, CommitHook,
     }
 
     @Override
-    public NodeState processCommit(NodeStore store, NodeState before,
-            NodeState after) throws CommitFailedException {
+    public NodeState processCommit(NodeState before, NodeState after)
+            throws CommitFailedException {
         // TODO update index data see OAK-298
         return after;
     }

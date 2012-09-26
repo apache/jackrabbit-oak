@@ -25,7 +25,6 @@ import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.query.IndexDefinition;
 import org.apache.jackrabbit.oak.spi.query.IndexUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,8 +54,8 @@ public class LuceneReindexHook implements CommitHook, LuceneIndexConstants {
     }
 
     @Override
-    public NodeState processCommit(NodeStore store, NodeState before,
-            NodeState after) throws CommitFailedException {
+    public NodeState processCommit(NodeState before, NodeState after)
+            throws CommitFailedException {
 
         List<IndexDefinition> defsBefore = IndexUtils.buildIndexDefinitions(
                 before, indexConfigPath, TYPE);
@@ -85,8 +84,7 @@ public class LuceneReindexHook implements CommitHook, LuceneIndexConstants {
         if (hooks.isEmpty()) {
             return after;
         }
-        NodeState done = new CompositeHook(hooks).processCommit(store, null,
-                after);
+        NodeState done = new CompositeHook(hooks).processCommit(null, after);
         LOG.debug("done reindexing repository content in {} ms.",
                 System.currentTimeMillis() - t);
         return done;

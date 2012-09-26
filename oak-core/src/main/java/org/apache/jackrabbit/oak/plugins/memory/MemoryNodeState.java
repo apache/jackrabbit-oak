@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.memory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
@@ -93,6 +94,11 @@ public class MemoryNodeState extends AbstractNodeState {
     @Override
     public Iterable<ChildNodeEntry> getChildNodeEntries() {
         return MemoryChildNodeEntry.iterable(nodes.entrySet());
+    }
+
+    @Override
+    public NodeBuilder getBuilder() {
+        return new MemoryNodeBuilder(this);
     }
 
     /**
