@@ -24,7 +24,8 @@ import java.util.Set;
 import org.apache.jackrabbit.mongomk.MongoConnection;
 import org.apache.jackrabbit.mongomk.model.NodeMongo;
 import org.apache.jackrabbit.mongomk.util.MongoUtil;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
@@ -37,7 +38,9 @@ import com.mongodb.QueryBuilder;
  * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 public class FetchNodesForRevisionQuery extends AbstractQuery<List<NodeMongo>> {
-    private static final Logger LOG = Logger.getLogger(FetchNodesForRevisionQuery.class);
+
+    private static final Logger LOG = LoggerFactory.getLogger(FetchNodesForRevisionQuery.class);
+
     private final Set<String> paths;
     private final String revisionId;
 
