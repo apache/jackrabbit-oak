@@ -26,7 +26,8 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>0.5-SNAPSHOT</version>
+    <version>0.6-SNAPSHOT</version>
+    <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
   <artifactId>oak-mongomk</artifactId>
@@ -50,9 +51,9 @@
 
     <!-- Logging -->
     <dependency>
-      <groupId>log4j</groupId>
-      <artifactId>log4j</artifactId>
-      <version>1.2.16</version>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <version>1.6.4</version>
     </dependency>
 
     <!-- Other -->
@@ -83,6 +84,12 @@
       <artifactId>easymock</artifactId>
       <version>3.1</version>
       <scope>test</scope>
+    </dependency>
+    <dependency>
+        <groupId>ch.qos.logback</groupId>
+        <artifactId>logback-classic</artifactId>
+        <version>1.0.1</version>
+        <scope>test</scope>
     </dependency>
 
   </dependencies>

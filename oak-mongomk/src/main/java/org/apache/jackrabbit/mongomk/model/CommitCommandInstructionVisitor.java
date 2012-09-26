@@ -50,18 +50,14 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
 
     @Override
     public void visit(AddNodeInstruction instruction) {
-// Old code
-//        String path = instruction.getPath();
-//        getStagedNode(path);
-//        if (!PathUtils.denotesRoot(path)) {
-//            String parentPath = PathUtils.getParentPath(path);
-//            NodeMongo parentNode = getStagedNode(parentPath);
-//            parentNode.addChild(PathUtils.getName(path));
-//        }
-
         String path = instruction.getPath();
         getStagedNode(path);
+
         String nodeName = PathUtils.getName(path);
+        if (nodeName.isEmpty()) {
+            return;
+        }
+
         String parentNodePath = PathUtils.getParentPath(path);
         NodeMongo parent = null;
         if (!PathUtils.denotesRoot(parentNodePath)) {
@@ -213,8 +209,11 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
     public void visit(RemoveNodeInstruction instruction) {
         String path = instruction.getPath();
         String parentPath = PathUtils.getParentPath(path);
-        NodeMongo parentNode = getStagedNode(parentPath);
-        // [Mete] What if there is no such child?
+        NodeMongo parentNode = getStoredNode(parentPath);
+        String childName = PathUtils.getName(path);
+        if (!parentNode.childExists(childName)) {
+            throw new RuntimeException(path);
+        }
         parentNode.removeChild(PathUtils.getName(path));
     }
 

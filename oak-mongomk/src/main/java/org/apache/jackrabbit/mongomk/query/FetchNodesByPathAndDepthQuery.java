@@ -22,7 +22,8 @@ import java.util.regex.Pattern;
 import org.apache.jackrabbit.mongomk.MongoConnection;
 import org.apache.jackrabbit.mongomk.model.NodeMongo;
 import org.apache.jackrabbit.mongomk.util.MongoUtil;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
@@ -35,7 +36,9 @@ import com.mongodb.QueryBuilder;
  * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 public class FetchNodesByPathAndDepthQuery extends AbstractQuery<List<NodeMongo>> {
-    private static final Logger LOG = Logger.getLogger(FetchNodesByPathAndDepthQuery.class);
+
+    private static final Logger LOG = LoggerFactory.getLogger(FetchNodesByPathAndDepthQuery.class);
+
     private final int depth;
     private final String path;
     private final String revisionId;

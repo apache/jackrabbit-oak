@@ -22,7 +22,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.jackrabbit.mongomk.model.NodeMongo;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.mongodb.DBCursor;
 
@@ -33,7 +34,7 @@ import com.mongodb.DBCursor;
  */
 public class QueryUtils {
 
-    private static final Logger LOG = Logger.getLogger(QueryUtils.class);
+    private static final Logger LOG = LoggerFactory.getLogger(QueryUtils.class);
 
     /**
      * Reads nodes from the given {@link DBCursor} and add them to the returned list if their revision id is contained

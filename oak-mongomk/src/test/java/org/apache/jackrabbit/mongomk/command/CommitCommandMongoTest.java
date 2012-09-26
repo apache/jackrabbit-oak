@@ -32,6 +32,7 @@ import org.apache.jackrabbit.mongomk.impl.model.AddPropertyInstructionImpl;
 import org.apache.jackrabbit.mongomk.impl.model.CommitImpl;
 import org.apache.jackrabbit.mongomk.impl.model.RemoveNodeInstructionImpl;
 import org.apache.jackrabbit.mongomk.scenario.SimpleNodeScenario;
+import org.apache.jackrabbit.mongomk.util.MongoUtil;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.junit.Assert;
 import org.junit.Ignore;
@@ -230,7 +231,6 @@ public class CommitCommandMongoTest extends BaseMongoTest {
     }
 
     @Test
-    @Ignore // FIXME
     public void removeNonExistentNode() throws Exception {
         List<Instruction> instructions = new LinkedList<Instruction>();
         instructions.add(new AddNodeInstructionImpl("/", "a"));
@@ -368,18 +368,18 @@ public class CommitCommandMongoTest extends BaseMongoTest {
     }
 
     @Test
-    @Ignore /// FIXME
     public void rootNodeHasEmptyRootPath() throws Exception {
         List<Instruction> instructions = new LinkedList<Instruction>();
         instructions.add(new AddNodeInstructionImpl("", "/"));
 
-        Commit commit = new CommitImpl("", "+/ : {}", "This is the root commit", instructions);
+        Commit commit = new CommitImpl(MongoUtil.INITIAL_COMMIT_PATH, MongoUtil.INITIAL_COMMIT_DIFF,
+                MongoUtil.INITIAL_COMMIT_MESSAGE, instructions);
         CommitCommandMongo command = new CommitCommandMongo(mongoConnection, commit);
         String revisionId = command.execute();
-
         Assert.assertNotNull(revisionId);
-        MongoAssert.assertNodesExist("",
-                NodeBuilder.build(String.format("{ \"/#%1$s\" : {} }", revisionId)));
+
+        Node expected = NodeBuilder.build(String.format("{ \"/#%1$s\" : {} }", revisionId));
+        MongoAssert.assertNodesExist(MongoUtil.INITIAL_COMMIT_PATH, expected);
     }
 
     @Test

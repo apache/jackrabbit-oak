@@ -21,7 +21,6 @@ import java.util.Properties;
 
 import org.apache.jackrabbit.mongomk.MongoConnection;
 import org.apache.jackrabbit.mongomk.util.MongoUtil;
-import org.apache.log4j.BasicConfigurator;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -40,7 +39,6 @@ public class BaseMongoTest {
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
-        BasicConfigurator.configure();
         createDefaultMongoConnection();
         MongoAssert.setMongoConnection(mongoConnection);
     }
