@@ -16,12 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.type;
 
-import javax.jcr.Value;
-
-import com.google.common.base.Function;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
-import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
@@ -31,7 +27,6 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.value.ValueImpl;
 
 import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.NODE_TYPES_PATH;
 
@@ -65,14 +60,7 @@ public class TypeValidatorProvider implements ValidatorProvider {
 
         Tree root = new ReadOnlyTree(after);
         final NamePathMapper mapper = new NamePathMapperImpl(new NameMapperImpl(root));
-        Function<CoreValue, Value> valueFactory = new Function<CoreValue, Value>() {
-            @Override
-            public Value apply(CoreValue coreValue) {
-                return new ValueImpl(coreValue, mapper);
-            }
-        };
-
-        return new TypeValidator(ntm, new ReadOnlyTree(after), valueFactory);
+        return new TypeValidator(ntm, new ReadOnlyTree(after), mapper);
     }
 
 }
