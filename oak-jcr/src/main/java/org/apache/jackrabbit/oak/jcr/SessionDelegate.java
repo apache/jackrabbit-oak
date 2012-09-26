@@ -48,7 +48,6 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.observation.ObservationManagerImpl;
 import org.apache.jackrabbit.oak.jcr.security.principal.PrincipalManagerImpl;
 import org.apache.jackrabbit.oak.jcr.security.user.UserManagerImpl;
-import org.apache.jackrabbit.oak.jcr.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
@@ -56,6 +55,7 @@ import org.apache.jackrabbit.oak.security.principal.TmpPrincipalProvider;
 import org.apache.jackrabbit.oak.security.user.UserContextImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserContext;
 import org.apache.jackrabbit.oak.util.TODO;
+import org.apache.jackrabbit.oak.value.ValueFactoryImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -19,13 +19,15 @@
 
 package org.apache.jackrabbit.oak.jcr.value;
 
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.jcr.SessionDelegate;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.jcr.Value;
 import javax.jcr.ValueFormatException;
-import java.util.ArrayList;
-import java.util.List;
+
+import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.jcr.SessionDelegate;
+import org.apache.jackrabbit.oak.value.ValueFactoryImpl;
 
 /**
  * Utility class for converting between internal value representation and JCR
