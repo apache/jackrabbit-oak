@@ -199,11 +199,11 @@ public class IdentifierManager {
                             @Override
                             public String apply(ResultRow row) {
                                 String pName = propertyName == null
-                                    ? findProperty(row.getPath(), uuid)
-                                    : propertyName;
+                                        ? findProperty(row.getPath(), uuid)
+                                        : propertyName;
                                 return PathUtils.concat(row.getPath(), pName);
                             }
-                });
+                        });
 
                 if (nodeTypeNames.length > 0) {
                     paths = Iterables.filter(paths, new Predicate<String>() {
@@ -223,8 +223,7 @@ public class IdentifierManager {
                 }
 
                 return Sets.newHashSet(paths);
-            }
-            catch (ParseException e) {
+            } catch (ParseException e) {
                 log.error("query failed", e);
                 return Collections.emptySet();
             }
