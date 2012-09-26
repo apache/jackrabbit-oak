@@ -271,7 +271,11 @@ public class MembershipProviderImpl extends AuthorizableBaseProvider implements 
             @Override
             public Iterator<String> next() {
                 String memberPath = declaredMembers.next();
-                return Iterators.concat(Iterators.singletonIterator(memberPath), inherited(memberPath));
+                if (memberPath == null) {
+                    return Iterators.emptyIterator();
+                } else {
+                    return Iterators.concat(Iterators.singletonIterator(memberPath), inherited(memberPath));
+                }
             }
 
             @Override
