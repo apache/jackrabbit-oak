@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.jcr;
 
 import java.io.IOException;
 import java.util.concurrent.ScheduledExecutorService;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.ItemExistsException;
@@ -34,6 +33,7 @@ import javax.jcr.observation.ObservationManager;
 import javax.jcr.query.QueryManager;
 import javax.jcr.version.VersionManager;
 
+import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ChangeExtractor;
@@ -47,6 +47,7 @@ import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
 import org.apache.jackrabbit.oak.jcr.observation.ObservationManagerImpl;
+import org.apache.jackrabbit.oak.jcr.security.principal.PrincipalManagerImpl;
 import org.apache.jackrabbit.oak.jcr.security.user.UserManagerImpl;
 import org.apache.jackrabbit.oak.jcr.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.namepath.AbstractNameMapper;
@@ -54,6 +55,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.value.AnnotatingConflictHandler;
+import org.apache.jackrabbit.oak.security.principal.TmpPrincipalProvider;
 import org.apache.jackrabbit.oak.security.user.UserContextImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserContext;
 import org.apache.jackrabbit.oak.util.TODO;
@@ -482,6 +484,13 @@ public class SessionDelegate {
         return root.getLocation(path);
     }
 
+    @Nonnull
+    PrincipalManager getPrincipalManager() throws RepositoryException {
+        // TODO
+        return TODO.unimplemented().returnValue(new PrincipalManagerImpl(new TmpPrincipalProvider()));
+    }
+
+    @Nonnull
     UserManager getUserManager() throws UnsupportedRepositoryOperationException {
         // FIXME
         UserContext ctx = new UserContextImpl();
@@ -492,6 +501,7 @@ public class SessionDelegate {
 
     private class SessionNameMapper extends AbstractNameMapper {
 
+        //-----------------------------------------------------< NameMapper >---
         @Override
         @CheckForNull
         protected String getJcrPrefix(String oakPrefix) {
