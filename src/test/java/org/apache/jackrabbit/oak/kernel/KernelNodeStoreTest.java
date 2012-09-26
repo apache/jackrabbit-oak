@@ -26,7 +26,6 @@ import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.junit.Before;
 import org.junit.Test;
@@ -117,8 +116,7 @@ public class KernelNodeStoreTest {
         final NodeState[] states = new NodeState[2]; // { before, after }
         store.setObserver(new Observer() {
             @Override
-            public void contentChanged(
-                    NodeStore store, NodeState before, NodeState after) {
+            public void contentChanged(NodeState before, NodeState after) {
                 states[0] = before;
                 states[1] = after;
             }

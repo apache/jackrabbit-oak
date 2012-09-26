@@ -21,12 +21,10 @@ import java.util.List;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
  * Composite commit hook. Maintains a list of component hooks and takes
- * care of calling them in proper sequence in the
- * {@link #processCommit(NodeStore, NodeState, NodeState)} method.
+ * care of calling them in proper sequence.
  */
 public class CompositeHook implements CommitHook {
 

@@ -17,12 +17,11 @@
 package org.apache.jackrabbit.oak.spi.commit;
 
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
  * Extension point for observing changes in an Oak repository. Content
  * changes are reported by passing the "before" and "after" state of the
- * content tree to the {@link #contentChanged(NodeStore, NodeState, NodeState)}
+ * content tree to the {@link #contentChanged(NodeState, NodeState)}
  * callback method.
  * <p>
  * Each observer is guaranteed to see a linear sequence of changes, i.e.
@@ -59,10 +58,9 @@ public interface Observer {
      * the after-commit hooks should avoid any potentially blocking
      * operations.
      *
-     * @param store the node store that contains the repository content
      * @param before content tree before the changes
      * @param after content tree after the changes
      */
-    void contentChanged(NodeStore store, NodeState before, NodeState after);
+    void contentChanged(NodeState before, NodeState after);
 
 }
