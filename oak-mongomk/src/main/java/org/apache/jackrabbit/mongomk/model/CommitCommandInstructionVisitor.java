@@ -65,10 +65,9 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
             if (parent == null) {
                 throw new RuntimeException("No such parent: " + PathUtils.getName(parentNodePath));
             }
-            // FIXME [Mete] Add once tests are fixed.
-            //if (parent.childExists(nodeName)) {
-            //    throw new RuntimeException("There's already a child node with name '" + nodeName + "'");
-            //}
+            if (parent.childExists(nodeName)) {
+                throw new RuntimeException("There's already a child node with name '" + nodeName + "'");
+            }
         } else {
             parent = getStagedNode(parentNodePath);
         }

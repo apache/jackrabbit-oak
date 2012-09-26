@@ -78,7 +78,7 @@ public class CommitCommandMongoTest extends BaseMongoTest {
     }
 
     @Test
-    public void commitAddNodes() throws Exception {
+    public void addNodes() throws Exception {
         List<Instruction> instructions = new LinkedList<Instruction>();
         instructions.add(new AddNodeInstructionImpl("/", "a"));
         instructions.add(new AddNodeInstructionImpl("/a", "b"));
@@ -100,7 +100,29 @@ public class CommitCommandMongoTest extends BaseMongoTest {
     }
 
     @Test
-    public void commitAddNodesAndPropertiesOutOfOrder() throws Exception {
+    public void addDuplicateNode() throws Exception {
+        // Add /a and /a/b
+        List<Instruction> instructions = new LinkedList<Instruction>();
+        instructions.add(new AddNodeInstructionImpl("/", "a"));
+        instructions.add(new AddNodeInstructionImpl("/a", "b"));
+        Commit commit = new CommitImpl("/", "+a : { \"b\" : {} }", "Add /a, /a/b", instructions);
+        CommitCommandMongo command = new CommitCommandMongo(mongoConnection, commit);
+        command.execute();
+
+        // Add /a/b again
+        instructions = new LinkedList<Instruction>();
+        instructions.add(new AddNodeInstructionImpl("/a", "b"));
+        commit = new CommitImpl("/a", "+b", "Add /a/b", instructions);
+        command = new CommitCommandMongo(mongoConnection, commit);
+        try {
+            command.execute();
+            fail("Exception expected");
+        } catch (Exception expected) {
+        }
+    }
+
+    @Test
+    public void addNodesAndPropertiesOutOfOrder() throws Exception {
         List<Instruction> instructions = new LinkedList<Instruction>();
         instructions.add(new AddPropertyInstructionImpl("/a", "key1", "value1"));
         instructions.add(new AddNodeInstructionImpl("/", "a"));
@@ -130,7 +152,7 @@ public class CommitCommandMongoTest extends BaseMongoTest {
     }
 
     @Test
-    public void commitAddNodesWhichAlreadyExist() throws Exception {
+    public void addNodesWhichAlreadyExist() throws Exception {
         SimpleNodeScenario scenario1 = new SimpleNodeScenario(mongoConnection);
         scenario1.create();
 
