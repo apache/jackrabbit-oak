@@ -112,7 +112,7 @@ public class KernelNodeStore implements NodeStore {
         if (!revision.equals(root.getRevision())) {
             NodeState before = root;
             root = getRootState(revision);
-            observer.contentChanged(this, before, root);
+            observer.contentChanged(before, root);
         }
         return root;
     }
