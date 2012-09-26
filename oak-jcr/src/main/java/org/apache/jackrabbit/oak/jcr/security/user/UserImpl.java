@@ -42,8 +42,8 @@ class UserImpl extends AuthorizableImpl implements User {
      */
     private static final Logger log = LoggerFactory.getLogger(UserImpl.class);
 
-    UserImpl(Tree tree, UserManagerImpl userManager) throws RepositoryException {
-        super(tree, userManager);
+    UserImpl(String id, Tree tree, UserManagerImpl userManager) throws RepositoryException {
+        super(id, tree, userManager);
     }
 
     void checkValidTree(Tree tree) throws RepositoryException {
@@ -148,7 +148,7 @@ class UserImpl extends AuthorizableImpl implements User {
      * @see org.apache.jackrabbit.api.security.user.User#isDisabled()
      */
     @Override
-    public boolean isDisabled() {
+    public boolean isDisabled() throws RepositoryException {
         return getTree().hasProperty(REP_DISABLED);
     }
 
@@ -156,7 +156,7 @@ class UserImpl extends AuthorizableImpl implements User {
      * @see org.apache.jackrabbit.api.security.user.User#getDisabledReason()
      */
     @Override
-    public String getDisabledReason() {
+    public String getDisabledReason() throws RepositoryException {
         PropertyState disabled = getTree().getProperty(REP_DISABLED);
         if (disabled != null) {
             return disabled.getValue().getString();
@@ -166,11 +166,11 @@ class UserImpl extends AuthorizableImpl implements User {
 
     //--------------------------------------------------------------------------
 
-    void setProtectedProperty(String oakName, String value) {
+    void setProtectedProperty(String oakName, String value) throws RepositoryException {
         getUserManager().getUserProvider().setProtectedProperty(getTree(), oakName, value, PropertyType.STRING);
     }
 
-    void setProtectedProperty(String oakName, String[] values) {
+    void setProtectedProperty(String oakName, String[] values) throws RepositoryException {
         getUserManager().getUserProvider().setProtectedProperty(getTree(), oakName, values, PropertyType.STRING);
     }
 }

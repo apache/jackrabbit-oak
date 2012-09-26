@@ -37,17 +37,13 @@ import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
-import org.apache.jackrabbit.oak.spi.security.user.Type;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * AuthorizableImpl... TODO
- *
- * FIXME: get rid of keeping both tree AND node fields. this is workaround for
- *        missing conversion from Node to Tree and vice version in OAK-JCR
+ * AuthorizableImpl...
  */
 abstract class AuthorizableImpl implements Authorizable, UserConstants {
 
@@ -56,14 +52,13 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
      */
     private static final Logger log = LoggerFactory.getLogger(AuthorizableImpl.class);
 
-    private final Tree tree;
+    private final String id;
     private final UserManagerImpl userManager;
-
     private Node node;
     private int hashCode;
 
-    AuthorizableImpl(Tree tree, UserManagerImpl userManager) throws RepositoryException {
-        this.tree = tree;
+    AuthorizableImpl(String id, Tree tree, UserManagerImpl userManager) throws RepositoryException {
+        this.id = id;
         this.userManager = userManager;
 
         checkValidTree(tree);
@@ -81,7 +76,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
      */
     @Override
     public String getID() {
-        return userManager.getUserProvider().getAuthorizableId(tree, (isGroup()) ? Type.GROUP : Type.USER);
+        return id;
     }
 
     /**
@@ -111,7 +106,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
             throw new RepositoryException("The administrator cannot be removed.");
         }
         userManager.onRemove(this);
-        tree.remove();
+        getTree().remove();
     }
 
     /**
@@ -270,7 +265,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
             AuthorizableImpl otherAuth = (AuthorizableImpl) obj;
             try {
                 Node node = getNode();
-                return isGroup() == otherAuth.isGroup() && node.isSame(otherAuth.node);
+                return isGroup() == otherAuth.isGroup() && node.isSame(otherAuth.getNode());
             } catch (RepositoryException e) {
                 // should not occur -> return false in this case.
             }
@@ -284,17 +279,18 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
     @Override
     public String toString() {
         String typeStr = (isGroup()) ? "Group '" : "User '";
-        return new StringBuilder().append(typeStr).append(getID()).append('\'').toString();
+        return new StringBuilder().append(typeStr).append(id).append('\'').toString();
     }
 
     //--------------------------------------------------------------------------
     /**
      * @return The node associated with this authorizable instance.
+     * @throws javax.jcr.RepositoryException
      */
     @Nonnull
     Node getNode() throws RepositoryException {
         if (node == null) {
-            String jcrPath = userManager.getNamePathMapper().getJcrPath(tree.getPath());
+            String jcrPath = userManager.getNamePathMapper().getJcrPath(getTree().getPath());
             node = userManager.getSession().getNode(jcrPath);
         }
         return node;
@@ -302,6 +298,10 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
 
     @Nonnull
     Tree getTree() {
+        Tree tree = userManager.getUserProvider().getAuthorizable(id);
+        if (tree == null) {
+            throw new IllegalStateException("Authorizable not associated with an existing tree");
+        }
         return tree;
     }
 
@@ -323,6 +323,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
      */
     @Nonnull
     String getPrincipalName() throws RepositoryException {
+        Tree tree = getTree();
         if (tree.hasProperty(REP_PRINCIPAL_NAME)) {
             return tree.getProperty(REP_PRINCIPAL_NAME).getValue().getString();
         } else {
@@ -435,7 +436,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
         }
 
         MembershipProvider mMgr = userManager.getMembershipProvider();
-        Iterator<String> oakPaths = mMgr.getMembership(tree, includeInherited);
+        Iterator<String> oakPaths = mMgr.getMembership(getTree(), includeInherited);
         if (oakPaths.hasNext()) {
             AuthorizableIterator groups = AuthorizableIterator.create(oakPaths, userManager, UserManager.SEARCH_TYPE_GROUP);
             return new RangeIteratorAdapter(groups, groups.getSize());

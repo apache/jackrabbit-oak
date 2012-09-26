@@ -190,7 +190,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
         return princNames;
     }
 
-    private void updateImpersonatorNames(Set<String> principalNames) {
+    private void updateImpersonatorNames(Set<String> principalNames) throws RepositoryException {
         String[] pNames = principalNames.toArray(new String[principalNames.size()]);
         if (pNames.length == 0) {
             user.setProtectedProperty(REP_PRINCIPAL_NAME, (String) null);

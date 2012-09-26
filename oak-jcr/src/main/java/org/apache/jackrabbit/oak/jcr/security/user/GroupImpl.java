@@ -46,8 +46,8 @@ class GroupImpl extends AuthorizableImpl implements Group {
      */
     private static final Logger log = LoggerFactory.getLogger(GroupImpl.class);
 
-    GroupImpl(Tree tree, UserManagerImpl userManager) throws RepositoryException {
-        super(tree, userManager);
+    GroupImpl(String id, Tree tree, UserManagerImpl userManager) throws RepositoryException {
+        super(id, tree, userManager);
     }
 
     @Override
