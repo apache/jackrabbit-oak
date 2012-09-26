@@ -41,7 +41,7 @@ import org.slf4j.LoggerFactory;
 /**
  * ValueImpl...
  */
-class ValueImpl implements Value {
+public class ValueImpl implements Value {
 
     /**
      * logger instance
