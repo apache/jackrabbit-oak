@@ -26,44 +26,31 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>0.5-SNAPSHOT</version>
+    <version>0.6-SNAPSHOT</version>
+    <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
   <artifactId>oak-mongomk-test</artifactId>
+  <name>Oak Mongo MicroKernel Test</name>
 
   <dependencies>
-    <dependency>
-      <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>oak-mongomk-api</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>oak-mongomk-impl</artifactId>
-      <version>${project.version}</version>
-    </dependency>
+
+    <!-- Oak MongoMK -->
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-mongomk</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>org.json</groupId>
-      <artifactId>json</artifactId>
-      <version>20090211</version>
-    </dependency>
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <scope>test</scope>
-    </dependency>
+
+    <!-- Test -->
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-it-mk</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
+
   </dependencies>
 
 </project>

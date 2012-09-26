@@ -42,10 +42,6 @@ import org.slf4j.LoggerFactory;
  */
 public class GetNodesCommandMongo extends AbstractCommand<Node> {
 
-    class InconsitentNodeHierarchyException extends Exception {
-        private static final long serialVersionUID = 8155418280936077632L;
-    }
-
     private static final Logger LOG = LoggerFactory.getLogger(GetNodesCommandMongo.class);
 
     private final MongoConnection mongoConnection;
@@ -87,7 +83,7 @@ public class GetNodesCommandMongo extends AbstractCommand<Node> {
         boolean verified = verifyProblematicNodes() && verifyNodeHierarchy();
 
         if (!verified) {
-            throw new InconsitentNodeHierarchyException();
+            throw new InconsistentNodeHierarchyException();
         }
 
         this.buildNodeStructure();
@@ -102,7 +98,7 @@ public class GetNodesCommandMongo extends AbstractCommand<Node> {
 
     @Override
     public boolean needsRetry(Exception e) {
-        return e instanceof InconsitentNodeHierarchyException;
+        return e instanceof InconsistentNodeHierarchyException;
     }
 
     private void buildNodeStructure() {

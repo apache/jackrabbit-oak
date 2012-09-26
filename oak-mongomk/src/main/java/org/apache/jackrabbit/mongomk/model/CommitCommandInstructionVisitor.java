@@ -17,8 +17,11 @@
 package org.apache.jackrabbit.mongomk.model;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.jackrabbit.mongomk.MongoConnection;
 import org.apache.jackrabbit.mongomk.api.model.Instruction.AddNodeInstruction;
@@ -187,8 +190,26 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
             NodeMongo srcNode = getStoredNode(srcPath);
             destNode = srcNode;
             destNode.setPath(destPath);
+            pathNodeMap.remove(srcPath);
             pathNodeMap.put(destPath, destNode);
         }
+
+        // [Mete] Check that this works in all cases.
+        // Remove all the pending old node child changes.
+        Map<String, NodeMongo> pendingChanges = new HashMap<String, NodeMongo>();
+        for (Iterator<Entry<String, NodeMongo>> iterator = pathNodeMap.entrySet().iterator(); iterator.hasNext();) {
+            Entry<String, NodeMongo> entry = iterator.next();
+            String path = entry.getKey();
+            NodeMongo node = entry.getValue();
+            if (path.startsWith(srcPath)) {
+                iterator.remove();
+                String newPath = destPath + path.substring(srcPath.length());
+                node.setPath(newPath);
+                pendingChanges.put(newPath, node);
+            }
+        }
+        pathNodeMap.putAll(pendingChanges);
+
 
         // Remove from srcParent - [Mete] What if there is no such child?
         NodeMongo scrParentNode = getStoredNode(srcParentPath);

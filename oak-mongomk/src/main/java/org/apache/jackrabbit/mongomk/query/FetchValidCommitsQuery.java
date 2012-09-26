@@ -113,6 +113,9 @@ public class FetchValidCommitsQuery extends AbstractQuery<List<CommitMongo>> {
 
         while (true) {
             CommitMongo commitMongo = revisions.get(currentRevision);
+            if (commitMongo == null) {
+                break;
+            }
             validCommits.add(commitMongo);
             Long baseRevision = commitMongo.getBaseRevisionId();
             Long fromRevision = MongoUtil.toMongoRepresentation(fromRevisionId);
