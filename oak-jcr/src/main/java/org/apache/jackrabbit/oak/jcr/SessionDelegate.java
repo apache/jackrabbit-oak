@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.jcr;
 
 import java.io.IOException;
 import java.util.concurrent.ScheduledExecutorService;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.ItemExistsException;
@@ -48,7 +49,6 @@ import org.apache.jackrabbit.oak.jcr.observation.ObservationManagerImpl;
 import org.apache.jackrabbit.oak.jcr.security.principal.PrincipalManagerImpl;
 import org.apache.jackrabbit.oak.jcr.security.user.UserManagerImpl;
 import org.apache.jackrabbit.oak.jcr.value.ValueFactoryImpl;
-import org.apache.jackrabbit.oak.namepath.AbstractNameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
@@ -93,7 +93,7 @@ public class SessionDelegate {
         this.root = contentSession.getLatestRoot();
         this.autoRefresh = autoRefresh;
         this.idManager = new IdentifierManager(contentSession.getQueryEngine(), root);
-        this.namePathMapper = new NamePathMapperImpl(new SessionNameMapper(), idManager);
+        this.namePathMapper = new NamePathMapperImpl(new SessionNameMapper(this), idManager);
         this.valueFactory = new ValueFactoryImpl(contentSession.getCoreValueFactory(), namePathMapper);
     }
 
@@ -489,54 +489,4 @@ public class SessionDelegate {
         return TODO.unimplemented().returnValue(new UserManagerImpl(getSession(), getNamePathMapper(), ctx.getUserProvider(contentSession, root), ctx.getMembershipProvider(contentSession, root), ctx.getConfig()));
     }
 
-    //--------------------------------------------------< SessionNameMapper >---
-
-    private class SessionNameMapper extends AbstractNameMapper {
-
-        //-----------------------------------------------------< NameMapper >---
-        @Override
-        @CheckForNull
-        protected String getJcrPrefix(String oakPrefix) {
-            try {
-                String ns = getWorkspace().getNamespaceRegistry().getURI(oakPrefix);
-                return session.getNamespacePrefix(ns);
-            } catch (RepositoryException e) {
-                log.debug("Could not get JCR prefix for OAK prefix " + oakPrefix);
-                return null;
-            }
-        }
-
-        @Override
-        @CheckForNull
-        protected String getOakPrefix(String jcrPrefix) {
-            try {
-                String ns = getSession().getNamespaceURI(jcrPrefix);
-                return getWorkspace().getNamespaceRegistry().getPrefix(ns);
-            } catch (RepositoryException e) {
-                log.debug("Could not get OAK prefix for JCR prefix " + jcrPrefix);
-                return null;
-            }
-        }
-
-        @Override
-        @CheckForNull
-        protected String getOakPrefixFromURI(String uri) {
-            try {
-                return getWorkspace().getNamespaceRegistry().getPrefix(uri);
-            } catch (RepositoryException e) {
-                log.debug("Could not get OAK prefix for URI " + uri);
-                return null;
-            }
-        }
-
-        @Override
-        public boolean hasSessionLocalMappings() {
-            if (session instanceof SessionImpl) {
-                return ((SessionImpl) session).hasSessionLocalMappings();
-            } else {
-                // we don't know
-                return true;
-            }
-        }
-    }
 }
