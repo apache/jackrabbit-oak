@@ -239,7 +239,7 @@ public class TokenProviderImpl implements TokenProvider {
     private String getUserId(Tree tokenTree) {
         if (tokenTree != null) {
             Tree userTree = tokenTree.getParent().getParent();
-            return userProvider.getAuthorizableId(userTree, Type.USER);
+            return userProvider.getAuthorizableId(userTree);
         }
 
         return null;
