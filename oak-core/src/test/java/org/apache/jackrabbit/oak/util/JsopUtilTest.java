@@ -16,20 +16,19 @@
  */
 package org.apache.jackrabbit.oak.util;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertTrue;
-
 import org.apache.jackrabbit.oak.AbstractOakTest;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
 import org.apache.jackrabbit.oak.query.JsopUtil;
 import org.junit.Before;
 import org.junit.Test;
+
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertFalse;
+import static junit.framework.Assert.assertTrue;
 
 public class JsopUtilTest extends AbstractOakTest {
 
@@ -58,7 +57,7 @@ public class JsopUtilTest extends AbstractOakTest {
 
         String add = "/ + \"test\": { \"a\": { \"id\": \"123\" }, \"b\": {} }";
         JsopUtil.apply(root, add, vf);
-        root.commit(DefaultConflictHandler.OURS);
+        root.commit();
 
         t = root.getTree("/");
         assertTrue(t.hasChild("test"));
@@ -77,7 +76,7 @@ public class JsopUtilTest extends AbstractOakTest {
 
         String rm = "/ - \"test\"";
         JsopUtil.apply(root, rm, vf);
-        root.commit(DefaultConflictHandler.OURS);
+        root.commit();
 
         t = root.getTree("/");
         assertFalse(t.hasChild("test"));

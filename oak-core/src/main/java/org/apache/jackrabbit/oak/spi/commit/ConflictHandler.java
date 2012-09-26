@@ -16,14 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.api;
+package org.apache.jackrabbit.oak.spi.commit;
 
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * A {@code ConflictHandler} is responsible for handling conflicts which happen
- * on {@link Root#rebase(ConflictHandler)} and on the implicit rebase operation which
- * takes part on {@link Root#commit(ConflictHandler)}.
+ * on {@link org.apache.jackrabbit.oak.api.Root#rebase()} and on the implicit rebase operation which
+ * takes part on {@link org.apache.jackrabbit.oak.api.Root#commit()}.
  *
  * This interface contains one method per type of conflict which might occur.
  * Each of these methods must return a {@link Resolution} for the current conflict.
@@ -40,7 +42,7 @@ public interface ConflictHandler {
      */
     enum Resolution {
         /**
-         * Use the changes from the current {@link Root} instance
+         * Use the changes from the current {@link org.apache.jackrabbit.oak.api.Root} instance
          */
         OURS,
 

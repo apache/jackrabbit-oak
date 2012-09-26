@@ -96,10 +96,10 @@ public class RootImplFuzzIT {
             op.apply(root2);
             checkEqual(root1.getTree("/"), root2.getTree("/"));
 
-            root1.commit(DefaultConflictHandler.OURS);
+            root1.commit();
             checkEqual(root1.getTree("/"), root2.getTree("/"));
             if (op instanceof Save) {
-                root2.commit(DefaultConflictHandler.OURS);
+                root2.commit();
                 assertEquals("seed " + SEED, store1.getRoot(), store2.getRoot());
             }
         }
@@ -272,7 +272,7 @@ public class RootImplFuzzIT {
         static class Rebase extends Operation {
             @Override
             void apply(RootImpl root) {
-                root.rebase(DefaultConflictHandler.OURS);
+                root.rebase();
             }
 
             @Override

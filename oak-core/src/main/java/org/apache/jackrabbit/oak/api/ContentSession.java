@@ -68,7 +68,7 @@ public interface ContentSession extends Closeable {
 
     /**
      * The current head root as seen by this content session. Use
-     * {@link Root#commit(ConflictHandler)} to atomically apply the changes made
+     * {@link Root#commit()} to atomically apply the changes made
      * in that subtree the underlying Microkernel.
      * <p>
      * The root instance gives you a stable view of the tree at the time the

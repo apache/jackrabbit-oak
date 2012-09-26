@@ -38,14 +38,12 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ChangeExtractor;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.ConflictHandler;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.SessionQueryEngine;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
 import org.apache.jackrabbit.oak.jcr.observation.ObservationManagerImpl;
 import org.apache.jackrabbit.oak.jcr.security.principal.PrincipalManagerImpl;
 import org.apache.jackrabbit.oak.jcr.security.user.UserManagerImpl;
@@ -54,7 +52,6 @@ import org.apache.jackrabbit.oak.namepath.AbstractNameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
-import org.apache.jackrabbit.oak.plugins.value.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.security.principal.TmpPrincipalProvider;
 import org.apache.jackrabbit.oak.security.user.UserContextImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserContext;
@@ -75,7 +72,6 @@ public class SessionDelegate {
     private final Workspace workspace;
     private final Session session;
     private final Root root;
-    private final ConflictHandler conflictHandler;
     private final boolean autoRefresh;
 
     private final IdentifierManager idManager;
@@ -95,7 +91,6 @@ public class SessionDelegate {
         this.workspace = new WorkspaceImpl(this);
         this.session = new SessionImpl(this);
         this.root = contentSession.getLatestRoot();
-        this.conflictHandler = new AnnotatingConflictHandler(contentSession.getCoreValueFactory());
         this.autoRefresh = autoRefresh;
         this.idManager = new IdentifierManager(contentSession.getQueryEngine(), root);
         this.namePathMapper = new NamePathMapperImpl(new SessionNameMapper(), idManager);
@@ -228,7 +223,7 @@ public class SessionDelegate {
 
     public void save() throws RepositoryException {
         try {
-            root.commit(conflictHandler);
+            root.commit();
         } catch (CommitFailedException e) {
             e.throwRepositoryException();
         }
@@ -236,8 +231,9 @@ public class SessionDelegate {
 
     public void refresh(boolean keepChanges) {
         if (keepChanges) {
-            root.rebase(conflictHandler);
-        } else {
+            root.rebase();
+        }
+        else {
             root.refresh();
         }
     }
@@ -372,8 +368,9 @@ public class SessionDelegate {
         try {
             Root currentRoot = contentSession.getLatestRoot();
             currentRoot.copy(srcPath, destPath);
-            currentRoot.commit(DefaultConflictHandler.OURS);
-        } catch (CommitFailedException e) {
+            currentRoot.commit();
+        }
+        catch (CommitFailedException e) {
             e.throwRepositoryException();
         }
     }
@@ -412,7 +409,7 @@ public class SessionDelegate {
         try {
             moveRoot.move(srcPath, destPath);
             if (!transientOp) {
-                moveRoot.commit(DefaultConflictHandler.OURS);
+                moveRoot.commit();
             }
         } catch (CommitFailedException e) {
             e.throwRepositoryException();

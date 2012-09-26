@@ -35,7 +35,7 @@ import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.type.DefaultTypeEditor;
 import org.apache.jackrabbit.oak.plugins.type.TypeValidatorProvider;
-import org.apache.jackrabbit.oak.plugins.value.ConflictValidatorProvider;
+import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
 import org.apache.jackrabbit.oak.security.authorization.AccessControlValidatorProvider;
 import org.apache.jackrabbit.oak.security.authorization.PermissionValidatorProvider;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeValidatorProvider;

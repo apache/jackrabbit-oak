@@ -16,17 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.lucene;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertTrue;
-import static org.apache.jackrabbit.oak.spi.query.IndexUtils.DEFAULT_INDEX_HOME;
-
 import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
 import org.apache.jackrabbit.oak.core.RootImpl;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryValueFactory;
@@ -38,6 +32,11 @@ import org.apache.jackrabbit.oak.spi.query.IndexDefinition;
 import org.apache.jackrabbit.oak.spi.query.IndexDefinitionImpl;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.junit.Test;
+
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertFalse;
+import static junit.framework.Assert.assertTrue;
+import static org.apache.jackrabbit.oak.spi.query.IndexUtils.DEFAULT_INDEX_HOME;
 
 public class LuceneEditorTest implements LuceneIndexConstants {
 
@@ -52,7 +51,7 @@ public class LuceneEditorTest implements LuceneIndexConstants {
         Tree tree = root.getTree("/");
 
         tree.setProperty("foo", MemoryValueFactory.INSTANCE.createValue("bar"));
-        root.commit(DefaultConflictHandler.OURS);
+        root.commit();
 
         QueryIndex index = new LuceneIndex(testID);
         FilterImpl filter = new FilterImpl(null);

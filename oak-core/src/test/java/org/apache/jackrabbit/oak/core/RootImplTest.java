@@ -82,7 +82,7 @@ public class RootImplTest extends AbstractCoreTest {
         assertFalse(tree.hasChild("x"));
         assertTrue(y.hasChild("xx"));
         
-        root.commit(DefaultConflictHandler.OURS);
+        root.commit();
         tree = root.getTree("/");
 
         assertFalse(tree.hasChild("x"));
@@ -122,7 +122,7 @@ public class RootImplTest extends AbstractCoreTest {
         assertFalse(r.hasChild("a"));
         assertFalse(r.hasChild("b"));
 
-        root.commit(DefaultConflictHandler.OURS);
+        root.commit();
         assertFalse(r.hasChild("a"));
         assertFalse(r.hasChild("b"));
     }
@@ -137,7 +137,7 @@ public class RootImplTest extends AbstractCoreTest {
         assertFalse(tree.hasChild("x"));
         assertTrue(tree.hasChild("xx"));
         
-        root.commit(DefaultConflictHandler.OURS);
+        root.commit();
         tree = root.getTree("/");
 
         assertFalse(tree.hasChild("x"));
@@ -156,7 +156,7 @@ public class RootImplTest extends AbstractCoreTest {
         assertTrue(tree.hasChild("x"));
         assertTrue(y.hasChild("xx"));
         
-        root.commit(DefaultConflictHandler.OURS);
+        root.commit();
         tree = root.getTree("/");
 
         assertTrue(tree.hasChild("x"));
@@ -176,7 +176,7 @@ public class RootImplTest extends AbstractCoreTest {
         assertTrue(y.hasChild("xx"));
         assertTrue(y.getChild("xx").hasChild("x1"));
 
-        root.commit(DefaultConflictHandler.OURS);
+        root.commit();
         tree = root.getTree("/");
 
         assertTrue(tree.hasChild("x"));
@@ -199,17 +199,17 @@ public class RootImplTest extends AbstractCoreTest {
         CoreValue value = valueFactory.createValue("V1");
         root2.getTree("/").addChild("one").addChild("two").addChild("three")
                 .setProperty("p1", value);
-        root2.commit(DefaultConflictHandler.OURS);
+        root2.commit();
 
-        root1.rebase(DefaultConflictHandler.OURS);
+        root1.rebase();
         checkEqual(root1.getTree("/"), (root2.getTree("/")));
 
         Tree one = root2.getTree("/one");
         one.getChild("two").remove();
         one.addChild("four");
-        root2.commit(DefaultConflictHandler.OURS);
+        root2.commit();
 
-        root1.rebase(DefaultConflictHandler.OURS);
+        root1.rebase();
         checkEqual(root1.getTree("/"), (root2.getTree("/")));
     }
 
