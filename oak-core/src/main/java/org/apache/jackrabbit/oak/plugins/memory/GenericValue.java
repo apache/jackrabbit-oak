@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-final class GenericValue extends MemoryValue {
+public final class GenericValue extends MemoryValue {
 
     private final int type;
 

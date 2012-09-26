@@ -24,7 +24,6 @@ import org.apache.jackrabbit.oak.spi.commit.ValidatingHook;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 import com.google.common.collect.Lists;
 
@@ -43,10 +42,9 @@ import com.google.common.collect.Lists;
 public class UniqueIndexHook implements CommitHook {
 
     @Override
-    public NodeState processCommit(
-            NodeStore store, NodeState before, NodeState after)
+    public NodeState processCommit(NodeState before, NodeState after)
             throws CommitFailedException {
-        NodeBuilder builder = store.getBuilder(after);
+        NodeBuilder builder = after.getBuilder();
         NodeBuilder system = builder.getChildBuilder("jcr:system");
         NodeBuilder unique = system.getChildBuilder(":unique");
 
@@ -60,7 +58,7 @@ public class UniqueIndexHook implements CommitHook {
             return after; // shortcut
         }
 
-        new ValidatingHook(validators).processCommit(store, before, after);
+        new ValidatingHook(validators).processCommit(before, after);
 
         for (UniqueIndexValidator validator : validators) {
             validator.apply(unique);

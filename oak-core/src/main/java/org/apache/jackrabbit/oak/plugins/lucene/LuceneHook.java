@@ -25,7 +25,6 @@ import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.query.IndexDefinition;
 import org.apache.jackrabbit.oak.spi.query.IndexUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 public class LuceneHook implements CommitHook, LuceneIndexConstants {
 
@@ -43,20 +42,15 @@ public class LuceneHook implements CommitHook, LuceneIndexConstants {
     }
 
     @Override
-    public NodeState processCommit(NodeStore store, NodeState before,
-            NodeState after) throws CommitFailedException {
-
+    public NodeState processCommit(NodeState before, NodeState after)
+            throws CommitFailedException {
         List<CommitHook> hooks = new ArrayList<CommitHook>();
-        List<IndexDefinition> indexDefinitions = IndexUtils
-                .buildIndexDefinitions(after, indexConfigPath, TYPE);
+        List<IndexDefinition> indexDefinitions =
+                IndexUtils.buildIndexDefinitions(after, indexConfigPath, TYPE);
         for (IndexDefinition def : indexDefinitions) {
             hooks.add(new LuceneEditor(def));
         }
-        if (hooks.isEmpty()) {
-            return after;
-        }
-
-        return new CompositeHook(hooks).processCommit(store, before, after);
+        return new CompositeHook(hooks).processCommit(before, after);
     }
 
 }

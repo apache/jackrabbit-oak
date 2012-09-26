@@ -75,7 +75,7 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
     public void setRoot(NodeState newRoot) {
         if (!currentRoot.equals(newRoot)) {
             currentRoot = newRoot;
-            JsopDiff diff = new JsopDiff();
+            JsopDiff diff = new JsopDiff(store.getKernel());
             currentRoot.compareAgainstBaseState(committed, diff);
             commit(diff.toString());
         }
@@ -125,7 +125,7 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
     public NodeState merge() throws CommitFailedException {
         NodeState oldRoot = base;
         CommitHook commitHook = store.getHook();
-        NodeState toCommit = commitHook.processCommit(store, oldRoot, currentRoot);
+        NodeState toCommit = commitHook.processCommit(oldRoot, currentRoot);
         setRoot(toCommit);
 
         try {

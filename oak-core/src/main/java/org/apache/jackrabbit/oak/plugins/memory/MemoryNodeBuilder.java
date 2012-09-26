@@ -550,6 +550,11 @@ public class MemoryNodeBuilder implements NodeBuilder {
                     modified);
         }
 
+        @Override
+        public NodeBuilder getBuilder() {
+            return new ModifiedNodeState(this).getBuilder();
+        }
+
         /**
          * Since we keep track of an explicit base node state for a
          * {@link ModifiedNodeState} instance, we can do this in two steps:
@@ -651,6 +656,11 @@ public class MemoryNodeBuilder implements NodeBuilder {
                     nodes.put(name, null);
                 }
             }
+        }
+
+        @Override
+        public NodeBuilder getBuilder() {
+            return new MemoryNodeBuilder(this);
         }
 
         //----------------------------------------------< MutableNodeState >--

@@ -185,6 +185,16 @@ public interface NodeState {
     Iterable<? extends ChildNodeEntry> getChildNodeEntries();
 
     /**
+     * Returns a builder for constructing a new node state based on
+     * this state, i.e. starting with all the properties and child nodes
+     * of this state.
+     *
+     * @return node builder based on this state
+     */
+    @Nonnull
+    NodeBuilder getBuilder();
+
+    /**
      * Compares this node state against the given base state. Any differences
      * are reported by calling the relevant added/changed/deleted methods of
      * the given handler.

@@ -230,7 +230,7 @@ public class RootImpl implements Root {
     }
 
     NodeBuilder createRootBuilder() {
-        return store.getBuilder(branch.getRoot());
+        return branch.getRoot().getBuilder();
     }
 
     /**
