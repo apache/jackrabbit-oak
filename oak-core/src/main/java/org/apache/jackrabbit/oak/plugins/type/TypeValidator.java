@@ -28,7 +28,6 @@ import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.PropertyDefinition;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -36,8 +35,10 @@ import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.value.ValueImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,7 +51,7 @@ class TypeValidator implements Validator {
 
     private final NodeTypeManager ntm;
     private final ReadOnlyTree parent;
-    private final Function<CoreValue, Value> valueFactory;
+    private final NamePathMapper mapper;
 
     private EffectiveNodeType parentType;
 
@@ -62,10 +63,10 @@ class TypeValidator implements Validator {
         return parentType;
     }
 
-    public TypeValidator(NodeTypeManager ntm, ReadOnlyTree parent, Function<CoreValue, Value> valueFactory) {
+    public TypeValidator(NodeTypeManager ntm, ReadOnlyTree parent, NamePathMapper mapper) {
         this.ntm = ntm;
         this.parent = parent;
-        this.valueFactory = valueFactory;
+        this.mapper = mapper;
     }
 
     //-------------------------------------------------------< NodeValidator >
@@ -132,7 +133,7 @@ class TypeValidator implements Validator {
             ReadOnlyTree addedTree = new ReadOnlyTree(parent, name, after);
             EffectiveNodeType addedType = getEffectiveNodeType(addedTree);
             addedType.checkMandatoryItems(addedTree);
-            return new TypeValidator(ntm, new ReadOnlyTree(parent, name, after), valueFactory);
+            return new TypeValidator(ntm, new ReadOnlyTree(parent, name, after), mapper);
         }
         catch (RepositoryException e) {
             throw new CommitFailedException(
@@ -146,7 +147,7 @@ class TypeValidator implements Validator {
 
     @Override
     public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
-        return new TypeValidator(ntm, new ReadOnlyTree(parent, name, after), valueFactory);
+        return new TypeValidator(ntm, new ReadOnlyTree(parent, name, after), mapper);
     }
 
     @Override
@@ -331,7 +332,7 @@ class TypeValidator implements Validator {
         }
 
         private Value jcrValue(CoreValue value) {
-            return valueFactory.apply(value);
+            return new ValueImpl(value, mapper);
         }
 
     }
