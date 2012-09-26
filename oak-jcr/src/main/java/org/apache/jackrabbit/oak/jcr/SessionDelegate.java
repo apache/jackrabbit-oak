@@ -120,8 +120,7 @@ public class SessionDelegate {
                 refresh(true);
             }
             return sessionOperation.perform();
-        }
-        finally {
+        } finally {
             sessionOpCount--;
         }
     }
@@ -230,8 +229,7 @@ public class SessionDelegate {
     public void save() throws RepositoryException {
         try {
             root.commit(conflictHandler);
-        }
-        catch (CommitFailedException e) {
+        } catch (CommitFailedException e) {
             e.throwRepositoryException();
         }
     }
@@ -239,8 +237,7 @@ public class SessionDelegate {
     public void refresh(boolean keepChanges) {
         if (keepChanges) {
             root.rebase(conflictHandler);
-        }
-        else {
+        } else {
             root.refresh();
         }
     }
@@ -376,8 +373,7 @@ public class SessionDelegate {
             Root currentRoot = contentSession.getLatestRoot();
             currentRoot.copy(srcPath, destPath);
             currentRoot.commit(DefaultConflictHandler.OURS);
-        }
-        catch (CommitFailedException e) {
+        } catch (CommitFailedException e) {
             e.throwRepositoryException();
         }
     }
@@ -418,8 +414,7 @@ public class SessionDelegate {
             if (!transientOp) {
                 moveRoot.commit(DefaultConflictHandler.OURS);
             }
-        }
-        catch (CommitFailedException e) {
+        } catch (CommitFailedException e) {
             e.throwRepositoryException();
         }
     }
@@ -540,9 +535,8 @@ public class SessionDelegate {
         @Override
         public boolean hasSessionLocalMappings() {
             if (session instanceof SessionImpl) {
-                return ((SessionImpl)session).hasSessionLocalMappings();
-            }
-            else {
+                return ((SessionImpl) session).hasSessionLocalMappings();
+            } else {
                 // we don't know
                 return true;
             }
