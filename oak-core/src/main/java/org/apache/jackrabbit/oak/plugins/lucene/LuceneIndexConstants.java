@@ -24,4 +24,6 @@ public interface LuceneIndexConstants {
 
     String INDEX_DATA_CHILD_NAME = ":data";
 
+    String INDEX_UPDATE = "indexUpdate";
+
 }

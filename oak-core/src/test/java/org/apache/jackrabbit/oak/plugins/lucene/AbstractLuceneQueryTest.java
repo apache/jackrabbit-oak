@@ -65,8 +65,8 @@ public abstract class AbstractLuceneQueryTest extends AbstractOakTest implements
     protected ContentRepository createRepository() {
         QueryIndexProvider qip = new CompositeQueryIndexProvider(
                 new LuceneIndexProvider(DEFAULT_INDEX_HOME));
-        CommitHook ch = new CompositeHook(new LuceneHook(DEFAULT_INDEX_HOME),
-                new LuceneReindexHook(DEFAULT_INDEX_HOME));
+        CommitHook ch = new CompositeHook(new LuceneReindexHook(
+                DEFAULT_INDEX_HOME), new LuceneHook(DEFAULT_INDEX_HOME));
         return new ContentRepositoryImpl(new MicroKernelImpl(), qip, ch);
     }
 
