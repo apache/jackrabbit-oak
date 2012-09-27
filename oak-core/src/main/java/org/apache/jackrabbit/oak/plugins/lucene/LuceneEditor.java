@@ -17,10 +17,10 @@
 package org.apache.jackrabbit.oak.plugins.lucene;
 
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
+import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.plugins.lucene.FieldFactory.newPathField;
 import static org.apache.jackrabbit.oak.plugins.lucene.FieldFactory.newPropertyField;
 import static org.apache.jackrabbit.oak.plugins.lucene.TermFactory.newPathTerm;
-import static org.apache.jackrabbit.oak.spi.query.IndexUtils.split;
 
 import java.io.IOException;
 
@@ -29,6 +29,7 @@ import javax.jcr.PropertyType;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.LongValue;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.query.IndexDefinition;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -71,10 +72,10 @@ class LuceneEditor implements CommitHook, LuceneIndexConstants {
         }
     }
 
-    private final String[] path;
+    private final Iterable<String> path;
 
     public LuceneEditor(IndexDefinition indexDefinition) {
-        this.path = split(indexDefinition.getPath(), INDEX_DATA_CHILD_NAME);
+        this.path = elements(indexDefinition.getPath());
     }
 
     /*
@@ -90,7 +91,7 @@ class LuceneEditor implements CommitHook, LuceneIndexConstants {
         for (String name : path) {
             builder = builder.getChildBuilder(name);
         }
-        Directory directory = new ReadWriteOakDirectory(builder);
+        Directory directory = new ReadWriteOakDirectory(builder.getChildBuilder(INDEX_DATA_CHILD_NAME));
 
         try {
             IndexWriter writer = new IndexWriter(directory, config);
@@ -107,6 +108,8 @@ class LuceneEditor implements CommitHook, LuceneIndexConstants {
 
                 diff.postProcess(after);
                 writer.commit();
+                builder.setProperty(INDEX_UPDATE,
+                        new LongValue(System.currentTimeMillis()));
             } finally {
                 writer.close();
             }

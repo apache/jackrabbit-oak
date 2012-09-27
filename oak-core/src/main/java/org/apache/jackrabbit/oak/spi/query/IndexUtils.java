@@ -71,25 +71,6 @@ public class IndexUtils {
     }
 
     /**
-     * Splits a give path into its segments and optionally appends a new path to
-     * the resulting array
-     * 
-     * @return array containing the path segments
-     */
-    public static String[] split(String pathIn, String append) {
-        List<String> paths = new ArrayList<String>();
-        for (String p : pathIn.split("/")) {
-            if (p.trim().length() != 0) {
-                paths.add(p);
-            }
-        }
-        if (append != null && append.trim().length() != 0) {
-            paths.add(append);
-        }
-        return paths.toArray(new String[paths.size()]);
-    }
-
-    /**
      * @return the 'destination' node if the path exists, null if otherwise
      */
     public static NodeState getNode(NodeState nodeState, String destination) {

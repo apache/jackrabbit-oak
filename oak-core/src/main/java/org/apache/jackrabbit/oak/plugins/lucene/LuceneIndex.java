@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.lucene;
 
+import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.plugins.lucene.FieldNames.PATH;
 import static org.apache.jackrabbit.oak.plugins.lucene.FieldNames.PATH_SELECTOR;
 import static org.apache.jackrabbit.oak.plugins.lucene.TermFactory.newPathTerm;
-import static org.apache.jackrabbit.oak.spi.query.IndexUtils.split;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -65,12 +65,11 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
 
     private final IndexDefinition index;
 
-    private final String[] indexDataPath;
+    private final Iterable<String> path;
 
     public LuceneIndex(IndexDefinition indexDefinition) {
         this.index = indexDefinition;
-        this.indexDataPath = split(indexDefinition.getPath(),
-                INDEX_DATA_CHILD_NAME);
+        this.path = elements(indexDefinition.getPath());
     }
 
     @Override
@@ -92,9 +91,15 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
     public Cursor query(Filter filter, String revisionId, NodeState root) {
 
         NodeBuilder builder = new ReadOnlyBuilder(root);
-        for (String name : indexDataPath) {
+        for (String name : path) {
             builder = builder.getChildBuilder(name);
         }
+        if (!builder.hasChildNode(INDEX_DATA_CHILD_NAME)) {
+            // index not initialized yet
+            return new PathCursor(Collections.<String> emptySet());
+        }
+        builder = builder.getChildBuilder(INDEX_DATA_CHILD_NAME);
+
         Directory directory = new ReadOnlyOakDirectory(builder);
         long s = System.currentTimeMillis();
 
