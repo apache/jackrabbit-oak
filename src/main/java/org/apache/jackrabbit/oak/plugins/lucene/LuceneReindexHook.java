@@ -32,7 +32,13 @@ import org.slf4j.LoggerFactory;
  * A {@link CommitHook} that handles re-indexing and initial indexing of the
  * content.
  * 
- * Currently it triggers a full reindex on any detected index definition change.
+ * Currently it triggers a full reindex on any detected index definition change
+ * (excepting the properties) OR on removing the
+ * {@link LuceneIndexConstants#INDEX_UPDATE} property
+ * 
+ * Warning: This hook has to be placed before the updater {@link LuceneHook},
+ * otherwise it is going to miss the {@link LuceneIndexConstants#INDEX_UPDATE}
+ * change to null
  * 
  */
 public class LuceneReindexHook implements CommitHook, LuceneIndexConstants {
@@ -66,6 +72,10 @@ public class LuceneReindexHook implements CommitHook, LuceneIndexConstants {
         List<IndexDefinition> defsChanged = new ArrayList<IndexDefinition>();
         for (IndexDefinition def : defsAfter) {
             if (!defsBefore.contains(def)) {
+                defsChanged.add(def);
+            }
+            // verify initial state or forced reindex
+            if (def.getProperties().get(INDEX_UPDATE) == null) {
                 defsChanged.add(def);
             }
         }

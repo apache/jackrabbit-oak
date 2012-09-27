@@ -82,8 +82,7 @@ public class IndexDefinitionImpl implements IndexDefinition {
         final int prime = 31;
         int result = 1;
         result = prime * result + ((name == null) ? 0 : name.hashCode());
-        result = prime * result
-                + ((properties == null) ? 0 : properties.hashCode());
+        result = prime * result + ((path == null) ? 0 : path.hashCode());
         result = prime * result + ((type == null) ? 0 : type.hashCode());
         result = prime * result + (unique ? 1231 : 1237);
         return result;
@@ -103,10 +102,10 @@ public class IndexDefinitionImpl implements IndexDefinition {
                 return false;
         } else if (!name.equals(other.name))
             return false;
-        if (properties == null) {
-            if (other.properties != null)
+        if (path == null) {
+            if (other.path != null)
                 return false;
-        } else if (!properties.equals(other.properties))
+        } else if (!path.equals(other.path))
             return false;
         if (type == null) {
             if (other.type != null)
@@ -117,4 +116,5 @@ public class IndexDefinitionImpl implements IndexDefinition {
             return false;
         return true;
     }
+
 }
