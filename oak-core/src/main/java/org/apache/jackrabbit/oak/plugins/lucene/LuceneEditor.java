@@ -165,7 +165,7 @@ class LuceneEditor implements CommitHook, LuceneIndexConstants {
             }
             if (exception == null) {
                 try {
-                    addSubtree(path + name, after);
+                    addSubtree(concat(path, name), after);
                 } catch (IOException e) {
                     exception = e;
                 }
@@ -191,7 +191,7 @@ class LuceneEditor implements CommitHook, LuceneIndexConstants {
             }
             if (exception == null) {
                 try {
-                    LuceneDiff diff = new LuceneDiff(writer, path + name);
+                    LuceneDiff diff = new LuceneDiff(writer, concat(path, name));
                     after.compareAgainstBaseState(before, diff);
                     diff.postProcess(after);
                 } catch (IOException e) {
@@ -207,7 +207,7 @@ class LuceneEditor implements CommitHook, LuceneIndexConstants {
             }
             if (exception == null) {
                 try {
-                    deleteSubtree(path + name, before);
+                    deleteSubtree(concat(path, name), before);
                 } catch (IOException e) {
                     exception = e;
                 }
