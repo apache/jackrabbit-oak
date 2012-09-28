@@ -27,19 +27,21 @@ import org.apache.jackrabbit.mk.util.Configuration;
  * @author rogoz
  * 
  */
-public class MkCollection {
+public class MicroKernelCollection {
 	ArrayList<MicroKernel> mks;
 
 	/**
-	 * Initialize a collection of mks.Each mk can have a particular
-	 * configuration.
+	 * Initialize a collection of microkernels.Each microkernel can have a
+	 * different configuration.
 	 * 
 	 * @param initializator
+	 *            The initialization class of a particular microkernel type.
 	 * @param conf
+	 *            The configuration array for the microkernels.
 	 * @throws Exception
 	 */
-	public MkCollection(Initializator initializator, Configuration conf[],
-			int size) throws Exception {
+	public MicroKernelCollection(MicroKernelInitializator initializator,
+			Configuration conf[], int size) throws Exception {
 		mks = new ArrayList<MicroKernel>();
 		for (int i = 0; i < size; i++) {
 			mks.add(initializator.init(conf[i]));
@@ -47,20 +49,28 @@ public class MkCollection {
 	}
 
 	/**
-	 * Initialize a collection of mks.All mks have the same configuration.
+	 * Initialize a collection of microkernels.All microkernels have the same
+	 * configuration.
 	 * 
 	 * @param initializator
+	 *            The initialization class of a particular microkernel type.
 	 * @param conf
+	 *            The microkernel configuration data.
 	 * @throws Exception
 	 */
-	public MkCollection(Initializator initializator, Configuration conf,
-			int size) throws Exception {
+	public MicroKernelCollection(MicroKernelInitializator initializator,
+			Configuration conf, int size) throws Exception {
 		mks = new ArrayList<MicroKernel>();
 		for (int i = 0; i < size; i++) {
 			mks.add(initializator.init(conf));
 		}
 	}
 
+	/**
+	 * Returns a microkernel collection.
+	 * 
+	 * @return An array of initialized microkernels.
+	 */
 	public ArrayList<MicroKernel> getMicroKernels() {
 		return mks;
 	}

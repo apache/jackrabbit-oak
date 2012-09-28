@@ -24,9 +24,9 @@ public class Committer {
 	 * Add nodes to the repository.
 	 * 
 	 * @param mk
-	 *            Microkernel that is performing the action.
+	 *            The microkernel that is performing the action.
 	 * @param diff
-	 *            The diff that is commited.All the nodes must have the absolute
+	 *            The diff that is commited.All the nodes must be define by their absolute
 	 *            path.
 	 * @param nodesPerCommit
 	 *            Number of nodes per commit.
@@ -52,7 +52,7 @@ public class Committer {
 	}
 
 	/**
-	 * Add a node to repository.
+	 * Add an empty node to repository.
 	 * 
 	 * @param mk
 	 *            Microkernel that is performing the action.
@@ -62,5 +62,47 @@ public class Committer {
 	 */
 	public void addNode(MicroKernel mk, String parentPath, String name) {
 		mk.commit(parentPath, "+\"" + name + "\" : {} \n", null, "");
+	}
+	
+
+	/**
+	 * Recursively builds a pyramid tree structure.Each node is added in a
+	 * separate commit.
+	 * 
+	 * @param mk
+	 *            Microkernel used for adding nodes.
+	 * @param startingPoint
+	 *            The path where the node will be added.
+	 * @param index
+	 * @param numberOfChildren
+	 *            Number of children per level.
+	 * @param nodesNumber
+	 *            Total nodes number.
+	 * @param nodePrefixName
+	 *            The node's name prefix.The complete node name is
+	 *            prefix+indexNumber.
+	 **/
+	public void addPyramidStructure(MicroKernel mk,
+			String startingPoint, int index, int numberOfChildren,
+			long nodesNumber, String nodePrefixName) {
+		// if all the nodes are on the same level
+		if (numberOfChildren == 0) {
+			for (long i = 0; i < nodesNumber; i++) {
+				addNode(mk, startingPoint, nodePrefixName + i);
+				// System.out.println("Created node " + i);
+			}
+			return;
+		}
+		if (index >= nodesNumber)
+			return;
+		addNode(mk, startingPoint, nodePrefixName + index);
+		for (int i = 1; i <= numberOfChildren; i++) {
+			if (!startingPoint.endsWith("/"))
+				startingPoint = startingPoint + "/";
+			addPyramidStructure(mk, startingPoint + nodePrefixName + index,
+					index * numberOfChildren + i, numberOfChildren,
+					nodesNumber, nodePrefixName);
+		}
+
 	}
 }

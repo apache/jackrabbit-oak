@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.mk.tests;
 
-import org.apache.jackrabbit.mk.util.MKOperation;
+import org.apache.jackrabbit.mk.util.MicroKernelOperation;
 import org.apache.jackrabbit.mk.testing.MicroKernelTestBase;
 import org.apache.jackrabbit.mk.util.Committer;
 import org.junit.BeforeClass;
@@ -24,7 +24,11 @@ import org.junit.Test;
 
 /**
  * Measure the time needed for writing the same node structure in one or
- * multiple commit steps .
+ * multiple commit steps.
+ * <p> Tree structure:
+ * <p> Number of nodes per <b>level</b> =100^(<b>level</b>). 
+ * <p> Each node has 100 children.
+ * 
  * 
  * @author rogoz
  * 
@@ -37,7 +41,7 @@ public class MkAddNodesMultipleCommitsTest extends MicroKernelTestBase {
 
 	@BeforeClass
 	public static void prepareDiff() {
-		diff = MKOperation.buildPyramidDiff("/", 0, 100, nodesNumber,
+		diff = MicroKernelOperation.buildPyramidDiff("/", 0, 100, nodesNumber,
 				nodeNamePrefix, new StringBuilder()).toString();
 	}
 

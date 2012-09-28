@@ -22,13 +22,15 @@ import org.apache.jackrabbit.mk.core.Repository;
 import org.apache.jackrabbit.mk.util.Configuration;
 
 /**
- * Initialize an oak microkernel.
+ * Initialize a {@code MicroKernelImpl}.A new {@code Repository} is created for each
+ * initialization.
  * 
  * @author rogoz
  * 
  */
-public class OakMkinitializator implements Initializator {
-
+public class OakMicroKernelInitializator implements MicroKernelInitializator {
+	
+	
 	public MicroKernel init(Configuration conf) throws Exception {
 		// TODO use configuration
 		Repository rep = new Repository(conf.getStoragePath()

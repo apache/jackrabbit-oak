@@ -30,16 +30,13 @@ import org.apache.jackrabbit.mongomk.util.MongoUtil;
 import com.mongodb.BasicDBObjectBuilder;
 
 /**
- * Initialize a mongodb microkernel.
- * 
+ * Creates a {@code MongoMicroKernel}.Initialize the mongo database for the
+ * tests.
  * @author rogoz
- * 
  */
-public class SCMkInitializator implements Initializator {
+public class MongoMicroKernelInitializator implements MicroKernelInitializator {
 
-	/**
-	 * Create a microkernel.Initialize the db.
-	 */
+	
 	public MicroKernel init(Configuration conf) throws Exception {
 
 		MicroKernel mk;
@@ -53,7 +50,7 @@ public class SCMkInitializator implements Initializator {
 				System.getProperty("java.io.tmpdir"));
 
 		// initialize the database
-		//temporary workaround.Remove the sleep.
+		// temporary workaround.Remove the sleep.
 		Thread.sleep(20000);
 		MongoUtil.initDatabase(mongoConnection);
 		// set the shard key
@@ -69,7 +66,7 @@ public class SCMkInitializator implements Initializator {
 	}
 
 	public String getType() {
-		return "SharedCloudMicrokernel implementation";
+		return "Mongo Microkernel implementation";
 	}
 
 }

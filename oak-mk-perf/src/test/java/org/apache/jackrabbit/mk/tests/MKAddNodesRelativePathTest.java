@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.mk.tests;
 
-import org.apache.jackrabbit.mk.util.MKOperation;
+import org.apache.jackrabbit.mk.util.Committer;
 import org.apache.jackrabbit.mk.testing.MicroKernelTestBase;
 import org.junit.Test;
 
@@ -34,18 +34,13 @@ public class MKAddNodesRelativePathTest extends MicroKernelTestBase {
 	static String nodeNamePrefix = "N";
 	static int nodesNumber = 1000;
 
-	/**
-	 * Writes all the nodes on the same level.All the nodes have the same
-	 * parent.
-	 * 
-	 * @throws Exception
-	 */
+	
 
 	@Test
 	public void testWriteNodesSameLevel() throws Exception {
-
+		Committer commiter = new Committer();
 		chronometer.start();
-		MKOperation.addPyramidStructure(mk, "/", 0, 0, nodesNumber,
+		commiter.addPyramidStructure(mk, "/", 0, 0, nodesNumber,
 				nodeNamePrefix);
 		chronometer.stop();
 		System.out.println("Total time for testWriteNodesSameLevel is "
@@ -54,8 +49,10 @@ public class MKAddNodesRelativePathTest extends MicroKernelTestBase {
 
 	@Test
 	public void testWriteNodes10Children() {
+		Committer commiter = new Committer();
 		chronometer.start();
-		MKOperation.addPyramidStructure(mk, "/", 0, 10, nodesNumber,
+		
+		commiter.addPyramidStructure(mk, "/", 0, 10, nodesNumber,
 				nodeNamePrefix);
 		chronometer.stop();
 		System.out.println("Total time for testWriteNodes10Children is "
@@ -64,8 +61,9 @@ public class MKAddNodesRelativePathTest extends MicroKernelTestBase {
 
 	@Test
 	public void testWriteNodes100Children() {
+		Committer commiter = new Committer();
 		chronometer.start();
-		MKOperation.addPyramidStructure(mk, "/", 0, 100, nodesNumber,
+		commiter.addPyramidStructure(mk, "/", 0, 100, nodesNumber,
 				nodeNamePrefix);
 		chronometer.stop();
 		System.out.println("Total time for testWriteNodes100Children is "

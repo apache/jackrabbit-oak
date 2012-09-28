@@ -24,7 +24,7 @@ import org.apache.jackrabbit.mk.util.Configuration;
  * @author rogoz
  *
  */
-public interface Initializator {
+public interface MicroKernelInitializator {
 
 	public MicroKernel init(Configuration conf) throws Exception;
 	public String getType();

@@ -20,7 +20,7 @@ import java.io.InputStream;
 import java.util.Properties;
 
 
-public class MkConfigProvider {
+public class MicroKernelConfigProvider {
 	
 	/**
 	 * Read the mk configuration from file.
@@ -30,7 +30,7 @@ public class MkConfigProvider {
 	 */
 	public static Configuration readConfig(String resourcePath) throws Exception {
 		
-		InputStream is = MkConfigProvider.class
+		InputStream is = MicroKernelConfigProvider.class
 				.getResourceAsStream(resourcePath);
 		
 		Properties properties = new Properties();
@@ -46,7 +46,7 @@ public class MkConfigProvider {
 	 */
 	public static Configuration readConfig() throws Exception {
 		
-		InputStream is = MkConfigProvider.class
+		InputStream is = MicroKernelConfigProvider.class
 				.getResourceAsStream("/config.cfg");
 		
 		Properties properties = new Properties();
