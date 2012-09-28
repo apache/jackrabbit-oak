@@ -52,7 +52,8 @@ public class ConcurrentCommitCommandMongoTest extends BaseMongoTest {
         for (int i = 0; i < numOfConcurrentThreads; ++i) {
             List<Instruction> instructions = new LinkedList<Instruction>();
             instructions.add(new AddNodeInstructionImpl("/", String.valueOf(i)));
-            Commit commit = new CommitImpl("This is a concurrent commit", "/", "+" + i + " : {}", instructions);
+            Commit commit = new CommitImpl("/", "+" + i + " : {}",
+                    "This is a concurrent commit", instructions);
             CommitCommandMongo command = new CommitCommandMongo(mongoConnection, commit) {
                 @Override
                 protected boolean saveAndSetHeadRevision() throws Exception {

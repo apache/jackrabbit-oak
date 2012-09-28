@@ -16,16 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.lucene;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertFalse;
-
 import java.util.Iterator;
 
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
 import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class Sql2QueryTest extends AbstractLuceneQueryTest {
 
@@ -35,7 +34,7 @@ public class Sql2QueryTest extends AbstractLuceneQueryTest {
         Tree test = root.getTree("/").addChild("test");
         test.addChild("a").setProperty("name", vf.createValue("hello"));
         test.addChild("b").setProperty("name", vf.createValue("nothello"));
-        root.commit(DefaultConflictHandler.OURS);
+        root.commit();
 
         String sql = "select * from [nt:base] where name = 'hello'";
 

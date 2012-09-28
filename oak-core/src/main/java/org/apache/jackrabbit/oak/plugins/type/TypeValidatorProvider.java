@@ -21,6 +21,9 @@ import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
+import org.apache.jackrabbit.oak.namepath.NameMapperImpl;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -55,7 +58,9 @@ public class TypeValidatorProvider implements ValidatorProvider {
             }
         };
 
-        return new TypeValidator(ntm, new ReadOnlyTree(after));
+        Tree root = new ReadOnlyTree(after);
+        final NamePathMapper mapper = new NamePathMapperImpl(new NameMapperImpl(root));
+        return new TypeValidator(ntm, new ReadOnlyTree(after), mapper);
     }
 
 }

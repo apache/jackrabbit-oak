@@ -16,16 +16,16 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.user;
 
+import javax.jcr.LoginException;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.SimpleCredentials;
+
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.junit.Test;
-
-import javax.jcr.LoginException;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.SimpleCredentials;
 
 /**
  * UserTest...
@@ -46,8 +46,13 @@ public class UserImplTest extends AbstractUserTest {
     @Test
     public void testIsAdmin() throws NotExecutableException, RepositoryException {
         assertFalse(user.isAdmin());
+    }
 
+    public void testAdminIsAdmin() throws NotExecutableException, RepositoryException {
         User admin = (User) userMgr.getAuthorizable(superuser.getUserID());
+        if (admin == null) {
+            throw new NotExecutableException("Admin user does not exist");
+        }
         assertTrue(admin.isAdmin());
     }
 

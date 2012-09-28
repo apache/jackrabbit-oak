@@ -38,11 +38,13 @@ import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.MultiPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.SinglePropertyState;
 import org.apache.jackrabbit.oak.spi.state.AbstractChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
@@ -198,6 +200,15 @@ public final class KernelNodeState extends AbstractNodeState {
             iterable = Iterables.concat(iterables);
         }
         return iterable;
+    }
+
+    @Override
+    public NodeBuilder getBuilder() {
+        if ("/".equals(getPath())) {
+            return new KernelRootBuilder(kernel, this);
+        } else {
+            return new MemoryNodeBuilder(this);
+        }
     }
 
     /**

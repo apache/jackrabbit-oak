@@ -24,7 +24,6 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
 import org.apache.jackrabbit.oak.plugins.memory.StringValue;
 
 /**
@@ -83,7 +82,7 @@ public abstract class ReadWriteNamespaceRegistry
                 }
             }
             namespaces.setProperty(prefix, new StringValue(uri));
-            root.commit(DefaultConflictHandler.OURS);
+            root.commit();
             refresh();
         } catch (NamespaceValidatorException e) {
             throw e.getNamespaceException();
@@ -106,7 +105,7 @@ public abstract class ReadWriteNamespaceRegistry
 
         try {
             namespaces.removeProperty(prefix);
-            root.commit(DefaultConflictHandler.OURS);
+            root.commit();
             refresh();
         } catch (NamespaceValidatorException e) {
             throw e.getNamespaceException();

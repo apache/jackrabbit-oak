@@ -52,9 +52,7 @@ import org.apache.jackrabbit.commons.AbstractSession;
 import org.apache.jackrabbit.commons.iterator.AccessControlPolicyIteratorAdapter;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.jcr.security.principal.PrincipalManagerImpl;
 import org.apache.jackrabbit.oak.jcr.xml.XmlImportHandler;
-import org.apache.jackrabbit.oak.security.principal.TmpPrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.util.TODO;
 import org.apache.jackrabbit.util.XMLChar;
@@ -73,6 +71,14 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     private static final Logger log = LoggerFactory.getLogger(SessionImpl.class);
 
     private final SessionDelegate dlg;
+
+    /**
+     * Local namespace remappings. Prefixes as keys and namespace URIs as values.
+     * <p>
+     * This map is only accessed from synchronized methods (see
+     * <a href="https://issues.apache.org/jira/browse/JCR-1793">JCR-1793</a>).
+     */
+    private final Map<String, String> namespaces = new HashMap<String, String>();
 
     SessionImpl(SessionDelegate dlg) {
         this.dlg = dlg;
@@ -432,19 +438,9 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
         throw new UnsupportedRepositoryOperationException("Retention Management is not supported.");
     }
 
-    //--------------------------------------------------< Namespaces >---
-
+    //---------------------------------------------------------< Namespaces >---
     // The code below was initially copied from JCR Commons AbstractSession, but
     // provides information the "hasRemappings" information
-
-    /**
-     * Local namespace remappings. Prefixes as keys and namespace URIs as values.
-     * <p>
-     * This map is only accessed from synchronized methods (see
-     * <a href="https://issues.apache.org/jira/browse/JCR-1793">JCR-1793</a>).
-     */
-    private final Map<String, String> namespaces =
-        new HashMap<String, String>();
 
     @Override
     public void setNamespacePrefix(String prefix, String uri) throws RepositoryException {
@@ -543,8 +539,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
         }
     }
 
-    // needed for implementation of NameMapper.hasSessionLocalMappings
-    public boolean hasSessionLocalMappings() {
+    boolean hasSessionLocalMappings() {
         return !namespaces.isEmpty();
     }
 
@@ -553,8 +548,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     @Override
     @Nonnull
     public PrincipalManager getPrincipalManager() throws RepositoryException {
-        return TODO.unimplemented().returnValue(new PrincipalManagerImpl(
-                new TmpPrincipalProvider()));
+        return dlg.getPrincipalManager();
     }
 
     @Override

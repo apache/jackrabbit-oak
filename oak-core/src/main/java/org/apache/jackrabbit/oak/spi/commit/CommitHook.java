@@ -20,7 +20,6 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
  * Extension point for validating and modifying content changes. Available
@@ -41,14 +40,13 @@ public interface CommitHook {
      * Validates and/or modifies the given content change before it gets
      * persisted.
      *
-     * @param store the node store that contains the repository content
      * @param before content tree before the commit
      * @param after content tree prepared for the commit
      * @return content tree to be committed
      * @throws CommitFailedException if the commit should be rejected
      */
     @Nonnull
-    NodeState processCommit(NodeStore store, NodeState before, NodeState after)
+    NodeState processCommit(NodeState before, NodeState after)
         throws CommitFailedException;
 
 }

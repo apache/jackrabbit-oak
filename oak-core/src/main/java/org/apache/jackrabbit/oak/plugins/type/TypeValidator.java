@@ -16,18 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.type;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.math.BigDecimal;
-import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
 
 import javax.annotation.Nonnull;
-import javax.jcr.Binary;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
-import javax.jcr.ValueFormatException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeType;
@@ -41,9 +35,10 @@ import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.util.ISO8601;
+import org.apache.jackrabbit.oak.value.ValueImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,6 +51,7 @@ class TypeValidator implements Validator {
 
     private final NodeTypeManager ntm;
     private final ReadOnlyTree parent;
+    private final NamePathMapper mapper;
 
     private EffectiveNodeType parentType;
 
@@ -67,9 +63,10 @@ class TypeValidator implements Validator {
         return parentType;
     }
 
-    public TypeValidator(NodeTypeManager ntm, ReadOnlyTree parent) {
+    public TypeValidator(NodeTypeManager ntm, ReadOnlyTree parent, NamePathMapper mapper) {
         this.ntm = ntm;
         this.parent = parent;
+        this.mapper = mapper;
     }
 
     //-------------------------------------------------------< NodeValidator >
@@ -136,7 +133,7 @@ class TypeValidator implements Validator {
             ReadOnlyTree addedTree = new ReadOnlyTree(parent, name, after);
             EffectiveNodeType addedType = getEffectiveNodeType(addedTree);
             addedType.checkMandatoryItems(addedTree);
-            return new TypeValidator(ntm, new ReadOnlyTree(parent, name, after));
+            return new TypeValidator(ntm, new ReadOnlyTree(parent, name, after), mapper);
         }
         catch (RepositoryException e) {
             throw new CommitFailedException(
@@ -150,7 +147,7 @@ class TypeValidator implements Validator {
 
     @Override
     public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
-        return new TypeValidator(ntm, new ReadOnlyTree(parent, name, after));
+        return new TypeValidator(ntm, new ReadOnlyTree(parent, name, after), mapper);
     }
 
     @Override
@@ -229,7 +226,7 @@ class TypeValidator implements Validator {
         return new EffectiveNodeType(getPrimaryType(tree), getMixinTypes(tree));
     }
 
-    private static class EffectiveNodeType {
+    private class EffectiveNodeType {
         private final Iterable<NodeType> allTypes;
 
         public EffectiveNodeType(NodeType primaryType, List<NodeType> mixinTypes) {
@@ -322,9 +319,8 @@ class TypeValidator implements Validator {
                 }
             }
         }
-    }
 
-    private static Value[] jcrValues(List<CoreValue> values) {
+        private Value[] jcrValues(List<CoreValue> values) {
             Value[] jcrValues = new  Value[values.size()];
 
             int k = 0;
@@ -335,115 +331,10 @@ class TypeValidator implements Validator {
             return jcrValues;
         }
 
-        private static Value jcrValue(final CoreValue value) {
-            return new JcrValue(value);
+        private Value jcrValue(CoreValue value) {
+            return new ValueImpl(value, mapper);
         }
 
-    private static class JcrValue implements Value {
-        private final CoreValue value;
-
-        public JcrValue(CoreValue value) {
-            this.value = value;
-        }
-
-        @Override
-        public String getString() {
-            return value.getString();
-        }
-
-        @Override
-        public InputStream getStream() {
-            return value.getNewStream();
-        }
-
-        @Override
-        public Binary getBinary() {
-            return new JcrBinary(value);
-        }
-
-        @Override
-        public long getLong() {
-            return value.getLong();
-        }
-
-        @Override
-        public double getDouble() {
-            return value.getDouble();
-        }
-
-        @Override
-        public BigDecimal getDecimal() {
-            return value.getDecimal();
-        }
-
-        @Override
-        public Calendar getDate() throws ValueFormatException {
-            Calendar cal = ISO8601.parse(getString());
-            if (cal == null) {
-                throw new ValueFormatException("Not a date string: " + getString());
-            }
-            return cal;
-        }
-
-        @Override
-        public boolean getBoolean() {
-            return value.getBoolean();
-        }
-
-        @Override
-        public int getType() {
-            return value.getType();
-        }
-
-        @Override
-        public int hashCode() {
-            return value.hashCode();
-        }
-
-        @Override
-        public boolean equals(Object other) {
-            return other instanceof JcrValue && value.equals(((JcrValue) other).value);
-        }
-
-        @Override
-        public String toString() {
-            return value.toString();
-        }
     }
 
-    private static class JcrBinary implements Binary {
-        private final CoreValue value;
-
-        public JcrBinary(CoreValue value) {
-            this.value = value;
-        }
-
-        @Override
-        public InputStream getStream() {
-            return value.getNewStream();
-        }
-
-        @Override
-        public int read(byte[] b, long position) throws IOException {
-            InputStream stream = value.getNewStream();
-            try {
-                if (position != stream.skip(position)) {
-                    throw new IOException("Can't skip to position " + position);
-                }
-                return stream.read(b);
-            }
-            finally {
-                stream.close();
-            }
-        }
-
-        @Override
-        public long getSize() {
-            return value.length();
-        }
-
-        @Override
-        public void dispose() {
-        }
-    }
 }

@@ -201,8 +201,11 @@ class UserProviderImpl extends AuthorizableBaseProvider implements UserProvider 
         // index as well.
         try {
             CoreValue bindValue = valueFactory.createValue(principal.getName());
-            String stmt = "SELECT * FROM [rep:Authorizable] WHERE [rep:principalName] = $principalName";
-            Result result = queryEngine.executeQuery(stmt,
+            StringBuilder stmt = new StringBuilder();
+            stmt.append("SELECT * FROM [").append(UserConstants.NT_REP_AUTHORIZABLE).append(']');
+            stmt.append("WHERE [").append(UserConstants.REP_PRINCIPAL_NAME).append("] = $principalName");
+
+            Result result = queryEngine.executeQuery(stmt.toString(),
                     Query.JCR_SQL2, 1, 0,
                     Collections.singletonMap("principalName", bindValue),
                     root, new NamePathMapper.Default());
@@ -213,16 +216,16 @@ class UserProviderImpl extends AuthorizableBaseProvider implements UserProvider 
                 return root.getTree(path);
             }
         } catch (ParseException ex) {
-            log.error("query failed", ex);
+            log.error("Failed to retrieve authorizable by principal", ex);
         }
 
         return null;
     }
 
     @Override
-    public String getAuthorizableId(Tree authorizableTree, Type authorizableType) {
+    public String getAuthorizableId(Tree authorizableTree) {
         checkNotNull(authorizableTree);
-        if (isAuthorizableTree(authorizableTree, authorizableType)) {
+        if (isAuthorizableTree(authorizableTree, Type.AUTHORIZABLE)) {
             PropertyState idProp = authorizableTree.getProperty(UserConstants.REP_AUTHORIZABLE_ID);
             if (idProp != null) {
                 return idProp.getValue().getString();
@@ -247,7 +250,7 @@ class UserProviderImpl extends AuthorizableBaseProvider implements UserProvider 
     @Override
     public boolean isAdminUser(Tree userTree) {
         checkNotNull(userTree);
-        return adminId.equals(getAuthorizableId(userTree, Type.USER));
+        return adminId.equals(getAuthorizableId(userTree));
     }
 
     @Override
@@ -316,11 +319,18 @@ class UserProviderImpl extends AuthorizableBaseProvider implements UserProvider 
         }  else {
             folder = new NodeUtil(authTree, valueFactory);
         }
-        String folderPath = getFolderPath(authorizableId, intermediatePath);
+
+        // verification of hierarchy and node types is delegated to UserValidator upon commit
+        String folderPath = getFolderPath(authorizableId, intermediatePath, authRoot);
         String[] segmts = Text.explode(folderPath, '/', false);
         for (String segment : segmts) {
-            folder = folder.getOrAddChild(segment, NT_REP_AUTHORIZABLE_FOLDER);
-            // verification of node type is delegated to UserValidator upon commit
+            if (".".equals(segment)) {
+                // nothing to do
+            } else if ("..".equals(segment)) {
+                folder = folder.getParent();
+            } else {
+                folder = folder.getOrAddChild(segment, NT_REP_AUTHORIZABLE_FOLDER);
+            }
         }
 
         // test for colliding folder child node.
@@ -337,12 +347,18 @@ class UserProviderImpl extends AuthorizableBaseProvider implements UserProvider 
             }
         }
 
-        // note: verification that user/group is created underneath the configured
-        // tree is delegated to UserValidator
         return folder;
     }
 
-    private String getFolderPath(String authorizableId, String intermediatePath) {
+    private String getFolderPath(String authorizableId, String intermediatePath, String authRoot) throws ConstraintViolationException {
+        if (intermediatePath != null && intermediatePath.charAt(0) == '/') {
+            if (!intermediatePath.startsWith(authRoot)) {
+                throw new ConstraintViolationException("Attempt to create authorizable outside of configured tree");
+            } else {
+                intermediatePath = intermediatePath.substring(authRoot.length()+1);
+            }
+        }
+
         StringBuilder sb = new StringBuilder();
         if (intermediatePath != null && !intermediatePath.isEmpty()) {
             sb.append(intermediatePath);

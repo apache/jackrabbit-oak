@@ -36,7 +36,7 @@ import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.type.TypeValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.unique.UniqueIndexHook;
-import org.apache.jackrabbit.oak.plugins.value.ConflictValidatorProvider;
+import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
 import org.apache.jackrabbit.oak.security.authorization.AccessControlValidatorProvider;
 import org.apache.jackrabbit.oak.security.authorization.PermissionValidatorProvider;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeValidatorProvider;
@@ -71,6 +71,11 @@ public class RepositoryImpl implements Repository {
                     new UserValidatorProvider(new UserConfig("admin")),
                     new PrivilegeValidatorProvider());
 
+    private static final CompositeHook DEFAULT_COMMIT_HOOK =
+            new CompositeHook(
+                    new ValidatingHook(DEFAULT_VALIDATOR),
+                    new UniqueIndexHook());
+
     private final Descriptors descriptors = new Descriptors(new SimpleValueFactory());
     private final ContentRepository contentRepository;
 
@@ -85,10 +90,7 @@ public class RepositoryImpl implements Repository {
 
     public RepositoryImpl(
             MicroKernel kernel, ScheduledExecutorService executor) {
-        this(new ContentRepositoryImpl(
-                kernel, null, new CompositeHook(
-                        new ValidatingHook(DEFAULT_VALIDATOR),
-                        new UniqueIndexHook())),
+        this(new ContentRepositoryImpl(kernel, null, DEFAULT_COMMIT_HOOK),
                 executor);
     }
 

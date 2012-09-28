@@ -28,20 +28,18 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.smile.SmileFactory;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryValueFactory;
 import org.apache.tika.mime.MediaType;
-
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.smile.SmileFactory;
 
 public class OakServlet extends HttpServlet {
 
@@ -107,7 +105,7 @@ public class OakServlet extends HttpServlet {
             JsonNode node = mapper.readTree(request.getInputStream());
             if (node.isObject()) {
                 post(node, tree);
-                root.commit(DefaultConflictHandler.OURS);
+                root.commit();
                 doGet(request, response);
             } else {
                 response.sendError(HttpServletResponse.SC_BAD_REQUEST);
@@ -168,7 +166,7 @@ public class OakServlet extends HttpServlet {
                 if (child != null) {
                     child.remove();
                 }
-                root.commit(DefaultConflictHandler.OURS);
+                root.commit();
                 response.sendError(HttpServletResponse.SC_OK);
             } else {
                 // Can't remove the root node

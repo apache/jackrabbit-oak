@@ -43,7 +43,6 @@ import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_AUTOCREATED;
@@ -188,7 +187,7 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
         Tree types = getOrCreateNodeTypes(root);
         try {
             NodeType type = internalRegister(types, ntd, allowUpdate);
-            root.commit(DefaultConflictHandler.OURS);
+            root.commit();
             refresh();
             return type;
         } catch (CommitFailedException e) {
@@ -207,7 +206,7 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
             for (NodeTypeDefinition ntd : ntds) {
                 list.add(internalRegister(types, ntd, allowUpdate));
             }
-            root.commit(DefaultConflictHandler.OURS);
+            root.commit();
             refresh();
             return new NodeTypeIteratorAdapter(list);
         } catch (CommitFailedException e) {
@@ -349,7 +348,7 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
 
         try {
             type.remove();
-            root.commit(DefaultConflictHandler.OURS);
+            root.commit();
             refresh();
         } catch (CommitFailedException e) {
             throw new RepositoryException("Failed to unregister node type " + name, e);
@@ -372,7 +371,7 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
                 }
                 type.remove();
             }
-            root.commit(DefaultConflictHandler.OURS);
+            root.commit();
             refresh();
         } catch (CommitFailedException e) {
             throw new RepositoryException("Failed to unregister node types", e);

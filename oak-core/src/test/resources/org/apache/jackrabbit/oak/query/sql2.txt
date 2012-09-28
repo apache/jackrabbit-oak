@@ -34,7 +34,7 @@ select * from [nt:base] where name = 'Hello'
 select * from [nt:base] where name = 'World'
 /test/a
 
-select * from [nt:base] where isdescendantnode('/test') and name = 'World' and score() >= 0.0
+select * from [nt:base] where isdescendantnode('/test') and name = 'World'
 /test/a
 
 commit / - "test"
@@ -152,9 +152,6 @@ select * from [nt:base] as p inner join [nt:base] as p2 on isdescendantnode(p2, 
 /parents, /parents/p1
 /parents, /parents/p2
 
-explain select * from [nt:base] as p inner join [nt:base] as p2 on issamenode(p2, p) where p.[jcr:path] = '/parents'
-[nt:base] as [p] /* traverse "//*" where [p].[jcr:path] = cast('/parents' as string) */ inner join [nt:base] as [p2] /* traverse "" */ on issamenode([p2], [p], [.])
-
 select * from [nt:base] as p inner join [nt:base] as p2 on issamenode(p2, p) where p.[jcr:path] = '/parents'
 /parents, /parents
 
@@ -168,21 +165,11 @@ select id from [nt:base] where id is not null order by id desc
 1
 0
 
-measure select * from [nt:base] as c right outer join [nt:base] as p on p.id = c.p where p.id is not null and not isdescendantnode(p, '/jcr:system')
-c, 630
-p, 210
-query, 4
-
 select * from [nt:base] as c right outer join [nt:base] as p on p.id = c.p where p.id is not null and not isdescendantnode(p, '/jcr:system')
 /children/c1, /parents/p1
 /children/c2, /parents/p1
 /children/c3, /parents/p2
 null, /parents/p0
-
-measure select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null
-c, 630
-p, 210
-query, 4
 
 select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null
 /parents/p0, null
@@ -190,31 +177,13 @@ select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where 
 /parents/p1, /children/c2
 /parents/p2, /children/c3
 
-measure select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null and c.p is null
-c, 630
-p, 210
-query, 1
-
 select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null and c.p is null
 /parents/p0, null
-
-measure select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null and c.p is not null
-c, 630
-p, 210
-query, 3
 
 select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null and c.p is not null
 /parents/p1, /children/c1
 /parents/p1, /children/c2
 /parents/p2, /children/c3
-
-explain select * from [nt:base] as p inner join [nt:base] as c on p.id = c.p
-[nt:base] as [p] /* traverse "//*" where [p].[id] is not null */ inner join [nt:base] as [c] /* traverse "//*" where [c].[p] is not null */ on [p].[id] = [c].[p]
-
-measure select * from [nt:base] as p inner join [nt:base] as c on p.id = c.p
-c, 630
-p, 210
-query, 3
 
 select * from [nt:base] as p inner join [nt:base] as c on p.id = c.p
 /parents/p1, /children/c1

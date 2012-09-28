@@ -36,7 +36,8 @@ import org.apache.jackrabbit.mongomk.query.ReadAndIncHeadRevisionQuery;
 import org.apache.jackrabbit.mongomk.query.SaveAndSetHeadRevisionQuery;
 import org.apache.jackrabbit.mongomk.query.SaveCommitQuery;
 import org.apache.jackrabbit.mongomk.query.SaveNodesQuery;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
@@ -51,7 +52,7 @@ import com.mongodb.WriteResult;
  */
 public class CommitCommandMongo extends AbstractCommand<String> {
 
-    private static final Logger logger = Logger.getLogger(CommitCommandMongo.class);
+    private static final Logger logger = LoggerFactory.getLogger(CommitCommandMongo.class);
 
     private final Commit commit;
     private final MongoConnection mongoConnection;

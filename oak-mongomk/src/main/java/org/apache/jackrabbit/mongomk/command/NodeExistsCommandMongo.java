@@ -16,13 +16,11 @@
  */
 package org.apache.jackrabbit.mongomk.command;
 
-import java.util.List;
+import java.util.Set;
 
 import org.apache.jackrabbit.mongomk.MongoConnection;
 import org.apache.jackrabbit.mongomk.api.command.AbstractCommand;
-import org.apache.jackrabbit.mongomk.model.NodeMongo;
-import org.apache.jackrabbit.mongomk.query.FetchNodeByPathQuery;
-import org.apache.jackrabbit.mongomk.util.MongoUtil;
+import org.apache.jackrabbit.mongomk.api.model.Node;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
 /**
@@ -31,10 +29,12 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
  * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 public class NodeExistsCommandMongo extends AbstractCommand<Boolean> {
+
     private final MongoConnection mongoConnection;
-    private NodeMongo parentNode;
-    private final String path;
-    private String revisionId;
+    private final String revisionId;
+
+    private Node parentNode;
+    private String path;
 
     /**
      * Constructs a new {@code NodeExistsCommandMongo}.
@@ -54,21 +54,25 @@ public class NodeExistsCommandMongo extends AbstractCommand<Boolean> {
         if (PathUtils.denotesRoot(path)) {
             return true;
         }
-        ensureRevisionId();
-        readParentNode();
-        return childExists();
-    }
 
-    private void ensureRevisionId() throws Exception {
-        if (revisionId == null) {
-            revisionId = new GetHeadRevisionCommandMongo(mongoConnection).execute();
+        // Check that all the paths up to the parent are valid.
+        while (!PathUtils.denotesRoot(path)) {
+            readParentNode();
+            if (!childExists()) {
+                return false;
+            }
+            path = PathUtils.getParentPath(path);
         }
+
+        return true;
     }
 
     private void readParentNode() throws Exception {
         String parentPath = PathUtils.getParentPath(path);
-        FetchNodeByPathQuery query = new FetchNodeByPathQuery(mongoConnection, parentPath, MongoUtil.toMongoRepresentation(revisionId));
-        parentNode = query.execute();
+        // TODO - This used to be FetchNodeByPathQuery but changed to GetNodesCommandMongo to make
+        // sure nodes are in a valid commit etc. Check if GetNodesCommandMongo is really needed.
+        GetNodesCommandMongo command = new GetNodesCommandMongo(mongoConnection, parentPath, revisionId, -1);
+        parentNode = command.execute();
     }
 
     private boolean childExists() {
@@ -76,13 +80,13 @@ public class NodeExistsCommandMongo extends AbstractCommand<Boolean> {
             return false;
         }
 
-        List<String> children = parentNode.getChildren();
+        Set<Node> children = parentNode.getChildren();
         if (children == null || children.isEmpty()) {
             return false;
         }
 
-        for (String child : children) {
-            if (child.equals(PathUtils.getName(path))) {
+        for (Node child : children) {
+            if (child.getName().equals(PathUtils.getName(path))) {
                 return true;
             }
         }

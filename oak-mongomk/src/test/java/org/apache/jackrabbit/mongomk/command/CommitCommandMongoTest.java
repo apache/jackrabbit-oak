@@ -32,6 +32,8 @@ import org.apache.jackrabbit.mongomk.impl.model.AddPropertyInstructionImpl;
 import org.apache.jackrabbit.mongomk.impl.model.CommitImpl;
 import org.apache.jackrabbit.mongomk.impl.model.RemoveNodeInstructionImpl;
 import org.apache.jackrabbit.mongomk.scenario.SimpleNodeScenario;
+import org.apache.jackrabbit.mongomk.util.MongoUtil;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -43,30 +45,30 @@ import org.junit.Test;
 public class CommitCommandMongoTest extends BaseMongoTest {
 
     @Test
-    public void testAddIntermediataryNodes() throws Exception {
-        // Assert.fail("Do it");
+    @Ignore // FIXME - Implement
+    public void addIntermediataryNodes() throws Exception {
     }
 
     @Test
-    public void testAddNewNodesToSameParent() throws Exception {
+    public void addNewNodesToSameParent() throws Exception {
         List<Instruction> instructions = new LinkedList<Instruction>();
         instructions.add(new AddNodeInstructionImpl("/", "1"));
 
-        Commit commit = new CommitImpl("This is the 1st commit", "/", "+1 : {}", instructions);
+        Commit commit = new CommitImpl("/", "+1 : {}", "This is the 1st commit", instructions);
         CommitCommandMongo command = new CommitCommandMongo(mongoConnection, commit);
         String firstRevisionId = command.execute();
 
         instructions = new LinkedList<Instruction>();
         instructions.add(new AddNodeInstructionImpl("/", "2"));
 
-        commit = new CommitImpl("This is the 2nd commit", "/", "+2 : {}", instructions);
+        commit = new CommitImpl("/", "+2 : {}", "This is the 2nd commit", instructions);
         command = new CommitCommandMongo(mongoConnection, commit);
         String secondRevisionId = command.execute();
 
         instructions = new LinkedList<Instruction>();
         instructions.add(new AddNodeInstructionImpl("/", "3"));
 
-        commit = new CommitImpl("This is the 3rd commit", "/", "+3 : {}", instructions);
+        commit = new CommitImpl("/", "+3 : {}", "This is the 3rd commit", instructions);
         command = new CommitCommandMongo(mongoConnection, commit);
         String thirdRevisionId = command.execute();
 
@@ -76,13 +78,14 @@ public class CommitCommandMongoTest extends BaseMongoTest {
     }
 
     @Test
-    public void testCommitAddNodes() throws Exception {
+    public void addNodes() throws Exception {
         List<Instruction> instructions = new LinkedList<Instruction>();
         instructions.add(new AddNodeInstructionImpl("/", "a"));
         instructions.add(new AddNodeInstructionImpl("/a", "b"));
         instructions.add(new AddNodeInstructionImpl("/a", "c"));
 
-        Commit commit = new CommitImpl("This is a simple commit", "/", "+a : { b : {} , c : {} }", instructions);
+        Commit commit = new CommitImpl("/", "+a : { b : {} , c : {} }",
+                "This is a simple commit", instructions);
         CommitCommandMongo command = new CommitCommandMongo(mongoConnection, commit);
         String revisionId = command.execute();
 
@@ -97,7 +100,29 @@ public class CommitCommandMongoTest extends BaseMongoTest {
     }
 
     @Test
-    public void testCommitAddNodesAndPropertiesOutOfOrder() throws Exception {
+    public void addDuplicateNode() throws Exception {
+        // Add /a and /a/b
+        List<Instruction> instructions = new LinkedList<Instruction>();
+        instructions.add(new AddNodeInstructionImpl("/", "a"));
+        instructions.add(new AddNodeInstructionImpl("/a", "b"));
+        Commit commit = new CommitImpl("/", "+a : { \"b\" : {} }", "Add /a, /a/b", instructions);
+        CommitCommandMongo command = new CommitCommandMongo(mongoConnection, commit);
+        command.execute();
+
+        // Add /a/b again
+        instructions = new LinkedList<Instruction>();
+        instructions.add(new AddNodeInstructionImpl("/a", "b"));
+        commit = new CommitImpl("/a", "+b", "Add /a/b", instructions);
+        command = new CommitCommandMongo(mongoConnection, commit);
+        try {
+            command.execute();
+            fail("Exception expected");
+        } catch (Exception expected) {
+        }
+    }
+
+    @Test
+    public void addNodesAndPropertiesOutOfOrder() throws Exception {
         List<Instruction> instructions = new LinkedList<Instruction>();
         instructions.add(new AddPropertyInstructionImpl("/a", "key1", "value1"));
         instructions.add(new AddNodeInstructionImpl("/", "a"));
@@ -106,8 +131,9 @@ public class CommitCommandMongoTest extends BaseMongoTest {
         instructions.add(new AddPropertyInstructionImpl("/a/c", "key3", "value3"));
         instructions.add(new AddNodeInstructionImpl("/a", "c"));
 
-        Commit commit = new CommitImpl("This is a simple commit", "/",
-                "+a : { \"key1\" : \"value1\" , \"key2\" : \"value2\" , \"key3\" : \"value3\" }", instructions);
+        Commit commit = new CommitImpl("/",
+                "+a : { \"key1\" : \"value1\" , \"key2\" : \"value2\" , \"key3\" : \"value3\" }",
+                "This is a simple commit", instructions);
         CommitCommandMongo command = new CommitCommandMongo(mongoConnection, commit);
         String revisionId = command.execute();
 
@@ -126,7 +152,7 @@ public class CommitCommandMongoTest extends BaseMongoTest {
     }
 
     @Test
-    public void testCommitAddNodesWhichAlreadyExist() throws Exception {
+    public void addNodesWhichAlreadyExist() throws Exception {
         SimpleNodeScenario scenario1 = new SimpleNodeScenario(mongoConnection);
         scenario1.create();
 
@@ -138,8 +164,9 @@ public class CommitCommandMongoTest extends BaseMongoTest {
         instructions.add(new AddNodeInstructionImpl("/a", "c"));
         instructions.add(new AddPropertyInstructionImpl("/a/c", "key3", "value3"));
 
-        Commit commit = new CommitImpl("This is a simple commit", "/",
-                "+a : { \"key1\" : \"value1\" , \"key2\" : \"value2\" , \"key3\" : \"value3\" }", instructions);
+        Commit commit = new CommitImpl("/",
+                "+a : { \"key1\" : \"value1\" , \"key2\" : \"value2\" , \"key3\" : \"value3\" }",
+                "This is a simple commit", instructions);
         CommitCommandMongo command = new CommitCommandMongo(mongoConnection, commit);
         String revisionId = command.execute();
 
@@ -158,7 +185,7 @@ public class CommitCommandMongoTest extends BaseMongoTest {
     }
 
     @Test
-    public void testCommitAndMergeNodes() throws Exception {
+    public void commitAndMergeNodes() throws Exception {
         SimpleNodeScenario scenario1 = new SimpleNodeScenario(mongoConnection);
         String firstRevisionId = scenario1.create();
         String secondRevisionId = scenario1.update_A_and_add_D_and_E();
@@ -188,7 +215,7 @@ public class CommitCommandMongoTest extends BaseMongoTest {
     }
 
     @Test
-    public void testCommitContainsAllAffectedNodes() throws Exception {
+    public void commitContainsAllAffectedNodes() throws Exception {
         SimpleNodeScenario scenario = new SimpleNodeScenario(mongoConnection);
         String firstRevisionId = scenario.create();
         String secondRevisionId = scenario.update_A_and_add_D_and_E();
@@ -198,13 +225,14 @@ public class CommitCommandMongoTest extends BaseMongoTest {
     }
 
     @Test
-    public void testRemoveNode() throws Exception {
+    public void removeNode() throws Exception {
         List<Instruction> instructions = new LinkedList<Instruction>();
         instructions.add(new AddNodeInstructionImpl("/", "a"));
         instructions.add(new AddNodeInstructionImpl("/a", "b"));
         instructions.add(new AddNodeInstructionImpl("/a", "c"));
 
-        Commit commit = new CommitImpl("This is a simple commit", "/", "+a : { b : {} , c : {} }", instructions);
+        Commit commit = new CommitImpl("/", "+a : { b : {} , c : {} }",
+                "This is a simple commit", instructions);
         CommitCommandMongo command = new CommitCommandMongo(mongoConnection, commit);
         String revisionId = command.execute();
         Assert.assertNotNull(revisionId);
@@ -212,7 +240,7 @@ public class CommitCommandMongoTest extends BaseMongoTest {
         instructions = new LinkedList<Instruction>();
         instructions.add(new RemoveNodeInstructionImpl("/", "a"));
 
-        commit = new CommitImpl("This is a simple commit", "/", "-a", instructions);
+        commit = new CommitImpl("/", "-a", "This is a simple commit", instructions);
         command = new CommitCommandMongo(mongoConnection, commit);
         revisionId = command.execute();
         Assert.assertNotNull(revisionId);
@@ -225,20 +253,19 @@ public class CommitCommandMongoTest extends BaseMongoTest {
     }
 
     @Test
-    @Ignore // FIXME
-    public void testRemoveNonExistentNode() throws Exception {
+    public void removeNonExistentNode() throws Exception {
         List<Instruction> instructions = new LinkedList<Instruction>();
         instructions.add(new AddNodeInstructionImpl("/", "a"));
         instructions.add(new AddNodeInstructionImpl("/a", "b"));
 
-        Commit commit = new CommitImpl("Add nodes", "/", "+a : { b : {}  }", instructions);
+        Commit commit = new CommitImpl("/", "+a : { b : {}  }", "Add nodes", instructions);
         CommitCommandMongo command = new CommitCommandMongo(mongoConnection, commit);
         command.execute();
 
         instructions = new LinkedList<Instruction>();
         instructions.add(new RemoveNodeInstructionImpl("/a", "c"));
 
-        commit = new CommitImpl("Non-existent node delete", "/a", "-c", instructions);
+        commit = new CommitImpl("/a", "-c", "Non-existent node delete", instructions);
         command = new CommitCommandMongo(mongoConnection, commit);
         try {
             command.execute();
@@ -249,13 +276,14 @@ public class CommitCommandMongoTest extends BaseMongoTest {
     }
 
     @Test
-    public void testExistingParentContainsChildren() throws Exception {
+    public void existingParentContainsChildren() throws Exception {
         List<Instruction> instructions = new LinkedList<Instruction>();
         instructions.add(new AddNodeInstructionImpl("/", "a"));
         instructions.add(new AddNodeInstructionImpl("/", "b"));
         instructions.add(new AddNodeInstructionImpl("/", "c"));
 
-        Commit commit = new CommitImpl("This is a simple commit", "/", "+a : { b : {} , c : {} }", instructions);
+        Commit commit = new CommitImpl("/", "+a : { b : {} , c : {} }",
+                "This is a simple commit", instructions);
         CommitCommandMongo command = new CommitCommandMongo(mongoConnection, commit);
         String revisionId = command.execute();
 
@@ -269,15 +297,16 @@ public class CommitCommandMongoTest extends BaseMongoTest {
     }
 
     @Test
-    public void testMergePropertiesAndChildren_noneExistedAndNewAdded() throws Exception {
+    public void mergePropertiesAndChildren_noneExistedAndNewAdded() throws Exception {
         List<Instruction> instructions = new LinkedList<Instruction>();
         instructions.add(new AddNodeInstructionImpl("/", "a"));
         instructions.add(new AddPropertyInstructionImpl("/a", "key1", "value1"));
         instructions.add(new AddPropertyInstructionImpl("/a", "key2", "value2"));
         instructions.add(new AddPropertyInstructionImpl("/a", "key3", "value3"));
 
-        Commit commit = new CommitImpl("This is a simple commit", "/",
-                "+a : { \"key1\" : \"value1\" , \"key2\" : \"value2\" , \"key3\" : \"value3\" }", instructions);
+        Commit commit = new CommitImpl("/",
+                "+a : { \"key1\" : \"value1\" , \"key2\" : \"value2\" , \"key3\" : \"value3\" }",
+                "This is a simple commit", instructions);
         CommitCommandMongo command = new CommitCommandMongo(mongoConnection, commit);
         String revisionId = command.execute();
 
@@ -291,18 +320,16 @@ public class CommitCommandMongoTest extends BaseMongoTest {
     }
 
     @Test
-    public void testMergePropertiesAndChildren_someExistedAndNewAdded() throws Exception {
+    public void mergePropertiesAndChildren_someExistedAndNewAdded() throws Exception {
         List<Instruction> instructions = new LinkedList<Instruction>();
         instructions.add(new AddNodeInstructionImpl("/", "a"));
         instructions.add(new AddPropertyInstructionImpl("/a", "existed_key1", "value1"));
         instructions.add(new AddPropertyInstructionImpl("/a", "existed_key2", "value2"));
         instructions.add(new AddPropertyInstructionImpl("/a", "existed_key3", "value3"));
 
-        Commit commit = new CommitImpl(
-                "This is a simple commit",
-                "/",
+        Commit commit = new CommitImpl("/",
                 "+a : { \"existed_key1\" : \"value1\" , \"existed_key2\" : \"value2\" , \"existed_key3\" : \"value3\" }",
-                instructions);
+                "This is a simple commit", instructions);
         CommitCommandMongo command = new CommitCommandMongo(mongoConnection, commit);
         String revisionId = command.execute();
 
@@ -312,8 +339,9 @@ public class CommitCommandMongoTest extends BaseMongoTest {
         instructions.add(new AddPropertyInstructionImpl("/a", "key2", "value2"));
         instructions.add(new AddPropertyInstructionImpl("/a", "key3", "value3"));
 
-        commit = new CommitImpl("This is a simple commit", "/",
-                "+a : { \"key1\" : \"value1\" , \"key2\" : \"value2\" , \"key3\" : \"value3\" }", instructions);
+        commit = new CommitImpl("/",
+                "+a : { \"key1\" : \"value1\" , \"key2\" : \"value2\" , \"key3\" : \"value3\" }",
+                "This is a simple commit", instructions);
         command = new CommitCommandMongo(mongoConnection, commit);
         revisionId = command.execute();
 
@@ -327,13 +355,14 @@ public class CommitCommandMongoTest extends BaseMongoTest {
     }
 
     @Test
-    public void testNoOtherNodesTouched() throws Exception {
+    public void noOtherNodesTouched() throws Exception {
         List<Instruction> instructions = new LinkedList<Instruction>();
         instructions.add(new AddNodeInstructionImpl("/", "a"));
         instructions.add(new AddNodeInstructionImpl("/", "b"));
         instructions.add(new AddNodeInstructionImpl("/", "c"));
 
-        Commit commit = new CommitImpl("This is a simple commit", "/", "+a : { b : {} , c : {} }", instructions);
+        Commit commit = new CommitImpl("/", "+a : { b : {} , c : {} }",
+                "This is a simple commit", instructions);
         CommitCommandMongo command = new CommitCommandMongo(mongoConnection, commit);
         String firstRevisionId = command.execute();
 
@@ -341,7 +370,7 @@ public class CommitCommandMongoTest extends BaseMongoTest {
         instructions.add(new AddNodeInstructionImpl("/a", "d"));
         instructions.add(new AddNodeInstructionImpl("/a", "e"));
 
-        commit = new CommitImpl("This is a simple commit", "/a", "+d: {} \n+e : {}", instructions);
+        commit = new CommitImpl("/a", "+d: {} \n+e : {}", "This is a simple commit", instructions);
         command = new CommitCommandMongo(mongoConnection, commit);
         String secondRevisionId = command.execute();
 
@@ -361,17 +390,42 @@ public class CommitCommandMongoTest extends BaseMongoTest {
     }
 
     @Test
-    @Ignore /// FIXME
-    public void testRootNodeHasEmptyRootPath() throws Exception {
+    public void rootNodeHasEmptyRootPath() throws Exception {
         List<Instruction> instructions = new LinkedList<Instruction>();
         instructions.add(new AddNodeInstructionImpl("", "/"));
 
-        Commit commit = new CommitImpl("This is the root commit", "", "+/ : {}", instructions);
+        Commit commit = new CommitImpl(MongoUtil.INITIAL_COMMIT_PATH, MongoUtil.INITIAL_COMMIT_DIFF,
+                MongoUtil.INITIAL_COMMIT_MESSAGE, instructions);
         CommitCommandMongo command = new CommitCommandMongo(mongoConnection, commit);
         String revisionId = command.execute();
-
         Assert.assertNotNull(revisionId);
-        MongoAssert.assertNodesExist("",
-                NodeBuilder.build(String.format("{ \"/#%1$s\" : {} }", revisionId)));
+
+        Node expected = NodeBuilder.build(String.format("{ \"/#%1$s\" : {} }", revisionId));
+        MongoAssert.assertNodesExist(MongoUtil.INITIAL_COMMIT_PATH, expected);
+    }
+
+    @Test
+    @Ignore
+    // FIXME - This currently fails due to some limit in property sizes in Mongo
+    // which affects path property.
+    public void bigCommit() throws Exception {
+        String path = "/";
+        String baseNodeName = "test";
+        int numberOfCommits = 1000;
+
+        List<Instruction> instructions = new LinkedList<Instruction>();
+        for (int i = 0; i < numberOfCommits; i++) {
+            instructions.clear();
+            instructions.add(new AddNodeInstructionImpl(path, baseNodeName + i));
+            Commit commit = new CommitImpl(path, "+" + baseNodeName + i + " : {}",
+                    "Add node n" + i, instructions);
+            CommitCommandMongo command = new CommitCommandMongo(
+                    mongoConnection, commit);
+            command.execute();
+            if (!PathUtils.denotesRoot(path)) {
+                path += "/";
+            }
+            path += baseNodeName + i;
+        }
     }
 }

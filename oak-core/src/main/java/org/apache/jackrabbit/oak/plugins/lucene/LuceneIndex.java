@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.lucene;
 
+import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.plugins.lucene.FieldNames.PATH;
 import static org.apache.jackrabbit.oak.plugins.lucene.FieldNames.PATH_SELECTOR;
 import static org.apache.jackrabbit.oak.plugins.lucene.TermFactory.newPathTerm;
-import static org.apache.jackrabbit.oak.spi.query.IndexUtils.split;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -28,15 +28,17 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.index.IndexRowImpl;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
+import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.query.IndexDefinition;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
-import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.Term;
@@ -50,23 +52,24 @@ import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TermRangeQuery;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.Directory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This index uses internally runs a query against a Lucene index.
  */
 public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
 
-    private final NodeStore store;
+    private static final Logger LOG = LoggerFactory
+            .getLogger(LuceneIndex.class);
 
     private final IndexDefinition index;
 
-    private final String[] indexDataPath;
+    private final Iterable<String> path;
 
-    public LuceneIndex(NodeStore store, IndexDefinition indexDefinition) {
-        this.store = store;
+    public LuceneIndex(IndexDefinition indexDefinition) {
         this.index = indexDefinition;
-        this.indexDataPath = split(indexDefinition.getPath(),
-                INDEX_DATA_CHILD_NAME);
+        this.path = elements(indexDefinition.getPath());
     }
 
     @Override
@@ -86,8 +89,21 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
 
     @Override
     public Cursor query(Filter filter, String revisionId, NodeState root) {
+
+        NodeBuilder builder = new ReadOnlyBuilder(root);
+        for (String name : path) {
+            builder = builder.getChildBuilder(name);
+        }
+        if (!builder.hasChildNode(INDEX_DATA_CHILD_NAME)) {
+            // index not initialized yet
+            return new PathCursor(Collections.<String> emptySet());
+        }
+        builder = builder.getChildBuilder(INDEX_DATA_CHILD_NAME);
+
+        Directory directory = new ReadOnlyOakDirectory(builder);
+        long s = System.currentTimeMillis();
+
         try {
-            Directory directory = new OakDirectory(store, root, indexDataPath);
             try {
                 IndexReader reader = DirectoryReader.open(directory);
                 try {
@@ -108,7 +124,8 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
                             }
                         }
                     }
-
+                    LOG.debug("query via {} took {} ms.", this,
+                            System.currentTimeMillis() - s);
                     return new PathCursor(paths);
                 } finally {
                     reader.close();
@@ -126,29 +143,29 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
         List<Query> qs = new ArrayList<Query>();
 
         String path = filter.getPath();
-        if (path.equals("/")) {
-            path = "";
-        }
         switch (filter.getPathRestriction()) {
         case ALL_CHILDREN:
-            qs.add(new PrefixQuery(newPathTerm(path + "/")));
+            if (!path.endsWith("/")) {
+                path += "/";
+            }
+            qs.add(new PrefixQuery(newPathTerm(path)));
             break;
         case DIRECT_CHILDREN:
             // FIXME
-            qs.add(new PrefixQuery(newPathTerm(path + "/")));
+            if (!path.endsWith("/")) {
+                path += "/";
+            }
+            qs.add(new PrefixQuery(newPathTerm(path)));
             break;
         case EXACT:
             qs.add(new TermQuery(newPathTerm(path)));
             break;
         case PARENT:
-            int slash = path.lastIndexOf('/');
-            if (slash != -1) {
-                String parent = path.substring(0, slash);
-                qs.add(new TermQuery(newPathTerm(parent)));
-            } else {
+            if (PathUtils.denotesRoot(path)) {
                 // there's no parent of the root node
                 return null;
             }
+            qs.add(new TermQuery(newPathTerm(PathUtils.getParentPath(path))));
             break;
         }
 
@@ -166,7 +183,12 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
 
             if (first != null && first.equals(last) && pr.firstIncluding
                     && pr.lastIncluding) {
-                qs.add(new TermQuery(new Term(name, first)));
+                if (org.apache.jackrabbit.oak.query.Query.JCR_PATH.equals(name)) {
+                    qs.add(new TermQuery(newPathTerm(first)));
+                } else {
+                    qs.add(new TermQuery(new Term(name, first)));
+                }
+
             } else {
                 qs.add(TermRangeQuery.newStringRange(name, first, last,
                         pr.firstIncluding, pr.lastIncluding));
@@ -214,6 +236,11 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
             return new IndexRowImpl(path);
         }
 
+    }
+
+    @Override
+    public String toString() {
+        return "LuceneIndex [index=" + index + "]";
     }
 
 }

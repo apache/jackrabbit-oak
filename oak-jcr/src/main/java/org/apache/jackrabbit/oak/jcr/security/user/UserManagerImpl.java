@@ -80,7 +80,7 @@ public class UserManagerImpl implements UserManager {
         Authorizable authorizable = null;
         Tree tree = getUserProvider().getAuthorizable(id);
         if (tree != null) {
-            authorizable = getAuthorizable(tree);
+            authorizable = getAuthorizable(id, tree);
         }
         return authorizable;
     }
@@ -149,7 +149,7 @@ public class UserManagerImpl implements UserManager {
         setPrincipal(userTree, principal);
         setPassword(userTree, password, true);
 
-        User user = new UserImpl(userTree, this);
+        User user = new UserImpl(userID, userTree, this);
         onCreate(user, password);
 
         log.debug("User created: " + userID);
@@ -188,7 +188,7 @@ public class UserManagerImpl implements UserManager {
         Tree groupTree = getUserProvider().createGroup(groupID, intermediatePath);
         setPrincipal(groupTree, principal);
 
-        Group group = new GroupImpl(groupTree, this);
+        Group group = new GroupImpl(groupID, groupTree, this);
         onCreate(group);
 
         log.debug("Group created: " + groupID);
@@ -340,12 +340,20 @@ public class UserManagerImpl implements UserManager {
         if (tree == null) {
             return null;
         }
+        return getAuthorizable(userProvider.getAuthorizableId(tree), tree);
+    }
+
+    @CheckForNull
+    private Authorizable getAuthorizable(String id, Tree tree) throws RepositoryException {
+        if (id == null || tree == null) {
+            return null;
+        }
         if (userProvider.isAuthorizableType(tree, Type.USER)) {
-            return new UserImpl(tree, this);
+            return new UserImpl(userProvider.getAuthorizableId(tree), tree, this);
         } else if (userProvider.isAuthorizableType(tree, Type.GROUP)) {
-            return new GroupImpl(tree, this);
+            return new GroupImpl(userProvider.getAuthorizableId(tree), tree, this);
         } else {
-            throw new RepositoryException("Not a user or group tree " + tree.getPath() + ".");
+            throw new RepositoryException("Not a user or group tree " + tree.getPath() + '.');
         }
     }
 

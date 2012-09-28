@@ -17,8 +17,11 @@
 package org.apache.jackrabbit.mongomk.model;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.jackrabbit.mongomk.MongoConnection;
 import org.apache.jackrabbit.mongomk.api.model.Instruction.AddNodeInstruction;
@@ -50,18 +53,14 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
 
     @Override
     public void visit(AddNodeInstruction instruction) {
-// Old code
-//        String path = instruction.getPath();
-//        getStagedNode(path);
-//        if (!PathUtils.denotesRoot(path)) {
-//            String parentPath = PathUtils.getParentPath(path);
-//            NodeMongo parentNode = getStagedNode(parentPath);
-//            parentNode.addChild(PathUtils.getName(path));
-//        }
-
         String path = instruction.getPath();
         getStagedNode(path);
+
         String nodeName = PathUtils.getName(path);
+        if (nodeName.isEmpty()) {
+            return;
+        }
+
         String parentNodePath = PathUtils.getParentPath(path);
         NodeMongo parent = null;
         if (!PathUtils.denotesRoot(parentNodePath)) {
@@ -69,10 +68,9 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
             if (parent == null) {
                 throw new RuntimeException("No such parent: " + PathUtils.getName(parentNodePath));
             }
-            // FIXME [Mete] Add once tests are fixed.
-            //if (parent.childExists(nodeName)) {
-            //    throw new RuntimeException("There's already a child node with name '" + nodeName + "'");
-            //}
+            if (parent.childExists(nodeName)) {
+                throw new RuntimeException("There's already a child node with name '" + nodeName + "'");
+            }
         } else {
             parent = getStagedNode(parentNodePath);
         }
@@ -192,8 +190,26 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
             NodeMongo srcNode = getStoredNode(srcPath);
             destNode = srcNode;
             destNode.setPath(destPath);
+            pathNodeMap.remove(srcPath);
             pathNodeMap.put(destPath, destNode);
         }
+
+        // [Mete] Check that this works in all cases.
+        // Remove all the pending old node child changes.
+        Map<String, NodeMongo> pendingChanges = new HashMap<String, NodeMongo>();
+        for (Iterator<Entry<String, NodeMongo>> iterator = pathNodeMap.entrySet().iterator(); iterator.hasNext();) {
+            Entry<String, NodeMongo> entry = iterator.next();
+            String path = entry.getKey();
+            NodeMongo node = entry.getValue();
+            if (path.startsWith(srcPath)) {
+                iterator.remove();
+                String newPath = destPath + path.substring(srcPath.length());
+                node.setPath(newPath);
+                pendingChanges.put(newPath, node);
+            }
+        }
+        pathNodeMap.putAll(pendingChanges);
+
 
         // Remove from srcParent - [Mete] What if there is no such child?
         NodeMongo scrParentNode = getStoredNode(srcParentPath);
@@ -213,8 +229,11 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
     public void visit(RemoveNodeInstruction instruction) {
         String path = instruction.getPath();
         String parentPath = PathUtils.getParentPath(path);
-        NodeMongo parentNode = getStagedNode(parentPath);
-        // [Mete] What if there is no such child?
+        NodeMongo parentNode = getStoredNode(parentPath);
+        String childName = PathUtils.getName(path);
+        if (!parentNode.childExists(childName)) {
+            throw new RuntimeException(path);
+        }
         parentNode.removeChild(PathUtils.getName(path));
     }
 

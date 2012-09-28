@@ -22,12 +22,10 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.junit.Before;
 import org.junit.Test;
@@ -71,7 +69,7 @@ public class KernelNodeStoreTest {
     public void branch() throws CommitFailedException {
         NodeStoreBranch branch = store.branch();
 
-        NodeBuilder rootBuilder = store.getBuilder(branch.getRoot());
+        NodeBuilder rootBuilder = branch.getRoot().getBuilder();
         NodeBuilder testBuilder = rootBuilder.getChildBuilder("test");
         NodeBuilder newNodeBuilder = testBuilder.getChildBuilder("newNode");
 
@@ -118,15 +116,14 @@ public class KernelNodeStoreTest {
         final NodeState[] states = new NodeState[2]; // { before, after }
         store.setObserver(new Observer() {
             @Override
-            public void contentChanged(
-                    NodeStore store, NodeState before, NodeState after) {
+            public void contentChanged(NodeState before, NodeState after) {
                 states[0] = before;
                 states[1] = after;
             }
         });
 
         NodeState root = store.getRoot();
-        NodeBuilder rootBuilder= store.getBuilder(root);
+        NodeBuilder rootBuilder= root.getBuilder();
         NodeBuilder testBuilder = rootBuilder.getChildBuilder("test");
         NodeBuilder newNodeBuilder = testBuilder.getChildBuilder("newNode");
 
@@ -158,18 +155,16 @@ public class KernelNodeStoreTest {
     public void beforeCommitHook() throws CommitFailedException {
         store.setHook(new CommitHook() {
             @Override
-            public NodeState processCommit(
-                    NodeStore store, NodeState before, NodeState after) {
-                NodeBuilder rootBuilder = store.getBuilder(after);
-                NodeBuilder testBuilder = store.getBuilder(after.getChildNode("test"));
-                testBuilder.setNode("fromHook", MemoryNodeState.EMPTY_NODE);
-                rootBuilder.setNode("test", testBuilder.getNodeState());
+            public NodeState processCommit(NodeState before, NodeState after) {
+                NodeBuilder rootBuilder = after.getBuilder();
+                NodeBuilder testBuilder = rootBuilder.getChildBuilder("test");
+                testBuilder.getChildBuilder("fromHook");
                 return rootBuilder.getNodeState();
             }
         });
 
         NodeState root = store.getRoot();
-        NodeBuilder rootBuilder = store.getBuilder(root);
+        NodeBuilder rootBuilder = root.getBuilder();
         NodeBuilder testBuilder = rootBuilder.getChildBuilder("test");
         NodeBuilder newNodeBuilder = testBuilder.getChildBuilder("newNode");
 

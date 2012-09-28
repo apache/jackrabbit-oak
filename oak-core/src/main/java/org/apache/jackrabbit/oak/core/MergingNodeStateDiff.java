@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import org.apache.jackrabbit.oak.api.ConflictHandler;
+import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -27,8 +27,8 @@ import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.api.ConflictHandler.Resolution.MERGED;
-import static org.apache.jackrabbit.oak.api.ConflictHandler.Resolution.OURS;
+import static org.apache.jackrabbit.oak.spi.commit.ConflictHandler.Resolution.MERGED;
+import static org.apache.jackrabbit.oak.spi.commit.ConflictHandler.Resolution.OURS;
 
 /**
  * MergingNodeStateDiff... TODO

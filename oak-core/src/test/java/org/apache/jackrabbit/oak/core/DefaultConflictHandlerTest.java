@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.commit.DefaultConflictHandler;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
@@ -32,7 +33,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 public class DefaultConflictHandlerTest extends AbstractCoreTest {
-    private Root ourRoot;
+    private RootImpl ourRoot;
     private Root theirRoot;
     private CoreValue ourValue;
     private CoreValue theirValue;
@@ -55,8 +56,8 @@ public class DefaultConflictHandlerTest extends AbstractCoreTest {
         theirRoot.getTree("/").setProperty("p", theirValue);
         ourRoot.getTree("/").setProperty("p", ourValue);
 
-        theirRoot.commit(DefaultConflictHandler.OURS);
-        ourRoot.commit(DefaultConflictHandler.OURS);
+        theirRoot.commit();
+        ourRoot.commit();
 
         PropertyState p = ourRoot.getTree("/").getProperty("p");
         assertNotNull(p);
@@ -68,8 +69,8 @@ public class DefaultConflictHandlerTest extends AbstractCoreTest {
         theirRoot.getTree("/").removeProperty("a");
         ourRoot.getTree("/").setProperty("a", ourValue);
 
-        theirRoot.commit(DefaultConflictHandler.OURS);
-        ourRoot.commit(DefaultConflictHandler.OURS);
+        theirRoot.commit();
+        ourRoot.commit();
 
         PropertyState p = ourRoot.getTree("/").getProperty("a");
         assertNotNull(p);
@@ -81,8 +82,8 @@ public class DefaultConflictHandlerTest extends AbstractCoreTest {
         theirRoot.getTree("/").setProperty("a", theirValue);
         ourRoot.getTree("/").setProperty("a", ourValue);
 
-        theirRoot.commit(DefaultConflictHandler.OURS);
-        ourRoot.commit(DefaultConflictHandler.OURS);
+        theirRoot.commit();
+        ourRoot.commit();
 
         PropertyState p = ourRoot.getTree("/").getProperty("a");
         assertNotNull(p);
@@ -94,8 +95,8 @@ public class DefaultConflictHandlerTest extends AbstractCoreTest {
         theirRoot.getTree("/").setProperty("a", theirValue);
         ourRoot.getTree("/").removeProperty("a");
 
-        theirRoot.commit(DefaultConflictHandler.OURS);
-        ourRoot.commit(DefaultConflictHandler.OURS);
+        theirRoot.commit();
+        ourRoot.commit();
 
         PropertyState p = ourRoot.getTree("/").getProperty("a");
         assertNull(p);
@@ -106,8 +107,8 @@ public class DefaultConflictHandlerTest extends AbstractCoreTest {
         theirRoot.getTree("/").addChild("n").setProperty("p", theirValue);
         ourRoot.getTree("/").addChild("n").setProperty("p", ourValue);
 
-        theirRoot.commit(DefaultConflictHandler.OURS);
-        ourRoot.commit(DefaultConflictHandler.OURS);
+        theirRoot.commit();
+        ourRoot.commit();
 
         Tree n = ourRoot.getTree("/n");
         assertNotNull(n);
@@ -119,8 +120,8 @@ public class DefaultConflictHandlerTest extends AbstractCoreTest {
         theirRoot.getTree("/x").remove();
         ourRoot.getTree("/x").setProperty("p", ourValue);
 
-        theirRoot.commit(DefaultConflictHandler.OURS);
-        ourRoot.commit(DefaultConflictHandler.OURS);
+        theirRoot.commit();
+        ourRoot.commit();
 
         Tree n = ourRoot.getTree("/x");
         assertNotNull(n);
@@ -132,8 +133,8 @@ public class DefaultConflictHandlerTest extends AbstractCoreTest {
         theirRoot.getTree("/x").setProperty("p", theirValue);
         ourRoot.getTree("/x").remove();
 
-        theirRoot.commit(DefaultConflictHandler.OURS);
-        ourRoot.commit(DefaultConflictHandler.OURS);
+        theirRoot.commit();
+        ourRoot.commit();
 
         Tree n = ourRoot.getTree("/x");
         assertNull(n);
@@ -144,8 +145,9 @@ public class DefaultConflictHandlerTest extends AbstractCoreTest {
         theirRoot.getTree("/").setProperty("p", theirValue);
         ourRoot.getTree("/").setProperty("p", ourValue);
 
-        theirRoot.commit(DefaultConflictHandler.THEIRS);
-        ourRoot.commit(DefaultConflictHandler.THEIRS);
+        theirRoot.commit();
+        ourRoot.setConflictHandler(DefaultConflictHandler.THEIRS);
+        ourRoot.commit();
 
         PropertyState p = ourRoot.getTree("/").getProperty("p");
         assertNotNull(p);
@@ -157,8 +159,9 @@ public class DefaultConflictHandlerTest extends AbstractCoreTest {
         theirRoot.getTree("/").removeProperty("a");
         ourRoot.getTree("/").setProperty("a", ourValue);
 
-        theirRoot.commit(DefaultConflictHandler.THEIRS);
-        ourRoot.commit(DefaultConflictHandler.THEIRS);
+        theirRoot.commit();
+        ourRoot.setConflictHandler(DefaultConflictHandler.THEIRS);
+        ourRoot.commit();
 
         PropertyState p = ourRoot.getTree("/").getProperty("a");
         assertNull(p);
@@ -169,8 +172,9 @@ public class DefaultConflictHandlerTest extends AbstractCoreTest {
         theirRoot.getTree("/").setProperty("a", theirValue);
         ourRoot.getTree("/").setProperty("a", ourValue);
 
-        theirRoot.commit(DefaultConflictHandler.THEIRS);
-        ourRoot.commit(DefaultConflictHandler.THEIRS);
+        theirRoot.commit();
+        ourRoot.setConflictHandler(DefaultConflictHandler.THEIRS);
+        ourRoot.commit();
 
         PropertyState p = ourRoot.getTree("/").getProperty("a");
         assertNotNull(p);
@@ -182,8 +186,9 @@ public class DefaultConflictHandlerTest extends AbstractCoreTest {
         theirRoot.getTree("/").setProperty("a", theirValue);
         ourRoot.getTree("/").removeProperty("a");
 
-        theirRoot.commit(DefaultConflictHandler.THEIRS);
-        ourRoot.commit(DefaultConflictHandler.THEIRS);
+        theirRoot.commit();
+        ourRoot.setConflictHandler(DefaultConflictHandler.THEIRS);
+        ourRoot.commit();
 
         PropertyState p = ourRoot.getTree("/").getProperty("a");
         assertNotNull(p);
@@ -195,8 +200,9 @@ public class DefaultConflictHandlerTest extends AbstractCoreTest {
         theirRoot.getTree("/").addChild("n").setProperty("p", theirValue);
         ourRoot.getTree("/").addChild("n").setProperty("p", ourValue);
 
-        theirRoot.commit(DefaultConflictHandler.THEIRS);
-        ourRoot.commit(DefaultConflictHandler.THEIRS);
+        theirRoot.commit();
+        ourRoot.setConflictHandler(DefaultConflictHandler.THEIRS);
+        ourRoot.commit();
 
         Tree n = ourRoot.getTree("/n");
         assertNotNull(n);
@@ -208,8 +214,9 @@ public class DefaultConflictHandlerTest extends AbstractCoreTest {
         theirRoot.getTree("/x").remove();
         ourRoot.getTree("/x").setProperty("p", ourValue);
 
-        theirRoot.commit(DefaultConflictHandler.THEIRS);
-        ourRoot.commit(DefaultConflictHandler.THEIRS);
+        theirRoot.commit();
+        ourRoot.setConflictHandler(DefaultConflictHandler.THEIRS);
+        ourRoot.commit();
 
         Tree n = ourRoot.getTree("/x");
         assertNull(n);
@@ -220,8 +227,8 @@ public class DefaultConflictHandlerTest extends AbstractCoreTest {
         theirRoot.getTree("/x").setProperty("p", theirValue);
         ourRoot.getTree("/").remove();
 
-        theirRoot.commit(DefaultConflictHandler.THEIRS);
-        ourRoot.commit(DefaultConflictHandler.THEIRS);
+        theirRoot.commit();
+        ourRoot.commit();
 
         Tree n = ourRoot.getTree("/x");
         assertNotNull(n);

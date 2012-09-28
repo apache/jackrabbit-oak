@@ -49,7 +49,7 @@ public interface UserProvider {
     Tree getAuthorizableByPrincipal(Principal principal);
 
     @CheckForNull
-    String getAuthorizableId(Tree authorizableTree, Type authorizableType);
+    String getAuthorizableId(Tree authorizableTree);
 
     /**
      * Find the authorizable trees matching the following search parameters within

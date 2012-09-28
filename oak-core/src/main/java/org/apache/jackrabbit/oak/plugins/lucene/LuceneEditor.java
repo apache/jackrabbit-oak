@@ -16,10 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.lucene;
 
+import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
+import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.plugins.lucene.FieldFactory.newPathField;
 import static org.apache.jackrabbit.oak.plugins.lucene.FieldFactory.newPropertyField;
 import static org.apache.jackrabbit.oak.plugins.lucene.TermFactory.newPathTerm;
-import static org.apache.jackrabbit.oak.spi.query.IndexUtils.split;
 
 import java.io.IOException;
 
@@ -28,18 +29,20 @@ import javax.jcr.PropertyType;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.LongValue;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.query.IndexDefinition;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.Version;
 import org.apache.tika.Tika;
 import org.apache.tika.exception.TikaException;
@@ -69,29 +72,48 @@ class LuceneEditor implements CommitHook, LuceneIndexConstants {
         }
     }
 
-    private final String[] path;
+    private final Iterable<String> path;
 
     public LuceneEditor(IndexDefinition indexDefinition) {
-        this.path = split(indexDefinition.getPath(), INDEX_DATA_CHILD_NAME);
+        this.path = elements(indexDefinition.getPath());
     }
 
+    /*
+     * 
+     * If before is null, then the #processCommit call is treated as a full
+     * reindex call
+     */
     @Override
-    public NodeState processCommit(NodeStore store, NodeState before,
-            NodeState after) throws CommitFailedException {
-        try {
-            OakDirectory directory = new OakDirectory(store, after, path);
+    public NodeState processCommit(NodeState before, NodeState after)
+            throws CommitFailedException {
+        NodeBuilder rootBuilder = after.getBuilder();
+        NodeBuilder builder = rootBuilder;
+        for (String name : path) {
+            builder = builder.getChildBuilder(name);
+        }
+        Directory directory = new ReadWriteOakDirectory(builder.getChildBuilder(INDEX_DATA_CHILD_NAME));
 
+        try {
             IndexWriter writer = new IndexWriter(directory, config);
             try {
-                LuceneDiff diff = new LuceneDiff(writer, "");
-                after.compareAgainstBaseState(before, diff);
+                LuceneDiff diff = new LuceneDiff(writer, "/");
+                if (before != null) {
+                    // normal diff
+                    after.compareAgainstBaseState(before, diff);
+                } else {
+                    // trigger re-indexing
+                    diff.childNodeDeleted("", after);
+                    diff.childNodeAdded("", after);
+                }
+
                 diff.postProcess(after);
                 writer.commit();
+                builder.setProperty(INDEX_UPDATE,
+                        new LongValue(System.currentTimeMillis()));
             } finally {
                 writer.close();
             }
-
-            return directory.getRoot();
+            return rootBuilder.getNodeState();
         } catch (IOException e) {
             e.printStackTrace();
             throw new CommitFailedException(
@@ -146,10 +168,21 @@ class LuceneEditor implements CommitHook, LuceneIndexConstants {
             }
             if (exception == null) {
                 try {
-                    addSubtree(path + "/" + name, after);
+                    addSubtree(concat(path, name), after);
                 } catch (IOException e) {
                     exception = e;
                 }
+            }
+        }
+
+        private void addSubtree(String path, NodeState state)
+                throws IOException {
+            writer.addDocument(makeDocument(path, state));
+            for (ChildNodeEntry entry : state.getChildNodeEntries()) {
+                if (NodeStateUtils.isHidden(entry.getName())) {
+                    continue;
+                }
+                addSubtree(concat(path, entry.getName()), entry.getNodeState());
             }
         }
 
@@ -161,7 +194,7 @@ class LuceneEditor implements CommitHook, LuceneIndexConstants {
             }
             if (exception == null) {
                 try {
-                    LuceneDiff diff = new LuceneDiff(writer, path + "/" + name);
+                    LuceneDiff diff = new LuceneDiff(writer, concat(path, name));
                     after.compareAgainstBaseState(before, diff);
                     diff.postProcess(after);
                 } catch (IOException e) {
@@ -177,18 +210,10 @@ class LuceneEditor implements CommitHook, LuceneIndexConstants {
             }
             if (exception == null) {
                 try {
-                    deleteSubtree(path + "/" + name, before);
+                    deleteSubtree(concat(path, name), before);
                 } catch (IOException e) {
                     exception = e;
                 }
-            }
-        }
-
-        private void addSubtree(String path, NodeState state)
-                throws IOException {
-            writer.addDocument(makeDocument(path, state));
-            for (ChildNodeEntry entry : state.getChildNodeEntries()) {
-                addSubtree(path + "/" + entry.getName(), entry.getNodeState());
             }
         }
 
@@ -196,7 +221,10 @@ class LuceneEditor implements CommitHook, LuceneIndexConstants {
                 throws IOException {
             writer.deleteDocuments(newPathTerm(path));
             for (ChildNodeEntry entry : state.getChildNodeEntries()) {
-                deleteSubtree(path + "/" + entry.getName(),
+                if (NodeStateUtils.isHidden(entry.getName())) {
+                    continue;
+                }
+                deleteSubtree(concat(path, entry.getName()),
                         entry.getNodeState());
             }
         }

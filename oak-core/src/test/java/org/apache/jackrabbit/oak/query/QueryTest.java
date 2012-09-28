@@ -13,10 +13,6 @@
  */
 package org.apache.jackrabbit.oak.query;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -34,8 +30,11 @@ import java.util.List;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
-import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
 import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Test the query feature.
@@ -58,6 +57,11 @@ public class QueryTest extends AbstractQueryTest {
     }
 
     @Test
+    public void sql2_measure() throws Exception {
+        test("sql2_measure.txt");
+    }
+
+    @Test
     public void xpath() throws Exception {
         test("xpath.txt");
     }
@@ -68,7 +72,7 @@ public class QueryTest extends AbstractQueryTest {
                 root,
                 "/ + \"test\": { \"hello\": {\"id\": \"1\"}, \"world\": {\"id\": \"2\"}}",
                 vf);
-        root.commit(DefaultConflictHandler.OURS);
+        root.commit();
 
         HashMap<String, CoreValue> sv = new HashMap<String, CoreValue>();
         sv.put("id", vf.createValue("1"));
@@ -184,7 +188,7 @@ public class QueryTest extends AbstractQueryTest {
                     w.println(line);
                     line = line.substring("commit".length()).trim();
                     JsopUtil.apply(root, line, vf);
-                    root.commit(DefaultConflictHandler.OURS);
+                    root.commit();
                 }
                 w.flush();
             }

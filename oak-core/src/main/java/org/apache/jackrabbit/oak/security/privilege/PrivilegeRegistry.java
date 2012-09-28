@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.security.privilege;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
@@ -26,7 +27,6 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.core.DefaultConflictHandler;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeProvider;
 import org.apache.jackrabbit.oak.util.NodeUtil;
@@ -121,7 +121,7 @@ public class PrivilegeRegistry implements PrivilegeProvider, PrivilegeConstants 
             writeDefinition(privilegesNode, toRegister);
 
             // delegate validation to the commit validation (see above)
-            root.commit(DefaultConflictHandler.OURS);
+            root.commit();
 
         } catch (CommitFailedException e) {
             Throwable t = e.getCause();
