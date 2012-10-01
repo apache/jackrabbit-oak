@@ -212,9 +212,9 @@ TODO: Example of how the validator works
     Repository repository = new RepositoryImpl(contentRepository);
     Session session = repository.login();
     Node root = session.getRootNode();
-    root.setProperty("foo", "test");
+    root.setProperty("foo", "abc");
     session.save();
-    root.setProperty("bar", "test");
+    root.setProperty("bar", "def");
     session.save(); // will throw an exception
 
 TODO: Extended example that also works below root and covers also node names
@@ -259,4 +259,52 @@ TODO: Extended example that also works below root and covers also node names
 ## Commit modification
 
 TODO
+
+TODO: Basic commit hook example
+
+    class RenameContentHook implements CommitHook {
+
+        private final String name;
+
+        private final String rename;
+
+        public RenameContentHook(String name, String rename) {
+            this.name = name;
+            this.rename = rename;
+        }
+
+        @Override @Nonnull
+        public NodeState processCommit(NodeState before, NodeState after)
+                throws CommitFailedException {
+            PropertyState property = after.getProperty(name);
+            if (property != null) {
+                NodeBuilder builder = after.getBuilder();
+                builder.removeProperty(name);
+                if (property.isArray()) {
+                    builder.setProperty(rename, property.getValues());
+                } else {
+                    builder.setProperty(rename, property.getValue());
+                }
+                return builder.getNodeState();
+            }
+            return after;
+        }
+
+    }
+
+TODO: Using the commit hook to avoid the exception from a validator
+
+    ContentRepository contentRepository = new Oak()
+        .with(new RenameContentHook("bar", "foo"))
+        .with(new DenyContentWithName("bar"))
+        .createContentRepository();
+
+    Repository repository = new RepositoryImpl(contentRepository);
+    Session session = repository.login();
+    Node root = session.getRootNode();
+    root.setProperty("foo", "abc");
+    session.save();
+    root.setProperty("bar", "def");
+    session.save(); // will not throw an exception!
+    System.out.println(root.getProperty("foo").getString()); // Prints "def"!
 
