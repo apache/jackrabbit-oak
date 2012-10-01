@@ -117,7 +117,7 @@ public class ContentRepositoryImpl implements ContentRepository {
 
         QueryIndexProvider qip = indexProvider != null ? indexProvider
                 : new CompositeQueryIndexProvider();
-        queryEngine = new QueryEngineImpl(nodeStore, microKernel, qip);
+        queryEngine = new QueryEngineImpl(nodeStore, qip);
 
         // TODO: use configurable context provider
         loginContextProvider = new LoginContextProviderImpl(this);

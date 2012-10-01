@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -27,6 +26,7 @@ import org.apache.jackrabbit.oak.plugins.memory.SinglePropertyState;
 import org.apache.jackrabbit.oak.query.Query;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
+import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -77,7 +77,7 @@ public class SelectorImpl extends SourceImpl {
 
 
     @Override
-    public void prepare(MicroKernel mk) {
+    public void prepare() {
         if (queryConstraint != null) {
             queryConstraint.restrictPushDown(this);
         }
@@ -88,8 +88,8 @@ public class SelectorImpl extends SourceImpl {
     }
 
     @Override
-    public void execute(String revisionId, NodeState root) {
-        cursor = index.query(createFilter(), revisionId, root);
+    public void execute(NodeState root) {
+        cursor = index.query(createFilter(), root);
     }
 
     @Override
@@ -104,7 +104,7 @@ public class SelectorImpl extends SourceImpl {
         return buff.toString();
     }
 
-    private FilterImpl createFilter() {
+    private Filter createFilter() {
         FilterImpl f = new FilterImpl(this);
         f.setNodeType(nodeTypeName);
         if (joinCondition != null) {

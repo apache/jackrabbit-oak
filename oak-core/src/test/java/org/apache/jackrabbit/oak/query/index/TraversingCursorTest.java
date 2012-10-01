@@ -63,7 +63,7 @@ public class TraversingCursorTest {
 
         f.setPath("/");
         List<String> paths = new ArrayList<String>();
-        Cursor c = t.query(f, head, new KernelNodeState(mk, "/", head, cache));
+        Cursor c = t.query(f, new KernelNodeState(mk, "/", head, cache));
         while (c.next()) {
             paths.add(c.currentRow().getPath());
         }
@@ -78,7 +78,7 @@ public class TraversingCursorTest {
         assertFalse(c.next());
 
         f.setPath("/nowhere");
-        c = t.query(f, head, new KernelNodeState(mk, "/", head, cache));
+        c = t.query(f, new KernelNodeState(mk, "/", head, cache));
         assertFalse(c.next());
         // endure it stays false
         assertFalse(c.next());

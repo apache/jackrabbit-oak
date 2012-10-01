@@ -88,7 +88,7 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
     }
 
     @Override
-    public Cursor query(Filter filter, String revisionId, NodeState root) {
+    public Cursor query(Filter filter, NodeState root) {
 
         NodeBuilder builder = new ReadOnlyBuilder(root);
         for (String name : path) {

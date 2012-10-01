@@ -30,7 +30,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 public class TraversingIndex implements QueryIndex {
 
     @Override
-    public Cursor query(Filter filter, String revisionId, NodeState root) {
+    public Cursor query(Filter filter, NodeState root) {
         return new TraversingCursor(filter, root);
     }
 

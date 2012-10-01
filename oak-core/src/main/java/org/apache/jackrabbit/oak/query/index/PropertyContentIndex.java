@@ -29,6 +29,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * An index that stores the index data in a {@code MicroKernel}.
+ * 
+ * @deprecated the revisionId info has been removed
  */
 public class PropertyContentIndex implements QueryIndex {
 
@@ -61,7 +63,7 @@ public class PropertyContentIndex implements QueryIndex {
     }
 
     @Override
-    public Cursor query(Filter filter, String revisionId, NodeState root) {
+    public Cursor query(Filter filter, NodeState root) {
         String propertyName = index.getPropertyName();
         Filter.PropertyRestriction restriction = filter.getPropertyRestriction(propertyName);
         if (restriction == null) {
@@ -69,6 +71,8 @@ public class PropertyContentIndex implements QueryIndex {
         }
         CoreValue first = restriction.first;
         String f = first == null ? null : first.toString();
+        // TODO revisit code after the removal of revisionId
+        String revisionId = "";
         Iterator<String> it = index.getPaths(f, revisionId);
         return new ContentCursor(it);
     }
