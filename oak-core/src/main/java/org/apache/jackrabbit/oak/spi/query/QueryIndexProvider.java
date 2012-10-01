@@ -20,6 +20,8 @@ package org.apache.jackrabbit.oak.spi.query;
 
 import java.util.List;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
@@ -34,6 +36,7 @@ public interface QueryIndexProvider {
      * 
      * @return the list of indexes
      */
+    @Nonnull
     List<? extends QueryIndex> getQueryIndexes(NodeStore nodeStore);
 
 }

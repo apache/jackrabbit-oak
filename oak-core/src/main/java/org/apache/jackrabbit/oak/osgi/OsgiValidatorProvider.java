@@ -84,7 +84,7 @@ public class OsgiValidatorProvider implements ServiceTrackerCustomizer, Validato
 
     @Override
     public Validator getRootValidator(NodeState before, NodeState after) {
-        return new CompositeValidatorProvider(providers.values())
+        return CompositeValidatorProvider.compose(providers.values())
                 .getRootValidator(before, after);
     }
 }

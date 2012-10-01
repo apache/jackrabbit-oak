@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import java.util.Collections;
-
 import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
 import javax.jcr.NoSuchWorkspaceException;
@@ -34,8 +32,8 @@ import org.apache.jackrabbit.oak.query.QueryEngineImpl;
 import org.apache.jackrabbit.oak.security.authentication.LoginContextProviderImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
-import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandlerProvider;
+import org.apache.jackrabbit.oak.spi.commit.DefaultValidatorProvider;
 import org.apache.jackrabbit.oak.spi.commit.ValidatingHook;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
@@ -95,8 +93,7 @@ public class ContentRepositoryImpl implements ContentRepository {
             ValidatorProvider validatorProvider) {
         this(microKernel, indexProvider, new ValidatingHook(
                 validatorProvider != null ? validatorProvider
-                        : new CompositeValidatorProvider(
-                                Collections.<ValidatorProvider> emptyList())));
+                        : DefaultValidatorProvider.INSTANCE));
     }
 
     public ContentRepositoryImpl(

@@ -23,14 +23,29 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
+import javax.annotation.Nonnull;
+
 /**
  * This {@code ValidatorProvider} aggregates a list of validator providers into
  * a single validator provider.
  */
 public class CompositeValidatorProvider implements ValidatorProvider {
+
+    public static ValidatorProvider compose(
+            @Nonnull Collection<ValidatorProvider> providers) {
+        switch (providers.size()) {
+        case 0:
+            return DefaultValidatorProvider.INSTANCE;
+        case 1:
+            return providers.iterator().next();
+        default:
+            return new CompositeValidatorProvider(providers);
+        }
+    }
+
     private final Collection<ValidatorProvider> providers;
 
-    public CompositeValidatorProvider(Collection<ValidatorProvider> providers) {
+    private CompositeValidatorProvider(Collection<ValidatorProvider> providers) {
         this.providers = providers;
     }
 

@@ -25,9 +25,12 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  */
 public class DefaultValidatorProvider implements ValidatorProvider {
 
-    @Nonnull
-    @Override
+    public static final ValidatorProvider INSTANCE =
+            new DefaultValidatorProvider();
+
+    @Override @Nonnull
     public Validator getRootValidator(NodeState before, NodeState after) {
-        return new DefaultValidator();
+        return DefaultValidator.INSTANCE;
     }
+
 }

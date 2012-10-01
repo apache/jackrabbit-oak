@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.plugins.index;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.unique.UniqueIndex;
 import org.apache.jackrabbit.oak.query.index.PrefixContentIndex;
@@ -50,7 +52,7 @@ public class PropertyIndexer implements QueryIndexProvider, CommitHook,
         return after;
     }
 
-    @Override
+    @Override @Nonnull
     public List<? extends QueryIndex> getQueryIndexes(NodeStore store) {
         List<QueryIndex> queryIndexList = new ArrayList<QueryIndex>();
         NodeBuilder rootBuilder = IndexUtils.getChildBuilder(store,
