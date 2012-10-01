@@ -16,19 +16,16 @@
  */
 package org.apache.jackrabbit.mongomk.query;
 
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
 import org.apache.jackrabbit.mongomk.BaseMongoTest;
 import org.apache.jackrabbit.mongomk.api.model.Commit;
-import org.apache.jackrabbit.mongomk.api.model.Instruction;
 import org.apache.jackrabbit.mongomk.api.model.Node;
 import org.apache.jackrabbit.mongomk.command.CommitCommandMongo;
 import org.apache.jackrabbit.mongomk.impl.NodeAssert;
+import org.apache.jackrabbit.mongomk.impl.builder.CommitBuilder;
 import org.apache.jackrabbit.mongomk.impl.builder.NodeBuilder;
-import org.apache.jackrabbit.mongomk.impl.model.AddNodeInstructionImpl;
-import org.apache.jackrabbit.mongomk.impl.model.CommitImpl;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
 import org.apache.jackrabbit.mongomk.model.NodeMongo;
 import org.apache.jackrabbit.mongomk.scenario.SimpleNodeScenario;
@@ -176,9 +173,7 @@ public class FetchNodesByPathAndDepthQueryTest extends BaseMongoTest {
     }
 
     private Long addNode(String nodeName) throws Exception {
-        List<Instruction> instructions = new LinkedList<Instruction>();
-        instructions.add(new AddNodeInstructionImpl("/", nodeName));
-        Commit commit = new CommitImpl("/", "+" + nodeName, "Add /" + nodeName, instructions);
+        Commit commit = CommitBuilder.build("/", "+\"" + nodeName + "\" : {}", "Add /" + nodeName);
         CommitCommandMongo command = new CommitCommandMongo(mongoConnection, commit);
         return command.execute();
     }

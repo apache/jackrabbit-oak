@@ -51,10 +51,11 @@ public class CommitBuilder {
      * @throws Exception If an error occurred while creating the {@code Commit}.
      */
     public static Commit build(String path, String diff, String message) throws Exception {
-        CommitHandler commitHandler = new CommitHandler(new CommitImpl(path, diff, message));
+        CommitImpl commit = new CommitImpl(path, diff, message);
+        CommitHandler commitHandler = new CommitHandler(commit);
         JsopParser jsopParser = new JsopParser(path, diff, commitHandler);
         jsopParser.parse();
-        return commitHandler.getCommit();
+        return commit;
     }
 
     private CommitBuilder() {
@@ -105,10 +106,6 @@ public class CommitBuilder {
         public void propertySet(String path, String key, Object value) {
             SetPropertyInstruction instruction = new SetPropertyInstructionImpl(path, key, value);
             commit.addInstruction(instruction);
-        }
-
-        Commit getCommit() {
-            return commit;
         }
     }
 }

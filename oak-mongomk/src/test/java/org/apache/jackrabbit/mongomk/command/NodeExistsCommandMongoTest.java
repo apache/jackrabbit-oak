@@ -20,15 +20,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.util.LinkedList;
-import java.util.List;
-
 import org.apache.jackrabbit.mongomk.BaseMongoTest;
 import org.apache.jackrabbit.mongomk.api.model.Commit;
-import org.apache.jackrabbit.mongomk.api.model.Instruction;
-import org.apache.jackrabbit.mongomk.impl.model.AddNodeInstructionImpl;
-import org.apache.jackrabbit.mongomk.impl.model.CommitImpl;
-import org.apache.jackrabbit.mongomk.impl.model.RemoveNodeInstructionImpl;
+import org.apache.jackrabbit.mongomk.impl.builder.CommitBuilder;
 import org.apache.jackrabbit.mongomk.scenario.SimpleNodeScenario;
 import org.junit.Test;
 
@@ -111,22 +105,12 @@ public class NodeExistsCommandMongoTest extends BaseMongoTest {
 
     @Test
     public void grandParentDelete() throws Exception {
-        // Add a->b->c->d.
-        List<Instruction> instructions = new LinkedList<Instruction>();
-        instructions.add(new AddNodeInstructionImpl("/", "a"));
-        instructions.add(new AddNodeInstructionImpl("/a", "b"));
-        instructions.add(new AddNodeInstructionImpl("/a/b", "c"));
-        instructions.add(new AddNodeInstructionImpl("/a/b/c", "d"));
-
-        Commit commit = new CommitImpl("/", "TODO", "Add nodes", instructions);
-        CommitCommandMongo command = new CommitCommandMongo(mongoConnection,
-                commit);
+        Commit commit = CommitBuilder.build("/", "+\"a\" : { \"b\" : { \"c\" : { \"d\" : {} } } }",
+                "Add /a/b/c/d");
+        CommitCommandMongo command = new CommitCommandMongo(mongoConnection, commit);
         command.execute();
 
-        // Remove b.
-        instructions = new LinkedList<Instruction>();
-        instructions.add(new RemoveNodeInstructionImpl("/a", "b"));
-        commit = new CommitImpl("/a", "-b", "Delete /b", instructions);
+        commit = CommitBuilder.build("/a", "-\"b\"", "Remove /b");
         command = new CommitCommandMongo(mongoConnection, commit);
         command.execute();
 
@@ -139,23 +123,12 @@ public class NodeExistsCommandMongoTest extends BaseMongoTest {
 
     @Test
     public void existsInHeadRevision() throws Exception {
-
-        List<Instruction> instructions = new LinkedList<Instruction>();
-
-        // Add /a
-        instructions.add(new AddNodeInstructionImpl("/", "a"));
-        Commit commit1 = new CommitImpl("/", "+a : {}", "Add node a",
-                instructions);
-        CommitCommandMongo command = new CommitCommandMongo(mongoConnection,
-                commit1);
+        Commit commit = CommitBuilder.build("/", "+\"a\" : {}", "Add /a");
+        CommitCommandMongo command = new CommitCommandMongo(mongoConnection, commit);
         command.execute();
 
-        // Add /a/b
-        instructions = new LinkedList<Instruction>();
-        instructions.add(new AddNodeInstructionImpl("/a", "b"));
-        Commit commit2 = new CommitImpl("/a", "+b : {}", "Add node a/b",
-                instructions);
-        command = new CommitCommandMongo(mongoConnection, commit2);
+        commit = CommitBuilder.build("/a", "+\"b\" : {}", "Add /a/b");
+        command = new CommitCommandMongo(mongoConnection, commit);
         command.execute();
 
         // Verify /a is visible in the head revision
