@@ -58,7 +58,7 @@ public class LuceneEditorTest implements LuceneIndexConstants {
         filter.restrictPath("/", Filter.PathRestriction.EXACT);
         filter.restrictProperty("foo", Operator.EQUAL,
                 MemoryValueFactory.INSTANCE.createValue("bar"));
-        Cursor cursor = index.query(filter, null, store.getRoot());
+        Cursor cursor = index.query(filter, store.getRoot());
         assertTrue(cursor.next());
         assertEquals("/", cursor.currentRow().getPath());
         assertFalse(cursor.next());

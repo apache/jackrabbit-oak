@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import java.util.ArrayList;
-import org.apache.jackrabbit.mk.api.MicroKernel;
+
 import org.apache.jackrabbit.oak.query.Query;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -134,17 +134,15 @@ public abstract class SourceImpl extends AstElement {
     /**
      * Prepare executing the query. This method will decide which index to use.
      *
-     * @param mk the MicroKernel
      */
-    public abstract void prepare(MicroKernel mk);
+    public abstract void prepare();
 
     /**
      * Execute the query. The current node is set to before the first row.
      *
-     * @param revisionId the revision to use
      * @param root root state of the given revision
      */
-    public abstract void execute(String revisionId, NodeState root);
+    public abstract void execute(NodeState root);
 
     /**
      * Go to the next node for the given source. This will also filter the

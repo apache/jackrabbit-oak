@@ -30,12 +30,10 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 public class ResultImpl implements Result {
 
     protected final Query query;
-    protected final String revisionId;
     protected final NodeState root;
 
-    ResultImpl(Query query, String revisionId, NodeState root) {
+    ResultImpl(Query query, NodeState root) {
         this.query = query;
-        this.revisionId = revisionId;
         this.root = root;
     }
 
@@ -65,7 +63,7 @@ public class ResultImpl implements Result {
 
             @Override
             public Iterator<ResultRowImpl> iterator() {
-                return query.getRows(revisionId, root);
+                return query.getRows(root);
             }
 
         };

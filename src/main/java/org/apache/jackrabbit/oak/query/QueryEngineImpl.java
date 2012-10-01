@@ -22,14 +22,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.query.index.TraversingIndex;
+import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -45,13 +44,11 @@ public class QueryEngineImpl {
     static final String JQOM = "JCR-JQOM";
 
     private final NodeStore store;
-    private final MicroKernel mk;
     private final CoreValueFactory vf;
     private final QueryIndexProvider indexProvider;
 
-    public QueryEngineImpl(NodeStore store, MicroKernel mk, QueryIndexProvider indexProvider) {
+    public QueryEngineImpl(NodeStore store, QueryIndexProvider indexProvider) {
         this.store = store;
-        this.mk = mk;
         this.vf = store.getValueFactory();
         this.indexProvider = indexProvider;
     }
@@ -107,7 +104,6 @@ public class QueryEngineImpl {
         q.setNamePathMapper(namePathMapper);
         q.setLimit(limit);
         q.setOffset(offset);
-        q.setMicroKernel(mk);
         if (bindings != null) {
             for (Entry<String, ? extends CoreValue> e : bindings.entrySet()) {
                 q.bindValue(e.getKey(), e.getValue());
@@ -115,13 +111,10 @@ public class QueryEngineImpl {
         }
         q.setQueryEngine(this);
         q.prepare();
-        // TODO which revision to use? Root does not provide this info
-        // TODO which node state to use? it should come from the Root
-        String revision = mk.getHeadRevision();
-        return q.executeQuery(revision, store.getRoot());
+        return q.executeQuery(store.getRoot());
     }
 
-    public QueryIndex getBestIndex(FilterImpl filter) {
+    public QueryIndex getBestIndex(Filter filter) {
         QueryIndex best = null;
         double bestCost = Double.MAX_VALUE;
         for (QueryIndex index : getIndexes()) {
