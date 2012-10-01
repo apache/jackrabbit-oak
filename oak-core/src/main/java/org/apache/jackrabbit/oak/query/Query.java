@@ -24,7 +24,6 @@ import java.util.List;
 
 import javax.jcr.PropertyType;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
@@ -57,7 +56,7 @@ import org.apache.jackrabbit.oak.query.ast.SameNodeJoinConditionImpl;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.ast.SourceImpl;
 import org.apache.jackrabbit.oak.query.ast.UpperCaseImpl;
-import org.apache.jackrabbit.oak.query.index.FilterImpl;
+import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -85,7 +84,6 @@ public class Query {
     final HashMap<String, Integer> selectorIndexes = new HashMap<String, Integer>();
     final ArrayList<SelectorImpl> selectors = new ArrayList<SelectorImpl>();
 
-    private MicroKernel mk;
     private QueryEngineImpl queryEngine;
     private final OrderingImpl[] orderings;
     private ColumnImpl[] columns;
@@ -287,10 +285,6 @@ public class Query {
         bindVariableMap.put(varName, value);
     }
 
-    public void setMicroKernel(MicroKernel mk) {
-        this.mk = mk;
-    }
-
     public void setLimit(long limit) {
         this.limit = limit;
     }
@@ -311,11 +305,11 @@ public class Query {
         this.measure = measure;
     }
 
-    public ResultImpl executeQuery(String revisionId, NodeState root) {
-        return new ResultImpl(this, revisionId, root);
+    public ResultImpl executeQuery(NodeState root) {
+        return new ResultImpl(this, root);
     }
 
-    Iterator<ResultRowImpl> getRows(String revisionId, NodeState root) {
+    Iterator<ResultRowImpl> getRows(NodeState root) {
         prepare();
         Iterator<ResultRowImpl> it;
         if (explain) {
@@ -327,7 +321,7 @@ public class Query {
                     null);
             it = Arrays.asList(r).iterator();
         } else {
-            it = new RowIterator(revisionId, root, limit, offset);
+            it = new RowIterator(root, limit, offset);
             long resultCount = 0;
             if (orderings != null) {
                 // TODO "order by" is not necessary if the used index returns
@@ -530,7 +524,7 @@ public class Query {
             return;
         }
         prepared = true;
-        source.prepare(mk);
+        source.prepare();
     }
 
     /**
@@ -538,14 +532,12 @@ public class Query {
      */
     class RowIterator implements Iterator<ResultRowImpl> {
 
-        private final String revisionId;
         private final NodeState root;
         private ResultRowImpl current;
         private boolean started, end;
         private long limit, offset, rowIndex;
 
-        RowIterator(String revisionId, NodeState root, long limit, long offset) {
-            this.revisionId = revisionId;
+        RowIterator(NodeState root, long limit, long offset) {
             this.root = root;
             this.limit = limit;
             this.offset = offset;
@@ -560,7 +552,7 @@ public class Query {
                 return;
             }
             if (!started) {
-                source.execute(revisionId, root);
+                source.execute(root);
                 started = true;
             }
             while (true) {
@@ -689,7 +681,7 @@ public class Query {
         this.queryEngine = queryEngine;
     }
 
-    public QueryIndex getBestIndex(FilterImpl filter) {
+    public QueryIndex getBestIndex(Filter filter) {
         return queryEngine.getBestIndex(filter);
     }
 

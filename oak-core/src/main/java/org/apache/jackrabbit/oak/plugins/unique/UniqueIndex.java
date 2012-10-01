@@ -61,7 +61,7 @@ public class UniqueIndex implements QueryIndex {
     }
 
     @Override
-    public Cursor query(Filter filter, String revisionId, NodeState root) {
+    public Cursor query(Filter filter, NodeState root) {
         NodeState state = root.getChildNode("jcr:system");
         if (state != null) {
             state = state.getChildNode(":unique");
