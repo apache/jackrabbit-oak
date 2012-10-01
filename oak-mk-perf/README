@@ -1,0 +1,22 @@
+This module contains performance tests for microkernel instances.
+The tests can be launched locally by calling directly the remote profile from the pom file using the following commands:
+	mvn clean test -Premote -Poak   - for launching the tests against the oak microkernel or
+	mvn clean test -Premote -Psc - for launching the tests against the mongodb microkernel.
+	
+More than that the tests can be launched remotely, for example on an mongodb cluster.In this case the pom file uploads 
+the tests to the remote machine, runs them and collects the results.Use the following commands to remotely run the tests:
+
+mvn clean process-test-classes -Plocal -Psc(or -Poak the microkernel used in tests) -Dpass=<ssh-password for the remote machine>	
+
+Tests:
+- MkAddNodesDifferentStructuresTest
+	- builds Jsop diffs (for adding nodes) in different structures - all on the same line, in a pyramid structure etc.All the nodes 
+	are added in the same commit operation.
+	
+- MkAddNodesMultipleCommitsTest
+	- builds a Jsop diff for adding nodes as a pyramid structure.The nodes are added in separate commit operations (all in one commit,
+	or each 3 nodes in a commit etc.)
+	
+- MkAddNodesRelativePathTest	
+	- add nodes to a node structure.Each node is added in a separate commit and all the nodes are referenced using the relative path to 
+	the corresponding parent node.
