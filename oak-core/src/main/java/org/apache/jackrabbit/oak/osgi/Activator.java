@@ -16,9 +16,7 @@
  */
 package org.apache.jackrabbit.oak.osgi;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -77,16 +75,15 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
     public Object addingService(ServiceReference reference) {
         Object service = context.getService(reference);
         if (service instanceof MicroKernel) {
-            List<CommitHook> hooks = new ArrayList<CommitHook>();
-            hooks.add(new DefaultTypeEditor());
-            hooks.add(new ValidatingHook(validatorProvider));
-            // hooks.add(new LuceneEditor());
+            CommitHook hook = new CompositeHook(
+                    new DefaultTypeEditor(),
+                    new ValidatingHook(validatorProvider));
+                    // new LuceneEditor());
 
             MicroKernel kernel = (MicroKernel) service;
             services.put(reference, context.registerService(
                     ContentRepository.class.getName(),
-                    new ContentRepositoryImpl(
-                            kernel, indexProvider, new CompositeHook(hooks)),
+                    new ContentRepositoryImpl(kernel, indexProvider, hook),
                     new Properties()));
             return service;
         } else {

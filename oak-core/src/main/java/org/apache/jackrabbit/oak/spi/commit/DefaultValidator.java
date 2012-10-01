@@ -28,6 +28,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  */
 public class DefaultValidator implements Validator {
 
+    public static final Validator INSTANCE = new DefaultValidator();
+
     @Override
     public void propertyAdded(PropertyState after)
             throws CommitFailedException {

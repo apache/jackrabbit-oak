@@ -17,8 +17,6 @@
 package org.apache.jackrabbit.oak.run;
 
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.Executors;
 
@@ -199,25 +197,23 @@ public class Main {
         }
 
         private static CommitHook buildDefaultCommitHook() {
-            List<CommitHook> hooks = new ArrayList<CommitHook>();
-            hooks.add(new DefaultTypeEditor());
-            hooks.add(new ValidatingHook(createDefaultValidatorProvider()));
-            hooks.add(new LuceneHook());
-            return new CompositeHook(hooks);
+            return new CompositeHook(
+                    new DefaultTypeEditor(),
+                    new ValidatingHook(createDefaultValidatorProvider()),
+                    new LuceneHook());
         }
 
         private static ValidatorProvider createDefaultValidatorProvider() {
-            List<ValidatorProvider> providers = new ArrayList<ValidatorProvider>();
-            providers.add(new NameValidatorProvider());
-            providers.add(new NamespaceValidatorProvider());
-            providers.add(new TypeValidatorProvider());
-            providers.add(new ConflictValidatorProvider());
-            providers.add(new PermissionValidatorProvider());
-            providers.add(new AccessControlValidatorProvider());
-            // FIXME: retrieve from user context
-            providers.add(new UserValidatorProvider(new UserConfig("admin")));
-            providers.add(new PrivilegeValidatorProvider());
-            return new CompositeValidatorProvider(providers);
+            return new CompositeValidatorProvider(
+                    new NameValidatorProvider(),
+                    new NamespaceValidatorProvider(),
+                    new TypeValidatorProvider(),
+                    new ConflictValidatorProvider(),
+                    new PermissionValidatorProvider(),
+                    new AccessControlValidatorProvider(),
+                    // FIXME: retrieve from user context
+                    new UserValidatorProvider(new UserConfig("admin")),
+                    new PrivilegeValidatorProvider());
         }
 
     }

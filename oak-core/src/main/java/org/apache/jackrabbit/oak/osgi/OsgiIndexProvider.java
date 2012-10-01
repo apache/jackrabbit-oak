@@ -18,11 +18,13 @@
  */
 package org.apache.jackrabbit.oak.osgi;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.Nonnull;
+
+import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -79,16 +81,11 @@ public class OsgiIndexProvider implements ServiceTrackerCustomizer, QueryIndexPr
         context.ungetService(reference);
     }
 
-    @Override
+    @Override @Nonnull
     public List<? extends QueryIndex> getQueryIndexes(NodeStore nodeStore) {
-        if (providers.isEmpty()) {
-            return Collections.emptyList();
-        } else if (providers.size() == 1) {
-            return providers.entrySet().iterator().next().getValue().getQueryIndexes(nodeStore);
-        } else {
-            // TODO combine indexes
-            return null;
-        }
+        QueryIndexProvider composite =
+                CompositeQueryIndexProvider.compose(providers.values());
+        return composite.getQueryIndexes(nodeStore);
     }
 
 }
