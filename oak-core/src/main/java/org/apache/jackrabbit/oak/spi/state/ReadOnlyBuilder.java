@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.spi.state;
 
 import java.util.List;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 
@@ -57,13 +59,13 @@ public class ReadOnlyBuilder implements NodeBuilder {
         return state.getChildNodeNames();
     }
 
-    @Override
-    public void setNode(String name, NodeState nodeState) {
+    @Override @Nonnull
+    public NodeBuilder setNode(String name, NodeState nodeState) {
         throw unsupported();
     }
 
-    @Override
-    public void removeNode(String name) {
+    @Override @Nonnull
+    public NodeBuilder removeNode(String name) {
         throw unsupported();
     }
 
@@ -82,18 +84,18 @@ public class ReadOnlyBuilder implements NodeBuilder {
         return state.getProperty(name);
     }
 
-    @Override
-    public void setProperty(String name, CoreValue value) {
+    @Override @Nonnull
+    public NodeBuilder setProperty(String name, CoreValue value) {
         throw unsupported();
     }
 
-    @Override
-    public void setProperty(String name, List<CoreValue> values) {
+    @Override @Nonnull
+    public NodeBuilder setProperty(String name, List<CoreValue> values) {
         throw unsupported();
     }
 
-    @Override
-    public void removeProperty(String name) {
+    @Override @Nonnull
+    public NodeBuilder removeProperty(String name) {
         throw unsupported();
     }
 

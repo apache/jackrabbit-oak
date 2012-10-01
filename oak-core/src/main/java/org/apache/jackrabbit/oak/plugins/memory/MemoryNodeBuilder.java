@@ -23,6 +23,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
@@ -231,8 +233,8 @@ public class MemoryNodeBuilder implements NodeBuilder {
         return read().getChildNodeNames();
     }
 
-    @Override
-    public void setNode(String name, NodeState state) {
+    @Override @Nonnull
+    public NodeBuilder setNode(String name, NodeState state) {
         MutableNodeState mstate = write();
 
         MutableNodeState cstate = mstate.nodes.get(name);
@@ -244,10 +246,11 @@ public class MemoryNodeBuilder implements NodeBuilder {
         }
 
         updated();
+        return this;
     }
 
-    @Override
-    public void removeNode(String name) {
+    @Override @Nonnull
+    public NodeBuilder removeNode(String name) {
         MutableNodeState mstate = write();
 
         if (mstate.base.getChildNode(name) != null) {
@@ -257,6 +260,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
         }
 
         updated();
+        return this;
     }
 
     @Override
@@ -275,17 +279,18 @@ public class MemoryNodeBuilder implements NodeBuilder {
         return read().getProperty(name);
     }
 
-    @Override
-    public void setProperty(String name, CoreValue value) {
+    @Override @Nonnull
+    public NodeBuilder setProperty(String name, CoreValue value) {
         MutableNodeState mstate = write();
 
         mstate.props.put(name, new SinglePropertyState(name, value));
 
         updated();
+        return this;
     }
 
-    @Override
-    public void setProperty(String name, List<CoreValue> values) {
+    @Override @Nonnull
+    public NodeBuilder setProperty(String name, List<CoreValue> values) {
         MutableNodeState mstate = write();
 
         if (values.isEmpty()) {
@@ -295,10 +300,11 @@ public class MemoryNodeBuilder implements NodeBuilder {
         }
 
         updated();
+        return this;
     }
 
-    @Override
-    public void removeProperty(String name) {
+    @Override @Nonnull
+    public NodeBuilder removeProperty(String name) {
         MutableNodeState mstate = write();
 
         if (mstate.base.getProperty(name) != null) {
@@ -308,6 +314,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
         }
 
         updated();
+        return this;
     }
 
     @Override

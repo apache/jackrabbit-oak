@@ -71,35 +71,85 @@ more details about this interface and all its methods.
 
 ## Building new node states
 
-Since node states are immutable, a separate builder interface, `NodeBuilder`, is
-used to construct new, modified node states. Calling the `getBuilder` method on
-a node state returns such a builder.
+Since node states are immutable, a separate builder interface,
+`NodeBuilder`, is used to construct new, modified node states. Calling
+the `getBuilder` method on a node state returns such a builder for
+modifying that node and the subtree below it.
 
-A node builder can be thought of as a _mutable_ version of a node state. The `NodeBuilder`
-interface consists of the following sets of methods:
+A node builder can be thought of as a _mutable_ version of a node state.
+In addition to property and child node access methods like the ones that
+are already present in the `NodeState` interface, the `NodeBuilder`
+interface contains the following key methods:
 
-  * Methods for accessing and modifying properties
-  * Methods for accessing and modifying child nodes
-  * The `getNodeState` method for getting a frozen snapshot of the modified node
+  * The `setProperty` and `removeProperty` methods for modifying properties
+  * The `removeNode` method for removing a subtree
+  * The `setNode` method for adding or replacing a subtree
+  * The `getChildBuilder` method for creating or modifying a subtree with
+    a connected child builder
+  * The `getNodeState` method for getting a frozen snapshot of the modified
+    content tree
 
-Property modifications are pretty simple, as you the only things you can do are
-either set the value of a property or remove a property with the `setProperty` and
-`removeProperty` methods. 
+The concept of _connected builders_ is designed to make it easy to manage
+complex content changes. Since individual node states are always immutable,
+modifying a particular node at a path like `/foo/bar` using the `setNode`
+method would require the following overly verbose code:
 
+    NodeState root = …;
+    NodeState foo = root.getChildNode("foo")
+    NodeState bar = foo.getChildNode("bar");
+    NodeBuilder barBuilder = bar.getBuilder();
+    barBuilder.setProperty("test", …);
+    NodeBuilder fooBuilder = foo.getBuilder();
+    fooBuilder.setNode("bar", barBuilder.getNodeState());
+    NodeBuilder rootBuilder = root.getBuilder();
+    rootBuilder.setNode("foo", fooBuilder.getNodeState());
+    root = rootBuilder.getNodeState();
+
+The complexity here is caused by the need to explicitly construct and
+re-connect each modified node state along the path from the root to the
+modified content in `/foo/bar`. This is because each `NodeBuilder` instance
+created by the `getBuilder` method is independent and can only be used to
+affect other builders in the manner shown above. In contrast the
+`getChildBuilder` method returns a builder instance that is "connected" to
+the parent builder in a way that any changes recorded in the child builder
+will automatically show up also in the node states created by the parent
+builder. With connected builders the above code can be simplified to:
+
+    NodeState root = …;
+    NodeBuilder rootBuilder = root.getBuilder();
+    rootBuilder
+        .getChildBuilder("foo")
+        .getChildBuilder("bar")
+        .setProperty("test", …);
+    root = rootBuilder.getNodeState();
+
+Typically the only case where the `setNode` method is preferable over
+`getChildBuilder` is when moving or copying subtrees from one location
+to another. For example, the following code copies the `/orig` subtree
+to `/copy`:
+
+    NodeState root = …;
+    NodeBuilder rootBuilder = root.getBuilder();
+    rootBuilder.setNode("copy", root.getChildNode("orig"));
+    root = rootBuilder.getNodeState();
+
+The node states constructed by a builder often retain an internal reference
+to the base state used by the builder. This allows common node state
+comparisons to perform really well as described in the next section.
 
 ## Comparing node states
 
-As a node evolves through a sequence of states, it's often important to be
-able to tell what has changed between two states of the node. As mentioned
-above, this functionality is available through the `compareAgainstBaseState`
-method. The method takes two arguments:
+As a node evolves through a sequence of states, it's often important to
+be able to tell what has changed between two states of the node. This
+functionality is available through the `compareAgainstBaseState` method.
+The method takes two arguments:
 
-  * A _base state_ for the comparison. The comparison will report all changes
-    necessary for moving from the given base state to the node state on which
-    the comparison method is invoked.
+  * A _base state_ for the comparison. The comparison will report all
+    changes necessary for moving from the given base state to the node
+    state on which the comparison method is invoked.
   * A `NodeStateDiff` instance to which all detected changes are reported.
-    The diff interface contains callback methods for reporting added, modified
-    or removed properties or child nodes.
+    The diff interface contains callback methods for reporting added,
+    modified or removed properties or child nodes.
 
 The comparison method can actually be used to compare any two nodes, but the
 implementations of the method are typically heavily optimized for the case
