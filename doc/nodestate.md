@@ -50,6 +50,7 @@ interface consists of three sets of methods:
 
   * Methods for accessing properties
   * Methods for accessing child nodes
+  * The `getBuilder` method for building modified states
   * The `compareAgainstBaseState` method for comparing states
 
 You can request a property or a child node by name, get the number of
@@ -64,11 +65,27 @@ will return the items in the same order as before, but the specific ordering
 is not defined nor does it necessarily remain the same across different
 instances.
 
-The `compareAgainstBaseState` method takes another NodeState instance and
-a `NodeStateDiff` object, compares the two node states, and reports all
-differences by invoking appropriate methods on the given diff handler object.
+The last two methods, `getBuilder` and `compareAgainstBaseState`, are
+covered in the next two sections. See also the `NodeState` javadocs for
+more details about this interface and all its methods.
 
-See the `NodeState` javadocs for full details on how the interface works.
+## Building new node states
+
+Since node states are immutable, a separate builder interface, `NodeBuilder`, is
+used to construct new, modified node states. Calling the `getBuilder` method on
+a node state returns such a builder.
+
+A node builder can be thought of as a _mutable_ version of a node state. The `NodeBuilder`
+interface consists of the following sets of methods:
+
+  * Methods for accessing and modifying properties
+  * Methods for accessing and modifying child nodes
+  * The `getNodeState` method for getting a frozen snapshot of the modified node
+
+Property modifications are pretty simple, as you the only things you can do are
+either set the value of a property or remove a property with the `setProperty` and
+`removeProperty` methods. 
+
 
 ## Comparing node states
 
@@ -105,10 +122,6 @@ for such recursion typically looks something like this:
             String name, NodeState before, NodeState after) {
         after.compareAgainstBaseState(before, ...);
     }
-
-## Building new node states
-
-TODO
 
 ## The commit hook mechanism
 
