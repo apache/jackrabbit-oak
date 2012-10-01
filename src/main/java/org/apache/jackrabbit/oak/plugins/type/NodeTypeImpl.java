@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.type;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.security.AccessController;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -32,21 +31,18 @@ import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
-import javax.jcr.nodetype.ItemDefinition;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeIterator;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.PropertyDefinition;
-import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
 import org.apache.jackrabbit.oak.namepath.JcrNameParser;
 import org.apache.jackrabbit.oak.namepath.JcrPathParser;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.type.constraint.Constraints;
-import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -278,8 +274,7 @@ class NodeTypeImpl implements NodeType {
 
         for (PropertyDefinition definition : getPropertyDefinitions()) {
             String name = definition.getName();
-            if ((propertyName.equals(name) && !isProtected(definition))
-                    || "*".equals(name)) {
+            if (propertyName.equals(name) || "*".equals(name)) {
                 if (!definition.isMultiple()) {
                     return meetsTypeConstraints(value, definition.getRequiredType()) &&
                            meetsValueConstraints(value, definition.getValueConstraints());
@@ -297,8 +292,7 @@ class NodeTypeImpl implements NodeType {
 
         for (PropertyDefinition definition : getPropertyDefinitions()) {
             String name = definition.getName();
-            if ((propertyName.equals(name) && !isProtected(definition))
-                    || "*".equals(name)) {
+            if (propertyName.equals(name) || "*".equals(name)) {
                 if (definition.isMultiple()) {
                     return meetsTypeConstraints(values, definition.getRequiredType()) &&
                            meetsValueConstraints(values, definition.getValueConstraints());
@@ -412,8 +406,7 @@ class NodeTypeImpl implements NodeType {
     public boolean canAddChildNode(String childNodeName) {
         for (NodeDefinition definition : getChildNodeDefinitions()) {
             String name = definition.getName();
-            if ((matches(childNodeName, name) && !isProtected(definition))
-                    || "*".equals(name)) {
+            if (matches(childNodeName, name) || "*".equals(name)) {
                 return definition.getDefaultPrimaryType() != null;
             }
         }
@@ -436,8 +429,7 @@ class NodeTypeImpl implements NodeType {
         }
         for (NodeDefinition definition : getChildNodeDefinitions()) {
             String name = definition.getName();
-            if ((matches(childNodeName, name) && !isProtected(definition))
-                    || "*".equals(name)) {
+            if (matches(childNodeName, name) || "*".equals(name)) {
                 for (String required : definition.getRequiredPrimaryTypeNames()) {
                     if (type.isNodeType(required)) {
                         return true;
@@ -484,13 +476,6 @@ class NodeTypeImpl implements NodeType {
     private static boolean matches(String childNodeName, String name) {
         // TODO need a better way to handle SNS
         return childNodeName.startsWith(name);
-    }
-
-    private static boolean isProtected(ItemDefinition definition) {
-        // TODO need a better way for setting protected items internally
-        // FIXME admins should not be able to set protected items
-        Subject subject = Subject.getSubject(AccessController.getContext());
-        return (subject == null || !subject.getPrincipals().contains(AdminPrincipal.INSTANCE)) && definition.isProtected();
     }
 
 }
