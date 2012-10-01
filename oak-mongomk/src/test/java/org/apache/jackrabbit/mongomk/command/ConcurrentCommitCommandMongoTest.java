@@ -30,6 +30,7 @@ import org.apache.jackrabbit.mongomk.api.command.CommandExecutor;
 import org.apache.jackrabbit.mongomk.api.model.Commit;
 import org.apache.jackrabbit.mongomk.api.model.Instruction;
 import org.apache.jackrabbit.mongomk.api.model.Node;
+import org.apache.jackrabbit.mongomk.impl.builder.CommitBuilder;
 import org.apache.jackrabbit.mongomk.impl.command.CommandExecutorImpl;
 import org.apache.jackrabbit.mongomk.impl.model.AddNodeInstructionImpl;
 import org.apache.jackrabbit.mongomk.impl.model.CommitImpl;
@@ -50,10 +51,8 @@ public class ConcurrentCommitCommandMongoTest extends BaseMongoTest {
         // create the commands
         List<CommitCommandMongo> commands = new ArrayList<CommitCommandMongo>(numOfConcurrentThreads);
         for (int i = 0; i < numOfConcurrentThreads; ++i) {
-            List<Instruction> instructions = new LinkedList<Instruction>();
-            instructions.add(new AddNodeInstructionImpl("/", String.valueOf(i)));
-            Commit commit = new CommitImpl("/", "+" + i + " : {}",
-                    "This is a concurrent commit", instructions);
+            Commit commit = CommitBuilder.build("/", "+\"" + i + "\" : {}",
+                    "This is a concurrent commit");
             CommitCommandMongo command = new CommitCommandMongo(mongoConnection, commit) {
                 @Override
                 protected boolean saveAndSetHeadRevision() throws Exception {

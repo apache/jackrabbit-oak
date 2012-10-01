@@ -27,7 +27,6 @@ import org.apache.jackrabbit.mongomk.query.FetchValidCommitsQuery;
 import org.apache.jackrabbit.mongomk.scenario.SimpleNodeScenario;
 import org.junit.Test;
 
-
 public class FetchValidCommitsQueryTest extends BaseMongoTest {
 
     private static final int MIN_COMMITS = 1;

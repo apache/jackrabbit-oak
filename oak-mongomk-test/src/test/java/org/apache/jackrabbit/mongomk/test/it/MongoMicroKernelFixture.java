@@ -21,12 +21,12 @@ import java.util.Properties;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.test.MicroKernelFixture;
-import org.apache.jackrabbit.mongomk.BlobStoreMongo;
-import org.apache.jackrabbit.mongomk.MongoConnection;
-import org.apache.jackrabbit.mongomk.NodeStoreMongo;
 import org.apache.jackrabbit.mongomk.api.BlobStore;
 import org.apache.jackrabbit.mongomk.api.NodeStore;
+import org.apache.jackrabbit.mongomk.impl.BlobStoreMongo;
+import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.impl.MongoMicroKernel;
+import org.apache.jackrabbit.mongomk.impl.NodeStoreMongo;
 import org.apache.jackrabbit.mongomk.util.MongoUtil;
 import org.junit.Assert;
 
