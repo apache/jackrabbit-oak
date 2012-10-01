@@ -16,12 +16,16 @@
  */
 package org.apache.jackrabbit.oak.spi.query;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
+
+import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 /**
  * This {@code QueryIndexProvider} aggregates a list of query index providers
@@ -29,29 +33,39 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
  */
 public class CompositeQueryIndexProvider implements QueryIndexProvider {
 
-    private final Collection<QueryIndexProvider> providers = new CopyOnWriteArrayList<QueryIndexProvider>();
+    @Nonnull
+    public static QueryIndexProvider compose(
+            @Nonnull Collection<QueryIndexProvider> providers) {
+        if (providers.isEmpty()) {
+            return new QueryIndexProvider() {
+                @Override
+                public List<QueryIndex> getQueryIndexes(NodeStore nodeStore) {
+                    return ImmutableList.of();
+                }
+            };
+        } else if (providers.size() == 1) {
+            return providers.iterator().next();
+        } else {
+            return new CompositeQueryIndexProvider(
+                    ImmutableList.copyOf(providers));
+        }
+    }
+
+    private final List<QueryIndexProvider> providers;
+
+    private CompositeQueryIndexProvider(List<QueryIndexProvider> providers) {
+        this.providers = providers;
+    }
 
     public CompositeQueryIndexProvider(QueryIndexProvider... providers) {
-        add(providers);
+        this(Arrays.asList(providers));
     }
 
-    public void add(QueryIndexProvider... provider) {
-        if (provider == null) {
-            return;
-        }
-        for (QueryIndexProvider qip : provider) {
-            providers.add(qip);
-        }
-    }
-
-    @Override
+    @Override @Nonnull
     public List<? extends QueryIndex> getQueryIndexes(NodeStore nodeStore) {
-        List<QueryIndex> indexes = new ArrayList<QueryIndex>();
-        for (QueryIndexProvider qip : providers) {
-            List<? extends QueryIndex> t = qip.getQueryIndexes(nodeStore);
-            if (t != null) {
-                indexes.addAll(t);
-            }
+        List<QueryIndex> indexes = Lists.newArrayList();
+        for (QueryIndexProvider provider : providers) {
+            indexes.addAll(provider.getQueryIndexes(nodeStore));
         }
         return indexes;
     }

@@ -20,6 +20,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.query.IndexDefinition;
 import org.apache.jackrabbit.oak.spi.query.IndexUtils;
@@ -44,7 +46,7 @@ public class LuceneIndexProvider implements QueryIndexProvider,
         this.indexPath = indexPath;
     }
 
-    @Override
+    @Override @Nonnull
     public List<QueryIndex> getQueryIndexes(NodeStore store) {
         if (!PathUtils.isValid(indexPath)) {
             LOG.warn("index path is not valid {}", indexPath);

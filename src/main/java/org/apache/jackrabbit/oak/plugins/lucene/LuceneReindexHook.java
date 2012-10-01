@@ -91,10 +91,7 @@ public class LuceneReindexHook implements CommitHook, LuceneIndexConstants {
         for (IndexDefinition def : defsChanged) {
             hooks.add(new LuceneEditor(def));
         }
-        if (hooks.isEmpty()) {
-            return after;
-        }
-        NodeState done = new CompositeHook(hooks).processCommit(null, after);
+        NodeState done = CompositeHook.compose(hooks).processCommit(null, after);
         LOG.debug("done reindexing repository content in {} ms.",
                 System.currentTimeMillis() - t);
         return done;
