@@ -39,9 +39,16 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
+/**
+ * Builder class for constructing {@link ContentRepository} instances with
+ * a set of specified plugin components. This class acts as a public facade
+ * that hides the internal implementation classes and the details of how
+ * they get instantiated and wired together.
+ *
+ * @since Oak 0.6
+ */
 public class Oak {
 
     private final MicroKernel kernel;
@@ -60,21 +67,68 @@ public class Oak {
         this(new MicroKernelImpl());
     }
 
-    public Oak with(QueryIndexProvider provider) {
+    /**
+     * Associates the given query index provider with the repository to
+     * be created.
+     *
+     * @param provider query index provider
+     * @return this builder
+     */
+    @Nonnull
+    public Oak with(@Nonnull QueryIndexProvider provider) {
         providers.add(provider);
         return this;
     }
 
-    public Oak with(CommitHook hook) {
+    /**
+     * Associates the given commit hook with the repository to be created.
+     *
+     * @param hook commit hook
+     * @return this builder
+     */
+    @Nonnull
+    public Oak with(@Nonnull CommitHook hook) {
+        withValidatorHook();
         hooks.add(hook);
         return this;
     }
 
-    public Oak with(ValidatorProvider provider) {
+    /**
+     * Turns all currently tracked validators to a validating commit hook
+     * and associates that hook with the repository to be created. This way
+     * a sequence of {@code with()} calls that alternates between validators
+     * and other commit hooks will have all the validators in the correct
+     * order while still being able to leverage the performance gains of
+     * multiple validators iterating over the changes simultaneously.
+     */
+    private void withValidatorHook() {
+        if (!validators.isEmpty()) {
+            with(new ValidatingHook(
+                    CompositeValidatorProvider.compose(validators)));
+            validators.clear();
+        }
+    }
+
+    /**
+     * Associates the given validator provider with the repository to
+     * be created.
+     *
+     * @param provider validator provider
+     * @return this builder
+     */
+    @Nonnull
+    public Oak with(@Nonnull ValidatorProvider provider) {
         validators.add(provider);
         return this;
     }
 
+    /**
+     * Associates the given validator with the repository to be created.
+     *
+     * @param validator validator
+     * @return this builder
+     */
+    @Nonnull
     public Oak with(@Nonnull final Validator validator) {
         return with(new ValidatorProvider() {
             @Override @Nonnull
@@ -93,17 +147,8 @@ public class Oak {
     }
 
     private CommitHook createCommitHook() {
-        CommitHook hook;
-        if (!validators.isEmpty()) {
-            hook = CompositeHook.compose(ImmutableList.<CommitHook>builder()
-                    .addAll(hooks)
-                    .add(new ValidatingHook(
-                            CompositeValidatorProvider.compose(validators)))
-                    .build());
-        } else {
-            hook = CompositeHook.compose(hooks);
-        }
-        return hook;
+        withValidatorHook();
+        return CompositeHook.compose(hooks);
     }
 
     /**
