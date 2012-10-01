@@ -38,10 +38,6 @@ public class HeadMongo extends BasicDBObject {
         return headMongo;
     }
 
-    public static long toDBRepresentation(String revisionId) {
-        return Long.valueOf(revisionId);
-    }
-
     public long getHeadRevisionId() {
         return getLong(KEY_HEAD_REVISION_ID);
     }

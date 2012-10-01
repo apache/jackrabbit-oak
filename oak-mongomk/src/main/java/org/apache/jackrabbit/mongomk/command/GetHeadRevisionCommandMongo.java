@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.mongomk.command;
 
-import org.apache.jackrabbit.mongomk.MongoConnection;
 import org.apache.jackrabbit.mongomk.api.command.AbstractCommand;
+import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.query.FetchHeadRevisionQuery;
 
 /**
@@ -25,7 +25,7 @@ import org.apache.jackrabbit.mongomk.query.FetchHeadRevisionQuery;
  *
  * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
-public class GetHeadRevisionCommandMongo extends AbstractCommand<String> {
+public class GetHeadRevisionCommandMongo extends AbstractCommand<Long> {
 
     private final MongoConnection mongoConnection;
 
@@ -39,18 +39,7 @@ public class GetHeadRevisionCommandMongo extends AbstractCommand<String> {
     }
 
     @Override
-    public String execute() throws Exception {
-        long headRevision = fetchHeadRevision();
-        String revisionId = convertToRevisionId(headRevision);
-
-        return revisionId;
-    }
-
-    private String convertToRevisionId(long headRevision) {
-        return String.valueOf(headRevision);
-    }
-
-    private long fetchHeadRevision() throws Exception {
+    public Long execute() throws Exception {
         return new FetchHeadRevisionQuery(mongoConnection).execute();
     }
 }

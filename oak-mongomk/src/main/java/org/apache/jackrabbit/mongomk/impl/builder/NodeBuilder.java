@@ -23,6 +23,7 @@ import java.util.Map;
 import org.apache.jackrabbit.mongomk.api.model.Node;
 import org.apache.jackrabbit.mongomk.impl.json.JsonUtil;
 import org.apache.jackrabbit.mongomk.impl.model.NodeImpl;
+import org.apache.jackrabbit.mongomk.util.MongoUtil;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -95,7 +96,7 @@ public class NodeBuilder {
         }
 
         NodeImpl node = new NodeImpl(realPath);
-        node.setRevisionId(revisionId);
+        node.setRevisionId(MongoUtil.toMongoRepresentation(revisionId));
 
         Map<String, Object> properties = null;
         for (@SuppressWarnings("rawtypes")

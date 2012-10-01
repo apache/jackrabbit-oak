@@ -27,7 +27,6 @@ import java.util.Set;
 
 import org.apache.jackrabbit.mongomk.api.model.Node;
 import org.apache.jackrabbit.mongomk.impl.model.NodeImpl;
-import org.apache.jackrabbit.mongomk.util.MongoUtil;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
 import com.mongodb.BasicDBObject;
@@ -61,7 +60,7 @@ public class NodeMongo extends BasicDBObject {
         String path = node.getPath();
         nodeMongo.setPath(path);
 
-        String revisionId = node.getRevisionId();
+        Long revisionId = node.getRevisionId();
         if (revisionId != null) {
             nodeMongo.setRevisionId(revisionId);
         }
@@ -104,7 +103,6 @@ public class NodeMongo extends BasicDBObject {
     }
 
     public static NodeImpl toNode(NodeMongo nodeMongo) {
-        String revisionId = String.valueOf(nodeMongo.getRevisionId());
         String path = nodeMongo.getPath();
         List<String> childNames = nodeMongo.getChildren();
         long childCount = childNames != null ? childNames.size() : 0;
@@ -119,6 +117,7 @@ public class NodeMongo extends BasicDBObject {
             }
         }
 
+        Long revisionId = nodeMongo.getRevisionId();
         NodeImpl nodeImpl = new NodeImpl();
         nodeImpl.setPath(path);
         nodeImpl.setChildCount(childCount);
@@ -245,10 +244,6 @@ public class NodeMongo extends BasicDBObject {
 
     public void setRevisionId(long revisionId) {
         put(KEY_REVISION_ID, revisionId);
-    }
-
-    public void setRevisionId(String revisionId) {
-        this.setRevisionId(MongoUtil.toMongoRepresentation(revisionId));
     }
 
     @Override

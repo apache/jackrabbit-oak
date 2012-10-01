@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.mongomk.query;
 
-import org.apache.jackrabbit.mongomk.MongoConnection;
+import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.model.HeadMongo;
 
 import com.mongodb.DBCollection;
@@ -31,8 +31,7 @@ public class FetchHeadQuery extends AbstractQuery<HeadMongo> {
     /**
      * Constructs a new {@code FetchHeadQuery}.
      *
-     * @param mongoConnection
-     *            The {@link MongoConnection}.
+     * @param mongoConnection The {@link MongoConnection}.
      */
     public FetchHeadQuery(MongoConnection mongoConnection) {
         super(mongoConnection);
@@ -41,8 +40,6 @@ public class FetchHeadQuery extends AbstractQuery<HeadMongo> {
     @Override
     public HeadMongo execute() throws Exception {
         DBCollection headCollection = mongoConnection.getHeadCollection();
-        HeadMongo headMongo = (HeadMongo) headCollection.findOne();
-
-        return headMongo;
+        return (HeadMongo)headCollection.findOne();
     }
 }

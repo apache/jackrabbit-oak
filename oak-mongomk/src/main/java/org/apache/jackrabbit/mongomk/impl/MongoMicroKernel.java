@@ -20,6 +20,7 @@ import java.io.InputStream;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
+import org.apache.jackrabbit.mk.util.NodeFilter;
 import org.apache.jackrabbit.mongomk.api.BlobStore;
 import org.apache.jackrabbit.mongomk.api.NodeStore;
 import org.apache.jackrabbit.mongomk.api.model.Commit;

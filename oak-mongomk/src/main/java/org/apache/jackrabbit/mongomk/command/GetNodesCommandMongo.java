@@ -22,15 +22,14 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.mongomk.MongoConnection;
 import org.apache.jackrabbit.mongomk.api.command.AbstractCommand;
 import org.apache.jackrabbit.mongomk.api.model.Node;
+import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.impl.model.NodeImpl;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
 import org.apache.jackrabbit.mongomk.model.NodeMongo;
 import org.apache.jackrabbit.mongomk.query.FetchNodesByPathAndDepthQuery;
 import org.apache.jackrabbit.mongomk.query.FetchValidCommitsQuery;
-import org.apache.jackrabbit.mongomk.util.MongoUtil;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,7 +47,7 @@ public class GetNodesCommandMongo extends AbstractCommand<Node> {
     private final String path;
     private final int depth;
 
-    private String revisionId;
+    private Long revisionId;
     private List<CommitMongo> lastCommits;
     private List<NodeMongo> nodeMongos;
 
@@ -61,11 +60,11 @@ public class GetNodesCommandMongo extends AbstractCommand<Node> {
      *
      * @param mongoConnection The {@link MongoConnection}.
      * @param path The root path of the nodes to get.
-     * @param revisionId The {@link RevisionId} or {@code null}.
+     * @param revisionId The revision id or null.
      * @param depth The depth.
      */
     public GetNodesCommandMongo(MongoConnection mongoConnection, String path,
-            String revisionId, int depth) {
+            Long revisionId, int depth) {
         this.mongoConnection = mongoConnection;
         this.path = path;
         this.revisionId = revisionId;
@@ -155,9 +154,8 @@ public class GetNodesCommandMongo extends AbstractCommand<Node> {
         // TODO Move this into the Query which should throw the exception in case the commit doesn't exist
         if (revisionId != null) {
             boolean revisionExists = false;
-            long revId = MongoUtil.toMongoRepresentation(revisionId);
             for (CommitMongo commitMongo : lastCommits) {
-                if (commitMongo.getRevisionId() == revId) {
+                if (commitMongo.getRevisionId() == revisionId) {
                     revisionExists = true;
 
                     break;
@@ -165,14 +163,14 @@ public class GetNodesCommandMongo extends AbstractCommand<Node> {
             }
 
             if (!revisionExists) {
-                throw new Exception(String.format("The revisionId %d could not be found", revId));
+                throw new Exception(String.format("Revision %d could not be found", revisionId));
             }
         }
     }
 
     private void readNodesByPath() {
-        FetchNodesByPathAndDepthQuery query = new FetchNodesByPathAndDepthQuery(mongoConnection, path, revisionId,
-                depth);
+        FetchNodesByPathAndDepthQuery query = new FetchNodesByPathAndDepthQuery(mongoConnection,
+                path, revisionId, depth);
         nodeMongos = query.execute();
     }
 
@@ -182,8 +180,8 @@ public class GetNodesCommandMongo extends AbstractCommand<Node> {
         verified = verifyNodeHierarchyRec(path, 0);
 
         if (!verified) {
-            LOG.error(String.format("Node hierarchy could not be verified because some nodes were inconsistent: %s",
-                    path));
+            LOG.error(String.format("Node hierarchy could not be verified because"
+                    + " some nodes were inconsistent: %s", path));
         }
 
         return verified;

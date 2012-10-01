@@ -75,7 +75,7 @@ public class ConcurrentCommitCommandMongoTest extends BaseMongoTest {
         // execute the commands
         final CommandExecutor commandExecutor = new CommandExecutorImpl();
         ExecutorService executorService = Executors.newFixedThreadPool(numOfConcurrentThreads);
-        final List<String> revisionIds = new LinkedList<String>();
+        final List<Long> revisionIds = new LinkedList<Long>();
         for (int i = 0; i < numOfConcurrentThreads; ++i) {
             final CommitCommandMongo command = commands.get(i);
             Runnable runnable = new Runnable() {
@@ -83,7 +83,7 @@ public class ConcurrentCommitCommandMongoTest extends BaseMongoTest {
                 @Override
                 public void run() {
                     try {
-                        String revisionId = commandExecutor.execute(command);
+                        Long revisionId = commandExecutor.execute(command);
                         revisionIds.add(revisionId);
                     } catch (Exception e) {
                         revisionIds.add(null);
@@ -101,18 +101,17 @@ public class ConcurrentCommitCommandMongoTest extends BaseMongoTest {
             }
         } while (revisionIds.size() < numOfConcurrentThreads);
 
-        // verify the result by sorting the revision ids and verifying that all children are contained in the next
-        // revision
-        Collections.sort(revisionIds, new Comparator<String>() {
+        // Verify the result by sorting the revision ids and verifying that all
+        // children are contained in the next revision
+        Collections.sort(revisionIds, new Comparator<Long>() {
             @Override
-            public int compare(String o1, String o2) {
-                return Long.valueOf(o1).compareTo(Long.valueOf(o2));
+            public int compare(Long o1, Long o2) {
+                return o1.compareTo(o2);
             }
         });
         List<String> lastChildren = new LinkedList<String>();
         for (int i = 0; i < numOfConcurrentThreads; ++i) {
-            String revisionId = revisionIds.get(i);
-
+            Long revisionId = revisionIds.get(i);
             GetNodesCommandMongo command2 = new GetNodesCommandMongo(mongoConnection, "/", revisionId, 0);
             Node root = command2.execute();
             Set<Node> children = root.getChildren();

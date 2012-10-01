@@ -19,9 +19,8 @@ package org.apache.jackrabbit.mongomk.query;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import org.apache.jackrabbit.mongomk.MongoConnection;
+import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.model.NodeMongo;
-import org.apache.jackrabbit.mongomk.util.MongoUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,21 +40,18 @@ public class FetchNodesByPathAndDepthQuery extends AbstractQuery<List<NodeMongo>
 
     private final int depth;
     private final String path;
-    private final String revisionId;
+    private final Long revisionId;
 
     /**
      * Constructs a new {@code FetchNodesByPathAndDepthQuery}.
      *
-     * @param mongoConnection
-     *            The {@link MongoConnection}.
-     * @param path
-     *            The path.
-     * @param revisionId
-     *            The revision id.
-     * @param depth
-     *            The depth.
+     * @param mongoConnection The {@link MongoConnection}.
+     * @param path The path.
+     * @param revisionId The revision id.
+     * @param depth The depth.
      */
-    public FetchNodesByPathAndDepthQuery(MongoConnection mongoConnection, String path, String revisionId, int depth) {
+    public FetchNodesByPathAndDepthQuery(MongoConnection mongoConnection, String path,
+            Long revisionId, int depth) {
         super(mongoConnection);
         this.path = path;
         this.revisionId = revisionId;
@@ -100,7 +96,7 @@ public class FetchNodesByPathAndDepthQuery extends AbstractQuery<List<NodeMongo>
         return pattern;
     }
 
-    private List<Long> fetchValidRevisions(MongoConnection mongoConnection, String revisionId) {
+    private List<Long> fetchValidRevisions(MongoConnection mongoConnection, Long revisionId) {
         return new FetchValidRevisionsQuery(mongoConnection, revisionId).execute();
     }
 
@@ -109,7 +105,7 @@ public class FetchNodesByPathAndDepthQuery extends AbstractQuery<List<NodeMongo>
 
         QueryBuilder qb = QueryBuilder.start(NodeMongo.KEY_PATH).regex(pattern);
         if (revisionId != null) {
-            qb = qb.and(NodeMongo.KEY_REVISION_ID).lessThanEquals(MongoUtil.toMongoRepresentation(revisionId));
+            qb = qb.and(NodeMongo.KEY_REVISION_ID).lessThanEquals(revisionId);
         }
 
         DBObject query = qb.get();

@@ -31,13 +31,13 @@ public class GetHeadRevisionCommandMongoTest extends BaseMongoTest {
     @Test
     public void testGeadHeadRevisionSimple() throws Exception {
         SimpleNodeScenario scenario = new SimpleNodeScenario(mongoConnection);
-        String revisionId = scenario.create();
+        Long revisionId = scenario.create();
 
         GetHeadRevisionCommandMongo command = new GetHeadRevisionCommandMongo(mongoConnection);
-        String revisionId2 = command.execute();
-        assertTrue(revisionId.equals(revisionId2));
+        Long revisionId2 = command.execute();
+        assertTrue(revisionId == revisionId2);
 
         scenario.delete_A();
-        String revisionId3 = command.execute();
-        assertFalse(revisionId3.equals(revisionId2));
+        Long revisionId3 = command.execute();
+        assertFalse(revisionId3 == revisionId2);
     }}

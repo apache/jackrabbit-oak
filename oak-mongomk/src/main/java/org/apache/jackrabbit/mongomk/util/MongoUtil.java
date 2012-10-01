@@ -18,7 +18,7 @@ package org.apache.jackrabbit.mongomk.util;
 
 import java.util.Arrays;
 
-import org.apache.jackrabbit.mongomk.MongoConnection;
+import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
 import org.apache.jackrabbit.mongomk.model.HeadMongo;
 import org.apache.jackrabbit.mongomk.model.NodeMongo;
@@ -63,7 +63,7 @@ public class MongoUtil {
     public static void initCommitCollection(MongoConnection mongoConnection) {
         DBCollection commitCollection = mongoConnection.getCommitCollection();
         DBObject index = new BasicDBObject();
-        index.put(CommitMongo.KEY_REVISION_ID, Long.valueOf(1));
+        index.put(CommitMongo.KEY_REVISION_ID, 1L);
         DBObject options = new BasicDBObject();
         options.put("unique", Boolean.TRUE);
         commitCollection.ensureIndex(index, options);
@@ -96,8 +96,8 @@ public class MongoUtil {
     public static void initNodeCollection(MongoConnection mongoConnection) {
         DBCollection nodeCollection = mongoConnection.getNodeCollection();
         DBObject index = new BasicDBObject();
-        index.put(NodeMongo.KEY_PATH, Long.valueOf(1));
-        index.put(NodeMongo.KEY_REVISION_ID, Long.valueOf(1));
+        index.put(NodeMongo.KEY_PATH, 1L);
+        index.put(NodeMongo.KEY_REVISION_ID, 1L);
         DBObject options = new BasicDBObject();
         options.put("unique", Boolean.TRUE);
         nodeCollection.ensureIndex(index, options);
@@ -107,7 +107,11 @@ public class MongoUtil {
         nodeCollection.insert(root);
     }
 
+    public static String fromMongoRepresentation(Long revisionId) {
+        return String.valueOf(revisionId);
+    }
+
     public static Long toMongoRepresentation(String revisionId) {
-        return revisionId != null? Long.parseLong(revisionId) : 0L;
+        return revisionId != null? Long.parseLong(revisionId) : null;
     }
 }

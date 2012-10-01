@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.mongomk.query;
 
-import org.apache.jackrabbit.mongomk.MongoConnection;
+import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.model.HeadMongo;
 
 import com.mongodb.BasicDBObject;
@@ -43,7 +43,7 @@ public class ReadAndIncHeadRevisionQuery extends AbstractQuery<HeadMongo> {
     @Override
     public HeadMongo execute() throws Exception {
         DBObject query = new BasicDBObject();
-        DBObject inc = new BasicDBObject(HeadMongo.KEY_NEXT_REVISION_ID, Long.valueOf(1));
+        DBObject inc = new BasicDBObject(HeadMongo.KEY_NEXT_REVISION_ID, 1L);
         DBObject update = new BasicDBObject("$inc", inc);
         DBCollection headCollection = mongoConnection.getHeadCollection();
 

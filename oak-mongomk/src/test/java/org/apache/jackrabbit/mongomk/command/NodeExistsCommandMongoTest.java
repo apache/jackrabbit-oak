@@ -38,7 +38,7 @@ public class NodeExistsCommandMongoTest extends BaseMongoTest {
     @Test
     public void simple() throws Exception {
         SimpleNodeScenario scenario = new SimpleNodeScenario(mongoConnection);
-        String revisionId = scenario.create();
+        Long revisionId = scenario.create();
 
         NodeExistsCommandMongo command = new NodeExistsCommandMongo(
                 mongoConnection, "/a", revisionId);
@@ -85,7 +85,7 @@ public class NodeExistsCommandMongoTest extends BaseMongoTest {
         scenario.create();
 
         NodeExistsCommandMongo command = new NodeExistsCommandMongo(
-                mongoConnection, "/a", "123456789");
+                mongoConnection, "/a", 123456789L);
         try {
             command.execute();
             fail("Expected: Invalid revision id exception");
@@ -168,8 +168,8 @@ public class NodeExistsCommandMongoTest extends BaseMongoTest {
     @Test
     public void existsInOldRevNotInNewRev() throws Exception {
         SimpleNodeScenario scenario = new SimpleNodeScenario(mongoConnection);
-        String rev1 = scenario.create();
-        String rev2 = scenario.delete_A();
+        Long rev1 = scenario.create();
+        Long rev2 = scenario.delete_A();
 
         NodeExistsCommandMongo command = new NodeExistsCommandMongo(
                 mongoConnection, "/a", rev1);

@@ -18,9 +18,9 @@ package org.apache.jackrabbit.mongomk.command;
 
 import java.util.Set;
 
-import org.apache.jackrabbit.mongomk.MongoConnection;
 import org.apache.jackrabbit.mongomk.api.command.AbstractCommand;
 import org.apache.jackrabbit.mongomk.api.model.Node;
+import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
 /**
@@ -31,7 +31,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 public class NodeExistsCommandMongo extends AbstractCommand<Boolean> {
 
     private final MongoConnection mongoConnection;
-    private final String revisionId;
+    private final Long revisionId;
 
     private Node parentNode;
     private String path;
@@ -41,9 +41,10 @@ public class NodeExistsCommandMongo extends AbstractCommand<Boolean> {
      *
      * @param mongoConnection The {@link MongoConnection}.
      * @param path The root path of the nodes to get.
-     * @param revisionId The {@link RevisionId} or {@code null}.
+     * @param revisionId The revision id or null.
      */
-    public NodeExistsCommandMongo(MongoConnection mongoConnection, String path, String revisionId) {
+    public NodeExistsCommandMongo(MongoConnection mongoConnection, String path,
+            Long revisionId) {
         this.mongoConnection = mongoConnection;
         this.path = path;
         this.revisionId = revisionId;
