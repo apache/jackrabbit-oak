@@ -61,19 +61,24 @@ public interface NodeBuilder {
     Iterable<String> getChildNodeNames();
 
     /**
-     * Add a sub-tree
+     * Adds or replaces a sub-ree.
      *
-     * @param name  name child node containing the sub-tree
-     * @param nodeState  sub-tree
+     * @param name name of the child node containing the new subtree
+     * @param nodeState subtree
+     * @return this builder
      */
-    void setNode(String name, @Nonnull NodeState nodeState);
+    @Nonnull
+    NodeBuilder setNode(String name, @Nonnull NodeState nodeState);
 
     /**
      * Remove a child node. This method has no effect if a
      * property of the given {@code name} does not exist.
+     *
      * @param name  name of the child node
+     * @return this builder
      */
-    void removeNode(String name);
+    @Nonnull
+    NodeBuilder removeNode(String name);
 
     /**
      * Returns the current number of properties.
@@ -103,23 +108,30 @@ public interface NodeBuilder {
      *
      * @param name property name
      * @param value
+     * @return this builder
      */
-    void setProperty(String name, @Nonnull CoreValue value);
+    @Nonnull
+    NodeBuilder setProperty(String name, @Nonnull CoreValue value);
 
     /**
      * Set a property.
      *
      * @param name property name
      * @param values
+     * @return this builder
      */
-    void setProperty(String name, @Nonnull List<CoreValue> values);
+    @Nonnull
+    NodeBuilder setProperty(String name, @Nonnull List<CoreValue> values);
 
     /**
      * Remove the named property. This method has no effect if a
      * property of the given {@code name} does not exist.
+     *
      * @param name  name of the property
+     * @return this builder
      */
-    void removeProperty(String name);
+    @Nonnull
+    NodeBuilder removeProperty(String name);
 
     /**
      * Returns a builder for constructing changes to the named child node.
