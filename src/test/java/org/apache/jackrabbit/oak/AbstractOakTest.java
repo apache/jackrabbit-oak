@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
 import javax.jcr.NoSuchWorkspaceException;
@@ -25,6 +28,9 @@ import javax.security.auth.login.LoginException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
+import org.apache.jackrabbit.oak.plugins.type.InitialContent;
+import org.apache.jackrabbit.oak.spi.lifecycle.CompositeMicroKernelTracker;
+import org.apache.jackrabbit.oak.spi.lifecycle.MicroKernelTracker;
 import org.junit.Before;
 
 /**
@@ -60,6 +66,12 @@ public abstract class AbstractOakTest {
     private Credentials getAdminCredentials() {
         // TODO retrieve from config
         return new SimpleCredentials("admin", "admin".toCharArray());
+    }
+
+    protected static MicroKernelTracker createDefaultKernelTracker() {
+        List<MicroKernelTracker> hooks = new ArrayList<MicroKernelTracker>();
+        hooks.add(new InitialContent());
+        return new CompositeMicroKernelTracker(hooks);
     }
 
 }

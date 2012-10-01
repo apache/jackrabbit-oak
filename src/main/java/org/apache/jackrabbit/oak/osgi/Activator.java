@@ -21,10 +21,9 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.plugins.type.DefaultTypeEditor;
-import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.ValidatingHook;
 import org.osgi.framework.BundleActivator;
@@ -44,6 +43,8 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
 
     private final OsgiValidatorProvider validatorProvider = new OsgiValidatorProvider();
 
+    private final OsgiMicroKernelTracker kernelTracker = new OsgiMicroKernelTracker();
+
     private final Map<ServiceReference, ServiceRegistration> services =
             new HashMap<ServiceReference, ServiceRegistration>();
 
@@ -55,6 +56,7 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
 
         indexProvider.start(bundleContext);
         validatorProvider.start(bundleContext);
+        kernelTracker.start(bundleContext);
 
         tracker = new ServiceTracker(
                 context, MicroKernel.class.getName(), this);
@@ -67,6 +69,7 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
 
         indexProvider.stop();
         validatorProvider.stop();
+        kernelTracker.stop();
     }
 
     //-------------------------------------------< ServiceTrackerCustomizer >---
@@ -75,15 +78,18 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
     public Object addingService(ServiceReference reference) {
         Object service = context.getService(reference);
         if (service instanceof MicroKernel) {
-            CommitHook hook = new CompositeHook(
-                    new DefaultTypeEditor(),
-                    new ValidatingHook(validatorProvider));
-                    // new LuceneEditor());
-
             MicroKernel kernel = (MicroKernel) service;
+            kernelTracker.available(kernel);
+            Oak oak = new Oak(kernel)
+                    .with(new CompositeHook(
+                        // TODO: DefaultTypeEditor is JCR specific and does not belong here
+                        new DefaultTypeEditor(),
+                        new ValidatingHook(validatorProvider)))
+                        // new LuceneEditor());
+                    .with(indexProvider);
             services.put(reference, context.registerService(
                     ContentRepository.class.getName(),
-                    new ContentRepositoryImpl(kernel, indexProvider, hook),
+                    oak.createContentRepository(),
                     new Properties()));
             return service;
         } else {
