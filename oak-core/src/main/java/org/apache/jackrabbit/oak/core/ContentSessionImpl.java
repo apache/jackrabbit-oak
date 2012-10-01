@@ -28,7 +28,6 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.SessionQueryEngine;
-import org.apache.jackrabbit.oak.plugins.type.BuiltInNodeTypes;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
 import org.apache.jackrabbit.oak.query.SessionQueryEngineImpl;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandlerProvider;
@@ -50,8 +49,6 @@ class ContentSessionImpl implements ContentSession {
     private final NodeStore store;
     private final ConflictHandlerProvider conflictHandlerProvider;
     private final SessionQueryEngine queryEngine;
-
-    private boolean initialised;
 
     public ContentSessionImpl(LoginContext loginContext, String workspaceName,
             NodeStore store, ConflictHandlerProvider conflictHandlerProvider,
@@ -77,14 +74,6 @@ class ContentSessionImpl implements ContentSession {
     @Nonnull
     @Override
     public Root getLatestRoot() {
-        // TODO: improve initial repository/session. See OAK-41
-        synchronized (this) {
-            if (!initialised) {
-                initialised = true;
-                BuiltInNodeTypes.register(getLatestRoot());
-            }
-        }
-
         RootImpl root = new RootImpl(store, workspaceName, loginContext.getSubject());
         if (conflictHandlerProvider != null) {
             root.setConflictHandler(conflictHandlerProvider.getConflictHandler(getCoreValueFactory()));

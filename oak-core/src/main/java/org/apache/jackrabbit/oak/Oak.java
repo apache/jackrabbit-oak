@@ -23,7 +23,11 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
+import org.apache.jackrabbit.oak.core.RootImpl;
+import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
@@ -33,6 +37,7 @@ import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -81,6 +86,13 @@ public class Oak {
     }
 
     public ContentRepository createContentRepository() {
+        return new ContentRepositoryImpl(
+                kernel,
+                CompositeQueryIndexProvider.compose(providers),
+                createCommitHook());
+    }
+
+    private CommitHook createCommitHook() {
         CommitHook hook;
         if (!validators.isEmpty()) {
             hook = CompositeHook.compose(ImmutableList.<CommitHook>builder()
@@ -91,11 +103,35 @@ public class Oak {
         } else {
             hook = CompositeHook.compose(hooks);
         }
-        return new ContentRepositoryImpl(
-                kernel,
-                CompositeQueryIndexProvider.compose(providers),
-                hook);
+        return hook;
     }
 
+    /**
+     * Creates a {@link NodeStore} based on the previously set micro kernel,
+     * hooks and validators.
+     * <p/>
+     * This method will return an in memory node store without hooks nor
+     * validators if no {@link MicroKernel} was set.
+     *
+     * @return a {@link NodeStore}.
+     */
+    public NodeStore createNodeStore() {
+        if (kernel != null) {
+            KernelNodeStore nodeStore = new KernelNodeStore(kernel);
+            nodeStore.setHook(createCommitHook());
+            return nodeStore;
+        } else {
+            return new MemoryNodeStore();
+        }
+    }
 
+    /**
+     * Creates a {@link Root} based on the previously set {@link MicroKernel},
+     * {@link CommitHook} and {@link ValidatorProvider}.
+     *
+     * @return a {@link Root} instance.
+     */
+    public Root createRoot() {
+        return new RootImpl(createNodeStore(), null);
+    }
 }

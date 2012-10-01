@@ -18,14 +18,11 @@ package org.apache.jackrabbit.oak.plugins.type;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.security.PrivilegedAction;
 
 import javax.annotation.Nonnull;
-import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 
 import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.NODE_TYPES_PATH;
 
@@ -68,25 +65,17 @@ public class BuiltInNodeTypes {
         //        not have sufficient permission to register node types or may
         //        even have limited read-permission on the jcr:nodetypes path.
         if (!nodeTypesInContent()) {
-            Subject admin = new Subject();
-            admin.getPrincipals().add(AdminPrincipal.INSTANCE);
-            Subject.doAs(admin, new PrivilegedAction<Void>() {
-                @Override
-                public Void run() {
-                    try {
-                        InputStream stream = BuiltInNodeTypes.class.getResourceAsStream("builtin_nodetypes.cnd");
-                        try {
-                            ntMgr.registerNodeTypes(new InputStreamReader(stream, "UTF-8"));
-                        } finally {
-                            stream.close();
-                        }
-                    } catch (Exception e) {
-                        throw new IllegalStateException(
-                                "Unable to load built-in node types", e);
-                    }
-                    return null;
+            try {
+                InputStream stream = BuiltInNodeTypes.class.getResourceAsStream("builtin_nodetypes.cnd");
+                try {
+                    ntMgr.registerNodeTypes(new InputStreamReader(stream, "UTF-8"));
+                } finally {
+                    stream.close();
                 }
-            });
+            } catch (Exception e) {
+                throw new IllegalStateException(
+                        "Unable to load built-in node types", e);
+            }
         }
     }
 

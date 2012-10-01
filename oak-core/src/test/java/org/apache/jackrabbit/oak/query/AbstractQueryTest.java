@@ -55,6 +55,7 @@ public abstract class AbstractQueryTest extends AbstractOakTest {
         PropertyIndexer pi = new PropertyIndexer(indexer);
         QueryIndexProvider qip = new CompositeQueryIndexProvider(pi);
         CompositeHook hook = new CompositeHook(pi);
+        createDefaultKernelTracker().available(mk);
         return new ContentRepositoryImpl(mk, qip, hook);
     }
 

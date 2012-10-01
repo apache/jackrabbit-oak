@@ -39,7 +39,6 @@ import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -121,24 +120,6 @@ public class ContentRepositoryImpl implements ContentRepository {
 
         // TODO: use configurable context provider
         loginContextProvider = new LoginContextProviderImpl(this);
-
-        // FIXME: repository setup must be done elsewhere...
-        // FIXME: depends on CoreValue's name mangling
-        NodeState root = nodeStore.getRoot();
-        if (root.hasChildNode("jcr:system")) {
-            microKernel.commit("/", "^\"jcr:primaryType\":\"nam:rep:root\" ", null, null);
-        } else {
-            microKernel.commit("/", "^\"jcr:primaryType\":\"nam:rep:root\"" +
-                "+\"jcr:system\":{" +
-                    "\"jcr:primaryType\"    :\"nam:rep:system\"," +
-                    // FIXME: user-mgt related unique properties are implementation detail and not generic for repo
-                    // FIXME: rep:principalName only needs to be unique if defined with user/group nodes -> add defining nt-info to uniqueness constraint
-                    "\":unique\"            :{\"jcr:uuid\":{},\"rep:authorizableId\":{},\"rep:principalName\":{}}," +
-                    "\"jcr:versionStorage\" :{\"jcr:primaryType\":\"nam:rep:versionStorage\"}," +
-                    "\"jcr:nodeTypes\"      :{\"jcr:primaryType\":\"nam:rep:nodeTypes\"}," +
-                    "\"jcr:activities\"     :{\"jcr:primaryType\":\"nam:rep:Activities\"}," +
-                    "\"rep:privileges\"     :{\"jcr:primaryType\":\"nam:rep:Privileges\"}}", null, null);
-        }
     }
 
     @Nonnull
