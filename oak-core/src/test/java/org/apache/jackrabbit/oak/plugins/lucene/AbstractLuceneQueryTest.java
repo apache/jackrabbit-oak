@@ -16,10 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.lucene;
 
-import static org.apache.jackrabbit.oak.spi.query.IndexUtils.DEFAULT_INDEX_HOME;
-
 import java.text.ParseException;
 
+import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.AbstractOakTest;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -36,6 +35,8 @@ import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.junit.Before;
+
+import static org.apache.jackrabbit.oak.spi.query.IndexUtils.DEFAULT_INDEX_HOME;
 
 /**
  * base class for lucene search tests
@@ -67,7 +68,9 @@ public abstract class AbstractLuceneQueryTest extends AbstractOakTest implements
                 new LuceneIndexProvider(DEFAULT_INDEX_HOME));
         CommitHook ch = new CompositeHook(new LuceneReindexHook(
                 DEFAULT_INDEX_HOME), new LuceneHook(DEFAULT_INDEX_HOME));
-        return new ContentRepositoryImpl(new MicroKernelImpl(), qip, ch);
+        MicroKernel mk = new MicroKernelImpl();
+        createDefaultKernelTracker().available(mk);
+        return new ContentRepositoryImpl(mk, qip, ch);
     }
 
     protected void createIndexNode() throws Exception {

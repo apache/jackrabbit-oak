@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceValidatorProvider;
+import org.apache.jackrabbit.oak.plugins.type.InitialContent;
 import org.apache.jackrabbit.oak.plugins.type.TypeValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.unique.UniqueIndexHook;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
@@ -90,8 +91,8 @@ public class RepositoryImpl implements Repository {
 
     public RepositoryImpl(
             MicroKernel kernel, ScheduledExecutorService executor) {
-        this(new ContentRepositoryImpl(kernel, null, DEFAULT_COMMIT_HOOK),
-                executor);
+        this(new ContentRepositoryImpl(setupInitialContent(kernel), null,
+                DEFAULT_COMMIT_HOOK), executor);
     }
 
     /**
@@ -213,5 +214,10 @@ public class RepositoryImpl implements Repository {
     @Override
     public Session login(String workspace) throws RepositoryException {
         return login(null, workspace);
+    }
+
+    private static MicroKernel setupInitialContent(MicroKernel mk) {
+        new InitialContent().available(mk);
+        return mk;
     }
 }
