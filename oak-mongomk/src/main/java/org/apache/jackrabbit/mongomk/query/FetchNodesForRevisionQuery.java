@@ -21,9 +21,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.jackrabbit.mongomk.MongoConnection;
+import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.model.NodeMongo;
-import org.apache.jackrabbit.mongomk.util.MongoUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,19 +41,17 @@ public class FetchNodesForRevisionQuery extends AbstractQuery<List<NodeMongo>> {
     private static final Logger LOG = LoggerFactory.getLogger(FetchNodesForRevisionQuery.class);
 
     private final Set<String> paths;
-    private final String revisionId;
+    private final Long revisionId;
 
     /**
      * Constructs a new {@code FetchNodesForRevisionQuery}.
      *
-     * @param mongoConnection
-     *            The {@link MongoConnection}.
-     * @param paths
-     *            The paths to fetch.
-     * @param revisionId
-     *            The revision id.
+     * @param mongoConnection The {@link MongoConnection}.
+     * @param paths The paths to fetch.
+     * @param revisionId The revision id.
      */
-    public FetchNodesForRevisionQuery(MongoConnection mongoConnection, Set<String> paths, String revisionId) {
+    public FetchNodesForRevisionQuery(MongoConnection mongoConnection, Set<String> paths,
+            Long revisionId) {
         super(mongoConnection);
         this.paths = paths;
         this.revisionId = revisionId;
@@ -63,40 +60,31 @@ public class FetchNodesForRevisionQuery extends AbstractQuery<List<NodeMongo>> {
     /**
      * Constructs a new {@code FetchNodesForRevisionQuery}.
      *
-     * @param mongoConnection
-     *            The {@link MongoConnection}.
-     * @param paths
-     *            The paths to fetch.
-     * @param revisionId
-     *            The revision id.
+     * @param mongoConnection The {@link MongoConnection}.
+     * @param paths The paths to fetch.
+     * @param revisionId The revision id.
      */
-    public FetchNodesForRevisionQuery(MongoConnection mongoConnection, String[] paths, String revisionId) {
+    public FetchNodesForRevisionQuery(MongoConnection mongoConnection, String[] paths,
+            Long revisionId) {
         this(mongoConnection, new HashSet<String>(Arrays.asList(paths)), revisionId);
     }
 
     @Override
     public List<NodeMongo> execute() {
-        List<Long> validRevisions = fetchValidRevisions(mongoConnection, revisionId);
-
+        List<Long> validRevisions = new FetchValidRevisionsQuery(mongoConnection, revisionId).execute();
         DBCursor dbCursor = retrieveAllNodes();
         List<NodeMongo> nodes = QueryUtils.convertToNodes(dbCursor, validRevisions);
-
         return nodes;
-    }
-
-    private List<Long> fetchValidRevisions(MongoConnection mongoConnection, String revisionId) {
-        return new FetchValidRevisionsQuery(mongoConnection, revisionId).execute();
     }
 
     private DBCursor retrieveAllNodes() {
         DBCollection nodeCollection = mongoConnection.getNodeCollection();
-        DBObject query = QueryBuilder.start(NodeMongo.KEY_PATH).in(paths).and(NodeMongo.KEY_REVISION_ID)
-                .lessThanEquals(MongoUtil.toMongoRepresentation(revisionId)).get();
+        DBObject query = QueryBuilder.start(NodeMongo.KEY_PATH).in(paths)
+                .and(NodeMongo.KEY_REVISION_ID)
+                .lessThanEquals(revisionId).get();
 
         LOG.debug(String.format("Executing query: %s", query));
 
-        DBCursor dbCursor = nodeCollection.find(query);
-
-        return dbCursor;
+        return nodeCollection.find(query);
     }
 }

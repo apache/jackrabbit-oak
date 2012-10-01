@@ -32,7 +32,6 @@ import org.apache.jackrabbit.mongomk.impl.model.CommitImpl;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
 import org.apache.jackrabbit.mongomk.model.NodeMongo;
 import org.apache.jackrabbit.mongomk.scenario.SimpleNodeScenario;
-import org.apache.jackrabbit.mongomk.util.MongoUtil;
 import org.junit.Test;
 
 import com.mongodb.BasicDBObject;
@@ -44,12 +43,12 @@ public class FetchNodesByPathAndDepthQueryTest extends BaseMongoTest {
 
     @Test
     public void fetchWithInvalidFirstRevision() throws Exception {
-        String revisionId1 = addNode("a");
-        String revisionId2 = addNode("b");
-        String revisionId3 = addNode("c");
+        Long revisionId1 = addNode("a");
+        Long revisionId2 = addNode("b");
+        Long revisionId3 = addNode("c");
 
         invalidateCommit(revisionId1);
-        updateBaseRevisionId(revisionId2, "0");
+        updateBaseRevisionId(revisionId2, 0L);
 
         FetchNodesByPathAndDepthQuery query = new FetchNodesByPathAndDepthQuery(mongoConnection,
                 "/", revisionId3, -1);
@@ -63,9 +62,9 @@ public class FetchNodesByPathAndDepthQueryTest extends BaseMongoTest {
 
     @Test
     public void fetchWithInvalidLastRevision() throws Exception {
-        String revisionId1 = addNode("a");
-        String revisionId2 = addNode("b");
-        String revisionId3 = addNode("c");
+        Long revisionId1 = addNode("a");
+        Long revisionId2 = addNode("b");
+        Long revisionId3 = addNode("c");
 
         invalidateCommit(revisionId3);
 
@@ -81,9 +80,9 @@ public class FetchNodesByPathAndDepthQueryTest extends BaseMongoTest {
 
     @Test
     public void fetchWithInvalidMiddleRevision() throws Exception {
-        String revisionId1 = addNode("a");
-        String revisionId2 = addNode("b");
-        String revisionId3 = addNode("c");
+        Long revisionId1 = addNode("a");
+        Long revisionId2 = addNode("b");
+        Long revisionId3 = addNode("c");
 
         invalidateCommit(revisionId2);
         updateBaseRevisionId(revisionId3, revisionId1);
@@ -100,11 +99,11 @@ public class FetchNodesByPathAndDepthQueryTest extends BaseMongoTest {
     @Test
     public void simpleFetchRootAndAllDepths() throws Exception {
         SimpleNodeScenario scenario = new SimpleNodeScenario(mongoConnection);
-        String firstRevisionId = scenario.create();
-        String secondRevisionId = scenario.update_A_and_add_D_and_E();
+        Long firstRevisionId = scenario.create();
+        Long secondRevisionId = scenario.update_A_and_add_D_and_E();
 
-        FetchNodesByPathAndDepthQuery query = new FetchNodesByPathAndDepthQuery(mongoConnection, "/", firstRevisionId,
-                0);
+        FetchNodesByPathAndDepthQuery query = new FetchNodesByPathAndDepthQuery(mongoConnection,
+                "/", firstRevisionId, 0);
         List<NodeMongo> result = query.execute();
         List<Node> actuals = NodeMongo.toNode(result);
         Node expected = NodeBuilder.build(String.format("{ \"/#%1$s\" : {} }", firstRevisionId));
@@ -176,32 +175,30 @@ public class FetchNodesByPathAndDepthQueryTest extends BaseMongoTest {
         NodeAssert.assertEquals(expecteds, actuals);
     }
 
-    private String addNode(String nodeName) throws Exception {
+    private Long addNode(String nodeName) throws Exception {
         List<Instruction> instructions = new LinkedList<Instruction>();
         instructions.add(new AddNodeInstructionImpl("/", nodeName));
         Commit commit = new CommitImpl("/", "+" + nodeName, "Add /" + nodeName, instructions);
         CommitCommandMongo command = new CommitCommandMongo(mongoConnection, commit);
-        String revisionId = command.execute();
-        return revisionId;
+        return command.execute();
     }
 
-    private void invalidateCommit(String revisionId) {
+    private void invalidateCommit(Long revisionId) {
         DBCollection commitCollection = mongoConnection.getCommitCollection();
         DBObject query = QueryBuilder.start(CommitMongo.KEY_REVISION_ID)
-                .is(MongoUtil.toMongoRepresentation(revisionId)).get();
+                .is(revisionId).get();
         DBObject update = new BasicDBObject();
         update.put("$set", new BasicDBObject(CommitMongo.KEY_FAILED, Boolean.TRUE));
         commitCollection.update(query, update);
     }
 
-    private void updateBaseRevisionId(String revisionId2, String baseRevisionId) {
+    private void updateBaseRevisionId(Long revisionId2, Long baseRevisionId) {
         DBCollection commitCollection = mongoConnection.getCommitCollection();
         DBObject query = QueryBuilder.start(CommitMongo.KEY_REVISION_ID)
-                .is(MongoUtil.toMongoRepresentation(revisionId2))
+                .is(revisionId2)
                 .get();
         DBObject update = new BasicDBObject("$set",
-                new BasicDBObject(CommitMongo.KEY_BASE_REVISION_ID,
-                        MongoUtil.toMongoRepresentation(baseRevisionId)));
+                new BasicDBObject(CommitMongo.KEY_BASE_REVISION_ID, baseRevisionId));
         commitCollection.update(query, update);
     }
 }

@@ -37,7 +37,7 @@ public class CommitImpl implements Commit {
     private final String message;
     private final String path;
     private final long timestamp;
-    private String revisionId;
+    private Long revisionId;
 
     /**
      * Constructs a new {@code CommitImpl}.
@@ -91,11 +91,11 @@ public class CommitImpl implements Commit {
         return path;
     }
 
-    public String getRevisionId() {
+    public Long getRevisionId() {
         return revisionId;
     }
 
-    public void setRevisionId(String revisionId) {
+    public void setRevisionId(Long revisionId) {
         this.revisionId = revisionId;
     }
 

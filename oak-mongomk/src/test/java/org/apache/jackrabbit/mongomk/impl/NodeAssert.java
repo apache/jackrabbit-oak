@@ -81,8 +81,8 @@ public class NodeAssert {
         Assert.assertEquals(expected.getName(), actual.getName());
         Assert.assertEquals(expected.getPath(), actual.getPath());
 
-        String expectedRevisionId = expected.getRevisionId();
-        String actualRevisionId = actual.getRevisionId();
+        Long expectedRevisionId = expected.getRevisionId();
+        Long actualRevisionId = actual.getRevisionId();
 
         if (expectedRevisionId == null) {
             Assert.assertNull(actualRevisionId);

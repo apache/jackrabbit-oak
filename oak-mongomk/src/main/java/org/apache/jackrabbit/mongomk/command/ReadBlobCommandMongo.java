@@ -19,8 +19,8 @@ package org.apache.jackrabbit.mongomk.command;
 import java.io.InputStream;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.mongomk.MongoConnection;
 import org.apache.jackrabbit.mongomk.api.command.AbstractCommand;
+import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.gridfs.GridFS;

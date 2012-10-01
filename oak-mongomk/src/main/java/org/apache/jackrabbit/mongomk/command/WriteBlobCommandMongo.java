@@ -21,8 +21,8 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.jackrabbit.mongomk.MongoConnection;
 import org.apache.jackrabbit.mongomk.api.command.AbstractCommand;
+import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.gridfs.GridFS;

@@ -24,10 +24,10 @@ import java.util.Set;
 
 import org.apache.jackrabbit.mongomk.api.model.Commit;
 import org.apache.jackrabbit.mongomk.api.model.Node;
+import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
 import org.apache.jackrabbit.mongomk.model.HeadMongo;
 import org.apache.jackrabbit.mongomk.model.NodeMongo;
-import org.apache.jackrabbit.mongomk.util.MongoUtil;
 import org.junit.Assert;
 
 import com.mongodb.DBCollection;
@@ -44,10 +44,10 @@ public class MongoAssert {
 
     private static MongoConnection mongoConnection;
 
-    public static void assertCommitContainsAffectedPaths(String revisionId, String... expectedPaths) {
+    public static void assertCommitContainsAffectedPaths(Long revisionId, String... expectedPaths) {
         DBCollection commitCollection = mongoConnection.getCommitCollection();
         DBObject query = QueryBuilder.start(CommitMongo.KEY_REVISION_ID)
-                .is(MongoUtil.toMongoRepresentation(revisionId)).get();
+                .is(revisionId).get();
         CommitMongo result = (CommitMongo) commitCollection.findOne(query);
         Assert.assertNotNull(result);
 
@@ -58,7 +58,7 @@ public class MongoAssert {
     public static void assertCommitExists(Commit commit) {
         DBCollection commitCollection = mongoConnection.getCommitCollection();
         DBObject query = QueryBuilder.start(CommitMongo.KEY_REVISION_ID)
-                .is(MongoUtil.toMongoRepresentation(commit.getRevisionId())).and(CommitMongo.KEY_MESSAGE)
+                .is(commit.getRevisionId()).and(CommitMongo.KEY_MESSAGE)
                 .is(commit.getMessage()).and(CommitMongo.KEY_DIFF).is(commit.getDiff()).and(CommitMongo.KEY_PATH)
                 .is(commit.getPath()).and(CommitMongo.KEY_FAILED).notEquals(Boolean.TRUE).get();
         CommitMongo result = (CommitMongo) commitCollection.findOne(query);
@@ -77,10 +77,10 @@ public class MongoAssert {
         Assert.assertEquals(revisionId, result.getNextRevisionId());
     }
 
-    public static void assertNodeRevisionId(String path, String revisionId, boolean exists) {
+    public static void assertNodeRevisionId(String path, Long revisionId, boolean exists) {
         DBCollection nodeCollection = mongoConnection.getNodeCollection();
         DBObject query = QueryBuilder.start(NodeMongo.KEY_PATH).is(path).and(NodeMongo.KEY_REVISION_ID)
-                .is(MongoUtil.toMongoRepresentation(revisionId)).get();
+                .is(revisionId).get();
         NodeMongo nodeMongo = (NodeMongo) nodeCollection.findOne(query);
 
         if (exists) {
@@ -90,10 +90,11 @@ public class MongoAssert {
         }
     }
 
-    public static void assertNodesExist(String parentPath, Node expected) {
+    public static void assertNodesExist(Node expected) {
         DBCollection nodeCollection = mongoConnection.getNodeCollection();
-        QueryBuilder qb = QueryBuilder.start(NodeMongo.KEY_PATH).is(expected.getPath()).and(NodeMongo.KEY_REVISION_ID)
-                .is(MongoUtil.toMongoRepresentation(expected.getRevisionId()));
+        QueryBuilder qb = QueryBuilder.start(NodeMongo.KEY_PATH).is(expected.getPath())
+                .and(NodeMongo.KEY_REVISION_ID)
+                .is(expected.getRevisionId());
         Map<String, Object> properties = expected.getProperties();
         if (properties != null) {
             for (Map.Entry<String, Object> entry : properties.entrySet()) {
@@ -113,7 +114,7 @@ public class MongoAssert {
             Assert.assertEquals(children.size(), childNames.size());
             Assert.assertEquals(children.size(), new HashSet<String>(childNames).size());
             for (Node child : children) {
-                assertNodesExist(expected.getPath(), child);
+                assertNodesExist(child);
                 Assert.assertTrue(childNames.contains(child.getName()));
             }
         } else {

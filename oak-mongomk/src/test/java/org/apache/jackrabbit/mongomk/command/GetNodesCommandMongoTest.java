@@ -33,8 +33,8 @@ public class GetNodesCommandMongoTest extends BaseMongoTest {
     @Test
     public void getNodesSimple() throws Exception {
         SimpleNodeScenario scenario = new SimpleNodeScenario(mongoConnection);
-        String firstRevisionId = scenario.create();
-        String secondRevisionId = scenario.update_A_and_add_D_and_E();
+        Long firstRevisionId = scenario.create();
+        Long secondRevisionId = scenario.update_A_and_add_D_and_E();
 
         GetNodesCommandMongo command = new GetNodesCommandMongo(mongoConnection, "/",
                 firstRevisionId, 0);
@@ -53,8 +53,8 @@ public class GetNodesCommandMongoTest extends BaseMongoTest {
     @Test
     public void getNodesDepthLimited() throws Exception {
         SimpleNodeScenario scenario = new SimpleNodeScenario(mongoConnection);
-        String firstRevisionId = scenario.create();
-        String secondRevisionId = scenario.update_A_and_add_D_and_E();
+        Long firstRevisionId = scenario.create();
+        Long secondRevisionId = scenario.update_A_and_add_D_and_E();
 
         GetNodesCommandMongo command = new GetNodesCommandMongo(mongoConnection, "/", firstRevisionId, 1);
         Node actual = command.execute();
@@ -104,8 +104,8 @@ public class GetNodesCommandMongoTest extends BaseMongoTest {
     @Test
     public void getNodesDepthUnlimited() throws Exception {
         SimpleNodeScenario scenario = new SimpleNodeScenario(mongoConnection);
-        String firstRevisionId = scenario.create();
-        String secondRevisionId = scenario.update_A_and_add_D_and_E();
+        Long firstRevisionId = scenario.create();
+        Long secondRevisionId = scenario.update_A_and_add_D_and_E();
 
         GetNodesCommandMongo command = new GetNodesCommandMongo(mongoConnection, "/", firstRevisionId, -1);
         Node actual = command.execute();
@@ -125,7 +125,7 @@ public class GetNodesCommandMongoTest extends BaseMongoTest {
     @Test
     public void getNodesAfterDeletion() throws Exception {
         SimpleNodeScenario scenario = new SimpleNodeScenario(mongoConnection);
-        String revisionId = scenario.create();
+        Long revisionId = scenario.create();
         revisionId = scenario.delete_A();
 
         GetNodesCommandMongo command = new GetNodesCommandMongo(mongoConnection, "/", revisionId, -1);
@@ -140,7 +140,8 @@ public class GetNodesCommandMongoTest extends BaseMongoTest {
         SimpleNodeScenario scenario = new SimpleNodeScenario(mongoConnection);
         scenario.create();
 
-        GetNodesCommandMongo command = new GetNodesCommandMongo(mongoConnection, "/", String.valueOf(Long.MAX_VALUE), -1);
+        GetNodesCommandMongo command = new GetNodesCommandMongo(mongoConnection,
+                "/", Long.MAX_VALUE, -1);
         try {
             command.execute();
             fail("Exception expected");

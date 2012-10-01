@@ -22,9 +22,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.jackrabbit.mongomk.MongoConnection;
+import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
-import org.apache.jackrabbit.mongomk.util.MongoUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,8 +42,8 @@ public class FetchValidCommitsQuery extends AbstractQuery<List<CommitMongo>> {
     private static final int LIMITLESS = 0;
     private static final Logger LOG = LoggerFactory.getLogger(FetchValidCommitsQuery.class);
 
-    private final String fromRevisionId;
-    private String toRevisionId;
+    private final Long fromRevisionId;
+    private Long toRevisionId;
     private int maxEntries = LIMITLESS;
 
     /**
@@ -53,8 +52,8 @@ public class FetchValidCommitsQuery extends AbstractQuery<List<CommitMongo>> {
      * @param mongoConnection Mongo connection.
      * @param fromRevisionId From revision id.
      */
-    public FetchValidCommitsQuery(MongoConnection mongoConnection, String toRevisionId) {
-        this(mongoConnection, null, toRevisionId);
+    public FetchValidCommitsQuery(MongoConnection mongoConnection, Long toRevisionId) {
+        this(mongoConnection, 0L, toRevisionId);
     }
 
     /**
@@ -64,8 +63,8 @@ public class FetchValidCommitsQuery extends AbstractQuery<List<CommitMongo>> {
      * @param fromRevisionId From revision id.
      * @param toRevisionId To revision id.
      */
-    public FetchValidCommitsQuery(MongoConnection mongoConnection, String fromRevisionId,
-            String toRevisionId) {
+    public FetchValidCommitsQuery(MongoConnection mongoConnection, Long fromRevisionId,
+            Long toRevisionId) {
         super(mongoConnection);
         this.fromRevisionId = fromRevisionId;
         this.toRevisionId = toRevisionId;
@@ -81,8 +80,8 @@ public class FetchValidCommitsQuery extends AbstractQuery<List<CommitMongo>> {
      */
     public FetchValidCommitsQuery(MongoConnection mongoConnection, int maxEntries) {
         super(mongoConnection);
-        fromRevisionId = null;
-        toRevisionId = String.valueOf(Integer.MAX_VALUE);
+        fromRevisionId = 0L;
+        toRevisionId = Long.MAX_VALUE;
         this.maxEntries = maxEntries;
     }
 
@@ -106,7 +105,7 @@ public class FetchValidCommitsQuery extends AbstractQuery<List<CommitMongo>> {
             return validCommits;
         }
 
-        Long currentRevision = MongoUtil.toMongoRepresentation(toRevisionId);
+        Long currentRevision = toRevisionId;
         if (!revisions.containsKey(currentRevision)) {
             currentRevision = Collections.max(revisions.keySet());
         }
@@ -118,11 +117,9 @@ public class FetchValidCommitsQuery extends AbstractQuery<List<CommitMongo>> {
             }
             validCommits.add(commitMongo);
             Long baseRevision = commitMongo.getBaseRevisionId();
-            Long fromRevision = MongoUtil.toMongoRepresentation(fromRevisionId);
-            if ((currentRevision == 0L) || (baseRevision == null || baseRevision < fromRevision)) {
+            if ((currentRevision == 0L) || (baseRevision == null || baseRevision < fromRevisionId)) {
                 break;
             }
-
             currentRevision = baseRevision;
         }
 
@@ -134,7 +131,7 @@ public class FetchValidCommitsQuery extends AbstractQuery<List<CommitMongo>> {
     private DBCursor fetchListOfValidCommits() {
         DBCollection commitCollection = mongoConnection.getCommitCollection();
         DBObject query = QueryBuilder.start(CommitMongo.KEY_FAILED).notEquals(Boolean.TRUE)
-                .and(CommitMongo.KEY_REVISION_ID).lessThanEquals(MongoUtil.toMongoRepresentation(toRevisionId))
+                .and(CommitMongo.KEY_REVISION_ID).lessThanEquals(toRevisionId)
                 .get();
 
         LOG.debug(String.format("Executing query: %s", query));

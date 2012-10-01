@@ -25,7 +25,6 @@ import java.util.Set;
 import org.apache.jackrabbit.mongomk.api.model.Commit;
 import org.apache.jackrabbit.mongomk.api.model.Instruction;
 import org.apache.jackrabbit.mongomk.api.model.Instruction.AddNodeInstruction;
-import org.apache.jackrabbit.mongomk.util.MongoUtil;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
 import com.mongodb.BasicDBObject;
@@ -60,7 +59,7 @@ public class CommitMongo extends BasicDBObject {
         String diff = commit.getDiff();
         commitMongo.setDiff(diff);
 
-        String revisionId = commit.getRevisionId();
+        Long revisionId = commit.getRevisionId();
         if (revisionId != null) {
             commitMongo.setRevisionId(revisionId);
         }
@@ -139,10 +138,6 @@ public class CommitMongo extends BasicDBObject {
 
     public void setRevisionId(long revisionId) {
         put(KEY_REVISION_ID, revisionId);
-    }
-
-    public void setRevisionId(String revisionId) {
-        setRevisionId(MongoUtil.toMongoRepresentation(revisionId));
     }
 
     public void setTimestamp(long timestamp) {

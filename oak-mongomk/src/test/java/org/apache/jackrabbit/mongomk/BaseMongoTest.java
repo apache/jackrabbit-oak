@@ -19,7 +19,7 @@ package org.apache.jackrabbit.mongomk;
 import java.io.InputStream;
 import java.util.Properties;
 
-import org.apache.jackrabbit.mongomk.MongoConnection;
+import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.util.MongoUtil;
 import org.junit.After;
 import org.junit.AfterClass;

@@ -21,9 +21,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 
-import org.apache.jackrabbit.mongomk.MongoConnection;
 import org.apache.jackrabbit.mongomk.api.model.Instruction.AddNodeInstruction;
 import org.apache.jackrabbit.mongomk.api.model.Instruction.AddPropertyInstruction;
 import org.apache.jackrabbit.mongomk.api.model.Instruction.CopyNodeInstruction;
@@ -31,6 +29,7 @@ import org.apache.jackrabbit.mongomk.api.model.Instruction.MoveNodeInstruction;
 import org.apache.jackrabbit.mongomk.api.model.Instruction.RemoveNodeInstruction;
 import org.apache.jackrabbit.mongomk.api.model.Instruction.SetPropertyInstruction;
 import org.apache.jackrabbit.mongomk.api.model.InstructionVisitor;
+import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.query.FetchNodeByPathQuery;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 

@@ -18,7 +18,7 @@ package org.apache.jackrabbit.mongomk.query;
 
 import java.util.Collection;
 
-import org.apache.jackrabbit.mongomk.MongoConnection;
+import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.model.NodeMongo;
 
 import com.mongodb.DBCollection;
