@@ -181,6 +181,81 @@ TODO
 
 TODO
 
+TODO: Basic validator class
+
+    class DenyContentWithName extends DefaultValidator {
+
+        private final String name;
+
+        public DenyContentWithName(String name) {
+            this.name = name;
+        }
+
+        @Override
+        public void propertyAdded(PropertyState after)
+                throws CommitFailedException {
+            if (name.equals(after.getName())) {
+                throw new CommitFailedException(
+                        "Properties named " + name + " are not allowed");
+            }
+        }
+
+
+    }
+
+TODO: Example of how the validator works
+
+    ContentRepository contentRepository = new Oak()
+        .with(new DenyContentWithName("bar"))
+        .createContentRepository();
+
+    Repository repository = new RepositoryImpl(contentRepository);
+    Session session = repository.login();
+    Node root = session.getRootNode();
+    root.setProperty("foo", "test");
+    session.save();
+    root.setProperty("bar", "test");
+    session.save(); // will throw an exception
+
+TODO: Extended example that also works below root and covers also node names
+
+    class DenyContentWithName extends DefaultValidator {
+
+        private final String name;
+
+        public DenyContentWithName(String name) {
+            this.name = name;
+        }
+
+        private void testName(String addedName) throws CommitFailedException {
+            if (name.equals(addedName)) {
+                throw new CommitFailedException(
+                        "Content named " + name + " is not allowed");
+            }
+        }
+
+        @Override
+        public void propertyAdded(PropertyState after)
+                throws CommitFailedException {
+            testName(after.getName());
+        }
+
+        @Override
+        public Validator childNodeAdded(String name, NodeState after)
+                throws CommitFailedException {
+            testName(name);
+            return this;
+        }
+
+        @Override
+        public Validator childNodeChanged(
+                String name, NodeState before, NodeState after)
+                throws CommitFailedException {
+            return this;
+        }
+
+    }
+
 ## Commit modification
 
 TODO
