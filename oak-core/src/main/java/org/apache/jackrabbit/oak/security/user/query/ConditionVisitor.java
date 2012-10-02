@@ -14,22 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authorization;
+package org.apache.jackrabbit.oak.security.user.query;
 
-import javax.security.auth.Subject;
+import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContext;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContextProvider;
+interface ConditionVisitor {
 
-/**
- * <code>AccessControlContextProviderImpl</code> is a default implementation and
- * creates {@link AccessControlContextImpl} for a given set of principals.
- */
-public class AccessControlContextProviderImpl
-        implements AccessControlContextProvider {
+    void visit(Condition.Node node) throws RepositoryException;
 
-    @Override
-    public AccessControlContext createAccessControlContext(Subject subject) {
-        return new AccessControlContextImpl(subject);
-    }
+    void visit(Condition.Property condition) throws RepositoryException;
+
+    void visit(Condition.Contains condition);
+
+    void visit(Condition.Impersonation condition);
+
+    void visit(Condition.Not condition) throws RepositoryException;
+
+    void visit(Condition.And condition) throws RepositoryException;
+
+    void visit(Condition.Or condition) throws RepositoryException;
 }

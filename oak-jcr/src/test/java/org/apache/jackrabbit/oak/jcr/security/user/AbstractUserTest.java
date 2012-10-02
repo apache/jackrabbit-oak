@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.jcr.security.user;
 import java.security.Principal;
 import java.util.Collections;
 import java.util.UUID;
+import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
@@ -89,6 +90,15 @@ public abstract class AbstractUserTest extends AbstractJCRTest {
         return new Subject(true, Collections.singleton(p), Collections.emptySet(), Collections.emptySet());
     }
 
+    protected static Node getNode(Authorizable authorizable, Session session) throws NotExecutableException, RepositoryException {
+        String path = authorizable.getPath();
+        if (session.nodeExists(path)) {
+            return session.getNode(path);
+        } else {
+            throw new NotExecutableException("Cannot access node for authorizable " + authorizable.getID());
+        }
+    }
+
     protected Principal getTestPrincipal() throws RepositoryException {
         String pn = "any_principal" + UUID.randomUUID();
         return getTestPrincipal(pn);
@@ -112,4 +122,5 @@ public abstract class AbstractUserTest extends AbstractJCRTest {
         // should never happen. An Session should always have a corresponding User.
         throw new NotExecutableException("Unable to retrieve a User.");
     }
+
 }

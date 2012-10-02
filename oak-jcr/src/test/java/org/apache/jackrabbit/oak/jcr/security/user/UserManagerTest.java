@@ -41,7 +41,7 @@ import org.apache.jackrabbit.test.NotExecutableException;
 import org.junit.Ignore;
 import org.junit.Test;
 
-public class UserManagerImplTest extends AbstractUserTest {
+public class UserManagerTest extends AbstractUserTest {
 
     private String getTestUserId(Principal p) throws RepositoryException {
         String hint = "UID" + p.getName();
@@ -62,7 +62,7 @@ public class UserManagerImplTest extends AbstractUserTest {
         assertNotNull(userMgr.getAuthorizable(uid));
         assertEquals(user,  userMgr.getAuthorizable(uid));
 
-        assertNotNull(((UserImpl) user).getTree());
+        assertNotNull(getNode(user, superuser));
     }
 
     public void testGetAuthorizable() throws RepositoryException, NotExecutableException {
@@ -74,7 +74,7 @@ public class UserManagerImplTest extends AbstractUserTest {
         assertNotNull(userMgr.getAuthorizable(uid));
         assertEquals(user,  userMgr.getAuthorizable(uid));
 
-        assertNotNull(((UserImpl) user).getTree());
+        assertNotNull(getNode(user, superuser));
     }
 
     @Test
@@ -751,9 +751,9 @@ public class UserManagerImplTest extends AbstractUserTest {
     }
 
     @Test
-    public void testEnforceAuthorizableFolderHierarchy() throws RepositoryException {
+    public void testEnforceAuthorizableFolderHierarchy() throws RepositoryException, NotExecutableException {
         Authorizable auth = userMgr.getAuthorizable(user.getID());
-        Node userNode = superuser.getNode(auth.getPath());
+        Node userNode = getNode(auth, superuser);
 
         Node folder = userNode.addNode("folder", UserConstants.NT_REP_AUTHORIZABLE_FOLDER);
         String path = folder.getPath();

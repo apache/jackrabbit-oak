@@ -28,9 +28,9 @@ import org.apache.jackrabbit.test.NotExecutableException;
 import org.junit.Test;
 
 /**
- * ImpersonationImplTest...
+ * ImpersonationTest...
  */
-public class ImpersonationImplTest extends AbstractUserTest {
+public class ImpersonationTest extends AbstractUserTest {
 
     private User user2;
 

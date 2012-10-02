@@ -22,9 +22,9 @@ import java.util.Set;
 import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContext;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContextProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.CompiledPermissions;
-import org.apache.jackrabbit.oak.spi.security.authorization.OpenAccessControlContextProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.OpenAccessControlProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 
 /**
@@ -35,7 +35,7 @@ class AccessControlContextImpl implements AccessControlContext {
     private static final CompiledPermissions ADMIN_PERMISSIONS;
 
     static {
-        AccessControlContextProvider accProvider = new OpenAccessControlContextProvider();
+        AccessControlProvider accProvider = new OpenAccessControlProvider();
         Subject subject = new Subject();
         subject.getPrincipals().add(AdminPrincipal.INSTANCE);
         ADMIN_PERMISSIONS = accProvider.createAccessControlContext(subject).getPermissions();

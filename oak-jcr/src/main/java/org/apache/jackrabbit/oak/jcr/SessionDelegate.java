@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.jcr;
 
 import java.io.IOException;
 import java.util.concurrent.ScheduledExecutorService;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.ItemExistsException;
@@ -47,13 +46,11 @@ import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.observation.ObservationManagerImpl;
 import org.apache.jackrabbit.oak.jcr.security.principal.PrincipalManagerImpl;
-import org.apache.jackrabbit.oak.jcr.security.user.UserManagerImpl;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.security.principal.TmpPrincipalProvider;
-import org.apache.jackrabbit.oak.security.user.UserContextImpl;
-import org.apache.jackrabbit.oak.spi.security.user.UserContext;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.util.TODO;
 import org.apache.jackrabbit.oak.value.ValueFactoryImpl;
 import org.slf4j.Logger;
@@ -74,24 +71,28 @@ public class SessionDelegate {
     private final Root root;
     private final boolean autoRefresh;
 
-    private final IdentifierManager idManager;
+    private final SecurityProvider securityProvider;
 
+    private final IdentifierManager idManager;
     private ObservationManagerImpl observationManager;
     private boolean isAlive = true;
     private int sessionOpCount;
 
     SessionDelegate(
             Repository repository, ScheduledExecutorService executor,
-            ContentSession contentSession, boolean autoRefresh)
+            ContentSession contentSession, SecurityProvider securityProvider,
+            boolean autoRefresh)
             throws RepositoryException {
 
         this.repository = checkNotNull(repository);
         this.executor = executor;
         this.contentSession = checkNotNull(contentSession);
+        this.securityProvider = securityProvider;
+        this.autoRefresh = autoRefresh;
+
         this.root = contentSession.getLatestRoot();
         this.workspace = new WorkspaceImpl(this);
         this.session = new SessionImpl(this);
-        this.autoRefresh = autoRefresh;
         this.idManager = new IdentifierManager(root);
         this.namePathMapper = new NamePathMapperImpl(new SessionNameMapper(this), idManager);
         this.valueFactory = new ValueFactoryImpl(contentSession.getCoreValueFactory(), namePathMapper);
@@ -484,9 +485,10 @@ public class SessionDelegate {
 
     @Nonnull
     UserManager getUserManager() throws UnsupportedRepositoryOperationException {
-        // FIXME
-        UserContext ctx = new UserContextImpl();
-        return TODO.unimplemented().returnValue(new UserManagerImpl(getSession(), getNamePathMapper(), ctx.getUserProvider(contentSession, root), ctx.getMembershipProvider(contentSession, root), ctx.getConfig()));
+        if (securityProvider != null) {
+            return securityProvider.getUserContext().getUserManager(session, contentSession, root, getNamePathMapper());
+        } else {
+            throw new UnsupportedRepositoryOperationException("User management not supported.");
+        }
     }
-
 }

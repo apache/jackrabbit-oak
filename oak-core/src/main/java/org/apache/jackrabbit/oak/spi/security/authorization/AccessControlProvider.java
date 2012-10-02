@@ -16,15 +16,17 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization;
 
-import java.security.Principal;
-import java.util.Set;
-
+import java.util.List;
 import javax.security.auth.Subject;
 
+import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
+
 /**
- * <code>AccessControlContextProvider</code>...
+ * {@code AccessControlContextProvider}...
  */
-public interface AccessControlContextProvider {
+public interface AccessControlProvider {
 
     public AccessControlContext createAccessControlContext(Subject subject);
+
+    public List<ValidatorProvider> getValidatorProviders();
 }

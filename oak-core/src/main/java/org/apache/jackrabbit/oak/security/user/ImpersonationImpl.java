@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.jcr.security.user;
+package org.apache.jackrabbit.oak.security.user;
 
 import java.security.Principal;
 import java.security.acl.Group;
@@ -34,7 +34,7 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.jcr.security.principal.PrincipalIteratorAdapter;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalIteratorAdapter;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

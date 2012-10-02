@@ -30,7 +30,7 @@ import org.junit.Test;
 /**
  * UserTest...
  */
-public class UserImplTest extends AbstractUserTest {
+public class UserTest extends AbstractUserTest {
 
     @Test
     public void testIsUser() throws RepositoryException {
@@ -48,6 +48,7 @@ public class UserImplTest extends AbstractUserTest {
         assertFalse(user.isAdmin());
     }
 
+    @Test
     public void testAdminIsAdmin() throws NotExecutableException, RepositoryException {
         User admin = (User) userMgr.getAuthorizable(superuser.getUserID());
         if (admin == null) {

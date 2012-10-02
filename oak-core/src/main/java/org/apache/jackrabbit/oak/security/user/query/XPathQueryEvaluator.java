@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.jcr.security.user.query;
+package org.apache.jackrabbit.oak.security.user.query;
 
 import java.util.Iterator;
 
@@ -35,7 +35,6 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.QueryBuilder;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.oak.jcr.security.user.UserManagerImpl;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.util.Text;
@@ -56,7 +55,7 @@ public class XPathQueryEvaluator implements ConditionVisitor {
 
     private final StringBuilder xPath = new StringBuilder();
 
-    public XPathQueryEvaluator(XPathQueryBuilder builder, UserManagerImpl userManager,
+    public XPathQueryEvaluator(XPathQueryBuilder builder, UserManager userManager,
                                QueryManager queryManager, NamePathMapper namePathMapper) {
         this.builder = builder;
         this.userManager = userManager;

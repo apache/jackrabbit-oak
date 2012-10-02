@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.jcr.security.user;
+package org.apache.jackrabbit.oak.security.user;
 
 import java.io.UnsupportedEncodingException;
 import java.security.NoSuchAlgorithmException;
@@ -33,9 +33,9 @@ import org.apache.jackrabbit.api.security.user.Query;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.jcr.security.user.query.XPathQueryBuilder;
-import org.apache.jackrabbit.oak.jcr.security.user.query.XPathQueryEvaluator;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.security.user.query.XPathQueryBuilder;
+import org.apache.jackrabbit.oak.security.user.query.XPathQueryEvaluator;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
 import org.apache.jackrabbit.oak.spi.security.user.PasswordUtility;

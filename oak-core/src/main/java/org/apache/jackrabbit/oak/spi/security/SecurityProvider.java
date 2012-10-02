@@ -14,23 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.jcr.security.user.query;
+package org.apache.jackrabbit.oak.spi.security;
 
-import javax.jcr.RepositoryException;
+import javax.annotation.Nonnull;
 
-interface ConditionVisitor {
+import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlProvider;
+import org.apache.jackrabbit.oak.spi.security.user.UserContext;
 
-    void visit(Condition.Node node) throws RepositoryException;
+/**
+ * SecurityProvider... TODO
+ */
+public interface SecurityProvider {
 
-    void visit(Condition.Property condition) throws RepositoryException;
+    @Nonnull
+    LoginContextProvider getLoginContextProvider();
 
-    void visit(Condition.Contains condition);
+    @Nonnull
+    AccessControlProvider getAccessControlProvider();
 
-    void visit(Condition.Impersonation condition);
-
-    void visit(Condition.Not condition) throws RepositoryException;
-
-    void visit(Condition.And condition) throws RepositoryException;
-
-    void visit(Condition.Or condition) throws RepositoryException;
+    @Nonnull
+    UserContext getUserContext(); // TODO review naming consistency
 }
