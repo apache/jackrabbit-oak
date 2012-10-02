@@ -104,7 +104,7 @@ public class NodeStoreMongo implements NodeStore {
         }
 
         List<CommitMongo> commits = new FetchValidCommitsQuery(mongoConnection,
-                fromRevision, toRevision).execute();
+                fromRevision, toRevision, 0).execute();
 
         CommitMongo toCommit = getCommit(commits, toRevision);
 
