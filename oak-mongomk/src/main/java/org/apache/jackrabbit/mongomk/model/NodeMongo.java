@@ -167,8 +167,7 @@ public class NodeMongo extends BasicDBObject {
                 return true;
             }
         }
-        return false;
-        //return addedChildExists(childName);
+        return addedChildExists(childName);
     }
 
     private boolean addedChildExists(String childName) {
