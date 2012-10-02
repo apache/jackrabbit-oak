@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.Root;
@@ -96,10 +95,9 @@ public class QueryEngineImpl {
 
     public ResultImpl executeQuery(String statement, String language, 
             long limit, long offset, Map<String, ? extends CoreValue> bindings,
-            ContentSession session, Root root,
+            Root root,
             NamePathMapper namePathMapper) throws ParseException {
         Query q = parseQuery(statement, language);
-        q.setSession(session);
         q.setRoot(root);
         q.setNamePathMapper(namePathMapper);
         q.setLimit(limit);
