@@ -146,7 +146,8 @@ public class NodeStoreMongo implements NodeStore {
       boolean filtered = !"/".equals(path);
       maxEntries = maxEntries < 0 ? Integer.MAX_VALUE : maxEntries;
 
-      List<CommitMongo> history = new FetchValidCommitsQuery(mongoConnection, maxEntries).execute();
+      List<CommitMongo> history = new FetchValidCommitsQuery(mongoConnection, 0L,
+              Long.MAX_VALUE, maxEntries).execute();
       JsopBuilder buff = new JsopBuilder().array();
       for (int i = history.size() - 1; i >= 0; i--) {
           CommitMongo commit = history.get(i);
