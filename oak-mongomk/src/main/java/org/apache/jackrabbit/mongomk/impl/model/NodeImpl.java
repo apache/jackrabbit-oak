@@ -44,7 +44,7 @@ public class NodeImpl implements Node {
     private String name;
     private String path;
     private Map<String, Object> properties;
-    private String revisionId;
+    private Long revisionId;
 
     /**
      * Constructs a new {@code NodeImpl}.
@@ -209,12 +209,12 @@ public class NodeImpl implements Node {
     }
 
     @Override
-    public String getRevisionId() {
+    public Long getRevisionId() {
         return revisionId;
     }
 
     @Override
-    public void setRevisionId(String revisionId) {
+    public void setRevisionId(Long revisionId) {
         this.revisionId = revisionId;
     }
 

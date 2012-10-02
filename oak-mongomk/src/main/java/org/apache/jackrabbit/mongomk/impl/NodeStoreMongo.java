@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk;
+package org.apache.jackrabbit.mongomk.impl;
 
 import java.util.List;
 
@@ -60,29 +60,29 @@ public class NodeStoreMongo implements NodeStore {
 
     @Override
     public String commit(Commit commit) throws Exception {
-        Command<String> command = new CommitCommandMongo(mongoConnection, commit);
-
-        return commandExecutor.execute(command);
+        Command<Long> command = new CommitCommandMongo(mongoConnection, commit);
+        Long revision = commandExecutor.execute(command);
+        return MongoUtil.fromMongoRepresentation(revision);
     }
 
     @Override
     public String getHeadRevision() throws Exception {
-        Command<String> command = new GetHeadRevisionCommandMongo(mongoConnection);
-
-        return commandExecutor.execute(command);
+        Long headRevision = commandExecutor.execute(new GetHeadRevisionCommandMongo(mongoConnection));
+        return MongoUtil.fromMongoRepresentation(headRevision);
     }
 
     @Override
     public Node getNodes(String path, String revisionId, int depth, long offset,
             int maxChildNodes, String filter) throws Exception {
-        Command<Node> command = new GetNodesCommandMongo(mongoConnection, path, revisionId, depth);
+        Command<Node> command = new GetNodesCommandMongo(mongoConnection, path,
+                MongoUtil.toMongoRepresentation(revisionId), depth);
         return commandExecutor.execute(command);
     }
 
     @Override
-    public boolean nodeExists(String path, String revId) throws Exception {
-        Command<Boolean> command = new NodeExistsCommandMongo(mongoConnection, path, revId);
-
+    public boolean nodeExists(String path, String revisionId) throws Exception {
+        Command<Boolean> command = new NodeExistsCommandMongo(mongoConnection, path,
+                MongoUtil.toMongoRepresentation(revisionId));
         return commandExecutor.execute(command);
     }
 
@@ -93,24 +93,28 @@ public class NodeStoreMongo implements NodeStore {
 
         // FIXME [Mete] There's more work here.
 
+        Long fromRevision = MongoUtil.toMongoRepresentation(fromRevisionId);
+        Long toRevision = null;
         if (toRevisionId == null) {
             try {
-                toRevisionId = new GetHeadRevisionCommandMongo(mongoConnection).execute();
+                toRevision = new GetHeadRevisionCommandMongo(mongoConnection).execute();
             } catch (Exception e) {
                 // FIXME Handle
             }
+        } else {
+            toRevision = MongoUtil.toMongoRepresentation(toRevisionId);
         }
 
         List<CommitMongo> commits = new FetchValidCommitsQuery(mongoConnection,
-                fromRevisionId, toRevisionId).execute();
+                fromRevision, toRevision).execute();
 
-        CommitMongo toCommit = getCommit(commits, toRevisionId);
+        CommitMongo toCommit = getCommit(commits, toRevision);
 
         CommitMongo fromCommit;
-        if (toRevisionId.equals(fromRevisionId)) {
+        if (toRevision == fromRevision) {
             fromCommit = toCommit;
         } else {
-            fromCommit = getCommit(commits, fromRevisionId);
+            fromCommit = getCommit(commits, fromRevision);
             if (fromCommit == null || (fromCommit.getTimestamp() > toCommit.getTimestamp())) {
                 // negative range, return empty journal
                 return "[]";
@@ -129,22 +133,13 @@ public class NodeStoreMongo implements NodeStore {
             // FIXME Check that filter really works.
             if (!filtered || commit.getAffectedPaths().contains(path)) {
                 commitBuff.object()
-                .key("id").value(String.valueOf(commit.getRevisionId()))
+                .key("id").value(MongoUtil.fromMongoRepresentation(commit.getRevisionId()))
                 .key("ts").value(commit.getTimestamp())
                 .key("msg").value(commit.getMessage())
                 .key("changes").value(diff).endObject();
             }
         }
         return commitBuff.endArray().toString();
-    }
-
-    private CommitMongo getCommit(List<CommitMongo> commits, String toRevisionId) {
-        for (CommitMongo commit : commits) {
-            if (String.valueOf(commit.getRevisionId()).equals(toRevisionId)) {
-                return commit;
-            }
-        }
-        return null;
     }
 
     @Override
@@ -161,7 +156,7 @@ public class NodeStoreMongo implements NodeStore {
               // FIXME [Mete] Check that filter really works.
               if (!filtered || commit.getAffectedPaths().contains(path)) {
                   buff.object()
-                  .key("id").value(String.valueOf(commit.getRevisionId()))
+                  .key("id").value(MongoUtil.fromMongoRepresentation(commit.getRevisionId()))
                   .key("ts").value(commit.getTimestamp())
                   .key("msg").value(commit.getMessage())
                   .endObject();
@@ -178,12 +173,12 @@ public class NodeStoreMongo implements NodeStore {
         long initialHeadRevisionId = getHeadRevisionId();
 
         if (timeout <= 0) {
-            return String.valueOf(initialHeadRevisionId);
+            return MongoUtil.fromMongoRepresentation(initialHeadRevisionId);
         }
 
         long oldHeadRevision = MongoUtil.toMongoRepresentation(oldHeadRevisionId);
         if (oldHeadRevision < initialHeadRevisionId) {
-            return String.valueOf(initialHeadRevisionId);
+            return MongoUtil.fromMongoRepresentation(initialHeadRevisionId);
         }
 
         long waitForCommitPollMillis = Math.min(WAIT_FOR_COMMIT_POLL_MILLIS, timeout);
@@ -191,16 +186,27 @@ public class NodeStoreMongo implements NodeStore {
             long headRevisionId = getHeadRevisionId();
             long now = System.currentTimeMillis();
             if (headRevisionId != initialHeadRevisionId || now - startTimestamp >= timeout) {
-                return String.valueOf(headRevisionId);
+                return MongoUtil.fromMongoRepresentation(headRevisionId);
             }
             Thread.sleep(waitForCommitPollMillis);
         }
     }
 
+    // FIXME - Consolidate with getHeadRevision
     private long getHeadRevisionId() {
         DBCollection headCollection = mongoConnection.getHeadCollection();
         HeadMongo headMongo = (HeadMongo)headCollection.findOne();
         long headRevisionId = headMongo.getHeadRevisionId();
         return headRevisionId;
+    }
+
+    // FIXME - Move to a command.
+    private CommitMongo getCommit(List<CommitMongo> commits, Long revisionId) {
+        for (CommitMongo commit : commits) {
+            if (commit.getRevisionId() == revisionId) {
+                return commit;
+            }
+        }
+        return null;
     }
 }

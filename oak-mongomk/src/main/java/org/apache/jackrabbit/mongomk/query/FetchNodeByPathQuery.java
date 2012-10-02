@@ -18,7 +18,7 @@ package org.apache.jackrabbit.mongomk.query;
 
 import java.util.List;
 
-import org.apache.jackrabbit.mongomk.MongoConnection;
+import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.model.NodeMongo;
 
 import com.mongodb.DBCollection;
@@ -96,7 +96,8 @@ public class FetchNodeByPathQuery extends AbstractQuery<NodeMongo> {
         if (revisionId == 0) {
             return true;
         }
-        FetchValidRevisionsQuery query = new FetchValidRevisionsQuery(mongoConnection, String.valueOf(Long.MAX_VALUE));
+        FetchValidRevisionsQuery query = new FetchValidRevisionsQuery(mongoConnection,
+                Long.MAX_VALUE);
         List<Long> revisionIds = query.execute();
         return revisionIds.contains(revisionId);
     }

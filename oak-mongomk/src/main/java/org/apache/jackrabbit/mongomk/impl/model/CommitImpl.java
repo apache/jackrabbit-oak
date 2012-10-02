@@ -24,7 +24,6 @@ import java.util.List;
 import org.apache.jackrabbit.mongomk.api.model.Commit;
 import org.apache.jackrabbit.mongomk.api.model.Instruction;
 
-
 /**
  * Implementation of {@link Commit}.
  *
@@ -37,7 +36,8 @@ public class CommitImpl implements Commit {
     private final String message;
     private final String path;
     private final long timestamp;
-    private String revisionId;
+
+    private Long revisionId;
 
     /**
      * Constructs a new {@code CommitImpl}.
@@ -47,22 +47,10 @@ public class CommitImpl implements Commit {
      * @param message The message.
      */
     public CommitImpl(String path, String diff, String message) {
-        this(path, diff, message, new LinkedList<Instruction>());
-    }
-
-    /**
-     * Constructs a new {@code CommitImpl}.
-     *
-     * @param path The path.
-     * @param diff The diff.
-     * @param message The message.
-     * @param instructions The {@link Instruction}s.
-     */
-    public CommitImpl(String path, String diff, String message, List<Instruction> instructions) {
         this.path = path;
         this.diff = diff;
         this.message = message;
-        this.instructions = instructions;
+        this.instructions = new LinkedList<Instruction>();
         timestamp = new Date().getTime();
     }
 
@@ -91,11 +79,11 @@ public class CommitImpl implements Commit {
         return path;
     }
 
-    public String getRevisionId() {
+    public Long getRevisionId() {
         return revisionId;
     }
 
-    public void setRevisionId(String revisionId) {
+    public void setRevisionId(Long revisionId) {
         this.revisionId = revisionId;
     }
 

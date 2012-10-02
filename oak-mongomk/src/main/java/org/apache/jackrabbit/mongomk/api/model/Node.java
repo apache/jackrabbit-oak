@@ -79,15 +79,15 @@ public interface Node {
     Map<String, Object> getProperties();
 
     /**
-     * Returns the revision id of this node if known already, else this will return {@code null}. The revision id
-     * will be determined only after the commit has been successfully performed or the node has been read as part of an
-     * existing revision.
+     * Returns the revision id of this node if known already, else this will return {@code null}.
+     * The revision id will be determined only after the commit has been successfully
+     * performed or the node has been read as part of an existing revision.
      *
-     * @see #setRevisionId(String)
+     * @see #setRevisionId(Long)
      *
      * @return The revision id of this commit or {@code null}.
      */
-    String getRevisionId();
+    Long getRevisionId();
 
     /**
      * Sets the revision id of this node.
@@ -96,5 +96,5 @@ public interface Node {
      *
      * @param revisionId The revision id to set.
      */
-    void setRevisionId(String revisionId);
+    void setRevisionId(Long revisionId);
 }

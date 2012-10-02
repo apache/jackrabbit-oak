@@ -55,11 +55,10 @@ public interface QueryIndex {
      * Start a query.
      *
      * @param filter the filter
-     * @param revisionId the revision
      * @param root root state of the given revision
      * @return a cursor to iterate over the result
      */
-    Cursor query(Filter filter, String revisionId, NodeState root);
+    Cursor query(Filter filter, NodeState root);
 
     /**
      * Get the query plan for the given filter.

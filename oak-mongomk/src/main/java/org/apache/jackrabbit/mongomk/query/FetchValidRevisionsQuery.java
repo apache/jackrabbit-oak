@@ -19,9 +19,8 @@ package org.apache.jackrabbit.mongomk.query;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.jackrabbit.mongomk.MongoConnection;
+import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
-
 
 /**
  * An query for fetching valid revisions.
@@ -30,33 +29,27 @@ import org.apache.jackrabbit.mongomk.model.CommitMongo;
  */
 public class FetchValidRevisionsQuery extends AbstractQuery<List<Long>> {
 
-    private final String maxRevisionId;
+    private final Long maxRevisionId;
 
     /**
      * Constructs a new {@code FetchValidRevisionsQuery}.
      *
-     * @param mongoConnection
-     *            The {@link MongoConnection}.
-     * @param maxRevisionId
-     *            The max revision id which should be fetched.
+     * @param mongoConnection The {@link MongoConnection}.
+     * @param maxRevisionId The max revision id which should be fetched.
      */
-    public FetchValidRevisionsQuery(MongoConnection mongoConnection, String maxRevisionId) {
+    public FetchValidRevisionsQuery(MongoConnection mongoConnection, Long maxRevisionId) {
         super(mongoConnection);
         this.maxRevisionId = maxRevisionId;
     }
 
     @Override
     public List<Long> execute() {
-        List<CommitMongo> validCommits = fetchValidCommits();
+        List<CommitMongo> validCommits = new FetchValidCommitsQuery(mongoConnection, maxRevisionId).execute();
         List<Long> validRevisions = new ArrayList<Long>(validCommits.size());
         for (CommitMongo commitMongo : validCommits) {
             validRevisions.add(commitMongo.getRevisionId());
         }
 
         return validRevisions;
-    }
-
-    private List<CommitMongo> fetchValidCommits() {
-        return new FetchValidCommitsQuery(mongoConnection, maxRevisionId).execute();
     }
 }

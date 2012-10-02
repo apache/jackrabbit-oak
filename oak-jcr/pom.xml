@@ -67,6 +67,8 @@ org.apache.jackrabbit.test.api.nodetype.CanSetPropertyDoubleTest#testConversions
 org.apache.jackrabbit.test.api.nodetype.CanSetPropertyDoubleTest#testConversionsMultiple  <!-- OAK-302 -->
 org.apache.jackrabbit.test.api.nodetype.CanSetPropertyLongTest#testConversions            <!-- OAK-302 -->
 org.apache.jackrabbit.test.api.nodetype.CanSetPropertyLongTest#testConversionsMultiple    <!-- OAK-302 -->
+org.apache.jackrabbit.test.api.nodetype.CanSetPropertyMultipleTest#testReturnFalseBecauseIsProtected  <!-- OAK-250 -->
+org.apache.jackrabbit.test.api.nodetype.CanSetPropertyTest#testReturnFalseBecauseIsProtected          <!-- OAK-250 -->
 org.apache.jackrabbit.test.api.SetPropertyAssumeTypeTest#testValueConstraintViolationExceptionBecauseOfInvalidTypeParameter
 org.apache.jackrabbit.test.api.SetPropertyAssumeTypeTest#testValuesConstraintViolationExceptionBecauseOfInvalidTypeParameter
 org.apache.jackrabbit.test.api.SetPropertyAssumeTypeTest#testStringConstraintViolationExceptionBecauseOfInvalidTypeParameter

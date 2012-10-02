@@ -27,7 +27,6 @@ import org.apache.jackrabbit.mongomk.query.FetchValidCommitsQuery;
 import org.apache.jackrabbit.mongomk.scenario.SimpleNodeScenario;
 import org.junit.Test;
 
-
 public class FetchValidCommitsQueryTest extends BaseMongoTest {
 
     private static final int MIN_COMMITS = 1;
@@ -36,7 +35,7 @@ public class FetchValidCommitsQueryTest extends BaseMongoTest {
     @Test
     public void simple() throws Exception {
         FetchValidCommitsQuery query = new FetchValidCommitsQuery(mongoConnection,
-                String.valueOf(Integer.MAX_VALUE) /*maxRevisionId*/);
+                Long.MAX_VALUE);
         List<CommitMongo> commits = query.execute();
         assertEquals(MIN_COMMITS, commits.size());
 
@@ -54,7 +53,7 @@ public class FetchValidCommitsQueryTest extends BaseMongoTest {
     @Test
     public void revisionId() throws Exception {
         FetchValidCommitsQuery query = new FetchValidCommitsQuery(mongoConnection,
-                String.valueOf(Integer.MAX_VALUE) /*maxRevisionId*/);
+                Long.MAX_VALUE);
         List<CommitMongo> commits = query.execute();
         CommitMongo commit0 = commits.get(0);
 
@@ -74,7 +73,7 @@ public class FetchValidCommitsQueryTest extends BaseMongoTest {
     @Test
     public void time() throws Exception {
         FetchValidCommitsQuery query = new FetchValidCommitsQuery(mongoConnection,
-                String.valueOf(Integer.MAX_VALUE) /*maxRevisionId*/);
+                Long.MAX_VALUE);
         List<CommitMongo> commits = query.execute();
         CommitMongo commit0 = commits.get(0);
 

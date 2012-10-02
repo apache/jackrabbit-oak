@@ -56,14 +56,14 @@ public interface Commit {
     String getPath();
 
     /**
-     * Returns the revision id of this commit if known already, else this will return {@code null}. The revision
-     * id will be determined only after the commit has been successfully performed.
+     * Returns the revision id of this commit if known already, else this will return {@code null}.
+     * The revision id will be determined only after the commit has been successfully performed.
      *
-     * @see #setRevisionId(String)
+     * @see #setRevisionId(Long)
      *
      * @return The revision id of this commit or {@code null}.
      */
-    String getRevisionId();
+    Long getRevisionId();
 
     /**
      * Sets the revision id of this commit.
@@ -72,7 +72,7 @@ public interface Commit {
      *
      * @param revisionId The revision id to set.
      */
-    void setRevisionId(String revisionId);
+    void setRevisionId(Long revisionId);
 
 
     /**

@@ -50,6 +50,7 @@ interface consists of three sets of methods:
 
   * Methods for accessing properties
   * Methods for accessing child nodes
+  * The `getBuilder` method for building modified states
   * The `compareAgainstBaseState` method for comparing states
 
 You can request a property or a child node by name, get the number of
@@ -64,25 +65,91 @@ will return the items in the same order as before, but the specific ordering
 is not defined nor does it necessarily remain the same across different
 instances.
 
-The `compareAgainstBaseState` method takes another NodeState instance and
-a `NodeStateDiff` object, compares the two node states, and reports all
-differences by invoking appropriate methods on the given diff handler object.
+The last two methods, `getBuilder` and `compareAgainstBaseState`, are
+covered in the next two sections. See also the `NodeState` javadocs for
+more details about this interface and all its methods.
 
-See the `NodeState` javadocs for full details on how the interface works.
+## Building new node states
+
+Since node states are immutable, a separate builder interface,
+`NodeBuilder`, is used to construct new, modified node states. Calling
+the `getBuilder` method on a node state returns such a builder for
+modifying that node and the subtree below it.
+
+A node builder can be thought of as a _mutable_ version of a node state.
+In addition to property and child node access methods like the ones that
+are already present in the `NodeState` interface, the `NodeBuilder`
+interface contains the following key methods:
+
+  * The `setProperty` and `removeProperty` methods for modifying properties
+  * The `removeNode` method for removing a subtree
+  * The `setNode` method for adding or replacing a subtree
+  * The `getChildBuilder` method for creating or modifying a subtree with
+    a connected child builder
+  * The `getNodeState` method for getting a frozen snapshot of the modified
+    content tree
+
+The concept of _connected builders_ is designed to make it easy to manage
+complex content changes. Since individual node states are always immutable,
+modifying a particular node at a path like `/foo/bar` using the `setNode`
+method would require the following overly verbose code:
+
+    NodeState root = …;
+    NodeState foo = root.getChildNode("foo")
+    NodeState bar = foo.getChildNode("bar");
+    NodeBuilder barBuilder = bar.getBuilder();
+    barBuilder.setProperty("test", …);
+    NodeBuilder fooBuilder = foo.getBuilder();
+    fooBuilder.setNode("bar", barBuilder.getNodeState());
+    NodeBuilder rootBuilder = root.getBuilder();
+    rootBuilder.setNode("foo", fooBuilder.getNodeState());
+    root = rootBuilder.getNodeState();
+
+The complexity here is caused by the need to explicitly construct and
+re-connect each modified node state along the path from the root to the
+modified content in `/foo/bar`. This is because each `NodeBuilder` instance
+created by the `getBuilder` method is independent and can only be used to
+affect other builders in the manner shown above. In contrast the
+`getChildBuilder` method returns a builder instance that is "connected" to
+the parent builder in a way that any changes recorded in the child builder
+will automatically show up also in the node states created by the parent
+builder. With connected builders the above code can be simplified to:
+
+    NodeState root = …;
+    NodeBuilder rootBuilder = root.getBuilder();
+    rootBuilder
+        .getChildBuilder("foo")
+        .getChildBuilder("bar")
+        .setProperty("test", …);
+    root = rootBuilder.getNodeState();
+
+Typically the only case where the `setNode` method is preferable over
+`getChildBuilder` is when moving or copying subtrees from one location
+to another. For example, the following code copies the `/orig` subtree
+to `/copy`:
+
+    NodeState root = …;
+    NodeBuilder rootBuilder = root.getBuilder();
+    rootBuilder.setNode("copy", root.getChildNode("orig"));
+    root = rootBuilder.getNodeState();
+
+The node states constructed by a builder often retain an internal reference
+to the base state used by the builder. This allows common node state
+comparisons to perform really well as described in the next section.
 
 ## Comparing node states
 
-As a node evolves through a sequence of states, it's often important to be
-able to tell what has changed between two states of the node. As mentioned
-above, this functionality is available through the `compareAgainstBaseState`
-method. The method takes two arguments:
+As a node evolves through a sequence of states, it's often important to
+be able to tell what has changed between two states of the node. This
+functionality is available through the `compareAgainstBaseState` method.
+The method takes two arguments:
 
-  * A _base state_ for the comparison. The comparison will report all changes
-    necessary for moving from the given base state to the node state on which
-    the comparison method is invoked.
+  * A _base state_ for the comparison. The comparison will report all
+    changes necessary for moving from the given base state to the node
+    state on which the comparison method is invoked.
   * A `NodeStateDiff` instance to which all detected changes are reported.
-    The diff interface contains callback methods for reporting added, modified
-    or removed properties or child nodes.
+    The diff interface contains callback methods for reporting added,
+    modified or removed properties or child nodes.
 
 The comparison method can actually be used to compare any two nodes, but the
 implementations of the method are typically heavily optimized for the case
@@ -106,10 +173,6 @@ for such recursion typically looks something like this:
         after.compareAgainstBaseState(before, ...);
     }
 
-## Building new node states
-
-TODO
-
 ## The commit hook mechanism
 
 TODO
@@ -118,7 +181,130 @@ TODO
 
 TODO
 
+TODO: Basic validator class
+
+    class DenyContentWithName extends DefaultValidator {
+
+        private final String name;
+
+        public DenyContentWithName(String name) {
+            this.name = name;
+        }
+
+        @Override
+        public void propertyAdded(PropertyState after)
+                throws CommitFailedException {
+            if (name.equals(after.getName())) {
+                throw new CommitFailedException(
+                        "Properties named " + name + " are not allowed");
+            }
+        }
+
+
+    }
+
+TODO: Example of how the validator works
+
+    ContentRepository contentRepository = new Oak()
+        .with(new DenyContentWithName("bar"))
+        .createContentRepository();
+
+    Repository repository = new RepositoryImpl(contentRepository);
+    Session session = repository.login();
+    Node root = session.getRootNode();
+    root.setProperty("foo", "abc");
+    session.save();
+    root.setProperty("bar", "def");
+    session.save(); // will throw an exception
+
+TODO: Extended example that also works below root and covers also node names
+
+    class DenyContentWithName extends DefaultValidator {
+
+        private final String name;
+
+        public DenyContentWithName(String name) {
+            this.name = name;
+        }
+
+        private void testName(String addedName) throws CommitFailedException {
+            if (name.equals(addedName)) {
+                throw new CommitFailedException(
+                        "Content named " + name + " is not allowed");
+            }
+        }
+
+        @Override
+        public void propertyAdded(PropertyState after)
+                throws CommitFailedException {
+            testName(after.getName());
+        }
+
+        @Override
+        public Validator childNodeAdded(String name, NodeState after)
+                throws CommitFailedException {
+            testName(name);
+            return this;
+        }
+
+        @Override
+        public Validator childNodeChanged(
+                String name, NodeState before, NodeState after)
+                throws CommitFailedException {
+            return this;
+        }
+
+    }
+
 ## Commit modification
 
 TODO
+
+TODO: Basic commit hook example
+
+    class RenameContentHook implements CommitHook {
+
+        private final String name;
+
+        private final String rename;
+
+        public RenameContentHook(String name, String rename) {
+            this.name = name;
+            this.rename = rename;
+        }
+
+        @Override @Nonnull
+        public NodeState processCommit(NodeState before, NodeState after)
+                throws CommitFailedException {
+            PropertyState property = after.getProperty(name);
+            if (property != null) {
+                NodeBuilder builder = after.getBuilder();
+                builder.removeProperty(name);
+                if (property.isArray()) {
+                    builder.setProperty(rename, property.getValues());
+                } else {
+                    builder.setProperty(rename, property.getValue());
+                }
+                return builder.getNodeState();
+            }
+            return after;
+        }
+
+    }
+
+TODO: Using the commit hook to avoid the exception from a validator
+
+    ContentRepository contentRepository = new Oak()
+        .with(new RenameContentHook("bar", "foo"))
+        .with(new DenyContentWithName("bar"))
+        .createContentRepository();
+
+    Repository repository = new RepositoryImpl(contentRepository);
+    Session session = repository.login();
+    Node root = session.getRootNode();
+    root.setProperty("foo", "abc");
+    session.save();
+    root.setProperty("bar", "def");
+    session.save(); // will not throw an exception!
+    System.out.println(root.getProperty("foo").getString()); // Prints "def"!
 

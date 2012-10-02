@@ -33,6 +33,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * An index that stores the index data in a {@code MicroKernel}.
+ * 
+ * @deprecated the revisionId info has been removed
  */
 public class PrefixContentIndex implements QueryIndex {
 
@@ -84,7 +86,7 @@ public class PrefixContentIndex implements QueryIndex {
     }
 
     @Override
-    public Cursor query(Filter filter, String revisionId, NodeState root) {
+    public Cursor query(Filter filter, NodeState root) {
         Filter.PropertyRestriction restriction = getPropertyTypeRestriction(filter);
         if (restriction == null) {
             throw new IllegalArgumentException("No restriction for *");
@@ -92,6 +94,8 @@ public class PrefixContentIndex implements QueryIndex {
         // TODO need to use correct json representation
         String v = restriction.first.getString();
         v = index.getPrefix() + v;
+        // TODO revisit code after the removal of revisionId
+        String revisionId = "";
         Iterator<String> it = index.getPaths(v, revisionId);
         return new ContentCursor(it);
     }

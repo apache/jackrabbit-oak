@@ -102,9 +102,8 @@ public class JsopParser {
 
     private void parseOpAdded(String currentPath) throws Exception {
         String subPath = tokenizer.readString();
-        String path = PathUtils.concat(currentPath, subPath);
-
         tokenizer.read(':');
+        String path = PathUtils.concat(currentPath, subPath);
 
         if (tokenizer.matches('{')) {
             String parentPath = PathUtils.denotesRoot(path) ? "" : PathUtils.getParentPath(path);
@@ -117,20 +116,26 @@ public class JsopParser {
                     String propName = tokenizer.readString();
                     tokenizer.read(':');
 
-                    if (tokenizer.matches('{')) { // parse a nested node
-                        tokenizer.setPos(pos); // resetting to last post b/c parseOpAdded expects the whole json
+                    if (tokenizer.matches('{')) { // Nested node.
+                        // Reset to last pos as parseOpAdded expected the whole JSON.
+                        tokenizer.setPos(pos);
                         tokenizer.read();
                         parseOpAdded(path);
-                    } else { // parse property
+                    } else { // Property.
                         String valueAsString = tokenizer.readRawValue().trim();
                         Object value = JsonUtil.convertJsonValue(valueAsString);
-
                         defaultHandler.propertyAdded(path, propName, value);
                     }
                 } while (tokenizer.matches(','));
 
                 tokenizer.read('}'); // explicitly close the bracket
             }
+        } else { // Property.
+            String parentPath = PathUtils.denotesRoot(path) ? "" : PathUtils.getParentPath(path);
+            String propName = PathUtils.denotesRoot(path) ? "/" : PathUtils.getName(path);
+            String valueAsString = tokenizer.readRawValue().trim();
+            Object value = JsonUtil.convertJsonValue(valueAsString);
+            defaultHandler.propertyAdded(parentPath, propName, value);
         }
     }
 

@@ -176,7 +176,7 @@ public abstract class AbstractPerformanceTest {
 
         mk = new IndexWrapper(mk);
         ValidatingHook ve =  new ValidatingHook(
-                new CompositeValidatorProvider(Collections.<ValidatorProvider>emptyList()));
+                CompositeValidatorProvider.compose(Collections.<ValidatorProvider>emptyList()));
         ContentRepository contentRepository = new ContentRepositoryImpl(mk, null, ve);
         return new RepositoryImpl(contentRepository, null);
 

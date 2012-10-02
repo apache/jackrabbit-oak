@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import java.util.Collections;
-
 import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
 import javax.jcr.NoSuchWorkspaceException;
@@ -34,14 +32,13 @@ import org.apache.jackrabbit.oak.query.QueryEngineImpl;
 import org.apache.jackrabbit.oak.security.authentication.LoginContextProviderImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
-import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandlerProvider;
+import org.apache.jackrabbit.oak.spi.commit.DefaultValidatorProvider;
 import org.apache.jackrabbit.oak.spi.commit.ValidatingHook;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -95,8 +92,7 @@ public class ContentRepositoryImpl implements ContentRepository {
             ValidatorProvider validatorProvider) {
         this(microKernel, indexProvider, new ValidatingHook(
                 validatorProvider != null ? validatorProvider
-                        : new CompositeValidatorProvider(
-                                Collections.<ValidatorProvider> emptyList())));
+                        : DefaultValidatorProvider.INSTANCE));
     }
 
     public ContentRepositoryImpl(
@@ -120,28 +116,10 @@ public class ContentRepositoryImpl implements ContentRepository {
 
         QueryIndexProvider qip = indexProvider != null ? indexProvider
                 : new CompositeQueryIndexProvider();
-        queryEngine = new QueryEngineImpl(nodeStore, microKernel, qip);
+        queryEngine = new QueryEngineImpl(nodeStore, qip);
 
         // TODO: use configurable context provider
         loginContextProvider = new LoginContextProviderImpl(this);
-
-        // FIXME: repository setup must be done elsewhere...
-        // FIXME: depends on CoreValue's name mangling
-        NodeState root = nodeStore.getRoot();
-        if (root.hasChildNode("jcr:system")) {
-            microKernel.commit("/", "^\"jcr:primaryType\":\"nam:rep:root\" ", null, null);
-        } else {
-            microKernel.commit("/", "^\"jcr:primaryType\":\"nam:rep:root\"" +
-                "+\"jcr:system\":{" +
-                    "\"jcr:primaryType\"    :\"nam:rep:system\"," +
-                    // FIXME: user-mgt related unique properties are implementation detail and not generic for repo
-                    // FIXME: rep:principalName only needs to be unique if defined with user/group nodes -> add defining nt-info to uniqueness constraint
-                    "\":unique\"            :{\"jcr:uuid\":{},\"rep:authorizableId\":{},\"rep:principalName\":{}}," +
-                    "\"jcr:versionStorage\" :{\"jcr:primaryType\":\"nam:rep:versionStorage\"}," +
-                    "\"jcr:nodeTypes\"      :{\"jcr:primaryType\":\"nam:rep:nodeTypes\"}," +
-                    "\"jcr:activities\"     :{\"jcr:primaryType\":\"nam:rep:Activities\"}," +
-                    "\"rep:privileges\"     :{\"jcr:primaryType\":\"nam:rep:Privileges\"}}", null, null);
-        }
     }
 
     @Nonnull

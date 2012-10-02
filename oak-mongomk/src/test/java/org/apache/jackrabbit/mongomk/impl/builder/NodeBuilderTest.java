@@ -48,13 +48,13 @@ public class NodeBuilderTest {
         Node node = NodeBuilder.build(json);
 
         Node node_c = new NodeImpl("/a/c");
-        node_c.setRevisionId("2");
+        node_c.setRevisionId(2L);
         Node node_b = new NodeImpl("/a/b");
-        node_b.setRevisionId("2");
+        node_b.setRevisionId(2L);
         Node node_a = new NodeImpl("/a", new Node[] { node_b, node_c });
-        node_a.setRevisionId("1");
+        node_a.setRevisionId(1L);
         Node node_root = new NodeImpl("/", new Node[] { node_a });
-        node_root.setRevisionId("1");
+        node_root.setRevisionId(1L);
 
         NodeAssert.assertDeepEquals(node, node_root);
     }

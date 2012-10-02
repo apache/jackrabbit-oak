@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk;
+package org.apache.jackrabbit.mongomk.impl;
 
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
 import org.apache.jackrabbit.mongomk.model.HeadMongo;
@@ -32,7 +32,7 @@ import com.mongodb.gridfs.GridFS;
  */
 public class MongoConnection {
 
-    private static final String COLLECTION_COMMIT = "commit";
+    private static final String COLLECTION_COMMITS = "commits";
     private static final String COLLECTION_HEAD = "head";
     private static final String COLLECTION_NODES = "nodes";
     private final DB db;
@@ -57,9 +57,8 @@ public class MongoConnection {
      * @return The commit {@link DBCollection}.
      */
     public DBCollection getCommitCollection() {
-        DBCollection commitCollection = db.getCollection(COLLECTION_COMMIT);
+        DBCollection commitCollection = db.getCollection(COLLECTION_COMMITS);
         commitCollection.setObjectClass(CommitMongo.class);
-
         return commitCollection;
     }
 
@@ -89,7 +88,6 @@ public class MongoConnection {
     public DBCollection getHeadCollection() {
         DBCollection headCollection = db.getCollection(COLLECTION_HEAD);
         headCollection.setObjectClass(HeadMongo.class);
-
         return headCollection;
     }
 
@@ -101,7 +99,6 @@ public class MongoConnection {
     public DBCollection getNodeCollection() {
         DBCollection nodeCollection = db.getCollection(COLLECTION_NODES);
         nodeCollection.setObjectClass(NodeMongo.class);
-
         return nodeCollection;
     }
 }

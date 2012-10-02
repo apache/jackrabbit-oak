@@ -30,7 +30,9 @@ import org.apache.jackrabbit.oak.api.ChangeExtractor;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.commit.DefaultConflictHandler;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.security.authorization.AccessControlContextImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContext;
@@ -54,6 +56,11 @@ public class RootImpl implements Root {
      * Number of {@link #purge()} calls for which changes are kept in memory.
      */
     private static final int PURGE_LIMIT = 100;
+
+    /**
+     * A dummy subject used when no subject is provided in the constructor.
+     */
+    private static final Subject DUMMY_SUBJECT = new Subject();
 
     /** The underlying store to which this root belongs */
     private final NodeStore store;
@@ -105,6 +112,16 @@ public class RootImpl implements Root {
         this.store = store;
         this.subject = subject;
         refresh();
+    }
+
+    /**
+     * New instance bases on a given {@link NodeStore} and a workspace
+     * @param store  node store
+     * @param workspaceName  name of the workspace
+     */
+    @SuppressWarnings("UnusedParameters")
+    public RootImpl(NodeStore store, String workspaceName) {
+        this(store, workspaceName, DUMMY_SUBJECT);
     }
 
     public void setConflictHandler(ConflictHandler conflictHandler) {
@@ -263,9 +280,13 @@ public class RootImpl implements Root {
     }
 
     CompiledPermissions getPermissions() {
-        AccessControlContext context = new AccessControlContextImpl();
-        context.initialize(subject.getPrincipals());
-        return context.getPermissions();
+        if (subject == DUMMY_SUBJECT) {
+            return new AllPermissions();
+        } else {
+            AccessControlContext context = new AccessControlContextImpl();
+            context.initialize(subject.getPrincipals());
+            return context.getPermissions();
+        }
     }
 
     //------------------------------------------------------------< private >---
@@ -285,6 +306,30 @@ public class RootImpl implements Root {
 
         for (PurgeListener purgeListener : purgeListeners) {
             purgeListener.purged();
+        }
+    }
+
+    private static final class AllPermissions implements CompiledPermissions {
+        @Override
+        public boolean canRead(String path, boolean isProperty) {
+            return true;
+        }
+
+        @Override
+        public boolean isGranted(int permissions) {
+            return true;
+        }
+
+        @Override
+        public boolean isGranted(Tree tree, int permissions) {
+            return true;
+        }
+
+        @Override
+        public boolean isGranted(Tree parent,
+                                 PropertyState property,
+                                 int permissions) {
+            return true;
         }
     }
 

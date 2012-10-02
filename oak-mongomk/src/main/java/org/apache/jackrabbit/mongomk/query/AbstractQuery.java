@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.mongomk.query;
 
-import org.apache.jackrabbit.mongomk.MongoConnection;
+import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 
 /**
  * An abstract base class for queries performed with {@code MongoDB}.

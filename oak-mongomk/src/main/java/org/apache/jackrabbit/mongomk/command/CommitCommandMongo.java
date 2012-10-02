@@ -23,10 +23,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.mongomk.MongoConnection;
 import org.apache.jackrabbit.mongomk.api.command.AbstractCommand;
 import org.apache.jackrabbit.mongomk.api.model.Commit;
 import org.apache.jackrabbit.mongomk.api.model.Instruction;
+import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.model.CommitCommandInstructionVisitor;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
 import org.apache.jackrabbit.mongomk.model.HeadMongo;
@@ -50,7 +50,7 @@ import com.mongodb.WriteResult;
  *
  * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
-public class CommitCommandMongo extends AbstractCommand<String> {
+public class CommitCommandMongo extends AbstractCommand<Long> {
 
     private static final Logger logger = LoggerFactory.getLogger(CommitCommandMongo.class);
 
@@ -62,7 +62,7 @@ public class CommitCommandMongo extends AbstractCommand<String> {
     private List<NodeMongo> existingNodes;
     private HeadMongo headMongo;
     private Set<NodeMongo> nodeMongos;
-    private String revisionId;
+    private Long revisionId;
 
     /**
      * Constructs a new {@code CommitCommandMongo}.
@@ -76,7 +76,7 @@ public class CommitCommandMongo extends AbstractCommand<String> {
     }
 
     @Override
-    public String execute() throws Exception {
+    public Long execute() throws Exception {
         logger.debug(String.format("Trying to commit: %s", commit.getDiff()));
 
         readAndIncHeadRevision();
@@ -122,13 +122,12 @@ public class CommitCommandMongo extends AbstractCommand<String> {
     protected boolean saveAndSetHeadRevision() throws Exception {
         boolean success = true;
 
-        HeadMongo headMongo = new SaveAndSetHeadRevisionQuery(mongoConnection, this.headMongo.getHeadRevisionId(),
-                HeadMongo.toDBRepresentation(revisionId)).execute();
+        HeadMongo headMongo = new SaveAndSetHeadRevisionQuery(mongoConnection,
+                this.headMongo.getHeadRevisionId(), revisionId).execute();
         if (headMongo == null) {
             // TODO: Check for conflicts!
-            logger.warn(String
-                    .format("Encounterd a conflicting update, thus can't commit revision %s and will be retried with new revision",
-                            revisionId));
+            logger.warn(String.format("Encounterd a conflicting update, thus can't commit"
+                    + " revision %s and will be retried with new revision", revisionId));
 
             success = false;
         }
@@ -164,7 +163,7 @@ public class CommitCommandMongo extends AbstractCommand<String> {
     }
 
     private void createRevision() {
-        revisionId = String.valueOf(headMongo.getNextRevisionId() - 1);
+        revisionId = headMongo.getNextRevisionId() - 1;
     }
 
     private void markAsFailed() throws Exception {
@@ -277,7 +276,7 @@ public class CommitCommandMongo extends AbstractCommand<String> {
         }
 
         existingNodes = new FetchNodesForRevisionQuery(mongoConnection, paths,
-                String.valueOf(headMongo.getHeadRevisionId())).execute();
+                headMongo.getHeadRevisionId()).execute();
     }
 
     private void saveCommit() throws Exception {
