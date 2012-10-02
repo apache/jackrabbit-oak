@@ -55,7 +55,7 @@ public interface QueryIndex {
      * Start a query.
      *
      * @param filter the filter
-     * @param root root state of the given revision
+     * @param root root state of the current repository snapshot
      * @return a cursor to iterate over the result
      */
     Cursor query(Filter filter, NodeState root);
@@ -64,9 +64,10 @@ public interface QueryIndex {
      * Get the query plan for the given filter.
      *
      * @param filter the filter
+     * @param root root state of the current repository snapshot
      * @return the query plan
      */
-    String getPlan(Filter filter);
+    String getPlan(Filter filter, NodeState root);
 
     /**
      * Get the unique index name.
