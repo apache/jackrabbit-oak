@@ -28,9 +28,7 @@ import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 
 /**
- * Utility classes for preparing the {@code MongoDB} environement.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
+ * Utility class for preparing the {@code MongoDB} environment.
  */
 @SuppressWarnings("javadoc")
 public class MongoUtil {

@@ -29,10 +29,7 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
  * @see <a href="http://en.wikipedia.org/wiki/Command_pattern">Command Pattern</a>
  * @see CommandExecutor
  *
- * @param <T>
- *            The result type of the {@code Command}.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
+ * @param <T> The result type of the {@code Command}.
  */
 public interface Command<T> {
 

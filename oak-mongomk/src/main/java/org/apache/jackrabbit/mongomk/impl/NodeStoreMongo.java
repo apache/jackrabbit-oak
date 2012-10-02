@@ -38,8 +38,6 @@ import com.mongodb.DBCollection;
 
 /**
  * Implementation of {@link NodeStore} for the {@code MongoDB}.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 public class NodeStoreMongo implements NodeStore {
 

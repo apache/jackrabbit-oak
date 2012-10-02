@@ -26,8 +26,6 @@ import org.apache.jackrabbit.mongomk.api.model.Instruction;
 
 /**
  * Implementation of {@link Commit}.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 public class CommitImpl implements Commit {
 

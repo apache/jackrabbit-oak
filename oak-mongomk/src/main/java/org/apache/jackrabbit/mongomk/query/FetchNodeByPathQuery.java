@@ -30,8 +30,6 @@ import com.mongodb.QueryBuilder;
 
 /**
  * A query for fetching a node by a given path.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 public class FetchNodeByPathQuery extends AbstractQuery<NodeMongo> {
 

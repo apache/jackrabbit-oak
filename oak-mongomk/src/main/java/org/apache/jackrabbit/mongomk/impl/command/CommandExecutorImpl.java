@@ -21,8 +21,6 @@ import org.apache.jackrabbit.mongomk.api.command.CommandExecutor;
 
 /**
  * Implementation of the {@link CommandExecutor} interface.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 public class CommandExecutorImpl implements CommandExecutor {
 

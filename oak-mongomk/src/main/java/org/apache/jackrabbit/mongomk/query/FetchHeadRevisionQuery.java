@@ -22,8 +22,6 @@ import org.apache.jackrabbit.mongomk.model.HeadMongo;
 
 /**
  * An query for fetching the head revision.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 public class FetchHeadRevisionQuery extends AbstractQuery<Long> {
 

@@ -47,8 +47,6 @@ import com.mongodb.WriteResult;
 
 /**
  * A {@code Command} for committing into {@code MongoDB}.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 public class CommitCommandMongo extends AbstractCommand<Long> {
 

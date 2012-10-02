@@ -26,8 +26,6 @@ import com.mongodb.QueryBuilder;
 
 /**
  * An query for saveing and setting the head revision id.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 public class SaveAndSetHeadRevisionQuery extends AbstractQuery<HeadMongo> {
 

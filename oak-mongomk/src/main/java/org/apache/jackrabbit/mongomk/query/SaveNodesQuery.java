@@ -27,9 +27,7 @@ import com.mongodb.WriteConcern;
 import com.mongodb.WriteResult;
 
 /**
- * An query for saving a list of nodes.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
+ * A query for saving a list of nodes.
  */
 public class SaveNodesQuery extends AbstractQuery<Boolean> {
 

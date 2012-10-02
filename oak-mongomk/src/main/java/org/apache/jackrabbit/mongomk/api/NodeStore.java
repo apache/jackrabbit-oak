@@ -35,8 +35,6 @@ import org.apache.jackrabbit.mongomk.api.model.Node;
  * </p>
  *
  * @see BlobStore
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 public interface NodeStore {
 

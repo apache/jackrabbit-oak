@@ -25,8 +25,6 @@ package org.apache.jackrabbit.mongomk.api.command;
  *
  * @see <a href="http://en.wikipedia.org/wiki/Command_pattern">Command Pattern</a>
  * @see Command
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 public interface CommandExecutor {
 

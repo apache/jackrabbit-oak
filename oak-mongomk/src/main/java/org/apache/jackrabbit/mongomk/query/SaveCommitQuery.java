@@ -23,9 +23,7 @@ import com.mongodb.DBCollection;
 import com.mongodb.WriteResult;
 
 /**
- * An query for saving a commit.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
+ * A query for saving a commit.
  */
 public class SaveCommitQuery extends AbstractQuery<Boolean> {
 

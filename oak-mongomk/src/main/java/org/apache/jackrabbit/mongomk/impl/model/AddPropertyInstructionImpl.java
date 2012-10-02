@@ -21,8 +21,6 @@ import org.apache.jackrabbit.mongomk.api.model.Instruction.AddPropertyInstructio
 
 /**
  * Implementation of {@link AddPropertyInstruction}.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 public class AddPropertyInstructionImpl implements AddPropertyInstruction {
 

@@ -20,8 +20,6 @@ import java.util.List;
 
 /**
  * A higher level object representing a commit.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 public interface Commit {
 

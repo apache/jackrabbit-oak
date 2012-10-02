@@ -25,8 +25,6 @@ import org.junit.Test;
 
 /**
  * Writing tests with multiple Mks.
- * @author rogoz
- *
  */
 public class MultipleMksWriteNodesTest extends MultipleNodesTestBase {
 
@@ -71,7 +69,7 @@ public class MultipleMksWriteNodesTest extends MultipleNodesTestBase {
 	/**
 	 * Each worker is creating a pyramid containing 2000 nodes.
 	 * 5 workers x 2000 nodes=10000 nodes
-	 * 
+	 *
 	 * @throws InterruptedException
 	 */
 	@Test

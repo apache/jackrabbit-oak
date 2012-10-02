@@ -24,8 +24,6 @@ import org.apache.jackrabbit.mongomk.model.CommitMongo;
 
 /**
  * An query for fetching valid revisions.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 public class FetchValidRevisionsQuery extends AbstractQuery<List<Long>> {
 

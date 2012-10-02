@@ -32,8 +32,6 @@ import org.json.JSONObject;
  * FIXME - [Mete] This should really merge with MicroKernelImpl#toJson.
  *
  * <a href="http://en.wikipedia.org/wiki/JavaScript_Object_Notation">JSON</a> related utility classes.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 public class JsonUtil {
 

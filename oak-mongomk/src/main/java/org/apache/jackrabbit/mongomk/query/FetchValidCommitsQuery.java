@@ -34,8 +34,6 @@ import com.mongodb.QueryBuilder;
 
 /**
  * An query for fetching valid commits.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 public class FetchValidCommitsQuery extends AbstractQuery<List<CommitMongo>> {
 

@@ -25,8 +25,6 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 
 /**
  * A {@code Command} for determine whether a node exists from {@code MongoDB}.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 public class NodeExistsCommandMongo extends AbstractCommand<Boolean> {
 

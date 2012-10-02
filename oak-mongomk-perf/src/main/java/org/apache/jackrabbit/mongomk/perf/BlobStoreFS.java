@@ -21,10 +21,6 @@ import java.io.InputStream;
 
 import org.apache.jackrabbit.mongomk.api.BlobStore;
 
-
-/**
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
- */
 public class BlobStoreFS implements BlobStore {
 
     private final File rootDir;

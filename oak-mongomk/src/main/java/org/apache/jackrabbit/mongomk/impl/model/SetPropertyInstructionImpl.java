@@ -21,8 +21,6 @@ import org.apache.jackrabbit.mongomk.api.model.Instruction.SetPropertyInstructio
 
 /**
  * Implementation of {@link SetPropertyInstruction}.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 public class SetPropertyInstructionImpl implements SetPropertyInstruction {
 

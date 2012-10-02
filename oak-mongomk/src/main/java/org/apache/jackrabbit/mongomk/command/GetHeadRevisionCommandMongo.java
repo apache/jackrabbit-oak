@@ -22,8 +22,6 @@ import org.apache.jackrabbit.mongomk.query.FetchHeadRevisionQuery;
 
 /**
  * A {@code Command} for getting the head revision from {@code MongoDB}.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 public class GetHeadRevisionCommandMongo extends AbstractCommand<Long> {
 

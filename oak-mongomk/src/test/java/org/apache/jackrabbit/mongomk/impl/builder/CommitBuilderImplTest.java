@@ -36,10 +36,6 @@ import org.apache.jackrabbit.mongomk.impl.InstructionAssert;
 import org.apache.jackrabbit.mongomk.impl.builder.CommitBuilder;
 import org.junit.Test;
 
-
-/**
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
- */
 @SuppressWarnings("javadoc")
 public class CommitBuilderImplTest {
 

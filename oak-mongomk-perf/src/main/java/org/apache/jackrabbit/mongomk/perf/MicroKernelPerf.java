@@ -28,9 +28,6 @@ import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.log4j.PropertyConfigurator;
 
-/**
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
- */
 public class MicroKernelPerf {
     private static Config config;
     private static boolean masterMode;

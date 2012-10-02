@@ -39,9 +39,6 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
 import com.mongodb.WriteConcern;
 
-/**
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
- */
 public class MicroKernelPerfClient {
 
     private static class Stats extends BasicDBObject {

@@ -22,8 +22,6 @@ import org.apache.jackrabbit.mongomk.impl.MongoConnection;
  * An abstract base class for queries performed with {@code MongoDB}.
  *
  * @param <T> The result type of the query.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 public abstract class AbstractQuery<T> {
 

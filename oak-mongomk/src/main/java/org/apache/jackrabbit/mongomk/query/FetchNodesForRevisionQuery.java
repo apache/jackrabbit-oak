@@ -33,8 +33,6 @@ import com.mongodb.QueryBuilder;
 
 /**
  * An query for fetching nodes for a specific revision.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 public class FetchNodesForRevisionQuery extends AbstractQuery<List<NodeMongo>> {
 

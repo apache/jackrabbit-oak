@@ -29,8 +29,6 @@ import com.mongodb.DBCursor;
 
 /**
  * Utility class for queries.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 public class QueryUtils {
 

@@ -22,10 +22,6 @@ import org.apache.jackrabbit.mongomk.impl.builder.NodeBuilder;
 import org.apache.jackrabbit.mongomk.impl.model.NodeImpl;
 import org.junit.Test;
 
-
-/**
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
- */
 @SuppressWarnings("javadoc")
 public class NodeBuilderTest {
 

@@ -33,9 +33,6 @@ import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
-/**
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
- */
 @SuppressWarnings("javadoc")
 public class CommitCommandMongoTest extends BaseMongoTest {
 

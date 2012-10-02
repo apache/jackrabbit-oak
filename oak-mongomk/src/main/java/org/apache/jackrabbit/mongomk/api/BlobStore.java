@@ -36,8 +36,6 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
  * </p>
  *
  * @see NodeStore
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 public interface BlobStore {
 

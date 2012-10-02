@@ -32,8 +32,6 @@ import org.json.JSONObject;
 /**
  * A builder to create {@link Node}s from <a hred="http://en.wikipedia.org/wiki/JavaScript_Object_Notation">JSON</a>
  * strings.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 public class NodeBuilder {
 

@@ -23,8 +23,6 @@ import com.mongodb.DBCollection;
 
 /**
  * An query for fetching the current head.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 public class FetchHeadQuery extends AbstractQuery<HeadMongo> {
 

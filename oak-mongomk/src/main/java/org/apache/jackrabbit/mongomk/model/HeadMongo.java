@@ -21,8 +21,6 @@ import com.mongodb.DBObject;
 
 /**
  * The {@code MongoDB} representation of the head revision.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 @SuppressWarnings("javadoc")
 public class HeadMongo extends BasicDBObject {

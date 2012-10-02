@@ -31,8 +31,6 @@ import com.mongodb.QueryBuilder;
 
 /**
  * A query for fetching nodes by path and depth.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 public class FetchNodesByPathAndDepthQuery extends AbstractQuery<List<NodeMongo>> {
 

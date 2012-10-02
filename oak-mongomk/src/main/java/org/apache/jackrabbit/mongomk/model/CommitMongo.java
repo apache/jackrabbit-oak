@@ -31,8 +31,6 @@ import com.mongodb.BasicDBObject;
 
 /**
  * The {@code MongoDB} representation of a commit.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 @SuppressWarnings("javadoc")
 public class CommitMongo extends BasicDBObject {

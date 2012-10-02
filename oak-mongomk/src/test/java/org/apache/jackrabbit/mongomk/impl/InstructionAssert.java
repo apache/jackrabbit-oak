@@ -25,10 +25,6 @@ import org.apache.jackrabbit.mongomk.api.model.Instruction.MoveNodeInstruction;
 import org.apache.jackrabbit.mongomk.api.model.Instruction.RemoveNodeInstruction;
 import org.apache.jackrabbit.mongomk.api.model.Instruction.SetPropertyInstruction;
 
-
-/**
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
- */
 @SuppressWarnings("javadoc")
 public class InstructionAssert {
 
