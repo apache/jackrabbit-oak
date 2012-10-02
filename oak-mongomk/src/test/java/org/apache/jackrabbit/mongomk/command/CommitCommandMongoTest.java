@@ -76,6 +76,25 @@ public class CommitCommandMongoTest extends BaseMongoTest {
     }
 
     @Test
+    public void addNodesToOldParent() throws Exception {
+        Commit commit = CommitBuilder.build("/", "+\"a\" : {}", "Add /a");
+        CommitCommandMongo command = new CommitCommandMongo(mongoConnection, commit);
+        command.execute();
+
+        commit = CommitBuilder.build("/a", "+\"b\" : {}", "Add /a/b");
+        command = new CommitCommandMongo(mongoConnection, commit);
+        command.execute();
+
+        commit = CommitBuilder.build("/a/b", "+\"c\" : {}", "Add /a/b/c");
+        command = new CommitCommandMongo(mongoConnection, commit);
+        command.execute();
+
+        commit = CommitBuilder.build("/a", "+\"d\" : {}", "Add /a/d");
+        command = new CommitCommandMongo(mongoConnection, commit);
+        command.execute();
+    }
+
+    @Test
     public void addIntermediataryNodes() throws Exception {
         Commit commit = CommitBuilder.build("/", "+\"a\" : { \"b\" : { \"c\": {} }}",
                 "Add /a/b/c");

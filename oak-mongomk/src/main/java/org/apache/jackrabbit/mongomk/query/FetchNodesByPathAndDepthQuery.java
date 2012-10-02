@@ -64,7 +64,7 @@ public class FetchNodesByPathAndDepthQuery extends AbstractQuery<List<NodeMongo>
         List<Long> validRevisions = fetchValidRevisions(mongoConnection, revisionId);
 
         DBCursor dbCursor = performQuery(pattern);
-        List<NodeMongo> nodes = QueryUtils.convertToNodes(dbCursor, validRevisions);
+        List<NodeMongo> nodes = QueryUtils.getMostRecentValidNodes(dbCursor, validRevisions);
 
         return nodes;
     }

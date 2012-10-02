@@ -37,30 +37,28 @@ public class QueryUtils {
     private static final Logger LOG = LoggerFactory.getLogger(QueryUtils.class);
 
     /**
-     * Reads nodes from the given {@link DBCursor} and add them to the returned list if their revision id is contained
-     * in the list of given valid revisions. If multiple nodes with the same path are read by the cursor the one with
+     * Reads nodes from the given {@link DBCursor} and adds them to the returned list
+     * if their revision id is contained in the list of given valid revisions.
+     * If multiple nodes with the same path are read by the cursor the one with
      * the highest revision id will win.
      *
-     * @param dbCursor
-     *            The {@code DBCursor} to read from.
-     * @param validRevisions
-     *            The list of valid revisions.
+     * @param dbCursor The {@code DBCursor} to read from.
+     * @param validRevisions The list of valid revisions.
      * @return The list containing the valid nodes.
      */
-    static List<NodeMongo> convertToNodes(DBCursor dbCursor, List<Long> validRevisions) {
+    public static List<NodeMongo> getMostRecentValidNodes(DBCursor dbCursor, List<Long> validRevisions) {
         Map<String, NodeMongo> nodeMongos = new HashMap<String, NodeMongo>();
 
         while (dbCursor.hasNext()) {
             NodeMongo nodeMongo = (NodeMongo) dbCursor.next();
 
             String path = nodeMongo.getPath();
-            long revId = nodeMongo.getRevisionId();
+            long revisionId = nodeMongo.getRevisionId();
 
-            LOG.debug(String.format("Converting node %s (%d)", path, revId));
+            LOG.debug(String.format("Converting node %s (%d)", path, revisionId));
 
-            if (!validRevisions.contains(revId)) {
-                LOG.debug(String.format("Node will not be converted b/c it is not a valid commit %s (%d)", path, revId));
-
+            if (!validRevisions.contains(revisionId)) {
+                LOG.debug(String.format("Node will not be converted b/c it is not a valid commit %s (%d)", path, revisionId));
                 continue;
             }
 
@@ -68,13 +66,12 @@ public class QueryUtils {
             if (existingNodeMongo != null) {
                 long existingRevId = existingNodeMongo.getRevisionId();
 
-                if (revId > existingRevId) {
+                if (revisionId > existingRevId) {
                     nodeMongos.put(path, nodeMongo);
-                    LOG.debug(String.format("Converted nodes was put into map and replaced %s (%d)", path, revId));
+                    LOG.debug(String.format("Converted nodes was put into map and replaced %s (%d)", path, revisionId));
                 } else {
-                    LOG.debug(String.format(
-                            "Converted nodes was not put into map because a newer version is available %s (%d)", path,
-                            revId));
+                    LOG.debug(String.format("Converted nodes was not put into map because a newer version"
+                            + " is available %s (%d)", path, revisionId));
                 }
             } else {
                 nodeMongos.put(path, nodeMongo);
@@ -83,9 +80,5 @@ public class QueryUtils {
         }
 
         return new ArrayList<NodeMongo>(nodeMongos.values());
-    }
-
-    private QueryUtils() {
-        // no initialization
     }
 }

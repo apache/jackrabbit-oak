@@ -231,7 +231,8 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         NodeMongo parentNode = getStoredNode(parentPath);
         String childName = PathUtils.getName(path);
         if (!parentNode.childExists(childName)) {
-            throw new RuntimeException(path);
+            throw new RuntimeException("Node " + childName
+                    + " does not exists at parent path: " + parentPath);
         }
         parentNode.removeChild(PathUtils.getName(path));
     }

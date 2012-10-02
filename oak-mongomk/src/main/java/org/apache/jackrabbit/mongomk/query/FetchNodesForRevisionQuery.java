@@ -73,7 +73,7 @@ public class FetchNodesForRevisionQuery extends AbstractQuery<List<NodeMongo>> {
     public List<NodeMongo> execute() {
         List<Long> validRevisions = new FetchValidRevisionsQuery(mongoConnection, revisionId).execute();
         DBCursor dbCursor = retrieveAllNodes();
-        List<NodeMongo> nodes = QueryUtils.convertToNodes(dbCursor, validRevisions);
+        List<NodeMongo> nodes = QueryUtils.getMostRecentValidNodes(dbCursor, validRevisions);
         return nodes;
     }
 
