@@ -20,6 +20,7 @@ import java.io.InputStream;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
+import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.mk.util.NodeFilter;
 import org.apache.jackrabbit.mongomk.api.BlobStore;
 import org.apache.jackrabbit.mongomk.api.NodeStore;
@@ -144,7 +145,10 @@ public class MongoMicroKernel implements MicroKernel {
             if (rootNode == null) {
                 return null;
             }
-            return JsonUtil.convertToJson(rootNode, depth, (int)offset, maxChildNodes, true, nodeFilter);
+
+            JsopBuilder builder = new JsopBuilder();
+            JsonUtil.toJson(builder, rootNode, depth, (int)offset, maxChildNodes, true, nodeFilter);
+            return builder.toString();
         } catch (Exception e) {
             throw new MicroKernelException(e);
         }

@@ -112,7 +112,7 @@ public class NodeBuilder {
                     properties = new HashMap<String, Object>();
                 }
 
-                Object converted = JsonUtil.convertJsonValue(value.toString());
+                Object converted = JsonUtil.toJsonValue(value.toString());
                 properties.put(key, converted);
             }
         }

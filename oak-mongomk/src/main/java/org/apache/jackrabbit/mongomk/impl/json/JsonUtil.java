@@ -27,34 +27,49 @@ import org.apache.jackrabbit.mongomk.api.model.Node;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-
 /**
- * FIXME - [Mete] This should really merge with MicroKernelImpl#toJson.
- *
- * <a href="http://en.wikipedia.org/wiki/JavaScript_Object_Notation">JSON</a> related utility classes.
+ * JSON related utility class.
  */
 public class JsonUtil {
 
-    public static Object convertJsonValue(String jsonValue) throws Exception {
+    public static Object toJsonValue(String jsonValue) throws Exception {
         if (jsonValue == null) {
             return null;
         }
 
-        String dummyJson = "{dummy : " + jsonValue + "}";
-        JSONObject jsonObject = new JSONObject(dummyJson);
-        Object dummyObject = jsonObject.get("dummy");
-        return convertJsonValue(dummyObject);
+        JSONObject jsonObject = new JSONObject("{dummy : " + jsonValue + "}");
+        Object obj = jsonObject.get("dummy");
+        return convertJsonValue(obj);
     }
 
-    public static String convertToJson(Node node, int depth, int offset, int maxChildNodes,
-            boolean inclVirtualProps, NodeFilter filter) {
-        JsopBuilder builder = new JsopBuilder();
-        convertToJson(builder, node, depth, 0, offset, maxChildNodes, inclVirtualProps, filter);
-        return builder.toString();
+    private static Object convertJsonValue(Object jsonObject) throws Exception {
+        if (jsonObject == JSONObject.NULL) {
+            return null;
+        }
+
+        if (jsonObject instanceof JSONArray) {
+            List<Object> elements = new LinkedList<Object>();
+            JSONArray dummyArray = (JSONArray) jsonObject;
+            for (int i = 0; i < dummyArray.length(); ++i) {
+                Object raw = dummyArray.get(i);
+                Object parsed = convertJsonValue(raw);
+                elements.add(parsed);
+            }
+            return elements;
+        }
+
+        return jsonObject;
     }
 
-    static void convertToJson(JsopBuilder builder, Node node, int depth, int currentDepth,
-            int offset, int maxChildNodes, boolean inclVirtualProps,  NodeFilter filter) {
+    public static void toJson(JsopBuilder builder, Node node, int depth, int offset,
+            int maxChildNodes, boolean inclVirtualProps, NodeFilter filter) {
+        toJson(builder, node, depth, 0, offset, maxChildNodes, inclVirtualProps, filter);
+    }
+
+    private static void toJson(JsopBuilder builder, Node node, int depth,
+            int currentDepth, int offset, int maxChildNodes, boolean inclVirtualProps,
+            NodeFilter filter) {
+
         builder.object();
 
         Map<String, Object> properties = node.getProperties();
@@ -92,8 +107,8 @@ public class JsonUtil {
             }
             builder.key(child.getName());
             if ((depth == -1) || (currentDepth < depth)) {
-                convertToJson(builder, child, depth, currentDepth + 1, offset,
-                        maxChildNodes, inclVirtualProps, filter);
+                toJson(builder, child, depth, currentDepth + 1, offset, maxChildNodes,
+                        inclVirtualProps, filter);
             } else {
                 builder.object();
                 builder.endObject();
@@ -101,28 +116,5 @@ public class JsonUtil {
         }
 
         builder.endObject();
-    }
-
-    private static Object convertJsonValue(Object jsonObject) throws Exception {
-        if (jsonObject == JSONObject.NULL) {
-            return null;
-        }
-
-        if (jsonObject instanceof JSONArray) {
-            List<Object> elements = new LinkedList<Object>();
-            JSONArray dummyArray = (JSONArray) jsonObject;
-            for (int i = 0; i < dummyArray.length(); ++i) {
-                Object raw = dummyArray.get(i);
-                Object parsed = convertJsonValue(raw);
-                elements.add(parsed);
-            }
-            return elements;
-        }
-
-        return jsonObject;
-    }
-
-    private JsonUtil() {
-        // no instantiation
     }
 }
