@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
 import javax.jcr.SimpleCredentials;
 
@@ -40,6 +41,7 @@ import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.spi.security.user.PasswordUtility;
 import org.apache.jackrabbit.oak.spi.security.user.Type;
 import org.apache.jackrabbit.oak.spi.security.user.UserContext;
@@ -51,7 +53,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * TokenProvider... TODO
+ * Default implementation of the {@code TokenProvider} interface with the
+ * following characteristics.
+ *
+ * <h3>doCreateToken</h3>
+ * The {@link #doCreateToken(javax.jcr.Credentials)} returns {@code true} if
+ * {@code SimpleCredentials} can be extracted from the specified credentials
+ * object and that simple credentials object has a {@link #TOKEN_ATTRIBUTE}
+ * attribute with an empty value.
+ *
+ * <h3>createToken</h3>
+ * This implementation of {@link #createToken(javax.jcr.Credentials)} will
+ * create a separate token node underneath the user home node. That token
+ * node contains the hashed token, the expiration time and additional
+ * mandatory attributes that will be verified during login.
  */
 public class TokenProviderImpl implements TokenProvider {
 
@@ -93,21 +108,20 @@ public class TokenProviderImpl implements TokenProvider {
     //------------------------------------------------------< TokenProvider >---
     @Override
     public boolean doCreateToken(Credentials credentials) {
-        if (credentials instanceof SimpleCredentials) {
-            SimpleCredentials sc = (SimpleCredentials) credentials;
+        SimpleCredentials sc = extractSimpleCredentials(credentials);
+        if (sc == null) {
+            return false;
+        } else {
             Object attr = sc.getAttribute(TOKEN_ATTRIBUTE);
             return (attr != null && "".equals(attr.toString()));
-        } else {
-            return false;
         }
     }
 
     @Override
     public TokenInfo createToken(Credentials credentials) {
-        if (credentials instanceof SimpleCredentials) {
-            final SimpleCredentials sc = (SimpleCredentials) credentials;
+        SimpleCredentials sc = extractSimpleCredentials(credentials);
+        if (sc != null) {
             String userId = sc.getUserID();
-
             CoreValueFactory valueFactory = contentSession.getCoreValueFactory();
             try {
                 Tree userTree = userProvider.getAuthorizable(userId, Type.USER);
@@ -213,6 +227,24 @@ public class TokenProviderImpl implements TokenProvider {
 
     //--------------------------------------------------------------------------
 
+    @CheckForNull
+    private static SimpleCredentials extractSimpleCredentials(Credentials credentials) {
+        if (credentials instanceof SimpleCredentials) {
+            return (SimpleCredentials) credentials;
+        }
+
+        if (credentials instanceof ImpersonationCredentials) {
+            Credentials base = ((ImpersonationCredentials) credentials).getBaseCredentials();
+            if (base instanceof SimpleCredentials) {
+                return (SimpleCredentials) base;
+            }
+        }
+
+        // cannot extract SimpleCredentials
+        return null;
+    }
+
+    @Nonnull
     private static String generateKey(int size) {
         SecureRandom random = new SecureRandom();
         byte key[] = new byte[size];
