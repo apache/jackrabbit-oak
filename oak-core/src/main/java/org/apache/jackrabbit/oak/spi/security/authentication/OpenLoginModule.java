@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication;
 
-import java.util.Collections;
-import java.util.Set;
-
+import java.util.Map;
+import javax.security.auth.Subject;
+import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.login.LoginException;
 import javax.security.auth.spi.LoginModule;
 
@@ -26,11 +26,11 @@ import javax.security.auth.spi.LoginModule;
  * This class implements a {@link LoginModule} which allows any authenticating
  * Subject to login.
  */
-public class OpenLoginModule extends AbstractLoginModule {
+public class OpenLoginModule implements LoginModule {
 
     @Override
-    protected Set<Class> getSupportedCredentials() {
-        return Collections.emptySet();
+    public void initialize(Subject subject, CallbackHandler callbackHandler, Map<String, ?> stringMap, Map<String, ?> stringMap1) {
+        // nothing to do
     }
 
     @Override
@@ -45,6 +45,11 @@ public class OpenLoginModule extends AbstractLoginModule {
 
     @Override
     public boolean abort() throws LoginException {
+        return true;
+    }
+
+    @Override
+    public boolean logout() throws LoginException {
         return true;
     }
 }
