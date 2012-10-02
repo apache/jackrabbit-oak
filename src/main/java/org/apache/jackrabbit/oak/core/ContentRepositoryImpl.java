@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.core;
 import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
 import javax.jcr.NoSuchWorkspaceException;
-import javax.security.auth.login.LoginContext;
 import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
@@ -41,6 +40,7 @@ import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.OakLoginContext;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -164,7 +164,8 @@ public class ContentRepositoryImpl implements ContentRepository {
             throw new NoSuchWorkspaceException(workspaceName);
         }
 
-        LoginContext loginContext = loginContextProvider.getLoginContext(credentials, workspaceName);
+        OakLoginContext loginContext =
+                loginContextProvider.getLoginContext(credentials, workspaceName);
         loginContext.login();
 
         return new ContentSessionImpl(loginContext, accProvider, workspaceName,
