@@ -68,7 +68,7 @@ public class NodeExistsCommandMongo extends AbstractCommand<Boolean> {
 
     private void readParentNode() throws Exception {
         String parentPath = PathUtils.getParentPath(path);
-        // TODO - This used to be FetchNodeByPathQuery but changed to GetNodesCommandMongo to make
+        // FIXME - This used to be FetchNodeByPathQuery but changed to GetNodesCommandMongo to make
         // sure nodes are in a valid commit etc. Check if GetNodesCommandMongo is really needed.
         GetNodesCommandMongo command = new GetNodesCommandMongo(mongoConnection, parentPath, revisionId, -1);
         parentNode = command.execute();

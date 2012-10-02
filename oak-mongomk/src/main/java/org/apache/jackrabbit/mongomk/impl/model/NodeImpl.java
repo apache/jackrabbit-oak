@@ -132,7 +132,7 @@ public class NodeImpl implements Node {
         }
     }
 
-    public Iterator<Node> getChildEntries(int offset, int count) {
+    public Iterator<Node> getChildren(int offset, int count) {
         if (offset < 0 || count < -1) {
             throw new IllegalArgumentException();
         }

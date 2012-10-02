@@ -87,7 +87,7 @@ public class NodeStoreMongo implements NodeStore {
         path = (path == null || "".equals(path)) ? "/" : path;
         boolean filtered = !"/".equals(path);
 
-        // FIXME [Mete] There's more work here.
+        // FIXME There's more work here.
 
         Long fromRevision = MongoUtil.toMongoRepresentation(fromRevisionId);
         Long toRevision = toRevisionId == null? new FetchHeadRevisionIdQuery(mongoConnection).execute()
@@ -142,7 +142,7 @@ public class NodeStoreMongo implements NodeStore {
       for (int i = history.size() - 1; i >= 0; i--) {
           CommitMongo commit = history.get(i);
           if (commit.getTimestamp() >= since) {
-              // FIXME [Mete] Check that filter really works.
+              // FIXME Check that filter really works.
               if (!filtered || commit.getAffectedPaths().contains(path)) {
                   buff.object()
                   .key("id").value(MongoUtil.fromMongoRepresentation(commit.getRevisionId()))

@@ -97,8 +97,8 @@ public class JsonUtil {
             }
         }
 
-        // FIXME [Mete] There's still some more work here.
-        Iterator<Node> entries = node.getChildEntries(offset, maxChildNodes);
+        // FIXME There's still some more work here.
+        Iterator<Node> entries = node.getChildren(offset, maxChildNodes);
         while (entries.hasNext()) {
             Node child = entries.next();
             int numSiblings = 0;

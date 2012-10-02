@@ -149,7 +149,7 @@ public class GetNodesCommandMongo extends AbstractCommand<Node> {
     private void readLastCommits() throws Exception {
         lastCommits = new FetchValidCommitsQuery(mongoConnection, revisionId).execute();
 
-        // TODO Move this into the Query which should throw the exception in case the commit doesn't exist
+        // FIXME Move this into the Query which should throw the exception in case the commit doesn't exist
         if (revisionId != null) {
             boolean revisionExists = false;
             for (CommitMongo commitMongo : lastCommits) {

@@ -110,7 +110,7 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
             NodeMongo srcNode = getStoredNode(srcPath);
             NodeMongo destNode = NodeMongo.fromDBObject(srcNode);
             destNode.setPath(destPath);
-            // FIXME - [Mete] This needs to do proper merge instead of just add.
+            // FIXME - This needs to do proper merge instead of just add.
             List<String> addedChildren = srcNode.getAddedChildren();
             if (addedChildren != null && !addedChildren.isEmpty()) {
                 for (String child : addedChildren) {
@@ -131,7 +131,7 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
             throw new RuntimeException(srcPath);
         }
 
-        // FIXME - [Mete] The rest is not totally correct.
+        // FIXME - The rest is not totally correct.
         NodeMongo destParent = getStagedNode(destParentPath);
         NodeMongo srcNode = getStagedNode(srcPath);
 
@@ -251,7 +251,7 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         }
     }
 
-    // TODO - [Mete] I think we need a way to distinguish between Staged
+    // FIXME - I think we need a way to distinguish between Staged
     // and Stored nodes. For example, what if a node is retrieved as Staged
     // but later it needs to be retrieved as Stored?
     private NodeMongo getStagedNode(String path) {
@@ -267,7 +267,7 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
     private NodeMongo getStoredNode(String path) {
         NodeMongo node = pathNodeMap.get(path);
         if (node == null) {
-            // TODO - [Mete] This is not efficient but needed for all MicroKernelIT
+            // FIXME This is not efficient but needed for all MicroKernelIT
             // tests to pass. Fix it later.
             NodeExistsCommandMongo existCommand = new NodeExistsCommandMongo(mongoConnection, path, headRevisionId);
             boolean exists = false;

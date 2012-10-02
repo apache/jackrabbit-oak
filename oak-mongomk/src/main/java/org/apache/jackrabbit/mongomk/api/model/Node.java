@@ -42,10 +42,16 @@ public interface Node {
      *
      * @return The children.
      */
-    Set<Node> getChildren(); // TODO Replace Set with Collection
+    Set<Node> getChildren();
 
-    // TODO - [Mete] Document.
-    Iterator<Node> getChildEntries(int offset, int count);
+    /**
+     * Returns the children iterator for the supplied offset and count.
+     *
+     * @param offset The offset to return the children from.
+     * @param count The number of children to return.
+     * @return
+     */
+    Iterator<Node> getChildren(int offset, int count);
 
     /**
      * Returns the descendants (children, children of the children, etc) this {@code Node} was created with.

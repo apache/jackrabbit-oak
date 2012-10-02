@@ -123,7 +123,7 @@ public class CommitCommandMongo extends AbstractCommand<Long> {
         HeadMongo headMongo = new SaveAndSetHeadRevisionQuery(mongoConnection,
                 this.headMongo.getHeadRevisionId(), revisionId).execute();
         if (headMongo == null) {
-            // TODO: Check for conflicts!
+            // FIXME - Check for conflicts!
             logger.warn(String.format("Encounterd a conflicting update, thus can't commit"
                     + " revision %s and will be retried with new revision", revisionId));
 
@@ -153,7 +153,8 @@ public class CommitCommandMongo extends AbstractCommand<Long> {
 
         Map<String, NodeMongo> pathNodeMap = visitor.getPathNodeMap();
 
-        affectedPaths = pathNodeMap.keySet(); // TODO Original copies and moved nodes must be included!
+        // FIXME Original copies and moved nodes must be included!
+        affectedPaths = pathNodeMap.keySet();
         nodeMongos = new HashSet<NodeMongo>(pathNodeMap.values());
         for (NodeMongo nodeMongo : nodeMongos) {
             nodeMongo.setRevisionId(revisionId);
@@ -170,7 +171,8 @@ public class CommitCommandMongo extends AbstractCommand<Long> {
         DBObject update = new BasicDBObject("$set", new BasicDBObject(CommitMongo.KEY_FAILED, Boolean.TRUE));
         WriteResult writeResult = commitCollection.update(query, update);
         if (writeResult.getError() != null) {
-            throw new Exception(String.format("Update wasn't successful: %s", writeResult)); // TODO now what?
+            // FIXME now what?
+            throw new Exception(String.format("Update wasn't successful: %s", writeResult));
         }
     }
 

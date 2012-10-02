@@ -63,8 +63,4 @@ public class InstructionAssert {
         assertEquals(key, instruction.getKey());
         assertEquals(value, instruction.getValue());
     }
-
-    private InstructionAssert() {
-        // no instantiation
-    }
 }

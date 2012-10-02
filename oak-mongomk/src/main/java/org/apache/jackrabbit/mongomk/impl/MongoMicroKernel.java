@@ -140,7 +140,7 @@ public class MongoMicroKernel implements MicroKernel {
         }
 
         try {
-            // FIXME [Mete] Should filter, offset, and maxChildNodes be handled in Mongo instead?
+            // FIXME Should filter, offset, and maxChildNodes be handled in Mongo instead?
             Node rootNode = nodeStore.getNodes(path, revisionId, depth, offset, maxChildNodes, filter);
             if (rootNode == null) {
                 return null;

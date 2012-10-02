@@ -534,7 +534,6 @@ public class JsopParserTest {
         jsopParser.parse();
 
         countingHandler.assertNoOfPropertiesSet(1);
-        // TODO - Is this correct?
         countingHandler.assertPropertySet("/", "a", "b");
     }
 }

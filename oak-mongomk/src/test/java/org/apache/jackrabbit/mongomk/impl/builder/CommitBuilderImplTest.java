@@ -49,7 +49,7 @@ public class CommitBuilderImplTest {
         sb.append("+\"a/b\" : { \"string\" : \"foo\" } \n");
         sb.append("+\"a/c\" : { \"bool\" : true }");
 
-        Commit commit = this.buildAndAssertCommit(sb.toString());
+        Commit commit = buildAndAssertCommit(sb.toString());
 
         List<Instruction> instructions = commit.getInstructions();
         Assert.assertEquals(6, instructions.size());
@@ -69,7 +69,7 @@ public class CommitBuilderImplTest {
         sb.append("*\"a\" : \"b\"\n");
         sb.append("*\"a/b\" : \"a/c\"\n");
 
-        Commit commit = this.buildAndAssertCommit(sb.toString());
+        Commit commit = buildAndAssertCommit(sb.toString());
         List<Instruction> instructions = commit.getInstructions();
         assertEquals(2, instructions.size());
         InstructionAssert.assertCopyNodeInstruction((CopyNodeInstruction) instructions.get(0), "/", "/a", "/b");
@@ -82,7 +82,7 @@ public class CommitBuilderImplTest {
         sb.append(">\"a\" : \"b\"\n");
         sb.append(">\"a/b\" : \"a/c\"\n");
 
-        Commit commit = this.buildAndAssertCommit(sb.toString());
+        Commit commit = buildAndAssertCommit(sb.toString());
         List<Instruction> instructions = commit.getInstructions();
         assertEquals(2, instructions.size());
         InstructionAssert.assertMoveNodeInstruction((MoveNodeInstruction) instructions.get(0), "/", "/a", "/b");
@@ -93,13 +93,15 @@ public class CommitBuilderImplTest {
     public void testSimpleRemove() throws Exception {
         StringBuilder sb = new StringBuilder();
         sb.append("-\"a\"");
-        // TODO properties
+        sb.append("^\"a/prop\" : null");
 
-        Commit commit = this.buildAndAssertCommit(sb.toString());
-
+        Commit commit = buildAndAssertCommit(sb.toString());
         List<Instruction> instructions = commit.getInstructions();
-        assertEquals(1, instructions.size());
-        InstructionAssert.assertRemoveNodeInstruction((RemoveNodeInstruction) instructions.get(0), "/a");
+        assertEquals(2, instructions.size());
+        InstructionAssert.assertRemoveNodeInstruction((RemoveNodeInstruction) instructions.get(0),
+                "/a");
+        InstructionAssert.assertSetPropertyInstruction((SetPropertyInstruction)instructions.get(1),
+                "/a", "prop", null);
     }
 
     @Test
@@ -107,8 +109,7 @@ public class CommitBuilderImplTest {
         StringBuilder sb = new StringBuilder();
         sb.append("^\"a\" : \"b\"\n");
 
-        Commit commit = this.buildAndAssertCommit(sb.toString());
-
+        Commit commit = buildAndAssertCommit(sb.toString());
         List<Instruction> instructions = commit.getInstructions();
         assertEquals(1, instructions.size());
         InstructionAssert.assertSetPropertyInstruction((SetPropertyInstruction) instructions.get(0), "/", "a", "b");
@@ -116,7 +117,6 @@ public class CommitBuilderImplTest {
 
     private Commit buildAndAssertCommit(String commitString) throws Exception {
         Commit commit = CommitBuilder.build(ROOT, commitString, MESSAGE);
-
         assertNotNull(commit);
         assertEquals(MESSAGE, commit.getMessage());
         assertNull(commit.getRevisionId());
