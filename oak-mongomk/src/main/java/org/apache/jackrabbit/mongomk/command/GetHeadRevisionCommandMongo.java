@@ -18,7 +18,7 @@ package org.apache.jackrabbit.mongomk.command;
 
 import org.apache.jackrabbit.mongomk.api.command.AbstractCommand;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
-import org.apache.jackrabbit.mongomk.query.FetchHeadRevisionQuery;
+import org.apache.jackrabbit.mongomk.query.FetchHeadRevisionIdQuery;
 
 /**
  * A {@code Command} for getting the head revision from {@code MongoDB}.
@@ -38,6 +38,6 @@ public class GetHeadRevisionCommandMongo extends AbstractCommand<Long> {
 
     @Override
     public Long execute() throws Exception {
-        return new FetchHeadRevisionQuery(mongoConnection).execute();
+        return new FetchHeadRevisionIdQuery(mongoConnection).execute();
     }
 }

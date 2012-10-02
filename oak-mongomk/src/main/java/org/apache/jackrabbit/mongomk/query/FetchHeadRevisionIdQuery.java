@@ -21,23 +21,25 @@ import org.apache.jackrabbit.mongomk.model.HeadMongo;
 
 import com.mongodb.DBCollection;
 
+
 /**
- * An query for fetching the current head.
+ * An query for fetching the head revision.
  */
-public class FetchHeadQuery extends AbstractQuery<HeadMongo> {
+public class FetchHeadRevisionIdQuery extends AbstractQuery<Long> {
 
     /**
-     * Constructs a new {@code FetchHeadQuery}.
+     * Constructs a new {@code FetchHeadRevisionQuery}.
      *
      * @param mongoConnection The {@link MongoConnection}.
      */
-    public FetchHeadQuery(MongoConnection mongoConnection) {
+    public FetchHeadRevisionIdQuery(MongoConnection mongoConnection) {
         super(mongoConnection);
     }
 
     @Override
-    public HeadMongo execute() throws Exception {
+    public Long execute() {
         DBCollection headCollection = mongoConnection.getHeadCollection();
-        return (HeadMongo)headCollection.findOne();
+        HeadMongo headMongo = (HeadMongo)headCollection.findOne();
+        return headMongo.getHeadRevisionId();
     }
 }

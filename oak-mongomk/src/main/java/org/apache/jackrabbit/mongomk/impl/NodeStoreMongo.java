@@ -30,11 +30,9 @@ import org.apache.jackrabbit.mongomk.command.GetNodesCommandMongo;
 import org.apache.jackrabbit.mongomk.command.NodeExistsCommandMongo;
 import org.apache.jackrabbit.mongomk.impl.command.CommandExecutorImpl;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
-import org.apache.jackrabbit.mongomk.model.HeadMongo;
+import org.apache.jackrabbit.mongomk.query.FetchHeadRevisionIdQuery;
 import org.apache.jackrabbit.mongomk.query.FetchValidCommitsQuery;
 import org.apache.jackrabbit.mongomk.util.MongoUtil;
-
-import com.mongodb.DBCollection;
 
 /**
  * Implementation of {@link NodeStore} for the {@code MongoDB}.
@@ -92,16 +90,8 @@ public class NodeStoreMongo implements NodeStore {
         // FIXME [Mete] There's more work here.
 
         Long fromRevision = MongoUtil.toMongoRepresentation(fromRevisionId);
-        Long toRevision = null;
-        if (toRevisionId == null) {
-            try {
-                toRevision = new GetHeadRevisionCommandMongo(mongoConnection).execute();
-            } catch (Exception e) {
-                // FIXME Handle
-            }
-        } else {
-            toRevision = MongoUtil.toMongoRepresentation(toRevisionId);
-        }
+        Long toRevision = toRevisionId == null? new FetchHeadRevisionIdQuery(mongoConnection).execute()
+                : MongoUtil.toMongoRepresentation(toRevisionId);
 
         List<CommitMongo> commits = new FetchValidCommitsQuery(mongoConnection,
                 fromRevision, toRevision, 0).execute();
@@ -169,7 +159,7 @@ public class NodeStoreMongo implements NodeStore {
     @Override
     public String waitForCommit(String oldHeadRevisionId, long timeout) throws InterruptedException {
         long startTimestamp = System.currentTimeMillis();
-        long initialHeadRevisionId = getHeadRevisionId();
+        long initialHeadRevisionId = new FetchHeadRevisionIdQuery(mongoConnection).execute();
 
         if (timeout <= 0) {
             return MongoUtil.fromMongoRepresentation(initialHeadRevisionId);
@@ -182,7 +172,7 @@ public class NodeStoreMongo implements NodeStore {
 
         long waitForCommitPollMillis = Math.min(WAIT_FOR_COMMIT_POLL_MILLIS, timeout);
         while (true) {
-            long headRevisionId = getHeadRevisionId();
+            long headRevisionId = new FetchHeadRevisionIdQuery(mongoConnection).execute();
             long now = System.currentTimeMillis();
             if (headRevisionId != initialHeadRevisionId || now - startTimestamp >= timeout) {
                 return MongoUtil.fromMongoRepresentation(headRevisionId);
@@ -191,15 +181,6 @@ public class NodeStoreMongo implements NodeStore {
         }
     }
 
-    // FIXME - Consolidate with getHeadRevision
-    private long getHeadRevisionId() {
-        DBCollection headCollection = mongoConnection.getHeadCollection();
-        HeadMongo headMongo = (HeadMongo)headCollection.findOne();
-        long headRevisionId = headMongo.getHeadRevisionId();
-        return headRevisionId;
-    }
-
-    // FIXME - Move to a command.
     private CommitMongo getCommit(List<CommitMongo> commits, Long revisionId) {
         for (CommitMongo commit : commits) {
             if (commit.getRevisionId() == revisionId) {
