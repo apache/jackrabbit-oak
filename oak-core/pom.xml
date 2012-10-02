@@ -39,6 +39,7 @@
         <configuration>
           <instructions>
             <Export-Package>
+              org.apache.jackrabbit.oak,
               org.apache.jackrabbit.oak.api,
               org.apache.jackrabbit.oak.core,
               org.apache.jackrabbit.oak.util,

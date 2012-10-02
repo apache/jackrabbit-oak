@@ -29,6 +29,7 @@ import javax.security.auth.login.LoginException;
 import org.apache.jackrabbit.commons.SimpleValueFactory;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
+import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
@@ -91,8 +92,10 @@ public class RepositoryImpl implements Repository {
 
     public RepositoryImpl(
             MicroKernel kernel, ScheduledExecutorService executor) {
-        this(new ContentRepositoryImpl(setupInitialContent(kernel), null,
-                DEFAULT_COMMIT_HOOK), executor);
+        this(new Oak(setupInitialContent(kernel))
+                .with(DEFAULT_COMMIT_HOOK)
+                .createContentRepository(),
+                executor);
     }
 
     /**

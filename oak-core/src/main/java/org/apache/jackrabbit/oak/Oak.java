@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.core.RootImpl;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.security.authentication.LoginContextProviderImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
@@ -53,11 +54,13 @@ public class Oak {
 
     private final MicroKernel kernel;
 
-    private final List<QueryIndexProvider> providers = Lists.newArrayList();
+    private final List<QueryIndexProvider> queryIndexProviders =
+            Lists.newArrayList();
 
-    private final List<CommitHook> hooks = Lists.newArrayList();
+    private final List<CommitHook> commitHooks = Lists.newArrayList();
 
-    private final List<ValidatorProvider> validators = Lists.newArrayList();
+    private final List<ValidatorProvider> validatorProviders =
+            Lists.newArrayList();
 
     public Oak(MicroKernel kernel) {
         this.kernel = kernel;
@@ -76,7 +79,7 @@ public class Oak {
      */
     @Nonnull
     public Oak with(@Nonnull QueryIndexProvider provider) {
-        providers.add(provider);
+        queryIndexProviders.add(provider);
         return this;
     }
 
@@ -89,7 +92,7 @@ public class Oak {
     @Nonnull
     public Oak with(@Nonnull CommitHook hook) {
         withValidatorHook();
-        hooks.add(hook);
+        commitHooks.add(hook);
         return this;
     }
 
@@ -102,10 +105,10 @@ public class Oak {
      * multiple validators iterating over the changes simultaneously.
      */
     private void withValidatorHook() {
-        if (!validators.isEmpty()) {
+        if (!validatorProviders.isEmpty()) {
             with(new ValidatingHook(
-                    CompositeValidatorProvider.compose(validators)));
-            validators.clear();
+                    CompositeValidatorProvider.compose(validatorProviders)));
+            validatorProviders.clear();
         }
     }
 
@@ -118,7 +121,7 @@ public class Oak {
      */
     @Nonnull
     public Oak with(@Nonnull ValidatorProvider provider) {
-        validators.add(provider);
+        validatorProviders.add(provider);
         return this;
     }
 
@@ -142,13 +145,14 @@ public class Oak {
     public ContentRepository createContentRepository() {
         return new ContentRepositoryImpl(
                 kernel,
-                CompositeQueryIndexProvider.compose(providers),
+                new LoginContextProviderImpl(),
+                CompositeQueryIndexProvider.compose(queryIndexProviders),
                 createCommitHook());
     }
 
     private CommitHook createCommitHook() {
         withValidatorHook();
-        return CompositeHook.compose(hooks);
+        return CompositeHook.compose(commitHooks);
     }
 
     /**
