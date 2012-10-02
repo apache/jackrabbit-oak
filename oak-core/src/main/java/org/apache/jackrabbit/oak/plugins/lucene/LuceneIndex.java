@@ -28,7 +28,17 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
+import javax.annotation.CheckForNull;
+import javax.jcr.RepositoryException;
+import javax.jcr.nodetype.NodeType;
+import javax.jcr.nodetype.NodeTypeIterator;
+import javax.jcr.nodetype.NodeTypeManager;
+
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.core.ReadOnlyTree;
+import org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants;
+import org.apache.jackrabbit.oak.plugins.type.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.query.index.IndexRowImpl;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
@@ -83,8 +93,8 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
     }
 
     @Override
-    public String getPlan(Filter filter) {
-        return getQuery(filter).toString();
+    public String getPlan(Filter filter, NodeState root) {
+        return getQuery(filter, root).toString();
     }
 
     @Override
@@ -110,7 +120,7 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
                     IndexSearcher searcher = new IndexSearcher(reader);
                     Collection<String> paths = new ArrayList<String>();
 
-                    Query query = getQuery(filter);
+                    Query query = getQuery(filter, root);
                     if (query != null) {
                         TopDocs docs = searcher
                                 .search(query, Integer.MAX_VALUE);
@@ -139,8 +149,15 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
         }
     }
 
-    private static Query getQuery(Filter filter) {
+    private static Query getQuery(Filter filter, NodeState root) {
         List<Query> qs = new ArrayList<Query>();
+
+        try {
+            addNodeTypeConstraints(qs, filter.getNodeType(), root);
+        } catch (RepositoryException e) {
+            throw new RuntimeException(
+                    "Unable to process node type constraints", e);
+        }
 
         String path = filter.getPath();
         switch (filter.getPathRestriction()) {
@@ -204,6 +221,46 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
         } else {
             return qs.get(0);
         }
+    }
+
+    private static void addNodeTypeConstraints(
+            List<Query> qs, String name, NodeState root)
+            throws RepositoryException {
+        if (NodeTypeConstants.NT_BASE.equals(name)) {
+            return; // shortcut
+        }
+        NodeState system = root.getChildNode(NodeTypeConstants.JCR_SYSTEM);
+        if (system == null) {
+            return;
+        }
+        final NodeState types =
+                system.getChildNode(NodeTypeConstants.JCR_NODE_TYPES);
+        if (types == null) {
+            return;
+        }
+
+        NodeTypeManager manager = new ReadOnlyNodeTypeManager() {
+            @Override @CheckForNull
+            protected Tree getTypes() {
+                return new ReadOnlyTree(types);
+            }
+        };
+
+        BooleanQuery bq = new BooleanQuery();
+        NodeType type = manager.getNodeType(name);
+        bq.add(createNodeTypeQuery(type), Occur.SHOULD);
+        NodeTypeIterator iterator = type.getSubtypes();
+        while (iterator.hasNext()) {
+            bq.add(createNodeTypeQuery(iterator.nextNodeType()), Occur.SHOULD);
+        }
+    }
+
+    private static Query createNodeTypeQuery(NodeType type) {
+        String name = NodeTypeConstants.JCR_PRIMARYTYPE;
+        if (type.isMixin()) {
+            name = NodeTypeConstants.JCR_MIXINTYPES;
+        }
+        return new TermQuery(new Term(name, type.getName()));
     }
 
     /**

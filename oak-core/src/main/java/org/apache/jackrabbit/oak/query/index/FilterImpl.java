@@ -96,6 +96,7 @@ public class FilterImpl implements Filter {
         this.path = path;
     }
 
+    @Override
     public String getNodeType() {
         return nodeType;
     }

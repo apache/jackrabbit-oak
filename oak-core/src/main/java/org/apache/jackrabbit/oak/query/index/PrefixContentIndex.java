@@ -74,7 +74,7 @@ public class PrefixContentIndex implements QueryIndex {
     }
 
     @Override
-    public String getPlan(Filter filter) {
+    public String getPlan(Filter filter, NodeState root) {
         Filter.PropertyRestriction restriction = getPropertyTypeRestriction(filter);
         if (restriction == null) {
             throw new IllegalArgumentException("No restriction for *");
