@@ -28,7 +28,6 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandlerProvider;
-import org.apache.jackrabbit.oak.query.QueryEngineImpl;
 import org.apache.jackrabbit.oak.security.authentication.LoginContextProviderImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
@@ -58,7 +57,7 @@ public class ContentRepositoryImpl implements ContentRepository {
             new AnnotatingConflictHandlerProvider();
 
     private final LoginContextProvider loginContextProvider;
-    private final QueryEngineImpl queryEngine;
+    private final QueryIndexProvider indexProvider;
     private final KernelNodeStore nodeStore;
 
     /**
@@ -117,9 +116,8 @@ public class ContentRepositoryImpl implements ContentRepository {
         nodeStore = new KernelNodeStore(microKernel);
         nodeStore.setHook(commitHook);
 
-        QueryIndexProvider qip = indexProvider != null ? indexProvider
+        this.indexProvider = indexProvider != null ? indexProvider
                 : new CompositeQueryIndexProvider();
-        queryEngine = new QueryEngineImpl(nodeStore, qip);
 
         this.loginContextProvider = loginContextProvider;
     }
@@ -141,6 +139,6 @@ public class ContentRepositoryImpl implements ContentRepository {
         loginContext.login();
 
         return new ContentSessionImpl(loginContext, workspaceName, nodeStore, DEFAULT_CONFLICT_HANDLER_PROVIDER,
-                queryEngine);
+                indexProvider);
     }
 }

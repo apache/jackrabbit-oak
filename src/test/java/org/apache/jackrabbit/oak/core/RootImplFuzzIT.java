@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.RootImplFuzzIT.Operation.Rebase;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
+import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -80,12 +81,12 @@ public class RootImplFuzzIT {
         store1 = new KernelNodeStore(mk1);
         vf = store1.getValueFactory();
         mk1.commit("", "+\"/root\":{}", mk1.getHeadRevision(), "");
-        root1 = new RootImpl(store1, null, new Subject());
+        root1 = new RootImpl(store1, null, new Subject(), new CompositeQueryIndexProvider());
 
         MicroKernel mk2 = new MicroKernelImpl("./target/mk2/" + random.nextInt());
         store2 = new KernelNodeStore(mk2);
         mk2.commit("", "+\"/root\":{}", mk2.getHeadRevision(), "");
-        root2 = new RootImpl(store2, null, new Subject());
+        root2 = new RootImpl(store2, null, new Subject(), new CompositeQueryIndexProvider());
     }
 
     @Test
