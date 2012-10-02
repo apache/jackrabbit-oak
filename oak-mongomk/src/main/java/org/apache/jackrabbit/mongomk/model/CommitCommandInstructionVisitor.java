@@ -29,6 +29,7 @@ import org.apache.jackrabbit.mongomk.api.model.Instruction.MoveNodeInstruction;
 import org.apache.jackrabbit.mongomk.api.model.Instruction.RemoveNodeInstruction;
 import org.apache.jackrabbit.mongomk.api.model.Instruction.SetPropertyInstruction;
 import org.apache.jackrabbit.mongomk.api.model.InstructionVisitor;
+import org.apache.jackrabbit.mongomk.command.NodeExistsCommandMongo;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.query.FetchNodeByPathQuery;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -266,9 +267,21 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
     private NodeMongo getStoredNode(String path) {
         NodeMongo node = pathNodeMap.get(path);
         if (node == null) {
+            // TODO - [Mete] This is not efficient but needed for all MicroKernelIT
+            // tests to pass. Fix it later.
+            NodeExistsCommandMongo existCommand = new NodeExistsCommandMongo(mongoConnection, path, headRevisionId);
+            boolean exists = false;
+            try {
+                exists = existCommand.execute();
+            } catch (Exception ignore) {}
+
+            if (!exists) {
+                return null;
+            }
+
             FetchNodeByPathQuery query = new FetchNodeByPathQuery(mongoConnection,
                     path, headRevisionId);
-            query.setFetchAll(true);
+            query.setFetchAllPropeties(true);
             node = query.execute();
             if (node != null) {
                 node.removeField("_id");

@@ -30,7 +30,7 @@ import com.mongodb.DBObject;
 import com.mongodb.QueryBuilder;
 
 /**
- * An query for fetching nodes by path and depth.
+ * A query for fetching nodes by path and depth.
  *
  * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
@@ -40,7 +40,7 @@ public class FetchNodesByPathAndDepthQuery extends AbstractQuery<List<NodeMongo>
 
     private final int depth;
     private final String path;
-    private final Long revisionId;
+    private final long revisionId;
 
     /**
      * Constructs a new {@code FetchNodesByPathAndDepthQuery}.
@@ -51,7 +51,7 @@ public class FetchNodesByPathAndDepthQuery extends AbstractQuery<List<NodeMongo>
      * @param depth The depth.
      */
     public FetchNodesByPathAndDepthQuery(MongoConnection mongoConnection, String path,
-            Long revisionId, int depth) {
+            long revisionId, int depth) {
         super(mongoConnection);
         this.path = path;
         this.revisionId = revisionId;
@@ -60,13 +60,23 @@ public class FetchNodesByPathAndDepthQuery extends AbstractQuery<List<NodeMongo>
 
     @Override
     public List<NodeMongo> execute() {
+        DBCursor dbCursor = performQuery();
+        List<Long> validRevisions = new FetchValidRevisionsQuery(mongoConnection, revisionId).execute();
+        return QueryUtils.getMostRecentValidNodes(dbCursor, validRevisions);
+    }
+
+    private DBCursor performQuery() {
         Pattern pattern = createPrefixRegExp();
-        List<Long> validRevisions = fetchValidRevisions(mongoConnection, revisionId);
+        QueryBuilder queryBuilder = QueryBuilder.start(NodeMongo.KEY_PATH).regex(pattern);
+        if (revisionId > 0) {
+            queryBuilder = queryBuilder.and(NodeMongo.KEY_REVISION_ID).lessThanEquals(revisionId);
+        }
+        DBObject query = queryBuilder.get();
 
-        DBCursor dbCursor = performQuery(pattern);
-        List<NodeMongo> nodes = QueryUtils.getMostRecentValidNodes(dbCursor, validRevisions);
+        LOG.debug(String.format("Executing query: %s", query));
 
-        return nodes;
+        DBCollection nodeCollection = mongoConnection.getNodeCollection();
+        return nodeCollection.find(query);
     }
 
     private Pattern createPrefixRegExp() {
@@ -94,26 +104,5 @@ public class FetchNodesByPathAndDepthQuery extends AbstractQuery<List<NodeMongo>
         Pattern pattern = Pattern.compile(sb.toString());
 
         return pattern;
-    }
-
-    private List<Long> fetchValidRevisions(MongoConnection mongoConnection, Long revisionId) {
-        return new FetchValidRevisionsQuery(mongoConnection, revisionId).execute();
-    }
-
-    private DBCursor performQuery(Pattern pattern) {
-        DBCollection nodeCollection = mongoConnection.getNodeCollection();
-
-        QueryBuilder qb = QueryBuilder.start(NodeMongo.KEY_PATH).regex(pattern);
-        if (revisionId != null) {
-            qb = qb.and(NodeMongo.KEY_REVISION_ID).lessThanEquals(revisionId);
-        }
-
-        DBObject query = qb.get();
-
-        LOG.debug(String.format("Executing query: %s", query));
-
-        DBCursor dbCursor = nodeCollection.find(query);
-
-        return dbCursor;
     }
 }
