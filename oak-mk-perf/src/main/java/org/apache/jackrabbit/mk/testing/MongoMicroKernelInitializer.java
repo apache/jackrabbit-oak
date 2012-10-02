@@ -19,10 +19,10 @@ package org.apache.jackrabbit.mk.testing;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.util.BlobStoreFS;
 import org.apache.jackrabbit.mk.util.Configuration;
-import org.apache.jackrabbit.mongomk.MongoConnection;
-import org.apache.jackrabbit.mongomk.NodeStoreMongo;
 import org.apache.jackrabbit.mongomk.api.NodeStore;
+import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.impl.MongoMicroKernel;
+import org.apache.jackrabbit.mongomk.impl.NodeStoreMongo;
 import org.apache.jackrabbit.mongomk.api.BlobStore;
 
 import org.apache.jackrabbit.mongomk.util.MongoUtil;
