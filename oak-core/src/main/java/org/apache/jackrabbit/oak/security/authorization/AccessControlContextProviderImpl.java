@@ -14,17 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.security.authorization;
+package org.apache.jackrabbit.oak.security.authorization;
 
-import java.security.Principal;
-import java.util.Set;
+import javax.security.auth.Subject;
+
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContext;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContextProvider;
 
 /**
- * PermissionProvider... TODO
+ * <code>AccessControlContextProviderImpl</code> is a default implementation and
+ * creates {@link AccessControlContextImpl} for a given set of principals.
  */
-public interface AccessControlContext {
+public class AccessControlContextProviderImpl
+        implements AccessControlContextProvider {
 
-    // TODO define how permissions eval is bound to a particular revision/branch. (passing Tree?)
-    CompiledPermissions getPermissions();
-
+    @Override
+    public AccessControlContext createAccessControlContext(Subject subject) {
+        return new AccessControlContextImpl(subject);
+    }
 }

@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandlerProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContextProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,15 +42,18 @@ class ContentSessionImpl implements ContentSession {
     private static final Logger log = LoggerFactory.getLogger(ContentSessionImpl.class);
 
     private final LoginContext loginContext;
+    private final AccessControlContextProvider accProvider;
     private final String workspaceName;
     private final NodeStore store;
     private final ConflictHandlerProvider conflictHandlerProvider;
     private final QueryIndexProvider indexProvider;
 
-    public ContentSessionImpl(LoginContext loginContext, String workspaceName,
+    public ContentSessionImpl(LoginContext loginContext,
+            AccessControlContextProvider accProvider, String workspaceName,
             NodeStore store, ConflictHandlerProvider conflictHandlerProvider,
             QueryIndexProvider indexProvider) {
         this.loginContext = loginContext;
+        this.accProvider = accProvider;
         this.workspaceName = workspaceName;
         this.store = store;
         this.conflictHandlerProvider = conflictHandlerProvider;
@@ -70,7 +74,7 @@ class ContentSessionImpl implements ContentSession {
     @Nonnull
     @Override
     public Root getLatestRoot() {
-        RootImpl root = new RootImpl(store, workspaceName, loginContext.getSubject(), indexProvider);
+        RootImpl root = new RootImpl(store, workspaceName, loginContext.getSubject(), accProvider, indexProvider);
         if (conflictHandlerProvider != null) {
             root.setConflictHandler(conflictHandlerProvider.getConflictHandler(getCoreValueFactory()));
         }

@@ -19,12 +19,12 @@ package org.apache.jackrabbit.oak.spi.security.authorization;
 import java.security.Principal;
 import java.util.Set;
 
+import javax.security.auth.Subject;
+
 /**
- * PermissionProvider... TODO
+ * <code>AccessControlContextProvider</code>...
  */
-public interface AccessControlContext {
+public interface AccessControlContextProvider {
 
-    // TODO define how permissions eval is bound to a particular revision/branch. (passing Tree?)
-    CompiledPermissions getPermissions();
-
+    public AccessControlContext createAccessControlContext(Subject subject);
 }

@@ -14,17 +14,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.security.authorization;
+package org.apache.jackrabbit.oak.spi.security.authentication;
 
-import java.security.Principal;
+import java.util.Collections;
 import java.util.Set;
 
+import javax.security.auth.login.LoginException;
+import javax.security.auth.spi.LoginModule;
+
 /**
- * PermissionProvider... TODO
+ * This class implements a {@link LoginModule} which allows any authenticating
+ * Subject to login.
  */
-public interface AccessControlContext {
+public class OpenLoginModule extends AbstractLoginModule {
 
-    // TODO define how permissions eval is bound to a particular revision/branch. (passing Tree?)
-    CompiledPermissions getPermissions();
+    @Override
+    protected Set<Class> getSupportedCredentials() {
+        return Collections.emptySet();
+    }
 
+    @Override
+    public boolean login() throws LoginException {
+        return true;
+    }
+
+    @Override
+    public boolean commit() throws LoginException {
+        return true;
+    }
+
+    @Override
+    public boolean abort() throws LoginException {
+        return true;
+    }
 }
