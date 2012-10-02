@@ -23,9 +23,12 @@ import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * AccessControlValidatorProvider... TODO
+ * {@code AccessControlValidatorProvider} aimed to provide a root validator
+ * that makes sure access control related content modifications (adding, modifying
+ * and removing access control policies) are valid according to the
+ * constraints defined by this access control implementation.
  */
-public class AccessControlValidatorProvider implements ValidatorProvider {
+class AccessControlValidatorProvider implements ValidatorProvider {
 
     @Nonnull
     @Override
