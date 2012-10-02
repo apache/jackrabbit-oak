@@ -42,9 +42,6 @@ import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.mongodb.QueryBuilder;
 
-/**
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
- */
 @SuppressWarnings("all")
 public class FetchNodesForRevisionQueryTest extends BaseMongoTest {
 

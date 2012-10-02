@@ -32,8 +32,6 @@ import org.json.JSONObject;
  * FIXME - [Mete] This should really merge with MicroKernelImpl#toJson.
  *
  * <a href="http://en.wikipedia.org/wiki/JavaScript_Object_Notation">JSON</a> related utility classes.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 public class JsonUtil {
 
@@ -82,17 +80,6 @@ public class JsonUtil {
                 // unless it is explicitly excluded in the filter
                 builder.key(":childNodeCount").value(childCount);
             }
-            // FIXME [Mete] See if :hash is still being used.
-            /*check whether :hash has been explicitly included
-            if (filter != null) {
-                NameFilter nf = filter.getPropertyFilter();
-                if (nf != null
-                        && nf.getInclusionPatterns().contains(":hash")
-                        && !nf.getExclusionPatterns().contains(":hash")) {
-                    builder.key(":hash").value(rep.getRevisionStore().getId(node).toString());
-                }
-            }
-            */
         }
 
         // FIXME [Mete] There's still some more work here.

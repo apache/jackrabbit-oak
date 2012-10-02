@@ -30,10 +30,6 @@ import org.apache.jackrabbit.mongomk.impl.NodeStoreMongo;
 import org.apache.jackrabbit.mongomk.util.MongoUtil;
 import org.junit.Assert;
 
-
-/**
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
- */
 public class MongoMicroKernelFixture implements MicroKernelFixture {
 
     private static MongoConnection mongoConnection = createMongoConnection();

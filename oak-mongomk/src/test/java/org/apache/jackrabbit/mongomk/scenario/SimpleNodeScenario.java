@@ -29,8 +29,6 @@ import org.apache.jackrabbit.mongomk.impl.model.AddPropertyInstructionImpl;
 
 /**
  * Creates a defined scenario in {@code MongoDB}.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 public class SimpleNodeScenario {
 

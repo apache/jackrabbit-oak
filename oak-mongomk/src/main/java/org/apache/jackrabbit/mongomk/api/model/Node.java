@@ -22,8 +22,6 @@ import java.util.Set;
 
 /**
  * A higher level object representing a node.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 public interface Node {
 

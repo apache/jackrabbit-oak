@@ -24,9 +24,7 @@ import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 
 /**
- * An query for reading and incrementing the head revisio id.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
+ * An query for reading and incrementing the head revision id.
  */
 public class ReadAndIncHeadRevisionQuery extends AbstractQuery<HeadMongo> {
 

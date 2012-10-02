@@ -26,8 +26,6 @@ package org.apache.jackrabbit.mongomk.api.model;
  * there is one add operation for adding nodes and properties whereas there are two specific subinterfaces; one for
  * adding a node and one for adding a property.
  * </p>
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 public interface Instruction {
 

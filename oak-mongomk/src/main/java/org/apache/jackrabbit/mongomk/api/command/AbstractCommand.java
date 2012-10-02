@@ -20,8 +20,6 @@ package org.apache.jackrabbit.mongomk.api.command;
  * Base implementation of {@link Command}.
  *
  * @param <T> The result type of the {@code Command}.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 public abstract class AbstractCommand<T> implements Command<T> {
 

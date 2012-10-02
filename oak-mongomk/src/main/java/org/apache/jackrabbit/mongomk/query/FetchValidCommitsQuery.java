@@ -34,26 +34,26 @@ import com.mongodb.QueryBuilder;
 
 /**
  * An query for fetching valid commits.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 public class FetchValidCommitsQuery extends AbstractQuery<List<CommitMongo>> {
 
     private static final int LIMITLESS = 0;
     private static final Logger LOG = LoggerFactory.getLogger(FetchValidCommitsQuery.class);
 
-    private final Long fromRevisionId;
-    private Long toRevisionId;
+    private long fromRevisionId = 0L;
+    private long toRevisionId = Long.MAX_VALUE;
     private int maxEntries = LIMITLESS;
 
     /**
-     * Constructs a new {link FetchValidCommitsQuery}.
+     * Constructs a new {@link FetchValidCommitsQuery} with 0 fromRevisionId
+     * and limitless maxEntries.
      *
      * @param mongoConnection Mongo connection.
-     * @param fromRevisionId From revision id.
+     * @param toRevisionId To revision id.
      */
-    public FetchValidCommitsQuery(MongoConnection mongoConnection, Long toRevisionId) {
-        this(mongoConnection, 0L, toRevisionId);
+    public FetchValidCommitsQuery(MongoConnection mongoConnection, long toRevisionId) {
+        super(mongoConnection);
+        this.toRevisionId = toRevisionId;
     }
 
     /**
@@ -62,26 +62,13 @@ public class FetchValidCommitsQuery extends AbstractQuery<List<CommitMongo>> {
      * @param mongoConnection Mongo connection.
      * @param fromRevisionId From revision id.
      * @param toRevisionId To revision id.
+     * @param maxEntries Max number of entries that should be fetched.
      */
-    public FetchValidCommitsQuery(MongoConnection mongoConnection, Long fromRevisionId,
-            Long toRevisionId) {
+    public FetchValidCommitsQuery(MongoConnection mongoConnection, long fromRevisionId,
+            long toRevisionId, int maxEntries) {
         super(mongoConnection);
         this.fromRevisionId = fromRevisionId;
         this.toRevisionId = toRevisionId;
-    }
-
-    /**
-     * FIXME - Maybe this should be removed.
-     *
-     * Constructs a new {@link FetchValidCommitsQuery}.
-     *
-     * @param mongoConnection The {@link MongoConnection}.
-     * @param maxEntries Max number of entries that should be fetched.
-     */
-    public FetchValidCommitsQuery(MongoConnection mongoConnection, int maxEntries) {
-        super(mongoConnection);
-        fromRevisionId = 0L;
-        toRevisionId = Long.MAX_VALUE;
         this.maxEntries = maxEntries;
     }
 
@@ -89,7 +76,6 @@ public class FetchValidCommitsQuery extends AbstractQuery<List<CommitMongo>> {
     public List<CommitMongo> execute() {
         DBCursor dbCursor = fetchListOfValidCommits();
         List<CommitMongo> commits = convertToCommits(dbCursor);
-
         return commits;
     }
 

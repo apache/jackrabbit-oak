@@ -21,8 +21,6 @@ import org.apache.jackrabbit.mongomk.api.model.Instruction.CopyNodeInstruction;
 
 /**
  * Implementation of {@link CopyNodeInstruction}.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 public class CopyNodeInstructionImpl implements CopyNodeInstruction {
     private final String destPath;

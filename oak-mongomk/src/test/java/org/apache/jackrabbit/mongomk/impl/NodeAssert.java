@@ -24,10 +24,6 @@ import org.apache.jackrabbit.mongomk.api.model.Node;
 
 import junit.framework.Assert;
 
-
-/**
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
- */
 @SuppressWarnings("javadoc")
 public class NodeAssert {
 

@@ -32,8 +32,6 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 
 /**
  * Implementation of {@link Node}.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 public class NodeImpl implements Node {
 

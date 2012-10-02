@@ -36,8 +36,6 @@ import org.slf4j.LoggerFactory;
 
 /**
  * A {@code Command} for getting nodes from {@code MongoDB}.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 public class GetNodesCommandMongo extends AbstractCommand<Node> {
 

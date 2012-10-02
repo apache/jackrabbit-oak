@@ -34,8 +34,6 @@ import org.apache.jackrabbit.mongomk.impl.json.JsonUtil;
  * <p>
  * This class will transform and delegate to instances of {@link NodeStore} and {@link BlobStore}.
  * </p>
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 public class MongoMicroKernel implements MicroKernel {
 

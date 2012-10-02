@@ -33,9 +33,6 @@ import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
-/**
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
- */
 @SuppressWarnings("javadoc")
 public class CommitCommandMongoTest extends BaseMongoTest {
 
@@ -73,6 +70,25 @@ public class CommitCommandMongoTest extends BaseMongoTest {
         MongoAssert.assertNodesExist(NodeBuilder.build(String.format(
                 "{ \"/#%3$s\" : { \"a#%1$s\" : { } , \"b#%2$s\" : { } , \"c#%3$s\" : { } } }",
                 firstRevisionId, secondRevisionId, thirdRevisionId)));
+    }
+
+    @Test
+    public void addNodesToOldParent() throws Exception {
+        Commit commit = CommitBuilder.build("/", "+\"a\" : {}", "Add /a");
+        CommitCommandMongo command = new CommitCommandMongo(mongoConnection, commit);
+        command.execute();
+
+        commit = CommitBuilder.build("/a", "+\"b\" : {}", "Add /a/b");
+        command = new CommitCommandMongo(mongoConnection, commit);
+        command.execute();
+
+        commit = CommitBuilder.build("/a/b", "+\"c\" : {}", "Add /a/b/c");
+        command = new CommitCommandMongo(mongoConnection, commit);
+        command.execute();
+
+        commit = CommitBuilder.build("/a", "+\"d\" : {}", "Add /a/d");
+        command = new CommitCommandMongo(mongoConnection, commit);
+        command.execute();
     }
 
     @Test

@@ -24,10 +24,6 @@ import org.apache.jackrabbit.mongomk.api.model.Node;
 import org.apache.jackrabbit.mongomk.impl.builder.NodeBuilder;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
-
-/**
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
- */
 public class RandomJsopGenerator {
 
     public static class RandomJsop {

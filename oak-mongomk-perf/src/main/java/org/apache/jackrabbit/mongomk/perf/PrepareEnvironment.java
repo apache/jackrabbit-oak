@@ -20,10 +20,6 @@ import org.apache.jackrabbit.mongomk.MongoConnection;
 import org.apache.jackrabbit.mongomk.util.MongoUtil;
 import org.apache.log4j.Logger;
 
-
-/**
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
- */
 public class PrepareEnvironment {
 
     private static final Logger LOG = Logger.getLogger(PrepareEnvironment.class);

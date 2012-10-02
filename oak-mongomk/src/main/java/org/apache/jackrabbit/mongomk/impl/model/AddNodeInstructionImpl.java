@@ -23,8 +23,6 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 
 /**
  * Implementation of {@link AddNodeInstruction}.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 public class AddNodeInstructionImpl implements AddNodeInstruction {
 

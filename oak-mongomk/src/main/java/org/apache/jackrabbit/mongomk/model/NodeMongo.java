@@ -34,8 +34,6 @@ import com.mongodb.DBObject;
 
 /**
  * The {@code MongoDB} representation of a node.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 @SuppressWarnings("javadoc")
 public class NodeMongo extends BasicDBObject {
@@ -169,8 +167,7 @@ public class NodeMongo extends BasicDBObject {
                 return true;
             }
         }
-        return false;
-        //return addedChildExists(childName);
+        return addedChildExists(childName);
     }
 
     private boolean addedChildExists(String childName) {

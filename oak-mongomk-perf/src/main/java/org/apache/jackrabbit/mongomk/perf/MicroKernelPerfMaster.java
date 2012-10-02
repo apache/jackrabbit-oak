@@ -38,9 +38,6 @@ import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.QueryBuilder;
 
-/**
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
- */
 public class MicroKernelPerfMaster {
 
     private class ContinousHandler extends DefaultJsopHandler {

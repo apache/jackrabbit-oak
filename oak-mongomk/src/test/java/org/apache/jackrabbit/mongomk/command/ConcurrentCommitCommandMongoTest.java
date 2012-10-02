@@ -37,9 +37,6 @@ import org.apache.jackrabbit.mongomk.impl.model.CommitImpl;
 import org.junit.Assert;
 import org.junit.Test;
 
-/**
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
- */
 @SuppressWarnings("javadoc")
 public class ConcurrentCommitCommandMongoTest extends BaseMongoTest {
 

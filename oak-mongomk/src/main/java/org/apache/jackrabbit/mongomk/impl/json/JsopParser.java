@@ -34,8 +34,6 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
  * <p>
  * The underlying token parser is the {@link JsopTokenizer}.
  * </p>
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 public class JsopParser {
 

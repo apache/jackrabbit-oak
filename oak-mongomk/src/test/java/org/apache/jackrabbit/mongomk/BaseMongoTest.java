@@ -29,8 +29,6 @@ import org.junit.BeforeClass;
 
 /**
  * Base class for {@code MongoDB} tests.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 @SuppressWarnings("javadoc")
 public class BaseMongoTest {

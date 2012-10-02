@@ -35,8 +35,6 @@ import org.apache.jackrabbit.mongomk.impl.model.SetPropertyInstructionImpl;
 
 /**
  * A builder to convert a <a href="http://wiki.apache.org/jackrabbit/Jsop">JSOP</a> diff into a {@link Commit}.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 public class CommitBuilder {
 

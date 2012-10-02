@@ -36,8 +36,6 @@ import com.mongodb.QueryBuilder;
 
 /**
  * Assertion utilities for {@code MongoDB} tests.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 @SuppressWarnings("javadoc")
 public class MongoAssert {
