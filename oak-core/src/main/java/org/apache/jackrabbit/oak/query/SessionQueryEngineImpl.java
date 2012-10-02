@@ -20,12 +20,13 @@ import java.text.ParseException;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.SessionQueryEngine;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
  * The query engine implementation bound to a session.
@@ -33,11 +34,10 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 public class SessionQueryEngineImpl implements SessionQueryEngine {
 
     private final QueryEngineImpl queryEngine;
-    private final ContentSession session;
 
-    public SessionQueryEngineImpl(ContentSession session, QueryEngineImpl queryEngine) {
-        this.session = session;
-        this.queryEngine = queryEngine;
+    public SessionQueryEngineImpl(NodeStore store,
+            QueryIndexProvider indexProvider) {
+        this.queryEngine = new QueryEngineImpl(store, indexProvider);
     }
 
     @Override
@@ -53,10 +53,10 @@ public class SessionQueryEngineImpl implements SessionQueryEngine {
 
     @Override
     public Result executeQuery(String statement, String language, long limit,
-            long offset, Map<String, ? extends CoreValue> bindings,
-            Root root, NamePathMapper namePathMapper) throws ParseException {
-        return queryEngine.executeQuery(statement, language, limit,
-                offset, bindings, session, root, namePathMapper);
+            long offset, Map<String, ? extends CoreValue> bindings, Root root,
+            NamePathMapper namePathMapper) throws ParseException {
+        return queryEngine.executeQuery(statement, language, limit, offset,
+                bindings, root, namePathMapper);
     }
 
 }

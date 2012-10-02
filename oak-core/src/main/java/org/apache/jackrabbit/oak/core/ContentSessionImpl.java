@@ -27,15 +27,11 @@ import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.SessionQueryEngine;
-import org.apache.jackrabbit.oak.query.QueryEngineImpl;
-import org.apache.jackrabbit.oak.query.SessionQueryEngineImpl;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandlerProvider;
+import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * {@code MicroKernel}-based implementation of the {@link ContentSession} interface.
@@ -48,16 +44,16 @@ class ContentSessionImpl implements ContentSession {
     private final String workspaceName;
     private final NodeStore store;
     private final ConflictHandlerProvider conflictHandlerProvider;
-    private final SessionQueryEngine queryEngine;
+    private final QueryIndexProvider indexProvider;
 
     public ContentSessionImpl(LoginContext loginContext, String workspaceName,
             NodeStore store, ConflictHandlerProvider conflictHandlerProvider,
-            QueryEngineImpl queryEngine) {
+            QueryIndexProvider indexProvider) {
         this.loginContext = loginContext;
         this.workspaceName = workspaceName;
         this.store = store;
         this.conflictHandlerProvider = conflictHandlerProvider;
-        this.queryEngine = new SessionQueryEngineImpl(this, checkNotNull(queryEngine));
+        this.indexProvider = indexProvider;
     }
 
     @Nonnull
@@ -74,7 +70,7 @@ class ContentSessionImpl implements ContentSession {
     @Nonnull
     @Override
     public Root getLatestRoot() {
-        RootImpl root = new RootImpl(store, workspaceName, loginContext.getSubject());
+        RootImpl root = new RootImpl(store, workspaceName, loginContext.getSubject(), indexProvider);
         if (conflictHandlerProvider != null) {
             root.setConflictHandler(conflictHandlerProvider.getConflictHandler(getCoreValueFactory()));
         }
@@ -93,12 +89,6 @@ class ContentSessionImpl implements ContentSession {
     @Override
     public String getWorkspaceName() {
         return workspaceName;
-    }
-
-    @Nonnull
-    @Override
-    public SessionQueryEngine getQueryEngine() {
-        return queryEngine;
     }
 
     @Nonnull

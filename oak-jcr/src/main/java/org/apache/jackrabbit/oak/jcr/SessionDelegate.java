@@ -88,11 +88,11 @@ public class SessionDelegate {
         this.repository = checkNotNull(repository);
         this.executor = executor;
         this.contentSession = checkNotNull(contentSession);
+        this.root = contentSession.getLatestRoot();
         this.workspace = new WorkspaceImpl(this);
         this.session = new SessionImpl(this);
-        this.root = contentSession.getLatestRoot();
         this.autoRefresh = autoRefresh;
-        this.idManager = new IdentifierManager(contentSession.getQueryEngine(), root);
+        this.idManager = new IdentifierManager(root);
         this.namePathMapper = new NamePathMapperImpl(new SessionNameMapper(this), idManager);
         this.valueFactory = new ValueFactoryImpl(contentSession.getCoreValueFactory(), namePathMapper);
     }
@@ -423,7 +423,7 @@ public class SessionDelegate {
 
     @Nonnull
     public SessionQueryEngine getQueryEngine() {
-        return contentSession.getQueryEngine();
+        return root.getQueryEngine();
     }
 
     @Nonnull

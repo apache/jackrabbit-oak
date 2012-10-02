@@ -18,6 +18,10 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
+
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
@@ -28,13 +32,17 @@ import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.oak.api.ChangeExtractor;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.plugins.commit.DefaultConflictHandler;
-import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.SessionQueryEngine;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
+import org.apache.jackrabbit.oak.plugins.commit.DefaultConflictHandler;
+import org.apache.jackrabbit.oak.query.SessionQueryEngineImpl;
 import org.apache.jackrabbit.oak.security.authorization.AccessControlContextImpl;
+import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
+import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContext;
 import org.apache.jackrabbit.oak.spi.security.authorization.CompiledPermissions;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -44,10 +52,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 
 public class RootImpl implements Root {
     static final Logger log = LoggerFactory.getLogger(RootImpl.class);
@@ -93,6 +97,8 @@ public class RootImpl implements Root {
 
     private volatile ConflictHandler conflictHandler = DefaultConflictHandler.OURS;
 
+    private final QueryIndexProvider indexProvider;
+
     /**
      * Purge listener.
      * @see #purgePurgeListeners
@@ -108,20 +114,23 @@ public class RootImpl implements Root {
      * @param subject
      */
     @SuppressWarnings("UnusedParameters")
-    public RootImpl(NodeStore store, String workspaceName, Subject subject) {
+    public RootImpl(NodeStore store, String workspaceName, Subject subject, QueryIndexProvider indexProvider) {
         this.store = store;
         this.subject = subject;
+        this.indexProvider = indexProvider;
         refresh();
     }
 
     /**
+     * TODO remove constructor
+     * 
      * New instance bases on a given {@link NodeStore} and a workspace
      * @param store  node store
      * @param workspaceName  name of the workspace
      */
     @SuppressWarnings("UnusedParameters")
     public RootImpl(NodeStore store, String workspaceName) {
-        this(store, workspaceName, DUMMY_SUBJECT);
+        this(store, workspaceName, DUMMY_SUBJECT, new CompositeQueryIndexProvider());
     }
 
     public void setConflictHandler(ConflictHandler conflictHandler) {
@@ -331,6 +340,11 @@ public class RootImpl implements Root {
                                  int permissions) {
             return true;
         }
+    }
+
+    @Override
+    public SessionQueryEngine getQueryEngine() {
+        return new SessionQueryEngineImpl(store, indexProvider);
     }
 
 }

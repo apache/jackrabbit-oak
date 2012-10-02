@@ -58,7 +58,7 @@ public abstract class AbstractLuceneQueryTest extends AbstractOakTest implements
         session = createAdminSession();
         root = session.getLatestRoot();
         vf = session.getCoreValueFactory();
-        qe = session.getQueryEngine();
+        qe = root.getQueryEngine();
         createIndexNode();
     }
 
