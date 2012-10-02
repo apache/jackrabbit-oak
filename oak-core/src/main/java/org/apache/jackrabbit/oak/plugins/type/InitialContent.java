@@ -110,19 +110,11 @@ public class InitialContent extends DefaultMicroKernelTracker {
         };
 
         Oak oak = new Oak(mk);
-        oak.with(securityProvider);
-
-        // TODO: The context class loader hack below shouldn't be needed
-        // with a properly OSGi-compatible JAAS implementation
-        Thread thread = Thread.currentThread();
-        ClassLoader loader = thread.getContextClassLoader();
+        oak.with(securityProvider); // TODO: this shouldn't be needed
         try {
-            thread.setContextClassLoader(Oak.class.getClassLoader());
             return oak.createContentRepository().login(null, null).getLatestRoot();
         } catch (Exception e) {
             throw new IllegalStateException("Unable to create a Root", e);
-        } finally {
-            thread.setContextClassLoader(loader);
         }
     }
 }
