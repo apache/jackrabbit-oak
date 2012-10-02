@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContext
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlProvider;
 
 /**
- * <code>AccessControlContextProviderImpl</code> is a default implementation and
+ * {@code AccessControlProviderImpl} is a default implementation and
  * creates {@link AccessControlContextImpl} for a given set of principals.
  */
 public class AccessControlProviderImpl
