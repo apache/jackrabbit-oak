@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.run;
 
+import static org.apache.jackrabbit.oak.spi.query.IndexUtils.DEFAULT_INDEX_HOME;
+
 import java.io.InputStream;
 import java.util.Properties;
 import java.util.concurrent.Executors;
@@ -26,15 +28,16 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.http.OakServlet;
 import org.apache.jackrabbit.oak.jcr.RepositoryImpl;
 import org.apache.jackrabbit.oak.plugins.lucene.LuceneHook;
+import org.apache.jackrabbit.oak.plugins.lucene.LuceneReindexHook;
 import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.type.DefaultTypeEditor;
 import org.apache.jackrabbit.oak.plugins.type.TypeValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
+import org.apache.jackrabbit.oak.plugins.unique.UniqueIndexHook;
 import org.apache.jackrabbit.oak.security.authorization.AccessControlValidatorProvider;
 import org.apache.jackrabbit.oak.security.authorization.PermissionValidatorProvider;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeValidatorProvider;
@@ -202,7 +205,9 @@ public class Main {
             return new CompositeHook(
                     new DefaultTypeEditor(),
                     new ValidatingHook(createDefaultValidatorProvider()),
-                    new LuceneHook());
+                    new UniqueIndexHook(),
+                    new LuceneReindexHook(DEFAULT_INDEX_HOME),
+                    new LuceneHook(DEFAULT_INDEX_HOME));
         }
 
         private static ValidatorProvider createDefaultValidatorProvider() {
