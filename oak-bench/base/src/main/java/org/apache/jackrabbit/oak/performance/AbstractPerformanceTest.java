@@ -178,7 +178,7 @@ public abstract class AbstractPerformanceTest {
         mk = new IndexWrapper(mk);
         ContentRepository contentRepository =
                 new Oak(mk).createContentRepository();
-        return new RepositoryImpl(contentRepository, null);
+        return new RepositoryImpl(contentRepository, null, null);
 
     }
 

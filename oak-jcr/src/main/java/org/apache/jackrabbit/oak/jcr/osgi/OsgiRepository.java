@@ -35,7 +35,7 @@ public class OsgiRepository extends RepositoryImpl {
 
     public OsgiRepository(
             ContentRepository repository, ScheduledExecutorService executor) {
-        super(repository, executor);
+        super(repository, executor, null); // FIXME pass security provider
     }
 
     @Override

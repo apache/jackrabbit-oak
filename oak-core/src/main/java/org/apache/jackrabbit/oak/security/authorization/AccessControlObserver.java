@@ -14,26 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.security.user;
+package org.apache.jackrabbit.oak.security.authorization;
+
+import org.apache.jackrabbit.oak.spi.commit.Observer;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * UserConstants...
+ * {@code Observer} implementation that processes any modification made to
+ * access control content and updates persisted permission caches associated
+ * with access control related data stored in the repository.
  */
-public interface UserConstants {
+public class AccessControlObserver implements Observer {
 
-    String NT_REP_AUTHORIZABLE = "rep:Authorizable";
-    String NT_REP_AUTHORIZABLE_FOLDER = "rep:AuthorizableFolder";
-    String NT_REP_USER = "rep:User";
-    String NT_REP_GROUP = "rep:Group";
-    String NT_REP_MEMBERS = "rep:Members";
-    String REP_PRINCIPAL_NAME = "rep:principalName";
-    String REP_AUTHORIZABLE_ID = "rep:authorizableId";
-    String REP_PASSWORD = "rep:password";
-    String REP_DISABLED = "rep:disabled";
-    String REP_MEMBERS = "rep:members";
-    String REP_IMPERSONATORS = "rep:impersonators";
-
-    String DEFAULT_USER_PATH = "/rep:security/rep:authorizables/rep:users";
-    String DEFAULT_GROUP_PATH = "/rep:security/rep:authorizables/rep:groups";
-    int DEFAULT_DEPTH = 2;
+    @Override
+    public void contentChanged(NodeState before, NodeState after) {
+        // TODO
+        throw new UnsupportedOperationException("not yet implemented");
+    }
 }

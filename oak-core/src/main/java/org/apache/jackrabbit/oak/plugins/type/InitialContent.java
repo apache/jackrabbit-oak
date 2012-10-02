@@ -16,15 +16,30 @@
  */
 package org.apache.jackrabbit.oak.plugins.type;
 
+import java.util.Collections;
+import java.util.List;
+import javax.annotation.Nonnull;
+import javax.jcr.Session;
+
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.DefaultMicroKernelTracker;
 import org.apache.jackrabbit.oak.spi.lifecycle.MicroKernelTracker;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.OpenLoginContextProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.OpenAccessControlContextProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.OpenAccessControlProvider;
+import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
+import org.apache.jackrabbit.oak.spi.security.user.UserContext;
+import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
@@ -60,9 +75,42 @@ public class InitialContent extends DefaultMicroKernelTracker {
     }
 
     private Root createRoot(MicroKernel mk) {
+        SecurityProvider securityProvider = new SecurityProvider() {
+            @Override
+            public LoginContextProvider getLoginContextProvider() {
+                return new OpenLoginContextProvider();
+            }
+            @Override
+            public AccessControlProvider getAccessControlProvider() {
+                return new OpenAccessControlProvider();
+            }
+            @Override
+            public UserContext getUserContext() {
+                return new UserContext() {
+                    @Override
+                    public UserProvider getUserProvider(ContentSession contentSession, Root root) {
+                        throw new UnsupportedOperationException();
+                    }
+                    @Override
+                    public MembershipProvider getMembershipProvider(ContentSession contentSession, Root root) {
+                        throw new UnsupportedOperationException();
+                    }
+                    @Override
+                    public List<ValidatorProvider> getValidatorProviders() {
+                        return Collections.emptyList();
+                    }
+
+                    @Nonnull
+                    @Override
+                    public UserManager getUserManager(Session session, ContentSession contentSession, Root root, NamePathMapper namePathMapper) {
+                        throw new UnsupportedOperationException();
+                    }
+                };
+            }
+        };
+
         Oak oak = new Oak(mk);
-        oak.with(new OpenLoginContextProvider());
-        oak.with(new OpenAccessControlContextProvider());
+        oak.with(securityProvider);
 
         // TODO: The context class loader hack below shouldn't be needed
         // with a properly OSGi-compatible JAAS implementation

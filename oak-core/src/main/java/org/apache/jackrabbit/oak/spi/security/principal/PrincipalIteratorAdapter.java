@@ -14,22 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.jcr.security.principal;
+package org.apache.jackrabbit.oak.spi.security.principal;
+
+import java.security.Principal;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+import javax.jcr.RangeIterator;
 
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
 import org.apache.jackrabbit.commons.iterator.RangeIteratorDecorator;
 
-import javax.jcr.RangeIterator;
-import java.security.Principal;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
-
 /**
- * PrincipalIteratorAdapter...
- *
- * TODO: move to jackrabbit-jcr-commons
+ * Principal specific {@code RangeIteratorAdapter} implementing the
+ * {@code PrincipalIterator} interface.
  */
 public class PrincipalIteratorAdapter extends RangeIteratorDecorator implements PrincipalIterator {
 

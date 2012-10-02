@@ -168,7 +168,7 @@ public class Main {
             context.addServlet(oak, path + "/*");
 
             final Repository jcrRepository = new RepositoryImpl(
-                    repository, Executors.newScheduledThreadPool(1));
+                    repository, Executors.newScheduledThreadPool(1), null); // TODO: pass securityprovider
 
             ServletHolder webdav =
                     new ServletHolder(new SimpleWebdavServlet() {
