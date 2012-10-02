@@ -20,8 +20,11 @@ import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.lifecycle.DefaultMicroKernelTracker;
 import org.apache.jackrabbit.oak.spi.lifecycle.MicroKernelTracker;
+import org.apache.jackrabbit.oak.spi.security.authentication.OpenLoginContextProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.OpenAccessControlContextProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
@@ -53,6 +56,17 @@ public class InitialContent extends DefaultMicroKernelTracker {
                     "\"rep:privileges\"     :{\"jcr:primaryType\":\"nam:rep:Privileges\"}}", null, null);
         }
 
-        BuiltInNodeTypes.register(new Oak(mk).createRoot());
+        BuiltInNodeTypes.register(createRoot(mk));
+    }
+
+    private Root createRoot(MicroKernel mk) {
+        Oak oak = new Oak(mk);
+        oak.with(new OpenLoginContextProvider());
+        oak.with(new OpenAccessControlContextProvider());
+        try {
+            return oak.createContentRepository().login(null, null).getLatestRoot();
+        } catch (Exception e) {
+            throw new IllegalStateException("Unable to create a Root", e);
+        }
     }
 }

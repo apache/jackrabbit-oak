@@ -19,69 +19,44 @@ package org.apache.jackrabbit.oak.security.authorization;
 import java.security.Principal;
 import java.util.Set;
 
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.spi.security.authorization.CompiledPermissions;
+import javax.security.auth.Subject;
+
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContext;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContextProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.CompiledPermissions;
+import org.apache.jackrabbit.oak.spi.security.authorization.OpenAccessControlContextProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 
 /**
  * PermissionProviderImpl... TODO
  */
-public class AccessControlContextImpl implements AccessControlContext {
+class AccessControlContextImpl implements AccessControlContext {
 
-    private static final CompiledPermissions ADMIN_PERMISSIONS = new SimplePermissions(true);
+    private static final CompiledPermissions ADMIN_PERMISSIONS;
 
-    private Set<Principal> principals;
+    static {
+        AccessControlContextProvider accProvider = new OpenAccessControlContextProvider();
+        Subject subject = new Subject();
+        subject.getPrincipals().add(AdminPrincipal.INSTANCE);
+        ADMIN_PERMISSIONS = accProvider.createAccessControlContext(subject).getPermissions();
+    }
+
+    private final Subject subject;
+
+    AccessControlContextImpl(Subject subject) {
+        this.subject = subject;
+    }
 
     //-----------------------------------------------< AccessControlContext >---
-    @Override
-    public void initialize(Set<Principal> principals) {
-        this.principals = principals;
-    }
 
     @Override
     public CompiledPermissions getPermissions() {
+        Set<Principal> principals = subject.getPrincipals();
         if (principals.contains(AdminPrincipal.INSTANCE)) {
             return ADMIN_PERMISSIONS;
         } else {
             // TODO: replace with permissions based on ac evaluation
             return new CompiledPermissionImpl(principals);
         }
-    }
-
-    //--------------------------------------------------------------------------
-    /**
-     * Trivial implementation of the {@code CompiledPermissions} interface that
-     * either allows or denies all permissions.
-     */
-    private static final class SimplePermissions implements CompiledPermissions {
-
-        private final boolean allowed;
-
-        private SimplePermissions(boolean allowed) {
-            this.allowed = allowed;
-        }
-
-        @Override
-        public boolean canRead(String path, boolean isProperty) {
-            return allowed;
-        }
-
-        @Override
-        public boolean isGranted(int permissions) {
-            return allowed;
-        }
-
-        @Override
-        public boolean isGranted(Tree tree, int permissions) {
-            return allowed;
-        }
-
-        @Override
-        public boolean isGranted(Tree parent, PropertyState property, int permissions) {
-            return allowed;
-        }
-
     }
 }

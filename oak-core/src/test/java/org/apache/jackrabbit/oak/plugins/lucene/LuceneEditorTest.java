@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryValueFactory;
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
+import org.apache.jackrabbit.oak.security.authorization.AccessControlContextProviderImpl;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
@@ -48,7 +49,8 @@ public class LuceneEditorTest implements LuceneIndexConstants {
 
         KernelNodeStore store = new KernelNodeStore(new MicroKernelImpl());
         store.setHook(new LuceneEditor(testID));
-        Root root = new RootImpl(store, null, new Subject(), new CompositeQueryIndexProvider());
+        Root root = new RootImpl(store, null, new Subject(),
+                new AccessControlContextProviderImpl(), new CompositeQueryIndexProvider());
         Tree tree = root.getTree("/");
 
         tree.setProperty("foo", MemoryValueFactory.INSTANCE.createValue("bar"));
