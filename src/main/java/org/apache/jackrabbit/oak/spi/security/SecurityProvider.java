@@ -14,17 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.security.authorization;
+package org.apache.jackrabbit.oak.spi.security;
 
-import java.security.Principal;
-import java.util.Set;
+import javax.annotation.Nonnull;
 
-import javax.security.auth.Subject;
+import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlProvider;
+import org.apache.jackrabbit.oak.spi.security.user.UserContext;
 
 /**
- * <code>AccessControlContextProvider</code>...
+ * SecurityProvider... TODO
  */
-public interface AccessControlContextProvider {
+public interface SecurityProvider {
 
-    public AccessControlContext createAccessControlContext(Subject subject);
+    @Nonnull
+    LoginContextProvider getLoginContextProvider();
+
+    @Nonnull
+    AccessControlProvider getAccessControlProvider();
+
+    @Nonnull
+    UserContext getUserContext(); // TODO review naming consistency
 }

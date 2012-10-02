@@ -28,7 +28,7 @@ public final class AdminPrincipal implements Principal {
 
     public static final String NAME = "administrator";
 
-    public static final AdminPrincipal INSTANCE = new AdminPrincipal();
+    public static final Principal INSTANCE = new AdminPrincipal();
 
     private AdminPrincipal() { }
 

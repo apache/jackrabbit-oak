@@ -14,22 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authorization;
+package org.apache.jackrabbit.oak.spi.security.authorization;
 
+import java.util.List;
 import javax.security.auth.Subject;
 
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContext;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContextProvider;
+import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 
 /**
- * <code>AccessControlContextProviderImpl</code> is a default implementation and
- * creates {@link AccessControlContextImpl} for a given set of principals.
+ * {@code AccessControlContextProvider}...
  */
-public class AccessControlContextProviderImpl
-        implements AccessControlContextProvider {
+public interface AccessControlProvider {
 
-    @Override
-    public AccessControlContext createAccessControlContext(Subject subject) {
-        return new AccessControlContextImpl(subject);
-    }
+    public AccessControlContext createAccessControlContext(Subject subject);
+
+    public List<ValidatorProvider> getValidatorProviders();
 }

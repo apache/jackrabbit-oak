@@ -35,7 +35,7 @@ import org.apache.jackrabbit.oak.plugins.commit.DefaultConflictHandler;
 import org.apache.jackrabbit.oak.query.SessionQueryEngineImpl;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContextProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.CompiledPermissions;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -66,7 +66,7 @@ public class RootImpl implements Root {
     /**
      * The access control context provider.
      */
-    private final AccessControlContextProvider accProvider;
+    private final AccessControlProvider accProvider;
 
     /** Current branch this root operates on */
     private NodeStoreBranch branch;
@@ -116,7 +116,7 @@ public class RootImpl implements Root {
     public RootImpl(NodeStore store,
                     String workspaceName,
                     Subject subject,
-                    AccessControlContextProvider accProvider,
+                    AccessControlProvider accProvider,
                     QueryIndexProvider indexProvider) {
         this.store = checkNotNull(store);
         this.subject = checkNotNull(subject);
