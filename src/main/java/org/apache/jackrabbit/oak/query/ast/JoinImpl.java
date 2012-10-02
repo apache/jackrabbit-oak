@@ -58,9 +58,9 @@ public class JoinImpl extends SourceImpl {
     }
 
     @Override
-    public String getPlan() {
-        return left.getPlan() + ' ' + joinType +
-                " " + right.getPlan() + " on " + joinCondition;
+    public String getPlan(NodeState root) {
+        return left.getPlan(root) + ' ' + joinType +
+                " " + right.getPlan(root) + " on " + joinCondition;
     }
 
     @Override

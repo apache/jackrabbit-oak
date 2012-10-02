@@ -64,6 +64,8 @@ public interface Filter {
      */
     String getPath();
 
+    String getNodeType();
+
     /**
      * A restriction for a property.
      */

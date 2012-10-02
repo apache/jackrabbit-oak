@@ -129,7 +129,7 @@ public abstract class SourceImpl extends AstElement {
      *
      * @return the query plan
      */
-    public abstract String getPlan();
+    public abstract String getPlan(NodeState root);
 
     /**
      * Prepare executing the query. This method will decide which index to use.
