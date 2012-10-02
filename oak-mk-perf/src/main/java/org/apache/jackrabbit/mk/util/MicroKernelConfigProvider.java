@@ -19,41 +19,44 @@ package org.apache.jackrabbit.mk.util;
 import java.io.InputStream;
 import java.util.Properties;
 
-
 public class MicroKernelConfigProvider {
-	
-	/**
-	 * Read the mk configuration from file.
-	 * @param resourcePath
-	 * @return
-	 * @throws Exception
-	 */
-	public static Configuration readConfig(String resourcePath) throws Exception {
-		
-		InputStream is = MicroKernelConfigProvider.class
-				.getResourceAsStream(resourcePath);
-		
-		Properties properties = new Properties();
-		properties.load(is);
-		is.close();
-		return new Configuration(properties);
-	}
-	/**
-	 * Read the mk configuration from config.cfg.
-	 * @param resourcePath
-	 * @return
-	 * @throws Exception
-	 */
-	public static Configuration readConfig() throws Exception {
-		
-		InputStream is = MicroKernelConfigProvider.class
-				.getResourceAsStream("/config.cfg");
-		
-		Properties properties = new Properties();
-		properties.load(is);
-		//System.out.println(properties.toString());
-		is.close();
-		return new Configuration(properties);
-	}
-	
+
+    /**
+     * Read the mk configuration from file.
+     * 
+     * @param resourcePath
+     * @return
+     * @throws Exception
+     */
+    public static Configuration readConfig(String resourcePath)
+            throws Exception {
+
+        InputStream is = MicroKernelConfigProvider.class
+                .getResourceAsStream(resourcePath);
+
+        Properties properties = new Properties();
+        properties.load(is);
+        is.close();
+        return new Configuration(properties);
+    }
+
+    /**
+     * Read the mk configuration from config.cfg.
+     * 
+     * @param resourcePath
+     * @return
+     * @throws Exception
+     */
+    public static Configuration readConfig() throws Exception {
+
+        InputStream is = MicroKernelConfigProvider.class
+                .getResourceAsStream("/config.cfg");
+
+        Properties properties = new Properties();
+        properties.load(is);
+        // System.out.println(properties.toString());
+        is.close();
+        return new Configuration(properties);
+    }
+
 }

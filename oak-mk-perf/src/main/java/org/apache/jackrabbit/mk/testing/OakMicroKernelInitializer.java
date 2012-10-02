@@ -22,27 +22,26 @@ import org.apache.jackrabbit.mk.core.Repository;
 import org.apache.jackrabbit.mk.util.Configuration;
 
 /**
- * Initialize a {@code MicroKernelImpl}.A new {@code Repository} is created for each
- * initialization.
+ * Initialize a {@code MicroKernelImpl}.A new {@code Repository} is created for
+ * each initialization.
  * 
- * @author rogoz
+ * 
  * 
  */
-public class OakMicroKernelInitializator implements MicroKernelInitializator {
-	
-	
-	public MicroKernel init(Configuration conf) throws Exception {
-		// TODO use configuration
-		Repository rep = new Repository(conf.getStoragePath()
-				+ System.currentTimeMillis());
-		rep.init();
-		MicroKernel mk = new MicroKernelImpl(rep);
-		return mk;
-	}
+public class OakMicroKernelInitializer implements MicroKernelInitializer {
 
-	public String getType() {
-		// TODO Auto-generated method stub
-		return "Oak Microkernel";
-	}
+    public MicroKernel init(Configuration conf) throws Exception {
+        // TODO use configuration
+        Repository rep = new Repository(conf.getStoragePath()
+                + System.currentTimeMillis());
+        rep.init();
+        MicroKernel mk = new MicroKernelImpl(rep);
+        return mk;
+    }
+
+    public String getType() {
+        // TODO Auto-generated method stub
+        return "Oak Microkernel";
+    }
 
 }

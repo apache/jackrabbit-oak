@@ -25,99 +25,116 @@ import org.junit.Test;
  * Measure the time needed for writing nodes in different tree structures.All
  * the nodes are added in a single commit.
  * 
- * @author rogoz
  * 
  */
 public class MkAddNodesDifferentStructuresTest extends MicroKernelTestBase {
 
-	static int nodesNumber = 100000;
-	static String nodeNamePrefix = "N";
-	/**
-	 * Tree structure:
-	 * <p> rootNode (/)
-	 * <p> N0 N1... Nn-1 Nn
-	 */
-	@Test
-	public void testWriteNodesSameLevel() {
+    static int nodesNumber = 100000;
+    static String nodeNamePrefix = "N";
 
-		String diff = MicroKernelOperation.buildPyramidDiff("/", 0, 0, nodesNumber,
-				nodeNamePrefix, new StringBuilder()).toString();
-		Committer committer = new Committer();
-		chronometer.start();
-		committer.addNodes(mk, diff, 0);
-		chronometer.stop();
-		System.out.println("Total time for testWriteNodesSameLevel is "
-				+ chronometer.getSeconds());
-	}
-	/**
-	 * Tree structure:
-	 * <p>rootNode (/)
-	 * <p>N0
-	 * <p>N1 
-	 * <p>N2
-	 * <p>N3
-	 */
-	@Test
-	public void testWriteNodes1Child() {
-		int nodesNumber = 100;
+    /**
+     * Tree structure:
+     * <p>
+     * rootNode (/)
+     * <p>
+     * N0 N1... Nn-1 Nn
+     */
+    @Test
+    public void testWriteNodesSameLevel() {
 
-		String diff = MicroKernelOperation.buildPyramidDiff("/", 0, 1, nodesNumber,
-				nodeNamePrefix, new StringBuilder()).toString();
-		Committer committer = new Committer();
-		chronometer.start();
-		committer.addNodes(mk, diff, 0);
-		chronometer.stop();
-		System.out.println("Total time for testWriteNodes1Child is "
-				+ chronometer.getSeconds());
-	}
-	/**
-	 * Tree structure:
-	 * <p> Number of nodes per <b>level</b> =10^(<b>level</b>). 
-	 * <p> Each node has 10 children.
-	 */
-	@Test
-	public void testWriteNodes10Children() {
+        String diff = MicroKernelOperation.buildPyramidDiff("/", 0, 0,
+                nodesNumber, nodeNamePrefix, new StringBuilder()).toString();
+        Committer committer = new Committer();
+        chronometer.start();
+        committer.addNodes(mk, diff, 0);
+        chronometer.stop();
+        System.out.println("Total time for testWriteNodesSameLevel is "
+                + chronometer.getSeconds());
+    }
 
-		String diff = MicroKernelOperation.buildPyramidDiff("/", 0, 10, nodesNumber,
-				nodeNamePrefix, new StringBuilder()).toString();
-		Committer committer = new Committer();
-		chronometer.start();
-		committer.addNodes(mk, diff, 0);
-		chronometer.stop();
-		System.out.println("Total time for testWriteNodes10Children is "
-				+ chronometer.getSeconds());
-	}
-	/**
-	 * Tree structure:
-	 * <p> Number of nodes per <b>level</b> =100^(<b>level</b>). 
-	 * <p> Each node has 100 children.
-	 */
-	@Test
-	public void testWriteNodes100Children() {
+    /**
+     * Tree structure:
+     * <p>
+     * rootNode (/)
+     * <p>
+     * N0
+     * <p>
+     * N1
+     * <p>
+     * N2
+     * <p>
+     * N3
+     */
+    @Test
+    public void testWriteNodes1Child() {
+        int nodesNumber = 100;
 
-		String diff = MicroKernelOperation.buildPyramidDiff("/", 0, 100, nodesNumber,
-				nodeNamePrefix, new StringBuilder()).toString();
-		Committer committer = new Committer();
-		chronometer.start();
-		committer.addNodes(mk, diff, 0);
-		chronometer.stop();
-		System.out.println("Total time for testWriteNodes100Children is "
-				+ chronometer.getSeconds());
-	}
-	/**
-	 * Tree structure:
-	 * <p> Number of nodes per <b>level</b> =1000^(<b>level</b>). 
-	 * <p> Each node has 1000 children.
-	 */
-	@Test
-	public void testWriteNodes1000Children() {
-		String diff = MicroKernelOperation.buildPyramidDiff("/", 0, 1000, nodesNumber,
-				nodeNamePrefix, new StringBuilder()).toString();
-		Committer committer = new Committer();
-		chronometer.start();
-		committer.addNodes(mk, diff, 0);
-		chronometer.stop();
-		System.out.println("Total time for testWriteNodes1000Children is "
-				+ chronometer.getSeconds());
-	}
+        String diff = MicroKernelOperation.buildPyramidDiff("/", 0, 1,
+                nodesNumber, nodeNamePrefix, new StringBuilder()).toString();
+        Committer committer = new Committer();
+        chronometer.start();
+        committer.addNodes(mk, diff, 0);
+        chronometer.stop();
+        System.out.println("Total time for testWriteNodes1Child is "
+                + chronometer.getSeconds());
+    }
+
+    /**
+     * Tree structure:
+     * <p>
+     * Number of nodes per <b>level</b> =10^(<b>level</b>).
+     * <p>
+     * Each node has 10 children.
+     */
+    @Test
+    public void testWriteNodes10Children() {
+
+        String diff = MicroKernelOperation.buildPyramidDiff("/", 0, 10,
+                nodesNumber, nodeNamePrefix, new StringBuilder()).toString();
+        Committer committer = new Committer();
+        chronometer.start();
+        committer.addNodes(mk, diff, 0);
+        chronometer.stop();
+        System.out.println("Total time for testWriteNodes10Children is "
+                + chronometer.getSeconds());
+    }
+
+    /**
+     * Tree structure:
+     * <p>
+     * Number of nodes per <b>level</b> =100^(<b>level</b>).
+     * <p>
+     * Each node has 100 children.
+     */
+    @Test
+    public void testWriteNodes100Children() {
+
+        String diff = MicroKernelOperation.buildPyramidDiff("/", 0, 100,
+                nodesNumber, nodeNamePrefix, new StringBuilder()).toString();
+        Committer committer = new Committer();
+        chronometer.start();
+        committer.addNodes(mk, diff, 0);
+        chronometer.stop();
+        System.out.println("Total time for testWriteNodes100Children is "
+                + chronometer.getSeconds());
+    }
+
+    /**
+     * Tree structure:
+     * <p>
+     * Number of nodes per <b>level</b> =1000^(<b>level</b>).
+     * <p>
+     * Each node has 1000 children.
+     */
+    @Test
+    public void testWriteNodes1000Children() {
+        String diff = MicroKernelOperation.buildPyramidDiff("/", 0, 1000,
+                nodesNumber, nodeNamePrefix, new StringBuilder()).toString();
+        Committer committer = new Committer();
+        chronometer.start();
+        committer.addNodes(mk, diff, 0);
+        chronometer.stop();
+        System.out.println("Total time for testWriteNodes1000Children is "
+                + chronometer.getSeconds());
+    }
 }

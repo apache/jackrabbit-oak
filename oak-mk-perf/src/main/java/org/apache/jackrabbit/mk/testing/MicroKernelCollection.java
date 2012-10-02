@@ -24,54 +24,54 @@ import org.apache.jackrabbit.mk.util.Configuration;
 /**
  * Represents a collection of microkernels.
  * 
- * @author rogoz
+ * 
  * 
  */
 public class MicroKernelCollection {
-	ArrayList<MicroKernel> mks;
+    ArrayList<MicroKernel> mks;
 
-	/**
-	 * Initialize a collection of microkernels.Each microkernel can have a
-	 * different configuration.
-	 * 
-	 * @param initializator
-	 *            The initialization class of a particular microkernel type.
-	 * @param conf
-	 *            The configuration array for the microkernels.
-	 * @throws Exception
-	 */
-	public MicroKernelCollection(MicroKernelInitializator initializator,
-			Configuration conf[], int size) throws Exception {
-		mks = new ArrayList<MicroKernel>();
-		for (int i = 0; i < size; i++) {
-			mks.add(initializator.init(conf[i]));
-		}
-	}
+    /**
+     * Initialize a collection of microkernels.Each microkernel can have a
+     * different configuration.
+     * 
+     * @param initializator
+     *            The initialization class of a particular microkernel type.
+     * @param conf
+     *            The configuration array for the microkernels.
+     * @throws Exception
+     */
+    public MicroKernelCollection(MicroKernelInitializer initializator,
+            Configuration conf[], int size) throws Exception {
+        mks = new ArrayList<MicroKernel>();
+        for (int i = 0; i < size; i++) {
+            mks.add(initializator.init(conf[i]));
+        }
+    }
 
-	/**
-	 * Initialize a collection of microkernels.All microkernels have the same
-	 * configuration.
-	 * 
-	 * @param initializator
-	 *            The initialization class of a particular microkernel type.
-	 * @param conf
-	 *            The microkernel configuration data.
-	 * @throws Exception
-	 */
-	public MicroKernelCollection(MicroKernelInitializator initializator,
-			Configuration conf, int size) throws Exception {
-		mks = new ArrayList<MicroKernel>();
-		for (int i = 0; i < size; i++) {
-			mks.add(initializator.init(conf));
-		}
-	}
+    /**
+     * Initialize a collection of microkernels.All microkernels have the same
+     * configuration.
+     * 
+     * @param initializator
+     *            The initialization class of a particular microkernel type.
+     * @param conf
+     *            The microkernel configuration data.
+     * @throws Exception
+     */
+    public MicroKernelCollection(MicroKernelInitializer initializator,
+            Configuration conf, int size) throws Exception {
+        mks = new ArrayList<MicroKernel>();
+        for (int i = 0; i < size; i++) {
+            mks.add(initializator.init(conf));
+        }
+    }
 
-	/**
-	 * Returns a microkernel collection.
-	 * 
-	 * @return An array of initialized microkernels.
-	 */
-	public ArrayList<MicroKernel> getMicroKernels() {
-		return mks;
-	}
+    /**
+     * Returns a microkernel collection.
+     * 
+     * @return An array of initialized microkernels.
+     */
+    public ArrayList<MicroKernel> getMicroKernels() {
+        return mks;
+    }
 }

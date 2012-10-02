@@ -22,51 +22,47 @@ import org.junit.Test;
 
 /**
  * Measure the time needed for writing nodes in different tree structures.Each
- * node is committed separately.Each node is also committed using the relative path of
- * the parent node.
+ * node is committed separately.Each node is also committed using the relative
+ * path of the parent node.
  * 
- * @author rogoz
  * 
  */
 
 public class MKAddNodesRelativePathTest extends MicroKernelTestBase {
 
-	static String nodeNamePrefix = "N";
-	static int nodesNumber = 1000;
+    static String nodeNamePrefix = "N";
+    static int nodesNumber = 1000;
 
-	
+    @Test
+    public void testWriteNodesSameLevel() throws Exception {
+        Committer commiter = new Committer();
+        chronometer.start();
+        commiter.addPyramidStructure(mk, "/", 0, 0, nodesNumber, nodeNamePrefix);
+        chronometer.stop();
+        System.out.println("Total time for testWriteNodesSameLevel is "
+                + chronometer.getSeconds());
+    }
 
-	@Test
-	public void testWriteNodesSameLevel() throws Exception {
-		Committer commiter = new Committer();
-		chronometer.start();
-		commiter.addPyramidStructure(mk, "/", 0, 0, nodesNumber,
-				nodeNamePrefix);
-		chronometer.stop();
-		System.out.println("Total time for testWriteNodesSameLevel is "
-				+ chronometer.getSeconds());
-	}
+    @Test
+    public void testWriteNodes10Children() {
+        Committer commiter = new Committer();
+        chronometer.start();
 
-	@Test
-	public void testWriteNodes10Children() {
-		Committer commiter = new Committer();
-		chronometer.start();
-		
-		commiter.addPyramidStructure(mk, "/", 0, 10, nodesNumber,
-				nodeNamePrefix);
-		chronometer.stop();
-		System.out.println("Total time for testWriteNodes10Children is "
-				+ chronometer.getSeconds());
-	}
+        commiter.addPyramidStructure(mk, "/", 0, 10, nodesNumber,
+                nodeNamePrefix);
+        chronometer.stop();
+        System.out.println("Total time for testWriteNodes10Children is "
+                + chronometer.getSeconds());
+    }
 
-	@Test
-	public void testWriteNodes100Children() {
-		Committer commiter = new Committer();
-		chronometer.start();
-		commiter.addPyramidStructure(mk, "/", 0, 100, nodesNumber,
-				nodeNamePrefix);
-		chronometer.stop();
-		System.out.println("Total time for testWriteNodes100Children is "
-				+ chronometer.getSeconds());
-	}
+    @Test
+    public void testWriteNodes100Children() {
+        Committer commiter = new Committer();
+        chronometer.start();
+        commiter.addPyramidStructure(mk, "/", 0, 100, nodesNumber,
+                nodeNamePrefix);
+        chronometer.stop();
+        System.out.println("Total time for testWriteNodes100Children is "
+                + chronometer.getSeconds());
+    }
 }

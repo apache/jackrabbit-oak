@@ -19,53 +19,52 @@ package org.apache.jackrabbit.mk.util;
 /**
  * Useful methods for building node structure.
  * 
- * @author rogoz
  * 
  */
 public class MicroKernelOperation {
 
-	/**
-	 * Builds a diff representing a pyramid node structure.
-	 * 
-	 * @param The
-	 *            path where the first node will be added.
-	 * @param index
-	 * @param numberOfChildren
-	 *            The number of children that each node must have.
-	 * @param nodesNumber
-	 *            Total number of nodes.
-	 * @param nodePrefixName
-	 *            The node name prefix.
-	 * @param diff
-	 *            The string where the diff is builded.Put an empty string for
-	 *            creating a new structure.
-	 * @return
-	 */
-	public static StringBuilder buildPyramidDiff(String startingPoint,
-			int index, int numberOfChildren, int nodesNumber,
-			String nodePrefixName, StringBuilder diff) {
-		if (numberOfChildren == 0) {
-			for (long i = 0; i < nodesNumber; i++)
-				diff.append(addNodeToDiff(startingPoint, nodePrefixName + i));
-			return diff;
-		}
-		if (index >= nodesNumber)
-			return diff;
-		diff.append(addNodeToDiff(startingPoint, nodePrefixName + index));
-		for (int i = 1; i <= numberOfChildren; i++) {
-			if (!startingPoint.endsWith("/"))
-				startingPoint = startingPoint + "/";
-			buildPyramidDiff(startingPoint + nodePrefixName + index, index
-					* numberOfChildren + i, numberOfChildren, nodesNumber,
-					nodePrefixName, diff);
-		}
-		return diff;
-	}
+    /**
+     * Builds a diff representing a pyramid node structure.
+     * 
+     * @param The
+     *            path where the first node will be added.
+     * @param index
+     * @param numberOfChildren
+     *            The number of children that each node must have.
+     * @param nodesNumber
+     *            Total number of nodes.
+     * @param nodePrefixName
+     *            The node name prefix.
+     * @param diff
+     *            The string where the diff is builded.Put an empty string for
+     *            creating a new structure.
+     * @return
+     */
+    public static StringBuilder buildPyramidDiff(String startingPoint,
+            int index, int numberOfChildren, int nodesNumber,
+            String nodePrefixName, StringBuilder diff) {
+        if (numberOfChildren == 0) {
+            for (long i = 0; i < nodesNumber; i++)
+                diff.append(addNodeToDiff(startingPoint, nodePrefixName + i));
+            return diff;
+        }
+        if (index >= nodesNumber)
+            return diff;
+        diff.append(addNodeToDiff(startingPoint, nodePrefixName + index));
+        for (int i = 1; i <= numberOfChildren; i++) {
+            if (!startingPoint.endsWith("/"))
+                startingPoint = startingPoint + "/";
+            buildPyramidDiff(startingPoint + nodePrefixName + index, index
+                    * numberOfChildren + i, numberOfChildren, nodesNumber,
+                    nodePrefixName, diff);
+        }
+        return diff;
+    }
 
-	private static String addNodeToDiff(String startingPoint, String nodeName) {
-		if (!startingPoint.endsWith("/"))
-			startingPoint = startingPoint + "/";
+    private static String addNodeToDiff(String startingPoint, String nodeName) {
+        if (!startingPoint.endsWith("/"))
+            startingPoint = startingPoint + "/";
 
-		return ("+\"" + startingPoint + nodeName + "\" : {} \n");
-	}
+        return ("+\"" + startingPoint + nodeName + "\" : {} \n");
+    }
 }

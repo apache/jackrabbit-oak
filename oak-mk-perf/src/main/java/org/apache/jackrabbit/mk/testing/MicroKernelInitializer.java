@@ -21,11 +21,13 @@ import org.apache.jackrabbit.mk.util.Configuration;
 
 /**
  * Interface for microkernel initialization.
- * @author rogoz
- *
+ * 
+ * 
+ * 
  */
-public interface MicroKernelInitializator {
+public interface MicroKernelInitializer {
 
-	public MicroKernel init(Configuration conf) throws Exception;
-	public String getType();
+    public MicroKernel init(Configuration conf) throws Exception;
+
+    public String getType();
 }

@@ -32,41 +32,39 @@ import com.mongodb.BasicDBObjectBuilder;
 /**
  * Creates a {@code MongoMicroKernel}.Initialize the mongo database for the
  * tests.
- * @author rogoz
  */
-public class MongoMicroKernelInitializator implements MicroKernelInitializator {
+public class MongoMicroKernelInitializer implements MicroKernelInitializer {
 
-	
-	public MicroKernel init(Configuration conf) throws Exception {
+    public MicroKernel init(Configuration conf) throws Exception {
 
-		MicroKernel mk;
-		MongoConnection mongoConnection = new MongoConnection(conf.getHost(),
-				conf.getMongoPort(), conf.getMongoDatabase());
-		MongoConnection adminConnection = new MongoConnection(conf.getHost(),
-				conf.getMongoPort(), "admin");
+        MicroKernel mk;
+        MongoConnection mongoConnection = new MongoConnection(conf.getHost(),
+                conf.getMongoPort(), conf.getMongoDatabase());
+        MongoConnection adminConnection = new MongoConnection(conf.getHost(),
+                conf.getMongoPort(), "admin");
 
-		NodeStore nodeStore = new NodeStoreMongo(mongoConnection);
-		BlobStore blobStore = new BlobStoreFS(
-				System.getProperty("java.io.tmpdir"));
+        NodeStore nodeStore = new NodeStoreMongo(mongoConnection);
+        BlobStore blobStore = new BlobStoreFS(
+                System.getProperty("java.io.tmpdir"));
 
-		// initialize the database
-		// temporary workaround.Remove the sleep.
-		Thread.sleep(20000);
-		MongoUtil.initDatabase(mongoConnection);
-		// set the shard key
-		adminConnection.getDB()
-				.command(
-						BasicDBObjectBuilder
-								.start("shardCollection", "test.nodes")
-								.push("key").add("path", 1).add("revId", 1)
-								.pop().get());
+        // initialize the database
+        // temporary workaround.Remove the sleep.
+         Thread.sleep(10000);
+        MongoUtil.initDatabase(mongoConnection);
+        // set the shard key
+        adminConnection.getDB()
+                .command(
+                        BasicDBObjectBuilder
+                                .start("shardCollection", "test.nodes")
+                                .push("key").add("path", 1).add("revId", 1)
+                                .pop().get());
 
-		mk = new MongoMicroKernel(nodeStore, blobStore);
-		return mk;
-	}
+        mk = new MongoMicroKernel(nodeStore, blobStore);
+        return mk;
+    }
 
-	public String getType() {
-		return "Mongo Microkernel implementation";
-	}
+    public String getType() {
+        return "Mongo Microkernel implementation";
+    }
 
 }

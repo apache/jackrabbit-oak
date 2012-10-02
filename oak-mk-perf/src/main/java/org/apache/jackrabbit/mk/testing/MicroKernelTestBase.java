@@ -26,43 +26,46 @@ import org.junit.BeforeClass;
 /**
  * The test base class for tests that are using only one microkernel instance.
  * 
- * @author rogoz
+ * 
  * 
  */
 public class MicroKernelTestBase {
 
-	static MicroKernelInitializator initializator;
-	public MicroKernel mk;
-	public static Configuration conf;
-	public Chronometer chronometer;
+    static MicroKernelInitializer initializator;
+    public MicroKernel mk;
+    public static Configuration conf;
+    public Chronometer chronometer;
 
-	/**
-	 * Loads the corresponding microkernel initialization class and the microkernel configuration.The method
-	 * searches for the <b>mk.type</b> system property in order to initialize
-	 * the proper microkernel.By default, the oak microkernel will be instantiated.
-	 * @throws Exception
-	 */
-	@BeforeClass
-	public static void beforeSuite() throws Exception {
+    /**
+     * Loads the corresponding microkernel initialization class and the
+     * microkernel configuration.The method searches for the <b>mk.type</b>
+     * system property in order to initialize the proper microkernel.By default,
+     * the oak microkernel will be instantiated.
+     * 
+     * @throws Exception
+     */
+    @BeforeClass
+    public static void beforeSuite() throws Exception {
 
-		String mktype = System.getProperty("mk.type");
-		initializator = (mktype == null || mktype.equals("oak")) ? new OakMicroKernelInitializator()
-				: new MongoMicroKernelInitializator();
-		System.out.println("Tests will run against ***"
-				+ initializator.getType() + "***");
-		conf = MicroKernelConfigProvider.readConfig();
-	}
-	/**
-	 * Creates a microkernel collection with only one microkernel.
-	 * 
-	 * @throws Exception
-	 */
-	@Before
-	public void beforeTest() throws Exception {
+        String mktype = System.getProperty("mk.type");
+        initializator = (mktype == null || mktype.equals("oakmk")) ? new OakMicroKernelInitializer()
+                : new MongoMicroKernelInitializer();
+        System.out.println("Tests will run against ***"
+                + initializator.getType() + "***");
+        conf = MicroKernelConfigProvider.readConfig();
+    }
 
-		mk = (new MicroKernelCollection(initializator, conf, 1))
-				.getMicroKernels().get(0);
-		chronometer = new Chronometer();
-	}
+    /**
+     * Creates a microkernel collection with only one microkernel.
+     * 
+     * @throws Exception
+     */
+    @Before
+    public void beforeTest() throws Exception {
+
+        mk = (new MicroKernelCollection(initializator, conf, 1))
+                .getMicroKernels().get(0);
+        chronometer = new Chronometer();
+    }
 
 }
