@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandlerProvider;
 import org.apache.jackrabbit.oak.security.authentication.LoginContextProviderImpl;
+import org.apache.jackrabbit.oak.security.authorization.AccessControlContextProviderImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandlerProvider;
@@ -38,6 +39,7 @@ import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContextProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,6 +59,7 @@ public class ContentRepositoryImpl implements ContentRepository {
             new AnnotatingConflictHandlerProvider();
 
     private final LoginContextProvider loginContextProvider;
+    private final AccessControlContextProvider accProvider;
     private final QueryIndexProvider indexProvider;
     private final KernelNodeStore nodeStore;
 
@@ -112,6 +115,27 @@ public class ContentRepositoryImpl implements ContentRepository {
     public ContentRepositoryImpl(
             MicroKernel microKernel, LoginContextProvider loginContextProvider,
             QueryIndexProvider indexProvider, CommitHook commitHook) {
+        this(microKernel, indexProvider, commitHook, loginContextProvider, null);
+    }
+
+    /**
+     * Creates an Oak repository instance based on the given, already
+     * initialized components.
+     *
+     * @param microKernel   underlying kernel instance
+     * @param indexProvider index provider
+     * @param commitHook    the commit hook
+     * @param lcProvider    the login context provider or <code>null</code> if a
+     *                      default implementation should be used.
+     * @param accProvider   the access control context provider or
+     *                      <code>null</code> if a default implementation should
+     *                      be used.
+     */
+    public ContentRepositoryImpl(MicroKernel microKernel,
+                                 QueryIndexProvider indexProvider,
+                                 CommitHook commitHook,
+                                 LoginContextProvider lcProvider,
+                                 AccessControlContextProvider accProvider) {
 
         nodeStore = new KernelNodeStore(microKernel);
         nodeStore.setHook(commitHook);
@@ -119,7 +143,18 @@ public class ContentRepositoryImpl implements ContentRepository {
         this.indexProvider = indexProvider != null ? indexProvider
                 : new CompositeQueryIndexProvider();
 
-        this.loginContextProvider = loginContextProvider;
+        if (lcProvider != null) {
+            this.loginContextProvider = lcProvider;
+        } else {
+            // use default implementation
+            this.loginContextProvider = new LoginContextProviderImpl();
+        }
+        if (accProvider != null) {
+            this.accProvider = accProvider;
+        } else {
+            // use default implementation
+            this.accProvider = new AccessControlContextProviderImpl();
+        }
     }
 
     @Nonnull
@@ -138,7 +173,7 @@ public class ContentRepositoryImpl implements ContentRepository {
         LoginContext loginContext = loginContextProvider.getLoginContext(credentials, workspaceName);
         loginContext.login();
 
-        return new ContentSessionImpl(loginContext, workspaceName, nodeStore, DEFAULT_CONFLICT_HANDLER_PROVIDER,
-                indexProvider);
+        return new ContentSessionImpl(loginContext, accProvider, workspaceName,
+                nodeStore, DEFAULT_CONFLICT_HANDLER_PROVIDER, indexProvider);
     }
 }

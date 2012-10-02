@@ -23,12 +23,9 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
-import org.apache.jackrabbit.oak.core.RootImpl;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
-import org.apache.jackrabbit.oak.security.authentication.LoginContextProviderImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
@@ -37,6 +34,8 @@ import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContextProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
@@ -61,6 +60,10 @@ public class Oak {
 
     private final List<ValidatorProvider> validatorProviders =
             Lists.newArrayList();
+
+    private LoginContextProvider loginContextProvider;
+
+    private AccessControlContextProvider accProvider;
 
     public Oak(MicroKernel kernel) {
         this.kernel = kernel;
@@ -142,12 +145,38 @@ public class Oak {
         });
     }
 
+    /**
+     * Associates the given login context provider with the repository to be
+     * created.
+     *
+     * @param loginContextProvider a login context provider.
+     * @return this builder.
+     */
+    @Nonnull
+    public Oak with(@Nonnull LoginContextProvider loginContextProvider) {
+        this.loginContextProvider = loginContextProvider;
+        return this;
+    }
+
+    /**
+     * Associates the given access control context provider with the repository
+     * to be created.
+     *
+     * @param accProvider an access control context provider.
+     * @return this builder.
+     */
+    @Nonnull
+    public Oak with(@Nonnull AccessControlContextProvider accProvider) {
+        this.accProvider = accProvider;
+        return this;
+    }
+
     public ContentRepository createContentRepository() {
         return new ContentRepositoryImpl(
                 kernel,
-                new LoginContextProviderImpl(),
                 CompositeQueryIndexProvider.compose(queryIndexProviders),
-                createCommitHook());
+                createCommitHook(),
+                loginContextProvider, accProvider);
     }
 
     private CommitHook createCommitHook() {
@@ -172,15 +201,5 @@ public class Oak {
         } else {
             return new MemoryNodeStore();
         }
-    }
-
-    /**
-     * Creates a {@link Root} based on the previously set {@link MicroKernel},
-     * {@link CommitHook} and {@link ValidatorProvider}.
-     *
-     * @return a {@link Root} instance.
-     */
-    public Root createRoot() {
-        return new RootImpl(createNodeStore(), null);
     }
 }
