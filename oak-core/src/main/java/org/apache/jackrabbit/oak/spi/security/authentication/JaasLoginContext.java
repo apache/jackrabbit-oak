@@ -16,40 +16,42 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication;
 
-import java.util.Map;
 import javax.security.auth.Subject;
 import javax.security.auth.callback.CallbackHandler;
+import javax.security.auth.login.Configuration;
+import javax.security.auth.login.LoginContext;
 import javax.security.auth.login.LoginException;
-import javax.security.auth.spi.LoginModule;
 
 /**
- * This class implements a {@link LoginModule} which allows any authenticating
- * Subject to login.
+ * Bridge class that connects the JAAS {@link LoginContext} class with the
+ * {@link OakLoginContext} interface used by Oak.
  */
-public class OpenLoginModule implements LoginModule {
+public class JaasLoginContext extends LoginContext implements OakLoginContext {
 
-    @Override
-    public void initialize(Subject subject, CallbackHandler callbackHandler, Map<String, ?> stringMap, Map<String, ?> stringMap1) {
-        // nothing to do
+    public JaasLoginContext(String name) throws LoginException {
+        super(name);
     }
 
-    @Override
-    public boolean login() throws LoginException {
-        return true;
+    public JaasLoginContext(String name, Subject subject)
+            throws LoginException {
+        super(name, subject);
     }
 
-    @Override
-    public boolean commit() throws LoginException {
-        return true;
+    public JaasLoginContext(String name, CallbackHandler handler)
+            throws LoginException {
+        super(name, handler);
     }
 
-    @Override
-    public boolean abort() throws LoginException {
-        return true;
+    public JaasLoginContext(
+            String name, Subject subject, CallbackHandler handler)
+            throws LoginException {
+        super(name, subject, handler);
     }
 
-    @Override
-    public boolean logout() throws LoginException {
-        return true;
+    public JaasLoginContext(
+            String name, Subject subject, CallbackHandler handler,
+            Configuration configuration) throws LoginException {
+        super(name, subject, handler, configuration);
     }
+
 }

@@ -16,43 +16,41 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication;
 
-import java.util.Collections;
-
+import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
-import javax.security.auth.login.AppConfigurationEntry;
-import javax.security.auth.login.Configuration;
-import javax.security.auth.login.LoginContext;
-import javax.security.auth.login.LoginException;
+import javax.security.auth.Subject;
+
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 
 /**
- * This class implements a {@link LoginContextProvider} which accepts any given
- * credentials using an {@link OpenLoginModule}.
+ * This class provides login contexts that accept any credentials.
  */
 public class OpenLoginContextProvider implements LoginContextProvider {
 
-    @Override
-    public LoginContext getLoginContext(Credentials credentials,
-                                        String workspaceName)
-            throws LoginException {
-        return new OpenLoginContext();
-    }
-
-    private static class OpenLoginContext extends LoginContext {
-
-        private static final String APP_NAME = OpenLoginContext.class.getName();
-
-        public OpenLoginContext() throws LoginException {
-            super(APP_NAME, null, null, new Configuration() {
-                @Override
-                public AppConfigurationEntry[] getAppConfigurationEntry(String name) {
-                    return new AppConfigurationEntry[]{
-                            new AppConfigurationEntry(OpenLoginModule.class.getName(),
-                                    AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
-                                    Collections.<String, Object>emptyMap())
-                    };
-                }
-            });
+    @Override @Nonnull
+    public OakLoginContext getLoginContext(
+            Credentials credentials, String workspaceName) {
+        final Subject subject = new Subject();
+        if (credentials != null) {
+            subject.getPrivateCredentials().add(credentials);
         }
+        subject.getPrincipals().add(EveryonePrincipal.getInstance());
+        subject.setReadOnly();
+
+        return new OakLoginContext() {
+            @Override
+            public Subject getSubject() {
+                return subject;
+            }
+            @Override
+            public void login() {
+                // do nothing
+            }
+            @Override
+            public void logout() {
+                // do nothing
+            }
+        };
     }
 
 }
