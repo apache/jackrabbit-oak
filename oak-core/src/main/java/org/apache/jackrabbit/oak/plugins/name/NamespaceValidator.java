@@ -38,6 +38,10 @@ class NamespaceValidator extends DefaultValidator {
     public void propertyAdded(PropertyState after)
             throws CommitFailedException {
         String prefix = after.getName();
+        // ignore jcr:primaryType
+        if (prefix.equals("jcr:primaryType")) {
+            return;
+        }
         if (map.containsKey(prefix)) {
             throw new NamespaceValidatorException(
                     "Namespace mapping already registered", prefix);
