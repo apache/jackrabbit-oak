@@ -44,6 +44,8 @@ public class InitialContent extends DefaultMicroKernelTracker {
             mk.commit("/", "^\"jcr:primaryType\":\"nam:rep:root\"" +
                     "+\"jcr:system\":{" +
                     "\"jcr:primaryType\"    :\"nam:rep:system\"," +
+                    // FIXME: user-mgt related unique properties (rep:authorizableId, rep:principalName) are implementation detail and not generic for repo
+                    // FIXME: rep:principalName only needs to be unique if defined with user/group nodes -> add defining nt-info to uniqueness constraint otherwise ac-editing will fail.
                     "\":unique\"            :{\"jcr:uuid\":{},\"rep:authorizableId\":{},\"rep:principalName\":{}}," +
                     "\"jcr:versionStorage\" :{\"jcr:primaryType\":\"nam:rep:versionStorage\"}," +
                     "\"jcr:nodeTypes\"      :{\"jcr:primaryType\":\"nam:rep:nodeTypes\"}," +
