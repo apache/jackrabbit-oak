@@ -71,7 +71,8 @@ public class ContentRepositoryImpl implements ContentRepository {
     }
 
     public ContentRepositoryImpl(CommitHook hook) {
-        this(new MicroKernelImpl(), new CompositeQueryIndexProvider(), hook);
+        this(new MicroKernelImpl(), new LoginContextProviderImpl(),
+                new CompositeQueryIndexProvider(), hook);
     }
 
     /**
@@ -87,12 +88,12 @@ public class ContentRepositoryImpl implements ContentRepository {
      * @param validatorProvider
      *            the validation provider
      */
-    public ContentRepositoryImpl(MicroKernel microKernel,
-            QueryIndexProvider indexProvider,
+    public ContentRepositoryImpl(
+            MicroKernel microKernel, QueryIndexProvider indexProvider,
             ValidatorProvider validatorProvider) {
-        this(microKernel, indexProvider, new ValidatingHook(
-                validatorProvider != null ? validatorProvider
-                        : DefaultValidatorProvider.INSTANCE));
+        this(microKernel, new LoginContextProviderImpl(), indexProvider,
+                new ValidatingHook(validatorProvider != null
+                    ? validatorProvider : DefaultValidatorProvider.INSTANCE));
     }
 
     public ContentRepositoryImpl(
@@ -105,11 +106,13 @@ public class ContentRepositoryImpl implements ContentRepository {
      * initialized components.
      *
      * @param microKernel underlying kernel instance
+     * @param loginContextProvider login context provider
      * @param indexProvider index provider
      * @param commitHook the commit hook
      */
-    public ContentRepositoryImpl(MicroKernel microKernel, QueryIndexProvider indexProvider,
-                                 CommitHook commitHook) {
+    public ContentRepositoryImpl(
+            MicroKernel microKernel, LoginContextProvider loginContextProvider,
+            QueryIndexProvider indexProvider, CommitHook commitHook) {
 
         nodeStore = new KernelNodeStore(microKernel);
         nodeStore.setHook(commitHook);
@@ -118,8 +121,7 @@ public class ContentRepositoryImpl implements ContentRepository {
                 : new CompositeQueryIndexProvider();
         queryEngine = new QueryEngineImpl(nodeStore, qip);
 
-        // TODO: use configurable context provider
-        loginContextProvider = new LoginContextProviderImpl(this);
+        this.loginContextProvider = loginContextProvider;
     }
 
     @Nonnull
