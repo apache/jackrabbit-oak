@@ -60,10 +60,6 @@ public class BuiltInNodeTypes {
 
     private void registerBuiltinNodeTypes() {
         // FIXME: migrate custom node types as well.
-        // FIXME: registration of built-in node types should be moved to repo-setup
-        //        as the jcr:nodetypes tree is protected and the editing session may
-        //        not have sufficient permission to register node types or may
-        //        even have limited read-permission on the jcr:nodetypes path.
         if (!nodeTypesInContent()) {
             try {
                 InputStream stream = BuiltInNodeTypes.class.getResourceAsStream("builtin_nodetypes.cnd");
