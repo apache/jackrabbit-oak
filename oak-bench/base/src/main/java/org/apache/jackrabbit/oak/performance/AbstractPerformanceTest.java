@@ -33,6 +33,7 @@ import org.apache.jackrabbit.mk.MicroKernelFactory;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.mk.index.IndexWrapper;
+import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.jcr.RepositoryImpl;
@@ -175,9 +176,8 @@ public abstract class AbstractPerformanceTest {
         // return new RepositoryImpl();
 
         mk = new IndexWrapper(mk);
-        ValidatingHook ve =  new ValidatingHook(
-                CompositeValidatorProvider.compose(Collections.<ValidatorProvider>emptyList()));
-        ContentRepository contentRepository = new ContentRepositoryImpl(mk, null, ve);
+        ContentRepository contentRepository =
+                new Oak(mk).createContentRepository();
         return new RepositoryImpl(contentRepository, null);
 
     }

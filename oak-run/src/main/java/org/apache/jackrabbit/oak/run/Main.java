@@ -24,6 +24,7 @@ import javax.jcr.Repository;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
+import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.http.OakServlet;
@@ -155,8 +156,9 @@ public class Main {
         }
 
         private void addServlets(MicroKernel kernel, String path) {
-            ContentRepository repository =
-                    new ContentRepositoryImpl(kernel, null, buildDefaultCommitHook());
+            ContentRepository repository = new Oak(kernel)
+                .with(buildDefaultCommitHook())
+                .createContentRepository();
 
             ServletHolder oak =
                     new ServletHolder(new OakServlet(repository));

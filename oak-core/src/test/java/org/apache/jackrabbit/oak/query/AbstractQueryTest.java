@@ -19,12 +19,12 @@ package org.apache.jackrabbit.oak.query;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.mk.index.IndexWrapper;
 import org.apache.jackrabbit.oak.AbstractOakTest;
+import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.SessionQueryEngine;
-import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.plugins.index.Indexer;
 import org.apache.jackrabbit.oak.plugins.index.PropertyIndexer;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
@@ -56,7 +56,7 @@ public abstract class AbstractQueryTest extends AbstractOakTest {
         QueryIndexProvider qip = new CompositeQueryIndexProvider(pi);
         CompositeHook hook = new CompositeHook(pi);
         createDefaultKernelTracker().available(mk);
-        return new ContentRepositoryImpl(mk, qip, hook);
+        return new Oak(mk).with(qip).with(hook).createContentRepository();
     }
 
     @Override
