@@ -72,9 +72,13 @@ public class MongoMicroKernel implements MicroKernel {
     }
 
     @Override
-    public String diff(String fromRevisionId, String toRevisionId, String filter,
+    public String diff(String fromRevisionId, String toRevisionId, String path,
             int depth) throws MicroKernelException {
-        throw new UnsupportedOperationException("Diff is currently not supported.");
+        try {
+            return nodeStore.diff(fromRevisionId, toRevisionId, path, depth);
+        } catch (Exception e) {
+            throw new MicroKernelException(e);
+        }
     }
 
     @Override

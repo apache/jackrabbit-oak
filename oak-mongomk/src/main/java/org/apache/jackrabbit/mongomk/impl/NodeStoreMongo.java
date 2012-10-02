@@ -30,6 +30,7 @@ import org.apache.jackrabbit.mongomk.command.GetNodesCommandMongo;
 import org.apache.jackrabbit.mongomk.command.NodeExistsCommandMongo;
 import org.apache.jackrabbit.mongomk.impl.command.CommandExecutorImpl;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
+import org.apache.jackrabbit.mongomk.query.FetchCommitQuery;
 import org.apache.jackrabbit.mongomk.query.FetchHeadRevisionIdQuery;
 import org.apache.jackrabbit.mongomk.query.FetchValidCommitsQuery;
 import org.apache.jackrabbit.mongomk.util.MongoUtil;
@@ -59,6 +60,45 @@ public class NodeStoreMongo implements NodeStore {
         Command<Long> command = new CommitCommandMongo(mongoConnection, commit);
         Long revision = commandExecutor.execute(command);
         return MongoUtil.fromMongoRepresentation(revision);
+    }
+
+    @Override
+    public String diff(String fromRevision, String toRevision, String path, int depth)
+            throws Exception {
+        path = (path == null || path.isEmpty())? "/" : path;
+
+        if (depth < -1) {
+            throw new IllegalArgumentException("depth");
+        }
+
+        Long fromRevisionId, toRevisionId;
+        if (fromRevision == null || toRevision == null) {
+            Long head = new FetchHeadRevisionIdQuery(mongoConnection).execute();
+            fromRevisionId = fromRevision == null? head : MongoUtil.toMongoRepresentation(fromRevision);
+            toRevisionId = toRevision == null ? head : MongoUtil.toMongoRepresentation(toRevision);;
+        } else {
+            fromRevisionId = MongoUtil.toMongoRepresentation(fromRevision);
+            toRevisionId = MongoUtil.toMongoRepresentation(toRevision);;
+        }
+
+        if (fromRevisionId.equals(toRevisionId)) {
+            return "";
+        }
+
+        if ("/".equals(path)) {
+            CommitMongo toCommit = new FetchCommitQuery(mongoConnection, toRevisionId).execute();
+            if (toCommit.getBaseRevisionId() == fromRevisionId) {
+                // Specified range spans a single commit:
+                // use diff stored in commit instead of building it dynamically
+                return toCommit.getDiff();
+            }
+        }
+
+        throw new UnsupportedOperationException("Diff is currently not supported.");
+        // FIXME - Finish the rest
+        //NodeState before = rep.getNodeState(fromRevisionId, path);
+        //NodeState after = rep.getNodeState(toRevisionId, path);
+        //return new DiffBuilder(before, after, path, depth, rep.getRevisionStore(), path).build();
     }
 
     @Override
