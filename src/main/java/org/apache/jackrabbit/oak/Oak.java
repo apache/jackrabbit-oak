@@ -110,7 +110,7 @@ public class Oak {
      */
     private void withValidatorHook() {
         if (!validatorProviders.isEmpty()) {
-            with(new ValidatingHook(
+            commitHooks.add(new ValidatingHook(
                     CompositeValidatorProvider.compose(validatorProviders)));
             validatorProviders.clear();
         }
