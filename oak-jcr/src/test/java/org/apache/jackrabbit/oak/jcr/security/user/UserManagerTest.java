@@ -55,21 +55,6 @@ public class UserManagerTest extends AbstractUserTest {
     }
 
     @Test
-    public void testRemoveItem() throws RepositoryException {
-        Node n = testRootNode.addNode("test");
-        superuser.save();
-
-        Session s = getHelper().getReadOnlySession();
-        try {
-            s.removeItem(n.getPath());
-            s.save();
-            fail();
-        } finally {
-            s.logout();
-        }
-    }
-
-    @Test
     public void testGetNewAuthorizable() throws RepositoryException, NotExecutableException {
         String uid = "testGetNewAuthorizable";
         User user = userMgr.createUser(uid, uid);
