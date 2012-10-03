@@ -253,6 +253,7 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
         while (iterator.hasNext()) {
             bq.add(createNodeTypeQuery(iterator.nextNodeType()), Occur.SHOULD);
         }
+        qs.add(bq);
     }
 
     private static Query createNodeTypeQuery(NodeType type) {
