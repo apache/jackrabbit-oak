@@ -210,6 +210,8 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
                     first = first.replace("%", "*");
                 }
                 if (first.endsWith("*")) {
+                    // remove trailing "*" for prefixquery
+                    first = first.substring(0, first.length() - 1);
                     if (JCR_PATH.equals(name)) {
                         qs.add(new PrefixQuery(newPathTerm(first)));
                     } else {
