@@ -28,14 +28,14 @@ import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.oak.api.ChangeExtractor;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.plugins.commit.DefaultConflictHandler;
-import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.SessionQueryEngine;
 import org.apache.jackrabbit.oak.api.TreeLocation;
-import org.apache.jackrabbit.oak.security.authorization.AccessControlContextImpl;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContext;
+import org.apache.jackrabbit.oak.plugins.commit.DefaultConflictHandler;
+import org.apache.jackrabbit.oak.query.SessionQueryEngineImpl;
+import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
+import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.CompiledPermissions;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -46,6 +46,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 
@@ -57,15 +58,15 @@ public class RootImpl implements Root {
      */
     private static final int PURGE_LIMIT = 100;
 
-    /**
-     * A dummy subject used when no subject is provided in the constructor.
-     */
-    private static final Subject DUMMY_SUBJECT = new Subject();
-
     /** The underlying store to which this root belongs */
     private final NodeStore store;
 
     private final Subject subject;
+
+    /**
+     * The access control context provider.
+     */
+    private final AccessControlProvider accProvider;
 
     /** Current branch this root operates on */
     private NodeStoreBranch branch;
@@ -93,6 +94,8 @@ public class RootImpl implements Root {
 
     private volatile ConflictHandler conflictHandler = DefaultConflictHandler.OURS;
 
+    private final QueryIndexProvider indexProvider;
+
     /**
      * Purge listener.
      * @see #purgePurgeListeners
@@ -103,25 +106,23 @@ public class RootImpl implements Root {
 
     /**
      * New instance bases on a given {@link NodeStore} and a workspace
-     * @param store  node store
-     * @param workspaceName  name of the workspace
-     * @param subject
+     *
+     * @param store         node store
+     * @param workspaceName name of the workspace
+     * @param subject       the subject.
+     * @param accProvider   the access control context provider.
      */
     @SuppressWarnings("UnusedParameters")
-    public RootImpl(NodeStore store, String workspaceName, Subject subject) {
-        this.store = store;
-        this.subject = subject;
+    public RootImpl(NodeStore store,
+                    String workspaceName,
+                    Subject subject,
+                    AccessControlProvider accProvider,
+                    QueryIndexProvider indexProvider) {
+        this.store = checkNotNull(store);
+        this.subject = checkNotNull(subject);
+        this.accProvider = checkNotNull(accProvider);
+        this.indexProvider = indexProvider;
         refresh();
-    }
-
-    /**
-     * New instance bases on a given {@link NodeStore} and a workspace
-     * @param store  node store
-     * @param workspaceName  name of the workspace
-     */
-    @SuppressWarnings("UnusedParameters")
-    public RootImpl(NodeStore store, String workspaceName) {
-        this(store, workspaceName, DUMMY_SUBJECT);
     }
 
     public void setConflictHandler(ConflictHandler conflictHandler) {
@@ -280,13 +281,7 @@ public class RootImpl implements Root {
     }
 
     CompiledPermissions getPermissions() {
-        if (subject == DUMMY_SUBJECT) {
-            return new AllPermissions();
-        } else {
-            AccessControlContext context = new AccessControlContextImpl();
-            context.initialize(subject.getPrincipals());
-            return context.getPermissions();
-        }
+        return accProvider.createAccessControlContext(subject).getPermissions();
     }
 
     //------------------------------------------------------------< private >---
@@ -308,29 +303,9 @@ public class RootImpl implements Root {
             purgeListener.purged();
         }
     }
-
-    private static final class AllPermissions implements CompiledPermissions {
-        @Override
-        public boolean canRead(String path, boolean isProperty) {
-            return true;
-        }
-
-        @Override
-        public boolean isGranted(int permissions) {
-            return true;
-        }
-
-        @Override
-        public boolean isGranted(Tree tree, int permissions) {
-            return true;
-        }
-
-        @Override
-        public boolean isGranted(Tree parent,
-                                 PropertyState property,
-                                 int permissions) {
-            return true;
-        }
+    @Override
+    public SessionQueryEngine getQueryEngine() {
+        return new SessionQueryEngineImpl(store, indexProvider);
     }
 
 }

@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.jcr;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-
 import javax.jcr.Credentials;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -32,22 +31,19 @@ import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
+import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.type.InitialContent;
 import org.apache.jackrabbit.oak.plugins.type.TypeValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.unique.UniqueIndexHook;
-import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
-import org.apache.jackrabbit.oak.security.authorization.AccessControlValidatorProvider;
 import org.apache.jackrabbit.oak.security.authorization.PermissionValidatorProvider;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeValidatorProvider;
-import org.apache.jackrabbit.oak.security.user.UserValidatorProvider;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
 import org.apache.jackrabbit.oak.spi.commit.ValidatingHook;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
-import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,10 +63,8 @@ public class RepositoryImpl implements Repository {
                     new NamespaceValidatorProvider(),
                     new TypeValidatorProvider(),
                     new ConflictValidatorProvider(),
+                    // FIXME: permission validator depends on AccessControlProvider
                     new PermissionValidatorProvider(),
-                    new AccessControlValidatorProvider(),
-                    // FIXME: retrieve from user context
-                    new UserValidatorProvider(new UserConfig("admin")),
                     new PrivilegeValidatorProvider());
 
     private static final CompositeHook DEFAULT_COMMIT_HOOK =
@@ -83,11 +77,15 @@ public class RepositoryImpl implements Repository {
 
     private final ScheduledExecutorService executor;
 
+    private final SecurityProvider securityProvider;
+
     public RepositoryImpl(
             ContentRepository contentRepository,
-            ScheduledExecutorService executor) {
+            ScheduledExecutorService executor,
+            SecurityProvider securityProvider) {
         this.contentRepository = contentRepository;
         this.executor = executor;
+        this.securityProvider = securityProvider;
     }
 
     public RepositoryImpl(
@@ -95,7 +93,7 @@ public class RepositoryImpl implements Repository {
         this(new Oak(setupInitialContent(kernel))
                 .with(DEFAULT_COMMIT_HOOK)
                 .createContentRepository(),
-                executor);
+                executor, null);
     }
 
     /**
@@ -175,7 +173,7 @@ public class RepositoryImpl implements Repository {
         // TODO: needs complete refactoring
         try {
             ContentSession contentSession = contentRepository.login(credentials, workspaceName);
-            return new SessionDelegate(this, executor, contentSession, false).getSession();
+            return new SessionDelegate(this, executor, contentSession, securityProvider, false).getSession();
         } catch (LoginException e) {
             throw new javax.jcr.LoginException(e.getMessage(), e);
         }

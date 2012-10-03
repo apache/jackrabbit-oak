@@ -56,7 +56,7 @@ public class PropertyContentIndex implements QueryIndex {
     }
 
     @Override
-    public String getPlan(Filter filter) {
+    public String getPlan(Filter filter, NodeState root) {
         String propertyName = index.getPropertyName();
         Filter.PropertyRestriction restriction = filter.getPropertyRestriction(propertyName);
         return "propertyIndex \"" + restriction.propertyName + " " + restriction.toString() + '"';

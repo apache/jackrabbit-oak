@@ -14,23 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.jcr.security.user.query;
+package org.apache.jackrabbit.oak.spi.security.authentication;
 
-import javax.jcr.RepositoryException;
+import javax.security.auth.Subject;
+import javax.security.auth.login.LoginContext;
+import javax.security.auth.login.LoginException;
 
-interface ConditionVisitor {
+/**
+ * Interface version of the JAAS {@link LoginContext} class. Used by Oak to
+ * make it easier to integrate non-JAAS authentication components while still
+ * retaining full JAAS support. The {@link JaasLoginContext} class acts as a
+ * bridge that connects the JAAS {@link LoginContext} class with this
+ * interface.
+ */
+public interface OakLoginContext {
 
-    void visit(Condition.Node node) throws RepositoryException;
+    Subject getSubject();
 
-    void visit(Condition.Property condition) throws RepositoryException;
+    void login() throws LoginException;
 
-    void visit(Condition.Contains condition);
+    void logout() throws LoginException;
 
-    void visit(Condition.Impersonation condition);
-
-    void visit(Condition.Not condition) throws RepositoryException;
-
-    void visit(Condition.And condition) throws RepositoryException;
-
-    void visit(Condition.Or condition) throws RepositoryException;
 }

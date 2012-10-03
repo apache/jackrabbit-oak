@@ -56,7 +56,7 @@ public class UniqueIndex implements QueryIndex {
     }
 
     @Override
-    public String getPlan(Filter filter) {
+    public String getPlan(Filter filter, NodeState root) {
         return "jcr:uuid";
     }
 

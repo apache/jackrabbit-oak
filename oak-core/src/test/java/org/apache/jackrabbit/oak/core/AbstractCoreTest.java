@@ -22,6 +22,8 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
+import org.apache.jackrabbit.oak.security.authorization.AccessControlProviderImpl;
+import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Before;
 import org.slf4j.Logger;
@@ -54,6 +56,7 @@ public abstract class AbstractCoreTest {
     protected abstract NodeState createInitialState(MicroKernel microKernel);
 
     protected RootImpl createRootImpl(String workspaceName) {
-        return new RootImpl(store, workspaceName, new Subject());
+        return new RootImpl(store, workspaceName, new Subject(),
+                new AccessControlProviderImpl(), new CompositeQueryIndexProvider());
     }
 }

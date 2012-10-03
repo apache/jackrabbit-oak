@@ -18,11 +18,20 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import org.apache.jackrabbit.JcrConstants;
+import java.util.Set;
+
+import javax.annotation.CheckForNull;
+import javax.jcr.RepositoryException;
+import javax.jcr.nodetype.NodeType;
+import javax.jcr.nodetype.NodeTypeIterator;
+import javax.jcr.nodetype.NodeTypeManager;
+
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.memory.SinglePropertyState;
+import org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants;
+import org.apache.jackrabbit.oak.plugins.type.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.query.Query;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
@@ -31,14 +40,12 @@ import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
+import com.google.common.collect.ImmutableSet;
+
 /**
  * A selector within a query.
  */
 public class SelectorImpl extends SourceImpl {
-
-    private static final String JCR_PRIMARY_TYPE = "jcr:primaryType";
-
-    private static final String TYPE_BASE = "nt:base";
 
     // TODO possibly support using multiple indexes (using index intersection / index merge)
     protected QueryIndex index;
@@ -93,10 +100,10 @@ public class SelectorImpl extends SourceImpl {
     }
 
     @Override
-    public String getPlan() {
+    public String getPlan(NodeState root) {
         StringBuilder buff = new StringBuilder();
         buff.append(toString());
-        buff.append(" /* ").append(index.getPlan(createFilter()));
+        buff.append(" /* ").append(index.getPlan(createFilter(), root));
         if (selectorCondition != null) {
             buff.append(" where ").append(selectorCondition);
         }
@@ -122,9 +129,16 @@ public class SelectorImpl extends SourceImpl {
 
     @Override
     public boolean next() {
-        while (true) {
-            if (!nextNode()) {
-                return false;
+        while (cursor != null && cursor.next()) {
+            scanCount++;
+            Tree tree = getTree(cursor.currentRow().getPath());
+            if (tree == null) {
+                continue;
+            }
+            if (nodeTypeName != null
+                    && !nodeTypeName.equals(NodeTypeConstants.NT_BASE)
+                    && !evaluateTypeMatch(tree)) {
+                continue;
             }
             if (selectorCondition != null && !selectorCondition.evaluate()) {
                 continue;
@@ -134,42 +148,62 @@ public class SelectorImpl extends SourceImpl {
             }
             return true;
         }
+        return false;
     }
 
-    private boolean nextNode() {
-        if (cursor == null) {
-            return false;
-        }
-        scanCount++;
-        while (true) {
-            boolean result = cursor.next();
-            if (!result) {
-                return false;
+    private boolean evaluateTypeMatch(Tree tree) {
+        Set<String> primary =
+                getStrings(tree, NodeTypeConstants.JCR_PRIMARYTYPE);
+        Set<String> mixins =
+                getStrings(tree, NodeTypeConstants.JCR_MIXINTYPES);
+
+        // TODO: Should retrieve matching node types only once per query
+        // execution instead of again and again for each return row
+        NodeTypeManager manager = new ReadOnlyNodeTypeManager() {
+            @Override @CheckForNull
+            protected Tree getTypes() {
+                return getTree(NodeTypeConstants.NODE_TYPES_PATH);
             }
-            if (nodeTypeName.equals(TYPE_BASE)) {
+        };
+
+        try {
+            NodeType type = manager.getNodeType(nodeTypeName);
+            if (evaluateTypeMatch(type, primary, mixins)) {
                 return true;
             }
-            Tree tree = getTree(cursor.currentRow().getPath());
-            if (tree == null) {
-                return false;
-            }
-            PropertyState p = tree.getProperty(JCR_PRIMARY_TYPE);
-            if (p == null) {
-                return true;
-            }
-            CoreValue v = p.getValue();
-            // TODO node type matching
-            if (nodeTypeName.equals(v.getString())) {
-                return true;
-            }
-            PropertyState m = tree.getProperty(JcrConstants.JCR_MIXINTYPES);
-            if (m != null) {
-                for (CoreValue value : m.getValues()) {
-                    if (nodeTypeName.equals(value.getString())) {
-                        return true;
-                    }
+            NodeTypeIterator iterator = type.getSubtypes();
+            while (iterator.hasNext()) {
+                type = iterator.nextNodeType();
+                if (evaluateTypeMatch(type, primary, mixins)) {
+                    return true;
                 }
             }
+        } catch (RepositoryException e) {
+            throw new RuntimeException(
+                    "Unable to evaluate node type constraints", e);
+        }
+
+        return false;
+    }
+
+    private Set<String> getStrings(Tree tree, String name) {
+        ImmutableSet.Builder<String> builder = ImmutableSet.builder();
+        PropertyState property = tree.getProperty(name);
+        if (property != null) {
+            for (CoreValue value : property.getValues()) {
+                builder.add(value.getString());
+            }
+        }
+        return builder.build();
+    }
+
+    private boolean evaluateTypeMatch(
+            NodeType type, Set<String> primary, Set<String> mixins) {
+        String name = type.getName();
+        if (type.isMixin()) {
+            return mixins.contains(name);
+        } else {
+            return primary.contains(name);
         }
     }
 

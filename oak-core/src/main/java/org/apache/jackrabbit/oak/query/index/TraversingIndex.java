@@ -49,7 +49,7 @@ public class TraversingIndex implements QueryIndex {
     }
 
     @Override
-    public String getPlan(Filter filter) {
+    public String getPlan(Filter filter, NodeState root) {
         String p = filter.getPath();
         String r = filter.getPathRestriction().toString();
         if (PathUtils.denotesRoot(p)) {

@@ -16,23 +16,32 @@
  */
 package org.apache.jackrabbit.oak.security.authorization;
 
-import javax.annotation.Nonnull;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import javax.security.auth.Subject;
 
-import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContext;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlProvider;
 
 /**
- * {@code AccessControlValidatorProvider} aimed to provide a root validator
- * that makes sure access control related content modifications (adding, modifying
- * and removing access control policies) are valid according to the
- * constraints defined by this access control implementation.
+ * {@code AccessControlProviderImpl} is a default implementation and
+ * creates {@link AccessControlContextImpl} for a given set of principals.
  */
-class AccessControlValidatorProvider implements ValidatorProvider {
+public class AccessControlProviderImpl
+        implements AccessControlProvider {
 
-    @Nonnull
     @Override
-    public Validator getRootValidator(NodeState before, NodeState after) {
-        return new AccessControlValidator();
+    public AccessControlContext createAccessControlContext(Subject subject) {
+        return new AccessControlContextImpl(subject);
+    }
+
+    @Override
+    public List<ValidatorProvider> getValidatorProviders() {
+        List<ValidatorProvider> vps = new ArrayList<ValidatorProvider>();
+        vps.add(new PermissionValidatorProvider());
+        vps.add(new AccessControlValidatorProvider());
+        return Collections.unmodifiableList(vps);
     }
 }

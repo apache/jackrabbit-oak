@@ -17,15 +17,18 @@
 package org.apache.jackrabbit.oak.security.authentication;
 
 import org.apache.jackrabbit.oak.security.principal.TmpPrincipalProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.JaasLoginContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.OakLoginContext;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
 import javax.security.auth.Subject;
+import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.login.Configuration;
-import javax.security.auth.login.LoginContext;
 import javax.security.auth.login.LoginException;
 import java.security.AccessController;
 
@@ -47,13 +50,17 @@ public class LoginContextProviderImpl implements LoginContextProvider {
         principalProvider = new TmpPrincipalProvider();
     }
 
-    @Override
-    public LoginContext getLoginContext(Credentials credentials, String workspaceName) throws LoginException {
+    @Override @Nonnull
+    public OakLoginContext getLoginContext(
+            Credentials credentials, String workspaceName)
+            throws LoginException {
         // TODO: add proper implementation
         // TODO  - authentication against configurable spi-authentication
         // TODO  - validation of workspace name (including access rights for the given 'user')
         Subject subject = getSubject();
-        return new LoginContext(APP_NAME, subject, new CallbackHandlerImpl(credentials, principalProvider), authConfig);
+        CallbackHandler handler =
+                new CallbackHandlerImpl(credentials, principalProvider);
+        return new JaasLoginContext(APP_NAME, subject, handler, authConfig);
     }
 
     //-------------------------------------------------===--------< private >---

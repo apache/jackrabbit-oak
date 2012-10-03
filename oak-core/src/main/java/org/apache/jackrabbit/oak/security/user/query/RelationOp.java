@@ -1,4 +1,4 @@
-package org.apache.jackrabbit.oak.jcr.security.user.query;
+package org.apache.jackrabbit.oak.security.user.query;
 
 /**
  * Relational operators for comparing a property to a value. Correspond

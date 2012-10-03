@@ -34,6 +34,7 @@ import javax.jcr.nodetype.ConstraintViolationException;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.test.NotExecutableException;
@@ -41,9 +42,9 @@ import org.apache.jackrabbit.value.StringValue;
 import org.junit.Test;
 
 /**
- * AuthorizableImplTest...
+ * AuthorizableTest...
  */
-public class AuthorizableImplTest extends AbstractUserTest {
+public class AuthorizableTest extends AbstractUserTest {
 
     private List<String> protectedUserProps = new ArrayList<String>();
     private List<String> protectedGroupProps = new ArrayList<String>();
@@ -136,8 +137,8 @@ public class AuthorizableImplTest extends AbstractUserTest {
 
     @Test
     public void testProtectedUserProperties() throws NotExecutableException, RepositoryException {
-        UserImpl user = (UserImpl) getTestUser(superuser);
-        Node n = user.getNode();
+        User user = getTestUser(superuser);
+        Node n = getNode(user, superuser);
 
         if (n.hasProperty(UserConstants.REP_PASSWORD)) {
             checkProtected(n.getProperty(UserConstants.REP_PASSWORD));
@@ -152,7 +153,7 @@ public class AuthorizableImplTest extends AbstractUserTest {
 
     @Test
     public void testProtectedGroupProperties() throws NotExecutableException, RepositoryException {
-        Node n = ((GroupImpl) group).getNode();
+        Node n = getNode(group, superuser);
 
         if (n.hasProperty(UserConstants.REP_PRINCIPAL_NAME)) {
             checkProtected(n.getProperty(UserConstants.REP_PRINCIPAL_NAME));
@@ -164,7 +165,7 @@ public class AuthorizableImplTest extends AbstractUserTest {
 
     @Test
     public void testMembersPropertyType() throws NotExecutableException, RepositoryException {
-        Node n = ((GroupImpl) group).getNode();
+        Node n = getNode(group, superuser);
 
         if (!n.hasProperty(UserConstants.REP_MEMBERS)) {
             group.addMember(getTestUser(superuser));
@@ -215,10 +216,10 @@ public class AuthorizableImplTest extends AbstractUserTest {
 
     @Test
     public void testSetSpecialPropertiesDirectly() throws NotExecutableException, RepositoryException {
-        AuthorizableImpl user = (AuthorizableImpl) getTestUser(superuser);
-        Node n = user.getNode();
+        Authorizable user = getTestUser(superuser);
+        Node n = getNode(user, superuser);
         try {
-            String pName = user.getPrincipalName();
+            String pName = user.getPrincipal().getName();
             n.setProperty(UserConstants.REP_PRINCIPAL_NAME, new StringValue("any-value"));
 
             // should have failed => change value back.
@@ -242,8 +243,8 @@ public class AuthorizableImplTest extends AbstractUserTest {
 
     @Test
     public void testRemoveSpecialUserPropertiesDirectly() throws RepositoryException, NotExecutableException {
-        AuthorizableImpl g = (AuthorizableImpl) getTestUser(superuser);
-        Node n = g.getNode();
+        Authorizable g = getTestUser(superuser);
+        Node n = getNode(g, superuser);
         try {
             n.getProperty(UserConstants.REP_PASSWORD).remove();
             fail("Attempt to remove protected property rep:password should fail.");
@@ -262,7 +263,7 @@ public class AuthorizableImplTest extends AbstractUserTest {
 
     @Test
     public void testRemoveSpecialGroupPropertiesDirectly() throws RepositoryException, NotExecutableException {
-        Node n = ((GroupImpl) group).getNode();
+        Node n = getNode(group, superuser);
         try {
             if (n.hasProperty(UserConstants.REP_PRINCIPAL_NAME)) {
                 n.getProperty(UserConstants.REP_PRINCIPAL_NAME).remove();
@@ -283,8 +284,8 @@ public class AuthorizableImplTest extends AbstractUserTest {
 
     @Test
     public void testUserGetProperties() throws RepositoryException, NotExecutableException {
-        AuthorizableImpl user = (AuthorizableImpl) getTestUser(superuser);
-        Node n = user.getNode();
+        Authorizable user = getTestUser(superuser);
+        Node n = getNode(user, superuser);
 
         for (PropertyIterator it = n.getProperties(); it.hasNext();) {
             Property p = it.nextProperty();
@@ -301,7 +302,7 @@ public class AuthorizableImplTest extends AbstractUserTest {
 
     @Test
     public void testGroupGetProperties() throws RepositoryException, NotExecutableException {
-        Node n = ((GroupImpl) group).getNode();
+        Node n = getNode(group, superuser);
 
         for (PropertyIterator it = n.getProperties(); it.hasNext();) {
             Property prop = it.nextProperty();
@@ -318,7 +319,7 @@ public class AuthorizableImplTest extends AbstractUserTest {
 
     @Test
     public void testSingleToMultiValued() throws Exception {
-        AuthorizableImpl user = (AuthorizableImpl) getTestUser(superuser);
+        Authorizable user = getTestUser(superuser);
         UserManager uMgr = getUserManager(superuser);
         try {
             Value v = superuser.getValueFactory().createValue("anyValue");
@@ -340,7 +341,7 @@ public class AuthorizableImplTest extends AbstractUserTest {
 
     @Test
     public void testMultiValuedToSingle() throws Exception {
-        AuthorizableImpl user = (AuthorizableImpl) getTestUser(superuser);
+        Authorizable user = getTestUser(superuser);
         UserManager uMgr = getUserManager(superuser);
         try {
             Value v = superuser.getValueFactory().createValue("anyValue");
@@ -362,8 +363,8 @@ public class AuthorizableImplTest extends AbstractUserTest {
 
     @Test
     public void testObjectMethods() throws Exception {
-        final AuthorizableImpl user = (AuthorizableImpl) getTestUser(superuser);
-        AuthorizableImpl user2 = (AuthorizableImpl) getTestUser(superuser);
+        final Authorizable user = getTestUser(superuser);
+        Authorizable user2 = getTestUser(superuser);
 
         assertEquals(user, user2);
         assertEquals(user.hashCode(), user2.hashCode());
@@ -436,9 +437,9 @@ public class AuthorizableImplTest extends AbstractUserTest {
 
     @Test
     public void testGetPath() throws Exception {
-        AuthorizableImpl user = (AuthorizableImpl) getTestUser(superuser);
+        Authorizable user = getTestUser(superuser);
         try {
-            assertEquals(user.getNode().getPath(), user.getPath());
+            assertEquals(getNode(user, superuser).getPath(), user.getPath());
         } catch (UnsupportedRepositoryOperationException e) {
             // ok.
         }

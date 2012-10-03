@@ -14,25 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authorization;
+package org.apache.jackrabbit.oak.security.user.query;
 
-import javax.annotation.Nonnull;
+import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.oak.spi.commit.Validator;
-import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
+interface ConditionVisitor {
 
-/**
- * {@code AccessControlValidatorProvider} aimed to provide a root validator
- * that makes sure access control related content modifications (adding, modifying
- * and removing access control policies) are valid according to the
- * constraints defined by this access control implementation.
- */
-class AccessControlValidatorProvider implements ValidatorProvider {
+    void visit(Condition.Node node) throws RepositoryException;
 
-    @Nonnull
-    @Override
-    public Validator getRootValidator(NodeState before, NodeState after) {
-        return new AccessControlValidator();
-    }
+    void visit(Condition.Property condition) throws RepositoryException;
+
+    void visit(Condition.Contains condition);
+
+    void visit(Condition.Impersonation condition);
+
+    void visit(Condition.Not condition) throws RepositoryException;
+
+    void visit(Condition.And condition) throws RepositoryException;
+
+    void visit(Condition.Or condition) throws RepositoryException;
 }

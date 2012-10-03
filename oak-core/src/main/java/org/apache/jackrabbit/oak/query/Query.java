@@ -24,7 +24,6 @@ import java.util.List;
 
 import javax.jcr.PropertyType;
 
-import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -93,7 +92,6 @@ public class Query {
     private long size = -1;
     private boolean prepared;
     private final CoreValueFactory valueFactory;
-    private ContentSession session;
     private Root root;
     private NamePathMapper namePathMapper;
 
@@ -313,7 +311,7 @@ public class Query {
         prepare();
         Iterator<ResultRowImpl> it;
         if (explain) {
-            String plan = source.getPlan();
+            String plan = source.getPlan(root);
             columns = new ColumnImpl[] { new ColumnImpl("explain", "plan", "plan")};
             ResultRowImpl r = new ResultRowImpl(this,
                     new String[0],
@@ -685,10 +683,6 @@ public class Query {
         return queryEngine.getBestIndex(filter);
     }
 
-    public void setSession(ContentSession session) {
-        this.session = session;
-    }
-    
     public void setRoot(Root root) {
         this.root = root;
     }

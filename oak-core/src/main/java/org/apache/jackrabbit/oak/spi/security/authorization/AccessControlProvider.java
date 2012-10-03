@@ -14,26 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.security.user;
+package org.apache.jackrabbit.oak.spi.security.authorization;
+
+import java.util.List;
+import javax.security.auth.Subject;
+
+import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 
 /**
- * UserConstants...
+ * {@code AccessControlContextProvider}...
  */
-public interface UserConstants {
+public interface AccessControlProvider {
 
-    String NT_REP_AUTHORIZABLE = "rep:Authorizable";
-    String NT_REP_AUTHORIZABLE_FOLDER = "rep:AuthorizableFolder";
-    String NT_REP_USER = "rep:User";
-    String NT_REP_GROUP = "rep:Group";
-    String NT_REP_MEMBERS = "rep:Members";
-    String REP_PRINCIPAL_NAME = "rep:principalName";
-    String REP_AUTHORIZABLE_ID = "rep:authorizableId";
-    String REP_PASSWORD = "rep:password";
-    String REP_DISABLED = "rep:disabled";
-    String REP_MEMBERS = "rep:members";
-    String REP_IMPERSONATORS = "rep:impersonators";
+    public AccessControlContext createAccessControlContext(Subject subject);
 
-    String DEFAULT_USER_PATH = "/rep:security/rep:authorizables/rep:users";
-    String DEFAULT_GROUP_PATH = "/rep:security/rep:authorizables/rep:groups";
-    int DEFAULT_DEPTH = 2;
+    public List<ValidatorProvider> getValidatorProviders();
 }

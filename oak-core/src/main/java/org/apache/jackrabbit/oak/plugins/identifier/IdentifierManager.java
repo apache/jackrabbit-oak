@@ -39,7 +39,6 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.SessionQueryEngine;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -55,11 +54,9 @@ public class IdentifierManager {
     private static final Logger log = LoggerFactory.getLogger(IdentifierManager.class);
 
     private final Root root;
-    private final SessionQueryEngine queryEngine;
 
-    public IdentifierManager(SessionQueryEngine queryEngine, Root root) {
+    public IdentifierManager(Root root) {
         this.root = root;
-        this.queryEngine = queryEngine;
     }
 
     @Nonnull
@@ -190,7 +187,7 @@ public class IdentifierManager {
                 String pName = propertyName == null ? "*" : propertyName;   // TODO: sanitize against injection attacks!?
                 Map<String, ? extends CoreValue> bindings = Collections.singletonMap("uuid", new StringValue(uuid));
 
-                Result result = queryEngine.executeQuery(
+                Result result = root.getQueryEngine().executeQuery(
                         "SELECT * FROM [nt:base] WHERE PROPERTY([" + pName + "], '" + reference + "') = $uuid",
                         Query.JCR_SQL2, Long.MAX_VALUE, 0, bindings, root, new NamePathMapper.Default());
 
@@ -290,7 +287,7 @@ public class IdentifierManager {
     private String resolveUUID(CoreValue uuid) {
         try {
             Map<String, CoreValue> bindings = Collections.singletonMap("id", uuid);
-            Result result = queryEngine.executeQuery(
+            Result result = root.getQueryEngine().executeQuery(
                     "SELECT * FROM [nt:base] WHERE [jcr:uuid] = $id", Query.JCR_SQL2,
                     Long.MAX_VALUE, 0, bindings, root, new NamePathMapper.Default());
 

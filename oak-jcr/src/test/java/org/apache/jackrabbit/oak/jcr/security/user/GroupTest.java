@@ -32,9 +32,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * GroupImplTest...
+ * GroupTest...
  */
-public class GroupImplTest extends AbstractUserTest {
+public class GroupTest extends AbstractUserTest {
 
     private List<String> members = new ArrayList<String>();
 
