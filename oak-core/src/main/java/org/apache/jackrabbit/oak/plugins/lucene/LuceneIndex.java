@@ -53,6 +53,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.MultiFields;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
@@ -98,7 +99,7 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
 
     @Override
     public String getPlan(Filter filter, NodeState root) {
-        return getQuery(filter, root).toString();
+        return getQuery(filter, root, null).toString();
     }
 
     @Override
@@ -124,7 +125,7 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
                     IndexSearcher searcher = new IndexSearcher(reader);
                     Collection<String> paths = new ArrayList<String>();
 
-                    Query query = getQuery(filter, root);
+                    Query query = getQuery(filter, root, reader);
                     if (query != null) {
                         TopDocs docs = searcher
                                 .search(query, Integer.MAX_VALUE);
@@ -153,7 +154,7 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
         }
     }
 
-    private static Query getQuery(Filter filter, NodeState root) {
+    private static Query getQuery(Filter filter, NodeState root, IndexReader reader) {
         List<Query> qs = new ArrayList<Query>();
 
         try {
@@ -233,7 +234,11 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
                 if (JCR_PATH.equals(name)) {
                     qs.add(new TermQuery(newPathTerm(first)));
                 } else {
-                    qs.add(new TermQuery(new Term(name, first)));
+                    if ("*".equals(name)) {
+                        addReferenceConstraint(first, qs, reader);
+                    } else {
+                        qs.add(new TermQuery(new Term(name, first)));
+                    }
                 }
                 continue;
             }
@@ -254,6 +259,23 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
             bq.add(q, Occur.MUST);
         }
         return bq;
+    }
+
+    private static void addReferenceConstraint(String uuid, List<Query> qs,
+            IndexReader reader) {
+        if (reader == null) {
+            // getPlan call
+            qs.add(new TermQuery(new Term("*", uuid)));
+            return;
+        }
+
+        // reference query
+        BooleanQuery bq = new BooleanQuery();
+        Collection<String> fields = MultiFields.getIndexedFields(reader);
+        for (String f : fields) {
+            bq.add(new TermQuery(new Term(f, uuid)), Occur.SHOULD);
+        }
+        qs.add(bq);
     }
 
     private static void addNodeTypeConstraints(
