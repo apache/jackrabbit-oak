@@ -104,7 +104,6 @@ class LuceneEditor implements CommitHook, LuceneIndexConstants {
                     after.compareAgainstBaseState(before, diff);
                 } else {
                     // trigger re-indexing
-                    diff.childNodeDeleted("", after);
                     diff.childNodeAdded("", after);
                 }
 
@@ -179,7 +178,7 @@ class LuceneEditor implements CommitHook, LuceneIndexConstants {
 
         private void addSubtree(String path, NodeState state)
                 throws IOException {
-            writer.addDocument(makeDocument(path, state));
+            writer.updateDocument(newPathTerm(path), makeDocument(path, state));
             for (ChildNodeEntry entry : state.getChildNodeEntries()) {
                 if (NodeStateUtils.isHidden(entry.getName())) {
                     continue;
