@@ -278,7 +278,8 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
     private static void addNodeTypeConstraints(
             List<Query> qs, String name, NodeState root)
             throws RepositoryException {
-        if (NodeTypeConstants.NT_BASE.equals(name)) {
+        // TODO remove empty name check once OAK-359 is done
+        if (NodeTypeConstants.NT_BASE.equals(name) || "".equals(name)) {
             return; // shortcut
         }
         NodeState system = root.getChildNode(NodeTypeConstants.JCR_SYSTEM);
