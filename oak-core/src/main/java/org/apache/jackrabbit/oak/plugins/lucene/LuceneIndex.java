@@ -80,11 +80,8 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
 
     private final IndexDefinition index;
 
-    private final Iterable<String> path;
-
     public LuceneIndex(IndexDefinition indexDefinition) {
         this.index = indexDefinition;
-        this.path = elements(indexDefinition.getPath());
     }
 
     @Override
@@ -106,7 +103,7 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
     public Cursor query(Filter filter, NodeState root) {
 
         NodeBuilder builder = new ReadOnlyBuilder(root);
-        for (String name : path) {
+        for (String name : elements(index.getPath())) {
             builder = builder.getChildBuilder(name);
         }
         if (!builder.hasChildNode(INDEX_DATA_CHILD_NAME)) {
