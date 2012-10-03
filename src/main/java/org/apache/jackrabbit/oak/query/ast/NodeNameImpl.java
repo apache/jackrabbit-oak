@@ -77,10 +77,6 @@ public class NodeNameImpl extends DynamicOperandImpl {
         String path = v.getString();
         // Name escaping (convert _x0020_ to space)
         path = decodeName(path);
-        if (path == null) {
-            f.setAlwaysFalse();
-            return;
-        }
         if (PathUtils.isAbsolute(path)) {
             throw new IllegalArgumentException("NAME() comparison with absolute path are not allowed: " + path);
         }
@@ -99,7 +95,7 @@ public class NodeNameImpl extends DynamicOperandImpl {
         // Name escaping (convert _x0020_ to space)
         path = ISO9075.decode(path);
         // normalize paths (./name > name)
-        path = query.getOakPath(path, false);
+        path = query.getOakPath(path);
         return path;
     }
 
