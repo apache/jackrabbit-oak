@@ -24,16 +24,16 @@ import java.util.List;
 
 import junit.framework.Assert;
 
+import org.apache.jackrabbit.mongomk.api.instruction.Instruction;
+import org.apache.jackrabbit.mongomk.api.instruction.Instruction.AddNodeInstruction;
+import org.apache.jackrabbit.mongomk.api.instruction.Instruction.AddPropertyInstruction;
+import org.apache.jackrabbit.mongomk.api.instruction.Instruction.CopyNodeInstruction;
+import org.apache.jackrabbit.mongomk.api.instruction.Instruction.MoveNodeInstruction;
+import org.apache.jackrabbit.mongomk.api.instruction.Instruction.RemoveNodeInstruction;
+import org.apache.jackrabbit.mongomk.api.instruction.Instruction.SetPropertyInstruction;
 import org.apache.jackrabbit.mongomk.api.model.Commit;
-import org.apache.jackrabbit.mongomk.api.model.Instruction;
-import org.apache.jackrabbit.mongomk.api.model.Instruction.AddNodeInstruction;
-import org.apache.jackrabbit.mongomk.api.model.Instruction.AddPropertyInstruction;
-import org.apache.jackrabbit.mongomk.api.model.Instruction.CopyNodeInstruction;
-import org.apache.jackrabbit.mongomk.api.model.Instruction.MoveNodeInstruction;
-import org.apache.jackrabbit.mongomk.api.model.Instruction.RemoveNodeInstruction;
-import org.apache.jackrabbit.mongomk.api.model.Instruction.SetPropertyInstruction;
 import org.apache.jackrabbit.mongomk.impl.InstructionAssert;
-import org.apache.jackrabbit.mongomk.impl.builder.CommitBuilder;
+import org.apache.jackrabbit.mongomk.impl.model.CommitBuilder;
 import org.junit.Test;
 
 @SuppressWarnings("javadoc")

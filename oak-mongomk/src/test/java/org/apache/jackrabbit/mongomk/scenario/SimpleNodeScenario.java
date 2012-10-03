@@ -19,13 +19,13 @@ package org.apache.jackrabbit.mongomk.scenario;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.apache.jackrabbit.mongomk.api.instruction.Instruction;
 import org.apache.jackrabbit.mongomk.api.model.Commit;
-import org.apache.jackrabbit.mongomk.api.model.Instruction;
 import org.apache.jackrabbit.mongomk.command.CommitCommandMongo;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
-import org.apache.jackrabbit.mongomk.impl.builder.CommitBuilder;
-import org.apache.jackrabbit.mongomk.impl.model.AddNodeInstructionImpl;
-import org.apache.jackrabbit.mongomk.impl.model.AddPropertyInstructionImpl;
+import org.apache.jackrabbit.mongomk.impl.instruction.AddNodeInstructionImpl;
+import org.apache.jackrabbit.mongomk.impl.instruction.AddPropertyInstructionImpl;
+import org.apache.jackrabbit.mongomk.impl.model.CommitBuilder;
 
 /**
  * Creates a defined scenario in {@code MongoDB}.

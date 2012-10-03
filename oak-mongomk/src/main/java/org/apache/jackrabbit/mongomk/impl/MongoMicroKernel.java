@@ -26,8 +26,8 @@ import org.apache.jackrabbit.mongomk.api.BlobStore;
 import org.apache.jackrabbit.mongomk.api.NodeStore;
 import org.apache.jackrabbit.mongomk.api.model.Commit;
 import org.apache.jackrabbit.mongomk.api.model.Node;
-import org.apache.jackrabbit.mongomk.impl.builder.CommitBuilder;
 import org.apache.jackrabbit.mongomk.impl.json.JsonUtil;
+import org.apache.jackrabbit.mongomk.impl.model.CommitBuilder;
 
 /**
  * The {@code MongoDB} implementation of the {@link MicroKernel}.

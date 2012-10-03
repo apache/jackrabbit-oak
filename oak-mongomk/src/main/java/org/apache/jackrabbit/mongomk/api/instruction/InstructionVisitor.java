@@ -14,18 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.api.model;
+package org.apache.jackrabbit.mongomk.api.instruction;
 
-import org.apache.jackrabbit.mongomk.api.model.Instruction.AddNodeInstruction;
-import org.apache.jackrabbit.mongomk.api.model.Instruction.AddPropertyInstruction;
-import org.apache.jackrabbit.mongomk.api.model.Instruction.CopyNodeInstruction;
-import org.apache.jackrabbit.mongomk.api.model.Instruction.MoveNodeInstruction;
-import org.apache.jackrabbit.mongomk.api.model.Instruction.RemoveNodeInstruction;
-import org.apache.jackrabbit.mongomk.api.model.Instruction.SetPropertyInstruction;
+import org.apache.jackrabbit.mongomk.api.instruction.Instruction.AddNodeInstruction;
+import org.apache.jackrabbit.mongomk.api.instruction.Instruction.AddPropertyInstruction;
+import org.apache.jackrabbit.mongomk.api.instruction.Instruction.CopyNodeInstruction;
+import org.apache.jackrabbit.mongomk.api.instruction.Instruction.MoveNodeInstruction;
+import org.apache.jackrabbit.mongomk.api.instruction.Instruction.RemoveNodeInstruction;
+import org.apache.jackrabbit.mongomk.api.instruction.Instruction.SetPropertyInstruction;
 
 /**
- * A <a href="http://en.wikipedia.org/wiki/Visitor_pattern">Visitor</a> to iterate through a list of
- * {@code Instruction}s without the need to use {@code instanceof} on each item.
+ * A <a href="http://en.wikipedia.org/wiki/Visitor_pattern">Visitor</a> to iterate
+ * through a list of {@code Instruction}s without the need to use {@code instanceof}
+ * on each item.
  */
 public interface InstructionVisitor {
 

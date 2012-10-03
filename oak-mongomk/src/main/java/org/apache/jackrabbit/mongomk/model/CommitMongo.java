@@ -22,9 +22,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.jackrabbit.mongomk.api.instruction.Instruction;
+import org.apache.jackrabbit.mongomk.api.instruction.Instruction.AddNodeInstruction;
 import org.apache.jackrabbit.mongomk.api.model.Commit;
-import org.apache.jackrabbit.mongomk.api.model.Instruction;
-import org.apache.jackrabbit.mongomk.api.model.Instruction.AddNodeInstruction;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
 import com.mongodb.BasicDBObject;

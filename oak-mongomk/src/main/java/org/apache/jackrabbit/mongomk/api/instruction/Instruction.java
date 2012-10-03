@@ -14,17 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.api.model;
+package org.apache.jackrabbit.mongomk.api.instruction;
+
 
 /**
- * An {@code Instruction} is an abstraction of a single <a href="http://wiki.apache.org/jackrabbit/Jsop">JSOP</a>
- * operation.
+ * An {@code Instruction} is an abstraction of a single
+ * <a href="http://wiki.apache.org/jackrabbit/Jsop">JSOP</a> operation.
  *
  * <p>
- * Each operation is a concrete subinterface of {@code Instruction} and extending it by the specific properties of the
- * operation. There is no exact 1 : 1 mapping between a {@code JSOP} operation and a subinterface, i.e. in {@code JSOP}
- * there is one add operation for adding nodes and properties whereas there are two specific subinterfaces; one for
- * adding a node and one for adding a property.
+ * Each operation is a concrete sub-interface of {@code Instruction} and extending
+ * it by the specific properties of the operation. There is no exact 1 : 1 mapping
+ * between a {@code JSOP} operation and a sub-interface, i.e. in {@code JSOP} there
+ * is one add operation for adding nodes and properties whereas there are two specific
+ * sub-interfaces; one for adding a node and one for adding a property.
  * </p>
  */
 public interface Instruction {
