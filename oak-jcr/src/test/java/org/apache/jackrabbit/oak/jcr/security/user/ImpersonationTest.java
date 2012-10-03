@@ -25,11 +25,13 @@ import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Impersonation;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.test.NotExecutableException;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
  * ImpersonationTest...
  */
+@Ignore // FIXME: enable again
 public class ImpersonationTest extends AbstractUserTest {
 
     private User user2;

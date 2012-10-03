@@ -37,7 +37,7 @@ import org.apache.jackrabbit.oak.plugins.name.NamespaceValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.type.InitialContent;
 import org.apache.jackrabbit.oak.plugins.type.TypeValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.unique.UniqueIndexHook;
-import org.apache.jackrabbit.oak.security.authorization.PermissionValidatorProvider;
+import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeValidatorProvider;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
@@ -63,8 +63,6 @@ public class RepositoryImpl implements Repository {
                     new NamespaceValidatorProvider(),
                     new TypeValidatorProvider(),
                     new ConflictValidatorProvider(),
-                    // FIXME: permission validator depends on AccessControlProvider
-                    new PermissionValidatorProvider(),
                     new PrivilegeValidatorProvider());
 
     private static final CompositeHook DEFAULT_COMMIT_HOOK =
@@ -79,23 +77,6 @@ public class RepositoryImpl implements Repository {
 
     private final SecurityProvider securityProvider;
 
-    public RepositoryImpl(
-            ContentRepository contentRepository,
-            ScheduledExecutorService executor,
-            SecurityProvider securityProvider) {
-        this.contentRepository = contentRepository;
-        this.executor = executor;
-        this.securityProvider = securityProvider;
-    }
-
-    public RepositoryImpl(
-            MicroKernel kernel, ScheduledExecutorService executor) {
-        this(new Oak(setupInitialContent(kernel))
-                .with(DEFAULT_COMMIT_HOOK)
-                .createContentRepository(),
-                executor, null);
-    }
-
     /**
      * Utility constructor that creates a new in-memory repository for use
      * mostly in test cases. The executor service is initialized with an
@@ -105,6 +86,27 @@ public class RepositoryImpl implements Repository {
      */
     public RepositoryImpl() {
         this(new MicroKernelImpl(), Executors.newScheduledThreadPool(0));
+    }
+
+    public RepositoryImpl(MicroKernel kernel, ScheduledExecutorService executor) {
+        this(kernel, executor, new SecurityProviderImpl());
+    }
+
+    public RepositoryImpl(MicroKernel kernel, ScheduledExecutorService executor,
+                           SecurityProvider securityProvider) {
+        this(new Oak(setupInitialContent(kernel))
+                .with(DEFAULT_COMMIT_HOOK).with(securityProvider)
+                .createContentRepository(),
+                executor, securityProvider);
+    }
+
+    public RepositoryImpl(
+            ContentRepository contentRepository,
+            ScheduledExecutorService executor,
+            SecurityProvider securityProvider) {
+        this.contentRepository = contentRepository;
+        this.executor = executor;
+        this.securityProvider = securityProvider;
     }
 
     //---------------------------------------------------------< Repository >---
@@ -134,8 +136,7 @@ public class RepositoryImpl implements Repository {
             return v == null
                     ? null
                     : v.getString();
-        }
-        catch (RepositoryException e) {
+        } catch (RepositoryException e) {
             log.debug("Error converting value for descriptor with key {} to string", key);
             return null;
         }

@@ -41,6 +41,7 @@ import org.apache.jackrabbit.test.NotExecutableException;
 import org.junit.Ignore;
 import org.junit.Test;
 
+@Ignore // FIXME
 public class UserManagerTest extends AbstractUserTest {
 
     private String getTestUserId(Principal p) throws RepositoryException {
@@ -51,6 +52,21 @@ public class UserManagerTest extends AbstractUserTest {
             userId = hint + i++;
         }
         return userId;
+    }
+
+    @Test
+    public void testRemoveItem() throws RepositoryException {
+        Node n = testRootNode.addNode("test");
+        superuser.save();
+
+        Session s = getHelper().getReadOnlySession();
+        try {
+            s.removeItem(n.getPath());
+            s.save();
+            fail();
+        } finally {
+            s.logout();
+        }
     }
 
     @Test
