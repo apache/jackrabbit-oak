@@ -16,14 +16,13 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-
 import javax.annotation.Nonnull;
+
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * This {@code ValidatorProvider} aggregates a list of validator providers into
@@ -31,15 +30,14 @@ import javax.annotation.Nonnull;
  */
 public class CompositeValidatorProvider implements ValidatorProvider {
 
-    public static ValidatorProvider compose(
-            @Nonnull Collection<ValidatorProvider> providers) {
+    public static ValidatorProvider compose(@Nonnull Collection<ValidatorProvider> providers) {
         switch (providers.size()) {
-        case 0:
-            return DefaultValidatorProvider.INSTANCE;
-        case 1:
-            return providers.iterator().next();
-        default:
-            return new CompositeValidatorProvider(providers);
+            case 0:
+                return DefaultValidatorProvider.INSTANCE;
+            case 1:
+                return providers.iterator().next();
+            default:
+                return new CompositeValidatorProvider(providers);
         }
     }
 
