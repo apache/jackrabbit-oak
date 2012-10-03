@@ -219,7 +219,10 @@ public class FilterImpl implements Filter {
             x.lastIncluding = x.last == oldLast ? x.lastIncluding : true;
             break;
         case LIKE:
-            throw new IllegalArgumentException("LIKE is not supported");
+            // LIKE is handled in the fulltext index
+            x.isLike = true;
+            x.first = value;
+            break;
         }
         if (x.first != null && x.last != null) {
             if (x.first.compareTo(x.last) > 0) {

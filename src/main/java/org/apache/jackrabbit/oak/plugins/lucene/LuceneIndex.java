@@ -20,6 +20,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.plugins.lucene.FieldNames.PATH;
 import static org.apache.jackrabbit.oak.plugins.lucene.FieldNames.PATH_SELECTOR;
 import static org.apache.jackrabbit.oak.plugins.lucene.TermFactory.newPathTerm;
+import static org.apache.jackrabbit.oak.query.Query.JCR_PATH;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -55,12 +56,14 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.PrefixQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TermRangeQuery;
 import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.WildcardQuery;
 import org.apache.lucene.store.Directory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -162,6 +165,9 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
         String path = filter.getPath();
         switch (filter.getPathRestriction()) {
         case ALL_CHILDREN:
+            if ("/".equals(path)) {
+                break;
+            }
             if (!path.endsWith("/")) {
                 path += "/";
             }
@@ -190,6 +196,7 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
             String name = pr.propertyName;
             String first = null;
             String last = null;
+            boolean isLike = pr.isLike;
 
             if (pr.first != null) {
                 first = pr.first.getString();
@@ -198,29 +205,52 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
                 last = pr.last.getString();
             }
 
+            if (isLike) {
+                if (first.contains("%")) {
+                    first = first.replace("%", "*");
+                }
+                if (first.endsWith("*")) {
+                    if (JCR_PATH.equals(name)) {
+                        qs.add(new PrefixQuery(newPathTerm(first)));
+                    } else {
+                        qs.add(new PrefixQuery(new Term(name, first)));
+                    }
+                } else {
+                    if (JCR_PATH.equals(name)) {
+                        qs.add(new WildcardQuery(newPathTerm(first)));
+                    } else {
+                        qs.add(new WildcardQuery(new Term(name, first)));
+                    }
+                }
+                continue;
+            }
+
             if (first != null && first.equals(last) && pr.firstIncluding
                     && pr.lastIncluding) {
-                if (org.apache.jackrabbit.oak.query.Query.JCR_PATH.equals(name)) {
+                if (JCR_PATH.equals(name)) {
                     qs.add(new TermQuery(newPathTerm(first)));
                 } else {
                     qs.add(new TermQuery(new Term(name, first)));
                 }
-
-            } else {
-                qs.add(TermRangeQuery.newStringRange(name, first, last,
-                        pr.firstIncluding, pr.lastIncluding));
+                continue;
             }
+
+            qs.add(TermRangeQuery.newStringRange(name, first, last,
+                    pr.firstIncluding, pr.lastIncluding));
+
         }
 
-        if (qs.size() > 1) {
-            BooleanQuery bq = new BooleanQuery();
-            for (Query q : qs) {
-                bq.add(q, Occur.MUST);
-            }
-            return bq;
-        } else {
+        if (qs.size() == 0) {
+            return new MatchAllDocsQuery();
+        }
+        if (qs.size() == 1) {
             return qs.get(0);
         }
+        BooleanQuery bq = new BooleanQuery();
+        for (Query q : qs) {
+            bq.add(q, Occur.MUST);
+        }
+        return bq;
     }
 
     private static void addNodeTypeConstraints(

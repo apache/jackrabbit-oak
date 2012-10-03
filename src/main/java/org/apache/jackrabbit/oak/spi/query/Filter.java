@@ -97,6 +97,12 @@ public interface Filter {
         public boolean lastIncluding;
 
         /**
+         * Whether this is a like constraint. in this case only the 'first'
+         * value should be taken into consideration
+         */
+        public boolean isLike;
+
+        /**
          * The property type, if restricted.
          * If not restricted, this field is set to PropertyType.UNDEFINED.
          */
