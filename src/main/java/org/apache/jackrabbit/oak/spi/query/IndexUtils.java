@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.spi.query;
 
+import static org.apache.jackrabbit.oak.spi.query.IndexDefinition.INDEX_DATA_CHILD_NAME;
+import static org.apache.jackrabbit.oak.spi.query.IndexDefinition.TYPE_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.spi.query.IndexDefinition.UNIQUE_PROPERTY_NAME;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -25,6 +29,7 @@ import java.util.Map;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.lucene.LuceneIndexConstants;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -45,27 +50,36 @@ public class IndexUtils {
      */
     public static IndexDefinition getDefinition(String path, ChildNodeEntry def) {
         String name = def.getName();
-        PropertyState typeProp = def.getNodeState().getProperty(
-                IndexDefinition.TYPE_PROPERTY_NAME);
+        NodeState ns = def.getNodeState();
+        PropertyState typeProp = ns.getProperty(TYPE_PROPERTY_NAME);
         String type = TYPE_UNKNOWN;
         if (typeProp != null && !typeProp.isArray()) {
             type = typeProp.getValue().getString();
         }
 
         boolean unique = false;
-        PropertyState uniqueProp = def.getNodeState().getProperty(
-                IndexDefinition.UNIQUE_PROPERTY_NAME);
+        PropertyState uniqueProp = ns.getProperty(UNIQUE_PROPERTY_NAME);
         if (uniqueProp != null && !uniqueProp.isArray()) {
             unique = uniqueProp.getValue().getBoolean();
         }
 
         Map<String, String> props = new HashMap<String, String>();
-        for (PropertyState ps : def.getNodeState().getProperties()) {
+        for (PropertyState ps : ns.getProperties()) {
             if (ps != null && !ps.isArray()) {
                 String v = ps.getValue().getString();
                 props.put(ps.getName(), v);
             }
         }
+        // TODO hack to circumvent observation events
+        if (ns.hasChildNode(INDEX_DATA_CHILD_NAME)) {
+            PropertyState ps = ns.getChildNode(INDEX_DATA_CHILD_NAME)
+                    .getProperty(LuceneIndexConstants.INDEX_UPDATE);
+            if (ps != null && ps.getValue() != null) {
+                props.put(LuceneIndexConstants.INDEX_UPDATE, ps.getValue()
+                        .getString());
+            }
+        }
+
         return new IndexDefinitionImpl(name, type,
                 PathUtils.concat(path, name), unique, props);
     }
