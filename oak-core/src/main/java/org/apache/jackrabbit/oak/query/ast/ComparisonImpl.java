@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.query.Query;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
@@ -128,26 +127,28 @@ public class ComparisonImpl extends ConstraintImpl {
     public void restrict(FilterImpl f) {
         CoreValue v = operand2.currentValue();
         if (v != null) {
-            if (operator == Operator.LIKE) {
-                String pattern;
-                pattern = v.getString();
-                LikePattern p = new LikePattern(pattern);
-                String lowerBound = p.getLowerBound();
-                String upperBound = p.getUpperBound();
-                if (lowerBound == null && upperBound == null) {
-                    // ignore
-                } else if (operand1.supportsRangeConditions()) {
-                    CoreValueFactory vf = query.getValueFactory();
-                    if (lowerBound != null) {
-                        operand1.restrict(f, Operator.GREATER_OR_EQUAL, vf.createValue(lowerBound));
-                    }
-                    if (upperBound != null) {
-                        operand1.restrict(f, Operator.LESS_OR_EQUAL, vf.createValue(upperBound));
-                    }
-                }
-            } else {
-                operand1.restrict(f, operator, v);
-            }
+            operand1.restrict(f, operator, v);
+            // TODO OAK-347
+//            if (operator == Operator.LIKE) {
+//                String pattern;
+//                pattern = v.getString();
+//                LikePattern p = new LikePattern(pattern);
+//                String lowerBound = p.getLowerBound();
+//                String upperBound = p.getUpperBound();
+//                if (lowerBound == null && upperBound == null) {
+//                    // ignore
+//                } else if (operand1.supportsRangeConditions()) {
+//                    CoreValueFactory vf = query.getValueFactory();
+//                    if (lowerBound != null) {
+//                        operand1.restrict(f, Operator.GREATER_OR_EQUAL, vf.createValue(lowerBound));
+//                    }
+//                    if (upperBound != null) {
+//                        operand1.restrict(f, Operator.LESS_OR_EQUAL, vf.createValue(upperBound));
+//                    }
+//                }
+//            } else {
+//                operand1.restrict(f, operator, v);
+//            }
         }
     }
 
