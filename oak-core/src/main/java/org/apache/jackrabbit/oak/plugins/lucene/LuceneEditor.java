@@ -21,6 +21,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.plugins.lucene.FieldFactory.newPathField;
 import static org.apache.jackrabbit.oak.plugins.lucene.FieldFactory.newPropertyField;
 import static org.apache.jackrabbit.oak.plugins.lucene.TermFactory.newPathTerm;
+import static org.apache.jackrabbit.oak.spi.query.IndexDefinition.INDEX_DATA_CHILD_NAME;
 
 import java.io.IOException;
 
@@ -91,7 +92,8 @@ class LuceneEditor implements CommitHook, LuceneIndexConstants {
         for (String name : path) {
             builder = builder.getChildBuilder(name);
         }
-        Directory directory = new ReadWriteOakDirectory(builder.getChildBuilder(INDEX_DATA_CHILD_NAME));
+        builder = builder.getChildBuilder(INDEX_DATA_CHILD_NAME);
+        Directory directory = new ReadWriteOakDirectory(builder);
 
         try {
             IndexWriter writer = new IndexWriter(directory, config);

@@ -71,6 +71,10 @@ public class InitialContent extends DefaultMicroKernelTracker {
                     "\"rep:privileges\"     :{\"jcr:primaryType\":\"nam:rep:Privileges\"}}", null, null);
         }
 
+        if (!root.hasChildNode("oak-index")) {
+            mk.commit("/", "+\"oak-index\":{ \"indexes\": { \"type\": \"lucene\" }}", null, null);
+        }
+
         BuiltInNodeTypes.register(createRoot(mk));
     }
 

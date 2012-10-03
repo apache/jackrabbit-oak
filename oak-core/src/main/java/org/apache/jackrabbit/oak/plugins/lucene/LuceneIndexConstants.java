@@ -22,8 +22,6 @@ public interface LuceneIndexConstants {
 
     String DEFAULT_INDEX_NAME = "default-lucene";
 
-    String INDEX_DATA_CHILD_NAME = ":data";
-
     String INDEX_UPDATE = "indexUpdate";
 
 }
