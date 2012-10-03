@@ -30,6 +30,8 @@ public interface IndexDefinition {
 
     String UNIQUE_PROPERTY_NAME = "unique";
 
+    String INDEX_DATA_CHILD_NAME = ":data";
+
     /**
      * Get the unique index name. This is also the name of the index node.
      * 

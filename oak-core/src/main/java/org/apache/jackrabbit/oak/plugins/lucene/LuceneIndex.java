@@ -21,6 +21,7 @@ import static org.apache.jackrabbit.oak.plugins.lucene.FieldNames.PATH;
 import static org.apache.jackrabbit.oak.plugins.lucene.FieldNames.PATH_SELECTOR;
 import static org.apache.jackrabbit.oak.plugins.lucene.TermFactory.newPathTerm;
 import static org.apache.jackrabbit.oak.query.Query.JCR_PATH;
+import static org.apache.jackrabbit.oak.spi.query.IndexDefinition.INDEX_DATA_CHILD_NAME;
 
 import java.io.IOException;
 import java.util.ArrayList;
