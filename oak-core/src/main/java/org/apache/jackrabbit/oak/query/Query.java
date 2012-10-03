@@ -474,7 +474,7 @@ public class Query {
             case PropertyType.DECIMAL:
                 return vf.createValue(v.getString(), PropertyType.DECIMAL);
             case PropertyType.NAME:
-                return vf.createValue(getOakPath(v.getString(), true), PropertyType.NAME);
+                return vf.createValue(getOakPath(v.getString()), PropertyType.NAME);
             case PropertyType.PATH:
                 return vf.createValue(v.getString(), PropertyType.PATH);
             case PropertyType.REFERENCE:
@@ -504,7 +504,7 @@ public class Query {
         }
     }
 
-    public String getOakPath(String jcrPath, boolean errorOnInvalidPath) {
+    public String getOakPath(String jcrPath) {
         NamePathMapper m = getNamePathMapper();
         if (m == null) {
             // to simplify testing, a getNamePathMapper isn't required
@@ -512,10 +512,8 @@ public class Query {
         }
         String p = m.getOakPath(jcrPath);
         if (p == null) {
-            if (!errorOnInvalidPath) {
-                return null;
-            }
-            throw new IllegalArgumentException("Not a valid JCR path: " + jcrPath);
+            throw new IllegalArgumentException("Not a valid JCR path: "
+                    + jcrPath);
         }
         return p;
     }
