@@ -96,6 +96,12 @@ public class XmlImportHandler extends DefaultHandler {
                 throw new SAXException(e);
             }
             values.clear();
+        } else if ("node".equals(localName)) {
+            try {
+                node = node.getParent();
+            } catch (RepositoryException e) {
+                throw new SAXException(e);
+            }
         }
     }
 
