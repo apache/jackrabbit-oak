@@ -35,8 +35,6 @@ import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
-import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
@@ -52,19 +50,13 @@ public class Oak {
 
     private final MicroKernel kernel;
 
-    private final List<QueryIndexProvider> queryIndexProviders =
-            Lists.newArrayList();
+    private final List<QueryIndexProvider> queryIndexProviders = Lists.newArrayList();
 
     private final List<CommitHook> commitHooks = Lists.newArrayList();
 
-    private final List<ValidatorProvider> validatorProviders =
-            Lists.newArrayList();
+    private final List<ValidatorProvider> validatorProviders = Lists.newArrayList();
 
     private SecurityProvider securityProvider;
-
-    private LoginContextProvider loginContextProvider;
-
-    private AccessControlProvider accProvider;
 
     public Oak(MicroKernel kernel) {
         this.kernel = kernel;
@@ -112,7 +104,7 @@ public class Oak {
         if (!validatorProviders.isEmpty()) {
             commitHooks.add(new ValidatingHook(
                     CompositeValidatorProvider.compose(validatorProviders)));
-            validatorProviders.clear();
+            //validatorProviders.clear(); FIXME
         }
     }
 
@@ -150,10 +142,8 @@ public class Oak {
     public Oak with(@Nonnull SecurityProvider securityProvider) {
         this.securityProvider = securityProvider;
 
-        if (securityProvider != null) {
-            this.validatorProviders.addAll(securityProvider.getAccessControlProvider().getValidatorProviders());
-            this.validatorProviders.addAll(securityProvider.getUserContext().getValidatorProviders());
-        }
+        validatorProviders.addAll(securityProvider.getAccessControlProvider().getValidatorProviders());
+        validatorProviders.addAll(securityProvider.getUserContext().getValidatorProviders());
         return this;
     }
 
