@@ -73,10 +73,10 @@ class LuceneEditor implements CommitHook, LuceneIndexConstants {
         }
     }
 
-    private final Iterable<String> path;
+    private final IndexDefinition index;
 
     public LuceneEditor(IndexDefinition indexDefinition) {
-        this.path = elements(indexDefinition.getPath());
+        this.index = indexDefinition;
     }
 
     /*
@@ -89,7 +89,7 @@ class LuceneEditor implements CommitHook, LuceneIndexConstants {
             throws CommitFailedException {
         NodeBuilder rootBuilder = after.getBuilder();
         NodeBuilder builder = rootBuilder;
-        for (String name : path) {
+        for (String name : elements(index.getPath())) {
             builder = builder.getChildBuilder(name);
         }
         builder = builder.getChildBuilder(INDEX_DATA_CHILD_NAME);
