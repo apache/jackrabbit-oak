@@ -31,7 +31,7 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
-import org.apache.jackrabbit.oak.plugins.unique.UniqueIndexHook;
+import org.apache.jackrabbit.oak.plugins.property.PropertyIndexHook;
 import org.apache.jackrabbit.oak.spi.security.user.Type;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
@@ -104,7 +104,7 @@ public class UserProviderImplTest extends AbstractOakTest {
 
     @Override
     protected ContentRepository createRepository() {
-        return new ContentRepositoryImpl(new UniqueIndexHook());
+        return new ContentRepositoryImpl(new PropertyIndexHook());
     }
 
     private UserProvider createUserProvider() {
