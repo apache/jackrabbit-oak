@@ -512,7 +512,8 @@ public class Query {
         }
         String p = m.getOakPath(jcrPath);
         if (p == null) {
-            throw new IllegalArgumentException("Not a valid JCR path: " + jcrPath);
+            throw new IllegalArgumentException("Not a valid JCR path: "
+                    + jcrPath);
         }
         return p;
     }

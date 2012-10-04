@@ -21,6 +21,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.plugins.lucene.FieldFactory.newPathField;
 import static org.apache.jackrabbit.oak.plugins.lucene.FieldFactory.newPropertyField;
 import static org.apache.jackrabbit.oak.plugins.lucene.TermFactory.newPathTerm;
+import static org.apache.jackrabbit.oak.spi.query.IndexDefinition.INDEX_DATA_CHILD_NAME;
 
 import java.io.IOException;
 
@@ -72,10 +73,10 @@ class LuceneEditor implements CommitHook, LuceneIndexConstants {
         }
     }
 
-    private final Iterable<String> path;
+    private final IndexDefinition index;
 
     public LuceneEditor(IndexDefinition indexDefinition) {
-        this.path = elements(indexDefinition.getPath());
+        this.index = indexDefinition;
     }
 
     /*
@@ -88,10 +89,11 @@ class LuceneEditor implements CommitHook, LuceneIndexConstants {
             throws CommitFailedException {
         NodeBuilder rootBuilder = after.getBuilder();
         NodeBuilder builder = rootBuilder;
-        for (String name : path) {
+        for (String name : elements(index.getPath())) {
             builder = builder.getChildBuilder(name);
         }
-        Directory directory = new ReadWriteOakDirectory(builder.getChildBuilder(INDEX_DATA_CHILD_NAME));
+        builder = builder.getChildBuilder(INDEX_DATA_CHILD_NAME);
+        Directory directory = new ReadWriteOakDirectory(builder);
 
         try {
             IndexWriter writer = new IndexWriter(directory, config);
@@ -102,7 +104,6 @@ class LuceneEditor implements CommitHook, LuceneIndexConstants {
                     after.compareAgainstBaseState(before, diff);
                 } else {
                     // trigger re-indexing
-                    diff.childNodeDeleted("", after);
                     diff.childNodeAdded("", after);
                 }
 
@@ -177,7 +178,7 @@ class LuceneEditor implements CommitHook, LuceneIndexConstants {
 
         private void addSubtree(String path, NodeState state)
                 throws IOException {
-            writer.addDocument(makeDocument(path, state));
+            writer.updateDocument(newPathTerm(path), makeDocument(path, state));
             for (ChildNodeEntry entry : state.getChildNodeEntries()) {
                 if (NodeStateUtils.isHidden(entry.getName())) {
                     continue;

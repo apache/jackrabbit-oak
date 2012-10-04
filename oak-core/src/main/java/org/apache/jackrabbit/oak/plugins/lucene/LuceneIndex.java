@@ -20,6 +20,8 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.plugins.lucene.FieldNames.PATH;
 import static org.apache.jackrabbit.oak.plugins.lucene.FieldNames.PATH_SELECTOR;
 import static org.apache.jackrabbit.oak.plugins.lucene.TermFactory.newPathTerm;
+import static org.apache.jackrabbit.oak.query.Query.JCR_PATH;
+import static org.apache.jackrabbit.oak.spi.query.IndexDefinition.INDEX_DATA_CHILD_NAME;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -51,16 +53,19 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.MultiFields;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.PrefixQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TermRangeQuery;
 import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.WildcardQuery;
 import org.apache.lucene.store.Directory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,11 +80,8 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
 
     private final IndexDefinition index;
 
-    private final Iterable<String> path;
-
     public LuceneIndex(IndexDefinition indexDefinition) {
         this.index = indexDefinition;
-        this.path = elements(indexDefinition.getPath());
     }
 
     @Override
@@ -94,14 +96,14 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
 
     @Override
     public String getPlan(Filter filter, NodeState root) {
-        return getQuery(filter, root).toString();
+        return getQuery(filter, root, null).toString();
     }
 
     @Override
     public Cursor query(Filter filter, NodeState root) {
 
         NodeBuilder builder = new ReadOnlyBuilder(root);
-        for (String name : path) {
+        for (String name : elements(index.getPath())) {
             builder = builder.getChildBuilder(name);
         }
         if (!builder.hasChildNode(INDEX_DATA_CHILD_NAME)) {
@@ -120,7 +122,7 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
                     IndexSearcher searcher = new IndexSearcher(reader);
                     Collection<String> paths = new ArrayList<String>();
 
-                    Query query = getQuery(filter, root);
+                    Query query = getQuery(filter, root, reader);
                     if (query != null) {
                         TopDocs docs = searcher
                                 .search(query, Integer.MAX_VALUE);
@@ -149,7 +151,7 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
         }
     }
 
-    private static Query getQuery(Filter filter, NodeState root) {
+    private static Query getQuery(Filter filter, NodeState root, IndexReader reader) {
         List<Query> qs = new ArrayList<Query>();
 
         try {
@@ -162,6 +164,9 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
         String path = filter.getPath();
         switch (filter.getPathRestriction()) {
         case ALL_CHILDREN:
+            if ("/".equals(path)) {
+                break;
+            }
             if (!path.endsWith("/")) {
                 path += "/";
             }
@@ -190,6 +195,7 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
             String name = pr.propertyName;
             String first = null;
             String last = null;
+            boolean isLike = pr.isLike;
 
             if (pr.first != null) {
                 first = pr.first.getString();
@@ -198,35 +204,82 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
                 last = pr.last.getString();
             }
 
+            if (isLike) {
+                if (first.contains("%")) {
+                    first = first.replace("%", "*");
+                }
+                if (first.endsWith("*")) {
+                    // remove trailing "*" for prefixquery
+                    first = first.substring(0, first.length() - 1);
+                    if (JCR_PATH.equals(name)) {
+                        qs.add(new PrefixQuery(newPathTerm(first)));
+                    } else {
+                        qs.add(new PrefixQuery(new Term(name, first)));
+                    }
+                } else {
+                    if (JCR_PATH.equals(name)) {
+                        qs.add(new WildcardQuery(newPathTerm(first)));
+                    } else {
+                        qs.add(new WildcardQuery(new Term(name, first)));
+                    }
+                }
+                continue;
+            }
+
             if (first != null && first.equals(last) && pr.firstIncluding
                     && pr.lastIncluding) {
-                if (org.apache.jackrabbit.oak.query.Query.JCR_PATH.equals(name)) {
+                if (JCR_PATH.equals(name)) {
                     qs.add(new TermQuery(newPathTerm(first)));
                 } else {
-                    qs.add(new TermQuery(new Term(name, first)));
+                    if ("*".equals(name)) {
+                        addReferenceConstraint(first, qs, reader);
+                    } else {
+                        qs.add(new TermQuery(new Term(name, first)));
+                    }
                 }
-
-            } else {
-                qs.add(TermRangeQuery.newStringRange(name, first, last,
-                        pr.firstIncluding, pr.lastIncluding));
+                continue;
             }
+
+            qs.add(TermRangeQuery.newStringRange(name, first, last,
+                    pr.firstIncluding, pr.lastIncluding));
+
         }
 
-        if (qs.size() > 1) {
-            BooleanQuery bq = new BooleanQuery();
-            for (Query q : qs) {
-                bq.add(q, Occur.MUST);
-            }
-            return bq;
-        } else {
+        if (qs.size() == 0) {
+            return new MatchAllDocsQuery();
+        }
+        if (qs.size() == 1) {
             return qs.get(0);
         }
+        BooleanQuery bq = new BooleanQuery();
+        for (Query q : qs) {
+            bq.add(q, Occur.MUST);
+        }
+        return bq;
+    }
+
+    private static void addReferenceConstraint(String uuid, List<Query> qs,
+            IndexReader reader) {
+        if (reader == null) {
+            // getPlan call
+            qs.add(new TermQuery(new Term("*", uuid)));
+            return;
+        }
+
+        // reference query
+        BooleanQuery bq = new BooleanQuery();
+        Collection<String> fields = MultiFields.getIndexedFields(reader);
+        for (String f : fields) {
+            bq.add(new TermQuery(new Term(f, uuid)), Occur.SHOULD);
+        }
+        qs.add(bq);
     }
 
     private static void addNodeTypeConstraints(
             List<Query> qs, String name, NodeState root)
             throws RepositoryException {
-        if (NodeTypeConstants.NT_BASE.equals(name)) {
+        // TODO remove empty name check once OAK-359 is done
+        if (NodeTypeConstants.NT_BASE.equals(name) || "".equals(name)) {
             return; // shortcut
         }
         NodeState system = root.getChildNode(NodeTypeConstants.JCR_SYSTEM);
@@ -253,6 +306,7 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
         while (iterator.hasNext()) {
             bq.add(createNodeTypeQuery(iterator.nextNodeType()), Occur.SHOULD);
         }
+        qs.add(bq);
     }
 
     private static Query createNodeTypeQuery(NodeType type) {
