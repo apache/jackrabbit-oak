@@ -16,17 +16,17 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.user;
 
+import java.security.Principal;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
+import javax.jcr.RepositoryException;
+
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.junit.Test;
-
-import javax.jcr.RepositoryException;
-import java.security.Principal;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
 
 /**
  * Tests for the group associated with {@code EveryonePrincipal}

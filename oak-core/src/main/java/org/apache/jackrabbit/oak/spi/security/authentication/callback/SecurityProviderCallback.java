@@ -14,37 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authentication.token;
+package org.apache.jackrabbit.oak.spi.security.authentication.callback;
 
+import javax.annotation.CheckForNull;
 import javax.security.auth.callback.Callback;
 
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
- * TokenContextCallback... TODO
+ * SecurityProviderCallback... TODO
  */
-public class TokenProviderCallback implements Callback {
+public class SecurityProviderCallback implements Callback {
 
-    private TokenProvider tokenProvider;
+    private SecurityProvider securityProvider;
 
-    /**
-     * Returns the principal provider as set using
-     * {@link #setTokenProvider(TokenProvider)}
-     * or {@code null}.
-     *
-     * @return an instance of {@code PrincipalProvider} or {@code null} if no
-     * provider has been set before.
-     */
-    public TokenProvider getTokenProvider() {
-        return tokenProvider;
+    @CheckForNull
+    public SecurityProvider getSecurityProvider() {
+        return securityProvider;
     }
 
-    /**
-     * Sets the {@code TokenProvider} that is being used during the
-     * authentication process.
-     *
-     * @param tokenProvider The {@code TokenProvider} to use during the
-     * authentication process.
-     */
-    public void setTokenProvider(TokenProvider tokenProvider) {
-        this.tokenProvider = tokenProvider;
+    public void setSecurityProvider(SecurityProvider securityProvider) {
+        this.securityProvider = securityProvider;
     }
 }

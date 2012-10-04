@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import java.io.IOException;
 import java.security.Principal;
 import java.util.Properties;
 import java.util.concurrent.Executors;
@@ -41,9 +40,8 @@ public class OakRepositoryStub extends RepositoryStub {
      * 
      * @param settings repository settings
      * @throws javax.jcr.RepositoryException If an error occurs.
-     * @throws java.io.IOException
      */
-    public OakRepositoryStub(Properties settings) throws RepositoryException, IOException {
+    public OakRepositoryStub(Properties settings) throws RepositoryException {
         super(settings);
 
         String dir = "target/mk-tck-" + System.currentTimeMillis();

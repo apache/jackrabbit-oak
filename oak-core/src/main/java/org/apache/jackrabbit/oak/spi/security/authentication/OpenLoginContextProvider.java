@@ -28,8 +28,8 @@ public class OpenLoginContextProvider implements LoginContextProvider {
 
     @Override
     @Nonnull
-    public OakLoginContext getLoginContext(final Credentials credentials, String workspaceName) {
-        return new OakLoginContext() {
+    public LoginContext getLoginContext(final Credentials credentials, String workspaceName) {
+        return new LoginContext() {
             @Override
             public Subject getSubject() {
                 Subject subject = new Subject();

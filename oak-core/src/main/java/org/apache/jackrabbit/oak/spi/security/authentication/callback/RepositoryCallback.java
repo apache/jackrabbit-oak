@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.security.authentication;
+package org.apache.jackrabbit.oak.spi.security.authentication.callback;
 
 import javax.annotation.CheckForNull;
 import javax.jcr.NoSuchWorkspaceException;
@@ -23,6 +23,8 @@ import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
+import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,7 +53,8 @@ public class RepositoryCallback implements Callback {
         if (nodeStore != null) {
             try {
                 // TODO rather use Oak or similar setup mechanism
-                return new ContentRepositoryImpl(nodeStore, null, null).login(null, workspaceName);
+                SecurityProvider sp = new OpenSecurityProvider();
+                return new ContentRepositoryImpl(nodeStore, null, sp).login(null, workspaceName);
             } catch (LoginException e) {
                 log.warn("Internal error ", e.getMessage());
             } catch (NoSuchWorkspaceException e) {

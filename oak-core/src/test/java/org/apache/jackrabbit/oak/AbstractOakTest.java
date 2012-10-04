@@ -20,17 +20,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.jcr.Credentials;
-import javax.jcr.GuestCredentials;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.plugins.type.InitialContent;
 import org.apache.jackrabbit.oak.spi.lifecycle.CompositeMicroKernelTracker;
 import org.apache.jackrabbit.oak.spi.lifecycle.MicroKernelTracker;
+import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.Before;
 
 /**
@@ -48,7 +47,7 @@ public abstract class AbstractOakTest {
     protected abstract ContentRepository createRepository();
 
     protected static ContentRepository createEmptyRepository() {
-        return new ContentRepositoryImpl();
+        return new Oak().with(new OpenSecurityProvider()).createContentRepository();
     }
 
     protected ContentRepository getContentRepository() {
@@ -57,10 +56,6 @@ public abstract class AbstractOakTest {
 
     protected ContentSession createAdminSession() throws LoginException, NoSuchWorkspaceException {
         return getContentRepository().login(getAdminCredentials(), null);
-    }
-
-    protected ContentSession createGuestSession() throws LoginException, NoSuchWorkspaceException {
-        return getContentRepository().login(new GuestCredentials(), null);
     }
 
     private Credentials getAdminCredentials() {
