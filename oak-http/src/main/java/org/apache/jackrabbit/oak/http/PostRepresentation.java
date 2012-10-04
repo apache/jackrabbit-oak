@@ -23,10 +23,12 @@ import java.net.URLEncoder;
 
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.tika.mime.MediaType;
+
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
 class PostRepresentation implements Representation {
 
@@ -40,6 +42,7 @@ class PostRepresentation implements Representation {
         return TYPE;
     }
 
+    @Override
     public void render(Tree tree, HttpServletResponse response)
             throws IOException {
         PrintWriter writer = startResponse(response);
@@ -48,39 +51,38 @@ class PostRepresentation implements Representation {
         for (PropertyState property : tree.getProperties()) {
             String name = property.getName();
             if (property.isArray()) {
-                for (CoreValue value : property.getValues()) {
+                for (String value : property.getValue(STRINGS)) {
                     first = render(first, name, value, writer);
                 }
             } else {
-                CoreValue value = property.getValue();
-                first = render(first, name, value, writer);
+                first = render(first, name, property.getValue(STRING), writer);
             }
         }
     }
 
+    @Override
     public void render(PropertyState property, HttpServletResponse response)
             throws IOException {
         PrintWriter writer = startResponse(response);
         if (property.isArray()) {
-            for (CoreValue value : property.getValues()) {
+            for (String value : property.getValue(STRINGS)) {
                 render(value, writer);
                 writer.print('\n');
             }
         } else {
-            render(property.getValue(), writer);
+            render(property.getValue(STRING), writer);
         }
     }
 
-    private PrintWriter startResponse(HttpServletResponse response)
+    private static PrintWriter startResponse(HttpServletResponse response)
             throws IOException {
         response.setContentType(TYPE.toString());
         response.setCharacterEncoding(ENCODING);
         return response.getWriter();
     }
 
-    private boolean render(
-            boolean first, String name, CoreValue value, PrintWriter writer)
-            throws UnsupportedEncodingException {
+    private static boolean render(
+            boolean first, String name, String value, PrintWriter writer) {
         if (!first) {
             writer.print('&');
         }
@@ -90,11 +92,7 @@ class PostRepresentation implements Representation {
         return false;
     }
 
-    private void render(CoreValue value, PrintWriter writer) {
-        render(value.getString(), writer);
-    }
-
-    private void render(String string, PrintWriter writer) {
+    private static void render(String string, PrintWriter writer) {
         try {
             writer.print(URLEncoder.encode(string, ENCODING));
         } catch (UnsupportedEncodingException e) {
