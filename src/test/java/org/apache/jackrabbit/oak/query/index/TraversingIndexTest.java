@@ -37,7 +37,7 @@ import com.google.common.cache.LoadingCache;
 /**
  * Tests the TraversingCursor.
  */
-public class TraversingCursorTest {
+public class TraversingIndexTest {
 
     private final MicroKernel mk = new MicroKernelImpl();
 

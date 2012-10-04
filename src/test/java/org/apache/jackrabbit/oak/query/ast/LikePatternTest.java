@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.query.index;
+package org.apache.jackrabbit.oak.query.ast;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
