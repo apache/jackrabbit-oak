@@ -2,10 +2,9 @@ package org.apache.jackrabbit.oak.plugins.memory;
 
 import java.io.InputStream;
 
-import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CoreValue;
 
-public class BlobImpl implements Blob {
+public class BlobImpl extends AbstractBlob {
     private final CoreValue value;
 
     public BlobImpl(CoreValue value) {
