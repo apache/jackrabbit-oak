@@ -289,7 +289,7 @@ class TypeValidator implements Validator {
 
         public void checkRemoveNode(final String name) throws ConstraintViolationException {
             for (NodeType nodeType : allTypes) {
-                if (nodeType.canRemoveProperty(name)) {
+                if (nodeType.canRemoveNode(name)) {
                     return;
                 }
             }
