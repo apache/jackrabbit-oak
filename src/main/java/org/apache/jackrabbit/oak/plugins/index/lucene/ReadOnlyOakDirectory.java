@@ -22,7 +22,7 @@ import java.util.Collection;
 
 import javax.jcr.UnsupportedRepositoryOperationException;
 
-import org.apache.jackrabbit.oak.api.CoreValue;
+import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.store.Directory;
@@ -31,7 +31,7 @@ import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.IndexOutput;
 import org.apache.lucene.store.NoLockFactory;
 
-import com.google.common.collect.Iterables;
+import static org.apache.jackrabbit.oak.api.Type.BINARY;
 
 /**
  * A read-only implementation of the Lucene {@link Directory} (a flat list of
@@ -75,7 +75,7 @@ class ReadOnlyOakDirectory extends Directory {
             return 0;
         }
 
-        return property.getValue().length();
+        return property.size();
     }
 
     @Override
@@ -111,10 +111,9 @@ class ReadOnlyOakDirectory extends Directory {
             return new byte[0];
         }
 
-        CoreValue value = property.getValue();
-        InputStream stream = value.getNewStream();
+        InputStream stream = property.getValue(BINARY).getNewStream();
         try {
-            byte[] buffer = new byte[(int) value.length()];
+            byte[] buffer = new byte[(int) property.size()];
 
             int size = 0;
             do {
