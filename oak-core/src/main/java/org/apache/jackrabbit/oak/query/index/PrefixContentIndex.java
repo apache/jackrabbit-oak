@@ -24,7 +24,7 @@ import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.kernel.CoreValueMapper;
-import org.apache.jackrabbit.oak.plugins.index.PrefixIndex;
+import org.apache.jackrabbit.oak.plugins.index.old.PrefixIndex;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;

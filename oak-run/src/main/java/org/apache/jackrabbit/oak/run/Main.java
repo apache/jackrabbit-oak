@@ -16,9 +16,12 @@
  */
 package org.apache.jackrabbit.oak.run;
 
+import static org.apache.jackrabbit.oak.spi.query.IndexUtils.DEFAULT_INDEX_HOME;
+
 import java.io.InputStream;
 import java.util.Properties;
 import java.util.concurrent.Executors;
+
 import javax.jcr.Repository;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
@@ -28,11 +31,11 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.http.OakServlet;
 import org.apache.jackrabbit.oak.jcr.RepositoryImpl;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
-import org.apache.jackrabbit.oak.plugins.lucene.LuceneHook;
-import org.apache.jackrabbit.oak.plugins.lucene.LuceneReindexHook;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneHook;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneReindexHook;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexHook;
 import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceValidatorProvider;
-import org.apache.jackrabbit.oak.plugins.property.PropertyIndexHook;
 import org.apache.jackrabbit.oak.plugins.type.DefaultTypeEditor;
 import org.apache.jackrabbit.oak.plugins.type.TypeValidatorProvider;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeValidatorProvider;
@@ -46,8 +49,6 @@ import org.apache.jackrabbit.webdav.simple.SimpleWebdavServlet;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
-
-import static org.apache.jackrabbit.oak.spi.query.IndexUtils.DEFAULT_INDEX_HOME;
 
 public class Main {
 

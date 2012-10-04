@@ -31,7 +31,7 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
-import org.apache.jackrabbit.oak.plugins.property.PropertyIndexHook;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexHook;
 import org.apache.jackrabbit.oak.spi.security.user.Type;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
