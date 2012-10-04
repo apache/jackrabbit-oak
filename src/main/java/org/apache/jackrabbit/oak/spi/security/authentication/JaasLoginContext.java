@@ -32,25 +32,21 @@ public class JaasLoginContext extends LoginContext implements OakLoginContext {
         super(name);
     }
 
-    public JaasLoginContext(String name, Subject subject)
-            throws LoginException {
+    public JaasLoginContext(String name, Subject subject) throws LoginException {
         super(name, subject);
     }
 
-    public JaasLoginContext(String name, CallbackHandler handler)
-            throws LoginException {
+    public JaasLoginContext(String name, CallbackHandler handler) throws LoginException {
         super(name, handler);
     }
 
-    public JaasLoginContext(
-            String name, Subject subject, CallbackHandler handler)
+    public JaasLoginContext(String name, Subject subject, CallbackHandler handler)
             throws LoginException {
         super(name, subject, handler);
     }
 
-    public JaasLoginContext(
-            String name, Subject subject, CallbackHandler handler,
-            Configuration configuration) throws LoginException {
+    public JaasLoginContext(String name, Subject subject, CallbackHandler handler,
+                            Configuration configuration) throws LoginException {
         super(name, subject, handler, configuration);
     }
 

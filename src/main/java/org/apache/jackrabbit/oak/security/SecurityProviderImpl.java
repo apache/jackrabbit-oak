@@ -17,20 +17,40 @@
 package org.apache.jackrabbit.oak.security;
 
 import javax.annotation.Nonnull;
+import javax.jcr.Session;
+import javax.security.auth.login.Configuration;
 
+import org.apache.jackrabbit.api.security.principal.PrincipalManager;
+import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.security.authentication.ConfigurationImpl;
 import org.apache.jackrabbit.oak.security.authentication.LoginContextProviderImpl;
 import org.apache.jackrabbit.oak.security.authorization.AccessControlProviderImpl;
+import org.apache.jackrabbit.oak.security.principal.PrincipalManagerImpl;
+import org.apache.jackrabbit.oak.security.principal.PrincipalProviderImpl;
 import org.apache.jackrabbit.oak.security.user.UserContextImpl;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlProvider;
+import org.apache.jackrabbit.oak.spi.security.principal.OpenPrincipalProvider;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
+import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserContext;
+import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 public class SecurityProviderImpl implements SecurityProvider {
+
     @Nonnull
     @Override
-    public LoginContextProvider getLoginContextProvider() {
-        return new LoginContextProviderImpl();
+    public LoginContextProvider getLoginContextProvider(NodeStore nodeStore) {
+        // TODO: use configurable authentication config
+        Configuration configuration = new ConfigurationImpl();
+        // TODO: use getPrincipalProvider instead
+        PrincipalProvider principalProvider = new OpenPrincipalProvider();
+        return new LoginContextProviderImpl(configuration, nodeStore, principalProvider);
     }
 
     @Nonnull
@@ -43,5 +63,27 @@ public class SecurityProviderImpl implements SecurityProvider {
     @Override
     public UserContext getUserContext() {
         return new UserContextImpl();
+    }
+
+    @Nonnull
+    @Override
+    public PrincipalConfiguration getPrincipalConfiguration() {
+        return new PrincipalConfiguration() {
+            @Nonnull
+            @Override
+            public PrincipalManager getPrincipalManager(Session session, ContentSession contentSession, Root root, NamePathMapper namePathMapper) {
+                PrincipalProvider principalProvider = getPrincipalProvider(contentSession, root, namePathMapper);
+                return new PrincipalManagerImpl(principalProvider);
+            }
+
+            @Nonnull
+            @Override
+            public PrincipalProvider getPrincipalProvider(ContentSession contentSession, Root root, NamePathMapper namePathMapper) {
+                UserContext userContext = getUserContext();
+                UserProvider userProvider = userContext.getUserProvider(contentSession, root);
+                MembershipProvider msProvider = userContext.getMembershipProvider(contentSession, root);
+                return new PrincipalProviderImpl(userProvider, msProvider, namePathMapper);
+            }
+        };
     }
 }

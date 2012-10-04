@@ -16,9 +16,10 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication;
 
+import java.io.Serializable;
+import javax.annotation.CheckForNull;
 import javax.jcr.Credentials;
 import javax.security.auth.callback.Callback;
-import java.io.Serializable;
 
 /**
  * Callback implementation to retrieve {@code Credentials}.
@@ -33,6 +34,7 @@ public class CredentialsCallback implements Callback, Serializable {
      *
      * @return The {@link Credentials} to be used for authentication or {@code null}.
      */
+    @CheckForNull
     public Credentials getCredentials() {
         return credentials;
     }

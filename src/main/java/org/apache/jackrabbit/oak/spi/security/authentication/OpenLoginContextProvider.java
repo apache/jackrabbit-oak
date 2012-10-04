@@ -20,26 +20,23 @@ import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
 import javax.security.auth.Subject;
 
-import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
-
 /**
- * This class provides login contexts that accept any credentials.
+ * This class provides login contexts that accept any credentials and doesn't
+ * validate specified workspace name.
  */
 public class OpenLoginContextProvider implements LoginContextProvider {
 
-    @Override @Nonnull
-    public OakLoginContext getLoginContext(
-            Credentials credentials, String workspaceName) {
-        final Subject subject = new Subject();
-        if (credentials != null) {
-            subject.getPrivateCredentials().add(credentials);
-        }
-        subject.getPrincipals().add(EveryonePrincipal.getInstance());
-        subject.setReadOnly();
-
+    @Override
+    @Nonnull
+    public OakLoginContext getLoginContext(final Credentials credentials, String workspaceName) {
         return new OakLoginContext() {
             @Override
             public Subject getSubject() {
+                Subject subject = new Subject();
+                if (credentials != null) {
+                    subject.getPrivateCredentials().add(credentials);
+                }
+                subject.setReadOnly();
                 return subject;
             }
             @Override
