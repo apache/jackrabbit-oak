@@ -19,7 +19,6 @@
 <jcr='http://www.jcp.org/jcr/1.0'>
 <nt='http://www.jcp.org/jcr/nt/1.0'>
 <mix='http://www.jcp.org/jcr/mix/1.0'>
-<oak='http://jackrabbit.apache.org/oak/ns/1.0'>
 
 //------------------------------------------------------------------------------
 // B A S E  T Y P E
@@ -464,15 +463,6 @@
 [nt:query]
   - jcr:statement (STRING)
   - jcr:language (STRING)
-
-/**
- * Index definitions storage
- *
- * @since oak 0.6
- */
-[oak:queryIndexDefinition] > nt:unstructured
-  - type (STRING) mandatory
-  + reindex (BOOLEAN)
 
 //------------------------------------------------------------------------------
 // L I F E C Y C L E   M A N A G E M E N T
