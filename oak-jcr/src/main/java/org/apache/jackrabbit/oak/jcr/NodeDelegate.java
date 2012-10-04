@@ -39,6 +39,7 @@ import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
+import org.apache.jackrabbit.oak.plugins.memory.SinglePropertyState;
 
 /**
  * {@code NodeDelegate} serve as internal representations of {@code Node}s.
@@ -256,7 +257,7 @@ public class NodeDelegate extends ItemDelegate {
         if (old != null && old.isArray()) {
             throw new ValueFormatException("Attempt to set a single value to multi-valued property.");
         }
-        tree.setProperty(name, value);
+        tree.setProperty(new SinglePropertyState(name, value));
         return new PropertyDelegate(sessionDelegate, tree.getLocation().getChild(name));
     }
 
