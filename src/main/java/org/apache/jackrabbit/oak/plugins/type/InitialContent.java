@@ -57,10 +57,6 @@ public class InitialContent extends DefaultMicroKernelTracker {
             mk.commit("/", "+\"oak:index\":{\"jcr:uuid\":{\"unique\":true},\"rep:authorizableId\":{\"unique\":true},\"rep:principalName\":{\"unique\":true}}", null, null);
         }
 
-        if (!root.hasChildNode("oak-index")) {
-            mk.commit("/", "+\"oak-index\":{ \"indexes\": { \"type\": \"lucene\" }}", null, null);
-        }
-
         BuiltInNodeTypes.register(createRoot(mk));
     }
 
