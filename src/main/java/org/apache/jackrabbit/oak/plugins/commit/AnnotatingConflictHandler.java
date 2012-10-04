@@ -65,35 +65,35 @@ public class AnnotatingConflictHandler implements ConflictHandler {
     @Override
     public Resolution addExistingProperty(Tree parent, PropertyState ours, PropertyState theirs) {
         Tree marker = addConflictMarker(parent);
-        setProperty(getOrCreateNode(marker, ADD_EXISTING), ours);
+        getOrCreateNode(marker, ADD_EXISTING).setProperty(ours);
         return Resolution.THEIRS;
     }
 
     @Override
     public Resolution changeDeletedProperty(Tree parent, PropertyState ours) {
         Tree marker = addConflictMarker(parent);
-        setProperty(getOrCreateNode(marker, CHANGE_DELETED), ours);
+        getOrCreateNode(marker, CHANGE_DELETED).setProperty(ours);
         return Resolution.THEIRS;
     }
 
     @Override
     public Resolution changeChangedProperty(Tree parent, PropertyState ours, PropertyState theirs) {
         Tree marker = addConflictMarker(parent);
-        setProperty(getOrCreateNode(marker, CHANGE_CHANGED), ours);
+        getOrCreateNode(marker, CHANGE_CHANGED).setProperty(ours);
         return Resolution.THEIRS;
     }
 
     @Override
     public Resolution deleteChangedProperty(Tree parent, PropertyState theirs) {
         Tree marker = addConflictMarker(parent);
-        setProperty(getOrCreateNode(marker, DELETE_CHANGED), theirs);
+        getOrCreateNode(marker, DELETE_CHANGED).setProperty(theirs);
         return Resolution.THEIRS;
     }
 
     @Override
     public Resolution deleteDeletedProperty(Tree parent, PropertyState ours) {
         Tree marker = addConflictMarker(parent);
-        setProperty(getOrCreateNode(marker, DELETE_DELETED), ours);
+        getOrCreateNode(marker, DELETE_DELETED).setProperty(ours);
         return Resolution.THEIRS;
     }
 
@@ -151,7 +151,7 @@ public class AnnotatingConflictHandler implements ConflictHandler {
     private static void addChild(Tree parent, String name, NodeState state) {
         Tree child = parent.addChild(name);
         for (PropertyState property : state.getProperties()) {
-            setProperty(child, property);
+            child.setProperty(property);
         }
         for (ChildNodeEntry entry : state.getChildNodeEntries()) {
             addChild(child, entry.getName(), entry.getNodeState());
@@ -160,14 +160,6 @@ public class AnnotatingConflictHandler implements ConflictHandler {
 
     private static void markChild(Tree parent, String name) {
         parent.addChild(name);
-    }
-
-    private static void setProperty(Tree parent, PropertyState property) {
-        if (property.isArray()) {
-            parent.setProperty(property.getName(), property.getValues());
-        } else {
-            parent.setProperty(property.getName(), property.getValue());
-        }
     }
 
 }

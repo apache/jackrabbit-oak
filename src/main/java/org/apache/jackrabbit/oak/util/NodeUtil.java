@@ -42,6 +42,10 @@ import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.jackrabbit.oak.api.Type.DATE;
+import static org.apache.jackrabbit.oak.api.Type.LONG;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+
 /**
  * Utility class for accessing and writing typed content of a tree.
  */
@@ -125,7 +129,7 @@ public class NodeUtil {
     }
 
     public void setBoolean(String name, boolean value) {
-        tree.setProperty(name, factory.createValue(value));
+        tree.setProperty(name, value);
     }
 
     public String getString(String name, String defaultValue) {
@@ -138,7 +142,7 @@ public class NodeUtil {
     }
 
     public void setString(String name, String value) {
-        tree.setProperty(name, factory.createValue(value));
+        tree.setProperty(name, value);
     }
 
     public String[] getStrings(String name) {
@@ -178,7 +182,7 @@ public class NodeUtil {
 
     public void setName(String name, String value) {
         String oakName = getOakName(value);
-        tree.setProperty(name, factory.createValue(oakName, PropertyType.NAME));
+        tree.setProperty(name, oakName, NAME);
     }
 
     public String[] getNames(String name, String... defaultValues) {
@@ -203,20 +207,20 @@ public class NodeUtil {
     public void setDate(String name, long time) {
         Calendar cal = GregorianCalendar.getInstance();
         cal.setTimeInMillis(time);
-        tree.setProperty(name, factory.createValue(ISO8601.format(cal), PropertyType.DATE));
+        tree.setProperty(name, ISO8601.format(cal), DATE);
     }
 
     public long getLong(String name, long defaultValue) {
         PropertyState property = tree.getProperty(name);
         if (property != null && !property.isArray()) {
-            return property.getValue().getLong();
+            return property.getValue(LONG);
         } else {
             return defaultValue;
         }
     }
 
     public void setLong(String name, long value) {
-        tree.setProperty(name, factory.createValue(value));
+        tree.setProperty(name, value);
     }
 
     public List<NodeUtil> getNodes(String namePrefix) {
