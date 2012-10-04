@@ -264,17 +264,6 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     @Deprecated
-    public PropertyState setProperty(String name, CoreValue value) {
-        NodeBuilder builder = getNodeBuilder();
-        builder.setProperty(name, value);
-        root.purge();
-        PropertyState property = getProperty(name);
-        assert property != null;
-        return property;
-    }
-
-    @Override
-    @Deprecated
     public PropertyState setProperty(String name, List<CoreValue> values) {
         NodeBuilder builder = getNodeBuilder();
         builder.setProperty(name, values);

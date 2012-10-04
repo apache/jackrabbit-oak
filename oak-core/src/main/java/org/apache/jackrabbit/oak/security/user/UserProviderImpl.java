@@ -20,6 +20,7 @@ import java.security.Principal;
 import java.text.ParseException;
 import java.util.Collections;
 import java.util.Iterator;
+
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.query.Query;
@@ -33,6 +34,7 @@ import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.memory.SinglePropertyState;
 import org.apache.jackrabbit.oak.spi.security.principal.TreeBasedPrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.Type;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
@@ -261,7 +263,7 @@ class UserProviderImpl extends AuthorizableBaseProvider implements UserProvider 
             authorizableTree.removeProperty(propertyName);
         } else {
             CoreValue cv = valueFactory.createValue(value, propertyType);
-            authorizableTree.setProperty(propertyName, cv);
+            authorizableTree.setProperty(new SinglePropertyState(propertyName, cv));
         }
     }
 

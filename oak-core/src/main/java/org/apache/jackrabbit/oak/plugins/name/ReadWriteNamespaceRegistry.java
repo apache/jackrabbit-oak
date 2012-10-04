@@ -24,7 +24,6 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.plugins.memory.StringValue;
 
 /**
  * Writable namespace registry. Mainly for use to implement the full JCR API.
@@ -81,7 +80,7 @@ public abstract class ReadWriteNamespaceRegistry
                     namespaces.removeProperty(p.getName());
                 }
             }
-            namespaces.setProperty(prefix, new StringValue(uri));
+            namespaces.setProperty(prefix, uri);
             root.commit();
             refresh();
         } catch (NamespaceValidatorException e) {
