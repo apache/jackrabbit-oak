@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.query.IndexDefinition;
@@ -91,7 +92,8 @@ public class LuceneReindexHook implements CommitHook, LuceneIndexConstants {
         for (IndexDefinition def : defsChanged) {
             hooks.add(new LuceneEditor(def));
         }
-        NodeState done = CompositeHook.compose(hooks).processCommit(null, after);
+        NodeState done = CompositeHook.compose(hooks).processCommit(
+                MemoryNodeState.EMPTY_NODE, after);
         LOG.debug("done reindexing repository content in {} ms.",
                 System.currentTimeMillis() - t);
         return done;
