@@ -20,11 +20,15 @@ package org.apache.jackrabbit.oak.query.ast;
 
 import java.text.ParseException;
 import java.util.ArrayList;
+
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.query.ast.ComparisonImpl.LikePattern;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
+
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
 /**
  * A fulltext "contains(...)" condition.
@@ -102,11 +106,11 @@ public class FullTextSearchImpl extends ConstraintImpl {
 
     private static void appendString(StringBuilder buff, PropertyState p) {
         if (p.isArray()) {
-            for (CoreValue v : p.getValues()) {
-                buff.append(v.getString()).append(' ');
+            for (String v : p.getValue(STRINGS)) {
+                buff.append(v).append(' ');
             }
         } else {
-            buff.append(p.getValue().getString()).append(' ');
+            buff.append(p.getValue(STRING)).append(' ');
         }
     }
 

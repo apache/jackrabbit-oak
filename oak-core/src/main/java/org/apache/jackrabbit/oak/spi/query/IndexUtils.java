@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.spi.query.IndexDefinition.INDEX_DATA_CHILD_NAME;
 import static org.apache.jackrabbit.oak.spi.query.IndexDefinition.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.spi.query.IndexDefinition.UNIQUE_PROPERTY_NAME;
@@ -54,7 +55,7 @@ public class IndexUtils {
         PropertyState typeProp = ns.getProperty(TYPE_PROPERTY_NAME);
         String type = TYPE_UNKNOWN;
         if (typeProp != null && !typeProp.isArray()) {
-            type = typeProp.getValue().getString();
+            type = typeProp.getValue(STRING);
         }
 
         boolean unique = false;
@@ -66,7 +67,7 @@ public class IndexUtils {
         Map<String, String> props = new HashMap<String, String>();
         for (PropertyState ps : ns.getProperties()) {
             if (ps != null && !ps.isArray()) {
-                String v = ps.getValue().getString();
+                String v = ps.getValue(STRING);
                 props.put(ps.getName(), v);
             }
         }
@@ -74,9 +75,8 @@ public class IndexUtils {
         if (ns.hasChildNode(INDEX_DATA_CHILD_NAME)) {
             PropertyState ps = ns.getChildNode(INDEX_DATA_CHILD_NAME)
                     .getProperty(LuceneIndexConstants.INDEX_UPDATE);
-            if (ps != null && ps.getValue() != null) {
-                props.put(LuceneIndexConstants.INDEX_UPDATE, ps.getValue()
-                        .getString());
+            if (ps != null) {
+                props.put(LuceneIndexConstants.INDEX_UPDATE, ps.getValue(STRING));
             }
         }
 
