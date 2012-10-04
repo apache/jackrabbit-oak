@@ -104,7 +104,7 @@ class EmptyPropertyState implements PropertyState {
     }
 
     @Override
-    public long count() {
+    public int count() {
         return 0;
     }
 

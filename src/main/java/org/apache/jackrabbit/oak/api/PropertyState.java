@@ -147,6 +147,6 @@ public interface PropertyState {
      * The number of values of this property. {@code 1} for atoms.
      * @return  number of values
      */
-    long count();
+    int count();
 
 }
