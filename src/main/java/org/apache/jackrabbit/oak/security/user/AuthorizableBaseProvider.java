@@ -28,6 +28,8 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+
 /**
  * AuthorizableBaseProvider... TODO
  */
@@ -77,7 +79,7 @@ abstract class AuthorizableBaseProvider implements UserConstants {
     boolean isAuthorizableTree(Tree tree, Type authorizableType) {
         // FIXME: check for node type according to the specified type constraint
         if (tree != null && tree.hasProperty(JcrConstants.JCR_PRIMARYTYPE)) {
-            String ntName = tree.getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue().getString();
+            String ntName = tree.getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue(STRING);
             switch (authorizableType) {
                 case GROUP:
                     return NT_REP_GROUP.equals(ntName);

@@ -54,6 +54,8 @@ import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.jackrabbit.oak.api.Type.*;
+
 /**
  * Default implementation of the {@code TokenProvider} interface with the
  * following characteristics.
@@ -306,7 +308,7 @@ public class TokenProviderImpl implements TokenProvider {
             publicAttributes = new HashMap<String, String>();
             for (PropertyState propertyState : tokenNode.getTree().getProperties()) {
                 String name = propertyState.getName();
-                String value = propertyState.getValue().getString();
+                String value = propertyState.getValue(STRING);
                 if (isMandatoryAttribute(name)) {
                     mandatoryAttributes.put(name, value);
                 } else if (isInfoAttribute(name)) {

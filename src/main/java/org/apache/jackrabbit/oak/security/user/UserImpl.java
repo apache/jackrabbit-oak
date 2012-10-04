@@ -32,6 +32,8 @@ import org.apache.jackrabbit.oak.spi.security.user.Type;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+
 /**
  * UserImpl...
  */
@@ -117,7 +119,7 @@ class UserImpl extends AuthorizableImpl implements User {
         String pwHash = null;
         PropertyState pwProp = getTree().getProperty(REP_PASSWORD);
         if (pwProp != null) {
-            pwHash = pwProp.getValue().getString();
+            pwHash = pwProp.getValue(STRING);
         }
         if (!PasswordUtility.isSame(pwHash, oldPassword)) {
             throw new RepositoryException("Failed to change password: Old password does not match.");
@@ -159,7 +161,7 @@ class UserImpl extends AuthorizableImpl implements User {
     public String getDisabledReason() throws RepositoryException {
         PropertyState disabled = getTree().getProperty(REP_DISABLED);
         if (disabled != null) {
-            return disabled.getValue().getString();
+            return disabled.getValue(STRING);
         } else
             return null;
     }
