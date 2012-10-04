@@ -18,13 +18,13 @@ package org.apache.jackrabbit.oak.plugins.name;
 
 import java.util.Set;
 
-import javax.jcr.PropertyType;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.api.Type.NAMES;
 
 class NameValidator implements Validator {
 
@@ -52,16 +52,16 @@ class NameValidator implements Validator {
 
     protected void checkValidValue(PropertyState property)
             throws CommitFailedException {
-        for (CoreValue value : property.getValues()) {
-            checkValidValue(value);
+        if (NAME.equals(property.getType())) {
+            for (String value : property.getValue(NAMES)) {
+                checkValidValue(value);
+            }
         }
     }
 
-    protected void checkValidValue(CoreValue value)
+    protected void checkValidValue(String value)
             throws CommitFailedException {
-        if (value.getType() == PropertyType.NAME) {
-            checkValidName(value.getString());
-        }
+        checkValidName(value);
     }
 
     //-------------------------------------------------------< NodeValidator >
