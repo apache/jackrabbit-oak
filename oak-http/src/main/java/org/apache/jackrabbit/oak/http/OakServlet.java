@@ -35,10 +35,8 @@ import com.fasterxml.jackson.dataformat.smile.SmileFactory;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryValueFactory;
 import org.apache.tika.mime.MediaType;
 
 public class OakServlet extends HttpServlet {
@@ -135,19 +133,18 @@ public class OakServlet extends HttpServlet {
                 if (child != null) {
                     child.remove();
                 }
-                CoreValueFactory vf = MemoryValueFactory.INSTANCE;
                 if (value.isNull()) {
                     tree.removeProperty(name);
                 } else if (value.isBoolean()) {
-                    tree.setProperty(name, vf.createValue(value.asBoolean()));
+                    tree.setProperty(name, value.asBoolean());
                 } else if (value.isLong()) {
-                    tree.setProperty(name, vf.createValue(value.asLong()));
+                    tree.setProperty(name, value.asLong());
                 } else if (value.isDouble()) {
-                    tree.setProperty(name, vf.createValue(value.asDouble()));
+                    tree.setProperty(name, value.asDouble());
                 } else if (value.isBigDecimal()) {
-                    tree.setProperty(name, vf.createValue(value.decimalValue()));
+                    tree.setProperty(name, value.decimalValue());
                 } else {
-                    tree.setProperty(name, vf.createValue(value.asText()));
+                    tree.setProperty(name, value.asText());
                 }
             }
         }
