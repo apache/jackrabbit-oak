@@ -21,6 +21,7 @@ import java.util.List;
 import javax.annotation.Nonnull;
 import javax.jcr.Session;
 
+import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
@@ -30,9 +31,13 @@ import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvide
 import org.apache.jackrabbit.oak.spi.security.authentication.OpenLoginContextProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.OpenAccessControlProvider;
+import org.apache.jackrabbit.oak.spi.security.principal.OpenPrincipalProvider;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserContext;
 import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
  * OpenSecurityProvider... TODO: review if we really have the need for that once TODO in InitialContent is resolved
@@ -41,7 +46,7 @@ public class OpenSecurityProvider implements SecurityProvider {
 
     @Nonnull
     @Override
-    public LoginContextProvider getLoginContextProvider() {
+    public LoginContextProvider getLoginContextProvider(NodeStore nodeStore) {
         return new OpenLoginContextProvider();
     }
 
@@ -78,6 +83,24 @@ public class OpenSecurityProvider implements SecurityProvider {
             @Override
             public UserManager getUserManager(Session session, ContentSession contentSession, Root root, NamePathMapper namePathMapper) {
                 throw new UnsupportedOperationException();
+            }
+        };
+    }
+
+    @Nonnull
+    @Override
+    public PrincipalConfiguration getPrincipalConfiguration() {
+        return new PrincipalConfiguration() {
+            @Nonnull
+            @Override
+            public PrincipalManager getPrincipalManager(Session session, ContentSession contentSession, Root root, NamePathMapper namePathMapper) {
+                throw new UnsupportedOperationException();
+            }
+
+            @Nonnull
+            @Override
+            public PrincipalProvider getPrincipalProvider(ContentSession contentSession, Root root, NamePathMapper namePathMapper) {
+                return new OpenPrincipalProvider();
             }
         };
     }
