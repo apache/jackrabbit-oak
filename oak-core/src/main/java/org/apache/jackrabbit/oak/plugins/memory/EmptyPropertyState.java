@@ -23,8 +23,10 @@ import java.util.List;
 
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -35,9 +37,15 @@ import static com.google.common.base.Preconditions.checkNotNull;
 class EmptyPropertyState implements PropertyState {
 
     private final String name;
+    private final Type<?> type;
 
-    public EmptyPropertyState(String name) {
+    public EmptyPropertyState(String name, Type<?> type) {
         this.name = checkNotNull(name);
+        this.type = type;
+    }
+
+    protected static Blob getBlob(CoreValue value) {
+        return new BlobImpl(value);
     }
 
     @Override
@@ -52,14 +60,52 @@ class EmptyPropertyState implements PropertyState {
 
     @Override
     @Nonnull
+    @Deprecated
     public CoreValue getValue() {
         throw new IllegalStateException("Not a single valued property");
     }
 
     @Override
     @Nonnull
+    @Deprecated
     public List<CoreValue> getValues() {
         return Collections.emptyList();
+    }
+
+    @Override
+    public Type<?> getType() {
+        return type;
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public <T> T getValue(Type<T> type) {
+        if (type.isArray()) {
+            return (T) Collections.emptyList();
+        }
+        else {
+            throw new IllegalStateException("Not a single valued property");
+        }
+    }
+
+    @Override
+    public <T> T getValue(Type<T> type, int index) {
+        throw new IndexOutOfBoundsException(String.valueOf(index));
+    }
+
+    @Override
+    public long size() {
+        throw new IllegalStateException("Not a single valued property");
+    }
+
+    @Override
+    public long size(int index) {
+        throw new IndexOutOfBoundsException(String.valueOf(index));
+    }
+
+    @Override
+    public long count() {
+        return 0;
     }
 
     //------------------------------------------------------------< Object >--

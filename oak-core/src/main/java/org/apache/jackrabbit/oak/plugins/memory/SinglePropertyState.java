@@ -18,15 +18,17 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.util.Collections;
 import java.util.List;
 
 import javax.annotation.Nonnull;
+import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Single-valued property state.
@@ -52,7 +54,7 @@ public class SinglePropertyState extends EmptyPropertyState {
     private final CoreValue value;
 
     public SinglePropertyState(String name, CoreValue value) {
-        super(name);
+        super(name, Type.fromTag(value.getType(), false));
         this.value = checkNotNull(value);
     }
 
@@ -63,14 +65,84 @@ public class SinglePropertyState extends EmptyPropertyState {
 
     @Override
     @Nonnull
+    @Deprecated
     public CoreValue getValue() {
         return value;
     }
 
     @Override
     @Nonnull
+    @Deprecated
     public List<CoreValue> getValues() {
         return Collections.singletonList(value);
     }
 
+    @SuppressWarnings("unchecked")
+    @Override
+    public <T> T getValue(Type<T> type) {
+        if (type.isArray()) {
+            switch (type.tag()) {
+                case PropertyType.STRING: return (T) Collections.singleton(value.getString());
+                case PropertyType.BINARY: return (T) Collections.singleton(getBlob(value));
+                case PropertyType.LONG: return (T) Collections.singleton(value.getLong());
+                case PropertyType.DOUBLE: return (T) Collections.singleton(value.getDouble());
+                case PropertyType.DATE: return (T) Collections.singleton(value.getString());
+                case PropertyType.BOOLEAN: return (T) Collections.singleton(value.getBoolean());
+                case PropertyType.NAME: return (T) Collections.singleton(value.getString());
+                case PropertyType.PATH: return (T) Collections.singleton(value.getString());
+                case PropertyType.REFERENCE: return (T) Collections.singleton(value.getString());
+                case PropertyType.WEAKREFERENCE: return (T) Collections.singleton(value.getString());
+                case PropertyType.URI: return (T) Collections.singleton(value.getString());
+                case PropertyType.DECIMAL: return (T) Collections.singleton(value.getDecimal());
+                default: throw new IllegalArgumentException("Invalid primitive type:" + type);
+            }
+        }
+        else {
+            switch (type.tag()) {
+                case PropertyType.STRING: return (T) value.getString();
+                case PropertyType.BINARY: return (T) getBlob(value);
+                case PropertyType.LONG: return (T) (Long) value.getLong();
+                case PropertyType.DOUBLE: return (T) (Double) value.getDouble();
+                case PropertyType.DATE: return (T) value.getString();
+                case PropertyType.BOOLEAN: return (T) (Boolean) value.getBoolean();
+                case PropertyType.NAME: return (T) value.getString();
+                case PropertyType.PATH: return (T) value.getString();
+                case PropertyType.REFERENCE: return (T) value.getString();
+                case PropertyType.WEAKREFERENCE: return (T) value.getString();
+                case PropertyType.URI: return (T) value.getString();
+                case PropertyType.DECIMAL: return (T) value.getDecimal();
+                default: throw new IllegalArgumentException("Invalid array type:" + type);
+            }
+        }
+    }
+
+    @Override
+    public <T> T getValue(Type<T> type, int index) {
+        if (type.isArray()) {
+            throw new IllegalArgumentException("Nested arrows not supported");
+        }
+        if (index != 0) {
+            throw new IndexOutOfBoundsException(String.valueOf(index));
+        }
+
+        return getValue(type);
+    }
+
+    @Override
+    public long size() {
+        return value.length();
+    }
+
+    @Override
+    public long size(int index) {
+        if (index != 0) {
+            throw new IndexOutOfBoundsException(String.valueOf(index));
+        }
+        return size();
+    }
+
+    @Override
+    public long count() {
+        return 1;
+    }
 }

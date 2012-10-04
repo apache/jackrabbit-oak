@@ -16,22 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
-
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
-import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -42,6 +32,17 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 /**
  * In-memory node state builder. The following two builder states are used
@@ -279,22 +280,20 @@ public class MemoryNodeBuilder implements NodeBuilder {
         return read().getProperty(name);
     }
 
-    @Override @Nonnull
+    @Override @Nonnull @Deprecated
     public NodeBuilder setProperty(String name, CoreValue value) {
         MutableNodeState mstate = write();
-
         mstate.props.put(name, new SinglePropertyState(name, value));
-
         updated();
         return this;
     }
 
-    @Override @Nonnull
+    @Override @Nonnull @Deprecated
     public NodeBuilder setProperty(String name, List<CoreValue> values) {
         MutableNodeState mstate = write();
 
         if (values.isEmpty()) {
-            mstate.props.put(name, new EmptyPropertyState(name));
+            mstate.props.put(name, new EmptyPropertyState(name, STRING));
         } else {
             mstate.props.put(name, new MultiPropertyState(name, values));
         }
@@ -303,12 +302,12 @@ public class MemoryNodeBuilder implements NodeBuilder {
         return this;
     }
 
-    @Override @Nonnull
+    @Override @Nonnull @Deprecated
     public NodeBuilder set(@Nonnull String name, @Nonnull String value) {
         return setProperty(name, new StringValue(value));
     }
 
-    @Override @Nonnull
+    @Override @Nonnull @Deprecated
     public NodeBuilder set(
             @Nonnull String name, @Nonnull String... values) {
         List<CoreValue> list = Lists.newArrayListWithCapacity(values.length);
@@ -329,6 +328,26 @@ public class MemoryNodeBuilder implements NodeBuilder {
         }
 
         updated();
+        return this;
+    }
+
+    @Override
+    public NodeBuilder setProperty(PropertyState property) {
+        MutableNodeState mstate = write();
+        mstate.props.put(property.getName(), property);
+        updated();
+        return this;
+    }
+
+    @Override
+    public <T> NodeBuilder setProperty(String name, T value) {
+        setProperty(PropertyStates.createProperty(name, value));
+        return this;
+    }
+
+    @Override
+    public <T> NodeBuilder setProperty(String name, T value, Type<T> type) {
+        setProperty(PropertyStates.createProperty(name, value, type));
         return this;
     }
 
