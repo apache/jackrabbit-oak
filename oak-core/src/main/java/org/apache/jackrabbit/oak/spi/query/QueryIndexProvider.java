@@ -22,7 +22,7 @@ import java.util.List;
 
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * A mechanism to index data. Indexes might be added or removed at runtime,
@@ -37,6 +37,6 @@ public interface QueryIndexProvider {
      * @return the list of indexes
      */
     @Nonnull
-    List<? extends QueryIndex> getQueryIndexes(NodeStore nodeStore);
+    List<? extends QueryIndex> getQueryIndexes(NodeState nodeState);
 
 }
