@@ -124,17 +124,17 @@ public final class Type<T> {
     public static Type<?> fromTag(int tag, boolean array) {
         switch (tag) {
             case PropertyType.STRING: return array ? STRINGS : STRING;
-            case PropertyType.BINARY: return array ? BINARY : BINARIES;
-            case PropertyType.LONG: return array ? LONG : LONGS;
-            case PropertyType.DOUBLE: return array ? DOUBLE : DOUBLES;
-            case PropertyType.DATE: return array ? DATE: DATES;
-            case PropertyType.BOOLEAN: return array ? BOOLEAN: BOOLEANS;
-            case PropertyType.NAME: return array ? NAME : NAMES;
-            case PropertyType.PATH: return array ? PATH: PATHS;
-            case PropertyType.REFERENCE: return array ? REFERENCE : REFERENCES;
-            case PropertyType.WEAKREFERENCE: return array ? WEAKREFERENCE : WEAKREFERENCES;
-            case PropertyType.URI: return array ? URI: URIS;
-            case PropertyType.DECIMAL: return array ? DECIMAL : DECIMALS;
+            case PropertyType.BINARY: return array ? BINARIES : BINARY;
+            case PropertyType.LONG: return array ? LONGS : LONG;
+            case PropertyType.DOUBLE: return array ? DOUBLES : DOUBLE;
+            case PropertyType.DATE: return array ? DATES: DATE;
+            case PropertyType.BOOLEAN: return array ? BOOLEANS: BOOLEAN;
+            case PropertyType.NAME: return array ? NAMES : NAME;
+            case PropertyType.PATH: return array ? PATHS: PATH;
+            case PropertyType.REFERENCE: return array ? REFERENCES : REFERENCE;
+            case PropertyType.WEAKREFERENCE: return array ? WEAKREFERENCES : WEAKREFERENCE;
+            case PropertyType.URI: return array ? URIS: URI;
+            case PropertyType.DECIMAL: return array ? DECIMALS : DECIMAL;
             default: throw new IllegalArgumentException("Invalid type tag: " + tag);
         }
     }
