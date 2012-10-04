@@ -39,6 +39,7 @@ import org.apache.jackrabbit.oak.plugins.index.old.PropertyIndexer;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -83,6 +84,7 @@ public class QueryTest extends AbstractQueryTest {
     }
 
     @Test
+    @Ignore
     public void sql2_measure() throws Exception {
         test("sql2_measure.txt");
     }
