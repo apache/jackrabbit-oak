@@ -142,7 +142,7 @@ public class SinglePropertyState extends EmptyPropertyState {
     }
 
     @Override
-    public long count() {
+    public int count() {
         return 1;
     }
 }
