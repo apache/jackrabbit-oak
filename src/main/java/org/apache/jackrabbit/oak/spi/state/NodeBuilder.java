@@ -16,11 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.state;
 
-import java.util.List;
-
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 
@@ -103,17 +100,6 @@ public interface NodeBuilder {
      * @return property state
      */
     PropertyState getProperty(String name);
-
-    /**
-     * Set a property.
-     *
-     * @param name property name
-     * @param values
-     * @return this builder
-     */
-    @Deprecated
-    @Nonnull
-    NodeBuilder setProperty(String name, @Nonnull List<CoreValue> values);
 
     /**
      * Set a property state

@@ -25,6 +25,7 @@ import javax.jcr.PropertyType;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.MultiPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.StringValue;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
@@ -60,7 +61,7 @@ class PropertyIndexUpdate {
         putValues(remove, path.substring(this.path.length()), values);
     }
 
-    private void putValues(
+    private static void putValues(
             Map<String, Set<String>> map,
             String path, Iterable<CoreValue> values) {
         for (CoreValue value : values) {
@@ -95,7 +96,7 @@ class PropertyIndexUpdate {
                 if (values.isEmpty()) {
                     index.removeProperty(encoded);
                 } else {
-                    index.setProperty(encoded, values);
+                    index.setProperty(new MultiPropertyState(encoded, values));
                 }
             }
         }
@@ -120,7 +121,7 @@ class PropertyIndexUpdate {
                 throw new CommitFailedException(
                         "Uniqueness constraint violated");
             } else {
-                index.setProperty(encoded, values);
+                index.setProperty(new MultiPropertyState(encoded, values));
             }
         }
     }
