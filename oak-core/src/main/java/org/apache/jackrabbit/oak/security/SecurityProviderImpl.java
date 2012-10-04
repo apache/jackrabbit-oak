@@ -33,7 +33,6 @@ import org.apache.jackrabbit.oak.security.user.UserContextImpl;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlProvider;
-import org.apache.jackrabbit.oak.spi.security.principal.OpenPrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
@@ -48,9 +47,7 @@ public class SecurityProviderImpl implements SecurityProvider {
     public LoginContextProvider getLoginContextProvider(NodeStore nodeStore) {
         // TODO: use configurable authentication config
         Configuration configuration = new ConfigurationImpl();
-        // TODO: use getPrincipalProvider instead
-        PrincipalProvider principalProvider = new OpenPrincipalProvider();
-        return new LoginContextProviderImpl(configuration, nodeStore, principalProvider);
+        return new LoginContextProviderImpl(configuration, nodeStore, this);
     }
 
     @Nonnull

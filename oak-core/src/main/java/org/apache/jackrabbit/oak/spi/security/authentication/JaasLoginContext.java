@@ -19,14 +19,13 @@ package org.apache.jackrabbit.oak.spi.security.authentication;
 import javax.security.auth.Subject;
 import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.login.Configuration;
-import javax.security.auth.login.LoginContext;
 import javax.security.auth.login.LoginException;
 
 /**
- * Bridge class that connects the JAAS {@link LoginContext} class with the
- * {@link OakLoginContext} interface used by Oak.
+ * Bridge class that connects the JAAS {@link javax.security.auth.login.LoginContext} class with the
+ * {@link LoginContext} interface used by Oak.
  */
-public class JaasLoginContext extends LoginContext implements OakLoginContext {
+public class JaasLoginContext extends javax.security.auth.login.LoginContext implements LoginContext {
 
     public JaasLoginContext(String name) throws LoginException {
         super(name);

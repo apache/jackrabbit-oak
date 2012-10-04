@@ -115,7 +115,6 @@ public class LoginModuleImpl extends AbstractLoginModule {
         // TODO
         credentials = getCredentials();
         userID = getUserID();
-        principals = getPrincipals(userID);
 
         Authentication authentication = new AuthenticationImpl(userID);
         boolean success = authentication.authenticate(credentials);
@@ -124,6 +123,8 @@ public class LoginModuleImpl extends AbstractLoginModule {
         }
 
         if (success) {
+            principals = getPrincipals(userID);
+
             log.debug("Login: adding Credentials to shared state.");
             sharedState.put(SHARED_KEY_CREDENTIALS, credentials);
 

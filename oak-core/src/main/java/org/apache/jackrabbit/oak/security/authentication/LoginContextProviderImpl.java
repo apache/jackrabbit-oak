@@ -24,10 +24,10 @@ import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginException;
 
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.JaasLoginContext;
+import org.apache.jackrabbit.oak.spi.security.authentication.LoginContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
-import org.apache.jackrabbit.oak.spi.security.authentication.OakLoginContext;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,30 +43,29 @@ public class LoginContextProviderImpl implements LoginContextProvider {
 
     private final Configuration configuration;
     private final NodeStore nodeStore;
-    private final PrincipalProvider principalProvider;
+    private final SecurityProvider securityProvider;
 
     public LoginContextProviderImpl(Configuration configuration,
                                     NodeStore nodeStore,
-                                    PrincipalProvider principalProvider) {
+                                    SecurityProvider securityProvider) {
         this.configuration = configuration;
         this.nodeStore = nodeStore;
-        this.principalProvider = principalProvider;
+        this.securityProvider = securityProvider;
     }
 
     @Override
     @Nonnull
-    public OakLoginContext getLoginContext(Credentials credentials, String workspaceName)
+    public LoginContext getLoginContext(Credentials credentials, String workspaceName)
             throws LoginException {
         // TODO: add proper implementation
         // TODO  - authentication against configurable spi-authentication
         // TODO  - validation of workspace name (including access rights for the given 'user')
         Subject subject = getSubject();
-        CallbackHandler handler = new CallbackHandlerImpl(credentials, workspaceName, nodeStore, principalProvider);
+        CallbackHandler handler = new CallbackHandlerImpl(credentials, workspaceName, nodeStore, securityProvider);
         return new JaasLoginContext(APP_NAME, subject, handler, configuration);
     }
 
     //------------------------------------------------------------< private >---
-
     private static Subject getSubject() {
         Subject subject = null;
         try {

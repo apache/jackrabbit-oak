@@ -232,12 +232,14 @@ public class RepositoryTest extends AbstractRepositoryTest {
         // FIXME: use a test subtree to avoid excluding default content
         int expected = 3
                 + (root.hasNode("jcr:system") ? 1 : 0)
+                + (root.hasNode("rep:security") ? 1 : 0)
                 + (root.hasNode("oak-index") ? 1 : 0)
                 + (root.hasNode("oak:index") ? 1 : 0);
         assertEquals(expected, nodes.getSize());
         while (nodes.hasNext()) {
             String name = nodes.nextNode().getName();
             if (!name.equals("jcr:system")
+                    && !name.equals("rep:security")
                     && !name.equals("oak-index")
                     && !name.equals("oak:index")) {
                 assertTrue(nodeNames.remove(name));

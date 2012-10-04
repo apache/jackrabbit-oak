@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authentication.token;
+package org.apache.jackrabbit.oak.spi.security.authentication.token;
 
 import javax.annotation.CheckForNull;
 import javax.jcr.Credentials;

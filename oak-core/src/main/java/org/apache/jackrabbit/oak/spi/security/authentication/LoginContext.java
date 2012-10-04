@@ -14,31 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authentication.token;
+package org.apache.jackrabbit.oak.spi.security.authentication;
 
-import java.util.Map;
-import javax.annotation.Nonnull;
-
-import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
+import javax.security.auth.Subject;
+import javax.security.auth.login.LoginException;
 
 /**
- * TokenInfo... TODO document, move to spi/api
+ * Interface version of the JAAS {@link javax.security.auth.login.LoginContext}
+ * class. It is used to make integration of non-JAAS authentication components
+ * easier while still retaining full JAAS support. The {@link JaasLoginContext}
+ * class acts as a bridge that connects the JAAS
+ * {@link javax.security.auth.login.LoginContext} class with this interface.
  */
-public interface TokenInfo {
+public interface LoginContext {
 
-    @Nonnull
-    String getUserId();
+    Subject getSubject();
 
-    @Nonnull
-    String getToken();
+    void login() throws LoginException;
 
-    boolean isExpired(long loginTime);
+    void logout() throws LoginException;
 
-    boolean matches(TokenCredentials tokenCredentials);
-
-    @Nonnull
-    Map<String, String> getPrivateAttributes();
-
-    @Nonnull
-    Map<String, String> getPublicAttributes();
 }
