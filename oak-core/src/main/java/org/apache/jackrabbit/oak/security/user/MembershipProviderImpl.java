@@ -44,6 +44,8 @@ import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+
 /**
  * {@code MembershipProvider} implementation storing group membership information
  * with the {@code Tree} associated with a given {@link org.apache.jackrabbit.api.security.user.Group}.
@@ -183,10 +185,10 @@ public class MembershipProviderImpl extends AuthorizableBaseProvider implements 
             } else {
                 PropertyState property = groupTree.getProperty(REP_MEMBERS);
                 if (property != null) {
-                    List<CoreValue> members = property.getValues();
+                    Iterable<String> members = property.getValue(STRINGS);
                     String authorizableUUID = getContentID(authorizableTree);
-                    for (CoreValue v : members) {
-                        if (authorizableUUID.equals(v.getString())) {
+                    for (String v : members) {
+                        if (authorizableUUID.equals(v)) {
                             return true;
                         }
                     }
