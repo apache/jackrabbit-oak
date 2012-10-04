@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.principal;
+package org.apache.jackrabbit.oak.spi.security.principal;
 
 import java.security.Principal;
 import java.security.acl.Group;
@@ -23,16 +23,10 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
-import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
-import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
-
 /**
- * ToRemovePrincipalProvider... TODO tmp dummy implemetation. to be replace
- * by configurable principal provider (default KernelPrincipalProviver) once
- * the auth-setup is done properly.
+ * OpenPrincipalProvider... TODO
  */
-public class TmpPrincipalProvider implements PrincipalProvider {
+public class OpenPrincipalProvider implements PrincipalProvider {
 
     //--------------------------------------------------< PrincipalProvider >---
     @Override
@@ -56,6 +50,7 @@ public class TmpPrincipalProvider implements PrincipalProvider {
         Principal p = getPrincipal(userID);
         principals.add(p);
         principals.addAll(getGroupMembership(p));
+        // TODO: remove again (currently needed because LoginContextProviderImpl uses this dummy principal provider)
         if ("admin".equals(userID)) {
             principals.add(AdminPrincipal.INSTANCE);
         }
@@ -64,7 +59,6 @@ public class TmpPrincipalProvider implements PrincipalProvider {
 
     @Override
     public Iterator<Principal> findPrincipals(String nameHint, int searchType) {
-        throw new UnsupportedOperationException("not implemented");
+        return PrincipalIteratorAdapter.EMPTY;
     }
-
 }
