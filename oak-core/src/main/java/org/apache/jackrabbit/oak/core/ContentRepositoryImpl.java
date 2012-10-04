@@ -28,8 +28,6 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandlerProvider;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
-import org.apache.jackrabbit.oak.security.authentication.LoginContextProviderImpl;
-import org.apache.jackrabbit.oak.security.authorization.AccessControlProviderImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandlerProvider;
@@ -60,8 +58,7 @@ public class ContentRepositoryImpl implements ContentRepository {
     private static final ConflictHandlerProvider DEFAULT_CONFLICT_HANDLER_PROVIDER =
             new AnnotatingConflictHandlerProvider();
 
-    private final LoginContextProvider loginContextProvider;
-    private final AccessControlProvider accProvider;
+    private final SecurityProvider securityProvider;
     private final QueryIndexProvider indexProvider;
     private final KernelNodeStore nodeStore;
 
@@ -75,8 +72,7 @@ public class ContentRepositoryImpl implements ContentRepository {
     }
 
     public ContentRepositoryImpl(CommitHook hook) {
-        this(new MicroKernelImpl(), new SecurityProviderImpl(),
-                new CompositeQueryIndexProvider(), hook);
+        this(new MicroKernelImpl(), new CompositeQueryIndexProvider(), hook, null);
     }
 
     /**
@@ -95,29 +91,14 @@ public class ContentRepositoryImpl implements ContentRepository {
     public ContentRepositoryImpl(
             MicroKernel microKernel, QueryIndexProvider indexProvider,
             ValidatorProvider validatorProvider) {
-        this(microKernel, new SecurityProviderImpl(), indexProvider,
-                new ValidatingHook(validatorProvider != null
-                    ? validatorProvider : DefaultValidatorProvider.INSTANCE));
+        this(microKernel, indexProvider,
+                new ValidatingHook(validatorProvider != null ? validatorProvider : DefaultValidatorProvider.INSTANCE),
+                null);
     }
 
     public ContentRepositoryImpl(
             MicroKernel microKernel, ValidatorProvider validatorProvider) {
         this(microKernel, null, validatorProvider);
-    }
-
-    /**
-     * Creates an Oak repository instance based on the given, already
-     * initialized components.
-     *
-     * @param microKernel underlying kernel instance
-     * @param securityProvider security provider
-     * @param indexProvider index provider
-     * @param commitHook the commit hook
-     */
-    public ContentRepositoryImpl(
-            MicroKernel microKernel, SecurityProvider securityProvider,
-            QueryIndexProvider indexProvider, CommitHook commitHook) {
-        this(microKernel, indexProvider, commitHook, securityProvider);
     }
 
     /**
@@ -141,14 +122,10 @@ public class ContentRepositoryImpl implements ContentRepository {
         this.indexProvider = indexProvider != null ? indexProvider
                 : new CompositeQueryIndexProvider();
 
-        if (securityProvider != null) {
-            this.loginContextProvider = securityProvider.getLoginContextProvider();
-            this.accProvider = securityProvider.getAccessControlProvider();
-        } else {
-            // use default implementation
-            this.loginContextProvider = new LoginContextProviderImpl();
-            this.accProvider = new AccessControlProviderImpl();
-        }
+        // TODO: in order not to having failing tests we use SecurityProviderImpl as default
+        //       - review if passing a security provider should be mandatory
+        //       - review if another default (not enforcing any security constraint) was more appropriate.
+        this.securityProvider = (securityProvider == null) ? new SecurityProviderImpl() : securityProvider;
     }
 
     @Nonnull
@@ -164,11 +141,12 @@ public class ContentRepositoryImpl implements ContentRepository {
             throw new NoSuchWorkspaceException(workspaceName);
         }
 
-        OakLoginContext loginContext =
-                loginContextProvider.getLoginContext(credentials, workspaceName);
+        LoginContextProvider lcProvider = securityProvider.getLoginContextProvider();
+        OakLoginContext loginContext = lcProvider.getLoginContext(credentials, workspaceName);
         loginContext.login();
 
-        return new ContentSessionImpl(loginContext, accProvider, workspaceName,
+        AccessControlProvider acProvider = securityProvider.getAccessControlProvider();
+        return new ContentSessionImpl(loginContext, acProvider, workspaceName,
                 nodeStore, DEFAULT_CONFLICT_HANDLER_PROVIDER, indexProvider);
     }
 }
