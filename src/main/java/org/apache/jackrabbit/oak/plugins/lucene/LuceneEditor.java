@@ -79,11 +79,6 @@ class LuceneEditor implements CommitHook, LuceneIndexConstants {
         this.index = indexDefinition;
     }
 
-    /*
-     * 
-     * If before is null, then the #processCommit call is treated as a full
-     * reindex call
-     */
     @Override
     public NodeState processCommit(NodeState before, NodeState after)
             throws CommitFailedException {
@@ -99,20 +94,12 @@ class LuceneEditor implements CommitHook, LuceneIndexConstants {
             IndexWriter writer = new IndexWriter(directory, config);
             try {
                 LuceneDiff diff = new LuceneDiff(writer, "/");
-                if (before != null) {
-                    // normal diff
-                    after.compareAgainstBaseState(before, diff);
-                } else {
-                    // trigger re-indexing
-                    diff.childNodeAdded("", after);
-                }
-
+                after.compareAgainstBaseState(before, diff);
                 diff.postProcess(after);
-                writer.commit();
-                builder.setProperty(INDEX_UPDATE,
-                        new LongValue(System.currentTimeMillis()));
             } finally {
                 writer.close();
+                builder.setProperty(INDEX_UPDATE,
+                        new LongValue(System.currentTimeMillis()));
             }
             return rootBuilder.getNodeState();
         } catch (IOException e) {
