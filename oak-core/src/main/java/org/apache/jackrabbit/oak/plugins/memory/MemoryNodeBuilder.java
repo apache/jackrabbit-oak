@@ -281,14 +281,6 @@ public class MemoryNodeBuilder implements NodeBuilder {
     }
 
     @Override @Nonnull @Deprecated
-    public NodeBuilder setProperty(String name, CoreValue value) {
-        MutableNodeState mstate = write();
-        mstate.props.put(name, new SinglePropertyState(name, value));
-        updated();
-        return this;
-    }
-
-    @Override @Nonnull @Deprecated
     public NodeBuilder setProperty(String name, List<CoreValue> values) {
         MutableNodeState mstate = write();
 
