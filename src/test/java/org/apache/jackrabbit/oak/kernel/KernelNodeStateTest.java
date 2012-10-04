@@ -33,6 +33,7 @@ import org.junit.Test;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.assertNull;
+import static org.apache.jackrabbit.oak.api.Type.LONG;
 
 public class KernelNodeStateTest extends AbstractCoreTest {
 
@@ -53,11 +54,11 @@ public class KernelNodeStateTest extends AbstractCoreTest {
     @Test
     public void testGetProperty() {
         assertEquals("a", state.getProperty("a").getName());
-        assertEquals(1, state.getProperty("a").getValue().getLong());
+        assertEquals(1, (long) state.getProperty("a").getValue(LONG));
         assertEquals("b", state.getProperty("b").getName());
-        assertEquals(2, state.getProperty("b").getValue().getLong());
+        assertEquals(2, (long) state.getProperty("b").getValue(LONG));
         assertEquals("c", state.getProperty("c").getName());
-        assertEquals(3, state.getProperty("c").getValue().getLong());
+        assertEquals(3, (long) state.getProperty("c").getValue(LONG));
         assertNull(state.getProperty("x"));
     }
 
@@ -67,7 +68,7 @@ public class KernelNodeStateTest extends AbstractCoreTest {
         List<Long> values = new ArrayList<Long>();
         for (PropertyState property : state.getProperties()) {
             names.add(property.getName());
-            values.add(property.getValue().getLong());
+            values.add(property.getValue(LONG));
         }
         Collections.sort(names);
         Collections.sort(values);
