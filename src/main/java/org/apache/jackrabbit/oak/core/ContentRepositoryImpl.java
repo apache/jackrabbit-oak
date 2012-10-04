@@ -38,7 +38,7 @@ import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
-import org.apache.jackrabbit.oak.spi.security.authentication.OakLoginContext;
+import org.apache.jackrabbit.oak.spi.security.authentication.LoginContext;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
@@ -153,7 +153,7 @@ public class ContentRepositoryImpl implements ContentRepository {
         }
 
         LoginContextProvider lcProvider = securityProvider.getLoginContextProvider(nodeStore);
-        OakLoginContext loginContext = lcProvider.getLoginContext(credentials, workspaceName);
+        LoginContext loginContext = lcProvider.getLoginContext(credentials, workspaceName);
         loginContext.login();
 
         AccessControlProvider acProvider = securityProvider.getAccessControlProvider();

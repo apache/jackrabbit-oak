@@ -21,17 +21,17 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.AbstractOakTest;
+import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexHook;
+import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.Type;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
@@ -104,7 +104,7 @@ public class UserProviderImplTest extends AbstractOakTest {
 
     @Override
     protected ContentRepository createRepository() {
-        return new ContentRepositoryImpl(new PropertyIndexHook());
+        return new Oak().with(new PropertyIndexHook()).with(new OpenSecurityProvider()).createContentRepository();
     }
 
     private UserProvider createUserProvider() {

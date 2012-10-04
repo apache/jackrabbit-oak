@@ -49,7 +49,31 @@ public class InitialContent extends DefaultMicroKernelTracker {
                     "\"jcr:versionStorage\" :{\"jcr:primaryType\":\"nam:rep:versionStorage\"}," +
                     "\"jcr:nodeTypes\"      :{\"jcr:primaryType\":\"nam:rep:nodeTypes\"}," +
                     "\"jcr:activities\"     :{\"jcr:primaryType\":\"nam:rep:Activities\"}," +
-                    "\"rep:privileges\"     :{\"jcr:primaryType\":\"nam:rep:Privileges\"}}", null, null);
+                    "\"rep:privileges\"     :{\"jcr:primaryType\":\"nam:rep:Privileges\"}}" +
+                    "+\"rep:security\":{" +
+                    "\"jcr:primaryType\":\"nam:rep:AuthorizableFolder\"," +
+                    "\"rep:authorizables\":{" +
+                        "\"jcr:primaryType\":\"nam:rep:AuthorizableFolder\"," +
+                        "\"rep:users\":{" +
+                            "\"jcr:primaryType\":\"nam:rep:AuthorizableFolder\"," +
+                            "\"a\":{" +
+                                "\"jcr:primaryType\":\"nam:rep:AuthorizableFolder\"," +
+                                "\"ad\":{" +
+                                    "\"jcr:primaryType\":\"nam:rep:AuthorizableFolder\"," +
+                                    "\"admin\":{" +
+                                        "\"jcr:primaryType\":\"nam:rep:User\"," +
+                                        "\"jcr:uuid\":\"21232f29-7a57-35a7-8389-4a0e4a801fc3\"," +
+                                        "\"rep:principalName\":\"admin\"," +
+                                        "\"rep:authorizableId\":\"admin\"," +
+                                        "\"rep:password\":\"{SHA-256}9e515755e95513ce-1000-0696716f8baf8890a35eda1b9f2d5a4e727d1c7e1c062f03180dcc2a20f61f3b\"}}," +
+                                "\"an\":{ " +
+                                    "\"jcr:primaryType\":\"nam:rep:AuthorizableFolder\"," +
+                                    "\"anonymous\":{" +
+                                        "\"jcr:primaryType\":\"nam:rep:User\"," +
+                                        "\"jcr:uuid\":\"294de355-7d9d-30b3-92d8-a1e6aab028cf\"," +
+                                        "\"rep:principalName\":\"anonymous\"," +
+                                        "\"rep:authorizableId\":\"anonymous\"}}" +
+                    "}}}}", null, null);
         }
         if (!root.hasChildNode("oak:index")) {
             // FIXME: user-mgt related unique properties (rep:authorizableId, rep:principalName) are implementation detail and not generic for repo

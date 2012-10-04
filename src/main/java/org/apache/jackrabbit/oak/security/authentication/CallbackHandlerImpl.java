@@ -25,10 +25,11 @@ import javax.security.auth.callback.NameCallback;
 import javax.security.auth.callback.PasswordCallback;
 import javax.security.auth.callback.UnsupportedCallbackException;
 
-import org.apache.jackrabbit.oak.spi.security.authentication.CredentialsCallback;
-import org.apache.jackrabbit.oak.spi.security.authentication.RepositoryCallback;
-import org.apache.jackrabbit.oak.spi.security.authentication.PrincipalProviderCallback;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.callback.CredentialsCallback;
+import org.apache.jackrabbit.oak.spi.security.authentication.callback.PrincipalProviderCallback;
+import org.apache.jackrabbit.oak.spi.security.authentication.callback.RepositoryCallback;
+import org.apache.jackrabbit.oak.spi.security.authentication.callback.SecurityProviderCallback;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,14 +55,14 @@ public class CallbackHandlerImpl implements CallbackHandler {
     private final Credentials credentials;
     private final String workspaceName;
     private final NodeStore nodeStore;
-    private final PrincipalProvider principalProvider;
+    private final SecurityProvider securityProvider;
 
     public CallbackHandlerImpl(Credentials credentials, String workspaceName,
-                               NodeStore nodeStore, PrincipalProvider principalProvider) {
+                               NodeStore nodeStore, SecurityProvider securityProvider) {
         this.credentials = credentials;
         this.workspaceName = workspaceName;
         this.nodeStore = nodeStore;
-        this.principalProvider = principalProvider;
+        this.securityProvider = securityProvider;
     }
 
     //----------------------------------------------------< CallbackHandler >---
@@ -74,8 +75,8 @@ public class CallbackHandlerImpl implements CallbackHandler {
                 ((NameCallback) callback).setName(getName());
             } else if (callback instanceof PasswordCallback) {
                 ((PasswordCallback) callback).setPassword(getPassword());
-            } else if (callback instanceof PrincipalProviderCallback) {
-                ((PrincipalProviderCallback) callback).setPrincipalProvider(principalProvider);
+            } else if (callback instanceof SecurityProviderCallback) {
+                ((SecurityProviderCallback) callback).setSecurityProvider(securityProvider);
             } else if (callback instanceof RepositoryCallback) {
                 RepositoryCallback repositoryCallback = (RepositoryCallback) callback;
                 repositoryCallback.setNodeStore(nodeStore);
