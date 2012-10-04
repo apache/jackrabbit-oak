@@ -20,6 +20,7 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.StringValue;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -84,8 +85,8 @@ public class PropertyIndexLookup {
 
         if (property != null) {
             // We have an index for this property, so use it
-            for (CoreValue path : property.getValues()) {
-                paths.add(path.getString());
+            for (String path : property.getValue(Type.STRINGS)) {
+                paths.add(path);
             }
         } else {
             // No index available, so first check this node for a match

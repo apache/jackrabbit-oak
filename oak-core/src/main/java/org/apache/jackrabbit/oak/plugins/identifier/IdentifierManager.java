@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.identifier;
 import java.io.UnsupportedEncodingException;
 import java.text.ParseException;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -40,6 +39,7 @@ import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.StringValue;
@@ -47,6 +47,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
 /**
  * IdentifierManager...
@@ -237,8 +238,8 @@ public class IdentifierManager {
             @Override
             public boolean apply(PropertyState pState) {
                 if (pState.isArray()) {
-                    for (CoreValue value : pState.getValues()) {
-                        if (uuid.equals(value.getString())) {
+                    for (String value : pState.getValue(Type.STRINGS)) {
+                        if (uuid.equals(value)) {
                             return true;
                         }
                     }
@@ -265,9 +266,8 @@ public class IdentifierManager {
 
         PropertyState pMixin = tree.getProperty(JcrConstants.JCR_MIXINTYPES);
         if (pMixin != null) {
-            List<CoreValue> mixinTypes = pMixin.getValues();
-            for (CoreValue mixinType : mixinTypes) {
-                if (ntName.equals(mixinType.getString())) {
+            for (String mixinType : pMixin.getValue(STRINGS)) {
+                if (ntName.equals(mixinType)) {
                     return true;
                 }
             }
