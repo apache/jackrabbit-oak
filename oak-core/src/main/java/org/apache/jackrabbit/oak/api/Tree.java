@@ -18,8 +18,6 @@
  */
 package org.apache.jackrabbit.oak.api;
 
-import java.util.List;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
@@ -217,17 +215,6 @@ public interface Tree {
      */
     @Nonnull
     Tree addChild(String name);
-
-    /**
-     * Set a multivalued valued property state
-     *
-     * @param name The name of this property
-     * @param values The value of this property
-     * @return the affected property state
-     */
-    @Nonnull
-    @Deprecated
-    PropertyState setProperty(String name, @Nonnull List<CoreValue> values);
 
     /**
      * Set a property state
