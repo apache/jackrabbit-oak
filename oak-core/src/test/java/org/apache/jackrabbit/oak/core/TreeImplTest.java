@@ -17,22 +17,21 @@
 package org.apache.jackrabbit.oak.core;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
-import javax.jcr.PropertyType;
-
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.api.Type.LONG;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -75,8 +74,8 @@ public class TreeImplTest extends AbstractCoreTest {
         propertyState = tree.getProperty("a");
         assertNotNull(propertyState);
         assertFalse(propertyState.isArray());
-        assertEquals(PropertyType.LONG, propertyState.getValue().getType());
-        assertEquals(1, propertyState.getValue().getLong());
+        assertEquals(LONG, propertyState.getType());
+        assertEquals(1, (long) propertyState.getValue(LONG));
     }
 
     @Test
@@ -102,21 +101,17 @@ public class TreeImplTest extends AbstractCoreTest {
         RootImpl root = createRootImpl(null);
         Tree tree = root.getTree("/");
 
-        Map<String, CoreValue> expectedProperties = new HashMap<String, CoreValue>();
-        expectedProperties.put("a", valueFactory.createValue(1));
-        expectedProperties.put("b", valueFactory.createValue(2));
-        expectedProperties.put("c", valueFactory.createValue(3));
+        Set<PropertyState> expectedProperties = Sets.newHashSet(
+            PropertyStates.longProperty("a", 1),
+            PropertyStates.longProperty("b", 2),
+            PropertyStates.longProperty("c", 3));
 
         Iterable<? extends PropertyState> properties = tree.getProperties();
         for (PropertyState property : properties) {
-            CoreValue value = expectedProperties.remove(property.getName());
-            assertNotNull(value);
-            assertFalse(property.isArray());
-            assertEquals(value, property.getValue());
+            assertTrue(expectedProperties.remove(property));
         }
 
         assertTrue(expectedProperties.isEmpty());
-
         assertEquals(3, tree.getPropertyCount());
     }
 
@@ -178,12 +173,11 @@ public class TreeImplTest extends AbstractCoreTest {
         Tree tree = root.getTree("/");
 
         assertFalse(tree.hasProperty("new"));
-        CoreValue value = valueFactory.createValue("value");
-        tree.setProperty("new", value);
+        tree.setProperty("new", "value");
         PropertyState property = tree.getProperty("new");
         assertNotNull(property);
         assertEquals("new", property.getName());
-        assertEquals(value, property.getValue());
+        assertEquals("value", property.getValue(STRING));
 
         root.commit();
         tree = root.getTree("/");
@@ -191,7 +185,7 @@ public class TreeImplTest extends AbstractCoreTest {
         property = tree.getProperty("new");
         assertNotNull(property);
         assertEquals("new", property.getName());
-        assertEquals(value, property.getValue());
+        assertEquals("value", property.getValue(STRING));
     }
 
     @Test
@@ -233,17 +227,16 @@ public class TreeImplTest extends AbstractCoreTest {
 
         assertEquals(3, tree.getPropertyCount());
 
-        CoreValue value = valueFactory.createValue("foo");
-        tree.setProperty("a", value);
+        tree.setProperty("a", "foo");
         assertEquals(3, tree.getPropertyCount());
 
         tree.removeProperty("a");
         assertEquals(2, tree.getPropertyCount());
 
-        tree.setProperty("x", value);
+        tree.setProperty("x", "foo");
         assertEquals(3, tree.getPropertyCount());
 
-        tree.setProperty("a", value);
+        tree.setProperty("a", "foo");
         assertEquals(4, tree.getPropertyCount());
     }
 
@@ -252,7 +245,7 @@ public class TreeImplTest extends AbstractCoreTest {
         RootImpl root = createRootImpl(null);
         Tree tree = root.getTree("/");
 
-        tree.setProperty("P0", valueFactory.createValue("V1"));
+        tree.setProperty("P0", "V1");
         root.commit();
         tree = root.getTree("/");
         assertTrue(tree.hasProperty("P0"));
@@ -300,16 +293,14 @@ public class TreeImplTest extends AbstractCoreTest {
     public void propertyStatus() throws CommitFailedException {
         RootImpl root = createRootImpl(null);
         Tree tree = root.getTree("/");
-        CoreValue value1 = valueFactory.createValue("V1");
-        CoreValue value2 = valueFactory.createValue("V2");
 
-        tree.setProperty("new", value1);
+        tree.setProperty("new", "value1");
         assertEquals(Tree.Status.NEW, tree.getPropertyStatus("new"));
         root.commit();
 
         tree = root.getTree("/");
         assertEquals(Tree.Status.EXISTING, tree.getPropertyStatus("new"));
-        tree.setProperty("new", value2);
+        tree.setProperty("new", "value2");
         assertEquals(Tree.Status.MODIFIED, tree.getPropertyStatus("new"));
         root.commit();
 
@@ -323,7 +314,7 @@ public class TreeImplTest extends AbstractCoreTest {
         assertNull(tree.getPropertyStatus("new"));
 
         Tree x = root.getTree("/x");
-        x.setProperty("y", value1);
+        x.setProperty("y", "value1");
         x.remove();
         assertEquals(Status.REMOVED, x.getPropertyStatus("y"));
     }

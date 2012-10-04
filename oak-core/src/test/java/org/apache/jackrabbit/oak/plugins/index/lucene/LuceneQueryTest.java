@@ -16,11 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import static org.apache.jackrabbit.oak.spi.query.IndexUtils.DEFAULT_INDEX_HOME;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
 import java.util.Iterator;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
@@ -37,6 +32,11 @@ import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.junit.Before;
 import org.junit.Test;
+
+import static org.apache.jackrabbit.oak.spi.query.IndexUtils.DEFAULT_INDEX_HOME;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 /**
  * base class for lucene search tests
@@ -73,8 +73,7 @@ public class LuceneQueryTest extends AbstractQueryTest implements
                 index = index.addChild(p);
             }
         }
-        index.addChild("test-lucene").setProperty("type",
-                vf.createValue("lucene"));
+        index.addChild("test-lucene").setProperty("type", "lucene");
         root.commit();
     }
 
@@ -82,8 +81,8 @@ public class LuceneQueryTest extends AbstractQueryTest implements
     public void simpleSql2() throws Exception {
 
         Tree test = root.getTree("/").addChild("test");
-        test.addChild("a").setProperty("name", vf.createValue("hello"));
-        test.addChild("b").setProperty("name", vf.createValue("nothello"));
+        test.addChild("a").setProperty("name", "hello");
+        test.addChild("b").setProperty("name", "nothello");
         root.commit();
 
         String sql = "select * from [nt:base] where name = 'hello'";
