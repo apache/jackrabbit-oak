@@ -73,6 +73,9 @@ class TypeValidator implements Validator {
 
     @Override
     public void propertyAdded(PropertyState after) throws CommitFailedException {
+        if (isInternal(after)) {
+            return;
+        }
         try {
             checkType(after);
             getParentType().checkSetProperty(after);
@@ -89,6 +92,9 @@ class TypeValidator implements Validator {
 
     @Override
     public void propertyChanged(PropertyState before, PropertyState after) throws CommitFailedException {
+        if (isInternal(after)) {
+            return;
+        }
         try {
             checkType(after);
             getParentType().checkSetProperty(after);
@@ -105,6 +111,9 @@ class TypeValidator implements Validator {
 
     @Override
     public void propertyDeleted(PropertyState before) throws CommitFailedException {
+        if (isInternal(before)) {
+            return;
+        }
         try {
             getParentType().checkRemoveProperty(before);
         }
@@ -167,6 +176,10 @@ class TypeValidator implements Validator {
     }
 
     //------------------------------------------------------------< private >---
+
+    private static boolean isInternal(PropertyState state) {
+        return state.getName().equals(PropertyState.OAK_CHILD_ORDER);
+    }
 
     private void checkType(PropertyState after) throws RepositoryException {
         boolean primaryType = JCR_PRIMARYTYPE.equals(after.getName());
