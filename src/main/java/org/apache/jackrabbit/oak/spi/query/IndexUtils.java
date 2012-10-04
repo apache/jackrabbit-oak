@@ -16,10 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.query;
 
-import static org.apache.jackrabbit.oak.spi.query.IndexDefinition.INDEX_DATA_CHILD_NAME;
-import static org.apache.jackrabbit.oak.spi.query.IndexDefinition.TYPE_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.spi.query.IndexDefinition.UNIQUE_PROPERTY_NAME;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -33,6 +29,11 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+
+import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
+import static org.apache.jackrabbit.oak.spi.query.IndexDefinition.INDEX_DATA_CHILD_NAME;
+import static org.apache.jackrabbit.oak.spi.query.IndexDefinition.TYPE_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.spi.query.IndexDefinition.UNIQUE_PROPERTY_NAME;
 
 public class IndexUtils {
 
@@ -59,7 +60,7 @@ public class IndexUtils {
         boolean unique = false;
         PropertyState uniqueProp = ns.getProperty(UNIQUE_PROPERTY_NAME);
         if (uniqueProp != null && !uniqueProp.isArray()) {
-            unique = uniqueProp.getValue().getBoolean();
+            unique = uniqueProp.getValue(BOOLEAN);
         }
 
         Map<String, String> props = new HashMap<String, String>();
