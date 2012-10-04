@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -186,12 +187,29 @@ public class ReadOnlyTree implements Tree {
     }
 
     @Override
+    @Deprecated
     public PropertyState setProperty(String name, CoreValue value) {
         throw new UnsupportedOperationException();
     }
 
     @Override
+    @Deprecated
     public PropertyState setProperty(String name, List<CoreValue> values) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void setProperty(PropertyState property) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public <T> void setProperty(String name, T value) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public <T> void setProperty(String name, T value, Type<T> type) {
         throw new UnsupportedOperationException();
     }
 
