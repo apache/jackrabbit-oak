@@ -108,17 +108,6 @@ public interface NodeBuilder {
      * Set a property.
      *
      * @param name property name
-     * @param value
-     * @return this builder
-     */
-    @Deprecated
-    @Nonnull
-    NodeBuilder setProperty(String name, @Nonnull CoreValue value);
-
-    /**
-     * Set a property.
-     *
-     * @param name property name
      * @param values
      * @return this builder
      */

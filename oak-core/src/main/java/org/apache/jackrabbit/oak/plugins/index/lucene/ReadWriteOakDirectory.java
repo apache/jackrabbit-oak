@@ -18,8 +18,6 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.IOException;
 
-import org.apache.jackrabbit.oak.plugins.memory.BinaryValue;
-import org.apache.jackrabbit.oak.plugins.memory.LongValue;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.IOContext;
@@ -106,10 +104,8 @@ public class ReadWriteOakDirectory extends ReadOnlyOakDirectory {
             }
 
             NodeBuilder fileBuilder = directoryBuilder.getChildBuilder(name);
-            fileBuilder.setProperty(
-                    "jcr:lastModified",
-                    new LongValue(System.currentTimeMillis()));
-            fileBuilder.setProperty("jcr:data", new BinaryValue(data));
+            fileBuilder.setProperty("jcr:lastModified", System.currentTimeMillis());
+            fileBuilder.setProperty("jcr:data", data);
         }
 
         @Override
