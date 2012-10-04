@@ -18,28 +18,17 @@ package org.apache.jackrabbit.oak.security.authorization;
 
 import java.security.Principal;
 import java.util.Set;
-
 import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContext;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.AllPermissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.CompiledPermissions;
-import org.apache.jackrabbit.oak.spi.security.authorization.OpenAccessControlProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 
 /**
  * PermissionProviderImpl... TODO
  */
 class AccessControlContextImpl implements AccessControlContext {
-
-    private static final CompiledPermissions ADMIN_PERMISSIONS;
-
-    static {
-        AccessControlProvider accProvider = new OpenAccessControlProvider();
-        Subject subject = new Subject();
-        subject.getPrincipals().add(AdminPrincipal.INSTANCE);
-        ADMIN_PERMISSIONS = accProvider.createAccessControlContext(subject).getPermissions();
-    }
 
     private final Subject subject;
 
@@ -53,7 +42,7 @@ class AccessControlContextImpl implements AccessControlContext {
     public CompiledPermissions getPermissions() {
         Set<Principal> principals = subject.getPrincipals();
         if (principals.contains(AdminPrincipal.INSTANCE)) {
-            return ADMIN_PERMISSIONS;
+            return AllPermissions.getInstance();
         } else {
             // TODO: replace with permissions based on ac evaluation
             return new CompiledPermissionImpl(principals);
