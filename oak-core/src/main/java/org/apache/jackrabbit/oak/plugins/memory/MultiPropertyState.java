@@ -116,7 +116,7 @@ public class MultiPropertyState extends EmptyPropertyState {
     }
 
     @Override
-    public long count() {
+    public int count() {
         return values.size();
     }
 
