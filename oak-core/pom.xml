@@ -49,6 +49,7 @@
               org.apache.jackrabbit.oak.plugins.identifier,
               org.apache.jackrabbit.oak.plugins.index.lucene,
               org.apache.jackrabbit.oak.plugins.index.property,
+              org.apache.jackrabbit.oak.plugins.memory,
               org.apache.jackrabbit.oak.plugins.name,
               org.apache.jackrabbit.oak.plugins.type,
               org.apache.jackrabbit.oak.spi.query,
