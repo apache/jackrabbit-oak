@@ -25,7 +25,7 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * This index provider combines all indexes of all available OSGi index
@@ -40,10 +40,10 @@ public class OsgiIndexProvider
     }
 
     @Override @Nonnull
-    public List<? extends QueryIndex> getQueryIndexes(NodeStore nodeStore) {
+    public List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
         QueryIndexProvider composite =
                 CompositeQueryIndexProvider.compose(getServices());
-        return composite.getQueryIndexes(nodeStore);
+        return composite.getQueryIndexes(nodeState);
     }
 
 }
