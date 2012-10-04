@@ -22,7 +22,7 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.collect.ImmutableList;
 
@@ -32,7 +32,7 @@ import com.google.common.collect.ImmutableList;
 public class PropertyIndexProvider implements QueryIndexProvider {
 
     @Override @Nonnull
-    public List<QueryIndex> getQueryIndexes(NodeStore store) {
+    public List<QueryIndex> getQueryIndexes(NodeState state) {
         return ImmutableList.<QueryIndex>of(new PropertyIndex());
     }
 }
