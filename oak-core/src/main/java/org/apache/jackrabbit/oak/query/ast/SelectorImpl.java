@@ -26,6 +26,7 @@ import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeIterator;
 import javax.jcr.nodetype.NodeTypeManager;
 
+import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -40,7 +41,7 @@ import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import com.google.common.collect.ImmutableSet;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
 /**
  * A selector within a query.
@@ -190,8 +191,8 @@ public class SelectorImpl extends SourceImpl {
         ImmutableSet.Builder<String> builder = ImmutableSet.builder();
         PropertyState property = tree.getProperty(name);
         if (property != null) {
-            for (CoreValue value : property.getValues()) {
-                builder.add(value.getString());
+            for (String value : property.getValue(STRINGS)) {
+                builder.add(value);
             }
         }
         return builder.build();

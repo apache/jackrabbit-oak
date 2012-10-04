@@ -16,21 +16,18 @@
  */
 package org.apache.jackrabbit.oak.plugins.commit;
 
-import java.util.ArrayList;
 import java.util.List;
 
-import javax.jcr.PropertyType;
-
-import org.apache.jackrabbit.oak.plugins.memory.MultiPropertyState;
-import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
-import org.apache.jackrabbit.oak.api.CoreValue;
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.ADD_EXISTING;
 import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.CHANGE_CHANGED;
 import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.CHANGE_DELETED;
@@ -126,16 +123,18 @@ public class AnnotatingConflictHandler implements ConflictHandler {
         return Resolution.THEIRS;
     }
 
-    private Tree addConflictMarker(Tree parent) {
+    private static Tree addConflictMarker(Tree parent) {
         PropertyState jcrMixin = parent.getProperty(JCR_MIXINTYPES);
-        List<CoreValue> mixins = new ArrayList<CoreValue>();
-        if (jcrMixin != null) {
-            assert jcrMixin.isArray();
-            mixins.addAll(jcrMixin.getValues());
+        List<String> mixins;
+        if (jcrMixin == null) {
+            mixins = Lists.newArrayList();
+        }
+        else {
+            mixins = Lists.newArrayList(jcrMixin.getValue(NAMES));
         }
         if (!mixins.contains(MIX_REP_MERGE_CONFLICT)) {
-            mixins.add(valueFactory.createValue(MIX_REP_MERGE_CONFLICT, PropertyType.NAME));
-            parent.setProperty(new MultiPropertyState(JCR_MIXINTYPES, mixins));
+            mixins.add(MIX_REP_MERGE_CONFLICT);
+            parent.setProperty(JCR_MIXINTYPES, mixins, NAMES);
         }
 
         return getOrCreateNode(parent, REP_OURS);
