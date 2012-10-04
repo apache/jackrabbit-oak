@@ -86,11 +86,6 @@ public class ReadOnlyBuilder implements NodeBuilder {
     }
 
     @Override @Nonnull @Deprecated
-    public NodeBuilder setProperty(String name, CoreValue value) {
-        throw unsupported();
-    }
-
-    @Override @Nonnull @Deprecated
     public NodeBuilder setProperty(String name, List<CoreValue> values) {
         throw unsupported();
     }

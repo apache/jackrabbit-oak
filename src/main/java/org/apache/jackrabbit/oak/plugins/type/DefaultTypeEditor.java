@@ -16,11 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.type;
 
-import javax.jcr.PropertyType;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.plugins.memory.GenericValue;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
@@ -37,11 +33,9 @@ public class DefaultTypeEditor implements CommitHook {
     public NodeState processCommit(NodeState before, NodeState after)
             throws CommitFailedException {
         // TODO: Calculate default type from the node definition
-        CoreValue defaultType =
-                new GenericValue(PropertyType.NAME, "nt:unstructured");
         NodeBuilder builder = after.getBuilder();
         after.compareAgainstBaseState(
-                before, new DefaultTypeDiff(builder, defaultType));
+                before, new DefaultTypeDiff(builder, "nt:unstructured"));
         return builder.getNodeState();
     }
 
@@ -49,9 +43,9 @@ public class DefaultTypeEditor implements CommitHook {
 
         private final NodeBuilder builder;
 
-        private final CoreValue defaultType;
+        private final String defaultType;
 
-        public DefaultTypeDiff(NodeBuilder builder, CoreValue defaultType) {
+        public DefaultTypeDiff(NodeBuilder builder, String defaultType) {
             this.builder = builder;
             this.defaultType = defaultType;
         }
