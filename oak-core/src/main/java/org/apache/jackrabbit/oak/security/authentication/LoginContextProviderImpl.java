@@ -16,21 +16,21 @@
  */
 package org.apache.jackrabbit.oak.security.authentication;
 
-import org.apache.jackrabbit.oak.security.principal.TmpPrincipalProvider;
-import org.apache.jackrabbit.oak.spi.security.authentication.JaasLoginContext;
-import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
-import org.apache.jackrabbit.oak.spi.security.authentication.OakLoginContext;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import java.security.AccessController;
 import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
 import javax.security.auth.Subject;
 import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginException;
-import java.security.AccessController;
+
+import org.apache.jackrabbit.oak.spi.security.authentication.JaasLoginContext;
+import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.OakLoginContext;
+import org.apache.jackrabbit.oak.spi.security.principal.OpenPrincipalProvider;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * LoginContextProviderImpl...  TODO
@@ -47,10 +47,11 @@ public class LoginContextProviderImpl implements LoginContextProvider {
     public LoginContextProviderImpl() {
         // TODO: use configurable authentication config and principal provider
         authConfig = new ConfigurationImpl();
-        principalProvider = new TmpPrincipalProvider();
+        principalProvider = new OpenPrincipalProvider();
     }
 
-    @Override @Nonnull
+    @Override
+    @Nonnull
     public OakLoginContext getLoginContext(
             Credentials credentials, String workspaceName)
             throws LoginException {
@@ -58,12 +59,11 @@ public class LoginContextProviderImpl implements LoginContextProvider {
         // TODO  - authentication against configurable spi-authentication
         // TODO  - validation of workspace name (including access rights for the given 'user')
         Subject subject = getSubject();
-        CallbackHandler handler =
-                new CallbackHandlerImpl(credentials, principalProvider);
+        CallbackHandler handler = new CallbackHandlerImpl(credentials, principalProvider);
         return new JaasLoginContext(APP_NAME, subject, handler, authConfig);
     }
 
-    //-------------------------------------------------===--------< private >---
+    //------------------------------------------------------------< private >---
     private Subject getSubject() {
         Subject subject = null;
         try {

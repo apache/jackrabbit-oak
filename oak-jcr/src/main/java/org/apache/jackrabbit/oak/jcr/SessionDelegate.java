@@ -49,8 +49,8 @@ import org.apache.jackrabbit.oak.jcr.security.principal.PrincipalManagerImpl;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
-import org.apache.jackrabbit.oak.security.principal.TmpPrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.principal.OpenPrincipalProvider;
 import org.apache.jackrabbit.oak.util.TODO;
 import org.apache.jackrabbit.oak.value.ValueFactoryImpl;
 import org.slf4j.Logger;
@@ -480,7 +480,7 @@ public class SessionDelegate {
     @Nonnull
     PrincipalManager getPrincipalManager() throws RepositoryException {
         // TODO
-        return TODO.unimplemented().returnValue(new PrincipalManagerImpl(new TmpPrincipalProvider()));
+        return TODO.unimplemented().returnValue(new PrincipalManagerImpl(new OpenPrincipalProvider()));
     }
 
     @Nonnull
