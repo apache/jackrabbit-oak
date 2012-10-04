@@ -16,20 +16,16 @@
  */
 package org.apache.jackrabbit.oak.query;
 
-import org.apache.jackrabbit.mk.core.MicroKernelImpl;
-import org.apache.jackrabbit.mk.index.IndexWrapper;
+import java.text.ParseException;
+import java.util.HashMap;
+
 import org.apache.jackrabbit.oak.AbstractOakTest;
-import org.apache.jackrabbit.oak.Oak;
-import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
+import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.SessionQueryEngine;
-import org.apache.jackrabbit.oak.plugins.index.old.Indexer;
-import org.apache.jackrabbit.oak.plugins.index.old.PropertyIndexer;
-import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
-import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
-import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.junit.Before;
 
 /**
@@ -43,23 +39,6 @@ public abstract class AbstractQueryTest extends AbstractOakTest {
     protected Root root;
 
     @Override
-    protected ContentRepository createRepository() {
-        
-        // the property and prefix index currently require the index wrapper
-        IndexWrapper mk = new IndexWrapper(new MicroKernelImpl());
-        Indexer indexer = mk.getIndexer();
-        
-        // MicroKernel mk = new MicroKernelImpl();
-        // Indexer indexer = new Indexer(mk);
-
-        PropertyIndexer pi = new PropertyIndexer(indexer);
-        QueryIndexProvider qip = new CompositeQueryIndexProvider(pi);
-        CompositeHook hook = new CompositeHook(pi);
-        createDefaultKernelTracker().available(mk);
-        return new Oak(mk).with(qip).with(hook).createContentRepository();
-    }
-
-    @Override
     @Before
     public void before() throws Exception {
         super.before();
@@ -67,6 +46,11 @@ public abstract class AbstractQueryTest extends AbstractOakTest {
         vf = session.getCoreValueFactory();
         root = session.getLatestRoot();
         qe = root.getQueryEngine();
+    }
+
+    protected Result executeQuery(String statement, String language, HashMap<String, CoreValue> sv) throws ParseException {
+        return qe.executeQuery(statement, language, Long.MAX_VALUE, 0, sv,
+                session.getLatestRoot(), null);
     }
 
 }

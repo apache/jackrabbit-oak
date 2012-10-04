@@ -40,7 +40,7 @@ import org.apache.jackrabbit.oak.spi.query.IndexDefinitionImpl;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.junit.Test;
 
-public class LuceneEditorTest implements LuceneIndexConstants {
+public class LuceneIndexTest implements LuceneIndexConstants {
 
     @Test
     public void testLucene() throws Exception {
