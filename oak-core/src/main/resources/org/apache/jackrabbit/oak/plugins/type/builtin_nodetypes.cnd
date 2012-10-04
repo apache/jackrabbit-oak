@@ -464,6 +464,15 @@
   - jcr:statement (STRING)
   - jcr:language (STRING)
 
+/**
+ * Index definitions storage
+ *
+ * @since oak 0.6
+ */
+[nt:queryIndexDefinition] > nt:unstructured
+  - type (STRING) mandatory
+  + reindex (BOOLEAN)
+
 //------------------------------------------------------------------------------
 // L I F E C Y C L E   M A N A G E M E N T
 //------------------------------------------------------------------------------
