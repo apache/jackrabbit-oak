@@ -16,31 +16,39 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization;
 
-import java.util.Collections;
-import java.util.List;
-import javax.security.auth.Subject;
-
-import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
 
 /**
- * This class implements an {@link AccessControlProvider} which grants
- * full access to any {@link Subject} passed to {@link #createAccessControlContext(Subject)}.
+ * AllPermissions... TODO
  */
-public class OpenAccessControlProvider
-        implements AccessControlProvider {
+public final class AllPermissions implements CompiledPermissions {
 
-    @Override
-    public AccessControlContext createAccessControlContext(Subject subject) {
-        return new AccessControlContext() {
-            @Override
-            public CompiledPermissions getPermissions() {
-                return AllPermissions.getInstance();
-            }
-        };
+    private static final CompiledPermissions INSTANCE = new AllPermissions();
+
+    private AllPermissions() {}
+
+    public static CompiledPermissions getInstance() {
+        return INSTANCE;
     }
 
     @Override
-    public List<ValidatorProvider> getValidatorProviders() {
-        return Collections.emptyList();
+    public boolean canRead(String path, boolean isProperty) {
+        return true;
+    }
+
+    @Override
+    public boolean isGranted(int permissions) {
+        return true;
+    }
+
+    @Override
+    public boolean isGranted(Tree tree, int permissions) {
+        return true;
+    }
+
+    @Override
+    public boolean isGranted(Tree parent, PropertyState property, int permissions) {
+        return true;
     }
 }
