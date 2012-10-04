@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.query;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
@@ -27,6 +26,8 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.kernel.CoreValueMapper;
+import org.apache.jackrabbit.oak.plugins.memory.MultiPropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.SinglePropertyState;
 
 /**
  * Utility class for working with jsop string diffs
@@ -81,9 +82,7 @@ public class JsopUtil {
 
     private static void removeTree(Tree t, JsopTokenizer tokenizer) {
         String path = tokenizer.readString();
-        Iterator<String> pathIterator = PathUtils.elements(path).iterator();
-        while (pathIterator.hasNext()) {
-            String p = pathIterator.next();
+        for (String p : PathUtils.elements(path)) {
             if (!t.hasChild(p)) {
                 return;
             }
@@ -108,10 +107,9 @@ public class JsopUtil {
                     mvp.add(CoreValueMapper.fromJsopReader(tokenizer, vf));
                 } while (tokenizer.matches(','));
                 tokenizer.read(']');
-                t.setProperty(key, mvp);
+                t.setProperty(new MultiPropertyState(key, mvp));
             } else {
-                t.setProperty(key, 
-                        CoreValueMapper.fromJsopReader(tokenizer, vf));
+                t.setProperty(new SinglePropertyState(key, CoreValueMapper.fromJsopReader(tokenizer, vf)));
             }
         } while (tokenizer.matches(','));
     }
