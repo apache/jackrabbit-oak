@@ -45,6 +45,8 @@ import org.slf4j.LoggerFactory;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
 /**
  * Validator implementation that check JCR node type constraints.
@@ -140,11 +142,11 @@ class TypeValidator implements Validator {
     public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
         try {
             PropertyState type = after.getProperty(JCR_PRIMARYTYPE);
-            if (type == null || type.getValues().isEmpty()) {
+            if (type == null || type.count() == 0) {
                 getParentType().canAddChildNode(name);
             }
             else {
-                String ntName = type.getValues().get(0).getString();
+                String ntName = type.getValue(STRING, 0);
                 getParentType().checkAddChildNode(name, ntName);
             }
 
@@ -194,8 +196,7 @@ class TypeValidator implements Validator {
         boolean primaryType = JCR_PRIMARYTYPE.equals(after.getName());
         boolean mixinType = JCR_MIXINTYPES.equals(after.getName());
         if (primaryType || mixinType) {
-            for (CoreValue cv : after.getValues()) {
-                String ntName = cv.getString();
+            for (String ntName : after.getValue(STRINGS)) {
                 NodeType nt = ntm.getNodeType(ntName);
                 if (nt.isAbstract()) {
                     throw new ConstraintViolationException("Can't create node with abstract type: " + ntName);
@@ -213,8 +214,7 @@ class TypeValidator implements Validator {
     private NodeType getPrimaryType(Tree tree) throws RepositoryException {
         PropertyState jcrPrimaryType = tree.getProperty(JCR_PRIMARYTYPE);
         if (jcrPrimaryType != null) {
-            for (CoreValue typeName : jcrPrimaryType.getValues()) {
-                String ntName = typeName.getString();
+            for (String ntName : jcrPrimaryType.getValue(STRINGS)) {
                 NodeType type = ntm.getNodeType(ntName);
                 if (type == null) {
                     log.warn("Could not find node type {} for item at {}", ntName, tree.getPath());
@@ -230,8 +230,7 @@ class TypeValidator implements Validator {
         List<NodeType> types = Lists.newArrayList();
         PropertyState jcrMixinType = tree.getProperty(JCR_MIXINTYPES);
         if (jcrMixinType != null) {
-            for (CoreValue typeName : jcrMixinType.getValues()) {
-                String ntName = typeName.getString();
+            for (String ntName : jcrMixinType.getValue(STRINGS)) {
                 NodeType type = ntm.getNodeType(ntName);
                 if (type == null) {
                     log.warn("Could not find mixin type {} for item at {}", ntName, tree.getPath());
