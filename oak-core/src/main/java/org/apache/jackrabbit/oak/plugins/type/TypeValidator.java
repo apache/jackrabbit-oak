@@ -46,6 +46,15 @@ import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 
+/**
+ * Validator implementation that check JCR node type constraints.
+ *
+ * TODO: check protected properties and the structure they enforce. some of
+ *       those checks may have to go into separate validator classes. This class
+ *       should only perform checks based on node type information. E.g. it
+ *       cannot and should not check whether the value of the protected jcr:uuid
+ *       is unique.
+ */
 class TypeValidator implements Validator {
     private static final Logger log = LoggerFactory.getLogger(TypeValidator.class);
 
@@ -247,6 +256,9 @@ class TypeValidator implements Validator {
         }
 
         public void checkSetProperty(PropertyState property) throws ConstraintViolationException {
+            if (isProtected(property.getName())) {
+                return;
+            }
             if (property.isArray()) {
                 checkSetProperty(property.getName(), property.getValues());
             }
@@ -278,6 +290,9 @@ class TypeValidator implements Validator {
         }
 
         public void checkRemoveProperty(PropertyState property) throws ConstraintViolationException {
+            if (isProtected(property.getName())) {
+                return;
+            }
             final String name = property.getName();
             for (NodeType nodeType : allTypes) {
                 if (nodeType.canRemoveProperty(name)) {
@@ -331,6 +346,17 @@ class TypeValidator implements Validator {
                     }
                 }
             }
+        }
+
+        private boolean isProtected(String propertyName) {
+            for (NodeType nodeType : allTypes) {
+                for (PropertyDefinition pd : nodeType.getPropertyDefinitions()) {
+                    if (propertyName.equals(pd.getName()) && pd.isProtected()) {
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
 
         private Value[] jcrValues(List<CoreValue> values) {
