@@ -21,7 +21,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.index.Indexer;
+import org.apache.jackrabbit.oak.plugins.index.old.Indexer;
 
 /**
  * A utility class to manage indexes in Oak.
