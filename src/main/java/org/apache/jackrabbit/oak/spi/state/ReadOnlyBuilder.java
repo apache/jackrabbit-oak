@@ -22,6 +22,7 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
 
 /**
  * A node builder that throws an {@link UnsupportedOperationException} on
@@ -84,28 +85,43 @@ public class ReadOnlyBuilder implements NodeBuilder {
         return state.getProperty(name);
     }
 
-    @Override @Nonnull
+    @Override @Nonnull @Deprecated
     public NodeBuilder setProperty(String name, CoreValue value) {
         throw unsupported();
     }
 
-    @Override @Nonnull
+    @Override @Nonnull @Deprecated
     public NodeBuilder setProperty(String name, List<CoreValue> values) {
         throw unsupported();
     }
 
-    @Override @Nonnull
+    @Override @Nonnull @Deprecated
     public NodeBuilder set(String name, String value) {
         throw unsupported();
     }
 
-    @Override @Nonnull
+    @Override @Nonnull @Deprecated
     public NodeBuilder set(String name, String... value) {
         throw unsupported();
     }
 
     @Override @Nonnull
     public NodeBuilder removeProperty(String name) {
+        throw unsupported();
+    }
+
+    @Override
+    public NodeBuilder setProperty(PropertyState property) {
+        throw unsupported();
+    }
+
+    @Override
+    public <T> NodeBuilder setProperty(String name, T value) {
+        throw unsupported();
+    }
+
+    @Override
+    public <T> NodeBuilder setProperty(String name, T value, Type<T> type) {
         throw unsupported();
     }
 

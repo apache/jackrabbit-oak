@@ -22,6 +22,7 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
 
 /**
  * Builder interface for constructing new {@link NodeState node states}.
@@ -110,6 +111,7 @@ public interface NodeBuilder {
      * @param value
      * @return this builder
      */
+    @Deprecated
     @Nonnull
     NodeBuilder setProperty(String name, @Nonnull CoreValue value);
 
@@ -120,22 +122,51 @@ public interface NodeBuilder {
      * @param values
      * @return this builder
      */
+    @Deprecated
     @Nonnull
     NodeBuilder setProperty(String name, @Nonnull List<CoreValue> values);
 
+    @Deprecated
     @Nonnull
     NodeBuilder set(String name, String value);
 
+    @Deprecated
     @Nonnull
     NodeBuilder set(String name, String... values);
 
     /**
-     * Remove the named property. This method has no effect if a
-     * property of the given {@code name} does not exist.
+     * Set a property state
+     * @param property  The property state to set
+     * @return this builder
+     */
+    NodeBuilder setProperty(PropertyState property);
+
+    /**
+     * Set a property state
+     * @param name  The name of this property
+     * @param value  The value of this property
+     * @param <T>  The type of this property. Must be one of {@code String, Blob, byte[], Long, Integer, Double, Boolean, BigDecimal}
+     * @throws IllegalArgumentException if {@code T} is not one of the above types.
      *
      * @param name  name of the property
      * @return this builder
      */
+    <T> NodeBuilder setProperty(String name, T value);
+
+    /**
+     * Set a property state
+     * @param name  The name of this property
+     * @param value  The value of this property
+     * @param <T>  The type of this property.
+     * @return this builder
+     */
+    <T> NodeBuilder setProperty(String name, T value, Type<T> type);
+
+    /**
+    * Remove the named property. This method has no effect if a
+    * property of the given {@code name} does not exist.
+    * @param name  name of the property
+    */
     @Nonnull
     NodeBuilder removeProperty(String name);
 

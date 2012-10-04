@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.RootImpl.PurgeListener;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -262,6 +263,7 @@ public class TreeImpl implements Tree, PurgeListener {
     }
 
     @Override
+    @Deprecated
     public PropertyState setProperty(String name, CoreValue value) {
         NodeBuilder builder = getNodeBuilder();
         builder.setProperty(name, value);
@@ -272,6 +274,7 @@ public class TreeImpl implements Tree, PurgeListener {
     }
 
     @Override
+    @Deprecated
     public PropertyState setProperty(String name, List<CoreValue> values) {
         NodeBuilder builder = getNodeBuilder();
         builder.setProperty(name, values);
@@ -279,6 +282,27 @@ public class TreeImpl implements Tree, PurgeListener {
         PropertyState property = getProperty(name);
         assert property != null;
         return property;
+    }
+
+    @Override
+    public void setProperty(PropertyState property) {
+        NodeBuilder builder = getNodeBuilder();
+        builder.setProperty(property);
+        root.purge();
+    }
+
+    @Override
+    public <T> void setProperty(String name, T value) {
+        NodeBuilder builder = getNodeBuilder();
+        builder.setProperty(name, value);
+        root.purge();
+    }
+
+    @Override
+    public <T> void setProperty(String name, T value, Type<T> type) {
+        NodeBuilder builder = getNodeBuilder();
+        builder.setProperty(name, value, type);
+        root.purge();
     }
 
     @Override

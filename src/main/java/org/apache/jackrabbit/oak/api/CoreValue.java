@@ -16,15 +16,17 @@
  */
 package org.apache.jackrabbit.oak.api;
 
-import javax.annotation.Nonnull;
 import java.io.InputStream;
 import java.math.BigDecimal;
+
+import javax.annotation.Nonnull;
 
 /**
  * {@code CoreValue} is the internal representation of a {@link javax.jcr.Value
  * JCR value}. It is therefore isolated from session-specific namespace mappings
  * and relies on the internal representation of JCR names and paths.
  */
+@Deprecated
 public interface CoreValue extends Comparable<CoreValue> {
 
     /**
