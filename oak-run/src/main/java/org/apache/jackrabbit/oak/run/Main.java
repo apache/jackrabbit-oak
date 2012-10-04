@@ -32,9 +32,9 @@ import org.apache.jackrabbit.oak.plugins.lucene.LuceneHook;
 import org.apache.jackrabbit.oak.plugins.lucene.LuceneReindexHook;
 import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceValidatorProvider;
+import org.apache.jackrabbit.oak.plugins.property.PropertyIndexHook;
 import org.apache.jackrabbit.oak.plugins.type.DefaultTypeEditor;
 import org.apache.jackrabbit.oak.plugins.type.TypeValidatorProvider;
-import org.apache.jackrabbit.oak.plugins.unique.UniqueIndexHook;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeValidatorProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
@@ -200,7 +200,7 @@ public class Main {
             return new CompositeHook(
                     new DefaultTypeEditor(),
                     new ValidatingHook(createDefaultValidatorProvider()),
-                    new UniqueIndexHook(),
+                    new PropertyIndexHook(),
                     new LuceneReindexHook(DEFAULT_INDEX_HOME),
                     new LuceneHook(DEFAULT_INDEX_HOME));
         }

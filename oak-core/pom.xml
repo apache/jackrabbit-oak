@@ -48,7 +48,7 @@
               org.apache.jackrabbit.oak.plugins.identifier,
               org.apache.jackrabbit.oak.plugins.name,
               org.apache.jackrabbit.oak.plugins.type,
-              org.apache.jackrabbit.oak.plugins.unique,
+              org.apache.jackrabbit.oak.plugins.property,
               org.apache.jackrabbit.oak.plugins.commit,
               org.apache.jackrabbit.oak.plugins.lucene,
               org.apache.jackrabbit.oak.spi.query,

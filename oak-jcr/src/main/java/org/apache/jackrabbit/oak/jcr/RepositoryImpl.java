@@ -34,9 +34,9 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceValidatorProvider;
+import org.apache.jackrabbit.oak.plugins.property.PropertyIndexHook;
 import org.apache.jackrabbit.oak.plugins.type.InitialContent;
 import org.apache.jackrabbit.oak.plugins.type.TypeValidatorProvider;
-import org.apache.jackrabbit.oak.plugins.unique.UniqueIndexHook;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeValidatorProvider;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
@@ -68,7 +68,7 @@ public class RepositoryImpl implements Repository {
     private static final CompositeHook DEFAULT_COMMIT_HOOK =
             new CompositeHook(
                     new ValidatingHook(DEFAULT_VALIDATOR),
-                    new UniqueIndexHook());
+                    new PropertyIndexHook());
 
     private final Descriptors descriptors = new Descriptors(new SimpleValueFactory());
     private final ContentRepository contentRepository;

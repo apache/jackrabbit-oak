@@ -229,12 +229,17 @@ public class RepositoryTest extends AbstractRepositoryTest {
         root.getNode("bar").remove();  // transiently removed and...
         root.addNode("bar");           // ... added again
         NodeIterator nodes = root.getNodes();
-        // TODO: use a test subtree to avoid excluding default content
-        int expected = 3 + (root.hasNode("jcr:system") ? 1 : 0)  + (root.hasNode("oak-index") ? 1 : 0);
+        // FIXME: use a test subtree to avoid excluding default content
+        int expected = 3
+                + (root.hasNode("jcr:system") ? 1 : 0)
+                + (root.hasNode("oak-index") ? 1 : 0)
+                + (root.hasNode("oak:index") ? 1 : 0);
         assertEquals(expected, nodes.getSize());
         while (nodes.hasNext()) {
             String name = nodes.nextNode().getName();
-            if (!name.equals("jcr:system") && !name.equals("oak-index")) {
+            if (!name.equals("jcr:system")
+                    && !name.equals("oak-index")
+                    && !name.equals("oak:index")) {
                 assertTrue(nodeNames.remove(name));
             }
         }
