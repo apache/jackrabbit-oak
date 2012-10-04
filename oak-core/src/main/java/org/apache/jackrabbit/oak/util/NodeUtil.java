@@ -42,6 +42,7 @@ import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.DATE;
 import static org.apache.jackrabbit.oak.api.Type.LONG;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -127,7 +128,7 @@ public class NodeUtil {
     public boolean getBoolean(String name) {
         PropertyState property = tree.getProperty(name);
         return property != null && !property.isArray()
-                && property.getValue().getBoolean();
+                && property.getValue(BOOLEAN);
     }
 
     public void setBoolean(String name, boolean value) {
