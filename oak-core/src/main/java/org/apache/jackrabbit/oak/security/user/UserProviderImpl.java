@@ -46,6 +46,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 /**
  * User provider implementation and manager for group memberships with the
@@ -230,7 +231,7 @@ class UserProviderImpl extends AuthorizableBaseProvider implements UserProvider 
         if (isAuthorizableTree(authorizableTree, Type.AUTHORIZABLE)) {
             PropertyState idProp = authorizableTree.getProperty(UserConstants.REP_AUTHORIZABLE_ID);
             if (idProp != null) {
-                return idProp.getValue().getString();
+                return idProp.getValue(STRING);
             } else {
                 return Text.unescapeIllegalJcrChars(authorizableTree.getName());
             }
