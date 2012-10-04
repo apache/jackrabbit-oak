@@ -219,17 +219,6 @@ public interface Tree {
     Tree addChild(String name);
 
     /**
-     * Set a single valued property state
-     *
-     * @param name The name of this property
-     * @param value The value of this property
-     * @return the affected property state
-     */
-    @Nonnull
-    @Deprecated
-    PropertyState setProperty(String name, @Nonnull CoreValue value);
-
-    /**
      * Set a multivalued valued property state
      *
      * @param name The name of this property

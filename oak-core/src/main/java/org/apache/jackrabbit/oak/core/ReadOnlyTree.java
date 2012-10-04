@@ -188,12 +188,6 @@ public class ReadOnlyTree implements Tree {
 
     @Override
     @Deprecated
-    public PropertyState setProperty(String name, CoreValue value) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    @Deprecated
     public PropertyState setProperty(String name, List<CoreValue> values) {
         throw new UnsupportedOperationException();
     }
