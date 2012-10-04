@@ -22,7 +22,6 @@ import java.util.List;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.plugins.unique.UniqueIndex;
 import org.apache.jackrabbit.oak.query.index.PrefixContentIndex;
 import org.apache.jackrabbit.oak.query.index.PropertyContentIndex;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -80,7 +79,6 @@ public class PropertyIndexer implements QueryIndexProvider, CommitHook,
                 }
             }
         }
-        queryIndexList.add(new UniqueIndex());
         return queryIndexList;
     }
 }

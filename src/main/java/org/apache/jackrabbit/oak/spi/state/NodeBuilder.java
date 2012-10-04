@@ -123,6 +123,12 @@ public interface NodeBuilder {
     @Nonnull
     NodeBuilder setProperty(String name, @Nonnull List<CoreValue> values);
 
+    @Nonnull
+    NodeBuilder set(String name, String value);
+
+    @Nonnull
+    NodeBuilder set(String name, String... values);
+
     /**
      * Remove the named property. This method has no effect if a
      * property of the given {@code name} does not exist.

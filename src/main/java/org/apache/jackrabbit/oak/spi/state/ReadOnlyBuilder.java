@@ -95,6 +95,16 @@ public class ReadOnlyBuilder implements NodeBuilder {
     }
 
     @Override @Nonnull
+    public NodeBuilder set(String name, String value) {
+        throw unsupported();
+    }
+
+    @Override @Nonnull
+    public NodeBuilder set(String name, String... value) {
+        throw unsupported();
+    }
+
+    @Override @Nonnull
     public NodeBuilder removeProperty(String name) {
         throw unsupported();
     }
