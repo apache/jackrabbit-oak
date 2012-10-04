@@ -30,10 +30,10 @@ import org.apache.jackrabbit.mk.json.JsopStream;
 import org.apache.jackrabbit.mk.wrapper.MicroKernelWrapper;
 import org.apache.jackrabbit.mk.wrapper.MicroKernelWrapperBase;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.index.Indexer;
-import org.apache.jackrabbit.oak.plugins.index.PrefixIndex;
-import org.apache.jackrabbit.oak.plugins.index.PropertyIndex;
-import org.apache.jackrabbit.oak.plugins.index.PropertyIndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.old.Indexer;
+import org.apache.jackrabbit.oak.plugins.index.old.PrefixIndex;
+import org.apache.jackrabbit.oak.plugins.index.old.PropertyIndex;
+import org.apache.jackrabbit.oak.plugins.index.old.PropertyIndexConstants;
 
 /**
  * The index mechanism, as a wrapper.
