@@ -45,13 +45,10 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.observation.ObservationManagerImpl;
-import org.apache.jackrabbit.oak.jcr.security.principal.PrincipalManagerImpl;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
-import org.apache.jackrabbit.oak.spi.security.principal.OpenPrincipalProvider;
-import org.apache.jackrabbit.oak.util.TODO;
 import org.apache.jackrabbit.oak.value.ValueFactoryImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -479,8 +476,11 @@ public class SessionDelegate {
 
     @Nonnull
     PrincipalManager getPrincipalManager() throws RepositoryException {
-        // TODO
-        return TODO.unimplemented().returnValue(new PrincipalManagerImpl(new OpenPrincipalProvider()));
+        if (securityProvider != null) {
+            return securityProvider.getPrincipalConfiguration().getPrincipalManager(session, contentSession, root, getNamePathMapper());
+        } else {
+            throw new UnsupportedRepositoryOperationException("Principal management not supported.");
+        }
     }
 
     @Nonnull

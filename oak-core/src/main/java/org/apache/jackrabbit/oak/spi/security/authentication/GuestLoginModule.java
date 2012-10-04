@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authentication;
+package org.apache.jackrabbit.oak.spi.security.authentication;
 
 import java.io.IOException;
 import java.util.Map;
@@ -27,8 +27,6 @@ import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.auth.login.LoginException;
 import javax.security.auth.spi.LoginModule;
 
-import org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule;
-import org.apache.jackrabbit.oak.spi.security.authentication.CredentialsCallback;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,7 +63,7 @@ import org.slf4j.LoggerFactory;
  * <pre>
  *
  *    jackrabbit.oak {
- *            org.apache.jackrabbit.oak.security.authentication.GuestLoginModule  optional;
+ *            org.apache.jackrabbit.oak.spi.security.authentication.GuestLoginModule  optional;
  *            org.apache.jackrabbit.oak.security.authentication.LoginModuleImpl required;
  *    };
  *

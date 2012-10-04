@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.OakLoginContext;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlProvider;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,7 +61,7 @@ public class ContentRepositoryImpl implements ContentRepository {
 
     private final SecurityProvider securityProvider;
     private final QueryIndexProvider indexProvider;
-    private final KernelNodeStore nodeStore;
+    private final NodeStore nodeStore;
 
     /**
      * Utility constructor that creates a new in-memory repository with default
@@ -96,13 +97,12 @@ public class ContentRepositoryImpl implements ContentRepository {
                 null);
     }
 
-    public ContentRepositoryImpl(
-            MicroKernel microKernel, ValidatorProvider validatorProvider) {
+    public ContentRepositoryImpl(MicroKernel microKernel, ValidatorProvider validatorProvider) {
         this(microKernel, null, validatorProvider);
     }
 
     /**
-     * Creates an Oak repository instance based on the given, already
+     * Creates an content repository instance based on the given, already
      * initialized components.
      *
      * @param microKernel   underlying kernel instance
@@ -115,12 +115,23 @@ public class ContentRepositoryImpl implements ContentRepository {
                                  QueryIndexProvider indexProvider,
                                  CommitHook commitHook,
                                  SecurityProvider securityProvider) {
+        this(createNodeStore(microKernel, commitHook), indexProvider, securityProvider);
+    }
 
-        nodeStore = new KernelNodeStore(microKernel);
-        nodeStore.setHook(commitHook);
-
-        this.indexProvider = indexProvider != null ? indexProvider
-                : new CompositeQueryIndexProvider();
+    /**
+     * Creates an content repository instance based on the given, already
+     * initialized components.
+     *
+     * @param nodeStore the node store this repository is based upon.
+     * @param indexProvider index provider
+     * @param securityProvider The configured security provider or {@code null} if
+     * default implementations should be used.
+     */
+    public ContentRepositoryImpl(NodeStore nodeStore,
+                                 QueryIndexProvider indexProvider,
+                                 SecurityProvider securityProvider) {
+        this.nodeStore = nodeStore;
+        this.indexProvider = indexProvider != null ? indexProvider : new CompositeQueryIndexProvider();
 
         // TODO: in order not to having failing tests we use SecurityProviderImpl as default
         //       - review if passing a security provider should be mandatory
@@ -141,12 +152,19 @@ public class ContentRepositoryImpl implements ContentRepository {
             throw new NoSuchWorkspaceException(workspaceName);
         }
 
-        LoginContextProvider lcProvider = securityProvider.getLoginContextProvider();
+        LoginContextProvider lcProvider = securityProvider.getLoginContextProvider(nodeStore);
         OakLoginContext loginContext = lcProvider.getLoginContext(credentials, workspaceName);
         loginContext.login();
 
         AccessControlProvider acProvider = securityProvider.getAccessControlProvider();
         return new ContentSessionImpl(loginContext, acProvider, workspaceName,
                 nodeStore, DEFAULT_CONFLICT_HANDLER_PROVIDER, indexProvider);
+    }
+
+    //--------------------------------------------------------------------------
+    private static NodeStore createNodeStore(MicroKernel microKernel, CommitHook commitHook) {
+        KernelNodeStore nodeStore = new KernelNodeStore(microKernel);
+        nodeStore.setHook(commitHook);
+        return nodeStore;
     }
 }

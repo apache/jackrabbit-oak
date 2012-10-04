@@ -16,12 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.authentication;
 
-import org.apache.jackrabbit.oak.spi.security.authentication.CredentialsCallback;
-import org.apache.jackrabbit.oak.spi.security.authentication.PrincipalProviderCallback;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import java.io.IOException;
 import javax.jcr.Credentials;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.callback.Callback;
@@ -29,7 +24,14 @@ import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.callback.NameCallback;
 import javax.security.auth.callback.PasswordCallback;
 import javax.security.auth.callback.UnsupportedCallbackException;
-import java.io.IOException;
+
+import org.apache.jackrabbit.oak.spi.security.authentication.CredentialsCallback;
+import org.apache.jackrabbit.oak.spi.security.authentication.RepositoryCallback;
+import org.apache.jackrabbit.oak.spi.security.authentication.PrincipalProviderCallback;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Default implementation of the {@link CallbackHandler} interface. It currently
@@ -50,10 +52,15 @@ public class CallbackHandlerImpl implements CallbackHandler {
     private static final Logger log = LoggerFactory.getLogger(CallbackHandlerImpl.class);
 
     private final Credentials credentials;
+    private final String workspaceName;
+    private final NodeStore nodeStore;
     private final PrincipalProvider principalProvider;
 
-    public CallbackHandlerImpl(Credentials credentials, PrincipalProvider principalProvider) {
+    public CallbackHandlerImpl(Credentials credentials, String workspaceName,
+                               NodeStore nodeStore, PrincipalProvider principalProvider) {
         this.credentials = credentials;
+        this.workspaceName = workspaceName;
+        this.nodeStore = nodeStore;
         this.principalProvider = principalProvider;
     }
 
@@ -69,6 +76,10 @@ public class CallbackHandlerImpl implements CallbackHandler {
                 ((PasswordCallback) callback).setPassword(getPassword());
             } else if (callback instanceof PrincipalProviderCallback) {
                 ((PrincipalProviderCallback) callback).setPrincipalProvider(principalProvider);
+            } else if (callback instanceof RepositoryCallback) {
+                RepositoryCallback repositoryCallback = (RepositoryCallback) callback;
+                repositoryCallback.setNodeStore(nodeStore);
+                repositoryCallback.setWorkspaceName(workspaceName);
             } else {
                 throw new UnsupportedCallbackException(callback);
             }

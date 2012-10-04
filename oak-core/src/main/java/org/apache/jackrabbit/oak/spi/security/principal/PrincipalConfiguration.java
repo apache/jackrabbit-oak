@@ -14,30 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.security;
+package org.apache.jackrabbit.oak.spi.security.principal;
 
 import javax.annotation.Nonnull;
+import javax.jcr.Session;
 
-import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlProvider;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
-import org.apache.jackrabbit.oak.spi.security.user.UserContext;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.api.security.principal.PrincipalManager;
+import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 
 /**
- * SecurityProvider... TODO
+ * PrincipalConfig... TODO
  */
-public interface SecurityProvider {
+public interface PrincipalConfiguration {
 
     @Nonnull
-    LoginContextProvider getLoginContextProvider(NodeStore nodeStore);
+    public PrincipalManager getPrincipalManager(Session session, ContentSession contentSession, Root root, NamePathMapper namePathMapper);
 
     @Nonnull
-    AccessControlProvider getAccessControlProvider();
-
-    @Nonnull
-    UserContext getUserContext(); // TODO review naming consistency
-
-    @Nonnull
-    PrincipalConfiguration getPrincipalConfiguration();
+    public PrincipalProvider getPrincipalProvider(ContentSession contentSession, Root root, NamePathMapper namePathMapper);
 }
