@@ -16,14 +16,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
-import static org.junit.Assert.assertEquals;
+import java.util.Arrays;
 
+import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableSet;
+import static org.junit.Assert.assertEquals;
 
 public class PropertyIndexTest {
 
@@ -40,11 +42,11 @@ public class PropertyIndexTest {
 
         // Add some content and process it through the property index hook
         builder = before.getBuilder();
-        builder.getChildBuilder("a").set("foo", "abc");
-        builder.getChildBuilder("b").set("foo", "abc", "def");
+        builder.getChildBuilder("a").setProperty("foo", "abc");
+        builder.getChildBuilder("b").setProperty("foo", Arrays.asList("abc", "def"), Type.STRINGS);
         // plus lots of dummy content to highlight the benefit of indexing
         for (int i = 0; i < MANY; i++) {
-            builder.getChildBuilder("n" + i).set("foo", "xyz");
+            builder.getChildBuilder("n" + i).setProperty("foo", "xyz");
         }
         NodeState after = builder.getNodeState();
 

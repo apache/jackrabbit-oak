@@ -126,14 +126,6 @@ public interface NodeBuilder {
     @Nonnull
     NodeBuilder setProperty(String name, @Nonnull List<CoreValue> values);
 
-    @Deprecated
-    @Nonnull
-    NodeBuilder set(String name, String value);
-
-    @Deprecated
-    @Nonnull
-    NodeBuilder set(String name, String... values);
-
     /**
      * Set a property state
      * @param property  The property state to set

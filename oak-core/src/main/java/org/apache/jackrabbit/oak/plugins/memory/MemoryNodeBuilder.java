@@ -302,21 +302,6 @@ public class MemoryNodeBuilder implements NodeBuilder {
         return this;
     }
 
-    @Override @Nonnull @Deprecated
-    public NodeBuilder set(@Nonnull String name, @Nonnull String value) {
-        return setProperty(name, new StringValue(value));
-    }
-
-    @Override @Nonnull @Deprecated
-    public NodeBuilder set(
-            @Nonnull String name, @Nonnull String... values) {
-        List<CoreValue> list = Lists.newArrayListWithCapacity(values.length);
-        for (String value : values) {
-            list.add(new StringValue(value));
-        }
-        return setProperty(name, list);
-    }
-
     @Override @Nonnull
     public NodeBuilder removeProperty(String name) {
         MutableNodeState mstate = write();
