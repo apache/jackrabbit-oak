@@ -29,8 +29,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlProvide
  * {@code AccessControlProviderImpl} is a default implementation and
  * creates {@link AccessControlContextImpl} for a given set of principals.
  */
-public class AccessControlProviderImpl
-        implements AccessControlProvider {
+public class AccessControlProviderImpl implements AccessControlProvider {
 
     @Override
     public AccessControlContext createAccessControlContext(Subject subject) {
