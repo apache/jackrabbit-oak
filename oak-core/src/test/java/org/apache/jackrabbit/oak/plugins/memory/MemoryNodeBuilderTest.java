@@ -16,19 +16,19 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
+import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.junit.Test;
+
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.assertNull;
 import static junit.framework.Assert.assertTrue;
 import static junit.framework.Assert.fail;
-
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.junit.Test;
-
-import com.google.common.collect.ImmutableMap;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 public class MemoryNodeBuilderTest {
 
@@ -49,7 +49,7 @@ public class MemoryNodeBuilderTest {
         NodeBuilder childB = root.getChildBuilder("x");
 
         assertNull(childA.getProperty("test"));
-        childB.setProperty("test", new StringValue("foo"));
+        childB.setProperty("test", "foo");
         assertNotNull(childA.getProperty("test"));
     }
 
@@ -59,11 +59,11 @@ public class MemoryNodeBuilderTest {
         NodeBuilder childA = root.getChildBuilder("x");
         NodeBuilder childB = root.getChildBuilder("x");
 
-        childB.setProperty("test", new StringValue("foo"));
-        childA.setProperty("test", new StringValue("bar"));
+        childB.setProperty("test", "foo");
+        childA.setProperty("test", "bar");
         assertEquals(
                 "bar",
-                childB.getProperty("test").getValue().getString());
+                childB.getProperty("test").getValue(STRING));
     }
 
     @Test
@@ -72,7 +72,7 @@ public class MemoryNodeBuilderTest {
         NodeBuilder childA = root.getChildBuilder("x");
         NodeBuilder childB = root.getChildBuilder("x");
 
-        childB.setProperty("test", new StringValue("foo"));
+        childB.setProperty("test", "foo");
         childA.removeProperty("test");
         assertNull(childB.getProperty("test"));
     }

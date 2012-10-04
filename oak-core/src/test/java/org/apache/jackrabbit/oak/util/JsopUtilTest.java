@@ -29,6 +29,7 @@ import org.junit.Test;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 public class JsopUtilTest extends AbstractOakTest {
 
@@ -72,7 +73,7 @@ public class JsopUtilTest extends AbstractOakTest {
         t = t.getChild("a");
         assertEquals(0, t.getChildrenCount());
         assertTrue(t.hasProperty("id"));
-        assertEquals("123", t.getProperty("id").getValue().getString());
+        assertEquals("123", t.getProperty("id").getValue(STRING));
 
         String rm = "/ - \"test\"";
         JsopUtil.apply(root, rm, vf);

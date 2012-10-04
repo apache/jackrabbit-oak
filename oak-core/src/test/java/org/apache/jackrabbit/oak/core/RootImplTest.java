@@ -23,7 +23,6 @@ import java.util.List;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -196,9 +195,8 @@ public class RootImplTest extends AbstractCoreTest {
 
         checkEqual(root1.getTree("/"), root2.getTree("/"));
 
-        CoreValue value = valueFactory.createValue("V1");
         root2.getTree("/").addChild("one").addChild("two").addChild("three")
-                .setProperty("p1", value);
+                .setProperty("p1", "V1");
         root2.commit();
 
         root1.rebase();

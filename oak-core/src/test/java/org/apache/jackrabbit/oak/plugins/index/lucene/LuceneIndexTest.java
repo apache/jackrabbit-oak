@@ -16,11 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertTrue;
-import static org.apache.jackrabbit.oak.spi.query.IndexUtils.DEFAULT_INDEX_HOME;
-
 import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
@@ -40,6 +35,11 @@ import org.apache.jackrabbit.oak.spi.query.IndexDefinitionImpl;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.junit.Test;
 
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertFalse;
+import static junit.framework.Assert.assertTrue;
+import static org.apache.jackrabbit.oak.spi.query.IndexUtils.DEFAULT_INDEX_HOME;
+
 public class LuceneIndexTest implements LuceneIndexConstants {
 
     @Test
@@ -53,7 +53,7 @@ public class LuceneIndexTest implements LuceneIndexConstants {
                 new AccessControlProviderImpl(), new CompositeQueryIndexProvider());
         Tree tree = root.getTree("/");
 
-        tree.setProperty("foo", MemoryValueFactory.INSTANCE.createValue("bar"));
+        tree.setProperty("foo", "bar");
         root.commit();
 
         QueryIndex index = new LuceneIndex(testID);
