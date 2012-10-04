@@ -205,10 +205,14 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
             }
 
             if (isLike) {
-                if (first.contains("%")) {
-                    first = first.replace("%", "*");
-                }
-                if (first.endsWith("*")) {
+                first = first.replace('%', WildcardQuery.WILDCARD_STRING);
+                first = first.replace('_', WildcardQuery.WILDCARD_CHAR);
+
+                int indexOfWS = first.indexOf(WildcardQuery.WILDCARD_STRING);
+                int indexOfWC = first.indexOf(WildcardQuery.WILDCARD_CHAR);
+                int len = first.length();
+
+                if (indexOfWS == len || indexOfWC == len) {
                     // remove trailing "*" for prefixquery
                     first = first.substring(0, first.length() - 1);
                     if (JCR_PATH.equals(name)) {
