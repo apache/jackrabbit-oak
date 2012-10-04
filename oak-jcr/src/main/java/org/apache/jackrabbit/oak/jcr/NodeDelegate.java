@@ -42,6 +42,8 @@ import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.plugins.memory.MultiPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.SinglePropertyState;
 
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+
 /**
  * {@code NodeDelegate} serve as internal representations of {@code Node}s.
  * Most methods of this class throw an {@code InvalidItemStateException}
@@ -172,8 +174,7 @@ public class NodeDelegate extends ItemDelegate {
                 final Map<String, NodeDelegate> ordered =
                         new LinkedHashMap<String, NodeDelegate>();
 
-                for (CoreValue value : order.getValues()) {
-                    String name = value.getString();
+                for (String name : order.getValue(STRINGS)) {
                     Tree child = tree.getChild(name);
                     if (child != null && !name.startsWith(":")) {
                         ordered.put(name, new NodeDelegate(sessionDelegate, child));
@@ -219,8 +220,7 @@ public class NodeDelegate extends ItemDelegate {
 
             PropertyState property = tree.getProperty(PropertyState.OAK_CHILD_ORDER);
             if (property != null) {
-                for (CoreValue value : property.getValues()) {
-                    String name = value.getString();
+                for (String name : property.getValue(STRINGS)) {
                     if (!name.equals(source) && !added.contains(property)
                             && !name.startsWith(":")) {
                         if (name.equals(target)) {
