@@ -21,6 +21,7 @@ import java.util.List;
 
 import javax.jcr.PropertyType;
 
+import org.apache.jackrabbit.oak.plugins.memory.MultiPropertyState;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
@@ -134,7 +135,7 @@ public class AnnotatingConflictHandler implements ConflictHandler {
         }
         if (!mixins.contains(MIX_REP_MERGE_CONFLICT)) {
             mixins.add(valueFactory.createValue(MIX_REP_MERGE_CONFLICT, PropertyType.NAME));
-            parent.setProperty(JCR_MIXINTYPES, mixins);
+            parent.setProperty(new MultiPropertyState(JCR_MIXINTYPES, mixins));
         }
 
         return getOrCreateNode(parent, REP_OURS);

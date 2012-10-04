@@ -16,14 +16,13 @@
  */
 package org.apache.jackrabbit.oak.util;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.List;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
@@ -38,6 +37,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryValueFactory;
+import org.apache.jackrabbit.oak.plugins.memory.MultiPropertyState;
 import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,6 +45,8 @@ import org.slf4j.LoggerFactory;
 import static org.apache.jackrabbit.oak.api.Type.DATE;
 import static org.apache.jackrabbit.oak.api.Type.LONG;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.api.Type.NAMES;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
 /**
  * Utility class for accessing and writing typed content of a tree.
@@ -160,11 +162,7 @@ public class NodeUtil {
     }
 
     public void setStrings(String name, String... values) {
-        List<CoreValue> cvs = new ArrayList<CoreValue>(values.length);
-        for (String value : values) {
-            cvs.add(factory.createValue(value));
-        }
-        tree.setProperty(name, cvs);
+        tree.setProperty(name, Arrays.asList(values), STRINGS);
     }
 
     public String getName(String name) {
@@ -197,11 +195,7 @@ public class NodeUtil {
     }
 
     public void setNames(String name, String... values) {
-        List<CoreValue> cvs = new ArrayList<CoreValue>(values.length);
-        for (String value : values) {
-            cvs.add(factory.createValue(getOakName(value), PropertyType.NAME));
-        }
-        tree.setProperty(name, cvs);
+        tree.setProperty(name, Arrays.asList(values), NAMES);
     }
 
     public void setDate(String name, long time) {
@@ -242,7 +236,7 @@ public class NodeUtil {
                 log.warn("Unable to convert a default value", e);
             }
         }
-        tree.setProperty(name, cvs);
+        tree.setProperty(new MultiPropertyState(name, cvs));
     }
 
     public void setValues(String name, String[] values, int type) {
@@ -250,7 +244,7 @@ public class NodeUtil {
         for (String value : values) {
             cvs.add(factory.createValue(value, type));
         }
-        tree.setProperty(name, cvs);
+        tree.setProperty(new MultiPropertyState(name, cvs));
     }
 
     public Value[] getValues(String name, ValueFactory vf) {

@@ -19,9 +19,7 @@
 package org.apache.jackrabbit.oak.core;
 
 import java.util.Iterator;
-import java.util.List;
 
-import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
@@ -183,12 +181,6 @@ public class ReadOnlyTree implements Tree {
 
     @Override
     public boolean remove() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    @Deprecated
-    public PropertyState setProperty(String name, List<CoreValue> values) {
         throw new UnsupportedOperationException();
     }
 

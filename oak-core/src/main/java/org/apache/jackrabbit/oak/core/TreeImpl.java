@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import java.util.List;
 import java.util.Map;
 
 import javax.annotation.CheckForNull;
@@ -28,7 +27,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Iterables;
-import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
@@ -260,17 +258,6 @@ public class TreeImpl implements Tree, PurgeListener {
         } else {
             return false;
         }
-    }
-
-    @Override
-    @Deprecated
-    public PropertyState setProperty(String name, List<CoreValue> values) {
-        NodeBuilder builder = getNodeBuilder();
-        builder.setProperty(name, values);
-        root.purge();
-        PropertyState property = getProperty(name);
-        assert property != null;
-        return property;
     }
 
     @Override
