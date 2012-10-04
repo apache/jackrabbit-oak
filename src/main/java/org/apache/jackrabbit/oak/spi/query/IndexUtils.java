@@ -33,7 +33,6 @@ import org.apache.jackrabbit.oak.plugins.lucene.LuceneIndexConstants;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 public class IndexUtils {
 
@@ -125,12 +124,7 @@ public class IndexUtils {
         return defs;
     }
 
-    public static NodeBuilder getChildBuilder(NodeStore store, String path) {
-        return getChildBuilder(store, store.getRoot(), path);
-    }
-
-    public static NodeBuilder getChildBuilder(NodeStore store, NodeState state,
-            String path) {
+    public static NodeBuilder getChildBuilder(NodeState state, String path) {
         NodeBuilder builder = state.getBuilder();
         for (String p : PathUtils.elements(path)) {
             builder = builder.getChildBuilder(p);

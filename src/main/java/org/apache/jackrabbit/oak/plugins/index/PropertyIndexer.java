@@ -32,7 +32,6 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 public class PropertyIndexer implements QueryIndexProvider, CommitHook,
         PropertyIndexConstants {
@@ -53,12 +52,12 @@ public class PropertyIndexer implements QueryIndexProvider, CommitHook,
     }
 
     @Override @Nonnull
-    public List<? extends QueryIndex> getQueryIndexes(NodeStore store) {
+    public List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
         List<QueryIndex> queryIndexList = new ArrayList<QueryIndex>();
-        NodeBuilder rootBuilder = IndexUtils.getChildBuilder(store,
+        NodeBuilder rootBuilder = IndexUtils.getChildBuilder(nodeState,
                 indexConfigPath);
         List<IndexDefinition> indexDefinitions = IndexUtils
-                .buildIndexDefinitions(store.getRoot(), indexConfigPath,
+                .buildIndexDefinitions(nodeState, indexConfigPath,
                         INDEX_TYPE_PROPERTY);
         for (IndexDefinition def : indexDefinitions) {
             NodeBuilder builder = rootBuilder.getChildBuilder(def.getName());

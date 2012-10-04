@@ -128,7 +128,7 @@ public class QueryEngineImpl {
     }
 
     private List<? extends QueryIndex> getIndexes() {
-        return indexProvider.getQueryIndexes(store);
+        return indexProvider.getQueryIndexes(store.getRoot());
     }
 
 }
