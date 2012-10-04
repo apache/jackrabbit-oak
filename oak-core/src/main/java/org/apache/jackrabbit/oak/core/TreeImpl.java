@@ -627,28 +627,6 @@ public class TreeImpl implements Tree, PurgeListener {
         }
 
         /**
-         * Set the value of the underlying property
-         * @param value the value to set
-         * @return  {@code true} on success false otherwise
-         */
-        @Deprecated
-        public boolean setValue(CoreValue value) {
-            parent.tree.setProperty(property.getName(), value);
-            return true;
-        }
-
-        /**
-         * Set the values of the underlying property
-         * @param values the values to set
-         * @return  {@code true} on success false otherwise
-         */
-        @Deprecated
-        public boolean setValues(List<CoreValue> values) {
-            parent.tree.setProperty(property.getName(), values);
-            return true;
-        }
-
-        /**
          * Set the underlying property
          * @param property The property to set
          */
