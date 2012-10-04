@@ -280,20 +280,6 @@ public class MemoryNodeBuilder implements NodeBuilder {
         return read().getProperty(name);
     }
 
-    @Override @Nonnull @Deprecated
-    public NodeBuilder setProperty(String name, List<CoreValue> values) {
-        MutableNodeState mstate = write();
-
-        if (values.isEmpty()) {
-            mstate.props.put(name, new EmptyPropertyState(name, STRING));
-        } else {
-            mstate.props.put(name, new MultiPropertyState(name, values));
-        }
-
-        updated();
-        return this;
-    }
-
     @Override @Nonnull
     public NodeBuilder removeProperty(String name) {
         MutableNodeState mstate = write();
