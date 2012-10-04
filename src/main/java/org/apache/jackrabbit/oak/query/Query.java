@@ -418,12 +418,8 @@ public class Query {
     }
 
     public static int getType(PropertyState p, int ifUnknown) {
-        if (!p.isArray()) {
-            return p.getValue().getType();
-        }
-        Iterator<CoreValue> it = p.getValues().iterator();
-        if (it.hasNext()) {
-            return it.next().getType();
+        if (p.count() > 0) {
+            return p.getType().tag();
         }
         return ifUnknown;
     }

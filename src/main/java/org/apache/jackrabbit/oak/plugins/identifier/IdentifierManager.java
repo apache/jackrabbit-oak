@@ -46,6 +46,8 @@ import org.apache.jackrabbit.oak.plugins.memory.StringValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+
 /**
  * IdentifierManager...
  */
@@ -100,7 +102,7 @@ public class IdentifierManager {
             // TODO and a relative path irrespective of the accessibility of the parent node(s)
             return tree.getPath();
         } else {
-            return property.getValue().getString();
+            return property.getValue(STRING);
         }
     }
 
@@ -243,7 +245,7 @@ public class IdentifierManager {
                     return false;
                 }
                 else {
-                    return uuid.equals(pState.getValue().getString());
+                    return uuid.equals(pState.getValue(STRING));
                 }
             }
         });
@@ -255,7 +257,7 @@ public class IdentifierManager {
         // TODO use NodeType.isNodeType to determine type membership instead of equality on type names
         PropertyState pType = tree.getProperty(JcrConstants.JCR_PRIMARYTYPE);
         if (pType != null) {
-            String primaryType = pType.getValue().getString();
+            String primaryType = pType.getValue(STRING);
             if (ntName.equals(primaryType)) {
                 return true;
             }

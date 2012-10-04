@@ -20,12 +20,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 import javax.jcr.NamespaceRegistry;
-import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+
+import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 /**
  * Internal static utility class for managing the persisted namespace registry.
@@ -59,9 +59,9 @@ class Namespaces implements NamespaceConstants {
                 for (PropertyState property : namespaces.getProperties()) {
                     String prefix = property.getName();
                     if (!property.isArray() && isValidPrefix(prefix)) {
-                        CoreValue value = property.getValue();
-                        if (value.getType() == PropertyType.STRING) {
-                            map.put(prefix, value.getString());
+                        String value = property.getValue(STRING);
+                        if (STRING.equals(property.getType())) {
+                            map.put(prefix, value);
                         }
                     }
                 }

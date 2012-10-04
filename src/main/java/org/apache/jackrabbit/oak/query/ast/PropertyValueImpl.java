@@ -19,9 +19,10 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Locale;
+
 import javax.jcr.PropertyType;
+
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -134,16 +135,7 @@ public class PropertyValueImpl extends DynamicOperandImpl {
         if (propertyType == PropertyType.UNDEFINED) {
             return true;
         }
-        if (state.isArray()) {
-            List<CoreValue> values = state.getValues();
-            if (values.isEmpty()) {
-                // TODO how to retrieve the property type of an empty multi-value property?
-                // currently it matches all property types
-                return true;
-            }
-            return values.get(0).getType() == propertyType;
-        }
-        return state.getValue().getType() == propertyType;
+        return state.getType().tag() == propertyType;
     }
 
     public void bindSelector(SourceImpl source) {
