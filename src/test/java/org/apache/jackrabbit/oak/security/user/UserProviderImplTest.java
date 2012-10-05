@@ -108,13 +108,13 @@ public class UserProviderImplTest extends AbstractOakTest {
     }
 
     private UserProvider createUserProvider() {
-        return new UserProviderImpl(contentSession, root, defaultConfig);
+        return new UserProviderImpl(root, defaultConfig);
     }
 
     private UserProvider createUserProvider(int defaultDepth) {
         Map<String, Object> options = new HashMap<String, Object>(customOptions);
         options.put(UserConfig.PARAM_DEFAULT_DEPTH, defaultDepth);
-        return new UserProviderImpl(contentSession, root, new UserConfig("admin", options, Collections.<AuthorizableAction>emptySet()));
+        return new UserProviderImpl(root, new UserConfig("admin", options, Collections.<AuthorizableAction>emptySet()));
     }
 
     @Test

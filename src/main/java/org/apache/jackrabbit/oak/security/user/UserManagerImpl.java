@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import java.io.UnsupportedEncodingException;
-import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
 import java.util.Iterator;
 import javax.annotation.CheckForNull;
@@ -38,7 +36,6 @@ import org.apache.jackrabbit.oak.security.user.query.XPathQueryBuilder;
 import org.apache.jackrabbit.oak.security.user.query.XPathQueryEvaluator;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
-import org.apache.jackrabbit.oak.spi.security.user.PasswordUtility;
 import org.apache.jackrabbit.oak.spi.security.user.Type;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
@@ -147,7 +144,7 @@ public class UserManagerImpl implements UserManager {
         }
         Tree userTree = userProvider.createUser(userID, intermediatePath);
         setPrincipal(userTree, principal);
-        setPassword(userTree, password, true);
+        userProvider.setPassword(userTree, password, true);
 
         User user = new UserImpl(userID, userTree, this);
         onCreate(user, password);
@@ -283,41 +280,6 @@ public class UserManagerImpl implements UserManager {
     }
 
     //--------------------------------------------------------------------------
-    /**
-     *
-     *
-     * @param userTree The tree representing the user.
-     * @param password The plaintext password to set.
-     * @param forceHash If true the specified password will always be hashed.
-     * @throws javax.jcr.RepositoryException If an error occurs
-     */
-    void setPassword(Tree userTree, String password, boolean forceHash) throws RepositoryException {
-        if (password == null) {
-            log.debug("Password is null.");
-            return;
-        }
-        String pwHash;
-        if (forceHash || PasswordUtility.isPlainTextPassword(password)) {
-            try {
-                pwHash = PasswordUtility.buildPasswordHash(password, config);
-            } catch (NoSuchAlgorithmException e) {
-                throw new RepositoryException(e);
-            } catch (UnsupportedEncodingException e) {
-                throw new RepositoryException(e);
-            }
-        } else {
-            pwHash = password;
-        }
-        getUserProvider().setProtectedProperty(userTree, UserConstants.REP_PASSWORD, pwHash, PropertyType.STRING);
-    }
-
-    void setPrincipal(Tree userTree, Principal principal) throws RepositoryException {
-        // TODO: remove check once user-validator properly enforces that constraint
-        if (userTree.getStatus() != Tree.Status.NEW || userTree.hasProperty(UserConstants.REP_PRINCIPAL_NAME)) {
-            throw new RepositoryException("rep:principalName can only be set once on a new node.");
-        }
-        getUserProvider().setProtectedProperty(userTree, UserConstants.REP_PRINCIPAL_NAME, principal.getName(), PropertyType.STRING);
-    }
 
     Session getSession() {
         return session;
@@ -372,6 +334,10 @@ public class UserManagerImpl implements UserManager {
         if (!isGroup && EveryonePrincipal.NAME.equals(principal.getName())) {
             throw new IllegalArgumentException("'everyone' is a reserved group principal name.");
         }
+    }
+
+    private void setPrincipal(Tree userTree, Principal principal) {
+        getUserProvider().setProtectedProperty(userTree, UserConstants.REP_PRINCIPAL_NAME, principal.getName(), PropertyType.STRING);
     }
 
     private static Type getAuthorizableType(int searchType) {

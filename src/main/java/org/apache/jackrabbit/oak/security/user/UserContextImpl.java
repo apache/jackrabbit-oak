@@ -21,7 +21,6 @@ import java.util.List;
 import javax.jcr.Session;
 
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
@@ -47,13 +46,13 @@ public class UserContextImpl implements UserContext {
     }
 
     @Override
-    public UserProvider getUserProvider(ContentSession contentSession, Root root) {
-        return new UserProviderImpl(contentSession, root, config);
+    public UserProvider getUserProvider(Root root) {
+        return new UserProviderImpl(root, config);
     }
 
     @Override
-    public MembershipProvider getMembershipProvider(ContentSession contentSession, Root root) {
-        return new MembershipProviderImpl(contentSession, root, config);
+    public MembershipProvider getMembershipProvider(Root root) {
+        return new MembershipProviderImpl(root, config);
     }
 
     @Override
@@ -63,10 +62,9 @@ public class UserContextImpl implements UserContext {
     }
 
     @Override
-    public UserManager getUserManager(Session session, ContentSession contentSession,
-                                      Root root, NamePathMapper namePathMapper) {
-        UserProvider up = getUserProvider(contentSession, root);
-        MembershipProvider mp = getMembershipProvider(contentSession, root);
+    public UserManager getUserManager(Session session, Root root, NamePathMapper namePathMapper) {
+        UserProvider up = getUserProvider(root);
+        MembershipProvider mp = getMembershipProvider(root);
         return new UserManagerImpl(session, namePathMapper, up, mp, config);
     }
 }

@@ -21,7 +21,6 @@ import javax.annotation.Nonnull;
 import javax.jcr.Session;
 
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
@@ -32,14 +31,14 @@ import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 public interface UserContext {
 
     @Nonnull
-    UserProvider getUserProvider(ContentSession contentSession, Root root);
+    UserProvider getUserProvider(Root root);
 
     @Nonnull
-    MembershipProvider getMembershipProvider(ContentSession contentSession, Root root);
+    MembershipProvider getMembershipProvider(Root root);
 
     @Nonnull
     List<ValidatorProvider> getValidatorProviders();
 
     @Nonnull
-    UserManager getUserManager(Session session, ContentSession contentSession, Root root, NamePathMapper namePathMapper);
+    UserManager getUserManager(Session session, Root root, NamePathMapper namePathMapper);
 }

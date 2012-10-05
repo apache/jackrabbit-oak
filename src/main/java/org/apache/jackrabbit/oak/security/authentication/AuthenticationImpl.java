@@ -22,7 +22,10 @@ import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
 import javax.jcr.SimpleCredentials;
 
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
+import org.apache.jackrabbit.oak.spi.security.user.PasswordUtility;
+import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
 
 /**
  * AuthenticationImpl...
@@ -30,22 +33,32 @@ import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
 public class AuthenticationImpl implements Authentication {
 
     private final String userID;
+    private final UserProvider userProvider;
 
-    public AuthenticationImpl(String userID) {
+    public AuthenticationImpl(String userID, UserProvider userProvider) {
         this.userID = userID;
+        this.userProvider = userProvider;
     }
 
     @Override
     public boolean authenticate(Credentials credentials) {
-        if (credentials instanceof SimpleCredentials) {
-            // TODO
-            return true;
-        } else if (credentials instanceof GuestCredentials) {
-            // TODO
-            return true;
-        } else {
-            return false;
-        }
+        // TODO
+        return true;
+
+//        if (userProvider == null || userID == null) {
+//            return false;
+//        }
+//
+//        if (credentials instanceof SimpleCredentials) {
+//            SimpleCredentials creds = (SimpleCredentials) credentials;
+//            return userID.equals(creds.getUserID()) &&
+//                    PasswordUtility.isSame(userProvider.getPassword(userID), creds.getPassword());
+//        } else if (credentials instanceof GuestCredentials) {
+//            return userProvider.getAuthorizable(userID) != null;
+//        } else {
+//            // unsupported credentials object
+//            return false;
+//        }
     }
 
     @Override

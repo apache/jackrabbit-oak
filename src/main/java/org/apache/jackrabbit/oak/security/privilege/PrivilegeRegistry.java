@@ -109,7 +109,6 @@ public class PrivilegeRegistry implements PrivilegeProvider, PrivilegeConstants 
 
     private void internalRegisterDefinitions(PrivilegeDefinition toRegister) throws RepositoryException {
         Root root = contentSession.getLatestRoot();
-
         try {
             // make sure the privileges path is defined
             Tree privilegesTree = root.getTree(PRIVILEGES_PATH);
@@ -117,7 +116,7 @@ public class PrivilegeRegistry implements PrivilegeProvider, PrivilegeConstants 
                 throw new RepositoryException("Repository doesn't contain node " + PRIVILEGES_PATH);
             }
 
-            NodeUtil privilegesNode = new NodeUtil(privilegesTree, contentSession);
+            NodeUtil privilegesNode = new NodeUtil(privilegesTree, root.getValueFactory());
             writeDefinition(privilegesNode, toRegister);
 
             // delegate validation to the commit validation (see above)

@@ -43,9 +43,9 @@ public abstract class AbstractQueryTest extends AbstractOakTest {
     public void before() throws Exception {
         super.before();
         session = createAdminSession();
-        vf = session.getCoreValueFactory();
         root = session.getLatestRoot();
         qe = root.getQueryEngine();
+        vf = root.getValueFactory();
     }
 
     protected Result executeQuery(String statement, String language, HashMap<String, CoreValue> sv) throws ParseException {

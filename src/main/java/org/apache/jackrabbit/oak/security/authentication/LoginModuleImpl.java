@@ -106,8 +106,6 @@ public class LoginModuleImpl extends AbstractLoginModule {
     @Override
     public void initialize(Subject subject, CallbackHandler callbackHandler, Map<String, ?> sharedState, Map<String, ?> options) {
         super.initialize(subject, callbackHandler, sharedState, options);
-
-        // TODO
     }
 
     @Override
@@ -116,7 +114,7 @@ public class LoginModuleImpl extends AbstractLoginModule {
         credentials = getCredentials();
         userID = getUserID();
 
-        Authentication authentication = new AuthenticationImpl(userID);
+        Authentication authentication = new AuthenticationImpl(userID, getUserProvider());
         boolean success = authentication.authenticate(credentials);
         if (!success) {
             success = impersonate(authentication);
@@ -173,7 +171,7 @@ public class LoginModuleImpl extends AbstractLoginModule {
             if (credentials instanceof SimpleCredentials) {
                 userID = ((SimpleCredentials) credentials).getUserID();
             } else if (credentials instanceof GuestCredentials) {
-                userID = "anonymous";
+                userID = getAnonymousID();
             } else if (credentials instanceof ImpersonationCredentials) {
                 Credentials bc = ((ImpersonationCredentials) credentials).getBaseCredentials();
                 if (bc instanceof SimpleCredentials) {
@@ -197,6 +195,11 @@ public class LoginModuleImpl extends AbstractLoginModule {
         }
 
         return userID;
+    }
+
+    private String getAnonymousID() {
+        // TODO
+        return "anonymous";
     }
 
     private boolean impersonate(Authentication authentication) {

@@ -31,7 +31,6 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 
 import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
-import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -87,8 +86,8 @@ public class MembershipProviderImpl extends AuthorizableBaseProvider implements 
 
     private final int splitSize;
 
-    MembershipProviderImpl(ContentSession contentSession, Root root, UserConfig config) {
-        super(contentSession, root, config);
+    MembershipProviderImpl(Root root, UserConfig config) {
+        super(root, config);
 
         int splitValue = config.getConfigValue(UserConfig.PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE, 0);
         if (splitValue != 0 && splitValue < 4) {
