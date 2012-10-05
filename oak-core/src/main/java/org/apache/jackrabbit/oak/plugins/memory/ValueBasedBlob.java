@@ -22,10 +22,10 @@ import java.io.InputStream;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
 
-public class BlobImpl extends AbstractBlob {
+public class ValueBasedBlob extends AbstractBlob {
     private final CoreValue value;
 
-    public BlobImpl(CoreValue value) {
+    public ValueBasedBlob(CoreValue value) {
         this.value = value;
     }
 
