@@ -117,7 +117,11 @@ public class NodeBuilder {
             }
         }
 
-        node.setProperties(properties);
+        if (properties != null) {
+            for (Map.Entry<String, Object> entry : properties.entrySet()) {
+                node.addProperty(entry.getKey(), entry.getValue());
+            }
+        }
 
         return node;
     }

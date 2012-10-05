@@ -78,7 +78,9 @@ public class NodeMongo extends BasicDBObject {
         }
 
         nodeImpl.setRevisionId(nodeMongo.getRevisionId());
-        nodeImpl.setProperties(nodeMongo.getProperties());
+        for (Map.Entry<String, Object> entry : nodeMongo.getProperties().entrySet()) {
+            nodeImpl.addProperty(entry.getKey(), entry.getValue());
+        }
         return nodeImpl;
     }
 
@@ -113,11 +115,12 @@ public class NodeMongo extends BasicDBObject {
 
     @SuppressWarnings("unchecked")
     public Map<String, Object> getProperties() {
-        return (Map<String, Object>) this.get(KEY_PROPERTIES);
+        Object properties = get(KEY_PROPERTIES);
+        return properties != null? (Map<String, Object>)properties : new HashMap<String, Object>();
     }
 
     public void setProperties(Map<String, Object> properties) {
-        if (properties != null) {
+        if (properties != null && !properties.isEmpty()) {
             put(KEY_PROPERTIES, properties);
         } else {
             removeField(KEY_PROPERTIES);

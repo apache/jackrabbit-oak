@@ -185,8 +185,7 @@ public class CommitCommandMongo extends AbstractCommand<Long> {
                     logger.debug(String.format("Committing node: %s", committingNode));
 
                     Map<String, Object> existingProperties = existingNode.getProperties();
-
-                    if (existingProperties != null) {
+                    if (!existingProperties.isEmpty()) {
                         committingNode.setProperties(existingProperties);
 
                         logger.debug(String.format("Merged properties for %s: %s", existingNode.getPath(),
@@ -194,7 +193,6 @@ public class CommitCommandMongo extends AbstractCommand<Long> {
                     }
 
                     List<String> existingChildren = existingNode.getChildren();
-
                     if (existingChildren != null) {
                         committingNode.setChildren(existingChildren);
 
@@ -239,9 +237,6 @@ public class CommitCommandMongo extends AbstractCommand<Long> {
             }
 
             Map<String, Object> properties = committingNode.getProperties();
-            if (properties == null) {
-                properties = new HashMap<String, Object>();
-            }
 
             Map<String, Object> addedProperties = committingNode.getAddedProps();
             if (addedProperties != null) {
