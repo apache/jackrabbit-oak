@@ -25,12 +25,10 @@ import org.apache.jackrabbit.oak.api.Type;
 
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 
-public class BinariesPropertyState extends MultiPropertyState {
-    private final List<Blob> values;
+public class BinariesPropertyState extends MultiPropertyState<Blob> {
 
     protected BinariesPropertyState(String name, List<Blob> values) {
-        super(name);
-        this.values = values;
+        super(name, values);
     }
 
     @Override
@@ -56,11 +54,6 @@ public class BinariesPropertyState extends MultiPropertyState {
     @Override
     protected Blob getBlob(int index) {
         return values.get(index);
-    }
-
-    @Override
-    public int count() {
-        return values.size();
     }
 
     @Override

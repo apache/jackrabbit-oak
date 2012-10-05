@@ -24,12 +24,9 @@ import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Type;
 
-public class StringsPropertyState extends MultiPropertyState {
-    private final List<String> values;
-
+public class StringsPropertyState extends MultiPropertyState<String> {
     protected StringsPropertyState(String name, List<String> values) {
-        super(name);
-        this.values = values;
+        super(name, values);
     }
 
     @Override
@@ -55,11 +52,6 @@ public class StringsPropertyState extends MultiPropertyState {
     @Override
     protected boolean getBoolean(int index) {
         return Boolean.parseBoolean(getString(index));
-    }
-
-    @Override
-    public int count() {
-        return values.size();
     }
 
     @Override
