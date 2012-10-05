@@ -26,8 +26,6 @@ import javax.annotation.Nonnull;
  */
 public interface IndexDefinition {
 
-    String TYPE_PROPERTY_NAME = "type";
-
     String UNIQUE_PROPERTY_NAME = "unique";
 
     String INDEX_DATA_CHILD_NAME = ":data";
