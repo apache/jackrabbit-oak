@@ -16,11 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.query.index;
+package org.apache.jackrabbit.oak.plugins.index.old;
 
 import java.util.Iterator;
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.plugins.index.old.PropertyIndex;
+
+import javax.jcr.PropertyType;
+
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.kernel.CoreValueMapper;
+import org.apache.jackrabbit.oak.query.index.IndexRowImpl;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
@@ -32,51 +36,69 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * 
  * @deprecated the revisionId info has been removed
  */
-public class PropertyContentIndex implements QueryIndex {
+public class PrefixContentIndex implements QueryIndex {
 
-    private final PropertyIndex index;
+    private final PrefixIndex index;
 
-    public PropertyContentIndex(PropertyIndex index) {
+    public PrefixContentIndex(PrefixIndex index) {
         this.index = index;
     }
 
     @Override
     public double getCost(Filter filter) {
-        String propertyName = index.getPropertyName();
-        Filter.PropertyRestriction restriction = filter.getPropertyRestriction(propertyName);
-        if (restriction == null) {
-            return Double.MAX_VALUE;
+        if (getPropertyTypeRestriction(filter) != null) {
+            return 100;
         }
-        if (restriction.first != restriction.last) {
-            // only support equality matches (for now)
-            return Double.MAX_VALUE;
+        return Double.MAX_VALUE;
+    }
+
+    private Filter.PropertyRestriction getPropertyTypeRestriction(Filter filter) {
+        for (Filter.PropertyRestriction restriction : filter.getPropertyRestrictions()) {
+            if (restriction == null) {
+                continue;
+            }
+            if (restriction.first != restriction.last) {
+                // only support equality matches (for now)
+                continue;
+            }
+            if (restriction.propertyType == PropertyType.UNDEFINED) {
+                continue;
+            }
+            String hint = CoreValueMapper.getHintForType(restriction.propertyType);
+            String prefix = hint + ":";
+            if (prefix.equals(index.getPrefix())) {
+                return restriction;
+            }
         }
-        boolean unique = index.isUnique();
-        return unique ? 2 : 20;
+        return null;
     }
 
     @Override
     public String getPlan(Filter filter, NodeState root) {
-        String propertyName = index.getPropertyName();
-        Filter.PropertyRestriction restriction = filter.getPropertyRestriction(propertyName);
-        return "propertyIndex \"" + restriction.propertyName + " " + restriction.toString() + '"';
+        Filter.PropertyRestriction restriction = getPropertyTypeRestriction(filter);
+        if (restriction == null) {
+            throw new IllegalArgumentException("No restriction for *");
+        }
+        // TODO need to use correct json representation
+        String v = restriction.first.getString();
+        v = index.getPrefix() + v;
+        return "prefixIndex \"" + v + '"';
     }
 
     @Override
     public Cursor query(Filter filter, NodeState root) {
-        String propertyName = index.getPropertyName();
-        Filter.PropertyRestriction restriction = filter.getPropertyRestriction(propertyName);
+        Filter.PropertyRestriction restriction = getPropertyTypeRestriction(filter);
         if (restriction == null) {
-            throw new IllegalArgumentException("No restriction for " + propertyName);
+            throw new IllegalArgumentException("No restriction for *");
         }
-        CoreValue first = restriction.first;
-        String f = first == null ? null : first.toString();
+        // TODO need to use correct json representation
+        String v = restriction.first.getString();
+        v = index.getPrefix() + v;
         // TODO revisit code after the removal of revisionId
         String revisionId = "";
-        Iterator<String> it = index.getPaths(f, revisionId);
+        Iterator<String> it = index.getPaths(v, revisionId);
         return new ContentCursor(it);
     }
-
 
     @Override
     public String getIndexName() {
@@ -104,7 +126,8 @@ public class PropertyContentIndex implements QueryIndex {
         @Override
         public boolean next() {
             if (it.hasNext()) {
-                currentPath = it.next();
+                String pathAndProperty = it.next();
+                currentPath = PathUtils.getParentPath(pathAndProperty);
                 return true;
             }
             return false;
