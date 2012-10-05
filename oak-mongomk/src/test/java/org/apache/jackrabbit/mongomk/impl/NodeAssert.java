@@ -17,41 +17,35 @@
 package org.apache.jackrabbit.mongomk.impl;
 
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
-
-import org.apache.jackrabbit.mongomk.api.model.Node;
 
 import junit.framework.Assert;
 
-@SuppressWarnings("javadoc")
+import org.apache.jackrabbit.mongomk.api.model.Node;
+
 public class NodeAssert {
 
     public static void assertDeepEquals(Node expected, Node actual) {
         assertEquals(expected, actual);
 
-        Set<Node> expectedChildren = expected.getChildren();
-        Set<Node> actualChildren = actual.getChildren();
+        int expectedCount = expected.getChildNodeCount();
+        int actualCount = actual.getChildNodeCount();
+        Assert.assertEquals(expectedCount, actualCount);
 
-        if (expectedChildren == null) {
-            Assert.assertNull(actualChildren);
-        } else {
-            Assert.assertNotNull(actualChildren);
-            Assert.assertEquals(expectedChildren.size(), actualChildren.size());
-
-            for (Node expectedChild : expectedChildren) {
-                boolean valid = false;
-                for (Node actualChild : actualChildren) {
-                    if (expectedChild.getName().equals(actualChild.getName())) {
-                        assertDeepEquals(expectedChild, actualChild);
-                        valid = true;
-
-                        break;
-                    }
+        for (Iterator<Node> it = expected.getChildNodeEntries(0, -1); it.hasNext(); ) {
+            Node expectedChild = it.next();
+            boolean valid = false;
+            for (Iterator<Node> it2 = actual.getChildNodeEntries(0, -1); it2.hasNext(); ) {
+                Node actualChild = it2.next();
+                if (expectedChild.getName().equals(actualChild.getName())) {
+                    assertDeepEquals(expectedChild, actualChild);
+                    valid = true;
+                    break;
                 }
-
-                Assert.assertTrue(valid);
             }
+
+            Assert.assertTrue(valid);
         }
     }
 

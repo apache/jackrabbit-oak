@@ -19,9 +19,9 @@ package org.apache.jackrabbit.mongomk.command;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -107,10 +107,11 @@ public class ConcurrentCommitCommandMongoTest extends BaseMongoTest {
             Long revisionId = revisionIds.get(i);
             GetNodesCommandMongo command2 = new GetNodesCommandMongo(mongoConnection, "/", revisionId, 0);
             Node root = command2.execute();
-            Set<Node> children = root.getChildren();
+
             for (String lastChild : lastChildren) {
                 boolean contained = false;
-                for (Node childNode : children) {
+                for (Iterator<Node> it = root.getChildNodeEntries(0, -1); it.hasNext(); ) {
+                    Node childNode = it.next();
                     if (childNode.getName().equals(lastChild)) {
                         contained = true;
                         break;
@@ -119,7 +120,8 @@ public class ConcurrentCommitCommandMongoTest extends BaseMongoTest {
                 Assert.assertTrue(contained);
             }
             lastChildren.clear();
-            for (Node childNode : children) {
+            for (Iterator<Node> it = root.getChildNodeEntries(0, -1); it.hasNext(); ) {
+                Node childNode = it.next();
                 lastChildren.add(childNode.getName());
             }
         }

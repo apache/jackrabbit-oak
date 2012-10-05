@@ -19,6 +19,7 @@ package org.apache.jackrabbit.mongomk.impl;
 import java.util.List;
 
 import org.apache.jackrabbit.mk.json.JsopBuilder;
+import org.apache.jackrabbit.mk.model.tree.DiffBuilder;
 import org.apache.jackrabbit.mongomk.api.NodeStore;
 import org.apache.jackrabbit.mongomk.api.command.Command;
 import org.apache.jackrabbit.mongomk.api.command.CommandExecutor;
@@ -29,6 +30,8 @@ import org.apache.jackrabbit.mongomk.command.GetHeadRevisionCommandMongo;
 import org.apache.jackrabbit.mongomk.command.GetNodesCommandMongo;
 import org.apache.jackrabbit.mongomk.command.NodeExistsCommandMongo;
 import org.apache.jackrabbit.mongomk.impl.command.CommandExecutorImpl;
+import org.apache.jackrabbit.mongomk.impl.model.tree.NodeStateMongo;
+import org.apache.jackrabbit.mongomk.impl.model.tree.NodeStoreMongod;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
 import org.apache.jackrabbit.mongomk.query.FetchCommitQuery;
 import org.apache.jackrabbit.mongomk.query.FetchHeadRevisionIdQuery;
@@ -94,11 +97,15 @@ public class NodeStoreMongo implements NodeStore {
             }
         }
 
-        throw new UnsupportedOperationException("Diff is currently not supported.");
-        // FIXME - Finish the rest
-        //NodeState before = rep.getNodeState(fromRevisionId, path);
-        //NodeState after = rep.getNodeState(toRevisionId, path);
-        //return new DiffBuilder(before, after, path, depth, rep.getRevisionStore(), path).build();
+        // FIXME - FetchNodesByPath?
+        GetNodesCommandMongo command = new GetNodesCommandMongo(mongoConnection, path, fromRevisionId, -1);
+        Node before = command.execute();
+
+        command = new GetNodesCommandMongo(mongoConnection, path, toRevisionId, -1);
+        Node after = command.execute();
+
+        return new DiffBuilder(new NodeStateMongo(before), new NodeStateMongo(after),
+                path, depth, new NodeStoreMongod(), path).build();
     }
 
     @Override

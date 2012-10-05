@@ -211,7 +211,7 @@ public class CommitCommandMongoTest extends BaseMongoTest {
 
         GetNodesCommandMongo command2 = new GetNodesCommandMongo(mongoConnection, "/", revisionId, 0);
         Node rootOfPath = command2.execute();
-        assertEquals(3, rootOfPath.getChildCount());
+        assertEquals(3, rootOfPath.getChildNodeCount());
     }
 
     @Test

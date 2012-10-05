@@ -17,10 +17,10 @@
 package org.apache.jackrabbit.mongomk.command;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.jackrabbit.mongomk.api.command.AbstractCommand;
 import org.apache.jackrabbit.mongomk.api.model.Node;
@@ -105,14 +105,13 @@ public class GetNodesCommandMongo extends AbstractCommand<Node> {
 
     private NodeImpl buildNodeStructure(NodeMongo nodeMongo) {
         NodeImpl node = NodeMongo.toNode(nodeMongo);
-        Set<Node> children = node.getChildren();
-        if (children != null) {
-            for (Node child : children) {
-                NodeMongo nodeMongoChild = pathAndNodeMap.get(child.getPath());
-                if (nodeMongoChild != null) {
-                    NodeImpl nodeChild = this.buildNodeStructure(nodeMongoChild);
-                    node.addChild(nodeChild);
-                }
+
+        for (Iterator<Node> it = node.getChildNodeEntries(0, -1); it.hasNext(); ) {
+            Node child = it.next();
+            NodeMongo nodeMongoChild = pathAndNodeMap.get(child.getPath());
+            if (nodeMongoChild != null) {
+                NodeImpl nodeChild = this.buildNodeStructure(nodeMongoChild);
+                node.addChild(nodeChild);
             }
         }
 

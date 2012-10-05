@@ -108,7 +108,7 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
 
             // Copy src node to destPath.
             NodeMongo srcNode = getStoredNode(srcPath);
-            NodeMongo destNode = NodeMongo.fromDBObject(srcNode);
+            NodeMongo destNode = NodeMongo.createClone(srcNode);
             destNode.setPath(destPath);
             // FIXME - This needs to do proper merge instead of just add.
             List<String> addedChildren = srcNode.getAddedChildren();
@@ -137,13 +137,13 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
 
         if (srcNode != null) {
             // Copy the modified subtree
-            NodeMongo destNode = NodeMongo.fromDBObject(srcNode);
+            NodeMongo destNode = NodeMongo.createClone(srcNode);
             destNode.setPath(destPath);
             pathNodeMap.put(destPath,  destNode);
             destParent.addChild(destNodeName);
             //destParent.add(destNodeName, srcNode.copy());
         } else {
-            NodeMongo destNode = NodeMongo.fromDBObject(srcNode);
+            NodeMongo destNode = NodeMongo.createClone(srcNode);
             destNode.setPath(destPath);
             pathNodeMap.put(destPath,  destNode);
             destParent.addChild(destNodeName);

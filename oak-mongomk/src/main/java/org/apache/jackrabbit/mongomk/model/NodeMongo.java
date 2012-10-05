@@ -19,11 +19,9 @@ package org.apache.jackrabbit.mongomk.model;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.jackrabbit.mongomk.api.model.Node;
 import org.apache.jackrabbit.mongomk.impl.model.NodeImpl;
@@ -35,59 +33,25 @@ import com.mongodb.DBObject;
 /**
  * The {@code MongoDB} representation of a node.
  */
-@SuppressWarnings("javadoc")
 public class NodeMongo extends BasicDBObject {
 
     public static final String KEY_BASE_REVISION_ID = "baseRevId";
-    public static final String KEY_CHILDREN = "kids";
+    public static final String KEY_CHILDREN = "children";
     public static final String KEY_PATH = "path";
     public static final String KEY_PROPERTIES = "props";
     public static final String KEY_REVISION_ID = "revId";
+
     private static final long serialVersionUID = 3153393934945155106L;
 
-    public static NodeMongo fromDBObject(DBObject node) {
+    private List<String> addedChildren;
+    private Map<String, Object> addedProps;
+    private List<String> removedChildren;
+    private Map<String, Object> removedProps;
+
+    public static NodeMongo createClone(NodeMongo node) {
         NodeMongo nodeMongo = new NodeMongo();
-        nodeMongo.putAll(node);
-
+        nodeMongo.putAll((DBObject)node);
         return nodeMongo;
-    }
-
-    public static NodeMongo fromNode(Node node) {
-        NodeMongo nodeMongo = new NodeMongo();
-
-        String path = node.getPath();
-        nodeMongo.setPath(path);
-
-        Long revisionId = node.getRevisionId();
-        if (revisionId != null) {
-            nodeMongo.setRevisionId(revisionId);
-        }
-
-        Map<String, Object> properties = node.getProperties();
-        if (properties != null) {
-            nodeMongo.setProperties(properties);
-        }
-
-        Set<Node> children = node.getChildren();
-        if (children != null) {
-            List<String> childNames = new LinkedList<String>();
-            for (Node child : children) {
-                childNames.add(child.getName());
-            }
-            nodeMongo.setChildren(childNames);
-        }
-
-        return nodeMongo;
-    }
-
-    public static Set<NodeMongo> fromNodes(Collection<Node> nodes) {
-        Set<NodeMongo> nodeMongos = new HashSet<NodeMongo>(nodes.size());
-        for (Node node : nodes) {
-            NodeMongo nodeMongo = NodeMongo.fromNode(node);
-            nodeMongos.add(nodeMongo);
-        }
-
-        return nodeMongos;
     }
 
     public static List<Node> toNode(Collection<NodeMongo> nodeMongos) {
@@ -102,122 +66,33 @@ public class NodeMongo extends BasicDBObject {
 
     public static NodeImpl toNode(NodeMongo nodeMongo) {
         String path = nodeMongo.getPath();
+        NodeImpl nodeImpl = new NodeImpl(path);
+
         List<String> childNames = nodeMongo.getChildren();
-        long childCount = childNames != null ? childNames.size() : 0;
-        Map<String, Object> properties = nodeMongo.getProperties();
-        Set<Node> children = null;
         if (childNames != null) {
-            children = new HashSet<Node>();
             for (String childName : childNames) {
-                NodeImpl child = new NodeImpl();
-                child.setPath(PathUtils.concat(path, childName));
-                children.add(child);
+                String childPath = PathUtils.concat(path, childName);
+                NodeImpl child = new NodeImpl(childPath);
+                nodeImpl.addChild(child);
             }
         }
 
-        Long revisionId = nodeMongo.getRevisionId();
-        NodeImpl nodeImpl = new NodeImpl();
-        nodeImpl.setPath(path);
-        nodeImpl.setChildCount(childCount);
-        nodeImpl.setRevisionId(revisionId);
-        nodeImpl.setProperties(properties);
-        nodeImpl.setChildren(children);
-
+        nodeImpl.setRevisionId(nodeMongo.getRevisionId());
+        nodeImpl.setProperties(nodeMongo.getProperties());
         return nodeImpl;
     }
 
-    private List<String> addedChildren;
-    private Map<String, Object> addedProps;
-    private List<String> removedChildren;
-    private Map<String, Object> removedProps;
+    /**
+     * These properties are persisted to MongoDB.
+     */
 
-    public void addChild(String childName) {
-        if (addedChildren == null) {
-            addedChildren = new LinkedList<String>();
-        }
-
-        addedChildren.add(childName);
-    }
-
-    public void addProperty(String key, Object value) {
-        if (addedProps == null) {
-            addedProps = new HashMap<String, Object>();
-        }
-
-        addedProps.put(key, value);
-    }
-
-    public List<String> getAddedChildren() {
-        return addedChildren;
-    }
-
-    public Map<String, Object> getAddedProps() {
-        return addedProps;
+    public void setBaseRevisionId(long baseRevisionId) {
+        put(KEY_BASE_REVISION_ID, baseRevisionId);
     }
 
     @SuppressWarnings("unchecked")
     public List<String> getChildren() {
-        return (List<String>) this.get(KEY_CHILDREN);
-    }
-
-    public boolean childExists(String childName) {
-        List<String> children = getChildren();
-        if (children != null && !children.isEmpty()) {
-            if (children.contains(childName)) {
-                return true;
-            }
-        }
-        return addedChildExists(childName);
-    }
-
-    private boolean addedChildExists(String childName) {
-        return addedChildren != null && !addedChildren.isEmpty()?
-                addedChildren.contains(childName) : false;
-    }
-
-    public String getName() {
-        return PathUtils.getName(getString(KEY_PATH));
-    }
-
-    public String getPath() {
-        return getString(KEY_PATH);
-    }
-
-    @SuppressWarnings("unchecked")
-    public Map<String, Object> getProperties() {
-        return (Map<String, Object>) this.get(KEY_PROPERTIES);
-    }
-
-    public List<String> getRemovedChildren() {
-        return removedChildren;
-    }
-
-    public Map<String, Object> getRemovedProps() {
-        return removedProps;
-    }
-
-    public Long getRevisionId() {
-        return getLong(KEY_REVISION_ID);
-    }
-
-    public void removeChild(String childName) {
-        if (removedChildren == null) {
-            removedChildren = new LinkedList<String>();
-        }
-
-        removedChildren.add(childName);
-    }
-
-    public void removeProp(String key) {
-        if (removedProps == null) {
-            removedProps = new HashMap<String, Object>();
-        }
-
-        removedProps.put(key, null);
-    }
-
-    public void setBaseRevisionId(long baseRevisionId) {
-        put(KEY_BASE_REVISION_ID, baseRevisionId);
+        return (List<String>)get(KEY_CHILDREN);
     }
 
     public void setChildren(List<String> children) {
@@ -228,8 +103,17 @@ public class NodeMongo extends BasicDBObject {
         }
     }
 
+    public String getPath() {
+        return getString(KEY_PATH);
+    }
+
     public void setPath(String path) {
         put(KEY_PATH, path);
+    }
+
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> getProperties() {
+        return (Map<String, Object>) this.get(KEY_PROPERTIES);
     }
 
     public void setProperties(Map<String, Object> properties) {
@@ -240,8 +124,80 @@ public class NodeMongo extends BasicDBObject {
         }
     }
 
+    public Long getRevisionId() {
+        return getLong(KEY_REVISION_ID);
+    }
+
     public void setRevisionId(long revisionId) {
         put(KEY_REVISION_ID, revisionId);
+    }
+
+    /**
+     * These properties are used to keep track of changes but not persisted to MongoDB.
+     */
+
+    public void addChild(String childName) {
+        if (addedChildren == null) {
+            addedChildren = new LinkedList<String>();
+        }
+        addedChildren.add(childName);
+    }
+
+    public List<String> getAddedChildren() {
+        return addedChildren;
+    }
+
+    public void removeChild(String childName) {
+        if (removedChildren == null) {
+            removedChildren = new LinkedList<String>();
+        }
+        removedChildren.add(childName);
+    }
+
+    public List<String> getRemovedChildren() {
+        return removedChildren;
+    }
+
+    public void addProperty(String key, Object value) {
+        if (addedProps == null) {
+            addedProps = new HashMap<String, Object>();
+        }
+        addedProps.put(key, value);
+    }
+
+    public Map<String, Object> getAddedProps() {
+        return addedProps;
+    }
+
+    public void removeProp(String key) {
+        if (removedProps == null) {
+            removedProps = new HashMap<String, Object>();
+        }
+        removedProps.put(key, null);
+    }
+
+    public Map<String, Object> getRemovedProps() {
+        return removedProps;
+    }
+
+    /**
+     * Other methods
+     * @param childName
+     * @return
+     */
+    public boolean childExists(String childName) {
+        List<String> children = getChildren();
+        if (children != null && !children.isEmpty()) {
+            if (children.contains(childName)) {
+                return true;
+            }
+        }
+        return childExistsInAddedChildren(childName);
+    }
+
+    private boolean childExistsInAddedChildren(String childName) {
+        return addedChildren != null && !addedChildren.isEmpty()?
+                addedChildren.contains(childName) : false;
     }
 
     @Override

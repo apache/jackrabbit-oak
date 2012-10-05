@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.mongomk.impl.model;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -25,30 +24,25 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.jackrabbit.mk.model.ChildNodeEntry;
+import org.apache.jackrabbit.mk.model.NodeDiffHandler;
 import org.apache.jackrabbit.mk.util.RangeIterator;
 import org.apache.jackrabbit.mongomk.api.model.Node;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
-
 /**
+ * FIXME - rename to either AbstractNode or DefaultNode.
+ *
  * Implementation of {@link Node}.
  */
 public class NodeImpl implements Node {
 
     private static final List<Node> EMPTY = Collections.emptyList();
 
-    private long childCount;
     private Map<String, Node> children;
-    private String name;
     private String path;
     private Map<String, Object> properties;
     private Long revisionId;
-
-    /**
-     * Constructs a new {@code NodeImpl}.
-     */
-    public NodeImpl() {
-    }
 
     /**
      * Constructs a new {@code NodeImpl}.
@@ -56,30 +50,7 @@ public class NodeImpl implements Node {
      * @param path The path.
      */
     public NodeImpl(String path) {
-        this(path, (Set<Node>) null, null);
-    }
-
-    /**
-     * Constructs a new {@code NodeImpl}.
-     *
-     * @param path The path.
-     * @param children The children.
-     */
-    public NodeImpl(String path, Node[] children) {
-        this(path, new HashSet<Node>(Arrays.asList(children)), null);
-    }
-
-    /**
-     * Constructs a new {@code NodeImpl}.
-     *
-     * @param path The path.
-     * @param children The children.
-     * @param properties The properties.
-     */
-    public NodeImpl(String path, Set<Node> children, Map<String, Object> properties) {
-        setPath(path);
-        setChildren(children);
-        setProperties(properties);
+        this.path = path;
     }
 
     /**
@@ -95,44 +66,28 @@ public class NodeImpl implements Node {
         children.put(child.getName(), child);
     }
 
-    @Override
-    public long getChildCount() {
-        return childCount;
-    }
-
-    /**
-     * Sets the child count.
-     *
-     * @param childCount The child count.
-     */
-    public void setChildCount(long childCount) {
-        this.childCount = childCount;
-    }
+    // FIXME - Need to decide whether the next three methods should return
+    // children or descendants.
 
     @Override
-    public Set<Node> getChildren() {
-        return this.children != null? Collections.unmodifiableSet(new HashSet<Node>(this.children.values()))
-                : null;
+    public Node getChildNodeEntry(String name) {
+        Set<Node> children = getDescendants(false);
+        for (Iterator<Node> iterator = children.iterator(); iterator.hasNext();) {
+            Node node = iterator.next();
+            if (node.getName().equals(name)) {
+                return node;
+            }
+        }
+        return null;
     }
 
-    /**
-     * Sets the children.
-     *
-     * @param children The children or null.
-     */
-    public void setChildren(Set<Node> children) {
-        if (children == null) {
-            this.children = null;
-            return;
-        }
-
-        this.children = new HashMap<String, Node>();
-        for (Node child : children) {
-            this.children.put(child.getName(), child);
-        }
+    @Override
+    public int getChildNodeCount() {
+        return children != null? children.size() : 0;
     }
 
-    public Iterator<Node> getChildren(int offset, int count) {
+    @Override
+    public Iterator<Node> getChildNodeEntries(int offset, int count) {
         if (offset < 0 || count < -1) {
             throw new IllegalArgumentException();
         }
@@ -157,20 +112,33 @@ public class NodeImpl implements Node {
     }
 
     @Override
+    public Map<String, Object> getProperties() {
+        return this.properties != null? Collections.unmodifiableMap(this.properties) : null;
+    }
+
+    @Override
     public Set<Node> getDescendants(boolean includeThis) {
         Set<Node> descendants = new HashSet<Node>();
         if (includeThis) {
             descendants.add(this);
         }
 
-        getDescendantsRecursive(this, descendants);
+        getDescendants(this, descendants);
 
         return Collections.unmodifiableSet(descendants);
     }
 
+    private void getDescendants(Node node, Set<Node> descendants) {
+        for (Iterator<Node> it = node.getChildNodeEntries(0, -1); it.hasNext(); ) {
+            Node child = it.next();
+            descendants.add(child);
+            getDescendants(child, descendants);
+        }
+    }
+
     @Override
     public String getName() {
-        return name;
+        return PathUtils.getName(path);
     }
 
     @Override
@@ -178,26 +146,6 @@ public class NodeImpl implements Node {
         return path;
     }
 
-    /**
-     * Sets the path of this node which will automatically set the name of the node as well.
-     *
-     * @param path The path.
-     */
-    public void setPath(String path) {
-        this.path = path;
-        name = PathUtils.getName(path);
-    }
-
-    @Override
-    public Map<String, Object> getProperties() {
-        return this.properties != null? Collections.unmodifiableMap(this.properties) : null;
-    }
-
-    /**
-     * Sets the properties of this node.
-     *
-     * @param properties The properties.
-     */
     public void setProperties(Map<String, Object> properties) {
         if (properties != null) {
             properties = new HashMap<String, Object>(properties);
@@ -211,9 +159,126 @@ public class NodeImpl implements Node {
         return revisionId;
     }
 
-    @Override
     public void setRevisionId(Long revisionId) {
         this.revisionId = revisionId;
+    }
+
+    // FIXME - do this right.
+    @Override
+    public void diff(Node other, NodeDiffHandler handler) {
+        // compare properties
+
+        Map<String, Object> oldProps = getProperties();
+        Map<String, Object> newProps = other.getProperties();
+
+        if (oldProps != null) {
+            for (Map.Entry<String, Object> entry : oldProps.entrySet()) {
+                String name = entry.getKey();
+                Object val = oldProps.get(name);
+                Object newVal = newProps.get(name);
+                if (newVal == null) {
+                    handler.propDeleted(name, val.toString());
+                } else {
+                    if (!val.equals(newVal)) {
+                        handler.propChanged(name, val.toString(), newVal.toString());
+                    }
+                }
+            }
+        }
+
+        if (newProps != null) {
+            for (Map.Entry<String, Object> entry : newProps.entrySet()) {
+                String name = entry.getKey();
+                if (!oldProps.containsKey(name)) {
+                    handler.propAdded(name, entry.getValue().toString());
+                }
+            }
+        }
+
+        // compare child node entries
+
+//        if (other instanceof Node) {
+//            // OAK-46: Efficient diffing of large child node lists
+//
+//            // delegate to ChildNodeEntries implementation
+//            ChildNodeEntries otherEntries = ((AbstractNode) other).childEntries;
+//            for (Iterator<ChildNodeEntry> it = childEntries.getAdded(otherEntries); it.hasNext(); ) {
+//                handler.childNodeAdded(it.next());
+//            }
+//            for (Iterator<ChildNodeEntry> it = childEntries.getRemoved(otherEntries); it.hasNext(); ) {
+//                handler.childNodeDeleted(it.next());
+//            }
+//            for (Iterator<ChildNodeEntry> it = childEntries.getModified(otherEntries); it.hasNext(); ) {
+//                ChildNodeEntry old = it.next();
+//                ChildNodeEntry modified = otherEntries.get(old.getName());
+//                handler.childNodeChanged(old, modified.getId());
+//            }
+//            return;
+//        }
+        if (other instanceof Node) { // FIXME - probably not needed.
+
+            Set<Node> thisEntries = getDescendants(false);
+            Set<Node> otherEntries = other.getDescendants(false);
+
+            // FIXME - These are hacks for now.
+
+            // getModified
+            boolean shallReturn = false;
+            for (Iterator<Node> iterator = thisEntries.iterator(); iterator.hasNext();) {
+                Node thisEntry = iterator.next();
+                for (Iterator<Node> iterator2 = otherEntries.iterator(); iterator2.hasNext();) {
+                    Node otherEntry = iterator2.next();
+                    if (thisEntry.getPath().equals(otherEntry.getPath())
+                            && thisEntry.getRevisionId() != otherEntry.getRevisionId()) {
+                        handler.childNodeChanged(new ChildNodeEntry(thisEntry.getName(), null),
+                                null /*newId*/);
+                        shallReturn = true;
+                    }
+                }
+            }
+
+            if (shallReturn) {
+                return;
+            }
+
+            // getRemoved
+            for (Iterator<Node> iterator = thisEntries.iterator(); iterator.hasNext();) {
+                Node thisEntry = iterator.next();
+                boolean removed = true;
+                for (Iterator<Node> iterator2 = otherEntries.iterator(); iterator2.hasNext();) {
+                    Node otherEntry = iterator2.next();
+                    if (otherEntry.getPath().equals(thisEntry.getPath())) {
+                        removed = false;
+                        break;
+                    }
+                }
+                if (removed) {
+                    handler.childNodeDeleted(new ChildNodeEntry(thisEntry.getName(), null));
+                }
+            }
+
+            return;
+        }
+
+        for (Iterator<Node> it = getDescendants(false).iterator(); it.hasNext(); ) {
+            Node child = it.next();
+            Node newChild = other.getChildNodeEntry(child.getName());
+            if (newChild == null) {
+                handler.childNodeDeleted(new ChildNodeEntry(child.getName(), null));
+            } else {
+                /*
+                if (!child.getId().equals(newChild.getId())) {
+                    handler.childNodeChanged(child, newChild.getId());
+                }
+                */
+            }
+        }
+        for (Iterator<Node> it = getDescendants(false).iterator(); it.hasNext(); ) {
+            Node child = it.next();
+            if (getChildNodeEntry(child.getName()) == null) {
+                handler.childNodeAdded(new ChildNodeEntry(child.getName(), null));
+            }
+        }
     }
 
     @Override
@@ -221,7 +286,6 @@ public class NodeImpl implements Node {
         final int prime = 31;
         int result = 1;
         result = (prime * result) + ((this.children == null) ? 0 : this.children.hashCode());
-        result = (prime * result) + ((this.name == null) ? 0 : this.name.hashCode());
         result = (prime * result) + ((this.path == null) ? 0 : this.path.hashCode());
         result = (prime * result) + ((this.properties == null) ? 0 : this.properties.hashCode());
         result = (prime * result) + ((this.revisionId == null) ? 0 : this.revisionId.hashCode());
@@ -245,13 +309,6 @@ public class NodeImpl implements Node {
                 return false;
             }
         } else if (!this.children.equals(other.children)) {
-            return false;
-        }
-        if (this.name == null) {
-            if (other.name != null) {
-                return false;
-            }
-        } else if (!this.name.equals(other.name)) {
             return false;
         }
         if (this.path == null) {
@@ -281,42 +338,35 @@ public class NodeImpl implements Node {
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
-        builder.append("NodeImpl [");
-        if (this.name != null) {
-            builder.append("name=");
-            builder.append(this.name);
-            builder.append(", ");
-        }
-        if (this.path != null) {
-            builder.append("path=");
-            builder.append(this.path);
-            builder.append(", ");
-        }
-        if (this.revisionId != null) {
-            builder.append("revisionId=");
-            builder.append(this.revisionId);
-            builder.append(", ");
-        }
-        if (this.properties != null) {
-            builder.append("properties=");
-            builder.append(this.properties);
-            builder.append(", ");
-        }
-        if (this.children != null) {
-            builder.append("children=");
-            builder.append(this.children);
-        }
-        builder.append("]");
-        return builder.toString();
-    }
+        builder.append("NodeImpl ");
+        builder.append("path=");
+        builder.append(this.path);
 
-    private void getDescendantsRecursive(Node node, Set<Node> descendants) {
-        Set<Node> children = node.getChildren();
-        if (children != null) {
-            for (Node child : children) {
-                descendants.add(child);
-                this.getDescendantsRecursive(child, descendants);
-            }
+        if (this.revisionId != null) {
+            builder.append(", revisionId=");
+            builder.append(this.revisionId);
         }
+
+        if (this.children != null) {
+            builder.append(", children=[");
+            Set<String> childNames = children.keySet();
+            int childCount = childNames.size();
+            int i = 0;
+            for (String childName : children.keySet()) {
+                if (i < childCount - 1) {
+                    builder.append(childName + ", ");
+                } else {
+                    builder.append(childName);
+                }
+            }
+            builder.append("]");
+        }
+
+        if (this.properties != null) {
+            builder.append(", properties=");
+            builder.append(this.properties);
+        }
+
+        return builder.toString();
     }
 }

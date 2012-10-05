@@ -88,7 +88,7 @@ public class JsonUtil {
             }
         }
 
-        long childCount = node.getChildCount();
+        long childCount = node.getChildNodeCount();
         if (inclVirtualProps) {
             if (filter == null || filter.includeProperty(":childNodeCount")) {
                 // :childNodeCount is by default always included
@@ -98,7 +98,7 @@ public class JsonUtil {
         }
 
         // FIXME There's still some more work here.
-        Iterator<Node> entries = node.getChildren(offset, maxChildNodes);
+        Iterator<Node> entries = node.getChildNodeEntries(offset, maxChildNodes);
         while (entries.hasNext()) {
             Node child = entries.next();
             int numSiblings = 0;

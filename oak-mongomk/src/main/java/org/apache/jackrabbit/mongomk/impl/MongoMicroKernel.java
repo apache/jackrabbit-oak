@@ -92,7 +92,7 @@ public class MongoMicroKernel implements MicroKernel {
             }
             Node rootOfPath = nodeStore.getNodes(path, revId, 0, 0, -1, null);
             if (rootOfPath != null) {
-                childNodeCount = rootOfPath.getChildCount();
+                childNodeCount = rootOfPath.getChildNodeCount();
             }
         } catch (Exception e) {
             throw new MicroKernelException(e);
