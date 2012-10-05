@@ -18,10 +18,6 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.kernel.CoreValueMapper.fromJsopReader;
-import static org.apache.jackrabbit.oak.kernel.CoreValueMapper.listFromJsopReader;
-
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -32,6 +28,10 @@ import java.util.concurrent.ExecutionException;
 
 import javax.annotation.Nonnull;
 
+import com.google.common.base.Function;
+import com.google.common.cache.LoadingCache;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.json.JsopReader;
@@ -39,8 +39,7 @@ import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
-import org.apache.jackrabbit.oak.plugins.memory.MultiPropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.SinglePropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.state.AbstractChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -48,10 +47,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
-import com.google.common.base.Function;
-import com.google.common.cache.LoadingCache;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.kernel.CoreValueMapper.fromJsopReader;
+import static org.apache.jackrabbit.oak.kernel.CoreValueMapper.listFromJsopReader;
 
 /**
  * Basic {@link NodeState} implementation based on the {@link MicroKernel}
@@ -126,10 +124,10 @@ public final class KernelNodeState extends AbstractNodeState {
                     childPaths.put(name, childPath);
                 } else if (reader.matches('[')) {
                     List<CoreValue> values = listFromJsopReader(reader, kernel);
-                    properties.put(name, new MultiPropertyState(name, values));
+                    properties.put(name, PropertyStates.createProperty(name, values));
                 } else {
                     CoreValue cv = fromJsopReader(reader, kernel);
-                    properties.put(name, new SinglePropertyState(name, cv));
+                    properties.put(name, PropertyStates.createProperty(name, cv));
                 }
             } while (reader.matches(','));
             reader.read('}');

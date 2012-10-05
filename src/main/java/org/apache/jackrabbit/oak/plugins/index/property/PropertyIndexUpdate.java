@@ -22,18 +22,17 @@ import java.util.Set;
 
 import javax.jcr.PropertyType;
 
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.CoreValues;
-import org.apache.jackrabbit.oak.plugins.memory.MultiPropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.StringValue;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.CoreValues;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.plugins.memory.StringValue;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
 class PropertyIndexUpdate {
 
@@ -97,7 +96,7 @@ class PropertyIndexUpdate {
                 if (values.isEmpty()) {
                     index.removeProperty(encoded);
                 } else {
-                    index.setProperty(new MultiPropertyState(encoded, values));
+                    index.setProperty(PropertyStates.createProperty(encoded, values));
                 }
             }
         }
@@ -122,7 +121,7 @@ class PropertyIndexUpdate {
                 throw new CommitFailedException(
                         "Uniqueness constraint violated");
             } else {
-                index.setProperty(new MultiPropertyState(encoded, values));
+                index.setProperty(PropertyStates.createProperty(encoded, values));
             }
         }
     }
