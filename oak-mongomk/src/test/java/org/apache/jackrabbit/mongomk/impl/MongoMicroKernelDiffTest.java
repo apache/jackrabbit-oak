@@ -5,6 +5,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
+import org.json.simple.JSONObject;
 import org.junit.Test;
 
 /**
@@ -23,7 +24,6 @@ public class MongoMicroKernelDiffTest extends BaseMongoMicroKernelTest {
         assertNotNull(reverseDiff);
         assertTrue(reverseDiff.length() > 0);
 
-        // Commit reverse diff
         mk.commit("", reverseDiff, null, null);
         assertFalse(mk.nodeExists("/level1", null));
     }
@@ -41,7 +41,6 @@ public class MongoMicroKernelDiffTest extends BaseMongoMicroKernelTest {
         assertNotNull(reverseDiff);
         assertTrue(reverseDiff.length() > 0);
 
-        // Commit reverse diff
         mk.commit("", reverseDiff, null, null);
         assertFalse(mk.nodeExists("/level1", null));
         assertFalse(mk.nodeExists("/level1/level2", null));
@@ -60,9 +59,72 @@ public class MongoMicroKernelDiffTest extends BaseMongoMicroKernelTest {
         assertNotNull(reverseDiff);
         assertTrue(reverseDiff.length() > 0);
 
-        // Commit reverse diff
         mk.commit("", reverseDiff, null, null);
         assertFalse(mk.nodeExists("/level1a", null));
         assertFalse(mk.nodeExists("/level1b", null));
     }
+
+    @Test
+    public void deletePath() {
+        // Add level1 & level1/level2
+        String rev0 = mk.commit("/","+\"level1\":{}" +
+                "+\"level1/level2\":{}", null, null);
+        assertTrue(mk.nodeExists("/level1", null));
+        assertTrue(mk.nodeExists("/level1/level2", null));
+
+        // Remove level1/level2
+        String rev1 = mk.commit("/", "-\"level1/level2\"", null, null);
+        assertTrue(mk.nodeExists("/level1", null));
+        assertFalse(mk.nodeExists("/level1/level2", null));
+
+        // Generate reverseDiff from rev1 to rev0
+        String reverseDiff = mk.diff(rev1, rev0, null, -1);
+        assertNotNull(reverseDiff);
+        assertTrue(reverseDiff.length() > 0);
+
+        // Commit the reverseDiff and check rev0 state is restored
+        mk.commit("", reverseDiff, null, null);
+        assertTrue(mk.nodeExists("/level1", null));
+        assertTrue(mk.nodeExists("/level1/level2", null));
+
+        // Remove level1 at rev0
+        String rev2 = mk.commit("/", "-\"level1\"", rev0, null);
+        assertFalse(mk.nodeExists("/level1", null));
+        assertFalse(mk.nodeExists("/level1/level2", null));
+
+        // Generate reverseDiff from rev2 to rev0
+        reverseDiff = mk.diff(rev2, rev0, null, -1);
+        assertNotNull(reverseDiff);
+        assertTrue(reverseDiff.length() > 0);
+
+        // Commit the reverseDiff and check rev0 state is restored
+        mk.commit("", reverseDiff, null, null);
+        assertTrue(mk.nodeExists("/level1", null));
+        assertTrue(mk.nodeExists("/level1/level2", null));
+    }
+
+    @Test
+    public void addProperty() {
+        String rev0 = mk.commit("/", "+\"level1\":{}", null, null);
+        assertTrue(mk.nodeExists("/level1", null));
+
+        // Add a property.
+        String rev1 = mk.commit("/", "+\"level1/prop1\": \"value1\"", null, null);
+        JSONObject obj = parseJSONObject(mk.getNodes("/level1", null, 1, 0, -1, null));
+        assertPropertyExists(obj, "prop1");
+
+        // Generate reverseDiff from rev1 to rev0
+        String reverseDiff = mk.diff(rev1, rev0, null, -1);
+        assertNotNull(reverseDiff);
+        assertTrue(reverseDiff.length() > 0);
+
+        // Commit the reverseDiff and check property is gone.
+        mk.commit("", reverseDiff, null, null);
+        assertTrue(mk.nodeExists("/level1", null));
+        obj = parseJSONObject(mk.getNodes("/level1", null, 1, 0, -1, null));
+        assertPropertyNotExists(obj, "prop1");
+    }
+    // FIXME
+    // - Add node change tests.
+    // - Add property delete & change tests.
 }
