@@ -28,12 +28,12 @@ import org.apache.jackrabbit.oak.api.Type;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
- * Single-valued property  state.
+ * Single-valued property state.
  */
-public class SinglePropertyState extends EmptyPropertyState {
+class ValueBasedSinglePropertyState extends ValueBasedEmptyPropertyState {
     private final CoreValue value;
 
-    SinglePropertyState(String name, CoreValue value) {
+    ValueBasedSinglePropertyState(String name, CoreValue value) {
         super(name, Type.fromTag(value.getType(), false));
         this.value = checkNotNull(value);
     }

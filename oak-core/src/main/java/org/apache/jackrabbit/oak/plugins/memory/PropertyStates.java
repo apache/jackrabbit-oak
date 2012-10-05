@@ -38,12 +38,12 @@ public final class PropertyStates {
 
     @Nonnull
     public static PropertyState createProperty(String name, CoreValue value) {
-        return new SinglePropertyState(name, value);
+        return new ValueBasedSinglePropertyState(name, value);
     }
 
     @Nonnull
     public static PropertyState createProperty(String name, List<CoreValue> values) {
-        return new MultiPropertyState(name, values);
+        return new ValueBasedMultiPropertyState(name, values);
     }
 
     @SuppressWarnings("unchecked")
@@ -122,59 +122,59 @@ public final class PropertyStates {
     }
 
     public static PropertyState emptyProperty(String name, Type<?> type) {
-        return new EmptyPropertyState(name, type);
+        return new ValueBasedEmptyPropertyState(name, type);
     }
 
     public static PropertyState stringProperty(String name, String value) {
-        return new SinglePropertyState(name, new StringValue(value));
+        return new ValueBasedSinglePropertyState(name, new StringValue(value));
     }
 
     public static PropertyState binaryProperty(String name, byte[] value) {
-        return new SinglePropertyState(name, new BinaryValue(value));
+        return new ValueBasedSinglePropertyState(name, new BinaryValue(value));
     }
 
     public static PropertyState longProperty(String name, long value) {
-        return new SinglePropertyState(name, new LongValue(value));
+        return new ValueBasedSinglePropertyState(name, new LongValue(value));
     }
 
     public static PropertyState doubleProperty(String name, double value) {
-        return new SinglePropertyState(name, new DoubleValue(value));
+        return new ValueBasedSinglePropertyState(name, new DoubleValue(value));
     }
 
     public static PropertyState dateProperty(String name, String value) {
-        return new SinglePropertyState(name, new GenericValue(PropertyType.DATE, value));
+        return new ValueBasedSinglePropertyState(name, new GenericValue(PropertyType.DATE, value));
     }
 
     public static PropertyState booleanProperty(String name, boolean value) {
-        return new SinglePropertyState(name, value ? BooleanValue.TRUE : BooleanValue.FALSE);
+        return new ValueBasedSinglePropertyState(name, value ? BooleanValue.TRUE : BooleanValue.FALSE);
     }
 
     public static PropertyState nameProperty(String name, String value) {
-        return new SinglePropertyState(name, new GenericValue(PropertyType.NAME, value));
+        return new ValueBasedSinglePropertyState(name, new GenericValue(PropertyType.NAME, value));
     }
 
     public static PropertyState pathProperty(String name, String value) {
-        return new SinglePropertyState(name, new GenericValue(PropertyType.PATH, value));
+        return new ValueBasedSinglePropertyState(name, new GenericValue(PropertyType.PATH, value));
     }
 
     public static PropertyState referenceProperty(String name, String value) {
-        return new SinglePropertyState(name, new GenericValue(PropertyType.REFERENCE, value));
+        return new ValueBasedSinglePropertyState(name, new GenericValue(PropertyType.REFERENCE, value));
     }
 
     public static PropertyState weakreferenceProperty(String name, String value) {
-        return new SinglePropertyState(name, new GenericValue(PropertyType.WEAKREFERENCE, value));
+        return new ValueBasedSinglePropertyState(name, new GenericValue(PropertyType.WEAKREFERENCE, value));
     }
 
     public static PropertyState uriProperty(String name, String value) {
-        return new SinglePropertyState(name, new GenericValue(PropertyType.URI, value));
+        return new ValueBasedSinglePropertyState(name, new GenericValue(PropertyType.URI, value));
     }
 
     public static PropertyState decimalProperty(String name, BigDecimal value) {
-        return new SinglePropertyState(name, new DecimalValue(value));
+        return new ValueBasedSinglePropertyState(name, new DecimalValue(value));
     }
 
     public static PropertyState binaryProperty(String name, Blob value) {
-        return new SinglePropertyState(name, new BinaryValue(toBytes(value)));
+        return new ValueBasedSinglePropertyState(name, new BinaryValue(toBytes(value)));
     }
 
     public static PropertyState stringProperty(String name, Iterable<String> values) {
@@ -182,7 +182,7 @@ public final class PropertyStates {
         for (String value : values) {
             cvs.add(new StringValue(value));
         }
-        return new MultiPropertyState(name, cvs);
+        return new ValueBasedMultiPropertyState(name, cvs);
     }
 
     public static PropertyState binaryPropertyFromBlob(String name, Iterable<Blob> values) {
@@ -190,7 +190,7 @@ public final class PropertyStates {
         for (Blob value : values) {
             cvs.add(new BinaryValue(toBytes(value)));
         }
-        return new MultiPropertyState(name, cvs);
+        return new ValueBasedMultiPropertyState(name, cvs);
     }
 
     public static PropertyState longProperty(String name, Iterable<Long> values) {
@@ -198,7 +198,7 @@ public final class PropertyStates {
         for (long value : values) {
             cvs.add(new LongValue(value));
         }
-        return new MultiPropertyState(name, cvs);
+        return new ValueBasedMultiPropertyState(name, cvs);
     }
 
     public static PropertyState doubleProperty(String name, Iterable<Double> values) {
@@ -206,7 +206,7 @@ public final class PropertyStates {
         for (double value : values) {
             cvs.add(new DoubleValue(value));
         }
-        return new MultiPropertyState(name, cvs);
+        return new ValueBasedMultiPropertyState(name, cvs);
     }
 
     public static PropertyState dateProperty(String name, Iterable<String> values) {
@@ -214,7 +214,7 @@ public final class PropertyStates {
         for (String value : values) {
             cvs.add(new GenericValue(PropertyType.DATE, value));
         }
-        return new MultiPropertyState(name, cvs);
+        return new ValueBasedMultiPropertyState(name, cvs);
     }
 
     public static PropertyState booleanProperty(String name, Iterable<Boolean> values) {
@@ -222,7 +222,7 @@ public final class PropertyStates {
         for (boolean value : values) {
             cvs.add(value ? BooleanValue.TRUE : BooleanValue.FALSE);
         }
-        return new MultiPropertyState(name, cvs);
+        return new ValueBasedMultiPropertyState(name, cvs);
     }
 
     public static PropertyState nameProperty(String name, Iterable<String> values) {
@@ -230,7 +230,7 @@ public final class PropertyStates {
         for (String value : values) {
             cvs.add(new GenericValue(PropertyType.NAME, value));
         }
-        return new MultiPropertyState(name, cvs);
+        return new ValueBasedMultiPropertyState(name, cvs);
     }
 
     public static PropertyState pathProperty(String name, Iterable<String> values) {
@@ -238,7 +238,7 @@ public final class PropertyStates {
         for (String value : values) {
             cvs.add(new GenericValue(PropertyType.PATH, value));
         }
-        return new MultiPropertyState(name, cvs);
+        return new ValueBasedMultiPropertyState(name, cvs);
     }
 
     public static PropertyState referenceProperty(String name, Iterable<String> values) {
@@ -246,7 +246,7 @@ public final class PropertyStates {
         for (String value : values) {
             cvs.add(new GenericValue(PropertyType.REFERENCE, value));
         }
-        return new MultiPropertyState(name, cvs);
+        return new ValueBasedMultiPropertyState(name, cvs);
     }
 
     public static PropertyState weakreferenceProperty(String name, Iterable<String> values) {
@@ -254,7 +254,7 @@ public final class PropertyStates {
         for (String value : values) {
             cvs.add(new GenericValue(PropertyType.WEAKREFERENCE, value));
         }
-        return new MultiPropertyState(name, cvs);
+        return new ValueBasedMultiPropertyState(name, cvs);
     }
 
     public static PropertyState uriProperty(String name, Iterable<String> values) {
@@ -262,7 +262,7 @@ public final class PropertyStates {
         for (String value : values) {
             cvs.add(new GenericValue(PropertyType.URI, value));
         }
-        return new MultiPropertyState(name, cvs);
+        return new ValueBasedMultiPropertyState(name, cvs);
     }
 
     public static PropertyState decimalProperty(String name, Iterable<BigDecimal> values) {
@@ -270,7 +270,7 @@ public final class PropertyStates {
         for (BigDecimal value : values) {
             cvs.add(new DecimalValue(value));
         }
-        return new MultiPropertyState(name, cvs);
+        return new ValueBasedMultiPropertyState(name, cvs);
     }
 
     public static PropertyState binaryPropertyFromArray(String name, Iterable<byte[]> values) {
@@ -278,7 +278,7 @@ public final class PropertyStates {
         for (byte[] value : values) {
             cvs.add(new BinaryValue(value));
         }
-        return new MultiPropertyState(name, cvs);
+        return new ValueBasedMultiPropertyState(name, cvs);
     }
 
     private static byte[] toBytes(Blob blob) {
