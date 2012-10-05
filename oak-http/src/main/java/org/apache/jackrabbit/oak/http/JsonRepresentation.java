@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
 
+import javax.jcr.PropertyType;
 import javax.servlet.http.HttpServletResponse;
 
 import com.fasterxml.jackson.core.JsonFactory;
@@ -28,18 +29,12 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Type;
 import org.apache.tika.mime.MediaType;
 
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
-import static org.apache.jackrabbit.oak.api.Type.BINARY;
-import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEANS;
-import static org.apache.jackrabbit.oak.api.Type.DECIMAL;
 import static org.apache.jackrabbit.oak.api.Type.DECIMALS;
-import static org.apache.jackrabbit.oak.api.Type.DOUBLE;
 import static org.apache.jackrabbit.oak.api.Type.DOUBLES;
-import static org.apache.jackrabbit.oak.api.Type.LONG;
 import static org.apache.jackrabbit.oak.api.Type.LONGS;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
@@ -110,24 +105,24 @@ class JsonRepresentation implements Representation {
     private static void renderValue(PropertyState property, JsonGenerator generator)
             throws IOException {
         // TODO: Type info?
-        Type<?> type = property.getType();
-        if (BOOLEAN.equals(type)) {
+        int type = property.getType().tag();
+        if (type == PropertyType.BOOLEAN) {
             for (boolean value : property.getValue(BOOLEANS)) {
                 generator.writeBoolean(value);
             }
-        } else if (DECIMAL.equals(type)) {
+        } else if (type == PropertyType.DECIMAL) {
             for (BigDecimal value : property.getValue(DECIMALS)) {
                 generator.writeNumber(value);
             }
-        } else if (DOUBLE.equals(type)) {
+        } else if (type == PropertyType.DOUBLE) {
             for (double value : property.getValue(DOUBLES)) {
                 generator.writeNumber(value);
             }
-        } else if (LONG.equals(type)) {
+        } else if (type == PropertyType.LONG) {
             for (long value : property.getValue(LONGS)) {
                 generator.writeNumber(value);
             }
-        } else if (BINARY.equals(type)) {
+        } else if (type == PropertyType.BINARY) {
             ByteArrayOutputStream buffer = new ByteArrayOutputStream();
             for (Blob value : property.getValue(BINARIES)) {
                 InputStream stream = value.getNewStream();
