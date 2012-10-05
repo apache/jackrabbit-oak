@@ -49,7 +49,7 @@ class UserImpl extends AuthorizableImpl implements User {
     }
 
     void checkValidTree(Tree tree) throws RepositoryException {
-        if (tree == null || !getUserManager().getUserProvider().isAuthorizableType(tree, Type.USER)) {
+        if (tree == null || !getUserProvider().isAuthorizableType(tree, Type.USER)) {
             throw new IllegalArgumentException("Invalid user node: node type rep:User expected.");
         }
     }
@@ -79,7 +79,7 @@ class UserImpl extends AuthorizableImpl implements User {
      */
     @Override
     public boolean isAdmin() {
-        return getUserManager().getUserProvider().isAdminUser(getTree());
+        return getUserProvider().isAdminUser(getTree());
     }
 
     /**
@@ -107,7 +107,7 @@ class UserImpl extends AuthorizableImpl implements User {
     public void changePassword(String password) throws RepositoryException {
         UserManagerImpl userManager = getUserManager();
         userManager.onPasswordChange(this, password);
-        userManager.setPassword(getTree(), password, true);
+        getUserProvider().setPassword(getTree(), password, true);
     }
 
     /**
@@ -169,10 +169,10 @@ class UserImpl extends AuthorizableImpl implements User {
     //--------------------------------------------------------------------------
 
     void setProtectedProperty(String oakName, String value) throws RepositoryException {
-        getUserManager().getUserProvider().setProtectedProperty(getTree(), oakName, value, PropertyType.STRING);
+        getUserProvider().setProtectedProperty(getTree(), oakName, value, PropertyType.STRING);
     }
 
     void setProtectedProperty(String oakName, String[] values) throws RepositoryException {
-        getUserManager().getUserProvider().setProtectedProperty(getTree(), oakName, values, PropertyType.STRING);
+        getUserProvider().setProtectedProperty(getTree(), oakName, values, PropertyType.STRING);
     }
 }

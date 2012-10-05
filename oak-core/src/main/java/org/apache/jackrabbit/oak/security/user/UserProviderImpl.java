@@ -16,17 +16,18 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import java.io.UnsupportedEncodingException;
+import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
 import java.text.ParseException;
 import java.util.Collections;
 import java.util.Iterator;
-
+import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.query.Query;
 
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Result;
@@ -36,6 +37,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.SinglePropertyState;
 import org.apache.jackrabbit.oak.spi.security.principal.TreeBasedPrincipal;
+import org.apache.jackrabbit.oak.spi.security.user.PasswordUtility;
 import org.apache.jackrabbit.oak.spi.security.user.Type;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
@@ -152,16 +154,14 @@ class UserProviderImpl extends AuthorizableBaseProvider implements UserProvider 
     private static final String DELIMITER = "/";
 
     private final int defaultDepth;
-    private final String adminId;
 
     private final String groupPath;
     private final String userPath;
 
-    UserProviderImpl(ContentSession contentSession, Root root, UserConfig config) {
-        super(contentSession, root, config);
+    UserProviderImpl(Root root, UserConfig config) {
+        super(root, config);
 
         defaultDepth = config.getConfigValue(UserConfig.PARAM_DEFAULT_DEPTH, DEFAULT_DEPTH);
-        adminId = config.getAdminId();
 
         groupPath = config.getConfigValue(UserConfig.PARAM_GROUP_PATH, DEFAULT_GROUP_PATH);
         userPath = config.getConfigValue(UserConfig.PARAM_USER_PATH, DEFAULT_USER_PATH);
@@ -253,7 +253,39 @@ class UserProviderImpl extends AuthorizableBaseProvider implements UserProvider 
     @Override
     public boolean isAdminUser(Tree userTree) {
         checkNotNull(userTree);
-        return adminId.equals(getAuthorizableId(userTree));
+        return config.getAdminId().equals(getAuthorizableId(userTree));
+    }
+
+    @Override
+    public String getPassword(String userID) {
+        Tree userTree = getAuthorizable(userID, Type.USER);
+        if (userTree != null) {
+            NodeUtil n = new NodeUtil(userTree, valueFactory);
+            return n.getString(UserConstants.REP_PASSWORD, null);
+        } else {
+            return null;
+        }
+    }
+
+    @Override
+    public void setPassword(Tree userTree, String password, boolean forceHash) throws RepositoryException {
+        if (password == null) {
+            log.debug("Password is null.");
+            return;
+        }
+        String pwHash;
+        if (forceHash || PasswordUtility.isPlainTextPassword(password)) {
+            try {
+                pwHash = PasswordUtility.buildPasswordHash(password, config);
+            } catch (NoSuchAlgorithmException e) {
+                throw new RepositoryException(e);
+            } catch (UnsupportedEncodingException e) {
+                throw new RepositoryException(e);
+            }
+        } else {
+            pwHash = password;
+        }
+        setProtectedProperty(userTree, UserConstants.REP_PASSWORD, pwHash, PropertyType.STRING);
     }
 
     @Override

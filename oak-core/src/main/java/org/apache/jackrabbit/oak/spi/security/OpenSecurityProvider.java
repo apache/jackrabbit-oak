@@ -23,7 +23,6 @@ import javax.jcr.Session;
 
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
@@ -63,13 +62,13 @@ public class OpenSecurityProvider implements SecurityProvider {
         return new UserContext() {
             @Nonnull
             @Override
-            public UserProvider getUserProvider(ContentSession contentSession, Root root) {
+            public UserProvider getUserProvider(Root root) {
                 throw new UnsupportedOperationException();
             }
 
             @Nonnull
             @Override
-            public MembershipProvider getMembershipProvider(ContentSession contentSession, Root root) {
+            public MembershipProvider getMembershipProvider(Root root) {
                 throw new UnsupportedOperationException();
             }
 
@@ -81,7 +80,7 @@ public class OpenSecurityProvider implements SecurityProvider {
 
             @Nonnull
             @Override
-            public UserManager getUserManager(Session session, ContentSession contentSession, Root root, NamePathMapper namePathMapper) {
+            public UserManager getUserManager(Session session, Root root, NamePathMapper namePathMapper) {
                 throw new UnsupportedOperationException();
             }
         };
@@ -93,13 +92,13 @@ public class OpenSecurityProvider implements SecurityProvider {
         return new PrincipalConfiguration() {
             @Nonnull
             @Override
-            public PrincipalManager getPrincipalManager(Session session, ContentSession contentSession, Root root, NamePathMapper namePathMapper) {
+            public PrincipalManager getPrincipalManager(Session session, Root root, NamePathMapper namePathMapper) {
                 throw new UnsupportedOperationException();
             }
 
             @Nonnull
             @Override
-            public PrincipalProvider getPrincipalProvider(ContentSession contentSession, Root root, NamePathMapper namePathMapper) {
+            public PrincipalProvider getPrincipalProvider(Root root, NamePathMapper namePathMapper) {
                 return new OpenPrincipalProvider();
             }
         };

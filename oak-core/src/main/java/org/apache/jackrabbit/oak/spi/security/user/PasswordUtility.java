@@ -129,8 +129,21 @@ public class PasswordUtility {
      *
      * @param hashedPassword Password hash.
      * @param password The password to compare.
-     * @return If the hash of the specified {@code password} equals the given
-     * {@code hashedPassword} string.
+     * @return If the hash created from the specified {@code password} equals
+     * the given {@code hashedPassword} string.
+     */
+    public static boolean isSame(String hashedPassword, char[] password) {
+        return isSame(hashedPassword, String.valueOf(password));
+    }
+
+    /**
+     * Returns {@code true} if hash of the specified {@code password} equals the
+     * given hashed password.
+     *
+     * @param hashedPassword Password hash.
+     * @param password The password to compare.
+     * @return If the hash created from the specified {@code password} equals
+     * the given {@code hashedPassword} string.
      */
     public static boolean isSame(String hashedPassword, String password) {
         try {

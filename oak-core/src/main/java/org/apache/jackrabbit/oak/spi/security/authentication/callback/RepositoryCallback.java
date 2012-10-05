@@ -21,7 +21,7 @@ import javax.jcr.NoSuchWorkspaceException;
 import javax.security.auth.callback.Callback;
 import javax.security.auth.login.LoginException;
 
-import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -49,12 +49,14 @@ public class RepositoryCallback implements Callback {
     }
 
     @CheckForNull
-    public ContentSession getContentSession() {
+    public Root getRoot() {
         if (nodeStore != null) {
             try {
-                // TODO rather use Oak or similar setup mechanism
+                // FIXME: need a direct and fast way to create Root from the node store
+                // FIXME: - without login
+                // FIXME: - without ContentSession#getLatestRoot which is unbearably slow
                 SecurityProvider sp = new OpenSecurityProvider();
-                return new ContentRepositoryImpl(nodeStore, null, sp).login(null, workspaceName);
+                return new ContentRepositoryImpl(nodeStore, null, sp).login(null, workspaceName).getLatestRoot();
             } catch (LoginException e) {
                 log.warn("Internal error ", e.getMessage());
             } catch (NoSuchWorkspaceException e) {

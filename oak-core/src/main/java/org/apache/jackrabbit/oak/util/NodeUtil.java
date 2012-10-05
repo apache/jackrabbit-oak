@@ -30,7 +30,6 @@ import javax.jcr.ValueFactory;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -73,10 +72,6 @@ public class NodeUtil {
 
     public NodeUtil(Tree tree, CoreValueFactory factory) {
         this(tree, factory, NamePathMapper.DEFAULT);
-    }
-
-    public NodeUtil(Tree tree, ContentSession contentSession) {
-        this(tree, contentSession.getCoreValueFactory());
     }
 
     public NodeUtil(Tree tree) {

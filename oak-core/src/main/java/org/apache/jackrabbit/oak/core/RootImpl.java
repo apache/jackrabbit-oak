@@ -28,6 +28,7 @@ import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.oak.api.ChangeExtractor;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.SessionQueryEngine;
 import org.apache.jackrabbit.oak.api.TreeLocation;
@@ -111,6 +112,7 @@ public class RootImpl implements Root {
      * @param workspaceName name of the workspace
      * @param subject       the subject.
      * @param accProvider   the access control context provider.
+     * @param indexProvider the query index provider.
      */
     @SuppressWarnings("UnusedParameters")
     public RootImpl(NodeStore store,
@@ -247,6 +249,16 @@ public class RootImpl implements Root {
         };
     }
 
+    @Override
+    public SessionQueryEngine getQueryEngine() {
+        return new SessionQueryEngineImpl(store, indexProvider);
+    }
+
+    @Override
+    public CoreValueFactory getValueFactory() {
+        return store.getValueFactory();
+    }
+
     //-----------------------------------------------------------< internal >---
 
     /**
@@ -303,9 +315,4 @@ public class RootImpl implements Root {
             purgeListener.purged();
         }
     }
-    @Override
-    public SessionQueryEngine getQueryEngine() {
-        return new SessionQueryEngineImpl(store, indexProvider);
-    }
-
 }

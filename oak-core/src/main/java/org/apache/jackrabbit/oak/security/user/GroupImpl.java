@@ -52,7 +52,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
 
     @Override
     void checkValidTree(Tree tree) throws RepositoryException {
-        if (tree == null || !getUserManager().getUserProvider().isAuthorizableType(tree, Type.GROUP)) {
+        if (tree == null || !getUserProvider().isAuthorizableType(tree, Type.GROUP)) {
             throw new IllegalArgumentException("Invalid group node: node type rep:Group expected.");
         }
     }

@@ -30,8 +30,8 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 public interface PrincipalConfiguration {
 
     @Nonnull
-    public PrincipalManager getPrincipalManager(Session session, ContentSession contentSession, Root root, NamePathMapper namePathMapper);
+    public PrincipalManager getPrincipalManager(Session session, Root root, NamePathMapper namePathMapper);
 
     @Nonnull
-    public PrincipalProvider getPrincipalProvider(ContentSession contentSession, Root root, NamePathMapper namePathMapper);
+    public PrincipalProvider getPrincipalProvider(Root root, NamePathMapper namePathMapper);
 }

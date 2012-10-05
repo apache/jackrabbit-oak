@@ -21,7 +21,6 @@ import javax.jcr.Session;
 import javax.security.auth.login.Configuration;
 
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
-import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.security.authentication.ConfigurationImpl;
@@ -68,17 +67,17 @@ public class SecurityProviderImpl implements SecurityProvider {
         return new PrincipalConfiguration() {
             @Nonnull
             @Override
-            public PrincipalManager getPrincipalManager(Session session, ContentSession contentSession, Root root, NamePathMapper namePathMapper) {
-                PrincipalProvider principalProvider = getPrincipalProvider(contentSession, root, namePathMapper);
+            public PrincipalManager getPrincipalManager(Session session, Root root, NamePathMapper namePathMapper) {
+                PrincipalProvider principalProvider = getPrincipalProvider(root, namePathMapper);
                 return new PrincipalManagerImpl(principalProvider);
             }
 
             @Nonnull
             @Override
-            public PrincipalProvider getPrincipalProvider(ContentSession contentSession, Root root, NamePathMapper namePathMapper) {
+            public PrincipalProvider getPrincipalProvider(Root root, NamePathMapper namePathMapper) {
                 UserContext userContext = getUserContext();
-                UserProvider userProvider = userContext.getUserProvider(contentSession, root);
-                MembershipProvider msProvider = userContext.getMembershipProvider(contentSession, root);
+                UserProvider userProvider = userContext.getUserProvider(root);
+                MembershipProvider msProvider = userContext.getMembershipProvider(root);
                 return new PrincipalProviderImpl(userProvider, msProvider, namePathMapper);
             }
         };
