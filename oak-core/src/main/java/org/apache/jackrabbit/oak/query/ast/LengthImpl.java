@@ -58,8 +58,7 @@ public class LengthImpl extends DynamicOperandImpl {
         }
         if (!p.isArray()) {
             long length = p.size();
-            CoreValue v = query.getValueFactory().createValue(length);
-            return PropertyStates.createProperty("LENGTH", v);
+            return PropertyStates.longProperty("LENGTH", length);
         }
         // TODO what is the expected result for LENGTH(multiValueProperty)?
         throw new IllegalArgumentException("LENGTH(x) on multi-valued property is not supported");

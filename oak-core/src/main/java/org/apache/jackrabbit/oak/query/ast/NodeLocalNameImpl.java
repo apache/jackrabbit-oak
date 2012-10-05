@@ -59,8 +59,7 @@ public class NodeLocalNameImpl extends DynamicOperandImpl {
         int colon = name.indexOf(':');
         // TODO LOCALNAME: evaluation of local name might not be correct
         String localName = colon < 0 ? name : name.substring(colon + 1);
-        CoreValue v = query.getValueFactory().createValue(localName);
-        return PropertyStates.createProperty("LOCALNAME", v);
+        return PropertyStates.stringProperty("LOCALNAME", localName);
     }
 
     @Override
