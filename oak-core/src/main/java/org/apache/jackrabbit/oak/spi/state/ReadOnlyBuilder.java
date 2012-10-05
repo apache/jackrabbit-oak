@@ -16,11 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.state;
 
-import java.util.List;
-
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 
