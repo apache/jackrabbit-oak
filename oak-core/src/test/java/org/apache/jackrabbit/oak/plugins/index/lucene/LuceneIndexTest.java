@@ -23,6 +23,8 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.RootImpl;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
+import org.apache.jackrabbit.oak.plugins.index.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.IndexDefinitionImpl;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryValueFactory;
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
@@ -30,15 +32,13 @@ import org.apache.jackrabbit.oak.security.authorization.AccessControlProviderImp
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
-import org.apache.jackrabbit.oak.spi.query.IndexDefinition;
-import org.apache.jackrabbit.oak.spi.query.IndexDefinitionImpl;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.junit.Test;
 
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
-import static org.apache.jackrabbit.oak.spi.query.IndexUtils.DEFAULT_INDEX_HOME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.DEFAULT_INDEX_HOME;
 
 public class LuceneIndexTest implements LuceneIndexConstants {
 
