@@ -33,6 +33,8 @@ import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 
+import static org.apache.jackrabbit.oak.api.Type.*;
+
 public final class PropertyStates {
     private PropertyStates() {}
 
@@ -121,60 +123,65 @@ public final class PropertyStates {
         }
     }
 
-    public static PropertyState emptyProperty(String name, Type<?> type) {
-        return new ValueBasedEmptyPropertyState(name, type);
+    public static PropertyState emptyProperty(String name, final Type<?> type) {
+        return new EmptyPropertyState(name) {
+            @Override
+            public Type<?> getType() {
+                return type;
+            }
+        };
     }
 
     public static PropertyState stringProperty(String name, String value) {
-        return new ValueBasedSinglePropertyState(name, new StringValue(value));
+        return new StringPropertyState(name, value);
     }
 
     public static PropertyState binaryProperty(String name, byte[] value) {
-        return new ValueBasedSinglePropertyState(name, new BinaryValue(value));
+        return new BinaryPropertyState(name, new ArrayBasedBlob(value));
     }
 
     public static PropertyState longProperty(String name, long value) {
-        return new ValueBasedSinglePropertyState(name, new LongValue(value));
+        return new LongPropertyState(name, value);
     }
 
     public static PropertyState doubleProperty(String name, double value) {
-        return new ValueBasedSinglePropertyState(name, new DoubleValue(value));
+        return new DoublePropertyState(name, value);
     }
 
     public static PropertyState dateProperty(String name, String value) {
-        return new ValueBasedSinglePropertyState(name, new GenericValue(PropertyType.DATE, value));
+        return new GenericPropertyState(name, value, DATE);
     }
 
     public static PropertyState booleanProperty(String name, boolean value) {
-        return new ValueBasedSinglePropertyState(name, value ? BooleanValue.TRUE : BooleanValue.FALSE);
+        return new BooleanPropertyState(name, value);
     }
 
     public static PropertyState nameProperty(String name, String value) {
-        return new ValueBasedSinglePropertyState(name, new GenericValue(PropertyType.NAME, value));
+        return new GenericPropertyState(name, value, NAME);
     }
 
     public static PropertyState pathProperty(String name, String value) {
-        return new ValueBasedSinglePropertyState(name, new GenericValue(PropertyType.PATH, value));
+        return new GenericPropertyState(name, value, PATH);
     }
 
     public static PropertyState referenceProperty(String name, String value) {
-        return new ValueBasedSinglePropertyState(name, new GenericValue(PropertyType.REFERENCE, value));
+        return new GenericPropertyState(name, value, REFERENCE);
     }
 
     public static PropertyState weakreferenceProperty(String name, String value) {
-        return new ValueBasedSinglePropertyState(name, new GenericValue(PropertyType.WEAKREFERENCE, value));
+        return new GenericPropertyState(name, value, WEAKREFERENCE);
     }
 
     public static PropertyState uriProperty(String name, String value) {
-        return new ValueBasedSinglePropertyState(name, new GenericValue(PropertyType.URI, value));
+        return new GenericPropertyState(name, value, URI);
     }
 
     public static PropertyState decimalProperty(String name, BigDecimal value) {
-        return new ValueBasedSinglePropertyState(name, new DecimalValue(value));
+        return new DecimalPropertySate(name, value);
     }
 
     public static PropertyState binaryProperty(String name, Blob value) {
-        return new ValueBasedSinglePropertyState(name, new BinaryValue(toBytes(value)));
+        return new BinaryPropertyState(name, value);
     }
 
     public static PropertyState stringProperty(String name, Iterable<String> values) {
