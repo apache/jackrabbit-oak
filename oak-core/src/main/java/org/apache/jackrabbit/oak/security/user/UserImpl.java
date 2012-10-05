@@ -97,7 +97,7 @@ class UserImpl extends AuthorizableImpl implements User {
      */
     @Override
     public Impersonation getImpersonation() throws RepositoryException {
-       return new ImpersonationImpl(this);
+        return getUserProvider().getImpersonation(getID(), getUserManager().getPrincipalProvider());
     }
 
     /**
@@ -139,10 +139,10 @@ class UserImpl extends AuthorizableImpl implements User {
         if (reason == null) {
             if (isDisabled()) {
                 // enable the user again.
-                setProtectedProperty(REP_DISABLED, (String) null);
-            }
+                getUserProvider().setProtectedProperty(userTree, REP_DISABLED, (String) null, PropertyType.STRING);
+            } // else: not disabled -> nothing to
         } else {
-            setProtectedProperty(REP_DISABLED, reason);
+            getUserProvider().setProtectedProperty(userTree, REP_DISABLED, reason, PropertyType.STRING);
         }
     }
 
@@ -164,15 +164,5 @@ class UserImpl extends AuthorizableImpl implements User {
             return disabled.getValue(STRING);
         } else
             return null;
-    }
-
-    //--------------------------------------------------------------------------
-
-    void setProtectedProperty(String oakName, String value) throws RepositoryException {
-        getUserProvider().setProtectedProperty(getTree(), oakName, value, PropertyType.STRING);
-    }
-
-    void setProtectedProperty(String oakName, String[] values) throws RepositoryException {
-        getUserProvider().setProtectedProperty(getTree(), oakName, values, PropertyType.STRING);
     }
 }
