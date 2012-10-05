@@ -474,10 +474,6 @@
   - type (STRING)
   - reindex (BOOLEAN) mandatory IGNORE
 
-//  - type (STRING)
-//  + reindex (BOOLEAN)
-//  - * (UNDEFINED)
-
 //------------------------------------------------------------------------------
 // L I F E C Y C L E   M A N A G E M E N T
 //------------------------------------------------------------------------------
