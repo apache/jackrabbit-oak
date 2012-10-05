@@ -18,9 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -33,7 +30,18 @@ import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 
-import static org.apache.jackrabbit.oak.api.Type.*;
+import static org.apache.jackrabbit.oak.api.Type.DATE;
+import static org.apache.jackrabbit.oak.api.Type.DATES;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.api.Type.NAMES;
+import static org.apache.jackrabbit.oak.api.Type.PATH;
+import static org.apache.jackrabbit.oak.api.Type.PATHS;
+import static org.apache.jackrabbit.oak.api.Type.REFERENCE;
+import static org.apache.jackrabbit.oak.api.Type.REFERENCES;
+import static org.apache.jackrabbit.oak.api.Type.URI;
+import static org.apache.jackrabbit.oak.api.Type.URIS;
+import static org.apache.jackrabbit.oak.api.Type.WEAKREFERENCE;
+import static org.apache.jackrabbit.oak.api.Type.WEAKREFERENCES;
 
 public final class PropertyStates {
     private PropertyStates() {}
@@ -185,129 +193,58 @@ public final class PropertyStates {
     }
 
     public static PropertyState stringProperty(String name, Iterable<String> values) {
-        List<CoreValue> cvs = Lists.newArrayList();
-        for (String value : values) {
-            cvs.add(new StringValue(value));
-        }
-        return new ValueBasedMultiPropertyState(name, cvs);
+        return new StringsPropertyState(name, Lists.newArrayList(values));
     }
 
     public static PropertyState binaryPropertyFromBlob(String name, Iterable<Blob> values) {
-        List<CoreValue> cvs = Lists.newArrayList();
-        for (Blob value : values) {
-            cvs.add(new BinaryValue(toBytes(value)));
-        }
-        return new ValueBasedMultiPropertyState(name, cvs);
+        return new BinariesPropertyState(name, Lists.newArrayList(values));
     }
 
     public static PropertyState longProperty(String name, Iterable<Long> values) {
-        List<CoreValue> cvs = Lists.newArrayList();
-        for (long value : values) {
-            cvs.add(new LongValue(value));
-        }
-        return new ValueBasedMultiPropertyState(name, cvs);
+        return new LongsPropertyState(name, Lists.newArrayList(values));
     }
 
     public static PropertyState doubleProperty(String name, Iterable<Double> values) {
-        List<CoreValue> cvs = Lists.newArrayList();
-        for (double value : values) {
-            cvs.add(new DoubleValue(value));
-        }
-        return new ValueBasedMultiPropertyState(name, cvs);
+        return new DoublesPropertyState(name, Lists.newArrayList(values));
     }
 
     public static PropertyState dateProperty(String name, Iterable<String> values) {
-        List<CoreValue> cvs = Lists.newArrayList();
-        for (String value : values) {
-            cvs.add(new GenericValue(PropertyType.DATE, value));
-        }
-        return new ValueBasedMultiPropertyState(name, cvs);
+        return new GenericsPropertyState(name, Lists.newArrayList(values), DATES);
     }
 
     public static PropertyState booleanProperty(String name, Iterable<Boolean> values) {
-        List<CoreValue> cvs = Lists.newArrayList();
-        for (boolean value : values) {
-            cvs.add(value ? BooleanValue.TRUE : BooleanValue.FALSE);
-        }
-        return new ValueBasedMultiPropertyState(name, cvs);
+        return new BooleansPropertyState(name, Lists.newArrayList(values));
     }
 
     public static PropertyState nameProperty(String name, Iterable<String> values) {
-        List<CoreValue> cvs = Lists.newArrayList();
-        for (String value : values) {
-            cvs.add(new GenericValue(PropertyType.NAME, value));
-        }
-        return new ValueBasedMultiPropertyState(name, cvs);
+        return new GenericsPropertyState(name, Lists.newArrayList(values), NAMES);
     }
 
     public static PropertyState pathProperty(String name, Iterable<String> values) {
-        List<CoreValue> cvs = Lists.newArrayList();
-        for (String value : values) {
-            cvs.add(new GenericValue(PropertyType.PATH, value));
-        }
-        return new ValueBasedMultiPropertyState(name, cvs);
+        return new GenericsPropertyState(name, Lists.newArrayList(values), PATHS);
     }
 
     public static PropertyState referenceProperty(String name, Iterable<String> values) {
-        List<CoreValue> cvs = Lists.newArrayList();
-        for (String value : values) {
-            cvs.add(new GenericValue(PropertyType.REFERENCE, value));
-        }
-        return new ValueBasedMultiPropertyState(name, cvs);
+        return new GenericsPropertyState(name, Lists.newArrayList(values), REFERENCES);
     }
 
     public static PropertyState weakreferenceProperty(String name, Iterable<String> values) {
-        List<CoreValue> cvs = Lists.newArrayList();
-        for (String value : values) {
-            cvs.add(new GenericValue(PropertyType.WEAKREFERENCE, value));
-        }
-        return new ValueBasedMultiPropertyState(name, cvs);
+        return new GenericsPropertyState(name, Lists.newArrayList(values), WEAKREFERENCES);
     }
 
     public static PropertyState uriProperty(String name, Iterable<String> values) {
-        List<CoreValue> cvs = Lists.newArrayList();
-        for (String value : values) {
-            cvs.add(new GenericValue(PropertyType.URI, value));
-        }
-        return new ValueBasedMultiPropertyState(name, cvs);
+        return new GenericsPropertyState(name, Lists.newArrayList(values), URIS);
     }
 
     public static PropertyState decimalProperty(String name, Iterable<BigDecimal> values) {
-        List<CoreValue> cvs = Lists.newArrayList();
-        for (BigDecimal value : values) {
-            cvs.add(new DecimalValue(value));
-        }
-        return new ValueBasedMultiPropertyState(name, cvs);
+        return new DecimalsPropertyState(name, Lists.newArrayList(values));
     }
 
     public static PropertyState binaryPropertyFromArray(String name, Iterable<byte[]> values) {
-        List<CoreValue> cvs = Lists.newArrayList();
-        for (byte[] value : values) {
-            cvs.add(new BinaryValue(value));
+        List<Blob> blobs = Lists.newArrayList();
+        for (byte[] data : values) {
+            blobs.add(new ArrayBasedBlob(data));
         }
-        return new ValueBasedMultiPropertyState(name, cvs);
-    }
-
-    private static byte[] toBytes(Blob blob) {
-        try {
-            InputStream is = blob.getNewStream();
-            try {
-                ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-                byte[] b = new byte[4096];
-                int n = is.read(b);
-                while (n != -1) {
-                    buffer.write(b, 0, n);
-                    n = is.read(b);
-                }
-                return buffer.toByteArray();
-            }
-            finally {
-                is.close();
-            }
-        }
-        catch (IOException e) {
-            // TODO
-            return null;
-        }
+        return new BinariesPropertyState(name, blobs);
     }
 }
