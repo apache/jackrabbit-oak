@@ -40,7 +40,7 @@ import org.apache.jackrabbit.oak.plugins.memory.SinglePropertyState;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.TreeBasedPrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.PasswordUtility;
-import org.apache.jackrabbit.oak.spi.security.user.Type;
+import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
@@ -182,11 +182,11 @@ class UserProviderImpl extends AuthorizableBaseProvider implements UserProvider 
 
     @Override
     public Tree getAuthorizable(String authorizableId) {
-        return getByID(authorizableId, Type.AUTHORIZABLE);
+        return getByID(authorizableId, AuthorizableType.AUTHORIZABLE);
     }
 
     @Override
-    public Tree getAuthorizable(String authorizableId, Type authorizableType) {
+    public Tree getAuthorizable(String authorizableId, AuthorizableType authorizableType) {
         return getByID(authorizableId, authorizableType);
     }
 
@@ -230,7 +230,7 @@ class UserProviderImpl extends AuthorizableBaseProvider implements UserProvider 
     @Override
     public String getAuthorizableId(Tree authorizableTree) {
         checkNotNull(authorizableTree);
-        if (isAuthorizableTree(authorizableTree, Type.AUTHORIZABLE)) {
+        if (isAuthorizableTree(authorizableTree, AuthorizableType.AUTHORIZABLE)) {
             PropertyState idProp = authorizableTree.getProperty(UserConstants.REP_AUTHORIZABLE_ID);
             if (idProp != null) {
                 return idProp.getValue(STRING);
@@ -242,25 +242,25 @@ class UserProviderImpl extends AuthorizableBaseProvider implements UserProvider 
     }
 
     @Override
-    public Iterator<Tree> findAuthorizables(String[] propertyRelPaths, String value, String[] ntNames, boolean exact, long maxSize, Type authorizableType) {
+    public Iterator<Tree> findAuthorizables(String[] propertyRelPaths, String value, String[] ntNames, boolean exact, long maxSize, AuthorizableType authorizableType) {
         // TODO
         throw new UnsupportedOperationException("not yet implemented");
     }
 
     @Override
-    public boolean isAuthorizableType(Tree authorizableTree, Type authorizableType) {
+    public boolean isAuthorizableType(Tree authorizableTree, AuthorizableType authorizableType) {
         return isAuthorizableTree(authorizableTree, authorizableType);
     }
 
     @Override
     public boolean isAdminUser(Tree userTree) {
         checkNotNull(userTree);
-        return isAuthorizableType(userTree, Type.USER) && config.getAdminId().equals(getAuthorizableId(userTree));
+        return isAuthorizableType(userTree, AuthorizableType.USER) && config.getAdminId().equals(getAuthorizableId(userTree));
     }
 
     @Override
     public String getPassword(String userID) {
-        Tree userTree = getAuthorizable(userID, Type.USER);
+        Tree userTree = getAuthorizable(userID, AuthorizableType.USER);
         if (userTree != null) {
             NodeUtil n = new NodeUtil(userTree, valueFactory);
             return n.getString(UserConstants.REP_PASSWORD, null);

@@ -23,7 +23,7 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 /**
  * The different authorizable types.
  */
-public enum Type {
+public enum AuthorizableType {
 
     USER(UserManager.SEARCH_TYPE_USER),
     GROUP(UserManager.SEARCH_TYPE_GROUP),
@@ -31,7 +31,7 @@ public enum Type {
 
     private final int userType;
 
-    private Type(int userType) {
+    private AuthorizableType(int userType) {
         this.userType = userType;
     }
 }

@@ -30,13 +30,14 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.PathMapper;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.TreeBasedPrincipal;
+import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
-import org.apache.jackrabbit.oak.spi.security.user.Type;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
 import org.slf4j.Logger;
@@ -44,7 +45,6 @@ import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.oak.api.Type.*;
 
 /**
  * The {@code PrincipalProviderImpl} is a principal provider implementation
@@ -100,7 +100,7 @@ public class PrincipalProviderImpl implements PrincipalProvider {
     @Override
     public Set<? extends Principal> getPrincipals(String userID) {
         Set<Principal> principals;
-        Tree userTree = userProvider.getAuthorizable(userID, Type.USER);
+        Tree userTree = userProvider.getAuthorizable(userID, AuthorizableType.USER);
         if (userTree != null) {
             principals = new HashSet<Principal>();
             Principal userPrincipal = new TreeBasedPrincipal(userTree, pathMapper);
@@ -119,7 +119,7 @@ public class PrincipalProviderImpl implements PrincipalProvider {
     public Iterator<? extends Principal> findPrincipals(String nameHint, int searchType) {
         String[] propNames = new String[] {UserConstants.REP_PRINCIPAL_NAME};
         String[] ntNames = new String[] {UserConstants.NT_REP_AUTHORIZABLE};
-        Iterator<Tree> authorizables = userProvider.findAuthorizables(propNames, nameHint, ntNames, false, Long.MAX_VALUE, Type.AUTHORIZABLE);
+        Iterator<Tree> authorizables = userProvider.findAuthorizables(propNames, nameHint, ntNames, false, Long.MAX_VALUE, AuthorizableType.AUTHORIZABLE);
 
         return Iterators.transform(authorizables, new AuthorizableToPrincipal());
     }
@@ -145,7 +145,7 @@ public class PrincipalProviderImpl implements PrincipalProvider {
         checkNotNull(authorizableTree);
         checkState(authorizableTree.hasProperty(JcrConstants.JCR_PRIMARYTYPE));
 
-        String ntName = authorizableTree.getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue(STRING);
+        String ntName = authorizableTree.getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue(Type.STRING);
         return UserConstants.NT_REP_GROUP.equals(ntName);
     }
 
@@ -159,7 +159,7 @@ public class PrincipalProviderImpl implements PrincipalProvider {
             if (tree == null) {
                 throw new IllegalArgumentException("null tree.");
             }
-            if (userProvider.isAuthorizableType(tree, Type.GROUP)) {
+            if (userProvider.isAuthorizableType(tree, AuthorizableType.GROUP)) {
                 return new TreeBasedGroup(tree);
             } else {
                 return new TreeBasedPrincipal(tree, pathMapper);
@@ -193,7 +193,7 @@ public class PrincipalProviderImpl implements PrincipalProvider {
 
         @Override
         public Enumeration<? extends Principal> members() {
-            Iterator<String> declaredMemberPaths = membershipProvider.getMembers(getTree(), Type.AUTHORIZABLE, false);
+            Iterator<String> declaredMemberPaths = membershipProvider.getMembers(getTree(), AuthorizableType.AUTHORIZABLE, false);
             Iterator<? extends Principal> members = Iterators.transform(declaredMemberPaths, new Function<String, Principal>() {
                 @Override
                 public Principal apply(@Nullable String oakPath) {

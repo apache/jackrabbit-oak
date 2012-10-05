@@ -42,7 +42,7 @@ public interface UserProvider {
     Tree getAuthorizable(String authorizableId);
 
     @CheckForNull
-    Tree getAuthorizable(String authorizableId, Type authorizableType);
+    Tree getAuthorizable(String authorizableId, AuthorizableType authorizableType);
 
     @CheckForNull
     Tree getAuthorizableByPath(String authorizableOakPath);
@@ -70,7 +70,7 @@ public interface UserProvider {
      * @param exact A boolean flag indicating if the value must match exactly or not.s
      * @param maxSize The maximal number of search results to look for.
      * @param authorizableType Filter the search results to only return authorizable
-     * trees of a given type. Passing {@link Type#AUTHORIZABLE} indicates that
+     * trees of a given type. Passing {@link AuthorizableType#AUTHORIZABLE} indicates that
      * no filtering for a specific authorizable type is desired. However, properties
      * might still be search in the complete sub-tree of authorizables depending
      * on the other query parameters.
@@ -79,9 +79,9 @@ public interface UserProvider {
      * found.
      */
     @Nonnull
-    Iterator<Tree> findAuthorizables(String[] propertyRelPaths, String value, String[] ntNames, boolean exact, long maxSize, Type authorizableType);
+    Iterator<Tree> findAuthorizables(String[] propertyRelPaths, String value, String[] ntNames, boolean exact, long maxSize, AuthorizableType authorizableType);
 
-    boolean isAuthorizableType(Tree authorizableTree, Type authorizableType);
+    boolean isAuthorizableType(Tree authorizableTree, AuthorizableType authorizableType);
 
     boolean isAdminUser(Tree userTree);
 
