@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.memory;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
@@ -28,9 +29,12 @@ import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Type;
 
-abstract class MultiPropertyState extends EmptyPropertyState {
-    protected MultiPropertyState(String name) {
+abstract class MultiPropertyState<T> extends EmptyPropertyState {
+    protected final List<T> values;
+
+    protected MultiPropertyState(String name, List<T> values) {
         super(name);
+        this.values = values;
     }
 
     protected abstract Iterable<String> getStrings();
@@ -147,6 +151,11 @@ abstract class MultiPropertyState extends EmptyPropertyState {
             case PropertyType.DECIMAL: return (T) getString(index);
             default: throw new IllegalArgumentException("Invalid type:" + type);
         }
+    }
+
+    @Override
+    public final int count() {
+        return values.size();
     }
 
     @Override

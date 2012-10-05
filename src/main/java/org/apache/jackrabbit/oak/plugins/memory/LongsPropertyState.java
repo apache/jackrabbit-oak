@@ -27,12 +27,10 @@ import org.apache.jackrabbit.oak.api.Type;
 
 import static org.apache.jackrabbit.oak.api.Type.LONGS;
 
-public class LongsPropertyState extends MultiPropertyState {
-    private final List<Long> values;
+public class LongsPropertyState extends MultiPropertyState<Long> {
 
     protected LongsPropertyState(String name, List<Long> values) {
-        super(name);
-        this.values = values;
+        super(name, values);
     }
 
     @Override
@@ -88,11 +86,6 @@ public class LongsPropertyState extends MultiPropertyState {
     @Override
     protected String getString(int index) {
         return String.valueOf(values.get(index));
-    }
-
-    @Override
-    public int count() {
-        return values.size();
     }
 
     @Override

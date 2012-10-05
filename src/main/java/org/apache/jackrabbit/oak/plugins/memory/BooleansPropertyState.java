@@ -24,12 +24,9 @@ import org.apache.jackrabbit.oak.api.Type;
 
 import static org.apache.jackrabbit.oak.api.Type.BOOLEANS;
 
-public class BooleansPropertyState extends MultiPropertyState {
-    private final List<Boolean> values;
-
+public class BooleansPropertyState extends MultiPropertyState<Boolean> {
     protected BooleansPropertyState(String name, List<Boolean> values) {
-        super(name);
-        this.values = values;
+        super(name, values);
     }
 
     @Override
@@ -55,11 +52,6 @@ public class BooleansPropertyState extends MultiPropertyState {
     @Override
     protected boolean getBoolean(int index) {
         return values.get(index);
-    }
-
-    @Override
-    public int count() {
-        return values.size();
     }
 
     @Override
