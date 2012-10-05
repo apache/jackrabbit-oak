@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.memory.CoreValues;
 import org.apache.jackrabbit.oak.plugins.memory.MultiPropertyState;
 import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
 import org.apache.jackrabbit.oak.spi.security.user.Type;
@@ -145,7 +146,7 @@ public class MembershipProviderImpl extends AuthorizableBaseProvider implements 
         } else {
             PropertyState property = groupTree.getProperty(REP_MEMBERS);
             if (property != null) {
-                List<CoreValue> vs = property.getValues();
+                List<CoreValue> vs = CoreValues.getValues(property);
                 memberPaths = Iterables.transform(vs, new Function<CoreValue,String>() {
                     @Override
                     public String apply(@Nullable CoreValue value) {
@@ -210,7 +211,7 @@ public class MembershipProviderImpl extends AuthorizableBaseProvider implements 
             CoreValue toAdd = createCoreValue(newMemberTree);
             PropertyState property = groupTree.getProperty(REP_MEMBERS);
             if (property != null) {
-                values = property.getValues();
+                values = CoreValues.getValues(property);
                 if (values.contains(toAdd)) {
                     return false;
                 } else {
@@ -237,7 +238,7 @@ public class MembershipProviderImpl extends AuthorizableBaseProvider implements 
             PropertyState property = groupTree.getProperty(REP_MEMBERS);
             if (property != null) {
                 CoreValue toRemove = createCoreValue(memberTree);
-                List<CoreValue> values = property.getValues();
+                List<CoreValue> values = CoreValues.getValues(property);
                 if (values.remove(toRemove)) {
                     if (values.isEmpty()) {
                         groupTree.removeProperty(REP_MEMBERS);

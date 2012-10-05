@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.util.MicroKernelInputStream;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryValue;
-
 import java.io.InputStream;
 
 import javax.jcr.PropertyType;
+
+import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.mk.util.MicroKernelInputStream;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryValue;
 
 /**
  * BinaryValue... TODO: review name (BlobValue? BlobCoreValue? BinaryCoreValue?)
@@ -81,7 +81,7 @@ class BinaryValue extends MemoryValue {
             return binaryID.equals(other.binaryID);
         }
 
-        return false;
+        return super.equals(o);
     }
 
 }
