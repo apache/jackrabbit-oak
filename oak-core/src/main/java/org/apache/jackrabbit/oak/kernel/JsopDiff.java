@@ -154,15 +154,15 @@ class JsopDiff implements NodeStateDiff {
             case PropertyType.BINARY:
                 for (Blob value : property.getValue(BINARIES)) {
                     InputStream is = value.getNewStream();
-                    String binId = CoreValueMapper.getHintForType(type) + ':' + kernel.write(is);
+                    String binId = TypeCodes.getCodeForType(type) + ':' + kernel.write(is);
                     close(is);
                     jsop.value(binId);
                 }
                 break;
             default:
                 for (String value : property.getValue(STRINGS)) {
-                    if (PropertyType.STRING != type || CoreValueMapper.startsWithHint(value)) {
-                        value = CoreValueMapper.getHintForType(type) + ':' + value;
+                    if (PropertyType.STRING != type || TypeCodes.startsWithCode(value)) {
+                        value = TypeCodes.getCodeForType(type) + ':' + value;
                     }
                     jsop.value(value);
                 }
