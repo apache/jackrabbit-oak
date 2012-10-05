@@ -63,8 +63,7 @@ public class NodeNameImpl extends DynamicOperandImpl {
         String path = selector.currentPath();
         // Name escaping (convert space to _x0020_)
         String name = ISO9075.encode(PathUtils.getName(path));
-        CoreValue v2 = query.getValueFactory().createValue(name, PropertyType.NAME);
-        return PropertyStates.createProperty("NAME", v2);
+        return PropertyStates.nameProperty("NAME", name);
     }
 
     @Override

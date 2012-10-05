@@ -51,8 +51,7 @@ public class FullTextSearchScoreImpl extends DynamicOperandImpl {
         PropertyState p = selector.currentProperty(Query.JCR_SCORE);
         if (p == null) {
             // TODO if score() is not supported by the index, use the value 0.0?
-            CoreValue v = query.getValueFactory().createValue(0.0);
-            p = PropertyStates.createProperty(Query.JCR_SCORE, v);
+            return PropertyStates.doubleProperty(Query.JCR_SCORE, 0.0);
         }
         return p;
     }
