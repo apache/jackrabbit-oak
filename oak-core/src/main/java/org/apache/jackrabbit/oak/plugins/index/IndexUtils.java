@@ -33,15 +33,14 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.plugins.index.IndexDefinition.INDEX_DATA_CHILD_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexDefinition.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexDefinition.UNIQUE_PROPERTY_NAME;
 
-public class IndexUtils {
+public class IndexUtils implements IndexConstants {
 
     /**
      * switch to "oak:index" as soon as it is possible
      */
-    public static final String DEFAULT_INDEX_HOME = "/oak-index";
+    public static final String DEFAULT_INDEX_HOME = "/oak:index";
 
     private static final String TYPE_UNKNOWN = "unknown";
 

@@ -36,9 +36,8 @@ explain select * from [nt:base] where property(id, 'REFERENCE') = CAST('123' AS 
 select * from [nt:base] where property([*], 'REFERENCE') = CAST('123' AS REFERENCE)
 /test/a
 
-commit / + "oak-index": {}
-commit /oak-index + "indexes": { "type": "property" }
-commit /oak-index/indexes + "prefix@ref:": {}
+commit /oak:index + "indexes": { "type": "property" }
+commit /oak:index/indexes + "prefix@ref:": {}
 
 explain select * from [nt:base] where property([*], 'REFERENCE') = CAST('123' AS REFERENCE)
 [nt:base] as [nt:base] /* prefixIndex "ref:123" where property([nt:base].[*], 'reference') = cast('123' as reference) */
@@ -53,12 +52,12 @@ select * from [nt:base] where property(id, 'REFERENCE') = CAST('123' AS REFERENC
 /test/a
 
 commit / - "test"
-commit /oak-index/indexes - "prefix@ref:"
+commit /oak:index/indexes - "prefix@ref:"
 
 # test the property content index
 
 commit / + "test": { "a": { "id": "10" }, "b": { "id" : "20" }}
-commit /oak-index/indexes + "property@id,unique": {}
+commit /oak:index/indexes + "property@id,unique": {}
 
 # combining 'not' and 'and'
 
@@ -82,7 +81,7 @@ explain select * from [nt:base] where id > '10'
 [nt:base] as [nt:base] /* traverse "//*" where [nt:base].[id] > cast('10' as string) */
 
 commit / - "test"
-commit /oak-index/indexes - "property@id,unique"
+commit /oak:index/indexes - "property@id,unique"
 
 # other tests
 
@@ -107,6 +106,9 @@ explain select * from [nt:base] as p inner join [nt:base] as p2 on issamenode(p2
 
 explain select * from [nt:base] as p inner join [nt:base] as c on p.id = c.p
 [nt:base] as [p] /* traverse "//*" where [p].[id] is not null */ inner join [nt:base] as [c] /* traverse "//*" where [c].[p] is not null */ on [p].[id] = [c].[p]
+
+explain select * from [nt:base] where id = 1 order by id
+[nt:base] as [nt:base] /* traverse "//*" where [nt:base].[id] = cast('1' as long) */
 
 commit / - "parents"
 commit / - "children"
