@@ -25,27 +25,11 @@ import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
-import org.junit.After;
-import org.junit.Before;
 
 /**
  * AbstractPrivilegeTest... TODO
  */
 abstract class AbstractPrivilegeTest extends AbstractJCRTest implements PrivilegeConstants {
-
-    PrivilegeManager privilegeManager;
-
-    @Before
-    public void setUp() throws Exception {
-        super.setUp();
-        privilegeManager = getPrivilegeManager(superuser);
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        privilegeManager = null;
-        super.tearDown();
-    }
 
     static PrivilegeManager getPrivilegeManager(Session session) throws RepositoryException {
         Workspace workspace = session.getWorkspace();

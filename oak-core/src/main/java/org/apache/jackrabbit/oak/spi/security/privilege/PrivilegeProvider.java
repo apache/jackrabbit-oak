@@ -27,8 +27,12 @@ import javax.jcr.RepositoryException;
 public interface PrivilegeProvider {
 
     /**
-     * Returns all privilege definitions accessible to a given
-     * {@link org.apache.jackrabbit.oak.api.ContentSession}.
+     * Refresh this privilege provider.
+     */
+    void refresh();
+
+    /**
+     * Returns all privilege definitions accessible to this provider.
      *
      * @return all privilege definitions.
      */

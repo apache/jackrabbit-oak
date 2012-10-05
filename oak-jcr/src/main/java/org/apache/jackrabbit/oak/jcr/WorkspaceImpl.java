@@ -282,7 +282,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
      */
     @Override
     public PrivilegeManager getPrivilegeManager() throws RepositoryException {
-        return new PrivilegeManagerImpl(sessionDelegate);
+        return sessionDelegate.getPrivilegeManager();
     }
 
     //------------------------------------------------------------< private >---

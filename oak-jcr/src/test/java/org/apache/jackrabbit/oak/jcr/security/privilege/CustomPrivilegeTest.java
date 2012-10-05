@@ -18,13 +18,13 @@ package org.apache.jackrabbit.oak.jcr.security.privilege;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.concurrent.Executors;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.NamespaceException;
+import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.Workspace;
@@ -32,29 +32,57 @@ import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
+import org.apache.jackrabbit.mk.core.MicroKernelImpl;
+import org.apache.jackrabbit.oak.jcr.RepositoryImpl;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants;
 import org.junit.After;
-import org.junit.Ignore;
+import org.junit.Before;
 import org.junit.Test;
 
 /**
  * CustomPrivilegeTest...
+ *
+ * TODO: more tests for cyclic aggregation
  */
-@Ignore
 public class CustomPrivilegeTest extends AbstractPrivilegeTest {
 
+    private Repository repository;
+    private Session session;
+    private PrivilegeManager privilegeManager;
+
+    @Before
+    public void setUp() throws Exception {
+        super.setUp();
+
+        // create a separate repository in order to be able to remove registered privileges.
+        String dir = "target/mk-tck-" + System.currentTimeMillis();
+        repository = new RepositoryImpl(new MicroKernelImpl(dir), Executors.newScheduledThreadPool(1));
+        session = getAdminSession();
+        privilegeManager = getPrivilegeManager(session);
+
+    }
     @After
     public void tearDown() throws Exception {
-
-        // FIXME: remove any remaining custom privilege definitions
-
-        super.tearDown();
+        try {
+            super.tearDown();
+        } finally {
+            session.logout();
+            repository = null;
+            privilegeManager = null;
+        }
     }
 
-    @Ignore // FIXME: default setup should enforce access restrictions
+    private Session getReadOnlySession() throws RepositoryException {
+        return repository.login(getHelper().getReadOnlyCredentials());
+    }
+
+    private Session getAdminSession() throws RepositoryException {
+        return repository.login(getHelper().getSuperuserCredentials());
+    }
+
     @Test
     public void testRegisterPrivilegeWithReadOnly() throws RepositoryException {
-        Session readOnly = getHelper().getReadOnlySession();
+        Session readOnly = getReadOnlySession();
         try {
             getPrivilegeManager(readOnly).registerPrivilege("test", true, new String[0]);
             fail("Only admin is allowed to register privileges.");
@@ -69,7 +97,7 @@ public class CustomPrivilegeTest extends AbstractPrivilegeTest {
     public void testCustomDefinitionsWithCyclicReferences() throws RepositoryException {
         try {
             privilegeManager.registerPrivilege("cycl-1", false, new String[] {"cycl-1"});
-            fail("Cyclic definitions must be detected upon registry startup.");
+            fail("Cyclic definitions must be detected upon registration.");
         } catch (RepositoryException e) {
             // success
         }
@@ -147,9 +175,6 @@ public class CustomPrivilegeTest extends AbstractPrivilegeTest {
         Map<String, String[]> newCustomPrivs = new LinkedHashMap<String, String[]>();
         newCustomPrivs.put("new", new String[0]);
         newCustomPrivs.put("new2", new String[0]);
-        Set<String> decl = new HashSet<String>();
-        decl.add("new");
-        decl.add("new2");
         newCustomPrivs.put("new3", getAggregateNames("new", "new2"));
 
         for (String name : newCustomPrivs.keySet()) {
@@ -176,7 +201,7 @@ public class CustomPrivilegeTest extends AbstractPrivilegeTest {
         }
     }
 
-        @Test
+    @Test
     public void testRegisterPrivilegeWithIllegalName() {
         Map<String, String[]> illegal = new HashMap<String, String[]>();
         // invalid privilege name
@@ -229,7 +254,7 @@ public class CustomPrivilegeTest extends AbstractPrivilegeTest {
 
     @Test
     public void testRegisterCustomPrivileges() throws RepositoryException {
-        Workspace workspace = superuser.getWorkspace();
+        Workspace workspace = session.getWorkspace();
         workspace.getNamespaceRegistry().registerNamespace("test", "http://www.apache.org/jackrabbit/test");
 
         Map<String, String[]> newCustomPrivs = new HashMap<String, String[]>();
@@ -282,7 +307,7 @@ public class CustomPrivilegeTest extends AbstractPrivilegeTest {
         String privName = "testCustomPrivilegeVisibleToNewSession";
         privilegeManager.registerPrivilege(privName, isAbstract, new String[0]);
 
-        Session s2 = getHelper().getSuperuserSession();
+        Session s2 = getAdminSession();
         try {
             PrivilegeManager pm = getPrivilegeManager(s2);
             Privilege priv = pm.getPrivilege(privName);
@@ -294,25 +319,24 @@ public class CustomPrivilegeTest extends AbstractPrivilegeTest {
         }
     }
 
-    @Ignore // FIXME
     @Test
     public void testCustomPrivilegeVisibleAfterRefresh() throws RepositoryException {
-        Session s2 = getHelper().getSuperuserSession();
+        Session s2 = getAdminSession();
+        PrivilegeManager pm = getPrivilegeManager(s2);
         try {
             boolean isAbstract = false;
             String privName = "testCustomPrivilegeVisibleAfterRefresh";
             privilegeManager.registerPrivilege(privName, isAbstract, new String[0]);
 
             // before refreshing: privilege not visible
-            PrivilegeManager pm = getPrivilegeManager(s2);
             try {
                 Privilege priv = pm.getPrivilege(privName);
-                fail("Custom privilege must show up after Session#refresh()");
+                fail("Custom privilege will show up after Session#refresh()");
             } catch (AccessControlException e) {
                 // success
             }
 
-            // after refresh privilege manager must be updated
+            // latest after refresh privilege manager must be updated
             s2.refresh(true);
             Privilege priv = pm.getPrivilege(privName);
             assertEquals(privName, priv.getName());

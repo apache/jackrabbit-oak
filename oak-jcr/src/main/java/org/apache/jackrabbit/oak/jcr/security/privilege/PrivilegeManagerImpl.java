@@ -46,9 +46,13 @@ public class PrivilegeManagerImpl implements PrivilegeManager {
     private final PrivilegeProvider provider;
     private final SessionDelegate sessionDelegate;
 
-    public PrivilegeManagerImpl(SessionDelegate sessionDelegate) throws RepositoryException {
+    public PrivilegeManagerImpl(SessionDelegate sessionDelegate) {
         this.provider = new PrivilegeRegistry(sessionDelegate.getContentSession());
         this.sessionDelegate = sessionDelegate;
+    }
+
+    public void refresh() {
+        provider.refresh();
     }
 
     @Override
@@ -82,6 +86,7 @@ public class PrivilegeManagerImpl implements PrivilegeManager {
         }
 
         PrivilegeDefinition def = provider.registerDefinition(oakName, isAbstract, getOakNames(declaredAggregateNames));
+        sessionDelegate.refresh(true);
         return new PrivilegeImpl(def);
     }
 
