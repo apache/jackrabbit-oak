@@ -16,12 +16,9 @@
  */
 package org.apache.jackrabbit.oak.run;
 
-import static org.apache.jackrabbit.oak.spi.query.IndexUtils.DEFAULT_INDEX_HOME;
-
 import java.io.InputStream;
 import java.util.Properties;
 import java.util.concurrent.Executors;
-
 import javax.jcr.Repository;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
@@ -44,11 +41,15 @@ import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
 import org.apache.jackrabbit.oak.spi.commit.ValidatingHook;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
+import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.webdav.jcr.JCRWebdavServerServlet;
 import org.apache.jackrabbit.webdav.simple.SimpleWebdavServlet;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
+
+import static org.apache.jackrabbit.oak.spi.query.IndexUtils.DEFAULT_INDEX_HOME;
 
 public class Main {
 
@@ -155,8 +156,11 @@ public class Main {
         }
 
         private void addServlets(MicroKernel kernel, String path) {
+            // TODO: review usage of opensecurity provider (using default will cause BasicServerTest to fail. usage of a:a credentials)
+            SecurityProvider securityProvider = new OpenSecurityProvider();
             ContentRepository repository = new Oak(kernel)
                 .with(buildDefaultCommitHook())
+                .with(securityProvider)
                 .createContentRepository();
 
             ServletHolder oak =
@@ -164,7 +168,7 @@ public class Main {
             context.addServlet(oak, path + "/*");
 
             final Repository jcrRepository = new RepositoryImpl(
-                    repository, Executors.newScheduledThreadPool(1), null); // TODO: pass securityprovider
+                    repository, Executors.newScheduledThreadPool(1), securityProvider);
 
             ServletHolder webdav =
                     new ServletHolder(new SimpleWebdavServlet() {
