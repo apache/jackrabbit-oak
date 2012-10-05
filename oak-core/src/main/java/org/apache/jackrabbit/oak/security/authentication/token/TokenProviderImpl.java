@@ -216,6 +216,7 @@ public class TokenProviderImpl implements TokenProvider {
                 try {
                     tokenNode.setDate(TOKEN_ATTRIBUTE_EXPIRY, expirationTime);
                     root.commit();
+                    log.debug("Successfully reset token expiration time.");
                     return true;
                 } catch (CommitFailedException e) {
                     log.warn("Error while resetting token expiration", e.getMessage());

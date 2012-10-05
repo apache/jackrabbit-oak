@@ -22,7 +22,9 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
+import org.apache.jackrabbit.api.security.user.Impersonation;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 
 /**
  * UserProvider deals with with creating and resolving repository content
@@ -103,6 +105,8 @@ public interface UserProvider {
      * @throws javax.jcr.RepositoryException If an error occurs
      */
     void setPassword(Tree userTree, String password, boolean forceHash) throws RepositoryException;
+
+    Impersonation getImpersonation(String userID, PrincipalProvider principalProvider);
 
     void setProtectedProperty(Tree authorizableTree, String propertyName, String value, int propertyType);
 

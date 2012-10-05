@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.security.authentication;
 
 import java.io.IOException;
 import java.security.Principal;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -114,7 +115,7 @@ public class LoginModuleImpl extends AbstractLoginModule {
         credentials = getCredentials();
         userID = getUserID();
 
-        Authentication authentication = new AuthenticationImpl(userID, getUserProvider());
+        Authentication authentication = new AuthenticationImpl(userID, getUserProvider(), getPrincipalProvider());
         boolean success = authentication.authenticate(credentials);
         if (!success) {
             success = impersonate(authentication);
@@ -140,7 +141,7 @@ public class LoginModuleImpl extends AbstractLoginModule {
             if (!subject.isReadOnly()) {
                 subject.getPrincipals().addAll(principals);
                 subject.getPublicCredentials().add(credentials);
-                subject.getPublicCredentials().add(getAuthInfo());
+                subject.getPublicCredentials().add(createAuthInfo());
             } else {
                 log.debug("Could not add information to read only subject {}", subject);
             }
@@ -165,7 +166,6 @@ public class LoginModuleImpl extends AbstractLoginModule {
     //--------------------------------------------------------------------------
     @CheckForNull
     private String getUserID() {
-        // TODO add proper implementation
         String userID = null;
         if (credentials != null) {
             if (credentials instanceof SimpleCredentials) {
@@ -193,7 +193,6 @@ public class LoginModuleImpl extends AbstractLoginModule {
         if (userID == null) {
             userID = getSharedLoginName();
         }
-
         return userID;
     }
 
@@ -205,14 +204,15 @@ public class LoginModuleImpl extends AbstractLoginModule {
     private boolean impersonate(Authentication authentication) {
         if (credentials instanceof ImpersonationCredentials) {
             AuthInfo info = ((ImpersonationCredentials) credentials).getImpersonatorInfo();
-            if (authentication.impersonate(info.getPrincipals())) {
+            Subject subject = new Subject(true, info.getPrincipals(), Collections.emptySet(), Collections.emptySet());
+            if (authentication.impersonate(subject)) {
                 return true;
             }
         }
         return false;
     }
 
-    private AuthInfo getAuthInfo() {
+    private AuthInfo createAuthInfo() {
         Map<String, Object> attributes = new HashMap<String, Object>();
         if (credentials instanceof SimpleCredentials) {
             SimpleCredentials sc = (SimpleCredentials) credentials;
