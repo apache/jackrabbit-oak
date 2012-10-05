@@ -52,7 +52,7 @@ class PropertyIndexDiff implements NodeStateDiff {
         this.updates = updates;
 
         if (node != null && node.hasChildNode("oak:index")) {
-            NodeBuilder index = node.getChildBuilder("oak:index");
+            NodeBuilder index = node.child("oak:index");
             for (String indexName : index.getChildNodeNames()) {
                 List<PropertyIndexUpdate> list = updates.get(indexName);
                 if (list == null) {
@@ -60,7 +60,7 @@ class PropertyIndexDiff implements NodeStateDiff {
                     updates.put(indexName, list);
                 }
                 list.add(new PropertyIndexUpdate(
-                        getPath(), index.getChildBuilder(indexName)));
+                        getPath(), index.child(indexName)));
             }
         }
     }
@@ -77,7 +77,7 @@ class PropertyIndexDiff implements NodeStateDiff {
 
     private static NodeBuilder getChildNode(NodeBuilder node, String name) {
         if (node != null && node.hasChildNode(name)) {
-            return node.getChildBuilder(name);
+            return node.child(name);
         } else {
             return null;
         }

@@ -203,7 +203,7 @@ public final class KernelNodeState extends AbstractNodeState {
     }
 
     @Override
-    public NodeBuilder getBuilder() {
+    public NodeBuilder builder() {
         if ("/".equals(getPath())) {
             return new KernelRootBuilder(kernel, this);
         } else {

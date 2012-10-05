@@ -271,7 +271,7 @@ public class RootImpl implements Root {
     }
 
     NodeBuilder createRootBuilder() {
-        return branch.getRoot().getBuilder();
+        return branch.getRoot().builder();
     }
 
     /**

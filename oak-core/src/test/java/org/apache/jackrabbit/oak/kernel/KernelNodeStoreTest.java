@@ -69,9 +69,9 @@ public class KernelNodeStoreTest {
     public void branch() throws CommitFailedException {
         NodeStoreBranch branch = store.branch();
 
-        NodeBuilder rootBuilder = branch.getRoot().getBuilder();
-        NodeBuilder testBuilder = rootBuilder.getChildBuilder("test");
-        NodeBuilder newNodeBuilder = testBuilder.getChildBuilder("newNode");
+        NodeBuilder rootBuilder = branch.getRoot().builder();
+        NodeBuilder testBuilder = rootBuilder.child("test");
+        NodeBuilder newNodeBuilder = testBuilder.child("newNode");
 
         testBuilder.removeNode("x");
 
@@ -122,9 +122,9 @@ public class KernelNodeStoreTest {
         });
 
         NodeState root = store.getRoot();
-        NodeBuilder rootBuilder= root.getBuilder();
-        NodeBuilder testBuilder = rootBuilder.getChildBuilder("test");
-        NodeBuilder newNodeBuilder = testBuilder.getChildBuilder("newNode");
+        NodeBuilder rootBuilder= root.builder();
+        NodeBuilder testBuilder = rootBuilder.child("test");
+        NodeBuilder newNodeBuilder = testBuilder.child("newNode");
 
         newNodeBuilder.setProperty("n", 42);
 
@@ -154,17 +154,17 @@ public class KernelNodeStoreTest {
         store.setHook(new CommitHook() {
             @Override
             public NodeState processCommit(NodeState before, NodeState after) {
-                NodeBuilder rootBuilder = after.getBuilder();
-                NodeBuilder testBuilder = rootBuilder.getChildBuilder("test");
-                testBuilder.getChildBuilder("fromHook");
+                NodeBuilder rootBuilder = after.builder();
+                NodeBuilder testBuilder = rootBuilder.child("test");
+                testBuilder.child("fromHook");
                 return rootBuilder.getNodeState();
             }
         });
 
         NodeState root = store.getRoot();
-        NodeBuilder rootBuilder = root.getBuilder();
-        NodeBuilder testBuilder = rootBuilder.getChildBuilder("test");
-        NodeBuilder newNodeBuilder = testBuilder.getChildBuilder("newNode");
+        NodeBuilder rootBuilder = root.builder();
+        NodeBuilder testBuilder = rootBuilder.child("test");
+        NodeBuilder newNodeBuilder = testBuilder.child("newNode");
 
         newNodeBuilder.setProperty("n", 42);
 

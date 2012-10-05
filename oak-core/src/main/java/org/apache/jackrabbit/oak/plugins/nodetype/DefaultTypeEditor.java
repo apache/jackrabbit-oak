@@ -33,7 +33,7 @@ public class DefaultTypeEditor implements CommitHook {
     public NodeState processCommit(NodeState before, NodeState after)
             throws CommitFailedException {
         // TODO: Calculate default type from the node definition
-        NodeBuilder builder = after.getBuilder();
+        NodeBuilder builder = after.builder();
         after.compareAgainstBaseState(
                 before, new DefaultTypeDiff(builder, "nt:unstructured"));
         return builder.getNodeState();
@@ -53,7 +53,7 @@ public class DefaultTypeEditor implements CommitHook {
         @Override
         public void childNodeAdded(String name, NodeState after) {
             if (!NodeStateUtils.isHidden(name)) {
-                NodeBuilder childBuilder = builder.getChildBuilder(name);
+                NodeBuilder childBuilder = builder.child(name);
                 if (after.getProperty("jcr:primaryType") == null) {
                     childBuilder.setProperty("jcr:primaryType", defaultType);
                 }
@@ -70,7 +70,7 @@ public class DefaultTypeEditor implements CommitHook {
         public void childNodeChanged(
                 String name, NodeState before, NodeState after) {
             if (!NodeStateUtils.isHidden(name)) {
-                NodeBuilder childBuilder = builder.getChildBuilder(name);
+                NodeBuilder childBuilder = builder.child(name);
                 DefaultTypeDiff childDiff =
                         new DefaultTypeDiff(childBuilder, defaultType);
                 after.compareAgainstBaseState(before, childDiff);

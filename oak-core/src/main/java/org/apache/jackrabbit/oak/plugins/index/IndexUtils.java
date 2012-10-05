@@ -125,9 +125,9 @@ public class IndexUtils implements IndexConstants {
     }
 
     public static NodeBuilder getChildBuilder(NodeState state, String path) {
-        NodeBuilder builder = state.getBuilder();
+        NodeBuilder builder = state.builder();
         for (String p : PathUtils.elements(path)) {
-            builder = builder.getChildBuilder(p);
+            builder = builder.child(p);
         }
         return builder;
     }

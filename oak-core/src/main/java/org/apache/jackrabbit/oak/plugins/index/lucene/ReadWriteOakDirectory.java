@@ -103,7 +103,7 @@ public class ReadWriteOakDirectory extends ReadOnlyOakDirectory {
                 System.arraycopy(buffer, 0, data, 0, size);
             }
 
-            NodeBuilder fileBuilder = directoryBuilder.getChildBuilder(name);
+            NodeBuilder fileBuilder = directoryBuilder.child(name);
             fileBuilder.setProperty("jcr:lastModified", System.currentTimeMillis());
             fileBuilder.setProperty("jcr:data", data);
         }
