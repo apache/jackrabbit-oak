@@ -82,12 +82,12 @@ class LuceneEditor implements CommitHook, LuceneIndexConstants {
     @Override
     public NodeState processCommit(NodeState before, NodeState after)
             throws CommitFailedException {
-        NodeBuilder rootBuilder = after.getBuilder();
+        NodeBuilder rootBuilder = after.builder();
         NodeBuilder builder = rootBuilder;
         for (String name : elements(index.getPath())) {
-            builder = builder.getChildBuilder(name);
+            builder = builder.child(name);
         }
-        builder = builder.getChildBuilder(INDEX_DATA_CHILD_NAME);
+        builder = builder.child(INDEX_DATA_CHILD_NAME);
         Directory directory = new ReadWriteOakDirectory(builder);
 
         try {

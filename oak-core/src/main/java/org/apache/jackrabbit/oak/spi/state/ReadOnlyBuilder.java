@@ -103,7 +103,7 @@ public class ReadOnlyBuilder implements NodeBuilder {
     }
 
     @Override
-    public ReadOnlyBuilder getChildBuilder(String name) {
+    public ReadOnlyBuilder child(String name) {
         NodeState child = state.getChildNode(name);
         if (child != null) {
             return new ReadOnlyBuilder(child);

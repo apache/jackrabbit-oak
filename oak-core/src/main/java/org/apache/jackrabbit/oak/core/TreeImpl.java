@@ -40,7 +40,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
-import static org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState.EMPTY_NODE;
 
 public class TreeImpl implements Tree, PurgeListener {
 
@@ -232,8 +231,7 @@ public class TreeImpl implements Tree, PurgeListener {
     @Override
     public Tree addChild(String name) {
         if (!hasChild(name)) {
-            NodeBuilder builder = getNodeBuilder();
-            builder.setNode(name, EMPTY_NODE);
+            getNodeBuilder().child(name);
             root.purge();
         }
 
@@ -321,7 +319,7 @@ public class TreeImpl implements Tree, PurgeListener {
         }
 
         if (nodeBuilder == null) {
-            nodeBuilder = parent.getNodeBuilder().getChildBuilder(name);
+            nodeBuilder = parent.getNodeBuilder().child(name);
             root.addListener(this);
         }
         return nodeBuilder;

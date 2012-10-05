@@ -81,7 +81,7 @@ class PropertyIndexUpdate {
 
     public void apply() throws CommitFailedException {
         boolean unique = node.getProperty("unique") != null;
-        NodeBuilder index = node.getChildBuilder(":index");
+        NodeBuilder index = node.child(":index");
 
         for (Map.Entry<String, Set<String>> entry : remove.entrySet()) {
             String encoded = entry.getKey();
