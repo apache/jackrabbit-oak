@@ -25,12 +25,10 @@ import org.apache.jackrabbit.oak.api.Type;
 
 import static org.apache.jackrabbit.oak.api.Type.DECIMALS;
 
-public class DecimalsPropertyState extends MultiPropertyState {
-    private final List<BigDecimal> values;
+public class DecimalsPropertyState extends MultiPropertyState<BigDecimal> {
 
     protected DecimalsPropertyState(String name, List<BigDecimal> values) {
-        super(name);
-        this.values = values;
+        super(name, values);
     }
 
     @Override
@@ -86,11 +84,6 @@ public class DecimalsPropertyState extends MultiPropertyState {
     @Override
     protected String getString(int index) {
         return values.get(index).toString();
-    }
-
-    @Override
-    public int count() {
-        return values.size();
     }
 
     @Override

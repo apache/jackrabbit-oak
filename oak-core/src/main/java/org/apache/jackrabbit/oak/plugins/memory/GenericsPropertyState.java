@@ -24,14 +24,12 @@ import org.apache.jackrabbit.oak.api.Type;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-public class GenericsPropertyState extends MultiPropertyState {
-    private final List<String> values;
+public class GenericsPropertyState extends MultiPropertyState<String> {
     private final Type<?> type;
 
     protected GenericsPropertyState(String name, List<String> values, Type<?> type) {
-        super(name);
+        super(name, values);
         checkArgument(type.isArray());
-        this.values = values;
         this.type = type;
     }
 
@@ -43,11 +41,6 @@ public class GenericsPropertyState extends MultiPropertyState {
     @Override
     protected String getString(int index) {
         return values.get(index);
-    }
-
-    @Override
-    public int count() {
-        return values.size();
     }
 
     @Override

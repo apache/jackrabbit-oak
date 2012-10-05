@@ -27,12 +27,9 @@ import org.apache.jackrabbit.oak.api.Type;
 
 import static org.apache.jackrabbit.oak.api.Type.DOUBLES;
 
-public class DoublesPropertyState extends MultiPropertyState {
-    private final List<Double> values;
-
+public class DoublesPropertyState extends MultiPropertyState<Double> {
     protected DoublesPropertyState(String name, List<Double>values) {
-        super(name);
-        this.values = values;
+        super(name, values);
     }
 
     @Override
@@ -88,11 +85,6 @@ public class DoublesPropertyState extends MultiPropertyState {
     @Override
     protected String getString(int index) {
         return String.valueOf(values.get(index));
-    }
-
-    @Override
-    public int count() {
-        return values.size();
     }
 
     @Override
