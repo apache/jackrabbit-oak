@@ -26,8 +26,6 @@ import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
-import org.junit.Ignore;
-import org.junit.Test;
 
 /**
  * Tests the query engine using the default index implementation: the
@@ -53,12 +51,6 @@ public class LuceneIndexQueryTest extends AbstractQueryTest implements
         MicroKernel mk = new MicroKernelImpl();
         createDefaultKernelTracker().available(mk);
         return new Oak(mk).with(qip).with(ch).createContentRepository();
-    }
-
-    @Test
-    @Ignore("OAK-367")
-    public void sql2() throws Exception {
-        test("sql2.txt");
     }
 
 }

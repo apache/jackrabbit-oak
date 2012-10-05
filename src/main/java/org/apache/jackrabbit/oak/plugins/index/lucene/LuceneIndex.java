@@ -192,6 +192,10 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
 
         for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
             String name = pr.propertyName;
+            if (name.contains("/")) {
+                // lucene cannot handle child-level property restrictions
+                continue;
+            }
             String first = null;
             String last = null;
             boolean isLike = pr.isLike;
