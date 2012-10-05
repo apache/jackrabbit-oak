@@ -22,10 +22,10 @@ import org.apache.jackrabbit.oak.api.Type;
 
 import static org.apache.jackrabbit.oak.api.Type.*;
 
-public class DecimalPropertySate extends SinglePropertyState {
+public class DecimalPropertyState extends SinglePropertyState {
     private final BigDecimal value;
 
-    protected DecimalPropertySate(String name, BigDecimal value) {
+    protected DecimalPropertyState(String name, BigDecimal value) {
         super(name);
         this.value = value;
     }
