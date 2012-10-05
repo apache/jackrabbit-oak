@@ -28,7 +28,7 @@ import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandlerProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
-import org.apache.jackrabbit.oak.spi.security.authentication.OakLoginContext;
+import org.apache.jackrabbit.oak.spi.security.authentication.LoginContext;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
@@ -41,14 +41,14 @@ class ContentSessionImpl implements ContentSession {
 
     private static final Logger log = LoggerFactory.getLogger(ContentSessionImpl.class);
 
-    private final OakLoginContext loginContext;
+    private final LoginContext loginContext;
     private final AccessControlProvider accProvider;
     private final String workspaceName;
     private final NodeStore store;
     private final ConflictHandlerProvider conflictHandlerProvider;
     private final QueryIndexProvider indexProvider;
 
-    public ContentSessionImpl(OakLoginContext loginContext,
+    public ContentSessionImpl(LoginContext loginContext,
             AccessControlProvider accProvider, String workspaceName,
             NodeStore store, ConflictHandlerProvider conflictHandlerProvider,
             QueryIndexProvider indexProvider) {

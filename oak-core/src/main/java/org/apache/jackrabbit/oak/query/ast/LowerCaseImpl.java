@@ -20,8 +20,10 @@ package org.apache.jackrabbit.oak.query.ast;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.SinglePropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
+
+import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 /**
  * The function "lower(..)".
@@ -56,9 +58,8 @@ public class LowerCaseImpl extends DynamicOperandImpl {
         }
         // TODO what is the expected result of LOWER(x) for an array property?
         // currently throws an exception
-        String value = p.getValue().getString();
-        CoreValue v = query.getValueFactory().createValue(value.toLowerCase());
-        return new SinglePropertyState(p.getName(), v);
+        String value = p.getValue(STRING);
+        return PropertyStates.stringProperty(p.getName(), value.toLowerCase());
     }
 
     @Override

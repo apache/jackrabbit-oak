@@ -19,11 +19,11 @@ package org.apache.jackrabbit.oak.plugins.name;
 import java.util.Locale;
 import java.util.Map;
 
-import javax.jcr.PropertyType;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
+
+import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 class NamespaceValidator extends DefaultValidator {
 
@@ -46,14 +46,13 @@ class NamespaceValidator extends DefaultValidator {
             throw new NamespaceValidatorException(
                     "Namespace mapping already registered", prefix);
         } else if (Namespaces.isValidPrefix(prefix)) {
-            if (after.isArray()
-                    || after.getValue().getType() != PropertyType.STRING) {
+            if (after.isArray() || !STRING.equals(after.getType())) {
                 throw new NamespaceValidatorException(
                         "Invalid namespace mapping", prefix);
             } else if (prefix.toLowerCase(Locale.ENGLISH).startsWith("xml")) {
                 throw new NamespaceValidatorException(
                         "XML prefixes are reserved", prefix);
-            } else if (map.containsValue(after.getValue().getString())) {
+            } else if (map.containsValue(after.getValue(STRING))) {
                 throw modificationNotAllowed(prefix);
             }
         } else {

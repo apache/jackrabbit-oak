@@ -31,6 +31,9 @@ import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.security.authentication.AuthInfoImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule;
+import org.apache.jackrabbit.oak.spi.security.authentication.callback.TokenProviderCallback;
+import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
+import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

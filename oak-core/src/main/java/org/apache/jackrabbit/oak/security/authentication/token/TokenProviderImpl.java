@@ -42,6 +42,8 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
+import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
+import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.apache.jackrabbit.oak.spi.security.user.PasswordUtility;
 import org.apache.jackrabbit.oak.spi.security.user.Type;
 import org.apache.jackrabbit.oak.spi.security.user.UserContext;
@@ -51,6 +53,8 @@ import org.apache.jackrabbit.util.ISO8601;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.jackrabbit.oak.api.Type.*;
 
 /**
  * Default implementation of the {@code TokenProvider} interface with the
@@ -304,7 +308,7 @@ public class TokenProviderImpl implements TokenProvider {
             publicAttributes = new HashMap<String, String>();
             for (PropertyState propertyState : tokenNode.getTree().getProperties()) {
                 String name = propertyState.getName();
-                String value = propertyState.getValue().getString();
+                String value = propertyState.getValue(STRING);
                 if (isMandatoryAttribute(name)) {
                     mandatoryAttributes.put(name, value);
                 } else if (isInfoAttribute(name)) {

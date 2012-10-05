@@ -39,6 +39,10 @@ import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
+import org.apache.jackrabbit.oak.plugins.memory.MultiPropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.SinglePropertyState;
+
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
 /**
  * {@code NodeDelegate} serve as internal representations of {@code Node}s.
@@ -170,8 +174,7 @@ public class NodeDelegate extends ItemDelegate {
                 final Map<String, NodeDelegate> ordered =
                         new LinkedHashMap<String, NodeDelegate>();
 
-                for (CoreValue value : order.getValues()) {
-                    String name = value.getString();
+                for (String name : order.getValue(STRINGS)) {
                     Tree child = tree.getChild(name);
                     if (child != null && !name.startsWith(":")) {
                         ordered.put(name, new NodeDelegate(sessionDelegate, child));
@@ -217,8 +220,7 @@ public class NodeDelegate extends ItemDelegate {
 
             PropertyState property = tree.getProperty(PropertyState.OAK_CHILD_ORDER);
             if (property != null) {
-                for (CoreValue value : property.getValues()) {
-                    String name = value.getString();
+                for (String name : property.getValue(STRINGS)) {
                     if (!name.equals(source) && !added.contains(property)
                             && !name.startsWith(":")) {
                         if (name.equals(target)) {
@@ -238,7 +240,7 @@ public class NodeDelegate extends ItemDelegate {
                 order.add(factory.createValue(source));
             }
 
-            tree.setProperty(PropertyState.OAK_CHILD_ORDER, order);
+            tree.setProperty(new MultiPropertyState(PropertyState.OAK_CHILD_ORDER, order));
         }
     }
 
@@ -256,7 +258,7 @@ public class NodeDelegate extends ItemDelegate {
         if (old != null && old.isArray()) {
             throw new ValueFormatException("Attempt to set a single value to multi-valued property.");
         }
-        tree.setProperty(name, value);
+        tree.setProperty(new SinglePropertyState(name, value));
         return new PropertyDelegate(sessionDelegate, tree.getLocation().getChild(name));
     }
 
@@ -278,7 +280,7 @@ public class NodeDelegate extends ItemDelegate {
         if (old != null && ! old.isArray()) {
             throw new ValueFormatException("Attempt to set multiple values to single valued property.");
         }
-        tree.setProperty(name, value);
+        tree.setProperty(new MultiPropertyState(name, value));
         return new PropertyDelegate(sessionDelegate, tree.getLocation().getChild(name));
     }
 

@@ -56,7 +56,7 @@ public class LengthImpl extends DynamicOperandImpl {
             return null;
         }
         if (!p.isArray()) {
-            long length = p.getValue().length();
+            long length = p.size();
             CoreValue v = query.getValueFactory().createValue(length);
             return new SinglePropertyState("LENGTH", v);
         }

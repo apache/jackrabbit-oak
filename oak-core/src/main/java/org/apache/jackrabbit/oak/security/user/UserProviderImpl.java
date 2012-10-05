@@ -20,6 +20,7 @@ import java.security.Principal;
 import java.text.ParseException;
 import java.util.Collections;
 import java.util.Iterator;
+
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.query.Query;
@@ -33,6 +34,7 @@ import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.memory.SinglePropertyState;
 import org.apache.jackrabbit.oak.spi.security.principal.TreeBasedPrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.Type;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
@@ -44,6 +46,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 /**
  * User provider implementation and manager for group memberships with the
@@ -228,7 +231,7 @@ class UserProviderImpl extends AuthorizableBaseProvider implements UserProvider 
         if (isAuthorizableTree(authorizableTree, Type.AUTHORIZABLE)) {
             PropertyState idProp = authorizableTree.getProperty(UserConstants.REP_AUTHORIZABLE_ID);
             if (idProp != null) {
-                return idProp.getValue().getString();
+                return idProp.getValue(STRING);
             } else {
                 return Text.unescapeIllegalJcrChars(authorizableTree.getName());
             }
@@ -261,7 +264,7 @@ class UserProviderImpl extends AuthorizableBaseProvider implements UserProvider 
             authorizableTree.removeProperty(propertyName);
         } else {
             CoreValue cv = valueFactory.createValue(value, propertyType);
-            authorizableTree.setProperty(propertyName, cv);
+            authorizableTree.setProperty(new SinglePropertyState(propertyName, cv));
         }
     }
 

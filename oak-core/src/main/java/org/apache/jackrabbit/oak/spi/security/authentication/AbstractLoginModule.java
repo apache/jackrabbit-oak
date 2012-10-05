@@ -30,6 +30,14 @@ import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.auth.login.LoginException;
 import javax.security.auth.spi.LoginModule;
 
+import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.callback.CredentialsCallback;
+import org.apache.jackrabbit.oak.spi.security.authentication.callback.PrincipalProviderCallback;
+import org.apache.jackrabbit.oak.spi.security.authentication.callback.RepositoryCallback;
+import org.apache.jackrabbit.oak.spi.security.authentication.callback.SecurityProviderCallback;
+import org.apache.jackrabbit.oak.spi.security.principal.OpenPrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -159,18 +167,42 @@ public abstract class AbstractLoginModule implements LoginModule {
     }
 
     private PrincipalProvider getPrincipalProvider() {
-        PrincipalProvider principalProvider = null;
-        if (callbackHandler != null) {
-            try {
-                PrincipalProviderCallback principalCallBack = new PrincipalProviderCallback();
-                callbackHandler.handle(new Callback[] {principalCallBack});
-                principalProvider = principalCallBack.getPrincipalProvider();
-            } catch (IOException e) {
-                log.warn(e.getMessage());
-            } catch (UnsupportedCallbackException e) {
-                log.warn(e.getMessage());
-            }
-        }
-        return principalProvider;
+        // TODO: replace fake pp to enable proper principal resolution. code below works but...
+        return new OpenPrincipalProvider();
+//        PrincipalProvider principalProvider = null;
+//        if (callbackHandler != null) {
+//            RepositoryCallback rcb = new RepositoryCallback();
+//            SecurityProviderCallback scb = new SecurityProviderCallback();
+//            try {
+//                callbackHandler.handle(new Callback[] {rcb,  scb});
+//                ContentSession contentSession = rcb.getContentSession();
+//                SecurityProvider securityProvider = scb.getSecurityProvider();
+//                if (contentSession != null && securityProvider != null) {
+//                    // FIXME: getLatestRoot is unbearable slow.
+//                    // FIXME: - either use a different Root that passed from the repo to the callback-handler or
+//                    // FIXME: - fix mk such that retrieving the root is for free
+//                    principalProvider = securityProvider.getPrincipalConfiguration().
+//                            getPrincipalProvider(contentSession, contentSession.getLatestRoot(), NamePathMapper.DEFAULT);
+//                }
+//            } catch (UnsupportedCallbackException e) {
+//                log.debug(e.getMessage());
+//            } catch (IOException e) {
+//                log.debug(e.getMessage());
+//            }
+//
+//            if (principalProvider == null) {
+//                try {
+//                    PrincipalProviderCallback principalCallBack = new PrincipalProviderCallback();
+//                    callbackHandler.handle(new Callback[] {principalCallBack});
+//                    principalProvider = principalCallBack.getPrincipalProvider();
+//                } catch (IOException e) {
+//                    log.debug(e.getMessage());
+//                } catch (UnsupportedCallbackException e) {
+//                    log.debug(e.getMessage());
+//                }
+//            }
+//
+//        }
+//        return principalProvider;
     }
 }

@@ -20,8 +20,6 @@ import java.util.Collections;
 import java.util.List;
 import javax.security.auth.Subject;
 
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 
 /**
@@ -36,7 +34,7 @@ public class OpenAccessControlProvider
         return new AccessControlContext() {
             @Override
             public CompiledPermissions getPermissions() {
-                return AllPermissions.INSTANCE;
+                return AllPermissions.getInstance();
             }
         };
     }
@@ -44,32 +42,5 @@ public class OpenAccessControlProvider
     @Override
     public List<ValidatorProvider> getValidatorProviders() {
         return Collections.emptyList();
-    }
-
-    private static final class AllPermissions implements CompiledPermissions {
-
-        private static final CompiledPermissions INSTANCE = new AllPermissions();
-
-        @Override
-        public boolean canRead(String path, boolean isProperty) {
-            return true;
-        }
-
-        @Override
-        public boolean isGranted(int permissions) {
-            return true;
-        }
-
-        @Override
-        public boolean isGranted(Tree tree, int permissions) {
-            return true;
-        }
-
-        @Override
-        public boolean isGranted(Tree parent,
-                                 PropertyState property,
-                                 int permissions) {
-            return true;
-        }
     }
 }

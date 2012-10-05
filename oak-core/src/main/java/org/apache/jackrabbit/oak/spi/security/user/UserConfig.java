@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
- * UserManagerConfig provides utilities to retrieve configuration options
+ * UserConfig provides utilities to retrieve configuration options
  * related to user management. In addition it defines some constants that
  * have been used in Jackrabbit 2.0 default user management implementation.
  */

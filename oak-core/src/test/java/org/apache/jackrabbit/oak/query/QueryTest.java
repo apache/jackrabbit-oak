@@ -27,9 +27,18 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.jackrabbit.mk.core.MicroKernelImpl;
+import org.apache.jackrabbit.mk.index.IndexWrapper;
+import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
+import org.apache.jackrabbit.oak.plugins.index.old.Indexer;
+import org.apache.jackrabbit.oak.plugins.index.old.PropertyIndexer;
+import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
+import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -40,6 +49,23 @@ import static org.junit.Assert.fail;
  * Test the query feature.
  */
 public class QueryTest extends AbstractQueryTest {
+
+    @Override
+    protected ContentRepository createRepository() {
+
+        // the property and prefix index currently require the index wrapper
+        IndexWrapper mk = new IndexWrapper(new MicroKernelImpl());
+        Indexer indexer = mk.getIndexer();
+
+        // MicroKernel mk = new MicroKernelImpl();
+        // Indexer indexer = new Indexer(mk);
+
+        PropertyIndexer pi = new PropertyIndexer(indexer);
+        QueryIndexProvider qip = new CompositeQueryIndexProvider(pi);
+        CompositeHook hook = new CompositeHook(pi);
+        createDefaultKernelTracker().available(mk);
+        return new Oak(mk).with(qip).with(hook).createContentRepository();
+    }
 
     @Test
     public void sql1() throws Exception {
@@ -236,11 +262,6 @@ public class QueryTest extends AbstractQueryTest {
             buff.append(v == null ? "null" : v.getString());
         }
         return buff.toString();
-    }
-
-    private Result executeQuery(String statement, String language, HashMap<String, CoreValue> sv) throws ParseException {
-        return qe.executeQuery(statement, language, Long.MAX_VALUE, 0, sv,
-                session.getLatestRoot(), null);
     }
 
     /**

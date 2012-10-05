@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.mk.wrapper;
 
-import static org.apache.jackrabbit.oak.plugins.index.Indexer.INDEX_CONFIG_PATH;
+import static org.apache.jackrabbit.oak.plugins.index.old.Indexer.INDEX_CONFIG_PATH;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import org.apache.jackrabbit.mk.api.MicroKernel;

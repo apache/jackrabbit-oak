@@ -45,7 +45,18 @@ import org.slf4j.LoggerFactory;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
+/**
+ * Validator implementation that check JCR node type constraints.
+ *
+ * TODO: check protected properties and the structure they enforce. some of
+ *       those checks may have to go into separate validator classes. This class
+ *       should only perform checks based on node type information. E.g. it
+ *       cannot and should not check whether the value of the protected jcr:uuid
+ *       is unique.
+ */
 class TypeValidator implements Validator {
     private static final Logger log = LoggerFactory.getLogger(TypeValidator.class);
 
@@ -73,6 +84,9 @@ class TypeValidator implements Validator {
 
     @Override
     public void propertyAdded(PropertyState after) throws CommitFailedException {
+        if (isInternal(after)) {
+            return;
+        }
         try {
             checkType(after);
             getParentType().checkSetProperty(after);
@@ -89,6 +103,9 @@ class TypeValidator implements Validator {
 
     @Override
     public void propertyChanged(PropertyState before, PropertyState after) throws CommitFailedException {
+        if (isInternal(after)) {
+            return;
+        }
         try {
             checkType(after);
             getParentType().checkSetProperty(after);
@@ -105,6 +122,9 @@ class TypeValidator implements Validator {
 
     @Override
     public void propertyDeleted(PropertyState before) throws CommitFailedException {
+        if (isInternal(before)) {
+            return;
+        }
         try {
             getParentType().checkRemoveProperty(before);
         }
@@ -122,11 +142,11 @@ class TypeValidator implements Validator {
     public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
         try {
             PropertyState type = after.getProperty(JCR_PRIMARYTYPE);
-            if (type == null || type.getValues().isEmpty()) {
+            if (type == null || type.count() == 0) {
                 getParentType().canAddChildNode(name);
             }
             else {
-                String ntName = type.getValues().get(0).getString();
+                String ntName = type.getValue(STRING, 0);
                 getParentType().checkAddChildNode(name, ntName);
             }
 
@@ -168,12 +188,15 @@ class TypeValidator implements Validator {
 
     //------------------------------------------------------------< private >---
 
+    private static boolean isInternal(PropertyState state) {
+        return state.getName().equals(PropertyState.OAK_CHILD_ORDER);
+    }
+
     private void checkType(PropertyState after) throws RepositoryException {
         boolean primaryType = JCR_PRIMARYTYPE.equals(after.getName());
         boolean mixinType = JCR_MIXINTYPES.equals(after.getName());
         if (primaryType || mixinType) {
-            for (CoreValue cv : after.getValues()) {
-                String ntName = cv.getString();
+            for (String ntName : after.getValue(STRINGS)) {
                 NodeType nt = ntm.getNodeType(ntName);
                 if (nt.isAbstract()) {
                     throw new ConstraintViolationException("Can't create node with abstract type: " + ntName);
@@ -191,8 +214,7 @@ class TypeValidator implements Validator {
     private NodeType getPrimaryType(Tree tree) throws RepositoryException {
         PropertyState jcrPrimaryType = tree.getProperty(JCR_PRIMARYTYPE);
         if (jcrPrimaryType != null) {
-            for (CoreValue typeName : jcrPrimaryType.getValues()) {
-                String ntName = typeName.getString();
+            for (String ntName : jcrPrimaryType.getValue(STRINGS)) {
                 NodeType type = ntm.getNodeType(ntName);
                 if (type == null) {
                     log.warn("Could not find node type {} for item at {}", ntName, tree.getPath());
@@ -208,8 +230,7 @@ class TypeValidator implements Validator {
         List<NodeType> types = Lists.newArrayList();
         PropertyState jcrMixinType = tree.getProperty(JCR_MIXINTYPES);
         if (jcrMixinType != null) {
-            for (CoreValue typeName : jcrMixinType.getValues()) {
-                String ntName = typeName.getString();
+            for (String ntName : jcrMixinType.getValue(STRINGS)) {
                 NodeType type = ntm.getNodeType(ntName);
                 if (type == null) {
                     log.warn("Could not find mixin type {} for item at {}", ntName, tree.getPath());
@@ -234,6 +255,9 @@ class TypeValidator implements Validator {
         }
 
         public void checkSetProperty(PropertyState property) throws ConstraintViolationException {
+            if (isProtected(property.getName())) {
+                return;
+            }
             if (property.isArray()) {
                 checkSetProperty(property.getName(), property.getValues());
             }
@@ -265,6 +289,9 @@ class TypeValidator implements Validator {
         }
 
         public void checkRemoveProperty(PropertyState property) throws ConstraintViolationException {
+            if (isProtected(property.getName())) {
+                return;
+            }
             final String name = property.getName();
             for (NodeType nodeType : allTypes) {
                 if (nodeType.canRemoveProperty(name)) {
@@ -276,7 +303,7 @@ class TypeValidator implements Validator {
 
         public void checkRemoveNode(final String name) throws ConstraintViolationException {
             for (NodeType nodeType : allTypes) {
-                if (nodeType.canRemoveProperty(name)) {
+                if (nodeType.canRemoveNode(name)) {
                     return;
                 }
             }
@@ -318,6 +345,17 @@ class TypeValidator implements Validator {
                     }
                 }
             }
+        }
+
+        private boolean isProtected(String propertyName) {
+            for (NodeType nodeType : allTypes) {
+                for (PropertyDefinition pd : nodeType.getPropertyDefinitions()) {
+                    if (propertyName.equals(pd.getName()) && pd.isProtected()) {
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
 
         private Value[] jcrValues(List<CoreValue> values) {

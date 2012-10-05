@@ -36,12 +36,15 @@ import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.memory.MultiPropertyState;
 import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
 import org.apache.jackrabbit.oak.spi.security.user.Type;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
 /**
  * {@code MembershipProvider} implementation storing group membership information
@@ -182,10 +185,10 @@ public class MembershipProviderImpl extends AuthorizableBaseProvider implements 
             } else {
                 PropertyState property = groupTree.getProperty(REP_MEMBERS);
                 if (property != null) {
-                    List<CoreValue> members = property.getValues();
+                    Iterable<String> members = property.getValue(STRINGS);
                     String authorizableUUID = getContentID(authorizableTree);
-                    for (CoreValue v : members) {
-                        if (authorizableUUID.equals(v.getString())) {
+                    for (String v : members) {
+                        if (authorizableUUID.equals(v)) {
                             return true;
                         }
                     }
@@ -218,7 +221,7 @@ public class MembershipProviderImpl extends AuthorizableBaseProvider implements 
             } else {
                 values = Collections.singletonList(toAdd);
             }
-            groupTree.setProperty(REP_MEMBERS, values);
+            groupTree.setProperty(new MultiPropertyState(REP_MEMBERS, values));
         }
         return true;
     }
@@ -240,7 +243,7 @@ public class MembershipProviderImpl extends AuthorizableBaseProvider implements 
                     if (values.isEmpty()) {
                         groupTree.removeProperty(REP_MEMBERS);
                     } else {
-                        groupTree.setProperty(REP_MEMBERS, values);
+                        groupTree.setProperty(new MultiPropertyState(REP_MEMBERS, values));
                     }
                     return true;
                 }

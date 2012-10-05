@@ -42,8 +42,5 @@ public interface LoginContextProvider {
      * @throws LoginException If an error occurs while creating a new context.
      */
     @Nonnull
-    OakLoginContext getLoginContext(
-            Credentials credentials, String workspaceName)
-            throws LoginException;
-
+    LoginContext getLoginContext(Credentials credentials, String workspaceName) throws LoginException;
 }

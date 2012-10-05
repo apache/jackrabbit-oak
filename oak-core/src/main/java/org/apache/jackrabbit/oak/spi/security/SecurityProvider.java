@@ -20,7 +20,9 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlProvider;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserContext;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
  * SecurityProvider... TODO
@@ -28,11 +30,14 @@ import org.apache.jackrabbit.oak.spi.security.user.UserContext;
 public interface SecurityProvider {
 
     @Nonnull
-    LoginContextProvider getLoginContextProvider();
+    LoginContextProvider getLoginContextProvider(NodeStore nodeStore);
 
     @Nonnull
     AccessControlProvider getAccessControlProvider();
 
     @Nonnull
     UserContext getUserContext(); // TODO review naming consistency
+
+    @Nonnull
+    PrincipalConfiguration getPrincipalConfiguration();
 }

@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+
 import javax.annotation.Nonnull;
 import javax.jcr.Node;
 import javax.jcr.Property;
@@ -41,6 +42,8 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 /**
  * AuthorizableImpl...
@@ -325,7 +328,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
     String getPrincipalName() throws RepositoryException {
         Tree tree = getTree();
         if (tree.hasProperty(REP_PRINCIPAL_NAME)) {
-            return tree.getProperty(REP_PRINCIPAL_NAME).getValue().getString();
+            return tree.getProperty(REP_PRINCIPAL_NAME).getValue(STRING);
         } else {
             String msg = "Authorizable without principal name " + getID();
             log.warn(msg);

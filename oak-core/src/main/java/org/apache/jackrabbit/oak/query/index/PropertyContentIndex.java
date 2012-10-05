@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.query.index;
 
 import java.util.Iterator;
 import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.plugins.index.PropertyIndex;
+import org.apache.jackrabbit.oak.plugins.index.old.PropertyIndex;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;

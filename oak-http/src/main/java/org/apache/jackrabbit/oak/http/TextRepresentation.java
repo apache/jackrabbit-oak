@@ -21,10 +21,13 @@ import java.io.PrintWriter;
 
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.tika.mime.MediaType;
+
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
 class TextRepresentation implements Representation {
 
@@ -41,12 +44,12 @@ class TextRepresentation implements Representation {
             writer.print(property.getName());
             writer.print(": ");
             if (property.isArray()) {
-                for (CoreValue value : property.getValues()) {
-                    writer.print(value.getString());
+                for (String value : property.getValue(STRINGS)) {
+                    writer.print(value);
                     writer.print(", ");
                 }
             } else {
-                writer.print(property.getValue().getString());
+                writer.print(property.getValue(STRING));
             }
             writer.print('\n');
         }
@@ -64,12 +67,12 @@ class TextRepresentation implements Representation {
             throws IOException {
         PrintWriter writer = startResponse(response);
         if (property.isArray()) {
-            for (CoreValue value : property.getValues()) {
-                writer.print(value.getString());
+            for (String value : property.getValue(Type.STRINGS)) {
+                writer.print(value);
                 writer.print('\n');
             }
         } else {
-            writer.print(property.getValue().getString());
+            writer.print(property.getValue(STRING));
         }
     }
 

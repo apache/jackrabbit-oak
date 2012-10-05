@@ -16,30 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.type;
 
-import java.util.Collections;
-import java.util.List;
-import javax.annotation.Nonnull;
-import javax.jcr.Session;
-
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
-import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.Oak;
-import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.DefaultMicroKernelTracker;
 import org.apache.jackrabbit.oak.spi.lifecycle.MicroKernelTracker;
-import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
-import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
-import org.apache.jackrabbit.oak.spi.security.authentication.OpenLoginContextProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.OpenAccessControlProvider;
-import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
-import org.apache.jackrabbit.oak.spi.security.user.UserContext;
-import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
+import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
@@ -62,59 +46,47 @@ public class InitialContent extends DefaultMicroKernelTracker {
             mk.commit("/", "^\"jcr:primaryType\":\"nam:rep:root\"" +
                     "+\"jcr:system\":{" +
                     "\"jcr:primaryType\"    :\"nam:rep:system\"," +
-                    // FIXME: user-mgt related unique properties (rep:authorizableId, rep:principalName) are implementation detail and not generic for repo
-                    // FIXME: rep:principalName only needs to be unique if defined with user/group nodes -> add defining nt-info to uniqueness constraint otherwise ac-editing will fail.
-                    "\":unique\"            :{\"jcr:uuid\":{},\"rep:authorizableId\":{},\"rep:principalName\":{}}," +
                     "\"jcr:versionStorage\" :{\"jcr:primaryType\":\"nam:rep:versionStorage\"}," +
                     "\"jcr:nodeTypes\"      :{\"jcr:primaryType\":\"nam:rep:nodeTypes\"}," +
                     "\"jcr:activities\"     :{\"jcr:primaryType\":\"nam:rep:Activities\"}," +
-                    "\"rep:privileges\"     :{\"jcr:primaryType\":\"nam:rep:Privileges\"}}", null, null);
+                    "\"rep:privileges\"     :{\"jcr:primaryType\":\"nam:rep:Privileges\"}}" +
+                    "+\"rep:security\":{" +
+                    "\"jcr:primaryType\":\"nam:rep:AuthorizableFolder\"," +
+                    "\"rep:authorizables\":{" +
+                        "\"jcr:primaryType\":\"nam:rep:AuthorizableFolder\"," +
+                        "\"rep:users\":{" +
+                            "\"jcr:primaryType\":\"nam:rep:AuthorizableFolder\"," +
+                            "\"a\":{" +
+                                "\"jcr:primaryType\":\"nam:rep:AuthorizableFolder\"," +
+                                "\"ad\":{" +
+                                    "\"jcr:primaryType\":\"nam:rep:AuthorizableFolder\"," +
+                                    "\"admin\":{" +
+                                        "\"jcr:primaryType\":\"nam:rep:User\"," +
+                                        "\"jcr:uuid\":\"21232f29-7a57-35a7-8389-4a0e4a801fc3\"," +
+                                        "\"rep:principalName\":\"admin\"," +
+                                        "\"rep:authorizableId\":\"admin\"," +
+                                        "\"rep:password\":\"{SHA-256}9e515755e95513ce-1000-0696716f8baf8890a35eda1b9f2d5a4e727d1c7e1c062f03180dcc2a20f61f3b\"}}," +
+                                "\"an\":{ " +
+                                    "\"jcr:primaryType\":\"nam:rep:AuthorizableFolder\"," +
+                                    "\"anonymous\":{" +
+                                        "\"jcr:primaryType\":\"nam:rep:User\"," +
+                                        "\"jcr:uuid\":\"294de355-7d9d-30b3-92d8-a1e6aab028cf\"," +
+                                        "\"rep:principalName\":\"anonymous\"," +
+                                        "\"rep:authorizableId\":\"anonymous\"}}" +
+                    "}}}}", null, null);
         }
-
-        if (!root.hasChildNode("oak-index")) {
-            mk.commit("/", "+\"oak-index\":{ \"indexes\": { \"type\": \"lucene\" }}", null, null);
+        if (!root.hasChildNode("oak:index")) {
+            // FIXME: user-mgt related unique properties (rep:authorizableId, rep:principalName) are implementation detail and not generic for repo
+            // FIXME: rep:principalName only needs to be unique if defined with user/group nodes -> add defining nt-info to uniqueness constraint otherwise ac-editing will fail.
+            mk.commit("/", "+\"oak:index\":{\"jcr:uuid\":{\"unique\":true},\"rep:authorizableId\":{\"unique\":true},\"rep:principalName\":{\"unique\":true}}", null, null);
         }
 
         BuiltInNodeTypes.register(createRoot(mk));
     }
 
     private Root createRoot(MicroKernel mk) {
-        SecurityProvider securityProvider = new SecurityProvider() {
-            @Override
-            public LoginContextProvider getLoginContextProvider() {
-                return new OpenLoginContextProvider();
-            }
-            @Override
-            public AccessControlProvider getAccessControlProvider() {
-                return new OpenAccessControlProvider();
-            }
-            @Override
-            public UserContext getUserContext() {
-                return new UserContext() {
-                    @Override
-                    public UserProvider getUserProvider(ContentSession contentSession, Root root) {
-                        throw new UnsupportedOperationException();
-                    }
-                    @Override
-                    public MembershipProvider getMembershipProvider(ContentSession contentSession, Root root) {
-                        throw new UnsupportedOperationException();
-                    }
-                    @Override
-                    public List<ValidatorProvider> getValidatorProviders() {
-                        return Collections.emptyList();
-                    }
-
-                    @Nonnull
-                    @Override
-                    public UserManager getUserManager(Session session, ContentSession contentSession, Root root, NamePathMapper namePathMapper) {
-                        throw new UnsupportedOperationException();
-                    }
-                };
-            }
-        };
-
         Oak oak = new Oak(mk);
-        oak.with(securityProvider); // TODO: this shouldn't be needed
+        oak.with(new OpenSecurityProvider()); // TODO: this shouldn't be needed
         try {
             return oak.createContentRepository().login(null, null).getLatestRoot();
         } catch (Exception e) {

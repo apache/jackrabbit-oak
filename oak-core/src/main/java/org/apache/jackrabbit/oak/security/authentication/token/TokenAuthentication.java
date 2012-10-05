@@ -24,6 +24,8 @@ import javax.jcr.Credentials;
 
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
+import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
+import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,7 +66,7 @@ class TokenAuthentication implements Authentication {
     @Nonnull
     TokenInfo getTokenInfo() {
         if (tokenInfo == null) {
-            throw new IllegalStateException("Token info can only be retrieved upon successful authentication.");
+            throw new IllegalStateException("Token info can only be retrieved after successful authentication.");
         }
         return tokenInfo;
     }

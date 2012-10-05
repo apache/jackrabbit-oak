@@ -44,6 +44,7 @@ import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.oak.api.Type.*;
 
 /**
  * The {@code PrincipalProviderImpl} is a principal provider implementation
@@ -144,7 +145,7 @@ public class PrincipalProviderImpl implements PrincipalProvider {
         checkNotNull(authorizableTree);
         checkState(authorizableTree.hasProperty(JcrConstants.JCR_PRIMARYTYPE));
 
-        String ntName = authorizableTree.getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue().getString();
+        String ntName = authorizableTree.getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue(STRING);
         return UserConstants.NT_REP_GROUP.equals(ntName);
     }
 

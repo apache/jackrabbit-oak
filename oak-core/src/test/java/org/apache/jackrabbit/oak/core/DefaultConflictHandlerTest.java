@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.core;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -28,6 +27,7 @@ import org.apache.jackrabbit.oak.plugins.commit.DefaultConflictHandler;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -35,8 +35,8 @@ import static org.junit.Assert.assertNull;
 public class DefaultConflictHandlerTest extends AbstractCoreTest {
     private RootImpl ourRoot;
     private Root theirRoot;
-    private CoreValue ourValue;
-    private CoreValue theirValue;
+    private String ourValue;
+    private String theirValue;
 
     @Override
     protected NodeState createInitialState(MicroKernel microKernel) {
@@ -46,8 +46,8 @@ public class DefaultConflictHandlerTest extends AbstractCoreTest {
         ourRoot = createRootImpl("");
         theirRoot = createRootImpl("");
 
-        ourValue = valueFactory.createValue("foo");
-        theirValue = valueFactory.createValue("bar");
+        ourValue = "foo";
+        theirValue = "bar";
         return store.getRoot();
     }
 
@@ -61,7 +61,7 @@ public class DefaultConflictHandlerTest extends AbstractCoreTest {
 
         PropertyState p = ourRoot.getTree("/").getProperty("p");
         assertNotNull(p);
-        assertEquals(ourValue, p.getValue());
+        assertEquals(ourValue, p.getValue(STRING));
     }
 
     @Test
@@ -74,7 +74,7 @@ public class DefaultConflictHandlerTest extends AbstractCoreTest {
 
         PropertyState p = ourRoot.getTree("/").getProperty("a");
         assertNotNull(p);
-        assertEquals(ourValue, p.getValue());
+        assertEquals(ourValue, p.getValue(STRING));
     }
 
     @Test
@@ -87,7 +87,7 @@ public class DefaultConflictHandlerTest extends AbstractCoreTest {
 
         PropertyState p = ourRoot.getTree("/").getProperty("a");
         assertNotNull(p);
-        assertEquals(ourValue, p.getValue());
+        assertEquals(ourValue, p.getValue(STRING));
     }
 
     @Test
@@ -112,7 +112,7 @@ public class DefaultConflictHandlerTest extends AbstractCoreTest {
 
         Tree n = ourRoot.getTree("/n");
         assertNotNull(n);
-        assertEquals(ourValue, n.getProperty("p").getValue());
+        assertEquals(ourValue, n.getProperty("p").getValue(STRING));
     }
 
     @Test
@@ -125,7 +125,7 @@ public class DefaultConflictHandlerTest extends AbstractCoreTest {
 
         Tree n = ourRoot.getTree("/x");
         assertNotNull(n);
-        assertEquals(ourValue, n.getProperty("p").getValue());
+        assertEquals(ourValue, n.getProperty("p").getValue(STRING));
     }
 
     @Test
@@ -151,7 +151,7 @@ public class DefaultConflictHandlerTest extends AbstractCoreTest {
 
         PropertyState p = ourRoot.getTree("/").getProperty("p");
         assertNotNull(p);
-        assertEquals(theirValue, p.getValue());
+        assertEquals(theirValue, p.getValue(STRING));
     }
 
     @Test
@@ -178,7 +178,7 @@ public class DefaultConflictHandlerTest extends AbstractCoreTest {
 
         PropertyState p = ourRoot.getTree("/").getProperty("a");
         assertNotNull(p);
-        assertEquals(theirValue, p.getValue());
+        assertEquals(theirValue, p.getValue(STRING));
     }
 
     @Test
@@ -192,7 +192,7 @@ public class DefaultConflictHandlerTest extends AbstractCoreTest {
 
         PropertyState p = ourRoot.getTree("/").getProperty("a");
         assertNotNull(p);
-        assertEquals(theirValue, p.getValue());
+        assertEquals(theirValue, p.getValue(STRING));
     }
 
     @Test
@@ -206,7 +206,7 @@ public class DefaultConflictHandlerTest extends AbstractCoreTest {
 
         Tree n = ourRoot.getTree("/n");
         assertNotNull(n);
-        assertEquals(theirValue, n.getProperty("p").getValue());
+        assertEquals(theirValue, n.getProperty("p").getValue(STRING));
     }
 
     @Test
@@ -232,7 +232,7 @@ public class DefaultConflictHandlerTest extends AbstractCoreTest {
 
         Tree n = ourRoot.getTree("/x");
         assertNotNull(n);
-        assertEquals(theirValue, n.getProperty("p").getValue());
+        assertEquals(theirValue, n.getProperty("p").getValue(STRING));
     }
 
 }
