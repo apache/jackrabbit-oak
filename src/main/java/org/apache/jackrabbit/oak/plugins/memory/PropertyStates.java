@@ -185,7 +185,7 @@ public final class PropertyStates {
     }
 
     public static PropertyState decimalProperty(String name, BigDecimal value) {
-        return new DecimalPropertySate(name, value);
+        return new DecimalPropertyState(name, value);
     }
 
     public static PropertyState binaryProperty(String name, Blob value) {
