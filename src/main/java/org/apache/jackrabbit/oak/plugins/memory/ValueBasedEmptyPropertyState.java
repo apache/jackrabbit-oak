@@ -29,14 +29,14 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Property state that contains an empty array of values. Used as a base
- * class for {@link SinglePropertyState} and {@link MultiPropertyState}.
+ * class for {@link ValueBasedSinglePropertyState} and {@link ValueBasedMultiPropertyState}.
  */
-class EmptyPropertyState implements PropertyState {
+class ValueBasedEmptyPropertyState implements PropertyState {
 
     private final String name;
     private final Type<?> type;
 
-    public EmptyPropertyState(String name, Type<?> type) {
+    ValueBasedEmptyPropertyState(String name, Type<?> type) {
         this.name = checkNotNull(name);
         this.type = type;
     }

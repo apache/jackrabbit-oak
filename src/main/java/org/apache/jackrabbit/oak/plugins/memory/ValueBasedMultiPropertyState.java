@@ -35,11 +35,11 @@ import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 /**
  * Multi-valued property state.
  */
-public class MultiPropertyState extends EmptyPropertyState {
+public class ValueBasedMultiPropertyState extends ValueBasedEmptyPropertyState {
 
     private final List<CoreValue> values;
 
-    MultiPropertyState(String name, List<CoreValue> values) {
+    ValueBasedMultiPropertyState(String name, List<CoreValue> values) {
         super(name, getBaseType(values));
         this.values = Collections.unmodifiableList(
                 new ArrayList<CoreValue>(checkNotNull(values)));
