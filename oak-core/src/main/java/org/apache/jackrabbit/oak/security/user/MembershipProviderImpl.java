@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+
 import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 
@@ -29,16 +30,15 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
-
 import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.memory.CoreValues;
-import org.apache.jackrabbit.oak.plugins.memory.MultiPropertyState;
-import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
+import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.slf4j.Logger;
@@ -221,7 +221,7 @@ public class MembershipProviderImpl extends AuthorizableBaseProvider implements 
             } else {
                 values = Collections.singletonList(toAdd);
             }
-            groupTree.setProperty(new MultiPropertyState(REP_MEMBERS, values));
+            groupTree.setProperty(PropertyStates.createProperty(REP_MEMBERS, values));
         }
         return true;
     }
@@ -243,7 +243,7 @@ public class MembershipProviderImpl extends AuthorizableBaseProvider implements 
                     if (values.isEmpty()) {
                         groupTree.removeProperty(REP_MEMBERS);
                     } else {
-                        groupTree.setProperty(new MultiPropertyState(REP_MEMBERS, values));
+                        groupTree.setProperty(PropertyStates.createProperty(REP_MEMBERS, values));
                     }
                     return true;
                 }

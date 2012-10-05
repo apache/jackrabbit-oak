@@ -23,7 +23,6 @@ import java.util.Collections;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -32,26 +31,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * Single-valued property state.
  */
 public class SinglePropertyState extends EmptyPropertyState {
-
-    public static PropertyState create(String name, boolean value) {
-        return new SinglePropertyState(name, BooleanValue.create(value));
-    }
-
-    public static PropertyState create(String name, double value) {
-        return new SinglePropertyState(name, new DoubleValue(value));
-    }
-
-    public static PropertyState create(String name, long value) {
-        return new SinglePropertyState(name, new LongValue(value));
-    }
-
-    public static PropertyState create(String name, String value) {
-        return new SinglePropertyState(name, new StringValue(value));
-    }
-
     private final CoreValue value;
 
-    public SinglePropertyState(String name, CoreValue value) {
+    SinglePropertyState(String name, CoreValue value) {
         super(name, Type.fromTag(value.getType(), false));
         this.value = checkNotNull(value);
     }
