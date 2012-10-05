@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.type.constraint;
+package org.apache.jackrabbit.oak.plugins.nodetype.constraint;
 
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;

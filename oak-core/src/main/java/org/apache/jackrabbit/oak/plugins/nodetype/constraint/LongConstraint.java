@@ -14,42 +14,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.type.constraint;
-
-import java.util.Calendar;
+package org.apache.jackrabbit.oak.plugins.nodetype.constraint;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
-import org.apache.jackrabbit.value.DateValue;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class DateConstraint extends NumericConstraint<Calendar> {
-    public DateConstraint(String definition) {
+public class LongConstraint extends NumericConstraint<Long> {
+    private static final Logger log = LoggerFactory.getLogger(LongConstraint.class);
+
+    public LongConstraint(String definition) {
         super(definition);
     }
 
     @Override
-    protected Calendar getBound(String bound) {
-        try {
-            return DateValue.valueOf(bound).getDate();
-        }
-        catch (RepositoryException e) {
-            throw (NumberFormatException) new NumberFormatException().initCause(e);
-        }
+    protected Long getBound(String bound) {
+        return bound == null || bound.isEmpty()
+            ? null
+            : Long.parseLong(bound);
     }
 
     @Override
-    protected Calendar getValue(Value value) throws RepositoryException {
-        return value.getDate();
+    protected Long getValue(Value value) throws RepositoryException {
+        return value.getLong();
     }
 
     @Override
-    protected boolean less(Calendar val, Calendar bound) {
-        return val.getTimeInMillis() < bound.getTimeInMillis();
-    }
-
-    @Override
-    protected boolean equals(Calendar val, Calendar bound) {
-        return val.getTimeInMillis() == bound.getTimeInMillis();
+    protected boolean less(Long val, Long bound) {
+        return val < bound;
     }
 }

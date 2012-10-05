@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.type;
+package org.apache.jackrabbit.oak.plugins.nodetype;
 
 import java.util.List;
 
@@ -74,7 +74,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager {
     protected abstract Tree getTypes();
 
     /**
-     * The value factory to be used by {@link org.apache.jackrabbit.oak.plugins.type.PropertyDefinitionImpl#getDefaultValues()}.
+     * The value factory to be used by {@link org.apache.jackrabbit.oak.plugins.nodetype.PropertyDefinitionImpl#getDefaultValues()}.
      * If {@code null} the former returns {@code null}.
      * @return  {@code ValueFactory} instance or {@code null}.
      */

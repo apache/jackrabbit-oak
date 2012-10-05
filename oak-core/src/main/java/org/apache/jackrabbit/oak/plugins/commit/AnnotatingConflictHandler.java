@@ -28,13 +28,13 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
-import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.ADD_EXISTING;
-import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.CHANGE_CHANGED;
-import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.CHANGE_DELETED;
-import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.DELETE_CHANGED;
-import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.DELETE_DELETED;
-import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.MIX_REP_MERGE_CONFLICT;
-import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.REP_OURS;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.ADD_EXISTING;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.CHANGE_CHANGED;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.CHANGE_DELETED;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.DELETE_CHANGED;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.DELETE_DELETED;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.MIX_REP_MERGE_CONFLICT;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_OURS;
 
 /**
  * This {@link ConflictHandler} implementation resolves conflicts to
