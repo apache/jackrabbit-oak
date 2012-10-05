@@ -21,10 +21,12 @@ package org.apache.jackrabbit.oak.plugins.memory;
 import java.util.Collections;
 
 import javax.annotation.Nonnull;
+import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 
+import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
@@ -98,10 +100,18 @@ abstract class EmptyPropertyState implements PropertyState {
         }
         else if (other instanceof PropertyState) {
             PropertyState that = (PropertyState) other;
-            return getName().equals(that.getName())
-                    && isArray() == that.isArray()
-                    && getType().equals(that.getType())
-                    && getValue(STRINGS).equals(that.getValue(STRINGS));
+            if (!getName().equals(that.getName())) {
+                return false;
+            }
+            if (!getType().equals(that.getType())) {
+                return false;
+            }
+            if (getType().tag() == PropertyType.BINARY) {
+                return getValue(BINARIES).equals(that.getValue(BINARIES));
+            }
+            else {
+                return getValue(STRINGS).equals(that.getValue(STRINGS));
+            }
         }
         else {
             return false;
