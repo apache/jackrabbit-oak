@@ -36,10 +36,8 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
-import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.state.AbstractChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -48,8 +46,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.kernel.CoreValueMapper.fromJsopReader;
-import static org.apache.jackrabbit.oak.kernel.CoreValueMapper.listFromJsopReader;
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.readArrayProperty;
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.readProperty;
 
 /**
  * Basic {@link NodeState} implementation based on the {@link MicroKernel}
@@ -123,11 +121,9 @@ public final class KernelNodeState extends AbstractNodeState {
                     }
                     childPaths.put(name, childPath);
                 } else if (reader.matches('[')) {
-                    List<CoreValue> values = listFromJsopReader(reader, kernel);
-                    properties.put(name, PropertyStates.createProperty(name, values));
+                    properties.put(name, readArrayProperty(name, reader, kernel));
                 } else {
-                    CoreValue cv = fromJsopReader(reader, kernel);
-                    properties.put(name, PropertyStates.createProperty(name, cv));
+                    properties.put(name, readProperty(name, reader, kernel));
                 }
             } while (reader.matches(','));
             reader.read('}');

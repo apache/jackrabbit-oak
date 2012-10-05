@@ -25,10 +25,14 @@ import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 
 import com.google.common.collect.Lists;
+import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.kernel.TypeCodes;
+import org.apache.jackrabbit.oak.kernel.KernelBlob;
 
 import static org.apache.jackrabbit.oak.api.Type.DATE;
 import static org.apache.jackrabbit.oak.api.Type.DATES;
@@ -323,5 +327,71 @@ public final class PropertyStates {
             blobs.add(new ArrayBasedBlob(data));
         }
         return new BinariesPropertyState(name, blobs);
+    }
+
+    public static PropertyState readArrayProperty(String name, JsopReader reader, MicroKernel kernel) {
+        int type = PropertyType.STRING;
+        List<Object> values = Lists.newArrayList();
+        while (!reader.matches(']')) {
+            if (reader.matches(JsopReader.NUMBER)) {
+                String number = reader.getToken();
+                type = PropertyType.LONG;
+                values.add(StringPropertyState.getLong(number));
+            } else if (reader.matches(JsopReader.TRUE)) {
+                type = PropertyType.BOOLEAN;
+                values.add(true);
+            } else if (reader.matches(JsopReader.FALSE)) {
+                type = PropertyType.BOOLEAN;
+                values.add(false);
+            } else if (reader.matches(JsopReader.STRING)) {
+                String jsonString = reader.getToken();
+                if (TypeCodes.startsWithCode(jsonString)) {
+                    type = TypeCodes.getTypeForCode(jsonString.substring(0, 3));
+                    String value = jsonString.substring(4);
+                    if (type == PropertyType.BINARY) {
+                        values.add(new KernelBlob(value, kernel));
+                    } else if(type == PropertyType.DOUBLE) {
+                        values.add(StringPropertyState.getDouble(value));
+                    } else if(type == PropertyType.DECIMAL) {
+                        values.add(StringPropertyState.getDecimal(value));
+                    } else {
+                        values.add(value);
+                    }
+                } else {
+                    type = PropertyType.STRING;
+                    values.add(jsonString);
+                }
+            } else {
+                throw new IllegalArgumentException("Unexpected token: " + reader.getToken());
+            }
+            reader.matches(',');
+        }
+        return createProperty(name, values, (Type<Object>) Type.fromTag(type, true));
+    }
+
+    public static PropertyState readProperty(String name, JsopReader reader, MicroKernel kernel) {
+        if (reader.matches(JsopReader.NUMBER)) {
+            String number = reader.getToken();
+            return createProperty(name, number, PropertyType.LONG);
+        } else if (reader.matches(JsopReader.TRUE)) {
+            return booleanProperty(name, true);
+        } else if (reader.matches(JsopReader.FALSE)) {
+            return booleanProperty(name, false);
+        } else if (reader.matches(JsopReader.STRING)) {
+            String jsonString = reader.getToken();
+            if (TypeCodes.startsWithCode(jsonString)) {
+                int type = TypeCodes.getTypeForCode(jsonString.substring(0, 3));
+                String value = jsonString.substring(4);
+                if (type == PropertyType.BINARY) {
+                    return binaryProperty(name, new KernelBlob(value, kernel));
+                } else {
+                    return createProperty(name, value, type);
+                }
+            } else {
+                return stringProperty(name, jsonString);
+            }
+        } else {
+            throw new IllegalArgumentException("Unexpected token: " + reader.getToken());
+        }
     }
 }

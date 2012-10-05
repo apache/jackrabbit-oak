@@ -23,7 +23,7 @@ import java.util.Iterator;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.kernel.CoreValueMapper;
+import org.apache.jackrabbit.oak.kernel.TypeCodes;
 import org.apache.jackrabbit.oak.query.index.IndexRowImpl;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
@@ -64,8 +64,8 @@ public class PrefixContentIndex implements QueryIndex {
             if (restriction.propertyType == PropertyType.UNDEFINED) {
                 continue;
             }
-            String hint = CoreValueMapper.getHintForType(restriction.propertyType);
-            String prefix = hint + ":";
+            String code = TypeCodes.getCodeForType(restriction.propertyType);
+            String prefix = code + ":";
             if (prefix.equals(index.getPrefix())) {
                 return restriction;
             }
