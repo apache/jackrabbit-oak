@@ -44,7 +44,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCreden
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.apache.jackrabbit.oak.spi.security.user.PasswordUtility;
-import org.apache.jackrabbit.oak.spi.security.user.Type;
+import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserContext;
 import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
 import org.apache.jackrabbit.oak.util.NodeUtil;
@@ -125,7 +125,7 @@ public class TokenProviderImpl implements TokenProvider {
             String userId = sc.getUserID();
             CoreValueFactory valueFactory = root.getValueFactory();
             try {
-                Tree userTree = userProvider.getAuthorizable(userId, Type.USER);
+                Tree userTree = userProvider.getAuthorizable(userId, AuthorizableType.USER);
                 if (userTree != null) {
                     NodeUtil userNode = new NodeUtil(userTree, valueFactory);
                     NodeUtil tokenParent = userNode.getChild(TOKENS_NODE_NAME);

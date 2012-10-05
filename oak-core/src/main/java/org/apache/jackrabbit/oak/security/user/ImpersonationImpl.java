@@ -28,10 +28,11 @@ import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.user.Impersonation;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalIteratorAdapter;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
-import org.apache.jackrabbit.oak.spi.security.user.Type;
+import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
 import org.slf4j.Logger;
@@ -107,7 +108,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
         // make sure user does not impersonate himself
         Tree userTree = getUserTree();
         PropertyState prop = userTree.getProperty(REP_PRINCIPAL_NAME);
-        if (prop != null && prop.getValue(org.apache.jackrabbit.oak.api.Type.STRING).equals(principalName)) {
+        if (prop != null && prop.getValue(Type.STRING).equals(principalName)) {
             log.warn("Cannot grant impersonation to oneself.");
             return false;
         }
@@ -196,7 +197,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
     }
 
     private Tree getUserTree() throws RepositoryException {
-        Tree userTree = userProvider.getAuthorizable(userId, Type.USER);
+        Tree userTree = userProvider.getAuthorizable(userId, AuthorizableType.USER);
         if (userTree == null) {
             throw new RepositoryException("UserId " + userId + " cannot be resolved to user.");
         }
