@@ -28,6 +28,7 @@ import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.query.Query;
 
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.api.security.user.Impersonation;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Result;
@@ -36,6 +37,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.SinglePropertyState;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.TreeBasedPrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.PasswordUtility;
 import org.apache.jackrabbit.oak.spi.security.user.Type;
@@ -253,7 +255,7 @@ class UserProviderImpl extends AuthorizableBaseProvider implements UserProvider 
     @Override
     public boolean isAdminUser(Tree userTree) {
         checkNotNull(userTree);
-        return config.getAdminId().equals(getAuthorizableId(userTree));
+        return isAuthorizableType(userTree, Type.USER) && config.getAdminId().equals(getAuthorizableId(userTree));
     }
 
     @Override
@@ -286,6 +288,11 @@ class UserProviderImpl extends AuthorizableBaseProvider implements UserProvider 
             pwHash = password;
         }
         setProtectedProperty(userTree, UserConstants.REP_PASSWORD, pwHash, PropertyType.STRING);
+    }
+
+    @Override
+    public Impersonation getImpersonation(String userId, PrincipalProvider principalProvider) {
+        return new ImpersonationImpl(userId, this, principalProvider);
     }
 
     @Override

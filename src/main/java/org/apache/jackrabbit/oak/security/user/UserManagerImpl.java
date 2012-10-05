@@ -24,6 +24,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
 
+import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -32,9 +33,11 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.security.principal.PrincipalManagerImpl;
 import org.apache.jackrabbit.oak.security.user.query.XPathQueryBuilder;
 import org.apache.jackrabbit.oak.security.user.query.XPathQueryEvaluator;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
 import org.apache.jackrabbit.oak.spi.security.user.Type;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
@@ -295,6 +298,14 @@ public class UserManagerImpl implements UserManager {
 
     MembershipProvider getMembershipProvider() {
         return membershipProvider;
+    }
+
+    PrincipalProvider getPrincipalProvider() throws RepositoryException {
+        if (!(session instanceof JackrabbitSession)) {
+            throw new UnsupportedRepositoryOperationException("Principal management not supported");
+        }
+        JackrabbitSession js = (JackrabbitSession) session;
+        return ((PrincipalManagerImpl) js.getPrincipalManager()).getPrincipalProvider();
     }
 
     @CheckForNull
