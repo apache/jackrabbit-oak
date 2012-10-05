@@ -154,11 +154,11 @@ public interface NodeBuilder {
      * between this builder and a previously returned child builder for
      * that child node name will get broken.
      *
-     * @since Oak 0.4
+     * @since Oak 0.6
      * @param name name of the child node
      * @return child builder
      */
     @Nonnull
-    NodeBuilder getChildBuilder(String name);
+    NodeBuilder child(String name);
 
 }

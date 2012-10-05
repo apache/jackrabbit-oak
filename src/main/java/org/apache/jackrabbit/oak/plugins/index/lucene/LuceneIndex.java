@@ -103,13 +103,13 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
 
         NodeBuilder builder = new ReadOnlyBuilder(root);
         for (String name : elements(index.getPath())) {
-            builder = builder.getChildBuilder(name);
+            builder = builder.child(name);
         }
         if (!builder.hasChildNode(INDEX_DATA_CHILD_NAME)) {
             // index not initialized yet
             return new PathCursor(Collections.<String> emptySet());
         }
-        builder = builder.getChildBuilder(INDEX_DATA_CHILD_NAME);
+        builder = builder.child(INDEX_DATA_CHILD_NAME);
 
         Directory directory = new ReadOnlyOakDirectory(builder);
         long s = System.currentTimeMillis();

@@ -189,10 +189,11 @@ public interface NodeState {
      * this state, i.e. starting with all the properties and child nodes
      * of this state.
      *
+     * @since Oak 0.6
      * @return node builder based on this state
      */
     @Nonnull
-    NodeBuilder getBuilder();
+    NodeBuilder builder();
 
     /**
      * Compares this node state against the given base state. Any differences
