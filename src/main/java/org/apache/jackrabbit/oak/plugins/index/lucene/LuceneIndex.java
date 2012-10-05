@@ -17,11 +17,11 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
+import static org.apache.jackrabbit.oak.plugins.index.IndexDefinition.INDEX_DATA_CHILD_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH_SELECTOR;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
 import static org.apache.jackrabbit.oak.query.Query.JCR_PATH;
-import static org.apache.jackrabbit.oak.spi.query.IndexDefinition.INDEX_DATA_CHILD_NAME;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -39,13 +39,13 @@ import javax.jcr.nodetype.NodeTypeManager;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
+import org.apache.jackrabbit.oak.plugins.index.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.type.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.query.index.IndexRowImpl;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
-import org.apache.jackrabbit.oak.spi.query.IndexDefinition;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;

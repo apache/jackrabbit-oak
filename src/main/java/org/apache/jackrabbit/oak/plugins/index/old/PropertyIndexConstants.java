@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.old;
 
-import org.apache.jackrabbit.oak.spi.query.IndexUtils;
+import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 
 public interface PropertyIndexConstants {
 

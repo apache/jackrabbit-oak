@@ -33,7 +33,7 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.oak.spi.query.IndexUtils.DEFAULT_INDEX_HOME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.DEFAULT_INDEX_HOME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
