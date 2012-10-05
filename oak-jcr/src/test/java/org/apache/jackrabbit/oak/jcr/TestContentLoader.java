@@ -33,7 +33,7 @@ import javax.jcr.nodetype.NodeTypeManager;
 
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.commons.cnd.ParseException;
-import org.apache.jackrabbit.oak.plugins.type.ReadWriteNodeTypeManager;
+import org.apache.jackrabbit.oak.plugins.nodetype.ReadWriteNodeTypeManager;
 import org.apache.jackrabbit.value.BinaryValue;
 
 public class TestContentLoader {

@@ -14,31 +14,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.type.constraint;
+package org.apache.jackrabbit.oak.plugins.nodetype.constraint;
 
+import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
-import com.google.common.base.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ReferenceConstraint implements Predicate<Value> {
-    private static final Logger log = LoggerFactory.getLogger(ReferenceConstraint.class);
+public class DoubleConstraint extends NumericConstraint<Double> {
+    private static final Logger log = LoggerFactory.getLogger(DoubleConstraint.class);
 
-    private final String requiredTargetType;
-
-    public ReferenceConstraint(String definition)  {
-        requiredTargetType = definition;
+    public DoubleConstraint(String definition) {
+        super(definition);
     }
 
     @Override
-    public boolean apply(Value value) {
-        // TODO implement ReferenceConstraint
-        return true;
+    protected Double getBound(String bound) {
+        return  bound == null || bound.isEmpty()
+            ? null
+            : Double.parseDouble(bound);
     }
 
     @Override
-    public String toString() {
-        return '\'' + requiredTargetType + '\'';
+    protected Double getValue(Value value) throws RepositoryException {
+        return value.getDouble();
+    }
+
+    @Override
+    protected boolean less(Double val, Double bound) {
+        return val < bound;
     }
 }

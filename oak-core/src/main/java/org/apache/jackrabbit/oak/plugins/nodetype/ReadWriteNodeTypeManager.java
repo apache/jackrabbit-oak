@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.type;
+package org.apache.jackrabbit.oak.plugins.nodetype;
 
 import java.io.Reader;
 import java.util.List;
@@ -70,13 +70,13 @@ import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.JcrConstants.NT_CHILDNODEDEFINITION;
 import static org.apache.jackrabbit.JcrConstants.NT_NODETYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_PROPERTYDEFINITION;
-import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.JCR_AVAILABLE_QUERY_OPERATORS;
-import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.JCR_IS_ABSTRACT;
-import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.JCR_IS_FULLTEXT_SEARCHABLE;
-import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.JCR_IS_QUERYABLE;
-import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.JCR_IS_QUERY_ORDERABLE;
-import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.JCR_NODE_TYPES;
-import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.NODE_TYPES_PATH;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_AVAILABLE_QUERY_OPERATORS;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_ABSTRACT;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_FULLTEXT_SEARCHABLE;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_QUERYABLE;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_QUERY_ORDERABLE;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 
 /**
  * {@code ReadWriteNodeTypeManager} extends the {@link ReadOnlyNodeTypeManager}
