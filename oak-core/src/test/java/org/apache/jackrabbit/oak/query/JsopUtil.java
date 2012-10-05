@@ -26,8 +26,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.kernel.CoreValueMapper;
-import org.apache.jackrabbit.oak.plugins.memory.MultiPropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.SinglePropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 
 /**
  * Utility class for working with jsop string diffs
@@ -107,9 +106,9 @@ public class JsopUtil {
                     mvp.add(CoreValueMapper.fromJsopReader(tokenizer, vf));
                 } while (tokenizer.matches(','));
                 tokenizer.read(']');
-                t.setProperty(new MultiPropertyState(key, mvp));
+                t.setProperty(PropertyStates.createProperty(key, mvp));
             } else {
-                t.setProperty(new SinglePropertyState(key, CoreValueMapper.fromJsopReader(tokenizer, vf)));
+                t.setProperty(PropertyStates.createProperty(key, CoreValueMapper.fromJsopReader(tokenizer, vf)));
             }
         } while (tokenizer.matches(','));
     }

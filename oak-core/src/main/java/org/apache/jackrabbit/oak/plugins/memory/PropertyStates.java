@@ -18,6 +18,16 @@ import org.apache.jackrabbit.oak.api.Type;
 public final class PropertyStates {
     private PropertyStates() {}
 
+    @Nonnull
+    public static PropertyState createProperty(String name, CoreValue value) {
+        return new SinglePropertyState(name, value);
+    }
+
+    @Nonnull
+    public static PropertyState createProperty(String name, List<CoreValue> values) {
+        return new MultiPropertyState(name, values);
+    }
+
     @SuppressWarnings("unchecked")
     @Nonnull
     public static <T> PropertyState createProperty(String name, T value, Type<T> type) {

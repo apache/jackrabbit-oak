@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.query.ast;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.SinglePropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.query.Query;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
@@ -52,7 +52,7 @@ public class FullTextSearchScoreImpl extends DynamicOperandImpl {
         if (p == null) {
             // TODO if score() is not supported by the index, use the value 0.0?
             CoreValue v = query.getValueFactory().createValue(0.0);
-            p = new SinglePropertyState(Query.JCR_SCORE, v);
+            p = PropertyStates.createProperty(Query.JCR_SCORE, v);
         }
         return p;
     }

@@ -18,10 +18,10 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.SinglePropertyState;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.util.ISO9075;
 
@@ -60,7 +60,7 @@ public class NodeLocalNameImpl extends DynamicOperandImpl {
         // TODO LOCALNAME: evaluation of local name might not be correct
         String localName = colon < 0 ? name : name.substring(colon + 1);
         CoreValue v = query.getValueFactory().createValue(localName);
-        return new SinglePropertyState("LOCALNAME", v);
+        return PropertyStates.createProperty("LOCALNAME", v);
     }
 
     @Override

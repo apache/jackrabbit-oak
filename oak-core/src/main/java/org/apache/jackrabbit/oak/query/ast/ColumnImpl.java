@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.query.ast;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.SinglePropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.query.Query;
 
 /**
@@ -64,7 +64,7 @@ public class ColumnImpl extends AstElement {
                 return null;
             }
             CoreValue v = query.getValueFactory().createValue(p);
-            return new SinglePropertyState(Query.JCR_PATH, v);
+            return PropertyStates.createProperty(Query.JCR_PATH, v);
         }
         return selector.currentProperty(propertyName);
     }
