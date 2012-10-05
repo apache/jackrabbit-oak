@@ -14,37 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.type.constraint;
-
-import java.math.BigDecimal;
+package org.apache.jackrabbit.oak.plugins.nodetype.constraint;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
-public class DecimalConstraint extends NumericConstraint<BigDecimal> {
-    public DecimalConstraint(String definition) {
+public class BinaryConstraint extends LongConstraint {
+    public BinaryConstraint(String definition) {
         super(definition);
     }
 
     @Override
-    protected BigDecimal getBound(String bound) {
-        return bound == null || bound.isEmpty()
-            ? null
-            : new BigDecimal(bound);
-    }
-
-    @Override
-    protected BigDecimal getValue(Value value) throws RepositoryException {
-        return value.getDecimal();
-    }
-
-    @Override
-    protected boolean less(BigDecimal val, BigDecimal bound) {
-        return val.compareTo(bound) < 0;
-    }
-
-    @Override
-    protected boolean equals(BigDecimal val, BigDecimal bound) {
-        return val.compareTo(bound) == 0;
+    protected Long getValue(Value value) throws RepositoryException {
+        return value.getBinary().getSize();
     }
 }

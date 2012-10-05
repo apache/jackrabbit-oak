@@ -14,38 +14,42 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.type.constraint;
+package org.apache.jackrabbit.oak.plugins.nodetype.constraint;
 
-import javax.annotation.Nullable;
+import java.util.Calendar;
+
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
-import com.google.common.base.Predicate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.jackrabbit.value.DateValue;
 
-public class NameConstraint implements Predicate<Value> {
-    private static final Logger log = LoggerFactory.getLogger(NameConstraint.class);
-
-    private final String requiredValue;
-
-    public NameConstraint(String definition) {
-        requiredValue = definition;
+public class DateConstraint extends NumericConstraint<Calendar> {
+    public DateConstraint(String definition) {
+        super(definition);
     }
 
     @Override
-    public boolean apply(@Nullable Value value) {
+    protected Calendar getBound(String bound) {
         try {
-            return value != null && requiredValue != null && requiredValue.equals(value.getString());
+            return DateValue.valueOf(bound).getDate();
         }
         catch (RepositoryException e) {
-            log.warn("Error checking name constraint " + this, e);
-            return false;
+            throw (NumberFormatException) new NumberFormatException().initCause(e);
         }
     }
 
     @Override
-    public String toString() {
-        return '\'' + requiredValue + '\'';
+    protected Calendar getValue(Value value) throws RepositoryException {
+        return value.getDate();
+    }
+
+    @Override
+    protected boolean less(Calendar val, Calendar bound) {
+        return val.getTimeInMillis() < bound.getTimeInMillis();
+    }
+
+    @Override
+    protected boolean equals(Calendar val, Calendar bound) {
+        return val.getTimeInMillis() == bound.getTimeInMillis();
     }
 }

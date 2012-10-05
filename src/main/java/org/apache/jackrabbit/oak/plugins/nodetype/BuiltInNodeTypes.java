@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.type;
+package org.apache.jackrabbit.oak.plugins.nodetype;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -24,7 +24,7 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 
-import static org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants.NODE_TYPES_PATH;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 
 /**
  * <code>BuiltInNodeTypes</code> is a utility class that registers the built-in

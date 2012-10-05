@@ -14,11 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.type.constraint;
-
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
+package org.apache.jackrabbit.oak.plugins.nodetype.constraint;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
@@ -27,42 +23,37 @@ import com.google.common.base.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class StringConstraint implements Predicate<Value> {
-    private static final Logger log = LoggerFactory.getLogger(StringConstraint.class);
+public class BooleanConstraint implements Predicate<Value> {
+    private static final Logger log = LoggerFactory.getLogger(BooleanConstraint.class);
 
-    private final Pattern pattern;
+    private final Boolean requiredValue;
 
-    public StringConstraint(String definition) {
-        Pattern p;
-        try {
-            p = Pattern.compile(definition);
+    public BooleanConstraint(String definition)  {
+        if ("true".equals(definition)) {
+            requiredValue = true;
         }
-        catch (PatternSyntaxException pse) {
-            String msg = '\'' + definition + "' is not valid regular expression syntax";
-            log.warn(msg);
-            p = null;
+        else if ("false".equals(definition)) {
+            requiredValue = false;
         }
-        pattern = p;
+        else {
+            requiredValue = null;
+            log.warn('\'' + definition + "' is not a valid value constraint format for boolean values");
+        }
     }
 
     @Override
     public boolean apply(Value value) {
-        if (value == null) {
-            return false;
-        }
-
         try {
-            Matcher matcher = pattern.matcher(value.getString());
-            return matcher.matches();
+            return value != null && requiredValue != null && value.getBoolean() == requiredValue;
         }
         catch (RepositoryException e) {
-            log.warn("Error checking string constraint " + this, e);
+            log.warn("Error checking boolean constraint " + this, e);
             return false;
         }
     }
 
     @Override
     public String toString() {
-        return "'" + pattern + '\'';
+        return "'" + requiredValue + '\'';
     }
 }
