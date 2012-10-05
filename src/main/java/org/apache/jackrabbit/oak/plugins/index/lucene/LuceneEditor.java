@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.index.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.memory.CoreValues;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -220,7 +221,7 @@ class LuceneEditor implements CommitHook, LuceneIndexConstants {
             document.add(newPathField(path));
             for (PropertyState property : state.getProperties()) {
                 String pname = property.getName();
-                for (CoreValue value : property.getValues()) {
+                for (CoreValue value : CoreValues.getValues(property)) {
                     document.add(newPropertyField(pname,
                             parseStringValue(value)));
                 }

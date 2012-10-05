@@ -23,7 +23,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.Blob;
@@ -31,7 +30,7 @@ import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.Type;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.api.Type.*;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
 /**
  * Multi-valued property state.
@@ -53,13 +52,6 @@ public class MultiPropertyState extends EmptyPropertyState {
         else {
             return Type.fromTag(values.get(0).getType(), true);
         }
-    }
-
-    @Override
-    @Nonnull
-    @Deprecated
-    public List<CoreValue> getValues() {
-        return values;
     }
 
     @Override

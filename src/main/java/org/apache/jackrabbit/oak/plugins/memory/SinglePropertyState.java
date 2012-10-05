@@ -19,9 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.memory;
 
 import java.util.Collections;
-import java.util.List;
 
-import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
@@ -61,20 +59,6 @@ public class SinglePropertyState extends EmptyPropertyState {
     @Override
     public boolean isArray() {
         return false;
-    }
-
-    @Override
-    @Nonnull
-    @Deprecated
-    public CoreValue getValue() {
-        return value;
-    }
-
-    @Override
-    @Nonnull
-    @Deprecated
-    public List<CoreValue> getValues() {
-        return Collections.singletonList(value);
     }
 
     @SuppressWarnings("unchecked")

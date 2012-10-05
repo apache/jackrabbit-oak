@@ -17,17 +17,23 @@
 package org.apache.jackrabbit.oak.plugins.memory;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.Calendar;
 
 import javax.jcr.PropertyType;
 
+import com.google.common.io.ByteStreams;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.util.ISO8601;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class MemoryValue implements CoreValue {
+    private static final Logger log = LoggerFactory.getLogger(MemoryValue.class);
 
     @Override
     public long getLong() {
@@ -90,8 +96,37 @@ public abstract class MemoryValue implements CoreValue {
             } else {
                 return getString().compareTo(o.getString());
             }
+        } else if (type == PropertyType.BINARY) {
+            return compare(getNewStream(), o.getNewStream()) ? 0 : 1;
         } else {
             return getString().compareTo(o.getString());
+        }
+    }
+
+    private static boolean compare(InputStream in2, InputStream in1) {
+        try {
+            try {
+                byte[] buf1 = new byte[0x1000];
+                byte[] buf2 = new byte[0x1000];
+
+                while (true) {
+                    int read1 = ByteStreams.read(in1, buf1, 0, 0x1000);
+                    int read2 = ByteStreams.read(in2, buf2, 0, 0x1000);
+                    if (read1 != read2 || !Arrays.equals(buf1, buf2)) {
+                        return false;
+                    } else if (read1 != 0x1000) {
+                        return true;
+                    }
+                }
+            }
+            finally {
+                in1.close();
+                in2.close();
+            }
+        }
+        catch (IOException e) {
+            log.warn("Error comparing binary values", e);
+            return false;
         }
     }
 
