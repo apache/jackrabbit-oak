@@ -27,52 +27,52 @@ commit / + "parents": { "p0": {"id": "0"}, "p1": {"id": "1"}, "p2": {"id": "2"}}
 commit / + "children": { "c1": {"p": "1"}, "c2": {"p": "1"}, "c3": {"p": "2"}, "c4": {"p": "3"}}
 
 measure select * from [nt:base] as c right outer join [nt:base] as p on p.id = c.p where p.id is not null and not isdescendantnode(p, '/jcr:system')
-c, 663
-p, 221
+c, 672
+p, 224
 query, 4
 
 measure select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null
-c, 663
-p, 221
+c, 672
+p, 224
 query, 4
 
 measure select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null and c.p is null
-c, 663
-p, 221
+c, 672
+p, 224
 query, 1
 
 measure select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null and c.p is not null
-c, 663
-p, 221
+c, 672
+p, 224
 query, 3
 
 measure select * from [nt:base] as p inner join [nt:base] as c on p.id = c.p
-c, 663
-p, 221
+c, 672
+p, 224
 query, 3
 
 measure select * from [nt:base] as c right outer join [nt:base] as p on p.id = c.p where p.id is not null and not isdescendantnode(p, '/jcr:system')
-c, 663
-p, 221
+c, 672
+p, 224
 query, 4
 
 measure select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null
-c, 663
-p, 221
+c, 672
+p, 224
 query, 4
 
 measure select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null and c.p is null
-c, 663
-p, 221
+c, 672
+p, 224
 query, 1
 
 measure select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null and c.p is not null
-c, 663
-p, 221
+c, 672
+p, 224
 query, 3
 
 measure select * from [nt:base] as p inner join [nt:base] as c on p.id = c.p
-c, 663
-p, 221
+c, 672
+p, 224
 query, 3
 
