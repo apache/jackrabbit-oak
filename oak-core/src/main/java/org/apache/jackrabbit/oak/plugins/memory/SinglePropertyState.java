@@ -28,7 +28,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
- * Single-valued property state.
+ * Single-valued property  state.
  */
 public class SinglePropertyState extends EmptyPropertyState {
     private final CoreValue value;

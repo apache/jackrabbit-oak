@@ -42,7 +42,7 @@ class EmptyPropertyState implements PropertyState {
     }
 
     protected static Blob getBlob(CoreValue value) {
-        return new BlobImpl(value);
+        return new ValueBasedBlob(value);
     }
 
     @Override
