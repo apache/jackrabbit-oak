@@ -103,12 +103,14 @@ public class MongoMicroKernelDiffTest extends BaseMongoMicroKernelTest {
         assertTrue(mk.nodeExists("/level1/level2", null));
     }
 
+    // FIXME - changePath test?
+
     @Test
     public void addProperty() {
         String rev0 = mk.commit("/", "+\"level1\":{}", null, null);
         assertTrue(mk.nodeExists("/level1", null));
 
-        // Add a property.
+        // Add property.
         String rev1 = mk.commit("/", "+\"level1/prop1\": \"value1\"", null, null);
         JSONObject obj = parseJSONObject(mk.getNodes("/level1", null, 1, 0, -1, null));
         assertPropertyExists(obj, "prop1");
@@ -124,7 +126,51 @@ public class MongoMicroKernelDiffTest extends BaseMongoMicroKernelTest {
         obj = parseJSONObject(mk.getNodes("/level1", null, 1, 0, -1, null));
         assertPropertyNotExists(obj, "prop1");
     }
-    // FIXME
-    // - Add node change tests.
-    // - Add property delete & change tests.
+
+    @Test
+    public void removeProperty() {
+        String rev0 = mk.commit("/", "+\"level1\":{ \"prop1\" : \"value\"}", null, null);
+        assertTrue(mk.nodeExists("/level1", null));
+        JSONObject obj = parseJSONObject(mk.getNodes("/level1", null, 1, 0, -1, null));
+        assertPropertyExists(obj, "prop1");
+
+        // Remove property
+        String rev1 = mk.commit("/", "^\"level1/prop1\" : null", null, null);
+        assertTrue(mk.nodeExists("/level1", null));
+        obj = parseJSONObject(mk.getNodes("/level1", null, 1, 0, -1, null));
+        assertPropertyNotExists(obj, "prop1");
+
+        // Generate reverseDiff from rev1 to rev0
+        String reverseDiff = mk.diff(rev1, rev0, null, -1);
+        assertNotNull(reverseDiff);
+        assertTrue(reverseDiff.length() > 0);
+
+        // Commit the reverseDiff and check property is added back.
+        mk.commit("", reverseDiff, null, null);
+        obj = parseJSONObject(mk.getNodes("/level1", null, 1, 0, -1, null));
+        assertPropertyExists(obj, "prop1");
+    }
+
+    @Test
+    public void changeProperty() {
+        String rev0 = mk.commit("/", "+\"level1\":{ \"prop1\" : \"value1\"}", null, null);
+        assertTrue(mk.nodeExists("/level1", null));
+        JSONObject obj = parseJSONObject(mk.getNodes("/level1", null, 1, 0, -1, null));
+        assertPropertyValue(obj, "prop1", "value1");
+
+        // Change property
+        String rev1 = mk.commit("/", "^\"level1/prop1\" : \"value2\"", null, null);
+        obj = parseJSONObject(mk.getNodes("/level1", null, 1, 0, -1, null));
+        assertPropertyValue(obj, "prop1", "value2");
+
+        // Generate reverseDiff from rev1 to rev0
+        String reverseDiff = mk.diff(rev1, rev0, null, -1);
+        assertNotNull(reverseDiff);
+        assertTrue(reverseDiff.length() > 0);
+
+        // Commit the reverseDiff and check property is set back.
+        mk.commit("", reverseDiff, null, null);
+        obj = parseJSONObject(mk.getNodes("/level1", null, 1, 0, -1, null));
+        assertPropertyValue(obj, "prop1", "value1");
+    }
 }

@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.mongomk;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -66,6 +67,13 @@ public class BaseMongoMicroKernelTest extends BaseMongoTest {
             throws AssertionError {
         Object val = resolveValue(obj, relPath);
         assertNull(val);
+    }
+
+    protected void assertPropertyValue(JSONObject obj, String relPath, String expected)
+            throws AssertionError {
+        Object val = resolveValue(obj, relPath);
+        assertNotNull("not found: " + relPath, val);
+        assertEquals(expected, val);
     }
 
     private Object resolveValue(JSONObject obj, String relPath) {
