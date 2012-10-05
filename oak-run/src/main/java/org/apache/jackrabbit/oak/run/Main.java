@@ -49,7 +49,7 @@ import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 
-import static org.apache.jackrabbit.oak.spi.query.IndexUtils.DEFAULT_INDEX_HOME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.DEFAULT_INDEX_HOME;
 
 public class Main {
 
