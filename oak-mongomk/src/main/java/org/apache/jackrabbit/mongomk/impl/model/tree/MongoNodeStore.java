@@ -9,11 +9,10 @@ import org.apache.jackrabbit.mk.model.tree.NodeStore;
 import org.apache.jackrabbit.mongomk.api.model.Node;
 
 /**
- * FIXME - This is a dummy class to bridge the gap between MongoMK and Oak.
- * Eventually this class should go away and possibly DefaultRevisionStore should
- * be used.
+ * This dummy NodeStore implementation is needed in order to be able to reuse
+ * Oak's DiffBuilder in MongoMK.
  */
-public class NodeStoreMongod implements NodeStore {
+public class MongoNodeStore implements NodeStore {
 
     @Override
     public NodeState getRoot() {
@@ -24,8 +23,8 @@ public class NodeStoreMongod implements NodeStore {
     public void compare(final NodeState before, final NodeState after,
             final NodeStateDiff diff) {
 
-        Node beforeNode = ((NodeStateMongo)before).unwrap(); //((StoredNodeAsState) before).unwrap();
-        Node afterNode = ((NodeStateMongo)after).unwrap();; //((StoredNodeAsState) after).unwrap();
+        Node beforeNode = ((MongoNodeState)before).unwrap();
+        Node afterNode = ((MongoNodeState)after).unwrap();
 
         beforeNode.diff(afterNode, new NodeDiffHandler() {
             @Override
@@ -65,5 +64,4 @@ public class NodeStoreMongod implements NodeStore {
             }
         });
     }
-
 }

@@ -30,8 +30,8 @@ import org.apache.jackrabbit.mongomk.command.GetHeadRevisionCommandMongo;
 import org.apache.jackrabbit.mongomk.command.GetNodesCommandMongo;
 import org.apache.jackrabbit.mongomk.command.NodeExistsCommandMongo;
 import org.apache.jackrabbit.mongomk.impl.command.CommandExecutorImpl;
-import org.apache.jackrabbit.mongomk.impl.model.tree.NodeStateMongo;
-import org.apache.jackrabbit.mongomk.impl.model.tree.NodeStoreMongod;
+import org.apache.jackrabbit.mongomk.impl.model.tree.MongoNodeState;
+import org.apache.jackrabbit.mongomk.impl.model.tree.MongoNodeStore;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
 import org.apache.jackrabbit.mongomk.query.FetchCommitQuery;
 import org.apache.jackrabbit.mongomk.query.FetchHeadRevisionIdQuery;
@@ -104,8 +104,8 @@ public class NodeStoreMongo implements NodeStore {
         command = new GetNodesCommandMongo(mongoConnection, path, toRevisionId, -1);
         Node after = command.execute();
 
-        return new DiffBuilder(new NodeStateMongo(before), new NodeStateMongo(after),
-                path, depth, new NodeStoreMongod(), path).build();
+        return new DiffBuilder(new MongoNodeState(before), new MongoNodeState(after),
+                path, depth, new MongoNodeStore(), path).build();
     }
 
     @Override

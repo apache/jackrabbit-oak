@@ -3,48 +3,39 @@ package org.apache.jackrabbit.mongomk.impl.model.tree;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.jackrabbit.mk.model.tree.AbstractChildNode;
+import org.apache.jackrabbit.mk.model.tree.AbstractNodeState;
+import org.apache.jackrabbit.mk.model.tree.AbstractPropertyState;
 import org.apache.jackrabbit.mk.model.tree.ChildNode;
 import org.apache.jackrabbit.mk.model.tree.NodeState;
 import org.apache.jackrabbit.mk.model.tree.PropertyState;
 import org.apache.jackrabbit.mongomk.api.model.Node;
 
 /**
- * FIXME - This is a dummy class to bridge the gap between MongoMK and Oak.
- * Eventually this class should go away and NodeState or StoredNodeAsState
- * should be used instead. Can we default to AbstractNodeState?
+ * This dummy NodeStore implementation is needed in order to be able to reuse
+ * Oak's DiffBuilder in MongoMK.
  */
-public class NodeStateMongo implements NodeState {
+public class MongoNodeState extends AbstractNodeState {
 
     private final Node node;
 
-    public NodeStateMongo(Node node) {
+    /**
+     * Create a node state with the supplied node.
+     *
+     * @param node Node.
+     */
+    public MongoNodeState(Node node) {
         this.node = node;
     }
 
+    /**
+     * Returns the underlying node.
+     *
+     * @return The underlying node.
+     */
     public Node unwrap() {
         return node;
-    }
-
-    @Override
-    public PropertyState getProperty(String name) {
-        for (PropertyState property : getProperties()) {
-            if (name.equals(property.getName())) {
-                return property;
-            }
-        }
-        return null;
-    }
-
-    @Override
-    public long getPropertyCount() {
-        long count = 0;
-        for (PropertyState property : getProperties()) {
-            count++;
-        }
-        return count;
     }
 
     @Override
@@ -72,26 +63,6 @@ public class NodeStateMongo implements NodeState {
                 };
             }
         };
-    }
-
-    @Override
-    public NodeState getChildNode(String name) {
-        // FIXME - Not right.
-        Set<Node> children = node.getDescendants(false);
-        for (Iterator<Node> iterator = children.iterator(); iterator.hasNext();) {
-            Node node = iterator.next();
-            if (node.getName().equals(name)) {
-                return new NodeStateMongo(node);
-            }
-        }
-        return null;
-        //Node childNode = node.getChildNode(name);
-        //return new NodeStateMongo(childNode);
-    }
-
-    @Override
-    public long getChildNodeCount() {
-        return node.getChildNodeCount();
     }
 
     @Override
@@ -138,13 +109,34 @@ public class NodeStateMongo implements NodeState {
             @Override
             public NodeState getNode() {
                 try {
+                    // FIXME
                     //StoredNode child = provider.getNode(entry.getId());
                     //return new StoredNodeAsState(child, provider);
-                    return new NodeStateMongo(entry);
+                    return new MongoNodeState(entry);
                 } catch (Exception e) {
                     throw new RuntimeException("Unexpected error", e);
                 }
             }
         };
+    }
+
+    private static class SimplePropertyState extends AbstractPropertyState {
+        private final String name;
+        private final String value;
+
+        public SimplePropertyState(String name, String value) {
+            this.name = name;
+            this.value = value;
+        }
+
+        @Override
+        public String getName() {
+            return name;
+        }
+
+        @Override
+        public String getEncodedValue() {
+            return value;
+        }
     }
 }
