@@ -303,8 +303,7 @@ class UserProviderImpl extends AuthorizableBaseProvider implements UserProvider 
         if (value == null) {
             authorizableTree.removeProperty(propertyName);
         } else {
-            CoreValue cv = valueFactory.createValue(value, propertyType);
-            authorizableTree.setProperty(PropertyStates.createProperty(propertyName, cv));
+            authorizableTree.setProperty(PropertyStates.createProperty(propertyName, value, propertyType));
         }
     }
 

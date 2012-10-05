@@ -30,6 +30,18 @@ import static java.util.Collections.singleton;
 
 abstract class SinglePropertyState extends EmptyPropertyState {
 
+    public static long getLong(String value) {
+        return Long.parseLong(value);
+    }
+
+    public static double getDouble(String value) {
+        return Double.parseDouble(value);
+    }
+
+    public static BigDecimal getDecimal(String value) {
+        return new BigDecimal(value);
+    }
+
     protected SinglePropertyState(String name) {
         super(name);
     }
@@ -41,11 +53,11 @@ abstract class SinglePropertyState extends EmptyPropertyState {
     }
 
     protected long getLong() {
-        return Long.parseLong(getString());
+        return getLong(getString());
     }
 
     protected double getDouble() {
-        return Double.parseDouble(getString());
+        return getDouble(getString());
     }
 
     protected boolean getBoolean() {
@@ -53,7 +65,7 @@ abstract class SinglePropertyState extends EmptyPropertyState {
     }
 
     protected BigDecimal getDecimal() {
-        return new BigDecimal(getString());
+        return getDecimal(getString());
     }
 
     @Override
@@ -130,5 +142,4 @@ abstract class SinglePropertyState extends EmptyPropertyState {
     public int count() {
         return 1;
     }
-
 }

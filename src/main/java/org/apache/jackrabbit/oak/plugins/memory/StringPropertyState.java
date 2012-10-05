@@ -30,6 +30,10 @@ public class StringPropertyState extends SinglePropertyState {
         this.value = value;
     }
 
+    public static boolean getBoolean(String value) {
+        return Boolean.parseBoolean(value);
+    }
+
     @Override
     protected String getString() {
         return value;
@@ -37,7 +41,7 @@ public class StringPropertyState extends SinglePropertyState {
 
     @Override
     protected boolean getBoolean() {
-        return Boolean.parseBoolean(value);
+        return getBoolean(value);
     }
 
     @Override
