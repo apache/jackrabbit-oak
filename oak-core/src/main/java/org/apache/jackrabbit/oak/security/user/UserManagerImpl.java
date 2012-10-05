@@ -39,7 +39,7 @@ import org.apache.jackrabbit.oak.security.user.query.XPathQueryEvaluator;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
-import org.apache.jackrabbit.oak.spi.security.user.Type;
+import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
@@ -113,7 +113,7 @@ public class UserManagerImpl implements UserManager {
     @Override
     public Iterator<Authorizable> findAuthorizables(String relPath, String value, int searchType) throws RepositoryException {
         String[] oakPaths =  new String[] {namePathMapper.getOakPath(relPath)};
-        Type authorizableType = getAuthorizableType(searchType);
+        AuthorizableType authorizableType = getAuthorizableType(searchType);
         Iterator<Tree> result = userProvider.findAuthorizables(oakPaths, value, null, true, Long.MAX_VALUE, authorizableType);
 
         return AuthorizableIterator.create(result, this);
@@ -321,9 +321,9 @@ public class UserManagerImpl implements UserManager {
         if (id == null || tree == null) {
             return null;
         }
-        if (userProvider.isAuthorizableType(tree, Type.USER)) {
+        if (userProvider.isAuthorizableType(tree, AuthorizableType.USER)) {
             return new UserImpl(userProvider.getAuthorizableId(tree), tree, this);
-        } else if (userProvider.isAuthorizableType(tree, Type.GROUP)) {
+        } else if (userProvider.isAuthorizableType(tree, AuthorizableType.GROUP)) {
             return new GroupImpl(userProvider.getAuthorizableId(tree), tree, this);
         } else {
             throw new RepositoryException("Not a user or group tree " + tree.getPath() + '.');
@@ -351,14 +351,14 @@ public class UserManagerImpl implements UserManager {
         getUserProvider().setProtectedProperty(userTree, UserConstants.REP_PRINCIPAL_NAME, principal.getName(), PropertyType.STRING);
     }
 
-    private static Type getAuthorizableType(int searchType) {
+    private static AuthorizableType getAuthorizableType(int searchType) {
         switch (searchType) {
             case UserManager.SEARCH_TYPE_USER:
-                return Type.USER;
+                return AuthorizableType.USER;
             case UserManager.SEARCH_TYPE_GROUP:
-                return Type.GROUP;
+                return AuthorizableType.GROUP;
             case UserManager.SEARCH_TYPE_AUTHORIZABLE:
-                return Type.AUTHORIZABLE;
+                return AuthorizableType.AUTHORIZABLE;
             default:
                 throw new IllegalArgumentException("Invalid search type " + searchType);
         }

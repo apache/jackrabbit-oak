@@ -32,7 +32,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.TreeBasedPrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
-import org.apache.jackrabbit.oak.spi.security.user.Type;
+import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,7 +52,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
 
     @Override
     void checkValidTree(Tree tree) throws RepositoryException {
-        if (tree == null || !getUserProvider().isAuthorizableType(tree, Type.GROUP)) {
+        if (tree == null || !getUserProvider().isAuthorizableType(tree, AuthorizableType.GROUP)) {
             throw new IllegalArgumentException("Invalid group node: node type rep:Group expected.");
         }
     }
@@ -177,7 +177,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
             return uMgr.findAuthorizables(propName, null, UserManager.SEARCH_TYPE_AUTHORIZABLE);
         } else {
             MembershipProvider mMgr = uMgr.getMembershipProvider();
-            Iterator oakPaths = mMgr.getMembers(getTree(), Type.AUTHORIZABLE, includeInherited);
+            Iterator oakPaths = mMgr.getMembers(getTree(), AuthorizableType.AUTHORIZABLE, includeInherited);
             if (!oakPaths.hasNext()) {
                 AuthorizableIterator iterator = AuthorizableIterator.create(oakPaths, uMgr, UserManager.SEARCH_TYPE_AUTHORIZABLE);
                 return new RangeIteratorAdapter(iterator, iterator.getSize());
