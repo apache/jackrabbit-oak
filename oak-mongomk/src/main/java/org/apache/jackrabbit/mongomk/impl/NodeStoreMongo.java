@@ -20,6 +20,7 @@ import java.util.List;
 
 import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.mk.model.tree.DiffBuilder;
+import org.apache.jackrabbit.mk.model.tree.NodeState;
 import org.apache.jackrabbit.mongomk.api.NodeStore;
 import org.apache.jackrabbit.mongomk.api.command.Command;
 import org.apache.jackrabbit.mongomk.api.command.CommandExecutor;
@@ -100,12 +101,13 @@ public class NodeStoreMongo implements NodeStore {
         // FIXME - FetchNodesByPath?
         GetNodesCommandMongo command = new GetNodesCommandMongo(mongoConnection, path, fromRevisionId, -1);
         Node before = command.execute();
+        NodeState beforeState = before != null? new MongoNodeState(before) : null;
 
         command = new GetNodesCommandMongo(mongoConnection, path, toRevisionId, -1);
         Node after = command.execute();
+        NodeState afterState = after != null? new MongoNodeState(after) : null;
 
-        return new DiffBuilder(new MongoNodeState(before), new MongoNodeState(after),
-                path, depth, new MongoNodeStore(), path).build();
+        return new DiffBuilder(beforeState, afterState, path, depth,new MongoNodeStore(), path).build();
     }
 
     @Override

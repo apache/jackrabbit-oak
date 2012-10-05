@@ -83,7 +83,7 @@ public class GetNodesCommandMongo extends AbstractCommand<Node> {
             throw new InconsistentNodeHierarchyException();
         }
 
-        this.buildNodeStructure();
+        buildNodeStructure();
 
         return rootOfPath;
     }
@@ -100,17 +100,21 @@ public class GetNodesCommandMongo extends AbstractCommand<Node> {
 
     private void buildNodeStructure() {
         NodeMongo nodeMongoRootOfPath = pathAndNodeMap.get(path);
-        rootOfPath = this.buildNodeStructure(nodeMongoRootOfPath);
+        rootOfPath = buildNodeStructure(nodeMongoRootOfPath);
     }
 
     private NodeImpl buildNodeStructure(NodeMongo nodeMongo) {
+        if (nodeMongo == null) {
+            return null;
+        }
+
         NodeImpl node = NodeMongo.toNode(nodeMongo);
 
         for (Iterator<Node> it = node.getChildNodeEntries(0, -1); it.hasNext(); ) {
             Node child = it.next();
             NodeMongo nodeMongoChild = pathAndNodeMap.get(child.getPath());
             if (nodeMongoChild != null) {
-                NodeImpl nodeChild = this.buildNodeStructure(nodeMongoChild);
+                NodeImpl nodeChild = buildNodeStructure(nodeMongoChild);
                 node.addChild(nodeChild);
             }
         }
@@ -186,6 +190,10 @@ public class GetNodesCommandMongo extends AbstractCommand<Node> {
 
     private boolean verifyNodeHierarchyRec(String path, int currentDepth) {
         boolean verified = false;
+
+        if (pathAndNodeMap.isEmpty()) {
+            return true;
+        }
 
         NodeMongo nodeMongo = pathAndNodeMap.get(path);
         if (nodeMongo != null) {
