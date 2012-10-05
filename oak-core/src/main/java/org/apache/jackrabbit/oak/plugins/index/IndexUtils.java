@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.query;
+package org.apache.jackrabbit.oak.plugins.index;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -32,9 +32,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.spi.query.IndexDefinition.INDEX_DATA_CHILD_NAME;
-import static org.apache.jackrabbit.oak.spi.query.IndexDefinition.TYPE_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.spi.query.IndexDefinition.UNIQUE_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexDefinition.INDEX_DATA_CHILD_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexDefinition.TYPE_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexDefinition.UNIQUE_PROPERTY_NAME;
 
 public class IndexUtils {
 
