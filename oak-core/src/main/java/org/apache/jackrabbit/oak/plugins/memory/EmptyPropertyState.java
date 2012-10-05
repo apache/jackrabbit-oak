@@ -19,9 +19,6 @@
 package org.apache.jackrabbit.oak.plugins.memory;
 
 import java.util.Collections;
-import java.util.List;
-
-import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CoreValue;
@@ -56,20 +53,6 @@ class EmptyPropertyState implements PropertyState {
     @Override
     public boolean isArray() {
         return true;
-    }
-
-    @Override
-    @Nonnull
-    @Deprecated
-    public CoreValue getValue() {
-        throw new IllegalStateException("Not a single valued property");
-    }
-
-    @Override
-    @Nonnull
-    @Deprecated
-    public List<CoreValue> getValues() {
-        return Collections.emptyList();
     }
 
     @Override
@@ -127,7 +110,7 @@ class EmptyPropertyState implements PropertyState {
             PropertyState other = (PropertyState) that;
             return getName().equals(other.getName())
                     && isArray() == other.isArray()
-                    && getValues().equals(other.getValues());
+                    && CoreValues.getValues(this).equals(CoreValues.getValues(other));
         } else {
             return false;
         }
@@ -149,7 +132,7 @@ class EmptyPropertyState implements PropertyState {
 
     @Override
     public String toString() {
-        return getName() + '=' + getValues();
+        return getName() + '=' + CoreValues.getValues(this);
     }
 
 }

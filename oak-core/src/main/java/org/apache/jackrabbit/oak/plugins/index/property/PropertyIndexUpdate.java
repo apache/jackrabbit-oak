@@ -25,6 +25,7 @@ import javax.jcr.PropertyType;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.CoreValues;
 import org.apache.jackrabbit.oak.plugins.memory.MultiPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.StringValue;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -88,7 +89,7 @@ class PropertyIndexUpdate {
             PropertyState property = index.getProperty(encoded);
             if (property != null) {
                 List<CoreValue> values = Lists.newArrayList();
-                for (CoreValue value : property.getValues()) {
+                for (CoreValue value : CoreValues.getValues(property)) {
                     if (!paths.contains(value.getString())) {
                         values.add(value);
                     }
@@ -107,7 +108,7 @@ class PropertyIndexUpdate {
             List<CoreValue> values = Lists.newArrayList();
             PropertyState property = index.getProperty(encoded);
             if (property != null) {
-                for (CoreValue value : property.getValues()) {
+                for (CoreValue value : CoreValues.getValues(property)) {
                     values.add(value);
                     paths.remove(value.getString());
                 }

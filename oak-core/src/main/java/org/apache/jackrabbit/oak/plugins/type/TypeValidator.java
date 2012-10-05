@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.memory.CoreValues;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.value.ValueImpl;
@@ -259,10 +260,10 @@ class TypeValidator implements Validator {
                 return;
             }
             if (property.isArray()) {
-                checkSetProperty(property.getName(), property.getValues());
+                checkSetProperty(property.getName(), CoreValues.getValues(property));
             }
             else {
-                checkSetProperty(property.getName(), property.getValue());
+                checkSetProperty(property.getName(), CoreValues.getValue(property));
             }
         }
 

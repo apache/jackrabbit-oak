@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.query.ast;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.CoreValues;
 import org.apache.jackrabbit.oak.query.Query;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
@@ -76,11 +77,11 @@ public class ComparisonImpl extends ConstraintImpl {
             }
         }
         if (!isArray) {
-            return evaluate(p1.getValue(), v2);
+            return evaluate(CoreValues.getValue(p1), v2);
         }
         // for multi-valued properties: if any of the value matches,
         // then return true
-        for (CoreValue v1 : p1.getValues()) {
+        for (CoreValue v1 : CoreValues.getValues(p1)) {
             if (evaluate(v1, v2)) {
                 return true;
             }
