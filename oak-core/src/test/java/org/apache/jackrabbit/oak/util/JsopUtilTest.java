@@ -43,7 +43,7 @@ public class JsopUtilTest extends AbstractOakTest {
         super.before();
         session = createAdminSession();
         root = session.getLatestRoot();
-        vf = session.getCoreValueFactory();
+        vf = root.getValueFactory();
     }
 
     @Override

@@ -83,6 +83,27 @@ public interface UserProvider {
 
     boolean isAdminUser(Tree userTree);
 
+    /**
+     * Returns the password hash for the user with the specified ID or {@code null}
+     * if the user does not exist or if the hash is not accessible for the editing
+     * session.
+     *
+     * @param userID The id of a user.
+     * @return the password hash or {@code null}.
+     */
+    String getPassword(String userID);
+
+    /**
+     * Set the password for the user identified by the specified {@code userTree}.
+     *
+     * @param userTree The tree representing the user.
+     * @param password The plaintext password to set.
+     * @param forceHash If true the specified password needs to be hashed irrespective
+     * of it's format.
+     * @throws javax.jcr.RepositoryException If an error occurs
+     */
+    void setPassword(Tree userTree, String password, boolean forceHash) throws RepositoryException;
+
     void setProtectedProperty(Tree authorizableTree, String propertyName, String value, int propertyType);
 
     void setProtectedProperty(Tree v, String propertyName, String[] values, int propertyType);

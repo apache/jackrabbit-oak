@@ -477,7 +477,7 @@ public class SessionDelegate {
     @Nonnull
     PrincipalManager getPrincipalManager() throws RepositoryException {
         if (securityProvider != null) {
-            return securityProvider.getPrincipalConfiguration().getPrincipalManager(session, contentSession, root, getNamePathMapper());
+            return securityProvider.getPrincipalConfiguration().getPrincipalManager(session, root, getNamePathMapper());
         } else {
             throw new UnsupportedRepositoryOperationException("Principal management not supported.");
         }
@@ -486,7 +486,7 @@ public class SessionDelegate {
     @Nonnull
     UserManager getUserManager() throws UnsupportedRepositoryOperationException {
         if (securityProvider != null) {
-            return securityProvider.getUserContext().getUserManager(session, contentSession, root, getNamePathMapper());
+            return securityProvider.getUserContext().getUserManager(session, root, getNamePathMapper());
         } else {
             throw new UnsupportedRepositoryOperationException("User management not supported.");
         }

@@ -135,4 +135,11 @@ public interface Root {
     @Nonnull
     SessionQueryEngine getQueryEngine();
 
+    /**
+     * Get the value factory.
+     *
+     * @return the value factory
+     */
+    CoreValueFactory getValueFactory();
+
 }
