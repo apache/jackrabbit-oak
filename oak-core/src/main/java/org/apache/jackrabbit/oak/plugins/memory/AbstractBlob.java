@@ -2,8 +2,12 @@ package org.apache.jackrabbit.oak.plugins.memory;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 
 import com.google.common.base.Optional;
+import com.google.common.hash.HashCode;
+import com.google.common.hash.Hasher;
+import com.google.common.hash.Hashing;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,7 +20,7 @@ import org.slf4j.LoggerFactory;
 public abstract class AbstractBlob implements Blob {
     private static final Logger log = LoggerFactory.getLogger(AbstractBlob.class);
 
-    private Optional<Integer> hashCode = Optional.absent();
+    private Optional<HashCode> hashCode = Optional.absent();
 
     /**
      * This hash code implementation returns the hash code of the underlying stream
@@ -24,28 +28,56 @@ public abstract class AbstractBlob implements Blob {
      */
     @Override
     public int hashCode() {
+        return calculateSha256().asInt();
+    }
+
+    @Override
+    public byte[] sha256() {
+        return calculateSha256().asBytes();
+    }
+
+    private HashCode calculateSha256() {
         // Blobs are immutable so we can safely cache the hash
         if (!hashCode.isPresent()) {
-            InputStream s = getNewStream();
+            InputStream is = getNewStream();
             try {
-                hashCode = Optional.of(s.hashCode());
+                try {
+                    Hasher hasher = Hashing.sha256().newHasher();
+                    byte[] buf = new byte[0x1000];
+                    int r;
+                    while((r = is.read(buf)) != -1) {
+                        hasher.putBytes(buf, 0, r);
+                    }
+                    hashCode = Optional.of(hasher.hash());
+                }
+                catch (IOException e) {
+                    log.warn("Error while hashing stream", e);
+                }
             }
             finally {
-                close(s);
+                close(is);
             }
         }
         return hashCode.get();
     }
 
     /**
-     * To {@code Blob} instances are considered equal iff they have the same hash code
+     * To {@code Blob} instances are considered equal iff they have the same SHA-256 hash code
      * are equal.
      * @param other
      * @return
      */
     @Override
     public boolean equals(Object other) {
-        return other == this || other instanceof Blob && hashCode() == other.hashCode();
+        if (other == this) {
+            return true;
+        }
+        if (!(other instanceof Blob)) {
+            return false;
+        }
+
+        Blob that = (Blob) other;
+        return Arrays.equals(sha256(), that.sha256());
     }
 
     private static void close(InputStream s) {
