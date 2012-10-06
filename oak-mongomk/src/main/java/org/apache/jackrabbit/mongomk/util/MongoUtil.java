@@ -18,6 +18,7 @@ package org.apache.jackrabbit.mongomk.util;
 
 import java.util.Arrays;
 
+import com.mongodb.DB;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
 import org.apache.jackrabbit.mongomk.model.HeadMongo;
@@ -83,6 +84,19 @@ public class MongoUtil {
         initNodeCollection(mongoConnection);
         initCommitCollection(mongoConnection);
         initHeadCollection(mongoConnection);
+    }
+
+    public static void bootstrap(MongoConnection mongoConnection){
+        DB db = mongoConnection.getDB();
+        if(!db.collectionExists(MongoConnection.COLLECTION_NODES)){
+            initNodeCollection(mongoConnection);
+        }
+        if(!db.collectionExists(MongoConnection.COLLECTION_COMMITS)){
+            initCommitCollection(mongoConnection);
+        }
+        if(!db.collectionExists(MongoConnection.COLLECTION_HEAD)){
+            initHeadCollection(mongoConnection);
+        }
     }
 
     public static void initHeadCollection(MongoConnection mongoConnection) {
