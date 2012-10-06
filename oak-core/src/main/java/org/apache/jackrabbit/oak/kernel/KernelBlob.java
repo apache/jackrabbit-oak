@@ -43,4 +43,18 @@ public class KernelBlob extends AbstractBlob {
     public long length() {
         return kernel.getLength(binaryID);
     }
+
+
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        }
+        if (other instanceof KernelBlob) {
+            KernelBlob that = (KernelBlob) other;
+            return binaryID.equals(that.binaryID);
+        }
+
+        return super.equals(other);
+    }
 }
