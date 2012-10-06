@@ -32,11 +32,12 @@ import com.mongodb.gridfs.GridFS;
  */
 public class MongoConnection {
 
-    private static final String COLLECTION_COMMITS = "commits";
-    private static final String COLLECTION_HEAD = "head";
-    private static final String COLLECTION_NODES = "nodes";
+    public static final String COLLECTION_COMMITS = "commits";
+    public static final String COLLECTION_HEAD = "head";
+    public static final String COLLECTION_NODES = "nodes";
     private final DB db;
     private final GridFS gridFS;
+    private final Mongo mongo;
 
     /**
      * Constructs a new {@code MongoConnection}.
@@ -47,7 +48,8 @@ public class MongoConnection {
      * @throws Exception If an error occurred while trying to connect.
      */
     public MongoConnection(String host, int port, String database) throws Exception {
-        db = new Mongo(host, port).getDB(database);
+        mongo = new Mongo(host, port);
+        db = mongo.getDB(database);
         gridFS = new GridFS(db);
     }
 
@@ -81,6 +83,15 @@ public class MongoConnection {
     }
 
     /**
+     * Returns the {@link Mongo}.
+     *
+     * @return The {@link Mongo}.
+     */
+    public Mongo getMongo() {
+        return mongo;
+    }
+
+    /**
      * Returns the head {@link DBCollection}.
      *
      * @return The head {@link DBCollection}.
@@ -100,5 +111,14 @@ public class MongoConnection {
         DBCollection nodeCollection = db.getCollection(COLLECTION_NODES);
         nodeCollection.setObjectClass(NodeMongo.class);
         return nodeCollection;
+    }
+
+    /**
+     * Closes the underlying Mongo instance
+     */
+    public void close(){
+        if(mongo != null){
+            mongo.close();
+        }
     }
 }
