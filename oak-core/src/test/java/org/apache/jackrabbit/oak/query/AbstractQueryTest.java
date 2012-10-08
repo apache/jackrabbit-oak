@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.query;
 
-import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.DEFAULT_INDEX_HOME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -98,10 +97,12 @@ public abstract class AbstractQueryTest extends AbstractOakTest implements
                 indexDef = indexDef.addChild(p);
             }
         }
-        indexDef = indexDef.addChild(TEST_INDEX_NAME);
+        indexDef = indexDef.addChild(INDEX_DEFINITIONS_NAME).addChild(
+                TEST_INDEX_NAME);
         indexDef.setProperty(JcrConstants.JCR_PRIMARYTYPE,
                 INDEX_DEFINITION_NODE_TYPE);
         indexDef.setProperty(TYPE_PROPERTY_NAME, type);
+        indexDef.setProperty(REINDEX_PROPERTY_NAME, true);
         return indexDef;
     }
 
