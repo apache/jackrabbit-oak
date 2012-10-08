@@ -37,7 +37,7 @@ public class LuceneIndexQueryTest extends AbstractQueryTest implements
     @Override
     protected void createTestIndexNode() throws Exception {
         Tree index = root.getTree("/");
-        createTestIndexNode(index, TYPE);
+        createTestIndexNode(index, TYPE_LUCENE);
         root.commit();
     }
 

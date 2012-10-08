@@ -16,33 +16,23 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-public class IndexDefinitionImpl implements IndexDefinition {
+public class IndexDefinitionImpl implements IndexDefinition, IndexConstants {
 
     private final String name;
     private final String type;
     private final String path;
-    private final boolean unique;
-    private final Map<String, String> properties;
-
-    public IndexDefinitionImpl(String name, String type, String path) {
-        this(name, type, path, false, Collections.<String, String> emptyMap());
-    }
+    private final NodeState state;
 
     public IndexDefinitionImpl(String name, String type, String path,
-            boolean unique, Map<String, String> properties) {
+            NodeState state) {
         this.name = name;
         this.type = type;
         this.path = path;
-        this.unique = unique;
-        if (properties != null) {
-            this.properties = properties;
-        } else {
-            this.properties = new HashMap<String, String>();
-        }
+        this.state = state;
     }
 
     @Override
@@ -61,30 +51,28 @@ public class IndexDefinitionImpl implements IndexDefinition {
     }
 
     @Override
-    public boolean isUnique() {
-        return unique;
+    public boolean isReindex() {
+        PropertyState ps = state.getProperty(REINDEX_PROPERTY_NAME);
+        return ps != null && ps.getValue(Type.BOOLEAN);
     }
 
     @Override
-    public Map<String, String> getProperties() {
-        return properties;
+    public NodeState getState() {
+        return state;
     }
 
     @Override
     public String toString() {
         return "IndexDefinitionImpl [name=" + name + ", type=" + type
-                + ", path=" + path + ", unique=" + unique + ", properties="
-                + properties + "]";
+                + ", path=" + path + ", reindex=" + isReindex() + ", state="
+                + state + "]";
     }
 
     @Override
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        result = prime * result + ((name == null) ? 0 : name.hashCode());
-        result = prime * result + ((path == null) ? 0 : path.hashCode());
-        result = prime * result + ((type == null) ? 0 : type.hashCode());
-        result = prime * result + (unique ? 1231 : 1237);
+        result = prime * result + ((state == null) ? 0 : state.hashCode());
         return result;
     }
 
@@ -97,22 +85,10 @@ public class IndexDefinitionImpl implements IndexDefinition {
         if (getClass() != obj.getClass())
             return false;
         IndexDefinitionImpl other = (IndexDefinitionImpl) obj;
-        if (name == null) {
-            if (other.name != null)
+        if (state == null) {
+            if (other.state != null)
                 return false;
-        } else if (!name.equals(other.name))
-            return false;
-        if (path == null) {
-            if (other.path != null)
-                return false;
-        } else if (!path.equals(other.path))
-            return false;
-        if (type == null) {
-            if (other.type != null)
-                return false;
-        } else if (!type.equals(other.type))
-            return false;
-        if (unique != other.unique)
+        } else if (!state.equals(other.state))
             return false;
         return true;
     }

@@ -16,19 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import java.util.Map;
-
 import javax.annotation.Nonnull;
+
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * Defines an index definition
  * 
  */
 public interface IndexDefinition {
-
-    String UNIQUE_PROPERTY_NAME = "unique";
-
-    String INDEX_DATA_CHILD_NAME = ":data";
 
     /**
      * Get the unique index name. This is also the name of the index node.
@@ -39,28 +35,26 @@ public interface IndexDefinition {
     String getName();
 
     /**
-     * @return the index type
-     */
-    @Nonnull
-    String getType();
-
-    /**
      * @return the index path, including the name as the last segment
      */
     @Nonnull
     String getPath();
 
     /**
-     * Whether each value may only appear once in the index.
-     * 
-     * @return true if unique
-     */
-    boolean isUnique();
-
-    /**
-     * @return the index properties
+     * @return the index type
      */
     @Nonnull
-    Map<String, String> getProperties();
+    String getType();
+
+    /**
+     * @return flag marking if reindexing is required on this index
+     */
+    boolean isReindex();
+
+    /**
+     * @return the state that this definition is built on
+     */
+    @Nonnull
+    NodeState getState();
 
 }

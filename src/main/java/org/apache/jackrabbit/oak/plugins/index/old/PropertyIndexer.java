@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.old;
 
+import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -48,35 +50,40 @@ public class PropertyIndexer implements QueryIndexProvider, CommitHook,
         return after;
     }
 
-    @Override @Nonnull
+    @Override
+    @Nonnull
     public List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
         List<QueryIndex> queryIndexList = new ArrayList<QueryIndex>();
-        NodeBuilder rootBuilder = IndexUtils.getChildBuilder(nodeState,
-                indexConfigPath);
         List<IndexDefinition> indexDefinitions = IndexUtils
                 .buildIndexDefinitions(nodeState, indexConfigPath,
                         INDEX_TYPE_PROPERTY);
         for (IndexDefinition def : indexDefinitions) {
-            NodeBuilder builder = rootBuilder.child(def.getName());
-            // create the global :data node
-            builder.child(INDEX_CONTENT);
+            NodeBuilder builder = childBuilder(nodeState, def.getPath());
             for (String k : builder.getChildNodeNames()) {
                 PropertyIndex prop = PropertyIndex.fromNodeName(indexer, k);
                 if (prop != null) {
                     // create the :data node
-                    builder.child(prop.getIndexNodeName())
-                            .child(INDEX_CONTENT);
+                    builder.child(prop.getIndexNodeName()).child(INDEX_CONTENT);
                     queryIndexList.add(new PropertyContentIndex(prop));
                 }
                 PrefixIndex pref = PrefixIndex.fromNodeName(indexer, k);
                 if (pref != null) {
                     // create the :data node
-                    builder.child(pref.getIndexNodeName())
-                            .child(INDEX_CONTENT);
+                    builder.child(pref.getIndexNodeName()).child(INDEX_CONTENT);
                     queryIndexList.add(new PrefixContentIndex(pref));
                 }
             }
+            // create the global :data node
+            builder.child(INDEX_CONTENT);
         }
         return queryIndexList;
+    }
+
+    private static NodeBuilder childBuilder(NodeState state, String path) {
+        NodeBuilder builder = state.builder();
+        for (String p : elements(path)) {
+            builder = builder.child(p);
+        }
+        return builder;
     }
 }
