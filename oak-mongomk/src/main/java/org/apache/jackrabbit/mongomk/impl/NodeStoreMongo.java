@@ -91,7 +91,7 @@ public class NodeStoreMongo implements NodeStore {
 
         if ("/".equals(path)) {
             CommitMongo toCommit = new FetchCommitQuery(mongoConnection, toRevisionId).execute();
-            if (toCommit.getBaseRevisionId() == fromRevisionId) {
+            if (toCommit.getBaseRevId() == fromRevisionId) {
                 // Specified range spans a single commit:
                 // use diff stored in commit instead of building it dynamically
                 return toCommit.getDiff();

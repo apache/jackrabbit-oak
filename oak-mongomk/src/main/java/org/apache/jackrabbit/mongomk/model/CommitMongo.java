@@ -32,7 +32,6 @@ import com.mongodb.BasicDBObject;
 /**
  * The {@code MongoDB} representation of a commit.
  */
-@SuppressWarnings("javadoc")
 public class CommitMongo extends BasicDBObject {
 
     public static final String KEY_AFFECTED_PATH = "affPaths";
@@ -86,63 +85,63 @@ public class CommitMongo extends BasicDBObject {
         return (List<String>) get(KEY_AFFECTED_PATH);
     }
 
-    public long getBaseRevisionId() {
-        return getLong(KEY_BASE_REVISION_ID);
-    }
-
-    public String getDiff() {
-        return getString(KEY_DIFF);
-    }
-
-    public String getMessage() {
-        return getString(KEY_MESSAGE);
-    }
-
-    public String getPath() {
-        return getString(KEY_PATH);
-    }
-
-    public long getRevisionId() {
-        return getLong(KEY_REVISION_ID);
-    }
-
-    public boolean hasFailed() {
-        return getBoolean(KEY_FAILED);
-    }
-
     public void setAffectedPaths(List<String> affectedPaths) {
         put(KEY_AFFECTED_PATH, affectedPaths);
+    }
+
+    public long getBaseRevId() {
+        return getLong(KEY_BASE_REVISION_ID);
     }
 
     public void setBaseRevId(long baseRevisionId) {
         put(KEY_BASE_REVISION_ID, baseRevisionId);
     }
 
+    public String getDiff() {
+        return getString(KEY_DIFF);
+    }
+
     public void setDiff(String diff) {
         put(KEY_DIFF, diff);
     }
 
-    public void setFailed() {
-        put(KEY_FAILED, Boolean.TRUE);
+    public String getMessage() {
+        return getString(KEY_MESSAGE);
     }
 
     public void setMessage(String message) {
         put(KEY_MESSAGE, message);
     }
 
+    public String getPath() {
+        return getString(KEY_PATH);
+    }
+
     public void setPath(String path) {
         put(KEY_PATH, path);
+    }
+
+    public long getRevisionId() {
+        return getLong(KEY_REVISION_ID);
     }
 
     public void setRevisionId(long revisionId) {
         put(KEY_REVISION_ID, revisionId);
     }
 
-    public void setTimestamp(long timestamp) {
-        put(KEY_TIMESTAMP, timestamp);
+    public boolean hasFailed() {
+        return getBoolean(KEY_FAILED);
+    }
+
+    public void setFailed() {
+        put(KEY_FAILED, Boolean.TRUE);
     }
 
     public Long getTimestamp() {
         return getLong(KEY_TIMESTAMP);
+    }
+
+    public void setTimestamp(long timestamp) {
+        put(KEY_TIMESTAMP, timestamp);
     }
 }
