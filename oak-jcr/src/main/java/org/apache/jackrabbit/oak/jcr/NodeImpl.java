@@ -64,14 +64,13 @@ import org.apache.jackrabbit.commons.iterator.PropertyIteratorAdapter;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.value.ValueConverter;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
-import org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants;
+import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.util.TODO;
 import org.apache.jackrabbit.value.ValueHelper;
 import org.slf4j.Logger;
@@ -1216,14 +1215,13 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
         String lockIsDeep = sessionDelegate.getOakPathOrThrow(JCR_LOCK_IS_DEEP);
         try {
             ContentSession session = sessionDelegate.getContentSession();
-            CoreValueFactory factory = session.getCoreValueFactory();
             Root root = session.getLatestRoot();
             Tree tree = root.getTree(dlg.getPath());
             if (tree == null) {
                 throw new ItemNotFoundException();
             }
-            tree.setProperty(lockOwner, factory.createValue(userID));
-            tree.setProperty(lockIsDeep, factory.createValue(isDeep));
+            tree.setProperty(lockOwner, userID);
+            tree.setProperty(lockIsDeep, isDeep);
             root.commit(); // TODO: fail instead?
         } catch (CommitFailedException e) {
             throw new RepositoryException("Unable to lock " + this, e);

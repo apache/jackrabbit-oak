@@ -18,9 +18,9 @@ package org.apache.jackrabbit.mongomk;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.jackrabbit.mongomk.api.model.Commit;
 import org.apache.jackrabbit.mongomk.api.model.Node;
@@ -105,18 +105,14 @@ public class MongoAssert {
         NodeMongo nodeMongo = (NodeMongo) nodeCollection.findOne(query);
         Assert.assertNotNull(nodeMongo);
 
-        Set<Node> children = expected.getChildren();
-        if (children != null) {
-            List<String> childNames = nodeMongo.getChildren();
-            Assert.assertNotNull(childNames);
-            Assert.assertEquals(children.size(), childNames.size());
-            Assert.assertEquals(children.size(), new HashSet<String>(childNames).size());
-            for (Node child : children) {
-                assertNodesExist(child);
-                Assert.assertTrue(childNames.contains(child.getName()));
-            }
-        } else {
-            Assert.assertNull(nodeMongo.getChildren());
+        List<String> nodeMongoChildren = nodeMongo.getChildren();
+        int actual = nodeMongoChildren != null? nodeMongoChildren.size() : 0;
+        Assert.assertEquals(expected.getChildNodeCount(), actual);
+
+        for (Iterator<Node> it = expected.getChildNodeEntries(0, -1); it.hasNext(); ) {
+            Node childNode = it.next();
+            assertNodesExist(childNode);
+            Assert.assertTrue(nodeMongoChildren.contains(childNode.getName()));
         }
     }
 

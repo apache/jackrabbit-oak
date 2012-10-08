@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+
 import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 
@@ -29,22 +30,56 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
-
 import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
-import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.memory.CoreValues;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
-import org.apache.jackrabbit.oak.spi.security.user.Type;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+
 /**
- * MembershipProviderImpl... TODO
+ * {@code MembershipProvider} implementation storing group membership information
+ * with the {@code Tree} associated with a given {@link org.apache.jackrabbit.api.security.user.Group}.
+ * Depending on the configuration there are two variants on how group members
+ * are recorded:
+ *
+ * <h3>Membership stored in multi-valued property</h3>
+ * This is the default way of storing membership information with the following
+ * characteristics:
+ * <ul>
+ *     <li>Multivalued property {@link #REP_MEMBERS}</li>
+ *     <li>Property type: {@link PropertyType#WEAKREFERENCE}</li>
+ *     <li>Used if the config option {@link UserConfig#PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE} is missing or &lt;4</li>
+ * </ul>
+ *
+ * <h3>Membership stored in individual properties</h3>
+ * Variant to store group membership based on the
+ * {@link UserConfig#PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE} configuration parameter:
+ *
+ * <ul>
+ *     <li>Membership information stored underneath a {@link #REP_MEMBERS} node hierarchy</li>
+ *     <li>Individual member information is stored each in a {@link PropertyType#WEAKREFERENCE}
+ *     property</li>
+ *     <li>Node hierarchy is split based on the {@link UserConfig#PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE}
+ *     configuration parameter.</li>
+ *     <li>{@link UserConfig#PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE} must be greater than 4
+ *     in order to turn on this behavior</li>
+ * </ul>
+ *
+ * <h3>Compatibility</h3>
+ * This membership provider is able to deal with both options being present in
+ * the content. If the {@link UserConfig#PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE} configuration
+ * parameter is modified later on, existing membership information is not
+ * modified or converted to the new structure.
  */
 public class MembershipProviderImpl extends AuthorizableBaseProvider implements MembershipProvider {
 
@@ -52,8 +87,8 @@ public class MembershipProviderImpl extends AuthorizableBaseProvider implements 
 
     private final int splitSize;
 
-    MembershipProviderImpl(ContentSession contentSession, Root root, UserConfig config) {
-        super(contentSession, root, config);
+    MembershipProviderImpl(Root root, UserConfig config) {
+        super(root, config);
 
         int splitValue = config.getConfigValue(UserConfig.PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE, 0);
         if (splitValue != 0 && splitValue < 4) {
@@ -66,7 +101,7 @@ public class MembershipProviderImpl extends AuthorizableBaseProvider implements 
     //--------------------------------------------------< MembershipProvider>---
     @Override
     public Iterator<String> getMembership(String authorizableId, boolean includeInherited) {
-        return getMembership(getByID(authorizableId, Type.AUTHORIZABLE), includeInherited);
+        return getMembership(getByID(authorizableId, AuthorizableType.AUTHORIZABLE), includeInherited);
     }
 
     @Override
@@ -91,8 +126,8 @@ public class MembershipProviderImpl extends AuthorizableBaseProvider implements 
     }
 
     @Override
-    public Iterator<String> getMembers(String groupId, Type authorizableType, boolean includeInherited) {
-        Tree groupTree = getByID(groupId, Type.GROUP);
+    public Iterator<String> getMembers(String groupId, AuthorizableType authorizableType, boolean includeInherited) {
+        Tree groupTree = getByID(groupId, AuthorizableType.GROUP);
         if (groupTree == null) {
             return Iterators.emptyIterator();
         } else {
@@ -101,19 +136,17 @@ public class MembershipProviderImpl extends AuthorizableBaseProvider implements 
     }
 
     @Override
-    public Iterator<String> getMembers(Tree groupTree, Type authorizableType, boolean includeInherited) {
+    public Iterator<String> getMembers(Tree groupTree, AuthorizableType authorizableType, boolean includeInherited) {
         Iterable memberPaths = Collections.emptySet();
         if (useMemberNode(groupTree)) {
             Tree membersTree = groupTree.getChild(REP_MEMBERS);
             if (membersTree != null) {
-                // FIXME: replace usage of PropertySequence (oak-api not possible there)
-//                PropertySequence propertySequence = getPropertySequence(membersTree);
-//                iterator = new AuthorizableIterator(propertySequence, authorizableType, userManager);
+                throw new UnsupportedOperationException("not implemented: retrieve members from member-node hierarchy");
             }
         } else {
             PropertyState property = groupTree.getProperty(REP_MEMBERS);
             if (property != null) {
-                List<CoreValue> vs = property.getValues();
+                List<CoreValue> vs = CoreValues.getValues(property);
                 memberPaths = Iterables.transform(vs, new Function<CoreValue,String>() {
                     @Override
                     public String apply(@Nullable CoreValue value) {
@@ -145,19 +178,17 @@ public class MembershipProviderImpl extends AuthorizableBaseProvider implements 
             if (useMemberNode(groupTree)) {
                 Tree membersTree = groupTree.getChild(REP_MEMBERS);
                 if (membersTree != null) {
-                    // FIXME: fix.. testing for property name isn't correct.
-                    // FIXME: usage of PropertySequence isn't possible when operating on oak-API
-//                    PropertySequence propertySequence = getPropertySequence(membersTree);
-//                    return propertySequence.hasItem(authorizable.getID());
-                    return false;
+                    // FIXME: fix.. testing for property name in jr2 wasn't correct.
+                    // TODO: add implementation
+                    throw new UnsupportedOperationException("not implemented: isMembers determined from member-node hierarchy");
                 }
             } else {
                 PropertyState property = groupTree.getProperty(REP_MEMBERS);
                 if (property != null) {
-                    List<CoreValue> members = property.getValues();
+                    Iterable<String> members = property.getValue(STRINGS);
                     String authorizableUUID = getContentID(authorizableTree);
-                    for (CoreValue v : members) {
-                        if (authorizableUUID.equals(v.getString())) {
+                    for (String v : members) {
+                        if (authorizableUUID.equals(v)) {
                             return true;
                         }
                     }
@@ -173,23 +204,14 @@ public class MembershipProviderImpl extends AuthorizableBaseProvider implements 
         if (useMemberNode(groupTree)) {
             NodeUtil groupNode = new NodeUtil(groupTree, valueFactory);
             NodeUtil membersNode = groupNode.getOrAddChild(REP_MEMBERS, NT_REP_MEMBERS);
-
-            //FIXME: replace usage of PropertySequence with oak-compatible utility
-//            PropertySequence properties = getPropertySequence(membersTree);
-//            String propName = Text.escapeIllegalJcrChars(authorizable.getID());
-//            if (properties.hasItem(propName)) {
-//                log.debug("Authorizable {} is already member of {}", authorizable, this);
-//                return false;
-//            } else {
-//                CoreValue newMember = createCoreValue(authorizable);
-//                properties.addProperty(propName, newMember);
-//            }
+            // TODO: add implementation
+            throw new UnsupportedOperationException("not implemented: addMember with member-node hierarchy");
         } else {
             List<CoreValue> values;
             CoreValue toAdd = createCoreValue(newMemberTree);
             PropertyState property = groupTree.getProperty(REP_MEMBERS);
             if (property != null) {
-                values = property.getValues();
+                values = CoreValues.getValues(property);
                 if (values.contains(toAdd)) {
                     return false;
                 } else {
@@ -199,7 +221,7 @@ public class MembershipProviderImpl extends AuthorizableBaseProvider implements 
             } else {
                 values = Collections.singletonList(toAdd);
             }
-            groupTree.setProperty(REP_MEMBERS, values);
+            groupTree.setProperty(PropertyStates.createProperty(REP_MEMBERS, values));
         }
         return true;
     }
@@ -209,27 +231,19 @@ public class MembershipProviderImpl extends AuthorizableBaseProvider implements 
         if (useMemberNode(groupTree)) {
             Tree membersTree = groupTree.getChild(REP_MEMBERS);
             if (membersTree != null) {
-                // FIXME: replace usage of PropertySequence with oak-compatible utility
-//                PropertySequence properties = getPropertySequence(membersTree);
-//                String propName = authorizable.getTree().getName();
-                // FIXME: fix.. testing for property name isn't correct.
-//                if (properties.hasItem(propName)) {
-//                    Property p = properties.getItem(propName);
-//                    userManager.removeInternalProperty(p.getParent(), propName);
-//                }
-//                return true;
-                return false;
+                // TODO: add implementation
+                throw new UnsupportedOperationException("not implemented: remove member from member-node hierarchy");
             }
         } else {
             PropertyState property = groupTree.getProperty(REP_MEMBERS);
             if (property != null) {
                 CoreValue toRemove = createCoreValue(memberTree);
-                List<CoreValue> values = property.getValues();
+                List<CoreValue> values = CoreValues.getValues(property);
                 if (values.remove(toRemove)) {
                     if (values.isEmpty()) {
                         groupTree.removeProperty(REP_MEMBERS);
                     } else {
-                        groupTree.setProperty(REP_MEMBERS, values);
+                        groupTree.setProperty(PropertyStates.createProperty(REP_MEMBERS, values));
                     }
                     return true;
                 }
@@ -256,12 +270,12 @@ public class MembershipProviderImpl extends AuthorizableBaseProvider implements 
      * of the given iterator of authorizables.
      *
      *
-     * @param declaredMembers
-     * @param authorizableType
+     * @param declaredMembers Iterator containing the paths to the declared members.
+     * @param authorizableType Flag used to filter the result by authorizable type.
      * @return Iterator of Authorizable objects
      */
     private Iterator<String> getAllMembers(final Iterator<String> declaredMembers,
-                                           final Type authorizableType) {
+                                           final AuthorizableType authorizableType) {
         Iterator<Iterator<String>> inheritedMembers = new Iterator<Iterator<String>>() {
             @Override
             public boolean hasNext() {
@@ -285,7 +299,7 @@ public class MembershipProviderImpl extends AuthorizableBaseProvider implements 
 
             private Iterator<String> inherited(String authorizablePath) {
                 Tree group = getByPath(authorizablePath);
-                if (isAuthorizableTree(group, Type.GROUP)) {
+                if (isAuthorizableTree(group, AuthorizableType.GROUP)) {
                     return getMembers(group, authorizableType, true);
                 } else {
                     return Iterators.emptyIterator();
@@ -315,7 +329,7 @@ public class MembershipProviderImpl extends AuthorizableBaseProvider implements 
 
             private Iterator<String> inherited(String authorizablePath) {
                 Tree group = getByPath(authorizablePath);
-                if (isAuthorizableTree(group, Type.GROUP)) {
+                if (isAuthorizableTree(group, AuthorizableType.GROUP)) {
                     return getMembership(group, true);
                 } else {
                     return Iterators.emptyIterator();

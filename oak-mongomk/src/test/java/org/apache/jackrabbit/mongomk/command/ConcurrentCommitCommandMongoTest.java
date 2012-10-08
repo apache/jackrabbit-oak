@@ -19,21 +19,18 @@ package org.apache.jackrabbit.mongomk.command;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import org.apache.jackrabbit.mongomk.BaseMongoTest;
 import org.apache.jackrabbit.mongomk.api.command.CommandExecutor;
 import org.apache.jackrabbit.mongomk.api.model.Commit;
-import org.apache.jackrabbit.mongomk.api.model.Instruction;
 import org.apache.jackrabbit.mongomk.api.model.Node;
-import org.apache.jackrabbit.mongomk.impl.builder.CommitBuilder;
 import org.apache.jackrabbit.mongomk.impl.command.CommandExecutorImpl;
-import org.apache.jackrabbit.mongomk.impl.model.AddNodeInstructionImpl;
-import org.apache.jackrabbit.mongomk.impl.model.CommitImpl;
+import org.apache.jackrabbit.mongomk.impl.model.CommitBuilder;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -110,10 +107,11 @@ public class ConcurrentCommitCommandMongoTest extends BaseMongoTest {
             Long revisionId = revisionIds.get(i);
             GetNodesCommandMongo command2 = new GetNodesCommandMongo(mongoConnection, "/", revisionId, 0);
             Node root = command2.execute();
-            Set<Node> children = root.getChildren();
+
             for (String lastChild : lastChildren) {
                 boolean contained = false;
-                for (Node childNode : children) {
+                for (Iterator<Node> it = root.getChildNodeEntries(0, -1); it.hasNext(); ) {
+                    Node childNode = it.next();
                     if (childNode.getName().equals(lastChild)) {
                         contained = true;
                         break;
@@ -122,11 +120,12 @@ public class ConcurrentCommitCommandMongoTest extends BaseMongoTest {
                 Assert.assertTrue(contained);
             }
             lastChildren.clear();
-            for (Node childNode : children) {
+            for (Iterator<Node> it = root.getChildNodeEntries(0, -1); it.hasNext(); ) {
+                Node childNode = it.next();
                 lastChildren.add(childNode.getName());
             }
         }
 
-        // TODO Assert the number of commits
+        // FIXME Assert the number of commits
     }
 }

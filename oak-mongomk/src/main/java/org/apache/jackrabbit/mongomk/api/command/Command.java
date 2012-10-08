@@ -33,14 +33,11 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
  */
 public interface Command<T> {
 
-    // TODO Add postExecute and preExecute; Maybe add AOP but only if Granite moves to OSGi 4.3
-
     /**
      * Executes the {@code Command} and returns its result.
      *
      * @return The result.
-     * @throws Exception
-     *             If an error occurred while executing.
+     * @throws Exception If an error occurred while executing.
      */
     T execute() throws Exception;
 

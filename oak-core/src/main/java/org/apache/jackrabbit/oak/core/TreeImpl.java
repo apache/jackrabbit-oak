@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import java.util.List;
 import java.util.Map;
 
 import javax.annotation.CheckForNull;
@@ -28,10 +27,10 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Iterables;
-import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.RootImpl.PurgeListener;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -41,7 +40,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
-import static org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState.EMPTY_NODE;
 
 public class TreeImpl implements Tree, PurgeListener {
 
@@ -233,8 +231,7 @@ public class TreeImpl implements Tree, PurgeListener {
     @Override
     public Tree addChild(String name) {
         if (!hasChild(name)) {
-            NodeBuilder builder = getNodeBuilder();
-            builder.setNode(name, EMPTY_NODE);
+            getNodeBuilder().child(name);
             root.purge();
         }
 
@@ -262,23 +259,24 @@ public class TreeImpl implements Tree, PurgeListener {
     }
 
     @Override
-    public PropertyState setProperty(String name, CoreValue value) {
+    public void setProperty(PropertyState property) {
         NodeBuilder builder = getNodeBuilder();
-        builder.setProperty(name, value);
+        builder.setProperty(property);
         root.purge();
-        PropertyState property = getProperty(name);
-        assert property != null;
-        return property;
     }
 
     @Override
-    public PropertyState setProperty(String name, List<CoreValue> values) {
+    public <T> void setProperty(String name, T value) {
         NodeBuilder builder = getNodeBuilder();
-        builder.setProperty(name, values);
+        builder.setProperty(name, value);
         root.purge();
-        PropertyState property = getProperty(name);
-        assert property != null;
-        return property;
+    }
+
+    @Override
+    public <T> void setProperty(String name, T value, Type<T> type) {
+        NodeBuilder builder = getNodeBuilder();
+        builder.setProperty(name, value, type);
+        root.purge();
     }
 
     @Override
@@ -321,7 +319,7 @@ public class TreeImpl implements Tree, PurgeListener {
         }
 
         if (nodeBuilder == null) {
-            nodeBuilder = parent.getNodeBuilder().getChildBuilder(name);
+            nodeBuilder = parent.getNodeBuilder().child(name);
             root.addListener(this);
         }
         return nodeBuilder;
@@ -603,23 +601,11 @@ public class TreeImpl implements Tree, PurgeListener {
         }
 
         /**
-         * Set the value of the underlying property
-         * @param value the value to set
-         * @return  {@code true} on success false otherwise
+         * Set the underlying property
+         * @param property The property to set
          */
-        public boolean setValue(CoreValue value) {
-            parent.tree.setProperty(property.getName(), value);
-            return true;
-        }
-
-        /**
-         * Set the values of the underlying property
-         * @param values the values to set
-         * @return  {@code true} on success false otherwise
-         */
-        public boolean setValues(List<CoreValue> values) {
-            parent.tree.setProperty(property.getName(), values);
-            return true;
+        public <T> void set(PropertyState property) {
+            parent.tree.setProperty(property);
         }
 
         /**

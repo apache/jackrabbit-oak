@@ -69,7 +69,7 @@ class MergingNodeStateDiff implements NodeStateDiff {
 
         switch (resolution) {
             case OURS:
-                setProperty(target, after);
+                target.setProperty(after);
                 break;
             case THEIRS:
             case MERGED:
@@ -97,7 +97,7 @@ class MergingNodeStateDiff implements NodeStateDiff {
 
         switch (resolution) {
             case OURS:
-                setProperty(target, after);
+                target.setProperty(after);
                 break;
             case THEIRS:
             case MERGED:
@@ -207,18 +207,10 @@ class MergingNodeStateDiff implements NodeStateDiff {
     private static void addChild(Tree target, String name, NodeState state) {
         Tree child = target.addChild(name);
         for (PropertyState property : state.getProperties()) {
-            setProperty(child, property);
+            child.setProperty(property);
         }
         for (ChildNodeEntry entry : state.getChildNodeEntries()) {
             addChild(child, entry.getName(), entry.getNodeState());
-        }
-    }
-
-    private static void setProperty(Tree target, PropertyState property) {
-        if (property.isArray()) {
-            target.setProperty(property.getName(), property.getValues());
-        } else {
-            target.setProperty(property.getName(), property.getValue());
         }
     }
 

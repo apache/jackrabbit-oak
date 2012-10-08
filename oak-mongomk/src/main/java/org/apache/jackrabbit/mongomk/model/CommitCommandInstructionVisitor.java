@@ -22,13 +22,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.jackrabbit.mongomk.api.model.Instruction.AddNodeInstruction;
-import org.apache.jackrabbit.mongomk.api.model.Instruction.AddPropertyInstruction;
-import org.apache.jackrabbit.mongomk.api.model.Instruction.CopyNodeInstruction;
-import org.apache.jackrabbit.mongomk.api.model.Instruction.MoveNodeInstruction;
-import org.apache.jackrabbit.mongomk.api.model.Instruction.RemoveNodeInstruction;
-import org.apache.jackrabbit.mongomk.api.model.Instruction.SetPropertyInstruction;
-import org.apache.jackrabbit.mongomk.api.model.InstructionVisitor;
+import org.apache.jackrabbit.mongomk.api.instruction.InstructionVisitor;
+import org.apache.jackrabbit.mongomk.api.instruction.Instruction.AddNodeInstruction;
+import org.apache.jackrabbit.mongomk.api.instruction.Instruction.AddPropertyInstruction;
+import org.apache.jackrabbit.mongomk.api.instruction.Instruction.CopyNodeInstruction;
+import org.apache.jackrabbit.mongomk.api.instruction.Instruction.MoveNodeInstruction;
+import org.apache.jackrabbit.mongomk.api.instruction.Instruction.RemoveNodeInstruction;
+import org.apache.jackrabbit.mongomk.api.instruction.Instruction.SetPropertyInstruction;
 import org.apache.jackrabbit.mongomk.command.NodeExistsCommandMongo;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.query.FetchNodeByPathQuery;
@@ -108,9 +108,9 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
 
             // Copy src node to destPath.
             NodeMongo srcNode = getStoredNode(srcPath);
-            NodeMongo destNode = NodeMongo.fromDBObject(srcNode);
+            NodeMongo destNode = NodeMongo.createClone(srcNode);
             destNode.setPath(destPath);
-            // FIXME - [Mete] This needs to do proper merge instead of just add.
+            // FIXME - This needs to do proper merge instead of just add.
             List<String> addedChildren = srcNode.getAddedChildren();
             if (addedChildren != null && !addedChildren.isEmpty()) {
                 for (String child : addedChildren) {
@@ -131,19 +131,19 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
             throw new RuntimeException(srcPath);
         }
 
-        // FIXME - [Mete] The rest is not totally correct.
+        // FIXME - The rest is not totally correct.
         NodeMongo destParent = getStagedNode(destParentPath);
         NodeMongo srcNode = getStagedNode(srcPath);
 
         if (srcNode != null) {
             // Copy the modified subtree
-            NodeMongo destNode = NodeMongo.fromDBObject(srcNode);
+            NodeMongo destNode = NodeMongo.createClone(srcNode);
             destNode.setPath(destPath);
             pathNodeMap.put(destPath,  destNode);
             destParent.addChild(destNodeName);
             //destParent.add(destNodeName, srcNode.copy());
         } else {
-            NodeMongo destNode = NodeMongo.fromDBObject(srcNode);
+            NodeMongo destNode = NodeMongo.createClone(srcNode);
             destNode.setPath(destPath);
             pathNodeMap.put(destPath,  destNode);
             destParent.addChild(destNodeName);
@@ -251,7 +251,7 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         }
     }
 
-    // TODO - [Mete] I think we need a way to distinguish between Staged
+    // FIXME - I think we need a way to distinguish between Staged
     // and Stored nodes. For example, what if a node is retrieved as Staged
     // but later it needs to be retrieved as Stored?
     private NodeMongo getStagedNode(String path) {
@@ -267,7 +267,7 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
     private NodeMongo getStoredNode(String path) {
         NodeMongo node = pathNodeMap.get(path);
         if (node == null) {
-            // TODO - [Mete] This is not efficient but needed for all MicroKernelIT
+            // FIXME This is not efficient but needed for all MicroKernelIT
             // tests to pass. Fix it later.
             NodeExistsCommandMongo existCommand = new NodeExistsCommandMongo(mongoConnection, path, headRevisionId);
             boolean exists = false;

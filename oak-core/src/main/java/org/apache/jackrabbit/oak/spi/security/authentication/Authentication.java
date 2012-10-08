@@ -16,9 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication;
 
-import java.security.Principal;
-import java.util.Set;
 import javax.jcr.Credentials;
+import javax.security.auth.Subject;
 
 /**
  * The {@code Authentication} interface defines methods to validate
@@ -52,10 +51,10 @@ public interface Authentication {
      * Test if the given subject (i.e. any of the principals it contains) is
      * allowed to impersonate.
      *
-     * @param principals a set of principals to test.
+     * @param subject The subject that wants to impersonate.
      * @return true if this {@code Impersonation} allows the specified
      * set of principals to impersonate.
      */
-    boolean impersonate(Set<Principal> principals);
+    boolean impersonate(Subject subject);
 
 }

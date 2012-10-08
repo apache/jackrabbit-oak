@@ -27,6 +27,8 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+
 /**
  * TreeBasedPrincipal...
  */
@@ -46,7 +48,7 @@ public class TreeBasedPrincipal implements ItemBasedPrincipal {
         if (prop == null) {
             throw new IllegalArgumentException("Tree doesn't have rep:principalName property");
         }
-        this.principalName = prop.getValue().getString();
+        this.principalName = prop.getValue(STRING);
         this.tree = tree;
         this.pathMapper = pathMapper;
     }

@@ -24,8 +24,8 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.jackrabbit.mongomk.api.command.AbstractCommand;
+import org.apache.jackrabbit.mongomk.api.instruction.Instruction;
 import org.apache.jackrabbit.mongomk.api.model.Commit;
-import org.apache.jackrabbit.mongomk.api.model.Instruction;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.model.CommitCommandInstructionVisitor;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
@@ -123,7 +123,7 @@ public class CommitCommandMongo extends AbstractCommand<Long> {
         HeadMongo headMongo = new SaveAndSetHeadRevisionQuery(mongoConnection,
                 this.headMongo.getHeadRevisionId(), revisionId).execute();
         if (headMongo == null) {
-            // TODO: Check for conflicts!
+            // FIXME - Check for conflicts!
             logger.warn(String.format("Encounterd a conflicting update, thus can't commit"
                     + " revision %s and will be retried with new revision", revisionId));
 
@@ -153,7 +153,8 @@ public class CommitCommandMongo extends AbstractCommand<Long> {
 
         Map<String, NodeMongo> pathNodeMap = visitor.getPathNodeMap();
 
-        affectedPaths = pathNodeMap.keySet(); // TODO Original copies and moved nodes must be included!
+        // FIXME Original copies and moved nodes must be included!
+        affectedPaths = pathNodeMap.keySet();
         nodeMongos = new HashSet<NodeMongo>(pathNodeMap.values());
         for (NodeMongo nodeMongo : nodeMongos) {
             nodeMongo.setRevisionId(revisionId);
@@ -170,7 +171,8 @@ public class CommitCommandMongo extends AbstractCommand<Long> {
         DBObject update = new BasicDBObject("$set", new BasicDBObject(CommitMongo.KEY_FAILED, Boolean.TRUE));
         WriteResult writeResult = commitCollection.update(query, update);
         if (writeResult.getError() != null) {
-            throw new Exception(String.format("Update wasn't successful: %s", writeResult)); // TODO now what?
+            // FIXME now what?
+            throw new Exception(String.format("Update wasn't successful: %s", writeResult));
         }
     }
 
@@ -183,8 +185,7 @@ public class CommitCommandMongo extends AbstractCommand<Long> {
                     logger.debug(String.format("Committing node: %s", committingNode));
 
                     Map<String, Object> existingProperties = existingNode.getProperties();
-
-                    if (existingProperties != null) {
+                    if (!existingProperties.isEmpty()) {
                         committingNode.setProperties(existingProperties);
 
                         logger.debug(String.format("Merged properties for %s: %s", existingNode.getPath(),
@@ -192,7 +193,6 @@ public class CommitCommandMongo extends AbstractCommand<Long> {
                     }
 
                     List<String> existingChildren = existingNode.getChildren();
-
                     if (existingChildren != null) {
                         committingNode.setChildren(existingChildren);
 
@@ -237,9 +237,6 @@ public class CommitCommandMongo extends AbstractCommand<Long> {
             }
 
             Map<String, Object> properties = committingNode.getProperties();
-            if (properties == null) {
-                properties = new HashMap<String, Object>();
-            }
 
             Map<String, Object> addedProperties = committingNode.getAddedProps();
             if (addedProperties != null) {

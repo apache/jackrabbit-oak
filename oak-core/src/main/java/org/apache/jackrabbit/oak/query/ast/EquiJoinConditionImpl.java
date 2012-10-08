@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.query.ast;
 
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.CoreValues;
 import org.apache.jackrabbit.oak.query.Query;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
@@ -71,12 +72,12 @@ public class EquiJoinConditionImpl extends JoinConditionImpl {
         }
         if (!p1.isArray() && !p2.isArray()) {
             // both are single valued
-            return p1.getValue().equals(p2.getValue());
+            return CoreValues.getValue(p1).equals(CoreValues.getValue(p2));
         }
         // TODO what is the expected result of an equi join for multi-valued properties?
         if (!p1.isArray() && p2.isArray()) {
-            CoreValue x = p1.getValue();
-            for (CoreValue y : p2.getValues()) {
+            CoreValue x = CoreValues.getValue(p1);
+            for (CoreValue y : CoreValues.getValues(p2)) {
                 if (y.getType() != x.getType()) {
                     y = query.convert(y, x.getType());
                 }
@@ -86,8 +87,8 @@ public class EquiJoinConditionImpl extends JoinConditionImpl {
             }
             return false;
         } else if (p1.isArray() && !p2.isArray()) {
-            CoreValue x = p2.getValue();
-            for (CoreValue y : p1.getValues()) {
+            CoreValue x = CoreValues.getValue(p2);
+            for (CoreValue y : CoreValues.getValues(p1)) {
                 if (y.getType() != x.getType()) {
                     y = query.convert(y, x.getType());
                 }
@@ -97,8 +98,8 @@ public class EquiJoinConditionImpl extends JoinConditionImpl {
             }
             return false;
         }
-        CoreValue[] l1 = p1.getValues().toArray(new CoreValue[p1.getValues().size()]);
-        CoreValue[] l2 = p2.getValues().toArray(new CoreValue[p2.getValues().size()]);
+        CoreValue[] l1 = CoreValues.getValues(p1).toArray(new CoreValue[p1.count()]);
+        CoreValue[] l2 = CoreValues.getValues(p2).toArray(new CoreValue[p2.count()]);
         return Query.compareValues(l1, l2) == 0;
     }
 
@@ -109,13 +110,13 @@ public class EquiJoinConditionImpl extends JoinConditionImpl {
         if (f.getSelector() == selector1 && p2 != null) {
             if (!p2.isArray()) {
                 // TODO support join on multi-valued properties
-                f.restrictProperty(property1Name, Operator.EQUAL, p2.getValue());
+                f.restrictProperty(property1Name, Operator.EQUAL, CoreValues.getValue(p2));
             }
         }
         if (f.getSelector() == selector2 && p1 != null) {
             if (!p1.isArray()) {
                 // TODO support join on multi-valued properties
-                f.restrictProperty(property2Name, Operator.EQUAL, p1.getValue());
+                f.restrictProperty(property2Name, Operator.EQUAL, CoreValues.getValue(p1));
             }
         }
     }

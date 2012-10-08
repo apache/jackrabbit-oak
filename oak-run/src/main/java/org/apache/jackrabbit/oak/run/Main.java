@@ -19,36 +19,37 @@ package org.apache.jackrabbit.oak.run;
 import java.io.InputStream;
 import java.util.Properties;
 import java.util.concurrent.Executors;
-
 import javax.jcr.Repository;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
+import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.http.OakServlet;
 import org.apache.jackrabbit.oak.jcr.RepositoryImpl;
-import org.apache.jackrabbit.oak.plugins.lucene.LuceneHook;
+import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneHook;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneReindexHook;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexHook;
 import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceValidatorProvider;
-import org.apache.jackrabbit.oak.plugins.type.DefaultTypeEditor;
-import org.apache.jackrabbit.oak.plugins.type.TypeValidatorProvider;
-import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
-import org.apache.jackrabbit.oak.security.authorization.AccessControlValidatorProvider;
-import org.apache.jackrabbit.oak.security.authorization.PermissionValidatorProvider;
+import org.apache.jackrabbit.oak.plugins.nodetype.DefaultTypeEditor;
+import org.apache.jackrabbit.oak.plugins.nodetype.TypeValidatorProvider;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeValidatorProvider;
-import org.apache.jackrabbit.oak.security.user.UserValidatorProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
 import org.apache.jackrabbit.oak.spi.commit.ValidatingHook;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
-import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
+import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.webdav.jcr.JCRWebdavServerServlet;
 import org.apache.jackrabbit.webdav.simple.SimpleWebdavServlet;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
+
+import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.DEFAULT_INDEX_HOME;
 
 public class Main {
 
@@ -155,15 +156,19 @@ public class Main {
         }
 
         private void addServlets(MicroKernel kernel, String path) {
-            ContentRepository repository =
-                    new ContentRepositoryImpl(kernel, null, buildDefaultCommitHook());
+            // TODO: review usage of opensecurity provider (using default will cause BasicServerTest to fail. usage of a:a credentials)
+            SecurityProvider securityProvider = new OpenSecurityProvider();
+            ContentRepository repository = new Oak(kernel)
+                .with(buildDefaultCommitHook())
+                .with(securityProvider)
+                .createContentRepository();
 
             ServletHolder oak =
                     new ServletHolder(new OakServlet(repository));
             context.addServlet(oak, path + "/*");
 
             final Repository jcrRepository = new RepositoryImpl(
-                    repository, Executors.newScheduledThreadPool(1));
+                    repository, Executors.newScheduledThreadPool(1), securityProvider);
 
             ServletHolder webdav =
                     new ServletHolder(new SimpleWebdavServlet() {
@@ -200,7 +205,9 @@ public class Main {
             return new CompositeHook(
                     new DefaultTypeEditor(),
                     new ValidatingHook(createDefaultValidatorProvider()),
-                    new LuceneHook());
+                    new PropertyIndexHook(),
+                    new LuceneReindexHook(DEFAULT_INDEX_HOME),
+                    new LuceneHook(DEFAULT_INDEX_HOME));
         }
 
         private static ValidatorProvider createDefaultValidatorProvider() {
@@ -209,10 +216,6 @@ public class Main {
                     new NamespaceValidatorProvider(),
                     new TypeValidatorProvider(),
                     new ConflictValidatorProvider(),
-                    new PermissionValidatorProvider(),
-                    new AccessControlValidatorProvider(),
-                    // FIXME: retrieve from user context
-                    new UserValidatorProvider(new UserConfig("admin")),
                     new PrivilegeValidatorProvider());
         }
 

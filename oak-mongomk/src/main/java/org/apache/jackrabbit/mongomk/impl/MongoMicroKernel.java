@@ -20,13 +20,14 @@ import java.io.InputStream;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
+import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.mk.util.NodeFilter;
 import org.apache.jackrabbit.mongomk.api.BlobStore;
 import org.apache.jackrabbit.mongomk.api.NodeStore;
 import org.apache.jackrabbit.mongomk.api.model.Commit;
 import org.apache.jackrabbit.mongomk.api.model.Node;
-import org.apache.jackrabbit.mongomk.impl.builder.CommitBuilder;
 import org.apache.jackrabbit.mongomk.impl.json.JsonUtil;
+import org.apache.jackrabbit.mongomk.impl.model.CommitBuilder;
 
 /**
  * The {@code MongoDB} implementation of the {@link MicroKernel}.
@@ -71,9 +72,13 @@ public class MongoMicroKernel implements MicroKernel {
     }
 
     @Override
-    public String diff(String fromRevisionId, String toRevisionId, String filter,
+    public String diff(String fromRevisionId, String toRevisionId, String path,
             int depth) throws MicroKernelException {
-        throw new UnsupportedOperationException("Diff is currently not supported.");
+        try {
+            return nodeStore.diff(fromRevisionId, toRevisionId, path, depth);
+        } catch (Exception e) {
+            throw new MicroKernelException(e);
+        }
     }
 
     @Override
@@ -87,7 +92,7 @@ public class MongoMicroKernel implements MicroKernel {
             }
             Node rootOfPath = nodeStore.getNodes(path, revId, 0, 0, -1, null);
             if (rootOfPath != null) {
-                childNodeCount = rootOfPath.getChildCount();
+                childNodeCount = rootOfPath.getChildNodeCount();
             }
         } catch (Exception e) {
             throw new MicroKernelException(e);
@@ -139,12 +144,15 @@ public class MongoMicroKernel implements MicroKernel {
         }
 
         try {
-            // FIXME [Mete] Should filter, offset, and maxChildNodes be handled in Mongo instead?
+            // FIXME Should filter, offset, and maxChildNodes be handled in Mongo instead?
             Node rootNode = nodeStore.getNodes(path, revisionId, depth, offset, maxChildNodes, filter);
             if (rootNode == null) {
                 return null;
             }
-            return JsonUtil.convertToJson(rootNode, depth, (int)offset, maxChildNodes, true, nodeFilter);
+
+            JsopBuilder builder = new JsopBuilder();
+            JsonUtil.toJson(builder, rootNode, depth, (int)offset, maxChildNodes, true, nodeFilter);
+            return builder.toString();
         } catch (Exception e) {
             throw new MicroKernelException(e);
         }

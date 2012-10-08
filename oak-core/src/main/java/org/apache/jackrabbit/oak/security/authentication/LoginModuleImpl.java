@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.security.authentication;
 
 import java.io.IOException;
 import java.security.Principal;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -106,8 +107,6 @@ public class LoginModuleImpl extends AbstractLoginModule {
     @Override
     public void initialize(Subject subject, CallbackHandler callbackHandler, Map<String, ?> sharedState, Map<String, ?> options) {
         super.initialize(subject, callbackHandler, sharedState, options);
-
-        // TODO
     }
 
     @Override
@@ -115,15 +114,16 @@ public class LoginModuleImpl extends AbstractLoginModule {
         // TODO
         credentials = getCredentials();
         userID = getUserID();
-        principals = getPrincipals(userID);
 
-        Authentication authentication = new AuthenticationImpl(userID);
+        Authentication authentication = new AuthenticationImpl(userID, getUserProvider(), getPrincipalProvider());
         boolean success = authentication.authenticate(credentials);
         if (!success) {
             success = impersonate(authentication);
         }
 
         if (success) {
+            principals = getPrincipals(userID);
+
             log.debug("Login: adding Credentials to shared state.");
             sharedState.put(SHARED_KEY_CREDENTIALS, credentials);
 
@@ -141,7 +141,7 @@ public class LoginModuleImpl extends AbstractLoginModule {
             if (!subject.isReadOnly()) {
                 subject.getPrincipals().addAll(principals);
                 subject.getPublicCredentials().add(credentials);
-                subject.getPublicCredentials().add(getAuthInfo());
+                subject.getPublicCredentials().add(createAuthInfo());
             } else {
                 log.debug("Could not add information to read only subject {}", subject);
             }
@@ -166,13 +166,12 @@ public class LoginModuleImpl extends AbstractLoginModule {
     //--------------------------------------------------------------------------
     @CheckForNull
     private String getUserID() {
-        // TODO add proper implementation
         String userID = null;
         if (credentials != null) {
             if (credentials instanceof SimpleCredentials) {
                 userID = ((SimpleCredentials) credentials).getUserID();
             } else if (credentials instanceof GuestCredentials) {
-                userID = "anonymous";
+                userID = getAnonymousID();
             } else if (credentials instanceof ImpersonationCredentials) {
                 Credentials bc = ((ImpersonationCredentials) credentials).getBaseCredentials();
                 if (bc instanceof SimpleCredentials) {
@@ -194,21 +193,26 @@ public class LoginModuleImpl extends AbstractLoginModule {
         if (userID == null) {
             userID = getSharedLoginName();
         }
-
         return userID;
+    }
+
+    private String getAnonymousID() {
+        // TODO
+        return "anonymous";
     }
 
     private boolean impersonate(Authentication authentication) {
         if (credentials instanceof ImpersonationCredentials) {
             AuthInfo info = ((ImpersonationCredentials) credentials).getImpersonatorInfo();
-            if (authentication.impersonate(info.getPrincipals())) {
+            Subject subject = new Subject(true, info.getPrincipals(), Collections.emptySet(), Collections.emptySet());
+            if (authentication.impersonate(subject)) {
                 return true;
             }
         }
         return false;
     }
 
-    private AuthInfo getAuthInfo() {
+    private AuthInfo createAuthInfo() {
         Map<String, Object> attributes = new HashMap<String, Object>();
         if (credentials instanceof SimpleCredentials) {
             SimpleCredentials sc = (SimpleCredentials) credentials;

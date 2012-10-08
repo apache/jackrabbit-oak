@@ -21,14 +21,14 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.jackrabbit.mongomk.BaseMongoTest;
+import org.apache.jackrabbit.mongomk.api.instruction.Instruction;
 import org.apache.jackrabbit.mongomk.api.model.Commit;
-import org.apache.jackrabbit.mongomk.api.model.Instruction;
 import org.apache.jackrabbit.mongomk.api.model.Node;
 import org.apache.jackrabbit.mongomk.command.CommitCommandMongo;
 import org.apache.jackrabbit.mongomk.impl.NodeAssert;
-import org.apache.jackrabbit.mongomk.impl.builder.CommitBuilder;
 import org.apache.jackrabbit.mongomk.impl.builder.NodeBuilder;
-import org.apache.jackrabbit.mongomk.impl.model.AddNodeInstructionImpl;
+import org.apache.jackrabbit.mongomk.impl.instruction.AddNodeInstructionImpl;
+import org.apache.jackrabbit.mongomk.impl.model.CommitBuilder;
 import org.apache.jackrabbit.mongomk.impl.model.CommitImpl;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
 import org.apache.jackrabbit.mongomk.model.NodeMongo;

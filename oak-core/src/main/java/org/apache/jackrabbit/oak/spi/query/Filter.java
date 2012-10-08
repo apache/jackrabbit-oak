@@ -64,6 +64,8 @@ public interface Filter {
      */
     String getPath();
 
+    String getNodeType();
+
     /**
      * A restriction for a property.
      */
@@ -93,6 +95,12 @@ public interface Filter {
          * Whether values that match the last should be returned.
          */
         public boolean lastIncluding;
+
+        /**
+         * Whether this is a like constraint. in this case only the 'first'
+         * value should be taken into consideration
+         */
+        public boolean isLike;
 
         /**
          * The property type, if restricted.

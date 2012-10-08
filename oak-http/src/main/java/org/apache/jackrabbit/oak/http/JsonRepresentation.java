@@ -19,17 +19,24 @@ package org.apache.jackrabbit.oak.http;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
 
 import javax.jcr.PropertyType;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.jackrabbit.oak.api.CoreValue;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonGenerator;
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.tika.mime.MediaType;
 
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonGenerator;
+import static org.apache.jackrabbit.oak.api.Type.BINARIES;
+import static org.apache.jackrabbit.oak.api.Type.BOOLEANS;
+import static org.apache.jackrabbit.oak.api.Type.DECIMALS;
+import static org.apache.jackrabbit.oak.api.Type.DOUBLES;
+import static org.apache.jackrabbit.oak.api.Type.LONGS;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
 class JsonRepresentation implements Representation {
 
@@ -47,6 +54,7 @@ class JsonRepresentation implements Representation {
         return type;
     }
 
+    @Override
     public void render(Tree tree, HttpServletResponse response)
             throws IOException {
         JsonGenerator generator = startResponse(response);
@@ -54,6 +62,7 @@ class JsonRepresentation implements Representation {
         generator.close();
     }
 
+    @Override
     public void render(PropertyState property, HttpServletResponse response)
             throws IOException {
         JsonGenerator generator = startResponse(response);
@@ -67,7 +76,7 @@ class JsonRepresentation implements Representation {
         return factory.createJsonGenerator(response.getOutputStream());
     }
 
-    private void render(Tree tree, JsonGenerator generator)
+    private static void render(Tree tree, JsonGenerator generator)
             throws IOException {
         generator.writeStartObject();
         for (PropertyState property : tree.getProperties()) {
@@ -82,46 +91,57 @@ class JsonRepresentation implements Representation {
         generator.writeEndObject();
     }
 
-    private void render(PropertyState property, JsonGenerator generator)
+    private static void render(PropertyState property, JsonGenerator generator)
             throws IOException {
         if (property.isArray()) {
             generator.writeStartArray();
-            for (CoreValue value : property.getValues()) {
-                render(value, generator);
-            }
+            renderValue(property, generator);
             generator.writeEndArray();
         } else {
-            render(property.getValue(), generator);
+            renderValue(property, generator);
         }
     }
 
-    private void render(CoreValue value, JsonGenerator generator)
+    private static void renderValue(PropertyState property, JsonGenerator generator)
             throws IOException {
         // TODO: Type info?
-        if (value.getType() == PropertyType.BOOLEAN) {
-            generator.writeBoolean(value.getBoolean());
-        } else if (value.getType() == PropertyType.DECIMAL) {
-            generator.writeNumber(value.getDecimal());
-        } else if (value.getType() == PropertyType.DOUBLE) {
-            generator.writeNumber(value.getDouble());
-        } else if (value.getType() == PropertyType.LONG) {
-            generator.writeNumber(value.getLong());
-        } else if (value.getType() == PropertyType.BINARY) {
-            ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-            InputStream stream = value.getNewStream();
-            try {
-                byte[] b = new byte[1024];
-                int n = stream.read(b);
-                while (n != -1) {
-                    buffer.write(b, 0, n);
-                    n = stream.read(b);
-                }
-            } finally {
-                stream.close();
+        int type = property.getType().tag();
+        if (type == PropertyType.BOOLEAN) {
+            for (boolean value : property.getValue(BOOLEANS)) {
+                generator.writeBoolean(value);
             }
-            generator.writeBinary(buffer.toByteArray());
+        } else if (type == PropertyType.DECIMAL) {
+            for (BigDecimal value : property.getValue(DECIMALS)) {
+                generator.writeNumber(value);
+            }
+        } else if (type == PropertyType.DOUBLE) {
+            for (double value : property.getValue(DOUBLES)) {
+                generator.writeNumber(value);
+            }
+        } else if (type == PropertyType.LONG) {
+            for (long value : property.getValue(LONGS)) {
+                generator.writeNumber(value);
+            }
+        } else if (type == PropertyType.BINARY) {
+            ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+            for (Blob value : property.getValue(BINARIES)) {
+                InputStream stream = value.getNewStream();
+                try {
+                    byte[] b = new byte[1024];
+                    int n = stream.read(b);
+                    while (n != -1) {
+                        buffer.write(b, 0, n);
+                        n = stream.read(b);
+                    }
+                } finally {
+                    stream.close();
+                }
+                generator.writeBinary(buffer.toByteArray());
+            }
         } else {
-            generator.writeString(value.getString());
+            for (String value : property.getValue(STRINGS)) {
+                generator.writeString(value);
+            }
         }
     }
 

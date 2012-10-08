@@ -16,9 +16,13 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.CoreValueFactory;
+import java.util.Collections;
+import java.util.List;
+import javax.jcr.Session;
+
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
@@ -42,22 +46,25 @@ public class UserContextImpl implements UserContext {
     }
 
     @Override
-    public UserConfig getConfig() {
-        return config;
+    public UserProvider getUserProvider(Root root) {
+        return new UserProviderImpl(root, config);
     }
 
     @Override
-    public UserProvider getUserProvider(ContentSession contentSession, Root root) {
-        return new UserProviderImpl(contentSession, root, config);
+    public MembershipProvider getMembershipProvider(Root root) {
+        return new MembershipProviderImpl(root, config);
     }
 
     @Override
-    public MembershipProvider getMembershipProvider(ContentSession contentSession, Root root) {
-        return new MembershipProviderImpl(contentSession, root, config);
+    public List<ValidatorProvider> getValidatorProviders() {
+        ValidatorProvider vp = new UserValidatorProvider(config);
+        return Collections.singletonList(vp);
     }
 
     @Override
-    public ValidatorProvider getUserValidatorProvider(CoreValueFactory valueFactory) {
-        return new UserValidatorProvider(config);
+    public UserManager getUserManager(Session session, Root root, NamePathMapper namePathMapper) {
+        UserProvider up = getUserProvider(root);
+        MembershipProvider mp = getMembershipProvider(root);
+        return new UserManagerImpl(session, namePathMapper, up, mp, config);
     }
 }

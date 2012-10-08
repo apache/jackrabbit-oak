@@ -16,27 +16,27 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
+import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.junit.Test;
+
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.assertNull;
 import static junit.framework.Assert.assertTrue;
 import static junit.framework.Assert.fail;
-
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.junit.Test;
-
-import com.google.common.collect.ImmutableMap;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 public class MemoryNodeBuilderTest {
 
     private static final NodeState BASE = new MemoryNodeState(
             ImmutableMap.<String, PropertyState>of(
-                    "a", SinglePropertyState.create("a", 1),
-                    "b", SinglePropertyState.create("b", 2),
-                    "c", SinglePropertyState.create("c", 3)),
+                    "a", PropertyStates.longProperty("a", 1L),
+                    "b", PropertyStates.longProperty("b", 2L),
+                    "c", PropertyStates.longProperty("c", 3L)),
             ImmutableMap.of(
                     "x", MemoryNodeState.EMPTY_NODE,
                     "y", MemoryNodeState.EMPTY_NODE,
@@ -45,34 +45,34 @@ public class MemoryNodeBuilderTest {
     @Test
     public void testConnectOnAddProperty() {
         NodeBuilder root = new MemoryNodeBuilder(BASE);
-        NodeBuilder childA = root.getChildBuilder("x");
-        NodeBuilder childB = root.getChildBuilder("x");
+        NodeBuilder childA = root.child("x");
+        NodeBuilder childB = root.child("x");
 
         assertNull(childA.getProperty("test"));
-        childB.setProperty("test", new StringValue("foo"));
+        childB.setProperty("test", "foo");
         assertNotNull(childA.getProperty("test"));
     }
 
     @Test
     public void testConnectOnUpdateProperty() {
         NodeBuilder root = new MemoryNodeBuilder(BASE);
-        NodeBuilder childA = root.getChildBuilder("x");
-        NodeBuilder childB = root.getChildBuilder("x");
+        NodeBuilder childA = root.child("x");
+        NodeBuilder childB = root.child("x");
 
-        childB.setProperty("test", new StringValue("foo"));
-        childA.setProperty("test", new StringValue("bar"));
+        childB.setProperty("test", "foo");
+        childA.setProperty("test", "bar");
         assertEquals(
                 "bar",
-                childB.getProperty("test").getValue().getString());
+                childB.getProperty("test").getValue(STRING));
     }
 
     @Test
     public void testConnectOnRemoveProperty() {
         NodeBuilder root = new MemoryNodeBuilder(BASE);
-        NodeBuilder childA = root.getChildBuilder("x");
-        NodeBuilder childB = root.getChildBuilder("x");
+        NodeBuilder childA = root.child("x");
+        NodeBuilder childB = root.child("x");
 
-        childB.setProperty("test", new StringValue("foo"));
+        childB.setProperty("test", "foo");
         childA.removeProperty("test");
         assertNull(childB.getProperty("test"));
     }
@@ -80,18 +80,18 @@ public class MemoryNodeBuilderTest {
     @Test
     public void testConnectOnAddNode() {
         NodeBuilder root = new MemoryNodeBuilder(BASE);
-        NodeBuilder childA = root.getChildBuilder("x");
-        NodeBuilder childB = root.getChildBuilder("x");
+        NodeBuilder childA = root.child("x");
+        NodeBuilder childB = root.child("x");
 
         assertFalse(childA.hasChildNode("test"));
-        childB.setNode("test", MemoryNodeState.EMPTY_NODE);
+        childB.child("test");
         assertTrue(childA.hasChildNode("test"));
     }
 
     @Test(expected = IllegalStateException.class)
     public void testConnectOnRemoveNode() {
         NodeBuilder root = new MemoryNodeBuilder(BASE);
-        NodeBuilder child = root.getChildBuilder("x");
+        NodeBuilder child = root.child("x");
 
         root.removeNode("x");
         child.getChildNodeCount(); // should throw ISE

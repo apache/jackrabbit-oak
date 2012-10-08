@@ -26,6 +26,10 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.gridfs.GridFS;
 import com.mongodb.gridfs.GridFSDBFile;
 
+/**
+ * FIXME - Reading from large blobs with small increments is slow in this implementation.
+ * See if this could be improved with some kind of cache mechanism.
+ */
 public class ReadBlobCommandMongo extends AbstractCommand<Integer> {
 
     private final MongoConnection mongoConnection;
@@ -35,8 +39,8 @@ public class ReadBlobCommandMongo extends AbstractCommand<Integer> {
     private final int bufferOffset;
     private final int length;
 
-    public ReadBlobCommandMongo(MongoConnection mongoConnection, String blobId, long blobOffset, byte[] buffer,
-            int bufferOffset, int length) {
+    public ReadBlobCommandMongo(MongoConnection mongoConnection, String blobId,
+            long blobOffset, byte[] buffer, int bufferOffset, int length) {
         this.mongoConnection = mongoConnection;
         this.blobId = blobId;
         this.blobOffset = blobOffset;
@@ -50,8 +54,6 @@ public class ReadBlobCommandMongo extends AbstractCommand<Integer> {
         return fetchBlobFromMongo();
     }
 
-    // FIXME [Mete] This takes a long time, see MicroKernelIT#readBlob. See if
-    // it can be improved.
     private int fetchBlobFromMongo() throws Exception {
         GridFS gridFS = mongoConnection.getGridFS();
         GridFSDBFile gridFile = gridFS.findOne(new BasicDBObject("md5", blobId));

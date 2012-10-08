@@ -22,7 +22,7 @@ import static org.junit.Assert.fail;
 
 import org.apache.jackrabbit.mongomk.BaseMongoTest;
 import org.apache.jackrabbit.mongomk.api.model.Commit;
-import org.apache.jackrabbit.mongomk.impl.builder.CommitBuilder;
+import org.apache.jackrabbit.mongomk.impl.model.CommitBuilder;
 import org.apache.jackrabbit.mongomk.scenario.SimpleNodeScenario;
 import org.junit.Test;
 

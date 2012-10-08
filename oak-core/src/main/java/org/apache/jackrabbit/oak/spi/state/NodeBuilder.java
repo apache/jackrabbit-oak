@@ -16,12 +16,10 @@
  */
 package org.apache.jackrabbit.oak.spi.state;
 
-import java.util.List;
-
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
 
 /**
  * Builder interface for constructing new {@link NodeState node states}.
@@ -104,32 +102,38 @@ public interface NodeBuilder {
     PropertyState getProperty(String name);
 
     /**
-     * Set a property.
-     *
-     * @param name property name
-     * @param value
+     * Set a property state
+     * @param property  The property state to set
      * @return this builder
      */
-    @Nonnull
-    NodeBuilder setProperty(String name, @Nonnull CoreValue value);
+    NodeBuilder setProperty(PropertyState property);
 
     /**
-     * Set a property.
-     *
-     * @param name property name
-     * @param values
-     * @return this builder
-     */
-    @Nonnull
-    NodeBuilder setProperty(String name, @Nonnull List<CoreValue> values);
-
-    /**
-     * Remove the named property. This method has no effect if a
-     * property of the given {@code name} does not exist.
+     * Set a property state
+     * @param name  The name of this property
+     * @param value  The value of this property
+     * @param <T>  The type of this property. Must be one of {@code String, Blob, byte[], Long, Integer, Double, Boolean, BigDecimal}
+     * @throws IllegalArgumentException if {@code T} is not one of the above types.
      *
      * @param name  name of the property
      * @return this builder
      */
+    <T> NodeBuilder setProperty(String name, T value);
+
+    /**
+     * Set a property state
+     * @param name  The name of this property
+     * @param value  The value of this property
+     * @param <T>  The type of this property.
+     * @return this builder
+     */
+    <T> NodeBuilder setProperty(String name, T value, Type<T> type);
+
+    /**
+    * Remove the named property. This method has no effect if a
+    * property of the given {@code name} does not exist.
+    * @param name  name of the property
+    */
     @Nonnull
     NodeBuilder removeProperty(String name);
 
@@ -150,11 +154,11 @@ public interface NodeBuilder {
      * between this builder and a previously returned child builder for
      * that child node name will get broken.
      *
-     * @since Oak 0.4
+     * @since Oak 0.6
      * @param name name of the child node
      * @return child builder
      */
     @Nonnull
-    NodeBuilder getChildBuilder(String name);
+    NodeBuilder child(String name);
 
 }

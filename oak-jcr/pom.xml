@@ -251,6 +251,7 @@ org.apache.jackrabbit.test.api.observation.GetUserDataTest#testWorkspaceOperatio
 org.apache.jackrabbit.test.api.observation.AddEventListenerTest#testUUID
 org.apache.jackrabbit.test.api.observation.LockingTest#testAddLockToNode
 org.apache.jackrabbit.test.api.observation.LockingTest#testRemoveLockFromNode
+org.apache.jackrabbit.oak.jcr.security.user.EveryoneGroupTest#testMembers <!-- findAuthorizables not yet implemented -->
     </known.issues>
   </properties>
 

@@ -24,8 +24,8 @@ import org.apache.jackrabbit.mongomk.BaseMongoTest;
 import org.apache.jackrabbit.mongomk.MongoAssert;
 import org.apache.jackrabbit.mongomk.api.model.Commit;
 import org.apache.jackrabbit.mongomk.api.model.Node;
-import org.apache.jackrabbit.mongomk.impl.builder.CommitBuilder;
 import org.apache.jackrabbit.mongomk.impl.builder.NodeBuilder;
+import org.apache.jackrabbit.mongomk.impl.model.CommitBuilder;
 import org.apache.jackrabbit.mongomk.scenario.SimpleNodeScenario;
 import org.apache.jackrabbit.mongomk.util.MongoUtil;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -211,7 +211,7 @@ public class CommitCommandMongoTest extends BaseMongoTest {
 
         GetNodesCommandMongo command2 = new GetNodesCommandMongo(mongoConnection, "/", revisionId, 0);
         Node rootOfPath = command2.execute();
-        assertEquals(3, rootOfPath.getChildCount());
+        assertEquals(3, rootOfPath.getChildNodeCount());
     }
 
     @Test

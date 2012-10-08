@@ -18,6 +18,8 @@ package org.apache.jackrabbit.mongomk.api.model;
 
 import java.util.List;
 
+import org.apache.jackrabbit.mongomk.api.instruction.Instruction;
+
 /**
  * A higher level object representing a commit.
  */

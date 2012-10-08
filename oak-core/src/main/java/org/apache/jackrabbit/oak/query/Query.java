@@ -24,13 +24,13 @@ import java.util.List;
 
 import javax.jcr.PropertyType;
 
-import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.memory.CoreValues;
 import org.apache.jackrabbit.oak.query.ast.AstVisitorBase;
 import org.apache.jackrabbit.oak.query.ast.BindVariableValueImpl;
 import org.apache.jackrabbit.oak.query.ast.ChildNodeImpl;
@@ -93,7 +93,6 @@ public class Query {
     private long size = -1;
     private boolean prepared;
     private final CoreValueFactory valueFactory;
-    private ContentSession session;
     private Root root;
     private NamePathMapper namePathMapper;
 
@@ -313,7 +312,7 @@ public class Query {
         prepare();
         Iterator<ResultRowImpl> it;
         if (explain) {
-            String plan = source.getPlan();
+            String plan = source.getPlan(root);
             columns = new ColumnImpl[] { new ColumnImpl("explain", "plan", "plan")};
             ResultRowImpl r = new ResultRowImpl(this,
                     new String[0],
@@ -420,12 +419,8 @@ public class Query {
     }
 
     public static int getType(PropertyState p, int ifUnknown) {
-        if (!p.isArray()) {
-            return p.getValue().getType();
-        }
-        Iterator<CoreValue> it = p.getValues().iterator();
-        if (it.hasNext()) {
-            return it.next().getType();
+        if (p.count() > 0) {
+            return p.getType().tag();
         }
         return ifUnknown;
     }
@@ -514,7 +509,8 @@ public class Query {
         }
         String p = m.getOakPath(jcrPath);
         if (p == null) {
-            throw new IllegalArgumentException("Not a valid JCR path: " + jcrPath);
+            throw new IllegalArgumentException("Not a valid JCR path: "
+                    + jcrPath);
         }
         return p;
     }
@@ -617,7 +613,7 @@ public class Query {
         for (int i = 0; i < columnCount; i++) {
             ColumnImpl c = columns[i];
             PropertyState p = c.currentProperty();
-            values[i] = p == null ? null : p.getValue();
+            values[i] = p == null ? null : CoreValues.getValue(p);
         }
         CoreValue[][] orderValues;
         if (orderings == null) {
@@ -631,10 +627,10 @@ public class Query {
                 if (p == null) {
                     x = null;
                 } else if (p.isArray()) {
-                    List<CoreValue> list = p.getValues();
+                    List<CoreValue> list = CoreValues.getValues(p);
                     x = list.toArray(new CoreValue[list.size()]);
                 } else {
-                    x = new CoreValue[] { p.getValue() };
+                    x = new CoreValue[] { CoreValues.getValue(p) };
                 }
                 orderValues[i] = x;
             }
@@ -685,10 +681,6 @@ public class Query {
         return queryEngine.getBestIndex(filter);
     }
 
-    public void setSession(ContentSession session) {
-        this.session = session;
-    }
-    
     public void setRoot(Root root) {
         this.root = root;
     }

@@ -22,7 +22,7 @@ import java.util.List;
 
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -39,7 +39,7 @@ public class CompositeQueryIndexProvider implements QueryIndexProvider {
         if (providers.isEmpty()) {
             return new QueryIndexProvider() {
                 @Override
-                public List<QueryIndex> getQueryIndexes(NodeStore nodeStore) {
+                public List<QueryIndex> getQueryIndexes(NodeState nodeState) {
                     return ImmutableList.of();
                 }
             };
@@ -62,10 +62,10 @@ public class CompositeQueryIndexProvider implements QueryIndexProvider {
     }
 
     @Override @Nonnull
-    public List<? extends QueryIndex> getQueryIndexes(NodeStore nodeStore) {
+    public List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
         List<QueryIndex> indexes = Lists.newArrayList();
         for (QueryIndexProvider provider : providers) {
-            indexes.addAll(provider.getQueryIndexes(nodeStore));
+            indexes.addAll(provider.getQueryIndexes(nodeState));
         }
         return indexes;
     }

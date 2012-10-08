@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.identifier;
 import java.io.UnsupportedEncodingException;
 import java.text.ParseException;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -39,13 +38,16 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.SessionQueryEngine;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.StringValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
 /**
  * IdentifierManager...
@@ -55,11 +57,9 @@ public class IdentifierManager {
     private static final Logger log = LoggerFactory.getLogger(IdentifierManager.class);
 
     private final Root root;
-    private final SessionQueryEngine queryEngine;
 
-    public IdentifierManager(SessionQueryEngine queryEngine, Root root) {
+    public IdentifierManager(Root root) {
         this.root = root;
-        this.queryEngine = queryEngine;
     }
 
     @Nonnull
@@ -103,7 +103,7 @@ public class IdentifierManager {
             // TODO and a relative path irrespective of the accessibility of the parent node(s)
             return tree.getPath();
         } else {
-            return property.getValue().getString();
+            return property.getValue(STRING);
         }
     }
 
@@ -190,7 +190,7 @@ public class IdentifierManager {
                 String pName = propertyName == null ? "*" : propertyName;   // TODO: sanitize against injection attacks!?
                 Map<String, ? extends CoreValue> bindings = Collections.singletonMap("uuid", new StringValue(uuid));
 
-                Result result = queryEngine.executeQuery(
+                Result result = root.getQueryEngine().executeQuery(
                         "SELECT * FROM [nt:base] WHERE PROPERTY([" + pName + "], '" + reference + "') = $uuid",
                         Query.JCR_SQL2, Long.MAX_VALUE, 0, bindings, root, new NamePathMapper.Default());
 
@@ -238,15 +238,15 @@ public class IdentifierManager {
             @Override
             public boolean apply(PropertyState pState) {
                 if (pState.isArray()) {
-                    for (CoreValue value : pState.getValues()) {
-                        if (uuid.equals(value.getString())) {
+                    for (String value : pState.getValue(Type.STRINGS)) {
+                        if (uuid.equals(value)) {
                             return true;
                         }
                     }
                     return false;
                 }
                 else {
-                    return uuid.equals(pState.getValue().getString());
+                    return uuid.equals(pState.getValue(STRING));
                 }
             }
         });
@@ -258,7 +258,7 @@ public class IdentifierManager {
         // TODO use NodeType.isNodeType to determine type membership instead of equality on type names
         PropertyState pType = tree.getProperty(JcrConstants.JCR_PRIMARYTYPE);
         if (pType != null) {
-            String primaryType = pType.getValue().getString();
+            String primaryType = pType.getValue(STRING);
             if (ntName.equals(primaryType)) {
                 return true;
             }
@@ -266,9 +266,8 @@ public class IdentifierManager {
 
         PropertyState pMixin = tree.getProperty(JcrConstants.JCR_MIXINTYPES);
         if (pMixin != null) {
-            List<CoreValue> mixinTypes = pMixin.getValues();
-            for (CoreValue mixinType : mixinTypes) {
-                if (ntName.equals(mixinType.getString())) {
+            for (String mixinType : pMixin.getValue(STRINGS)) {
+                if (ntName.equals(mixinType)) {
                     return true;
                 }
             }
@@ -290,7 +289,7 @@ public class IdentifierManager {
     private String resolveUUID(CoreValue uuid) {
         try {
             Map<String, CoreValue> bindings = Collections.singletonMap("id", uuid);
-            Result result = queryEngine.executeQuery(
+            Result result = root.getQueryEngine().executeQuery(
                     "SELECT * FROM [nt:base] WHERE [jcr:uuid] = $id", Query.JCR_SQL2,
                     Long.MAX_VALUE, 0, bindings, root, new NamePathMapper.Default());
 

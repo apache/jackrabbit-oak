@@ -17,8 +17,6 @@
 package org.apache.jackrabbit.oak.security.authorization;
 
 import java.security.AccessController;
-import java.security.Principal;
-import java.util.Set;
 
 import javax.annotation.Nonnull;
 import javax.security.auth.Subject;
@@ -30,8 +28,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContext
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 
-import com.google.common.collect.ImmutableSet;
-
 /**
  * PermissionValidatorProvider... TODO
  */
@@ -40,14 +36,15 @@ public class PermissionValidatorProvider implements ValidatorProvider {
     @Nonnull
     @Override
     public Validator getRootValidator(NodeState before, NodeState after) {
-        Set<Principal> principals = ImmutableSet.of();
         Subject subject = Subject.getSubject(AccessController.getContext());
-        if (subject != null) {
-            principals = subject.getPrincipals();
+        if (subject == null) {
+            // use empty subject
+            subject = new Subject();
         }
 
-        AccessControlContext context = new AccessControlContextImpl();
-        context.initialize(principals);
+        // FIXME: should use same provider as in ContentRepositoryImpl
+        AccessControlContext context = new AccessControlProviderImpl()
+                .createAccessControlContext(subject);
 
         NodeUtil rootBefore = new NodeUtil(new ReadOnlyTree(before));
         NodeUtil rootAfter = new NodeUtil(new ReadOnlyTree(after));

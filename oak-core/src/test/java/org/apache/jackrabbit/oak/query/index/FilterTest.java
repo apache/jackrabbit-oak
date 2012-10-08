@@ -21,10 +21,12 @@ package org.apache.jackrabbit.oak.query.index;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
 import java.util.ArrayList;
 import java.util.Random;
+
 import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.query.AbstractQueryTest;
+import org.apache.jackrabbit.oak.plugins.memory.StringValue;
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.junit.Test;
@@ -32,12 +34,13 @@ import org.junit.Test;
 /**
  * Tests the Filter class.
  */
-public class FilterTest extends AbstractQueryTest {
+public class FilterTest {
 
     @Test
     public void propertyRestriction() {
-        CoreValue one = vf.createValue("1");
-        CoreValue two = vf.createValue("2");
+
+        CoreValue one = new StringValue("1");
+        CoreValue two = new StringValue("2");
 
         FilterImpl f = new FilterImpl(null);
         assertTrue(null == f.getPropertyRestriction("x"));

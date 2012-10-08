@@ -16,11 +16,13 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user;
 
+import java.util.List;
 import javax.annotation.Nonnull;
+import javax.jcr.Session;
 
-import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.CoreValueFactory;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 
 /**
@@ -29,15 +31,14 @@ import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 public interface UserContext {
 
     @Nonnull
-    UserConfig getConfig();
+    UserProvider getUserProvider(Root root);
 
     @Nonnull
-    UserProvider getUserProvider(ContentSession contentSession, Root root);
+    MembershipProvider getMembershipProvider(Root root);
 
     @Nonnull
-    MembershipProvider getMembershipProvider(ContentSession contentSession, Root root);
+    List<ValidatorProvider> getValidatorProviders();
 
     @Nonnull
-    ValidatorProvider getUserValidatorProvider(CoreValueFactory valueFactory);
-
+    UserManager getUserManager(Session session, Root root, NamePathMapper namePathMapper);
 }

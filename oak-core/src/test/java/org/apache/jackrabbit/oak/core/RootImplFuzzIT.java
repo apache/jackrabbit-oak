@@ -25,13 +25,13 @@ import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.RootImplFuzzIT.Operation.Rebase;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
+import org.apache.jackrabbit.oak.security.authorization.AccessControlProviderImpl;
+import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -70,22 +70,21 @@ public class RootImplFuzzIT {
 
     private int counter;
 
-    private CoreValueFactory vf;
-
     @Before
     public void setup() {
         counter = 0;
 
         MicroKernel mk1 = new MicroKernelImpl("./target/mk1/" + random.nextInt());
         store1 = new KernelNodeStore(mk1);
-        vf = store1.getValueFactory();
         mk1.commit("", "+\"/root\":{}", mk1.getHeadRevision(), "");
-        root1 = new RootImpl(store1, null, new Subject());
+        root1 = new RootImpl(store1, null, new Subject(),
+                new AccessControlProviderImpl(), new CompositeQueryIndexProvider());
 
         MicroKernel mk2 = new MicroKernelImpl("./target/mk2/" + random.nextInt());
         store2 = new KernelNodeStore(mk2);
         mk2.commit("", "+\"/root\":{}", mk2.getHeadRevision(), "");
-        root2 = new RootImpl(store2, null, new Subject());
+        root2 = new RootImpl(store2, null, new Subject(),
+                new AccessControlProviderImpl(), new CompositeQueryIndexProvider());
     }
 
     @Test
@@ -217,9 +216,9 @@ public class RootImplFuzzIT {
         static class SetProperty extends Operation {
             private final String parentPath;
             private final String propertyName;
-            private final CoreValue propertyValue;
+            private final String propertyValue;
 
-            SetProperty(String parentPath, String name, CoreValue value) {
+            SetProperty(String parentPath, String name, String value) {
                 this.parentPath = parentPath;
                 this.propertyName = name;
                 this.propertyValue = value;
@@ -355,7 +354,7 @@ public class RootImplFuzzIT {
     private Operation createAddProperty() {
         String parent = chooseNodePath();
         String name = createPropertyName();
-        CoreValue value = createValue();
+        String value = createValue();
         return new SetProperty(parent, name, value);
     }
 
@@ -364,7 +363,7 @@ public class RootImplFuzzIT {
         if (path == null) {
             return null;
         }
-        CoreValue value = createValue();
+        String value = createValue();
         return new SetProperty(PathUtils.getParentPath(path), PathUtils.getName(path), value);
     }
 
@@ -425,14 +424,14 @@ public class RootImplFuzzIT {
         return null;
     }
 
-    private CoreValue createValue() {
-        return vf.createValue("V" + counter++);
+    private String createValue() {
+        return ("V" + counter++);
     }
 
     private static void checkEqual(Tree tree1, Tree tree2) {
         String message =
                 tree1.getPath() + "!=" + tree2.getPath()
-                + " (seed " + SEED + ")";
+                + " (seed " + SEED + ')';
         assertEquals(message, tree1.getPath(), tree2.getPath());
         assertEquals(message, tree1.getChildrenCount(), tree2.getChildrenCount());
         assertEquals(message, tree1.getPropertyCount(), tree2.getPropertyCount());

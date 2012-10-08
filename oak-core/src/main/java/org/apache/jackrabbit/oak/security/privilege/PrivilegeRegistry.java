@@ -55,7 +55,7 @@ public class PrivilegeRegistry implements PrivilegeProvider, PrivilegeConstants 
 
     public PrivilegeRegistry(ContentSession contentSession) {
         this.contentSession = contentSession;
-        this.definitions = getAllDefinitions(new PrivilegeDefinitionReader(contentSession));
+        this.definitions = readDefinitions();
     }
 
     static Map<String, PrivilegeDefinition> getAllDefinitions(PrivilegeDefinitionReader reader) {
@@ -76,6 +76,10 @@ public class PrivilegeRegistry implements PrivilegeProvider, PrivilegeConstants 
         return definitions;
     }
 
+    private Map<String, PrivilegeDefinition> readDefinitions() {
+        return getAllDefinitions(new PrivilegeDefinitionReader(contentSession));
+    }
+
     private static void updateJcrAllPrivilege(Map<String, PrivilegeDefinition> definitions) {
         Map<String, PrivilegeDefinition> m = new HashMap<String, PrivilegeDefinition>(definitions);
         m.remove(JCR_ALL);
@@ -83,6 +87,12 @@ public class PrivilegeRegistry implements PrivilegeProvider, PrivilegeConstants 
     }
 
     //--------------------------------------------------< PrivilegeProvider >---
+    @Override
+    public void refresh() {
+        // re-read the definitions (TODO: evaluate if it was better to always read privileges on demand only.)
+        definitions.putAll(readDefinitions());
+    }
+
     @Nonnull
     @Override
     public PrivilegeDefinition[] getPrivilegeDefinitions() {
@@ -109,7 +119,6 @@ public class PrivilegeRegistry implements PrivilegeProvider, PrivilegeConstants 
 
     private void internalRegisterDefinitions(PrivilegeDefinition toRegister) throws RepositoryException {
         Root root = contentSession.getLatestRoot();
-
         try {
             // make sure the privileges path is defined
             Tree privilegesTree = root.getTree(PRIVILEGES_PATH);
@@ -117,7 +126,7 @@ public class PrivilegeRegistry implements PrivilegeProvider, PrivilegeConstants 
                 throw new RepositoryException("Repository doesn't contain node " + PRIVILEGES_PATH);
             }
 
-            NodeUtil privilegesNode = new NodeUtil(privilegesTree, contentSession);
+            NodeUtil privilegesNode = new NodeUtil(privilegesTree, root.getValueFactory());
             writeDefinition(privilegesNode, toRegister);
 
             // delegate validation to the commit validation (see above)

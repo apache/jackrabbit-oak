@@ -18,42 +18,54 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
-import java.util.Collections;
-import java.util.List;
+import java.math.BigDecimal;
 
 import javax.annotation.Nonnull;
+import javax.jcr.PropertyType;
 
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.Type;
 
-/**
- * Single-valued property state.
- */
-public class SinglePropertyState extends EmptyPropertyState {
+import static java.util.Collections.singleton;
 
-    public static PropertyState create(String name, boolean value) {
-        return new SinglePropertyState(name, BooleanValue.create(value));
+abstract class SinglePropertyState extends EmptyPropertyState {
+
+    public static long getLong(String value) {
+        return Long.parseLong(value);
     }
 
-    public static PropertyState create(String name, double value) {
-        return new SinglePropertyState(name, new DoubleValue(value));
+    public static double getDouble(String value) {
+        return Double.parseDouble(value);
     }
 
-    public static PropertyState create(String name, long value) {
-        return new SinglePropertyState(name, new LongValue(value));
+    public static BigDecimal getDecimal(String value) {
+        return new BigDecimal(value);
     }
 
-    public static PropertyState create(String name, String value) {
-        return new SinglePropertyState(name, new StringValue(value));
-    }
-
-    private final CoreValue value;
-
-    public SinglePropertyState(String name, CoreValue value) {
+    protected SinglePropertyState(String name) {
         super(name);
-        this.value = checkNotNull(value);
+    }
+
+    protected abstract String getString();
+
+    protected Blob getBlob() {
+        return new StringBasedBlob(getString());
+    }
+
+    protected long getLong() {
+        return getLong(getString());
+    }
+
+    protected double getDouble() {
+        return getDouble(getString());
+    }
+
+    protected boolean getBoolean() {
+        throw new UnsupportedOperationException("Unsupported conversion.");
+    }
+
+    protected BigDecimal getDecimal() {
+        return getDecimal(getString());
     }
 
     @Override
@@ -61,16 +73,73 @@ public class SinglePropertyState extends EmptyPropertyState {
         return false;
     }
 
-    @Override
+    @SuppressWarnings("unchecked")
     @Nonnull
-    public CoreValue getValue() {
-        return value;
+    @Override
+    public <T> T getValue(Type<T> type) {
+        if (type.isArray()) {
+            switch (type.tag()) {
+                case PropertyType.STRING: return (T) singleton(getString());
+                case PropertyType.BINARY: return (T) singleton(getBlob());
+                case PropertyType.LONG: return (T) singleton(getLong());
+                case PropertyType.DOUBLE: return (T) singleton(getDouble());
+                case PropertyType.DATE: return (T) singleton(getString());
+                case PropertyType.BOOLEAN: return (T) singleton(getBoolean());
+                case PropertyType.NAME: return (T) singleton(getString());
+                case PropertyType.PATH: return (T) singleton(getString());
+                case PropertyType.REFERENCE: return (T) singleton(getString());
+                case PropertyType.WEAKREFERENCE: return (T) singleton(getString());
+                case PropertyType.URI: return (T) singleton(getString());
+                case PropertyType.DECIMAL: return (T) singleton(getDecimal());
+                default: throw new IllegalArgumentException("Invalid primitive type:" + type);
+            }
+        }
+        else {
+            switch (type.tag()) {
+                case PropertyType.STRING: return (T) getString();
+                case PropertyType.BINARY: return (T) getBlob();
+                case PropertyType.LONG: return (T) (Long) getLong();
+                case PropertyType.DOUBLE: return (T) (Double) getDouble();
+                case PropertyType.DATE: return (T) getString();
+                case PropertyType.BOOLEAN: return (T) (Boolean) getBoolean();
+                case PropertyType.NAME: return (T) getString();
+                case PropertyType.PATH: return (T) getString();
+                case PropertyType.REFERENCE: return (T) getString();
+                case PropertyType.WEAKREFERENCE: return (T) getString();
+                case PropertyType.URI: return (T) getString();
+                case PropertyType.DECIMAL: return (T) getDecimal();
+                default: throw new IllegalArgumentException("Invalid array type:" + type);
+            }
+        }
+    }
+
+    @Nonnull
+    @Override
+    public <T> T getValue(Type<T> type, int index) {
+        if (type.isArray()) {
+            throw new IllegalArgumentException("Nested arrows not supported");
+        }
+        if (index != 0) {
+            throw new IndexOutOfBoundsException(String.valueOf(index));
+        }
+        return getValue(type);
     }
 
     @Override
-    @Nonnull
-    public List<CoreValue> getValues() {
-        return Collections.singletonList(value);
+    public long size() {
+        return getString().length();
     }
 
+    @Override
+    public long size(int index) {
+        if (index != 0) {
+            throw new IndexOutOfBoundsException(String.valueOf(index));
+        }
+        return size();
+    }
+
+    @Override
+    public int count() {
+        return 1;
+    }
 }

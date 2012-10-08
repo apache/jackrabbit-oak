@@ -84,14 +84,6 @@ public interface ContentSession extends Closeable {
     Root getLatestRoot();
 
     /**
-     * Get the query engine.
-     *
-     * @return the query engine
-     */
-    @Nonnull
-    SessionQueryEngine getQueryEngine();
-
-    /**
      * Returns the internal value factory.
      *
      * @return the internal value factory.

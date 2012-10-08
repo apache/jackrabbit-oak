@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.jcr;
 
 import java.io.IOException;
 import java.util.concurrent.ScheduledExecutorService;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.ItemExistsException;
@@ -34,6 +33,7 @@ import javax.jcr.observation.ObservationManager;
 import javax.jcr.query.QueryManager;
 import javax.jcr.version.VersionManager;
 
+import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.AuthInfo;
@@ -46,15 +46,11 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.observation.ObservationManagerImpl;
-import org.apache.jackrabbit.oak.jcr.security.principal.PrincipalManagerImpl;
-import org.apache.jackrabbit.oak.jcr.security.user.UserManagerImpl;
+import org.apache.jackrabbit.oak.jcr.security.privilege.PrivilegeManagerImpl;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
-import org.apache.jackrabbit.oak.security.principal.TmpPrincipalProvider;
-import org.apache.jackrabbit.oak.security.user.UserContextImpl;
-import org.apache.jackrabbit.oak.spi.security.user.UserContext;
-import org.apache.jackrabbit.oak.util.TODO;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.value.ValueFactoryImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,25 +70,31 @@ public class SessionDelegate {
     private final Root root;
     private final boolean autoRefresh;
 
+    private final SecurityProvider securityProvider;
+
     private final IdentifierManager idManager;
 
     private ObservationManagerImpl observationManager;
+    private PrivilegeManagerImpl privilegeManager;
     private boolean isAlive = true;
     private int sessionOpCount;
 
     SessionDelegate(
             Repository repository, ScheduledExecutorService executor,
-            ContentSession contentSession, boolean autoRefresh)
+            ContentSession contentSession, SecurityProvider securityProvider,
+            boolean autoRefresh)
             throws RepositoryException {
 
         this.repository = checkNotNull(repository);
         this.executor = executor;
         this.contentSession = checkNotNull(contentSession);
+        this.securityProvider = securityProvider;
+        this.autoRefresh = autoRefresh;
+
+        this.root = contentSession.getLatestRoot();
         this.workspace = new WorkspaceImpl(this);
         this.session = new SessionImpl(this);
-        this.root = contentSession.getLatestRoot();
-        this.autoRefresh = autoRefresh;
-        this.idManager = new IdentifierManager(contentSession.getQueryEngine(), root);
+        this.idManager = new IdentifierManager(root);
         this.namePathMapper = new NamePathMapperImpl(new SessionNameMapper(this), idManager);
         this.valueFactory = new ValueFactoryImpl(contentSession.getCoreValueFactory(), namePathMapper);
     }
@@ -232,9 +234,11 @@ public class SessionDelegate {
     public void refresh(boolean keepChanges) {
         if (keepChanges) {
             root.rebase();
-        }
-        else {
+        } else {
             root.refresh();
+        }
+        if (privilegeManager != null) {
+            privilegeManager.refresh();
         }
     }
 
@@ -423,7 +427,7 @@ public class SessionDelegate {
 
     @Nonnull
     public SessionQueryEngine getQueryEngine() {
-        return contentSession.getQueryEngine();
+        return root.getQueryEngine();
     }
 
     @Nonnull
@@ -478,15 +482,27 @@ public class SessionDelegate {
 
     @Nonnull
     PrincipalManager getPrincipalManager() throws RepositoryException {
-        // TODO
-        return TODO.unimplemented().returnValue(new PrincipalManagerImpl(new TmpPrincipalProvider()));
+        if (securityProvider != null) {
+            return securityProvider.getPrincipalConfiguration().getPrincipalManager(session, root, getNamePathMapper());
+        } else {
+            throw new UnsupportedRepositoryOperationException("Principal management not supported.");
+        }
     }
 
     @Nonnull
     UserManager getUserManager() throws UnsupportedRepositoryOperationException {
-        // FIXME
-        UserContext ctx = new UserContextImpl();
-        return TODO.unimplemented().returnValue(new UserManagerImpl(getSession(), getNamePathMapper(), ctx.getUserProvider(contentSession, root), ctx.getMembershipProvider(contentSession, root), ctx.getConfig()));
+        if (securityProvider != null) {
+            return securityProvider.getUserContext().getUserManager(session, root, getNamePathMapper());
+        } else {
+            throw new UnsupportedRepositoryOperationException("User management not supported.");
+        }
     }
 
+    @Nonnull
+    PrivilegeManager getPrivilegeManager() {
+        if (privilegeManager == null) {
+            privilegeManager = new PrivilegeManagerImpl(this);
+        }
+        return privilegeManager;
+    }
 }

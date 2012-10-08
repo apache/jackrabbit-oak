@@ -121,7 +121,7 @@ public class JsopParser {
                         parseOpAdded(path);
                     } else { // Property.
                         String valueAsString = tokenizer.readRawValue().trim();
-                        Object value = JsonUtil.convertJsonValue(valueAsString);
+                        Object value = JsonUtil.toJsonValue(valueAsString);
                         defaultHandler.propertyAdded(path, propName, value);
                     }
                 } while (tokenizer.matches(','));
@@ -132,7 +132,7 @@ public class JsopParser {
             String parentPath = PathUtils.denotesRoot(path) ? "" : PathUtils.getParentPath(path);
             String propName = PathUtils.denotesRoot(path) ? "/" : PathUtils.getName(path);
             String valueAsString = tokenizer.readRawValue().trim();
-            Object value = JsonUtil.convertJsonValue(valueAsString);
+            Object value = JsonUtil.toJsonValue(valueAsString);
             defaultHandler.propertyAdded(parentPath, propName, value);
         }
     }
@@ -190,7 +190,7 @@ public class JsopParser {
         }
         String parentPath = PathUtils.getParentPath(targetPath);
         String propName = PathUtils.getName(targetPath);
-        defaultHandler.propertySet(parentPath, propName, JsonUtil.convertJsonValue(value));
+        defaultHandler.propertySet(parentPath, propName, JsonUtil.toJsonValue(value));
     }
 
     private void parseOpRemoved() throws Exception {

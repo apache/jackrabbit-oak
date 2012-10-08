@@ -16,22 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
-
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
-import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -42,6 +32,17 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 /**
  * In-memory node state builder. The following two builder states are used
@@ -280,30 +281,6 @@ public class MemoryNodeBuilder implements NodeBuilder {
     }
 
     @Override @Nonnull
-    public NodeBuilder setProperty(String name, CoreValue value) {
-        MutableNodeState mstate = write();
-
-        mstate.props.put(name, new SinglePropertyState(name, value));
-
-        updated();
-        return this;
-    }
-
-    @Override @Nonnull
-    public NodeBuilder setProperty(String name, List<CoreValue> values) {
-        MutableNodeState mstate = write();
-
-        if (values.isEmpty()) {
-            mstate.props.put(name, new EmptyPropertyState(name));
-        } else {
-            mstate.props.put(name, new MultiPropertyState(name, values));
-        }
-
-        updated();
-        return this;
-    }
-
-    @Override @Nonnull
     public NodeBuilder removeProperty(String name) {
         MutableNodeState mstate = write();
 
@@ -318,7 +295,27 @@ public class MemoryNodeBuilder implements NodeBuilder {
     }
 
     @Override
-    public NodeBuilder getChildBuilder(String name) {
+    public NodeBuilder setProperty(PropertyState property) {
+        MutableNodeState mstate = write();
+        mstate.props.put(property.getName(), property);
+        updated();
+        return this;
+    }
+
+    @Override
+    public <T> NodeBuilder setProperty(String name, T value) {
+        setProperty(PropertyStates.createProperty(name, value));
+        return this;
+    }
+
+    @Override
+    public <T> NodeBuilder setProperty(String name, T value, Type<T> type) {
+        setProperty(PropertyStates.createProperty(name, value, type));
+        return this;
+    }
+
+    @Override
+    public NodeBuilder child(String name) {
         NodeState state = read();
 
         if (writeState == null) {
@@ -333,8 +330,13 @@ public class MemoryNodeBuilder implements NodeBuilder {
         MutableNodeState cstate = mstate.nodes.get(name);
         if (cstate != null) {
             cbase = cstate.base;
-        } else if (!mstate.nodes.containsKey(name)
-                && mstate.base.hasChildNode(name)) {
+        } else if (mstate.nodes.containsKey(name)) {
+            // The child node was removed earlier and we're creating
+            // a new child with the same name. Remove the removal marker
+            // so that the new child builder won't try reconnecting with
+            // the previously removed node.
+            mstate.nodes.remove(name);
+        } else if (mstate.base.hasChildNode(name)) {
             return createChildBuilder(name, mstate.base.getChildNode(name));
         }
 
@@ -558,8 +560,8 @@ public class MemoryNodeBuilder implements NodeBuilder {
         }
 
         @Override
-        public NodeBuilder getBuilder() {
-            return new ModifiedNodeState(this).getBuilder();
+        public NodeBuilder builder() {
+            return new ModifiedNodeState(this).builder();
         }
 
         /**
@@ -666,7 +668,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
         }
 
         @Override
-        public NodeBuilder getBuilder() {
+        public NodeBuilder builder() {
             return new MemoryNodeBuilder(this);
         }
 

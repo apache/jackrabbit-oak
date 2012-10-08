@@ -19,6 +19,8 @@ package org.apache.jackrabbit.mongomk.impl;
 import java.util.List;
 
 import org.apache.jackrabbit.mk.json.JsopBuilder;
+import org.apache.jackrabbit.mk.model.tree.DiffBuilder;
+import org.apache.jackrabbit.mk.model.tree.NodeState;
 import org.apache.jackrabbit.mongomk.api.NodeStore;
 import org.apache.jackrabbit.mongomk.api.command.Command;
 import org.apache.jackrabbit.mongomk.api.command.CommandExecutor;
@@ -29,7 +31,10 @@ import org.apache.jackrabbit.mongomk.command.GetHeadRevisionCommandMongo;
 import org.apache.jackrabbit.mongomk.command.GetNodesCommandMongo;
 import org.apache.jackrabbit.mongomk.command.NodeExistsCommandMongo;
 import org.apache.jackrabbit.mongomk.impl.command.CommandExecutorImpl;
+import org.apache.jackrabbit.mongomk.impl.model.tree.MongoNodeState;
+import org.apache.jackrabbit.mongomk.impl.model.tree.MongoNodeStore;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
+import org.apache.jackrabbit.mongomk.query.FetchCommitQuery;
 import org.apache.jackrabbit.mongomk.query.FetchHeadRevisionIdQuery;
 import org.apache.jackrabbit.mongomk.query.FetchValidCommitsQuery;
 import org.apache.jackrabbit.mongomk.util.MongoUtil;
@@ -62,6 +67,50 @@ public class NodeStoreMongo implements NodeStore {
     }
 
     @Override
+    public String diff(String fromRevision, String toRevision, String path, int depth)
+            throws Exception {
+        path = (path == null || path.isEmpty())? "/" : path;
+
+        if (depth < -1) {
+            throw new IllegalArgumentException("depth");
+        }
+
+        Long fromRevisionId, toRevisionId;
+        if (fromRevision == null || toRevision == null) {
+            Long head = new FetchHeadRevisionIdQuery(mongoConnection).execute();
+            fromRevisionId = fromRevision == null? head : MongoUtil.toMongoRepresentation(fromRevision);
+            toRevisionId = toRevision == null ? head : MongoUtil.toMongoRepresentation(toRevision);;
+        } else {
+            fromRevisionId = MongoUtil.toMongoRepresentation(fromRevision);
+            toRevisionId = MongoUtil.toMongoRepresentation(toRevision);;
+        }
+
+        if (fromRevisionId.equals(toRevisionId)) {
+            return "";
+        }
+
+        if ("/".equals(path)) {
+            CommitMongo toCommit = new FetchCommitQuery(mongoConnection, toRevisionId).execute();
+            if (toCommit.getBaseRevisionId() == fromRevisionId) {
+                // Specified range spans a single commit:
+                // use diff stored in commit instead of building it dynamically
+                return toCommit.getDiff();
+            }
+        }
+
+        // FIXME - FetchNodesByPath?
+        GetNodesCommandMongo command = new GetNodesCommandMongo(mongoConnection, path, fromRevisionId, -1);
+        Node before = command.execute();
+        NodeState beforeState = before != null? new MongoNodeState(before) : null;
+
+        command = new GetNodesCommandMongo(mongoConnection, path, toRevisionId, -1);
+        Node after = command.execute();
+        NodeState afterState = after != null? new MongoNodeState(after) : null;
+
+        return new DiffBuilder(beforeState, afterState, path, depth,new MongoNodeStore(), path).build();
+    }
+
+    @Override
     public String getHeadRevision() throws Exception {
         Long headRevision = commandExecutor.execute(new GetHeadRevisionCommandMongo(mongoConnection));
         return MongoUtil.fromMongoRepresentation(headRevision);
@@ -87,7 +136,7 @@ public class NodeStoreMongo implements NodeStore {
         path = (path == null || "".equals(path)) ? "/" : path;
         boolean filtered = !"/".equals(path);
 
-        // FIXME [Mete] There's more work here.
+        // FIXME There's more work here.
 
         Long fromRevision = MongoUtil.toMongoRepresentation(fromRevisionId);
         Long toRevision = toRevisionId == null? new FetchHeadRevisionIdQuery(mongoConnection).execute()
@@ -142,7 +191,7 @@ public class NodeStoreMongo implements NodeStore {
       for (int i = history.size() - 1; i >= 0; i--) {
           CommitMongo commit = history.get(i);
           if (commit.getTimestamp() >= since) {
-              // FIXME [Mete] Check that filter really works.
+              // FIXME Check that filter really works.
               if (!filtered || commit.getAffectedPaths().contains(path)) {
                   buff.object()
                   .key("id").value(MongoUtil.fromMongoRepresentation(commit.getRevisionId()))

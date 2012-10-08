@@ -126,4 +126,20 @@ public interface Root {
      */
     @Nonnull
     ChangeExtractor getChangeExtractor();
+
+    /**
+     * Get the query engine.
+     * 
+     * @return the query engine
+     */
+    @Nonnull
+    SessionQueryEngine getQueryEngine();
+
+    /**
+     * Get the value factory.
+     *
+     * @return the value factory
+     */
+    CoreValueFactory getValueFactory();
+
 }

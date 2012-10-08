@@ -16,19 +16,21 @@
  */
 package org.apache.jackrabbit.oak.security.authentication;
 
-import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.security.principal.TmpPrincipalProvider;
-import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import java.security.AccessController;
+import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
 import javax.security.auth.Subject;
+import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.login.Configuration;
-import javax.security.auth.login.LoginContext;
 import javax.security.auth.login.LoginException;
-import java.security.AccessController;
+
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.JaasLoginContext;
+import org.apache.jackrabbit.oak.spi.security.authentication.LoginContext;
+import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * LoginContextProviderImpl...  TODO
@@ -39,26 +41,32 @@ public class LoginContextProviderImpl implements LoginContextProvider {
 
     private static final String APP_NAME = "jackrabbit.oak";
 
-    private final Configuration authConfig;
-    private final PrincipalProvider principalProvider;
+    private final Configuration configuration;
+    private final NodeStore nodeStore;
+    private final SecurityProvider securityProvider;
 
-    public LoginContextProviderImpl(ContentRepository repository) {
-        // TODO: use configurable authentication config and principal provider
-        authConfig = new ConfigurationImpl();
-        principalProvider = new TmpPrincipalProvider();
+    public LoginContextProviderImpl(Configuration configuration,
+                                    NodeStore nodeStore,
+                                    SecurityProvider securityProvider) {
+        this.configuration = configuration;
+        this.nodeStore = nodeStore;
+        this.securityProvider = securityProvider;
     }
 
     @Override
-    public LoginContext getLoginContext(Credentials credentials, String workspaceName) throws LoginException {
+    @Nonnull
+    public LoginContext getLoginContext(Credentials credentials, String workspaceName)
+            throws LoginException {
         // TODO: add proper implementation
         // TODO  - authentication against configurable spi-authentication
         // TODO  - validation of workspace name (including access rights for the given 'user')
         Subject subject = getSubject();
-        return new LoginContext(APP_NAME, subject, new CallbackHandlerImpl(credentials, principalProvider), authConfig);
+        CallbackHandler handler = new CallbackHandlerImpl(credentials, workspaceName, nodeStore, securityProvider);
+        return new JaasLoginContext(APP_NAME, subject, handler, configuration);
     }
 
-    //-------------------------------------------------===--------< private >---
-    private Subject getSubject() {
+    //------------------------------------------------------------< private >---
+    private static Subject getSubject() {
         Subject subject = null;
         try {
             subject = Subject.getSubject(AccessController.getContext());

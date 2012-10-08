@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.mongomk.api;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mongomk.api.model.Commit;
 import org.apache.jackrabbit.mongomk.api.model.Node;
 
@@ -46,6 +47,19 @@ public interface NodeStore {
      * @throws Exception If an error occurred while committing.
      */
     String commit(Commit commit) throws Exception;
+
+    /**
+     * @see MicroKernel#diff(String, String, String, int)
+     *
+     * @param fromRevisionId a revision id, if {@code null} the current head revision is assumed
+     * @param toRevisionId another revision id, if {@code null} the current head revision is assumed
+     * @param path optional path filter; if {@code null} or {@code ""}.
+     * The default ({@code "/"}) will be assumed, i.e. no filter will be applied
+     * @param depth Depth limit; if {@code -1} no limit will be applied
+     * @return JSON diff representation of the changes
+     * @throws MicroKernelException if any of the specified revisions doesn't exist or if another error occurs
+     */
+    String diff(String fromRevisionId, String toRevisionId, String path, int depth) throws Exception;
 
     /**
      * @see MicroKernel#getHeadRevision()
