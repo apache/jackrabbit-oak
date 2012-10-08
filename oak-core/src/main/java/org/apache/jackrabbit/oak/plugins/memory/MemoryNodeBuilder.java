@@ -315,7 +315,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
     }
 
     @Override
-    public NodeBuilder getChildBuilder(String name) {
+    public NodeBuilder child(String name) {
         NodeState state = read();
 
         if (writeState == null) {
@@ -330,8 +330,13 @@ public class MemoryNodeBuilder implements NodeBuilder {
         MutableNodeState cstate = mstate.nodes.get(name);
         if (cstate != null) {
             cbase = cstate.base;
-        } else if (!mstate.nodes.containsKey(name)
-                && mstate.base.hasChildNode(name)) {
+        } else if (mstate.nodes.containsKey(name)) {
+            // The child node was removed earlier and we're creating
+            // a new child with the same name. Remove the removal marker
+            // so that the new child builder won't try reconnecting with
+            // the previously removed node.
+            mstate.nodes.remove(name);
+        } else if (mstate.base.hasChildNode(name)) {
             return createChildBuilder(name, mstate.base.getChildNode(name));
         }
 
@@ -555,8 +560,8 @@ public class MemoryNodeBuilder implements NodeBuilder {
         }
 
         @Override
-        public NodeBuilder getBuilder() {
-            return new ModifiedNodeState(this).getBuilder();
+        public NodeBuilder builder() {
+            return new ModifiedNodeState(this).builder();
         }
 
         /**
@@ -663,7 +668,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
         }
 
         @Override
-        public NodeBuilder getBuilder() {
+        public NodeBuilder builder() {
             return new MemoryNodeBuilder(this);
         }
 

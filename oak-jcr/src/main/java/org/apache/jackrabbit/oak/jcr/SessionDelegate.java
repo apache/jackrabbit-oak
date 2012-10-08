@@ -33,6 +33,7 @@ import javax.jcr.observation.ObservationManager;
 import javax.jcr.query.QueryManager;
 import javax.jcr.version.VersionManager;
 
+import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.AuthInfo;
@@ -45,6 +46,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.observation.ObservationManagerImpl;
+import org.apache.jackrabbit.oak.jcr.security.privilege.PrivilegeManagerImpl;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
@@ -71,7 +73,9 @@ public class SessionDelegate {
     private final SecurityProvider securityProvider;
 
     private final IdentifierManager idManager;
+
     private ObservationManagerImpl observationManager;
+    private PrivilegeManagerImpl privilegeManager;
     private boolean isAlive = true;
     private int sessionOpCount;
 
@@ -230,9 +234,11 @@ public class SessionDelegate {
     public void refresh(boolean keepChanges) {
         if (keepChanges) {
             root.rebase();
-        }
-        else {
+        } else {
             root.refresh();
+        }
+        if (privilegeManager != null) {
+            privilegeManager.refresh();
         }
     }
 
@@ -477,7 +483,7 @@ public class SessionDelegate {
     @Nonnull
     PrincipalManager getPrincipalManager() throws RepositoryException {
         if (securityProvider != null) {
-            return securityProvider.getPrincipalConfiguration().getPrincipalManager(session, contentSession, root, getNamePathMapper());
+            return securityProvider.getPrincipalConfiguration().getPrincipalManager(session, root, getNamePathMapper());
         } else {
             throw new UnsupportedRepositoryOperationException("Principal management not supported.");
         }
@@ -486,9 +492,17 @@ public class SessionDelegate {
     @Nonnull
     UserManager getUserManager() throws UnsupportedRepositoryOperationException {
         if (securityProvider != null) {
-            return securityProvider.getUserContext().getUserManager(session, contentSession, root, getNamePathMapper());
+            return securityProvider.getUserContext().getUserManager(session, root, getNamePathMapper());
         } else {
             throw new UnsupportedRepositoryOperationException("User management not supported.");
         }
+    }
+
+    @Nonnull
+    PrivilegeManager getPrivilegeManager() {
+        if (privilegeManager == null) {
+            privilegeManager = new PrivilegeManagerImpl(this);
+        }
+        return privilegeManager;
     }
 }

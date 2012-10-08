@@ -27,12 +27,11 @@ import javax.jcr.nodetype.NodeTypeIterator;
 import javax.jcr.nodetype.NodeTypeManager;
 
 import com.google.common.collect.ImmutableSet;
-import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.plugins.memory.SinglePropertyState;
-import org.apache.jackrabbit.oak.plugins.type.NodeTypeConstants;
-import org.apache.jackrabbit.oak.plugins.type.ReadOnlyNodeTypeManager;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.query.Query;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
@@ -228,8 +227,7 @@ public class SelectorImpl extends SourceImpl {
                 // not a local path
                 return null;
             }
-            CoreValue v = query.getValueFactory().createValue(local);
-            return new SinglePropertyState(Query.JCR_PATH, v);
+            return PropertyStates.stringProperty(Query.JCR_PATH, local);
         }
         if (cursor == null) {
             return null;

@@ -22,11 +22,9 @@ import java.util.List;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.query.index.PrefixContentIndex;
-import org.apache.jackrabbit.oak.query.index.PropertyContentIndex;
+import org.apache.jackrabbit.oak.plugins.index.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.query.IndexDefinition;
-import org.apache.jackrabbit.oak.spi.query.IndexUtils;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -59,22 +57,22 @@ public class PropertyIndexer implements QueryIndexProvider, CommitHook,
                 .buildIndexDefinitions(nodeState, indexConfigPath,
                         INDEX_TYPE_PROPERTY);
         for (IndexDefinition def : indexDefinitions) {
-            NodeBuilder builder = rootBuilder.getChildBuilder(def.getName());
+            NodeBuilder builder = rootBuilder.child(def.getName());
             // create the global :data node
-            builder.getChildBuilder(INDEX_CONTENT);
+            builder.child(INDEX_CONTENT);
             for (String k : builder.getChildNodeNames()) {
                 PropertyIndex prop = PropertyIndex.fromNodeName(indexer, k);
                 if (prop != null) {
                     // create the :data node
-                    builder.getChildBuilder(prop.getIndexNodeName())
-                            .getChildBuilder(INDEX_CONTENT);
+                    builder.child(prop.getIndexNodeName())
+                            .child(INDEX_CONTENT);
                     queryIndexList.add(new PropertyContentIndex(prop));
                 }
                 PrefixIndex pref = PrefixIndex.fromNodeName(indexer, k);
                 if (pref != null) {
                     // create the :data node
-                    builder.getChildBuilder(pref.getIndexNodeName())
-                            .getChildBuilder(INDEX_CONTENT);
+                    builder.child(pref.getIndexNodeName())
+                            .child(INDEX_CONTENT);
                     queryIndexList.add(new PrefixContentIndex(pref));
                 }
             }

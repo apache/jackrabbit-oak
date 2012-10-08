@@ -30,7 +30,6 @@ import javax.jcr.ValueFactory;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -39,7 +38,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryValueFactory;
-import org.apache.jackrabbit.oak.plugins.memory.MultiPropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,8 +48,8 @@ import static org.apache.jackrabbit.oak.api.Type.DATE;
 import static org.apache.jackrabbit.oak.api.Type.LONG;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
 /**
  * Utility class for accessing and writing typed content of a tree.
@@ -73,10 +72,6 @@ public class NodeUtil {
 
     public NodeUtil(Tree tree, CoreValueFactory factory) {
         this(tree, factory, NamePathMapper.DEFAULT);
-    }
-
-    public NodeUtil(Tree tree, ContentSession contentSession) {
-        this(tree, contentSession.getCoreValueFactory());
     }
 
     public NodeUtil(Tree tree) {
@@ -235,7 +230,7 @@ public class NodeUtil {
                 log.warn("Unable to convert a default value", e);
             }
         }
-        tree.setProperty(new MultiPropertyState(name, cvs));
+        tree.setProperty(PropertyStates.createProperty(name, cvs));
     }
 
     public void setValues(String name, String[] values, int type) {

@@ -34,10 +34,10 @@ public interface MembershipProvider {
     Iterator<String> getMembership(Tree authorizableTree, boolean includeInherited);
 
     @Nonnull
-    Iterator<String> getMembers(String groupId, Type authorizableType, boolean includeInherited);
+    Iterator<String> getMembers(String groupId, AuthorizableType authorizableType, boolean includeInherited);
 
     @Nonnull
-    Iterator<String> getMembers(Tree groupTree, Type authorizableType, boolean includeInherited);
+    Iterator<String> getMembers(Tree groupTree, AuthorizableType authorizableType, boolean includeInherited);
 
     boolean isMember(Tree groupTree, Tree authorizableTree, boolean includeInherited);
 

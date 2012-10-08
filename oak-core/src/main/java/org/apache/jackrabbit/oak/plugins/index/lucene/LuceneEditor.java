@@ -23,8 +23,9 @@ import javax.jcr.PropertyType;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.plugins.index.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.memory.CoreValues;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.query.IndexDefinition;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -42,10 +43,10 @@ import org.apache.tika.exception.TikaException;
 
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
+import static org.apache.jackrabbit.oak.plugins.index.IndexDefinition.INDEX_DATA_CHILD_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPathField;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPropertyField;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
-import static org.apache.jackrabbit.oak.spi.query.IndexDefinition.INDEX_DATA_CHILD_NAME;
 
 /**
  * This class updates a Lucene index when node content is changed.
@@ -81,12 +82,12 @@ class LuceneEditor implements CommitHook, LuceneIndexConstants {
     @Override
     public NodeState processCommit(NodeState before, NodeState after)
             throws CommitFailedException {
-        NodeBuilder rootBuilder = after.getBuilder();
+        NodeBuilder rootBuilder = after.builder();
         NodeBuilder builder = rootBuilder;
         for (String name : elements(index.getPath())) {
-            builder = builder.getChildBuilder(name);
+            builder = builder.child(name);
         }
-        builder = builder.getChildBuilder(INDEX_DATA_CHILD_NAME);
+        builder = builder.child(INDEX_DATA_CHILD_NAME);
         Directory directory = new ReadWriteOakDirectory(builder);
 
         try {
@@ -220,7 +221,7 @@ class LuceneEditor implements CommitHook, LuceneIndexConstants {
             document.add(newPathField(path));
             for (PropertyState property : state.getProperties()) {
                 String pname = property.getName();
-                for (CoreValue value : property.getValues()) {
+                for (CoreValue value : CoreValues.getValues(property)) {
                     document.add(newPropertyField(pname,
                             parseStringValue(value)));
                 }

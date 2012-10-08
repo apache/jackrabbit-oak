@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.api;
 
-import java.util.List;
-
 import javax.annotation.Nonnull;
 
 /**
@@ -58,27 +56,6 @@ public interface PropertyState {
      * @return  {@code true} if and only if the value is an array of atoms.
      */
     boolean isArray();
-
-    /**
-     * Value of this property.
-     * @return  the single value of this property.
-     * @throws IllegalStateException  if {@code isArray()} is {@code true}.
-     */
-    @Nonnull
-    @Deprecated
-    CoreValue getValue();
-
-    /**
-     * Values of this property. The returned list is immutable and contains
-     * all the values of this property. If this is a single-valued property,
-     * then the returned list will simply contain the single value returned
-     * by the {@link #getValue()} method.
-     *
-     * @return immutable list of the values of this property
-     */
-    @Nonnull
-    @Deprecated
-    List<CoreValue> getValues();
 
     /**
      * Determine the type of this property

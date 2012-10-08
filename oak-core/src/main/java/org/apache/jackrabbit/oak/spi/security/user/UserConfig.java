@@ -37,6 +37,14 @@ public class UserConfig {
     private static final Logger log = LoggerFactory.getLogger(UserConfig.class);
 
     /**
+     * Configuration option defining the ID of the anonymous user. The ID
+     * might be {@code null} of no anonymous user exists. In this case
+     * Session#getUserID() may return {@code null} if it has been obtained
+     * using {@link javax.jcr.GuestCredentials}.
+     */
+    public static final String PARAM_ANONYMOUS_ID = "anonymousId";
+
+    /**
      * Configuration option to define the path underneath which user nodes
      * are being created.
      */
@@ -102,6 +110,10 @@ public class UserConfig {
     @Nonnull
     public String getAdminId() {
         return adminId;
+    }
+
+    public String getAnonymousId() {
+        return getConfigValue(PARAM_ANONYMOUS_ID, null);
     }
 
     public <T> T getConfigValue(String key, T defaultValue) {

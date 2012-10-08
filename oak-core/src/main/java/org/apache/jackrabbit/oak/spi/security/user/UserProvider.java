@@ -22,7 +22,9 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
+import org.apache.jackrabbit.api.security.user.Impersonation;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 
 /**
  * UserProvider deals with with creating and resolving repository content
@@ -40,7 +42,7 @@ public interface UserProvider {
     Tree getAuthorizable(String authorizableId);
 
     @CheckForNull
-    Tree getAuthorizable(String authorizableId, Type authorizableType);
+    Tree getAuthorizable(String authorizableId, AuthorizableType authorizableType);
 
     @CheckForNull
     Tree getAuthorizableByPath(String authorizableOakPath);
@@ -68,7 +70,7 @@ public interface UserProvider {
      * @param exact A boolean flag indicating if the value must match exactly or not.s
      * @param maxSize The maximal number of search results to look for.
      * @param authorizableType Filter the search results to only return authorizable
-     * trees of a given type. Passing {@link Type#AUTHORIZABLE} indicates that
+     * trees of a given type. Passing {@link AuthorizableType#AUTHORIZABLE} indicates that
      * no filtering for a specific authorizable type is desired. However, properties
      * might still be search in the complete sub-tree of authorizables depending
      * on the other query parameters.
@@ -77,11 +79,34 @@ public interface UserProvider {
      * found.
      */
     @Nonnull
-    Iterator<Tree> findAuthorizables(String[] propertyRelPaths, String value, String[] ntNames, boolean exact, long maxSize, Type authorizableType);
+    Iterator<Tree> findAuthorizables(String[] propertyRelPaths, String value, String[] ntNames, boolean exact, long maxSize, AuthorizableType authorizableType);
 
-    boolean isAuthorizableType(Tree authorizableTree, Type authorizableType);
+    boolean isAuthorizableType(Tree authorizableTree, AuthorizableType authorizableType);
 
     boolean isAdminUser(Tree userTree);
+
+    /**
+     * Returns the password hash for the user with the specified ID or {@code null}
+     * if the user does not exist or if the hash is not accessible for the editing
+     * session.
+     *
+     * @param userID The id of a user.
+     * @return the password hash or {@code null}.
+     */
+    String getPassword(String userID);
+
+    /**
+     * Set the password for the user identified by the specified {@code userTree}.
+     *
+     * @param userTree The tree representing the user.
+     * @param password The plaintext password to set.
+     * @param forceHash If true the specified password needs to be hashed irrespective
+     * of it's format.
+     * @throws javax.jcr.RepositoryException If an error occurs
+     */
+    void setPassword(Tree userTree, String password, boolean forceHash) throws RepositoryException;
+
+    Impersonation getImpersonation(String userID, PrincipalProvider principalProvider);
 
     void setProtectedProperty(Tree authorizableTree, String propertyName, String value, int propertyType);
 

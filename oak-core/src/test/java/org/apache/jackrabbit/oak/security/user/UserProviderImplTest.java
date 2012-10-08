@@ -32,7 +32,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexHook;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
-import org.apache.jackrabbit.oak.spi.security.user.Type;
+import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
@@ -108,13 +108,13 @@ public class UserProviderImplTest extends AbstractOakTest {
     }
 
     private UserProvider createUserProvider() {
-        return new UserProviderImpl(contentSession, root, defaultConfig);
+        return new UserProviderImpl(root, defaultConfig);
     }
 
     private UserProvider createUserProvider(int defaultDepth) {
         Map<String, Object> options = new HashMap<String, Object>(customOptions);
         options.put(UserConfig.PARAM_DEFAULT_DEPTH, defaultDepth);
-        return new UserProviderImpl(contentSession, root, new UserConfig("admin", options, Collections.<AuthorizableAction>emptySet()));
+        return new UserProviderImpl(root, new UserConfig("admin", options, Collections.<AuthorizableAction>emptySet()));
     }
 
     @Test
@@ -291,23 +291,23 @@ public class UserProviderImplTest extends AbstractOakTest {
         Tree user = up.createUser(userID, null);
         root.commit();
 
-        Tree a = up.getAuthorizable(userID, Type.USER);
+        Tree a = up.getAuthorizable(userID, AuthorizableType.USER);
         assertNotNull(a);
         assertEquals(user.getPath(), a.getPath());
 
-        assertNotNull(up.getAuthorizable(userID, Type.AUTHORIZABLE));
-        assertNull(up.getAuthorizable(userID, Type.GROUP));
+        assertNotNull(up.getAuthorizable(userID, AuthorizableType.AUTHORIZABLE));
+        assertNull(up.getAuthorizable(userID, AuthorizableType.GROUP));
 
         String groupID = "hr";
         Tree group = up.createGroup(groupID, null);
         root.commit();
 
-        Tree g = up.getAuthorizable(groupID, Type.GROUP);
+        Tree g = up.getAuthorizable(groupID, AuthorizableType.GROUP);
         assertNotNull(a);
         assertEquals(user.getPath(), a.getPath());
 
-        assertNotNull(up.getAuthorizable(groupID, Type.AUTHORIZABLE));
-        assertNull(up.getAuthorizable(groupID, Type.USER));
+        assertNotNull(up.getAuthorizable(groupID, AuthorizableType.AUTHORIZABLE));
+        assertNull(up.getAuthorizable(groupID, AuthorizableType.USER));
     }
 
     @Test

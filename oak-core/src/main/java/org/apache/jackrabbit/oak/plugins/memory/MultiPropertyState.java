@@ -19,55 +19,89 @@
 package org.apache.jackrabbit.oak.plugins.memory;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.Type;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.api.Type.*;
+abstract class MultiPropertyState<T> extends EmptyPropertyState {
+    protected final List<T> values;
 
-/**
- * Multi-valued property state.
- */
-public class MultiPropertyState extends EmptyPropertyState {
-
-    private final List<CoreValue> values;
-
-    public MultiPropertyState(String name, List<CoreValue> values) {
-        super(name, getBaseType(values));
-        this.values = Collections.unmodifiableList(
-                new ArrayList<CoreValue>(checkNotNull(values)));
+    protected MultiPropertyState(String name, List<T> values) {
+        super(name);
+        this.values = values;
     }
 
-    private static Type<?> getBaseType(List<CoreValue> values) {
-        if (values.isEmpty()) {
-            return STRINGS;
-        }
-        else {
-            return Type.fromTag(values.get(0).getType(), true);
-        }
+    protected abstract Iterable<String> getStrings();
+    protected abstract String getString(int index);
+
+    protected Iterable<Blob> getBlobs() {
+        return Iterables.transform(getStrings(), new Function<String, Blob>() {
+            @Override
+            public Blob apply(String value) {
+                return new StringBasedBlob(value);
+            }
+        });
     }
 
-    @Override
-    @Nonnull
-    @Deprecated
-    public List<CoreValue> getValues() {
-        return values;
+    protected Iterable<Long> getLongs() {
+        return Iterables.transform(getStrings(), new Function<String, Long>() {
+            @Override
+            public Long apply(String value) {
+                return Long.parseLong(value);
+            }
+        });
     }
 
-    @Override
-    public long size(int index) {
-        return values.get(index).length();
+    protected Iterable<Double> getDoubles() {
+        return Iterables.transform(getStrings(), new Function<String, Double>() {
+            @Override
+            public Double apply(String value) {
+                return Double.parseDouble(value);
+            }
+        });
+    }
+
+    protected Iterable<Boolean> getBooleans() {
+        throw new UnsupportedOperationException("Unsupported conversion.");
+    }
+
+    protected Iterable<BigDecimal> getDecimals() {
+        return Iterables.transform(getStrings(), new Function<String, BigDecimal>() {
+            @Override
+            public BigDecimal apply(String value) {
+                return new BigDecimal(value);
+            }
+        });
+    }
+
+    protected Blob getBlob(int index) {
+        return new StringBasedBlob(getString(index));
+    }
+
+    protected long getLong(int index) {
+        return Long.parseLong(getString(index));
+    }
+
+    protected double getDouble(int index) {
+        return Double.parseDouble(getString(index));
+    }
+
+    protected boolean getBoolean(int index) {
+        throw new UnsupportedOperationException("Unsupported conversion.");
+    }
+
+    protected BigDecimal getDecimal(int index) {
+        return new BigDecimal(getString(index));
     }
 
     @SuppressWarnings("unchecked")
+    @Nonnull
     @Override
     public <T> T getValue(Type<T> type) {
         if (!type.isArray()) {
@@ -76,7 +110,7 @@ public class MultiPropertyState extends EmptyPropertyState {
 
         switch (type.tag()) {
             case PropertyType.STRING: return (T) getStrings();
-            case PropertyType.BINARY: return (T) getBinaries();
+            case PropertyType.BINARY: return (T) getBlobs();
             case PropertyType.LONG: return (T) getLongs();
             case PropertyType.DOUBLE: return (T) getDoubles();
             case PropertyType.DATE: return (T) getStrings();
@@ -92,79 +126,41 @@ public class MultiPropertyState extends EmptyPropertyState {
     }
 
     @SuppressWarnings("unchecked")
+    @Nonnull
     @Override
     public <T> T getValue(Type<T> type, int index) {
         if (type.isArray()) {
             throw new IllegalArgumentException("Nested arrays not supported");
         }
+        if (index >= count()) {
+            throw new IndexOutOfBoundsException(String.valueOf(index));
+        }
 
         switch (type.tag()) {
-            case PropertyType.STRING: return (T) values.get(index).getString();
-            case PropertyType.BINARY: return (T) getBlob(values.get(index));
-            case PropertyType.LONG: return (T) (Long) values.get(index).getLong();
-            case PropertyType.DOUBLE: return (T) (Double) values.get(index).getDouble();
-            case PropertyType.DATE: return (T) values.get(index).getString();
-            case PropertyType.BOOLEAN: return (T) (Boolean) values.get(index).getBoolean();
-            case PropertyType.NAME: return (T) values.get(index).getString();
-            case PropertyType.PATH: return (T) values.get(index).getString();
-            case PropertyType.REFERENCE: return (T) values.get(index).getString();
-            case PropertyType.WEAKREFERENCE: return (T) values.get(index).getString();
-            case PropertyType.URI: return (T) values.get(index).getString();
-            case PropertyType.DECIMAL: return (T) values.get(index).getDecimal();
+            case PropertyType.STRING: return (T) getString(index);
+            case PropertyType.BINARY: return (T) getBlob(index);
+            case PropertyType.LONG: return (T) (Long) getLong(index);
+            case PropertyType.DOUBLE: return (T) (Double) getDouble(index);
+            case PropertyType.DATE: return (T) getString(index);
+            case PropertyType.BOOLEAN: return (T) (Boolean) getBoolean(index);
+            case PropertyType.NAME: return (T) getString(index);
+            case PropertyType.PATH: return (T) getString(index);
+            case PropertyType.REFERENCE: return (T) getString(index);
+            case PropertyType.WEAKREFERENCE: return (T) getString(index);
+            case PropertyType.URI: return (T) getString(index);
+            case PropertyType.DECIMAL: return (T) getString(index);
             default: throw new IllegalArgumentException("Invalid type:" + type);
         }
     }
 
     @Override
-    public int count() {
+    public final int count() {
         return values.size();
     }
 
-    private List<String> getStrings() {
-        List<String> strings = new ArrayList<String>();
-        for (CoreValue value: values) {
-            strings.add(value.getString());
-        }
-        return strings;
+    @Override
+    public long size(int index) {
+        return getString(index).length();
     }
 
-    private List<Long> getLongs() {
-        List<Long> longs = new ArrayList<Long>();
-        for (CoreValue value: values) {
-            longs.add(value.getLong());
-        }
-        return longs;
-    }
-
-    private List<Double> getDoubles() {
-        List<Double> doubles = new ArrayList<Double>();
-        for (CoreValue value: values) {
-            doubles.add(value.getDouble());
-        }
-        return doubles;
-    }
-
-    private List<Boolean> getBooleans() {
-        List<Boolean> booleans = new ArrayList<Boolean>();
-        for (CoreValue value: values) {
-            booleans.add(value.getBoolean());
-        }
-        return booleans;
-    }
-
-    private List<BigDecimal> getDecimals() {
-        List<BigDecimal> decimals = new ArrayList<BigDecimal>();
-        for (CoreValue value: values) {
-            decimals.add(value.getDecimal());
-        }
-        return decimals;
-    }
-
-    private List<Blob> getBinaries() {
-        List<Blob> binaries = new ArrayList<Blob>();
-        for (CoreValue value: values) {
-            binaries.add(getBlob(value));
-        }
-        return binaries;
-    }
 }

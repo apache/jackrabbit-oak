@@ -25,11 +25,11 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
-import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
@@ -145,39 +145,15 @@ public class CoreValueFactoryTest {
     }
 
     @Test
-    public void testFromJsonValue() throws IOException {
-        for (CoreValue v : singleValueMap.keySet()) {
-            String json = singleValueMap.get(v);
-            JsopReader reader = new JsopTokenizer(json);
-            assertEquals(v, CoreValueMapper.fromJsopReader(reader, kernel));
-        }
-    }
-
-    @Test
-    public void testListFromJsopReader() throws IOException {
-        for (String json : mvValueMap.keySet()) {
-            List<CoreValue> values = mvValueMap.get(json);
-            JsopReader reader = new JsopTokenizer(json);
-            if (reader.matches('[')) {
-                assertEquals(values, CoreValueMapper.listFromJsopReader(reader, kernel));
-            }
-        }
-    }
-
-    @Test
-    public void testHints() {
-        HashSet<String> hints = new HashSet<String>();
+    public void testTypeCodes() {
+        HashSet<String> codes = new HashSet<String>();
         for (int i = PropertyType.UNDEFINED; i <= PropertyType.DECIMAL; i++) {
-            String hint = CoreValueMapper.getHintForType(i);
-            assertTrue(hints.add(hint));
-            assertEquals(3, hint.length());
-            assertTrue(CoreValueMapper.startsWithHint(hint + ":"));
+            String code = TypeCodes.getCodeForType(i);
+            assertTrue(codes.add(code));
+            assertEquals(3, code.length());
+            assertTrue(TypeCodes.startsWithCode(code + ":"));
             String def = getDefaultValue(i).getString();
-            JsopTokenizer t = new JsopTokenizer("\"" + hint + ":" + def + "\"");
-            CoreValue cv = CoreValueMapper.fromJsopReader(t,
-                    MemoryValueFactory.INSTANCE);
-            assertEquals(i, cv.getType());
-            assertEquals(def, cv.getString());
+            JsopTokenizer t = new JsopTokenizer("\"" + code + ":" + def + "\"");
         }
     }
 

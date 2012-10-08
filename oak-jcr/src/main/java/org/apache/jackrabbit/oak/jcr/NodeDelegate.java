@@ -39,8 +39,7 @@ import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
-import org.apache.jackrabbit.oak.plugins.memory.MultiPropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.SinglePropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
@@ -240,7 +239,7 @@ public class NodeDelegate extends ItemDelegate {
                 order.add(factory.createValue(source));
             }
 
-            tree.setProperty(new MultiPropertyState(PropertyState.OAK_CHILD_ORDER, order));
+            tree.setProperty(PropertyStates.createProperty(PropertyState.OAK_CHILD_ORDER, order));
         }
     }
 
@@ -258,7 +257,7 @@ public class NodeDelegate extends ItemDelegate {
         if (old != null && old.isArray()) {
             throw new ValueFormatException("Attempt to set a single value to multi-valued property.");
         }
-        tree.setProperty(new SinglePropertyState(name, value));
+        tree.setProperty(PropertyStates.createProperty(name, value));
         return new PropertyDelegate(sessionDelegate, tree.getLocation().getChild(name));
     }
 
@@ -280,7 +279,7 @@ public class NodeDelegate extends ItemDelegate {
         if (old != null && ! old.isArray()) {
             throw new ValueFormatException("Attempt to set multiple values to single valued property.");
         }
-        tree.setProperty(new MultiPropertyState(name, value));
+        tree.setProperty(PropertyStates.createProperty(name, value));
         return new PropertyDelegate(sessionDelegate, tree.getLocation().getChild(name));
     }
 

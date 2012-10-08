@@ -19,15 +19,15 @@ package org.apache.jackrabbit.oak.plugins.index.property;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.CoreValues;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 
 class PropertyIndexDiff implements NodeStateDiff {
 
@@ -52,7 +52,7 @@ class PropertyIndexDiff implements NodeStateDiff {
         this.updates = updates;
 
         if (node != null && node.hasChildNode("oak:index")) {
-            NodeBuilder index = node.getChildBuilder("oak:index");
+            NodeBuilder index = node.child("oak:index");
             for (String indexName : index.getChildNodeNames()) {
                 List<PropertyIndexUpdate> list = updates.get(indexName);
                 if (list == null) {
@@ -60,7 +60,7 @@ class PropertyIndexDiff implements NodeStateDiff {
                     updates.put(indexName, list);
                 }
                 list.add(new PropertyIndexUpdate(
-                        getPath(), index.getChildBuilder(indexName)));
+                        getPath(), index.child(indexName)));
             }
         }
     }
@@ -77,7 +77,7 @@ class PropertyIndexDiff implements NodeStateDiff {
 
     private static NodeBuilder getChildNode(NodeBuilder node, String name) {
         if (node != null && node.hasChildNode(name)) {
-            return node.getChildBuilder(name);
+            return node.child(name);
         } else {
             return null;
         }
@@ -109,22 +109,22 @@ class PropertyIndexDiff implements NodeStateDiff {
     @Override
     public void propertyAdded(PropertyState after) {
         for (PropertyIndexUpdate update : getIndexes(after.getName())) {
-            update.insert(getPath(), after.getValues());
+            update.insert(getPath(), CoreValues.getValues(after));
         }
     }
 
     @Override
     public void propertyChanged(PropertyState before, PropertyState after) {
         for (PropertyIndexUpdate update : getIndexes(after.getName())) {
-            update.remove(getPath(), before.getValues());
-            update.insert(getPath(), after.getValues());
+            update.remove(getPath(), CoreValues.getValues(before));
+            update.insert(getPath(), CoreValues.getValues(after));
         }
     }
 
     @Override
     public void propertyDeleted(PropertyState before) {
         for (PropertyIndexUpdate update : getIndexes(before.getName())) {
-            update.remove(getPath(), before.getValues());
+            update.remove(getPath(), CoreValues.getValues(before));
         }
     }
 

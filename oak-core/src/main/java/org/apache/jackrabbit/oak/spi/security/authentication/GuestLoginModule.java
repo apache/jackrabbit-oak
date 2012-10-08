@@ -47,7 +47,7 @@ import org.slf4j.LoggerFactory;
  *     <li>Try to retrieve JCR credentials from the {@link CallbackHandler} using
  *     the {@link CredentialsCallback}</li>
  *     <li>In case no credentials could be obtained it pushes a new instance of
- *     {@link GuestCredentials} to the shared stated. Subsequent login module
+ *     {@link GuestCredentials} to the shared stated. Subsequent login modules
  *     in the authentication process may retrieve the {@link GuestCredentials}
  *     instead of failing to obtain any credentials.</li>
  * </ol>
@@ -116,7 +116,7 @@ public class GuestLoginModule implements LoginModule {
 
     @Override
     public boolean commit() throws LoginException {
-        if (guestCredentials != null) {
+        if (guestCredentials != null && !subject.isReadOnly()) {
             subject.getPublicCredentials().add(guestCredentials);
             subject.getPrincipals().add(EveryonePrincipal.getInstance());
         }

@@ -19,35 +19,25 @@
 package org.apache.jackrabbit.oak.plugins.memory;
 
 import java.util.Collections;
-import java.util.List;
 
 import javax.annotation.Nonnull;
+import javax.jcr.PropertyType;
 
-import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.api.Type.BINARIES;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
-/**
- * Property state that contains an empty array of values. Used as a base
- * class for {@link SinglePropertyState} and {@link MultiPropertyState}.
- */
-class EmptyPropertyState implements PropertyState {
-
+abstract class EmptyPropertyState implements PropertyState {
     private final String name;
-    private final Type<?> type;
 
-    public EmptyPropertyState(String name, Type<?> type) {
-        this.name = checkNotNull(name);
-        this.type = type;
+    protected EmptyPropertyState(String name) {
+        this.name = name;
     }
 
-    protected static Blob getBlob(CoreValue value) {
-        return new BlobImpl(value);
-    }
-
+    @Nonnull
     @Override
     public String getName() {
         return name;
@@ -58,26 +48,8 @@ class EmptyPropertyState implements PropertyState {
         return true;
     }
 
-    @Override
-    @Nonnull
-    @Deprecated
-    public CoreValue getValue() {
-        throw new IllegalStateException("Not a single valued property");
-    }
-
-    @Override
-    @Nonnull
-    @Deprecated
-    public List<CoreValue> getValues() {
-        return Collections.emptyList();
-    }
-
-    @Override
-    public Type<?> getType() {
-        return type;
-    }
-
     @SuppressWarnings("unchecked")
+    @Nonnull
     @Override
     public <T> T getValue(Type<T> type) {
         if (type.isArray()) {
@@ -88,6 +60,7 @@ class EmptyPropertyState implements PropertyState {
         }
     }
 
+    @Nonnull
     @Override
     public <T> T getValue(Type<T> type, int index) {
         throw new IndexOutOfBoundsException(String.valueOf(index));
@@ -112,23 +85,35 @@ class EmptyPropertyState implements PropertyState {
 
     /**
      * Checks whether the given object is equal to this one. Two property
-     * states are considered equal if both their names and encoded values
-     * match. Subclasses may override this method with a more efficient
+     * states are considered equal if their names and types match and
+     * their string representation of their values are equal.
+     * Subclasses may override this method with a more efficient
      * equality check if one is available.
      *
-     * @param that target of the comparison
+     * @param other target of the comparison
      * @return {@code true} if the objects are equal, {@code false} otherwise
      */
     @Override
-    public boolean equals(Object that) {
-        if (this == that) {
+    public boolean equals(Object other) {
+        if (this == other) {
             return true;
-        } else if (that instanceof PropertyState) {
-            PropertyState other = (PropertyState) that;
-            return getName().equals(other.getName())
-                    && isArray() == other.isArray()
-                    && getValues().equals(other.getValues());
-        } else {
+        }
+        else if (other instanceof PropertyState) {
+            PropertyState that = (PropertyState) other;
+            if (!getName().equals(that.getName())) {
+                return false;
+            }
+            if (!getType().equals(that.getType())) {
+                return false;
+            }
+            if (getType().tag() == PropertyType.BINARY) {
+                return getValue(BINARIES).equals(that.getValue(BINARIES));
+            }
+            else {
+                return getValue(STRINGS).equals(that.getValue(STRINGS));
+            }
+        }
+        else {
             return false;
         }
     }
@@ -149,7 +134,12 @@ class EmptyPropertyState implements PropertyState {
 
     @Override
     public String toString() {
-        return getName() + '=' + getValues();
+        if (isArray()) {
+            return getName() + '=' + getValue(STRINGS);
+        }
+        else {
+            return getName() + '=' + getValue(STRING);
+        }
     }
 
 }

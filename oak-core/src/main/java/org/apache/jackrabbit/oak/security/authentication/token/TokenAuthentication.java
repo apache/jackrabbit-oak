@@ -16,11 +16,10 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.token;
 
-import java.security.Principal;
 import java.util.Date;
-import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
+import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
@@ -30,7 +29,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * TokenAuthentication... TODO
+ * Implementation of the {@code Authentication} interface that deals with
+ * token based login. {@link #authenticate(javax.jcr.Credentials) Authentication}
+ * will be successful if the specified credentials are valid {@link TokenCredentials}
+ * according to the characteristics and constraints enforced by {@link TokenProvider}
+ * and the information obtained using {@link TokenProvider#getTokenInfo(String)}
+ * respectively.
  */
 class TokenAuthentication implements Authentication {
 
@@ -58,7 +62,7 @@ class TokenAuthentication implements Authentication {
      * Always returns {@code false}
      */
     @Override
-    public boolean impersonate(Set<Principal> principals) {
+    public boolean impersonate(Subject subject) {
         return false;
     }
 
@@ -92,12 +96,9 @@ class TokenAuthentication implements Authentication {
         }
 
         if (tokenInfo.matches(tokenCredentials)) {
-            if (!tokenProvider.resetTokenExpiration(tokenInfo, loginTime)) {
-                log.debug("Unable to reset token expiration... trying next time");
-            }
+            tokenProvider.resetTokenExpiration(tokenInfo, loginTime);
             return true;
         }
-
 
         return false;
     }

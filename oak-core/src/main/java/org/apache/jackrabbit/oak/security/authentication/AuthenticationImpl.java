@@ -16,41 +16,66 @@
  */
 package org.apache.jackrabbit.oak.security.authentication;
 
-import java.security.Principal;
-import java.util.Set;
 import javax.jcr.Credentials;
-import javax.jcr.GuestCredentials;
-import javax.jcr.SimpleCredentials;
+import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
+import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * AuthenticationImpl...
  */
 public class AuthenticationImpl implements Authentication {
 
-    private final String userID;
+    private static final Logger log = LoggerFactory.getLogger(AuthenticationImpl.class);
 
-    public AuthenticationImpl(String userID) {
+    private final String userID;
+    private final UserProvider userProvider;
+    private final PrincipalProvider principalProvider;
+
+    public AuthenticationImpl(String userID, UserProvider userProvider, PrincipalProvider principalProvider) {
         this.userID = userID;
+        this.userProvider = userProvider;
+        this.principalProvider = principalProvider;
     }
 
     @Override
     public boolean authenticate(Credentials credentials) {
-        if (credentials instanceof SimpleCredentials) {
-            // TODO
-            return true;
-        } else if (credentials instanceof GuestCredentials) {
-            // TODO
-            return true;
-        } else {
-            return false;
-        }
+        // TODO
+        return true;
+
+//        if (userProvider == null || userID == null) {
+//            return false;
+//        }
+//
+//        if (credentials instanceof SimpleCredentials) {
+//            SimpleCredentials creds = (SimpleCredentials) credentials;
+//            return userID.equals(creds.getUserID()) &&
+//                    PasswordUtility.isSame(userProvider.getPassword(userID), creds.getPassword());
+//        } else if (credentials instanceof GuestCredentials) {
+//            return userProvider.getAuthorizable(userID) != null;
+//        } else {
+//            // unsupported credentials object
+//            return false;
+//        }
     }
 
     @Override
-    public boolean impersonate(Set<Principal> principals) {
+    public boolean impersonate(Subject subject) {
         // TODO
         return true;
+
+//        if (userProvider == null || userID == null) {
+//            try {
+//                return userProvider.getImpersonation(userID, principalProvider).allows(subject);
+//            } catch (RepositoryException e) {
+//                log.debug("Error while validating impersonation", e.getMessage());
+//                return false;
+//            }
+//        }
+//        return false;
     }
 }

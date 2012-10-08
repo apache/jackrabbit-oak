@@ -19,21 +19,19 @@ package org.apache.jackrabbit.oak.security.privilege;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.util.Text;
-
-import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 /**
  * PrivilegeValidator... TODO
@@ -93,7 +91,7 @@ class PrivilegeValidator implements PrivilegeConstants, Validator {
         // primary node type name must be rep:privilege
         Tree tree = new ReadOnlyTree(null, name, after);
         PropertyState primaryType = tree.getProperty(JcrConstants.JCR_PRIMARYTYPE);
-        if (primaryType == null || !NT_REP_PRIVILEGE.equals(primaryType.getValue(STRING))) {
+        if (primaryType == null || !NT_REP_PRIVILEGE.equals(primaryType.getValue(Type.STRING))) {
             throw new CommitFailedException("Privilege definition must have primary node type set to rep:privilege");
         }
 

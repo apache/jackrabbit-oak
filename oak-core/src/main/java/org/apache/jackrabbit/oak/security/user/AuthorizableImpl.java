@@ -39,6 +39,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -318,6 +319,14 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
     @Nonnull
     UserManagerImpl getUserManager() {
         return userManager;
+    }
+
+    /**
+     * @return The user provider associated with this authorizable
+     */
+    @Nonnull
+    UserProvider getUserProvider() {
+        return userManager.getUserProvider();
     }
 
     /**

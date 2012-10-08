@@ -69,7 +69,7 @@ class ReadOnlyOakDirectory extends Directory {
             return 0;
         }
 
-        NodeBuilder fileBuilder = directoryBuilder.getChildBuilder(name);
+        NodeBuilder fileBuilder = directoryBuilder.child(name);
         PropertyState property = fileBuilder.getProperty("jcr:data");
         if (property == null || property.isArray()) {
             return 0;
@@ -105,7 +105,7 @@ class ReadOnlyOakDirectory extends Directory {
             return new byte[0];
         }
 
-        NodeBuilder fileBuilder = directoryBuilder.getChildBuilder(name);
+        NodeBuilder fileBuilder = directoryBuilder.child(name);
         PropertyState property = fileBuilder.getProperty("jcr:data");
         if (property == null || property.isArray()) {
             return new byte[0];

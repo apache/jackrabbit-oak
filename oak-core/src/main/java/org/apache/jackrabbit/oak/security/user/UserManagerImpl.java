@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import java.io.UnsupportedEncodingException;
-import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
 import java.util.Iterator;
 import javax.annotation.CheckForNull;
@@ -26,6 +24,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
 
+import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -34,12 +33,13 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.security.principal.PrincipalManagerImpl;
 import org.apache.jackrabbit.oak.security.user.query.XPathQueryBuilder;
 import org.apache.jackrabbit.oak.security.user.query.XPathQueryEvaluator;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
-import org.apache.jackrabbit.oak.spi.security.user.PasswordUtility;
-import org.apache.jackrabbit.oak.spi.security.user.Type;
+import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
@@ -113,7 +113,7 @@ public class UserManagerImpl implements UserManager {
     @Override
     public Iterator<Authorizable> findAuthorizables(String relPath, String value, int searchType) throws RepositoryException {
         String[] oakPaths =  new String[] {namePathMapper.getOakPath(relPath)};
-        Type authorizableType = getAuthorizableType(searchType);
+        AuthorizableType authorizableType = getAuthorizableType(searchType);
         Iterator<Tree> result = userProvider.findAuthorizables(oakPaths, value, null, true, Long.MAX_VALUE, authorizableType);
 
         return AuthorizableIterator.create(result, this);
@@ -147,7 +147,7 @@ public class UserManagerImpl implements UserManager {
         }
         Tree userTree = userProvider.createUser(userID, intermediatePath);
         setPrincipal(userTree, principal);
-        setPassword(userTree, password, true);
+        userProvider.setPassword(userTree, password, true);
 
         User user = new UserImpl(userID, userTree, this);
         onCreate(user, password);
@@ -283,41 +283,6 @@ public class UserManagerImpl implements UserManager {
     }
 
     //--------------------------------------------------------------------------
-    /**
-     *
-     *
-     * @param userTree The tree representing the user.
-     * @param password The plaintext password to set.
-     * @param forceHash If true the specified password will always be hashed.
-     * @throws javax.jcr.RepositoryException If an error occurs
-     */
-    void setPassword(Tree userTree, String password, boolean forceHash) throws RepositoryException {
-        if (password == null) {
-            log.debug("Password is null.");
-            return;
-        }
-        String pwHash;
-        if (forceHash || PasswordUtility.isPlainTextPassword(password)) {
-            try {
-                pwHash = PasswordUtility.buildPasswordHash(password, config);
-            } catch (NoSuchAlgorithmException e) {
-                throw new RepositoryException(e);
-            } catch (UnsupportedEncodingException e) {
-                throw new RepositoryException(e);
-            }
-        } else {
-            pwHash = password;
-        }
-        getUserProvider().setProtectedProperty(userTree, UserConstants.REP_PASSWORD, pwHash, PropertyType.STRING);
-    }
-
-    void setPrincipal(Tree userTree, Principal principal) throws RepositoryException {
-        // TODO: remove check once user-validator properly enforces that constraint
-        if (userTree.getStatus() != Tree.Status.NEW || userTree.hasProperty(UserConstants.REP_PRINCIPAL_NAME)) {
-            throw new RepositoryException("rep:principalName can only be set once on a new node.");
-        }
-        getUserProvider().setProtectedProperty(userTree, UserConstants.REP_PRINCIPAL_NAME, principal.getName(), PropertyType.STRING);
-    }
 
     Session getSession() {
         return session;
@@ -335,6 +300,14 @@ public class UserManagerImpl implements UserManager {
         return membershipProvider;
     }
 
+    PrincipalProvider getPrincipalProvider() throws RepositoryException {
+        if (!(session instanceof JackrabbitSession)) {
+            throw new UnsupportedRepositoryOperationException("Principal management not supported");
+        }
+        JackrabbitSession js = (JackrabbitSession) session;
+        return ((PrincipalManagerImpl) js.getPrincipalManager()).getPrincipalProvider();
+    }
+
     @CheckForNull
     Authorizable getAuthorizable(Tree tree) throws RepositoryException {
         if (tree == null) {
@@ -348,9 +321,9 @@ public class UserManagerImpl implements UserManager {
         if (id == null || tree == null) {
             return null;
         }
-        if (userProvider.isAuthorizableType(tree, Type.USER)) {
+        if (userProvider.isAuthorizableType(tree, AuthorizableType.USER)) {
             return new UserImpl(userProvider.getAuthorizableId(tree), tree, this);
-        } else if (userProvider.isAuthorizableType(tree, Type.GROUP)) {
+        } else if (userProvider.isAuthorizableType(tree, AuthorizableType.GROUP)) {
             return new GroupImpl(userProvider.getAuthorizableId(tree), tree, this);
         } else {
             throw new RepositoryException("Not a user or group tree " + tree.getPath() + '.');
@@ -374,14 +347,18 @@ public class UserManagerImpl implements UserManager {
         }
     }
 
-    private static Type getAuthorizableType(int searchType) {
+    private void setPrincipal(Tree userTree, Principal principal) {
+        getUserProvider().setProtectedProperty(userTree, UserConstants.REP_PRINCIPAL_NAME, principal.getName(), PropertyType.STRING);
+    }
+
+    private static AuthorizableType getAuthorizableType(int searchType) {
         switch (searchType) {
             case UserManager.SEARCH_TYPE_USER:
-                return Type.USER;
+                return AuthorizableType.USER;
             case UserManager.SEARCH_TYPE_GROUP:
-                return Type.GROUP;
+                return AuthorizableType.GROUP;
             case UserManager.SEARCH_TYPE_AUTHORIZABLE:
-                return Type.AUTHORIZABLE;
+                return AuthorizableType.AUTHORIZABLE;
             default:
                 throw new IllegalArgumentException("Invalid search type " + searchType);
         }

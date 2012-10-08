@@ -29,8 +29,8 @@ import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.core.TreeImpl.PropertyLocation;
-import org.apache.jackrabbit.oak.plugins.memory.MultiPropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.SinglePropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.CoreValues;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.util.TODO;
 
 /**
@@ -53,7 +53,7 @@ public class PropertyDelegate extends ItemDelegate {
      */
     @Nonnull
     public CoreValue getValue() throws InvalidItemStateException {
-        return getPropertyState().getValue();
+        return CoreValues.getValue(getPropertyState());
     }
 
     /**
@@ -63,7 +63,7 @@ public class PropertyDelegate extends ItemDelegate {
      */
     @Nonnull
     public Iterable<CoreValue> getValues() throws InvalidItemStateException {
-        return getPropertyState().getValues();
+        return CoreValues.getValues(getPropertyState());
     }
 
     /**
@@ -182,7 +182,7 @@ public class PropertyDelegate extends ItemDelegate {
      * @param value
      */
     public void setValue(CoreValue value) throws InvalidItemStateException {
-        getLocation().set(new SinglePropertyState(getName(), value));
+        getLocation().set(PropertyStates.createProperty(getName(), value));
     }
 
     /**
@@ -190,7 +190,7 @@ public class PropertyDelegate extends ItemDelegate {
      * @param values
      */
     public void setValues(List<CoreValue> values) throws InvalidItemStateException {
-        getLocation().set(new MultiPropertyState(getName(), values));
+        getLocation().set(PropertyStates.createProperty(getName(), values));
     }
 
     /**

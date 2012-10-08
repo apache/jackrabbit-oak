@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
 import javax.security.auth.Subject;
 import javax.security.auth.callback.Callback;
@@ -30,7 +31,7 @@ import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.auth.login.LoginException;
 import javax.security.auth.spi.LoginModule;
 
-import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.CredentialsCallback;
@@ -39,6 +40,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.callback.Repository
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.SecurityProviderCallback;
 import org.apache.jackrabbit.oak.spi.security.principal.OpenPrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
+import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,6 +71,9 @@ public abstract class AbstractLoginModule implements LoginModule {
     protected CallbackHandler callbackHandler;
     protected Map sharedState;
 
+    private SecurityProvider securityProvider;
+    private Root root;
+
     //--------------------------------------------------------< LoginModule >---
     @Override
     public void initialize(Subject subject, CallbackHandler callbackHandler, Map<String, ?> sharedState, Map<String, ?> options) {
@@ -92,6 +97,7 @@ public abstract class AbstractLoginModule implements LoginModule {
     }
 
     //--------------------------------------------------------------------------
+    @Nonnull
     protected abstract Set<Class> getSupportedCredentials();
 
     @CheckForNull
@@ -156,6 +162,7 @@ public abstract class AbstractLoginModule implements LoginModule {
     }
 
 
+    @Nonnull
     protected Set<? extends Principal> getPrincipals(String userID) {
         PrincipalProvider principalProvider = getPrincipalProvider();
         if (principalProvider == null) {
@@ -166,43 +173,73 @@ public abstract class AbstractLoginModule implements LoginModule {
         }
     }
 
-    private PrincipalProvider getPrincipalProvider() {
-        // TODO: replace fake pp to enable proper principal resolution. code below works but...
+    @CheckForNull
+    protected PrincipalProvider getPrincipalProvider() {
+        // TODO: replace fake pp to enable proper principal resolution.
         return new OpenPrincipalProvider();
 //        PrincipalProvider principalProvider = null;
-//        if (callbackHandler != null) {
-//            RepositoryCallback rcb = new RepositoryCallback();
-//            SecurityProviderCallback scb = new SecurityProviderCallback();
+//
+//        SecurityProvider sp = getSecurityProvider();
+//        Root r = getRoot();
+//        if (root != null && securityProvider != null) {
+//            principalProvider = securityProvider.getPrincipalConfiguration().getPrincipalProvider(root, NamePathMapper.DEFAULT);
+//        }
+//
+//        if (principalProvider == null && callbackHandler != null) {
 //            try {
-//                callbackHandler.handle(new Callback[] {rcb,  scb});
-//                ContentSession contentSession = rcb.getContentSession();
-//                SecurityProvider securityProvider = scb.getSecurityProvider();
-//                if (contentSession != null && securityProvider != null) {
-//                    // FIXME: getLatestRoot is unbearable slow.
-//                    // FIXME: - either use a different Root that passed from the repo to the callback-handler or
-//                    // FIXME: - fix mk such that retrieving the root is for free
-//                    principalProvider = securityProvider.getPrincipalConfiguration().
-//                            getPrincipalProvider(contentSession, contentSession.getLatestRoot(), NamePathMapper.DEFAULT);
-//                }
-//            } catch (UnsupportedCallbackException e) {
-//                log.debug(e.getMessage());
+//                PrincipalProviderCallback principalCallBack = new PrincipalProviderCallback();
+//                callbackHandler.handle(new Callback[] {principalCallBack});
+//                principalProvider = principalCallBack.getPrincipalProvider();
 //            } catch (IOException e) {
 //                log.debug(e.getMessage());
+//            } catch (UnsupportedCallbackException e) {
+//                log.debug(e.getMessage());
 //            }
-//
-//            if (principalProvider == null) {
-//                try {
-//                    PrincipalProviderCallback principalCallBack = new PrincipalProviderCallback();
-//                    callbackHandler.handle(new Callback[] {principalCallBack});
-//                    principalProvider = principalCallBack.getPrincipalProvider();
-//                } catch (IOException e) {
-//                    log.debug(e.getMessage());
-//                } catch (UnsupportedCallbackException e) {
-//                    log.debug(e.getMessage());
-//                }
-//            }
-//
 //        }
 //        return principalProvider;
+    }
+
+    @CheckForNull
+    protected UserProvider getUserProvider() {
+        return null; // TODO
+//        SecurityProvider sp = getSecurityProvider();
+//        Root r = getRoot();
+//        if (root != null && securityProvider != null) {
+//            return securityProvider.getUserContext().getUserProvider(root);
+//        } else {
+//            return null;
+//        }
+    }
+
+    @CheckForNull
+    private SecurityProvider getSecurityProvider() {
+        if (securityProvider == null && callbackHandler != null) {
+            SecurityProviderCallback scb = new SecurityProviderCallback();
+            try {
+                callbackHandler.handle(new Callback[] {scb});
+                securityProvider = scb.getSecurityProvider();
+            } catch (UnsupportedCallbackException e) {
+                log.debug(e.getMessage());
+            } catch (IOException e) {
+                log.debug(e.getMessage());
+            }
+        }
+        return securityProvider;
+    }
+
+    @CheckForNull
+    private Root getRoot() {
+        if (root == null) {
+            RepositoryCallback rcb = new RepositoryCallback();
+            try {
+                callbackHandler.handle(new Callback[] {rcb});
+                root = rcb.getRoot();
+            } catch (UnsupportedCallbackException e) {
+                log.debug(e.getMessage());
+            } catch (IOException e) {
+                log.debug(e.getMessage());
+            }
+        }
+        return root;
     }
 }

@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.memory.CoreValues;
 import org.apache.jackrabbit.oak.query.ast.AstVisitorBase;
 import org.apache.jackrabbit.oak.query.ast.BindVariableValueImpl;
 import org.apache.jackrabbit.oak.query.ast.ChildNodeImpl;
@@ -612,7 +613,7 @@ public class Query {
         for (int i = 0; i < columnCount; i++) {
             ColumnImpl c = columns[i];
             PropertyState p = c.currentProperty();
-            values[i] = p == null ? null : p.getValue();
+            values[i] = p == null ? null : CoreValues.getValue(p);
         }
         CoreValue[][] orderValues;
         if (orderings == null) {
@@ -626,10 +627,10 @@ public class Query {
                 if (p == null) {
                     x = null;
                 } else if (p.isArray()) {
-                    List<CoreValue> list = p.getValues();
+                    List<CoreValue> list = CoreValues.getValues(p);
                     x = list.toArray(new CoreValue[list.size()]);
                 } else {
-                    x = new CoreValue[] { p.getValue() };
+                    x = new CoreValue[] { CoreValues.getValue(p) };
                 }
                 orderValues[i] = x;
             }

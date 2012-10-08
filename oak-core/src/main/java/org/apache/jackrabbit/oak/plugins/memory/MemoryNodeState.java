@@ -97,7 +97,7 @@ public class MemoryNodeState extends AbstractNodeState {
     }
 
     @Override
-    public NodeBuilder getBuilder() {
+    public NodeBuilder builder() {
         return new MemoryNodeBuilder(this);
     }
 

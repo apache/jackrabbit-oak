@@ -18,29 +18,37 @@ package org.apache.jackrabbit.oak.jcr.security.privilege;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import javax.jcr.AccessDeniedException;
-import javax.jcr.NamespaceException;
 import javax.jcr.RepositoryException;
-import javax.jcr.Session;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
+import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants;
-import org.junit.Ignore;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 /**
  * PrivilegeManagerTest...
- *
- * TODO: more tests for cyclic aggregation
  */
 public class PrivilegeManagerImplTest extends AbstractPrivilegeTest {
+
+    private PrivilegeManager privilegeManager;
+
+    @Before
+    public void setUp() throws Exception {
+        super.setUp();
+        privilegeManager = getPrivilegeManager(superuser);
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        privilegeManager = null;
+        super.tearDown();
+    }
 
     public void testGetRegisteredPrivileges() throws RepositoryException {
         Privilege[] registered = privilegeManager.getRegisteredPrivileges();

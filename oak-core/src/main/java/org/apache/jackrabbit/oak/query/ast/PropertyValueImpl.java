@@ -27,7 +27,8 @@ import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.memory.MultiPropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.CoreValues;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.query.SQL2Parser;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
@@ -118,14 +119,13 @@ public class PropertyValueImpl extends DynamicOperandImpl {
         for (PropertyState p : tree.getProperties()) {
             if (matchesPropertyType(p)) {
                 if (p.isArray()) {
-                    values.addAll(p.getValues());
+                    values.addAll(CoreValues.getValues(p));
                 } else {
-                    values.add(p.getValue());
+                    values.add(CoreValues.getValue(p));
                 }
             }
         }
-        MultiPropertyState mv = new MultiPropertyState("*", values);
-        return mv;
+        return PropertyStates.createProperty("*", values);
     }
 
     private boolean matchesPropertyType(PropertyState state) {

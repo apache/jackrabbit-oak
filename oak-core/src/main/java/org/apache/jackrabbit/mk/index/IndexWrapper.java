@@ -52,6 +52,12 @@ public class IndexWrapper extends MicroKernelWrapperBase implements MicroKernel 
         indexer.init();
     }
 
+    public IndexWrapper(MicroKernel mk, String indexConfigPath) {
+        this.mk = MicroKernelWrapperBase.wrap(mk);
+        this.indexer = new Indexer(mk, indexConfigPath);
+        indexer.init();
+    }
+
     public Indexer getIndexer() {
         return indexer;
     }

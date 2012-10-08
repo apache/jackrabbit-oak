@@ -36,7 +36,6 @@ import javax.jcr.SimpleCredentials;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -45,7 +44,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCreden
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.apache.jackrabbit.oak.spi.security.user.PasswordUtility;
-import org.apache.jackrabbit.oak.spi.security.user.Type;
+import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserContext;
 import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
 import org.apache.jackrabbit.oak.util.NodeUtil;
@@ -96,17 +95,15 @@ public class TokenProviderImpl implements TokenProvider {
 
     private static final char DELIM = '_';
 
-    private final ContentSession contentSession;
     private final Root root;
     private final UserProvider userProvider;
     private final long tokenExpiration;
 
-    public TokenProviderImpl(ContentSession contentSession, long tokenExpiration, UserContext userContext) {
-        this.contentSession = contentSession;
-        this.root = contentSession.getLatestRoot();
+    public TokenProviderImpl(Root root, long tokenExpiration, UserContext userContext) {
+        this.root = root;
         this.tokenExpiration = tokenExpiration;
 
-        this.userProvider = userContext.getUserProvider(contentSession, root);
+        this.userProvider = userContext.getUserProvider(root);
     }
 
     //------------------------------------------------------< TokenProvider >---
@@ -126,9 +123,9 @@ public class TokenProviderImpl implements TokenProvider {
         SimpleCredentials sc = extractSimpleCredentials(credentials);
         if (sc != null) {
             String userId = sc.getUserID();
-            CoreValueFactory valueFactory = contentSession.getCoreValueFactory();
+            CoreValueFactory valueFactory = root.getValueFactory();
             try {
-                Tree userTree = userProvider.getAuthorizable(userId, Type.USER);
+                Tree userTree = userProvider.getAuthorizable(userId, AuthorizableType.USER);
                 if (userTree != null) {
                     NodeUtil userNode = new NodeUtil(userTree, valueFactory);
                     NodeUtil tokenParent = userNode.getChild(TOKENS_NODE_NAME);
@@ -188,7 +185,7 @@ public class TokenProviderImpl implements TokenProvider {
         if (tokenTree == null || userId == null) {
             return null;
         } else {
-            return new TokenInfoImpl(new NodeUtil(tokenTree, contentSession), token, userId);
+            return new TokenInfoImpl(new NodeUtil(tokenTree, root.getValueFactory()), token, userId);
         }
     }
 
@@ -212,13 +209,14 @@ public class TokenProviderImpl implements TokenProvider {
     public boolean resetTokenExpiration(TokenInfo tokenInfo, long loginTime) {
         Tree tokenTree = getTokenTree(tokenInfo);
         if (tokenTree != null) {
-            NodeUtil tokenNode = new NodeUtil(tokenTree, contentSession);
+            NodeUtil tokenNode = new NodeUtil(tokenTree, root.getValueFactory());
             long expTime = tokenNode.getLong(TOKEN_ATTRIBUTE_EXPIRY, 0);
             if (expTime - loginTime <= tokenExpiration/2) {
                 long expirationTime = loginTime + tokenExpiration;
                 try {
                     tokenNode.setDate(TOKEN_ATTRIBUTE_EXPIRY, expirationTime);
                     root.commit();
+                    log.debug("Successfully reset token expiration time.");
                     return true;
                 } catch (CommitFailedException e) {
                     log.warn("Error while resetting token expiration", e.getMessage());

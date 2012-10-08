@@ -19,10 +19,11 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import javax.jcr.PropertyType;
+
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.memory.SinglePropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.util.ISO9075;
 
@@ -62,8 +63,7 @@ public class NodeNameImpl extends DynamicOperandImpl {
         String path = selector.currentPath();
         // Name escaping (convert space to _x0020_)
         String name = ISO9075.encode(PathUtils.getName(path));
-        CoreValue v2 = query.getValueFactory().createValue(name, PropertyType.NAME);
-        return new SinglePropertyState("NAME", v2);
+        return PropertyStates.nameProperty("NAME", name);
     }
 
     @Override

@@ -33,7 +33,7 @@ public class PropertyIndexHook implements CommitHook {
     @Override @Nonnull
     public NodeState processCommit(NodeState before, NodeState after)
             throws CommitFailedException {
-        NodeBuilder builder = after.getBuilder();
+        NodeBuilder builder = after.builder();
 
         Map<String, List<PropertyIndexUpdate>> indexes = Maps.newHashMap();
         PropertyIndexDiff diff = new PropertyIndexDiff(builder, indexes);

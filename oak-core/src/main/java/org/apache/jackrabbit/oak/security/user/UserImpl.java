@@ -28,7 +28,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.principal.TreeBasedPrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.PasswordUtility;
-import org.apache.jackrabbit.oak.spi.security.user.Type;
+import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,7 +49,7 @@ class UserImpl extends AuthorizableImpl implements User {
     }
 
     void checkValidTree(Tree tree) throws RepositoryException {
-        if (tree == null || !getUserManager().getUserProvider().isAuthorizableType(tree, Type.USER)) {
+        if (tree == null || !getUserProvider().isAuthorizableType(tree, AuthorizableType.USER)) {
             throw new IllegalArgumentException("Invalid user node: node type rep:User expected.");
         }
     }
@@ -79,7 +79,7 @@ class UserImpl extends AuthorizableImpl implements User {
      */
     @Override
     public boolean isAdmin() {
-        return getUserManager().getUserProvider().isAdminUser(getTree());
+        return getUserProvider().isAdminUser(getTree());
     }
 
     /**
@@ -97,7 +97,7 @@ class UserImpl extends AuthorizableImpl implements User {
      */
     @Override
     public Impersonation getImpersonation() throws RepositoryException {
-       return new ImpersonationImpl(this);
+        return getUserProvider().getImpersonation(getID(), getUserManager().getPrincipalProvider());
     }
 
     /**
@@ -107,7 +107,7 @@ class UserImpl extends AuthorizableImpl implements User {
     public void changePassword(String password) throws RepositoryException {
         UserManagerImpl userManager = getUserManager();
         userManager.onPasswordChange(this, password);
-        userManager.setPassword(getTree(), password, true);
+        getUserProvider().setPassword(getTree(), password, true);
     }
 
     /**
@@ -139,10 +139,10 @@ class UserImpl extends AuthorizableImpl implements User {
         if (reason == null) {
             if (isDisabled()) {
                 // enable the user again.
-                setProtectedProperty(REP_DISABLED, (String) null);
-            }
+                getUserProvider().setProtectedProperty(userTree, REP_DISABLED, (String) null, PropertyType.STRING);
+            } // else: not disabled -> nothing to
         } else {
-            setProtectedProperty(REP_DISABLED, reason);
+            getUserProvider().setProtectedProperty(userTree, REP_DISABLED, reason, PropertyType.STRING);
         }
     }
 
@@ -164,15 +164,5 @@ class UserImpl extends AuthorizableImpl implements User {
             return disabled.getValue(STRING);
         } else
             return null;
-    }
-
-    //--------------------------------------------------------------------------
-
-    void setProtectedProperty(String oakName, String value) throws RepositoryException {
-        getUserManager().getUserProvider().setProtectedProperty(getTree(), oakName, value, PropertyType.STRING);
-    }
-
-    void setProtectedProperty(String oakName, String[] values) throws RepositoryException {
-        getUserManager().getUserProvider().setProtectedProperty(getTree(), oakName, values, PropertyType.STRING);
     }
 }

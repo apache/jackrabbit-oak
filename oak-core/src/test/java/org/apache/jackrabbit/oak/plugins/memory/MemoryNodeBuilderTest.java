@@ -34,9 +34,9 @@ public class MemoryNodeBuilderTest {
 
     private static final NodeState BASE = new MemoryNodeState(
             ImmutableMap.<String, PropertyState>of(
-                    "a", SinglePropertyState.create("a", 1),
-                    "b", SinglePropertyState.create("b", 2),
-                    "c", SinglePropertyState.create("c", 3)),
+                    "a", PropertyStates.longProperty("a", 1L),
+                    "b", PropertyStates.longProperty("b", 2L),
+                    "c", PropertyStates.longProperty("c", 3L)),
             ImmutableMap.of(
                     "x", MemoryNodeState.EMPTY_NODE,
                     "y", MemoryNodeState.EMPTY_NODE,
@@ -45,8 +45,8 @@ public class MemoryNodeBuilderTest {
     @Test
     public void testConnectOnAddProperty() {
         NodeBuilder root = new MemoryNodeBuilder(BASE);
-        NodeBuilder childA = root.getChildBuilder("x");
-        NodeBuilder childB = root.getChildBuilder("x");
+        NodeBuilder childA = root.child("x");
+        NodeBuilder childB = root.child("x");
 
         assertNull(childA.getProperty("test"));
         childB.setProperty("test", "foo");
@@ -56,8 +56,8 @@ public class MemoryNodeBuilderTest {
     @Test
     public void testConnectOnUpdateProperty() {
         NodeBuilder root = new MemoryNodeBuilder(BASE);
-        NodeBuilder childA = root.getChildBuilder("x");
-        NodeBuilder childB = root.getChildBuilder("x");
+        NodeBuilder childA = root.child("x");
+        NodeBuilder childB = root.child("x");
 
         childB.setProperty("test", "foo");
         childA.setProperty("test", "bar");
@@ -69,8 +69,8 @@ public class MemoryNodeBuilderTest {
     @Test
     public void testConnectOnRemoveProperty() {
         NodeBuilder root = new MemoryNodeBuilder(BASE);
-        NodeBuilder childA = root.getChildBuilder("x");
-        NodeBuilder childB = root.getChildBuilder("x");
+        NodeBuilder childA = root.child("x");
+        NodeBuilder childB = root.child("x");
 
         childB.setProperty("test", "foo");
         childA.removeProperty("test");
@@ -80,18 +80,18 @@ public class MemoryNodeBuilderTest {
     @Test
     public void testConnectOnAddNode() {
         NodeBuilder root = new MemoryNodeBuilder(BASE);
-        NodeBuilder childA = root.getChildBuilder("x");
-        NodeBuilder childB = root.getChildBuilder("x");
+        NodeBuilder childA = root.child("x");
+        NodeBuilder childB = root.child("x");
 
         assertFalse(childA.hasChildNode("test"));
-        childB.setNode("test", MemoryNodeState.EMPTY_NODE);
+        childB.child("test");
         assertTrue(childA.hasChildNode("test"));
     }
 
     @Test(expected = IllegalStateException.class)
     public void testConnectOnRemoveNode() {
         NodeBuilder root = new MemoryNodeBuilder(BASE);
-        NodeBuilder child = root.getChildBuilder("x");
+        NodeBuilder child = root.child("x");
 
         root.removeNode("x");
         child.getChildNodeCount(); // should throw ISE

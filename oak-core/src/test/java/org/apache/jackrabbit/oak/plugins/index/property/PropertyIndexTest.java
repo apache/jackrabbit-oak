@@ -36,17 +36,17 @@ public class PropertyIndexTest {
         NodeState root = MemoryNodeState.EMPTY_NODE;
 
         // Add index definition
-        NodeBuilder builder = root.getBuilder();
-        builder.getChildBuilder("oak:index").getChildBuilder("foo");
+        NodeBuilder builder = root.builder();
+        builder.child("oak:index").child("foo");
         NodeState before = builder.getNodeState();
 
         // Add some content and process it through the property index hook
-        builder = before.getBuilder();
-        builder.getChildBuilder("a").setProperty("foo", "abc");
-        builder.getChildBuilder("b").setProperty("foo", Arrays.asList("abc", "def"), Type.STRINGS);
+        builder = before.builder();
+        builder.child("a").setProperty("foo", "abc");
+        builder.child("b").setProperty("foo", Arrays.asList("abc", "def"), Type.STRINGS);
         // plus lots of dummy content to highlight the benefit of indexing
         for (int i = 0; i < MANY; i++) {
-            builder.getChildBuilder("n" + i).setProperty("foo", "xyz");
+            builder.child("n" + i).setProperty("foo", "xyz");
         }
         NodeState after = builder.getNodeState();
 
