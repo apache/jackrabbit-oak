@@ -38,21 +38,23 @@ import org.junit.Test;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
-import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.DEFAULT_INDEX_HOME;
 
 public class LuceneIndexTest implements LuceneIndexConstants {
 
     @Test
     public void testLucene() throws Exception {
-        IndexDefinition testID = new IndexDefinitionImpl(DEFAULT_INDEX_NAME,
-                TYPE, DEFAULT_INDEX_HOME, false, null);
-
         KernelNodeStore store = new KernelNodeStore(new MicroKernelImpl());
+
+        IndexDefinition testID = new IndexDefinitionImpl(DEFAULT_INDEX_NAME,
+                TYPE_LUCENE, DEFAULT_INDEX_HOME + INDEX_DEFINITIONS_NAME + "/"
+                        + DEFAULT_INDEX_NAME, store.getRoot());
+
         store.setHook(new LuceneEditor(testID));
         Root root = new RootImpl(store, null, new Subject(),
-                new AccessControlProviderImpl(), new CompositeQueryIndexProvider());
-        Tree tree = root.getTree("/");
+                new AccessControlProviderImpl(),
+                new CompositeQueryIndexProvider());
 
+        Tree tree = root.getTree("/");
         tree.setProperty("foo", "bar");
         root.commit();
 

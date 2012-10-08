@@ -18,6 +18,16 @@ package org.apache.jackrabbit.oak.plugins.index;
 
 public interface IndexConstants {
 
+    String INDEX_DEFINITIONS_NAME = "oak:index";
+
     String TYPE_PROPERTY_NAME = "type";
+
+    String TYPE_UNKNOWN = "unknown";
+
+    String REINDEX_PROPERTY_NAME = "reindex";
+
+    String INDEX_DATA_CHILD_NAME = ":data";
+
+    String DEFAULT_INDEX_HOME = "/";
 
 }

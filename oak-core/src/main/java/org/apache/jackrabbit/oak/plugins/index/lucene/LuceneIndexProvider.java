@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.buildIndexDefinitions;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -24,7 +26,6 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -53,8 +54,8 @@ public class LuceneIndexProvider implements QueryIndexProvider,
             return Collections.<QueryIndex> emptyList();
         }
         List<QueryIndex> tempIndexes = new ArrayList<QueryIndex>();
-        for (IndexDefinition child : IndexUtils.buildIndexDefinitions(
-                nodeState, indexPath, TYPE)) {
+        for (IndexDefinition child : buildIndexDefinitions(nodeState,
+                indexPath, TYPE_LUCENE)) {
             LOG.debug("found a lucene index definition {}", child);
             tempIndexes.add(new LuceneIndex(child));
         }

@@ -35,7 +35,7 @@ public class QueryTest extends AbstractQueryTest {
 
         // the property and prefix index currently require the index wrapper
         IndexWrapper mk = new IndexWrapper(new MicroKernelImpl(),
-                PathUtils.concat(TEST_INDEX_HOME, TEST_INDEX_NAME));
+                TEST_INDEX_HOME + INDEX_DEFINITIONS_NAME + "/indexes");
         Indexer indexer = mk.getIndexer();
 
         // MicroKernel mk = new MicroKernelImpl();
