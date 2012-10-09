@@ -270,10 +270,21 @@ public class TokenProviderImpl implements TokenProvider {
     }
 
     @CheckForNull
+    private Tree getUserTree(Tree tokenTree) {
+        if (tokenTree != null) {
+            return tokenTree.getParent().getParent();
+        } else {
+            return null;
+        }
+    }
+
+    @CheckForNull
     private String getUserId(Tree tokenTree) {
         if (tokenTree != null) {
             Tree userTree = tokenTree.getParent().getParent();
-            return userProvider.getAuthorizableId(userTree);
+            if (userTree != null && !userProvider.isDisabled(userTree)) {
+                return userProvider.getAuthorizableId(userTree);
+            }
         }
 
         return null;
