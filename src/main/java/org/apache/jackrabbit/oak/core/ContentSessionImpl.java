@@ -76,7 +76,7 @@ class ContentSessionImpl implements ContentSession {
     public Root getLatestRoot() {
         RootImpl root = new RootImpl(store, workspaceName, loginContext.getSubject(), accProvider, indexProvider);
         if (conflictHandlerProvider != null) {
-            root.setConflictHandler(conflictHandlerProvider.getConflictHandler(getCoreValueFactory()));
+            root.setConflictHandler(conflictHandlerProvider.getConflictHandler());
         }
         return root;
     }
