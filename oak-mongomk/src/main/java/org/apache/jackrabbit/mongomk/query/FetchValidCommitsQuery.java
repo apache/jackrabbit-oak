@@ -102,7 +102,7 @@ public class FetchValidCommitsQuery extends AbstractQuery<List<CommitMongo>> {
                 break;
             }
             validCommits.add(commitMongo);
-            Long baseRevision = commitMongo.getBaseRevisionId();
+            Long baseRevision = commitMongo.getBaseRevId();
             if ((currentRevision == 0L) || (baseRevision == null || baseRevision < fromRevisionId)) {
                 break;
             }
