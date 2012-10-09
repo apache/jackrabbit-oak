@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.commit;
 import java.util.List;
 
 import com.google.common.collect.Lists;
-import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
@@ -54,11 +53,6 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_O
  * @see ConflictValidator
  */
 public class AnnotatingConflictHandler implements ConflictHandler {
-    private final CoreValueFactory valueFactory;
-
-    public AnnotatingConflictHandler(CoreValueFactory valueFactory) {
-        this.valueFactory = valueFactory;
-    }
 
     @Override
     public Resolution addExistingProperty(Tree parent, PropertyState ours, PropertyState theirs) {
