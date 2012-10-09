@@ -71,7 +71,7 @@ public final class Type<T> {
     /** Map {@code Iterable<String>} to array of {@link PropertyType#STRING} */
     public static final Type<Iterable<String>> STRINGS = create(PropertyType.STRING, true);
 
-    /** Map {@code Iterable<Blob} to array of {@link PropertyType#BINARY} */
+    /** Map {@code Iterable<Blob>} to array of {@link PropertyType#BINARY} */
     public static final Type<Iterable<Blob>> BINARIES = create(PropertyType.BINARY, true);
 
     /** Map {@code Iterable<Long>} to array of {@link PropertyType#LONG} */
