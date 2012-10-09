@@ -134,6 +134,21 @@
             <artifactId>h2</artifactId>
             <version>1.3.158</version>
         </dependency>
+        <dependency>
+            <groupId>com.cedarsoft.commons</groupId>
+            <artifactId>test-utils</artifactId>
+            <version>5.0.9</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>maven-cobertura-plugin</artifactId>
+                    <groupId>maven-plugins</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>maven-findbugs-plugin</artifactId>
+                    <groupId>maven-plugins</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
     </dependencies>
     <pluginRepositories>
         <pluginRepository>

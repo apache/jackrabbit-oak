@@ -14,22 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.testing;
-
-import java.util.ArrayList;
+package org.apache.jackrabbit.mk.tasks;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.util.Configuration;
+import org.apache.jackrabbit.mk.util.Committer;
 
-/**
- * Interface for microkernel initialization.
- * 
- * 
- * 
- */
-public interface MicroKernelInitializer {
+public class GenericWriteTask implements Runnable {
 
- 
-    public ArrayList<MicroKernel> init(Configuration conf,int mksNumber) throws Exception;
-    public String getType();
+    MicroKernel mk;
+    Committer committer;
+    String diff;
+    int nodesPerCommit;
+
+    public GenericWriteTask(MicroKernel mk, String diff, int nodesPerCommit) {
+        this.mk = mk;
+        this.diff = diff;
+        this.nodesPerCommit = nodesPerCommit;
+        committer = new Committer();
+    }
+
+    @Override
+    public void run() {
+        committer.addNodes(mk, diff, nodesPerCommit);
+    }
 }

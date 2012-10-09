@@ -19,6 +19,7 @@ package org.apache.jackrabbit.mk.tests;
 import org.apache.jackrabbit.mk.util.MicroKernelOperation;
 import org.apache.jackrabbit.mk.testing.MicroKernelTestBase;
 import org.apache.jackrabbit.mk.util.Committer;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -27,9 +28,10 @@ import org.junit.Test;
  * 
  * 
  */
+@Ignore
 public class MkAddNodesDifferentStructuresTest extends MicroKernelTestBase {
 
-    static int nodesNumber = 100000;
+    static long nodesNumber = 100;
     static String nodeNamePrefix = "N";
 
     /**

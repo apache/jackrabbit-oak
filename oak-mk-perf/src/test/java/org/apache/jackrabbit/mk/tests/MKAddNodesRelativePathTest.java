@@ -18,6 +18,7 @@ package org.apache.jackrabbit.mk.tests;
 
 import org.apache.jackrabbit.mk.util.Committer;
 import org.apache.jackrabbit.mk.testing.MicroKernelTestBase;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -27,11 +28,11 @@ import org.junit.Test;
  * 
  * 
  */
-
+@Ignore
 public class MKAddNodesRelativePathTest extends MicroKernelTestBase {
 
     static String nodeNamePrefix = "N";
-    static int nodesNumber = 1000;
+    static int nodesNumber = 1000000;
 
     @Test
     public void testWriteNodesSameLevel() throws Exception {

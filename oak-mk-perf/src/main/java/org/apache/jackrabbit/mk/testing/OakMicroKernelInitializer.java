@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.mk.testing;
 
+import java.util.ArrayList;
+
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.mk.core.Repository;
@@ -24,24 +26,28 @@ import org.apache.jackrabbit.mk.util.Configuration;
 /**
  * Initialize a {@code MicroKernelImpl}.A new {@code Repository} is created for
  * each initialization.
- * 
- * 
- * 
  */
 public class OakMicroKernelInitializer implements MicroKernelInitializer {
 
-    public MicroKernel init(Configuration conf) throws Exception {
-        // TODO use configuration
+
+
+    @Override
+    public ArrayList<MicroKernel> init(Configuration conf, int mksNumber)
+            throws Exception {
+        ArrayList<MicroKernel> mks = new ArrayList<MicroKernel>();
         Repository rep = new Repository(conf.getStoragePath()
                 + System.currentTimeMillis());
         rep.init();
-        MicroKernel mk = new MicroKernelImpl(rep);
-        return mk;
+        for (int i = 0; i < mksNumber; i++) {
+            mks.add(new MicroKernelImpl(rep));
+        }
+        return mks;
     }
-
+    
     public String getType() {
         // TODO Auto-generated method stub
         return "Oak Microkernel";
     }
+
 
 }

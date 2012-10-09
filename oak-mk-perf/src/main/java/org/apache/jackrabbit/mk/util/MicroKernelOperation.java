@@ -41,7 +41,7 @@ public class MicroKernelOperation {
      * @return
      */
     public static StringBuilder buildPyramidDiff(String startingPoint,
-            int index, int numberOfChildren, int nodesNumber,
+            int index, int numberOfChildren, long nodesNumber,
             String nodePrefixName, StringBuilder diff) {
         if (numberOfChildren == 0) {
             for (long i = 0; i < nodesNumber; i++)
@@ -65,6 +65,6 @@ public class MicroKernelOperation {
         if (!startingPoint.endsWith("/"))
             startingPoint = startingPoint + "/";
 
-        return ("+\"" + startingPoint + nodeName + "\" : {} \n");
+        return ("+\"" + startingPoint + nodeName + "\" : {\"key\":\"00000000000000000000\"} \n");
     }
 }

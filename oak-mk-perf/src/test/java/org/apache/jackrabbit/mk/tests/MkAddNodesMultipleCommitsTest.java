@@ -20,6 +20,7 @@ import org.apache.jackrabbit.mk.util.MicroKernelOperation;
 import org.apache.jackrabbit.mk.testing.MicroKernelTestBase;
 import org.apache.jackrabbit.mk.util.Committer;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -36,6 +37,7 @@ import org.junit.Test;
  * 
  * 
  */
+@Ignore
 public class MkAddNodesMultipleCommitsTest extends MicroKernelTestBase {
 
     static String diff;

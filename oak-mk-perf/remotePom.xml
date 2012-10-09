@@ -44,7 +44,7 @@
                                 <mk.type>${env.mktype}</mk.type>
                             </systemPropertyVariables>
                             <testFailureIgnore>false</testFailureIgnore>
-                            <argLine>-Xmx1024m</argLine>
+                            <argLine>-Xmx4056m</argLine>
                             <includes>
                                 <include>**/*Test.java</include>
                             </includes>

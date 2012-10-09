@@ -31,24 +31,6 @@ public class MicroKernelCollection {
     ArrayList<MicroKernel> mks;
 
     /**
-     * Initialize a collection of microkernels.Each microkernel can have a
-     * different configuration.
-     * 
-     * @param initializator
-     *            The initialization class of a particular microkernel type.
-     * @param conf
-     *            The configuration array for the microkernels.
-     * @throws Exception
-     */
-    public MicroKernelCollection(MicroKernelInitializer initializator,
-            Configuration conf[], int size) throws Exception {
-        mks = new ArrayList<MicroKernel>();
-        for (int i = 0; i < size; i++) {
-            mks.add(initializator.init(conf[i]));
-        }
-    }
-
-    /**
      * Initialize a collection of microkernels.All microkernels have the same
      * configuration.
      * 
@@ -60,12 +42,9 @@ public class MicroKernelCollection {
      */
     public MicroKernelCollection(MicroKernelInitializer initializator,
             Configuration conf, int size) throws Exception {
-        mks = new ArrayList<MicroKernel>();
-        for (int i = 0; i < size; i++) {
-            mks.add(initializator.init(conf));
+        mks = initializator.init(conf, size);
         }
-    }
-
+    
     /**
      * Returns a microkernel collection.
      * 

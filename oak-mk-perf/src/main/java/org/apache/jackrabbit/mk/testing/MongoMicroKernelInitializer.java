@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.mk.testing;
 
+import java.util.ArrayList;
+
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.util.BlobStoreFS;
 import org.apache.jackrabbit.mk.util.Configuration;
@@ -35,36 +37,42 @@ import com.mongodb.BasicDBObjectBuilder;
  */
 public class MongoMicroKernelInitializer implements MicroKernelInitializer {
 
-    public MicroKernel init(Configuration conf) throws Exception {
+    public ArrayList<MicroKernel> init(Configuration conf, int mksNumber)
+            throws Exception {
 
-        MicroKernel mk;
-        MongoConnection mongoConnection = new MongoConnection(conf.getHost(),
+        ArrayList<MicroKernel> mks = new ArrayList<MicroKernel>();
+        MongoConnection mongoConnection;
+        mongoConnection = new MongoConnection(conf.getHost(),
                 conf.getMongoPort(), conf.getMongoDatabase());
-        MongoConnection adminConnection = new MongoConnection(conf.getHost(),
-                conf.getMongoPort(), "admin");
-
-        NodeStore nodeStore = new NodeStoreMongo(mongoConnection);
-        BlobStore blobStore = new BlobStoreFS(
-                System.getProperty("java.io.tmpdir"));
 
         // initialize the database
         // temporary workaround.Remove the sleep.
-         Thread.sleep(10000);
+        Thread.sleep(10000);
         MongoUtil.initDatabase(mongoConnection);
+
+        mongoConnection = new MongoConnection(conf.getHost(),
+                conf.getMongoPort(), "admin");
         // set the shard key
-        adminConnection.getDB()
+        mongoConnection.getDB()
                 .command(
                         BasicDBObjectBuilder
                                 .start("shardCollection", "test.nodes")
                                 .push("key").add("path", 1).add("revId", 1)
                                 .pop().get());
 
-        mk = new MongoMicroKernel(nodeStore, blobStore);
-        return mk;
+        for (int i = 0; i < mksNumber; i++) {
+            mongoConnection = new MongoConnection(conf.getHost(),
+                    conf.getMongoPort() + i, conf.getMongoDatabase());
+            NodeStore nodeStore = new NodeStoreMongo(mongoConnection);
+            BlobStore blobStore = new BlobStoreFS(
+                    System.getProperty("java.io.tmpdir"));
+            mks.add(new MongoMicroKernel(nodeStore, blobStore));
+        }
+
+        return mks;
     }
 
     public String getType() {
         return "Mongo Microkernel implementation";
     }
-
 }
