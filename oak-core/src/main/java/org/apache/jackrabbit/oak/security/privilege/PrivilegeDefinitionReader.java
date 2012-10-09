@@ -31,7 +31,7 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
-import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
 import org.apache.jackrabbit.oak.util.NodeUtil;
@@ -61,8 +61,8 @@ class PrivilegeDefinitionReader {
         this.privilegesTree = privilegesTree;
     }
 
-    PrivilegeDefinitionReader(ContentSession contentSession) {
-        this(contentSession.getLatestRoot().getTree(PRIVILEGES_PATH));
+    PrivilegeDefinitionReader(Root root) {
+        this(root.getTree(PRIVILEGES_PATH));
     }
 
     Map<String, PrivilegeDefinition> readDefinitions() {

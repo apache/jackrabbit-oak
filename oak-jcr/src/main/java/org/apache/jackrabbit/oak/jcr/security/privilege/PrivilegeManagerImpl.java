@@ -47,7 +47,7 @@ public class PrivilegeManagerImpl implements PrivilegeManager {
     private final SessionDelegate sessionDelegate;
 
     public PrivilegeManagerImpl(SessionDelegate sessionDelegate) {
-        this.provider = new PrivilegeRegistry(sessionDelegate.getContentSession());
+        this.provider = new PrivilegeRegistry(sessionDelegate.getContentSession(), sessionDelegate.getRoot());
         this.sessionDelegate = sessionDelegate;
     }
 
@@ -86,6 +86,7 @@ public class PrivilegeManagerImpl implements PrivilegeManager {
         }
 
         PrivilegeDefinition def = provider.registerDefinition(oakName, isAbstract, getOakNames(declaredAggregateNames));
+        // TODO: should be called by provider
         sessionDelegate.refresh(true);
         return new PrivilegeImpl(def);
     }
