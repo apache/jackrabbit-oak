@@ -86,14 +86,16 @@ public interface UserProvider {
     boolean isAdminUser(Tree userTree);
 
     /**
-     * Returns the password hash for the user with the specified ID or {@code null}
-     * if the user does not exist or if the hash is not accessible for the editing
+     * Returns the password hash for the user with the specified user tree
+     * or {@code null} if the hash is not accessible for the editing
      * session.
      *
-     * @param userID The id of a user.
+     *
+     * @param userTree
      * @return the password hash or {@code null}.
      */
-    String getPassword(String userID);
+    @CheckForNull
+    String getPasswordHash(Tree userTree);
 
     /**
      * Set the password for the user identified by the specified {@code userTree}.
@@ -106,7 +108,15 @@ public interface UserProvider {
      */
     void setPassword(Tree userTree, String password, boolean forceHash) throws RepositoryException;
 
-    Impersonation getImpersonation(String userID, PrincipalProvider principalProvider);
+    @Nonnull
+    Impersonation getImpersonation(Tree userTree, PrincipalProvider principalProvider);
+
+    boolean isDisabled(Tree userTree);
+
+    @CheckForNull
+    String getDisableReason(Tree userTree);
+
+    void disable(Tree userTree, String reason) throws RepositoryException;
 
     void setProtectedProperty(Tree authorizableTree, String propertyName, String value, int propertyType);
 
