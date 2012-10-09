@@ -38,7 +38,7 @@ import org.apache.jackrabbit.oak.util.NodeUtil;
  * TODO: define if/how built-in privileges are reflected in the mk
  * TODO: define if custom privileges are read with editing content session (thus enforcing read permissions)
  *
- * FIXME: Session#refresh should refresh privileges exposed
+ * FIXME: Privilege registation should result in Session#refresh in order to have the new privilege also exposed in the content.
  */
 public class PrivilegeRegistry implements PrivilegeProvider, PrivilegeConstants {
 
@@ -50,12 +50,14 @@ public class PrivilegeRegistry implements PrivilegeProvider, PrivilegeConstants 
     }
 
     private final ContentSession contentSession;
+    private final Root root;
 
     private final Map<String, PrivilegeDefinition> definitions;
 
-    public PrivilegeRegistry(ContentSession contentSession) {
+    public PrivilegeRegistry(ContentSession contentSession, Root root) {
         this.contentSession = contentSession;
-        this.definitions = readDefinitions();
+        this.root = root;
+        this.definitions = readDefinitions(root);
     }
 
     static Map<String, PrivilegeDefinition> getAllDefinitions(PrivilegeDefinitionReader reader) {
@@ -76,8 +78,8 @@ public class PrivilegeRegistry implements PrivilegeProvider, PrivilegeConstants 
         return definitions;
     }
 
-    private Map<String, PrivilegeDefinition> readDefinitions() {
-        return getAllDefinitions(new PrivilegeDefinitionReader(contentSession));
+    private Map<String, PrivilegeDefinition> readDefinitions(Root root) {
+        return getAllDefinitions(new PrivilegeDefinitionReader(root));
     }
 
     private static void updateJcrAllPrivilege(Map<String, PrivilegeDefinition> definitions) {
@@ -90,7 +92,7 @@ public class PrivilegeRegistry implements PrivilegeProvider, PrivilegeConstants 
     @Override
     public void refresh() {
         // re-read the definitions (TODO: evaluate if it was better to always read privileges on demand only.)
-        definitions.putAll(readDefinitions());
+        definitions.putAll(readDefinitions(root));
     }
 
     @Nonnull
@@ -118,19 +120,19 @@ public class PrivilegeRegistry implements PrivilegeProvider, PrivilegeConstants 
     //------------------------------------------------------------< private >---
 
     private void internalRegisterDefinitions(PrivilegeDefinition toRegister) throws RepositoryException {
-        Root root = contentSession.getLatestRoot();
+        Root latestRoot = contentSession.getLatestRoot();
         try {
             // make sure the privileges path is defined
-            Tree privilegesTree = root.getTree(PRIVILEGES_PATH);
+            Tree privilegesTree = latestRoot.getTree(PRIVILEGES_PATH);
             if (privilegesTree == null) {
                 throw new RepositoryException("Repository doesn't contain node " + PRIVILEGES_PATH);
             }
 
-            NodeUtil privilegesNode = new NodeUtil(privilegesTree, root.getValueFactory());
+            NodeUtil privilegesNode = new NodeUtil(privilegesTree, latestRoot.getValueFactory());
             writeDefinition(privilegesNode, toRegister);
 
             // delegate validation to the commit validation (see above)
-            root.commit();
+            latestRoot.commit();
 
         } catch (CommitFailedException e) {
             Throwable t = e.getCause();
@@ -141,6 +143,7 @@ public class PrivilegeRegistry implements PrivilegeProvider, PrivilegeConstants 
             }
         }
 
+        // TODO: should be covered by refresh instead
         definitions.put(toRegister.getName(), toRegister);
         updateJcrAllPrivilege(definitions);
     }
