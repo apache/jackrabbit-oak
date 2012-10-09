@@ -26,7 +26,7 @@ public interface PropertyIndexConstants {
      * The root node of the index definition (configuration) nodes.
      */
     // TODO OAK-178 discuss where to store index config data
-    String INDEX_CONFIG_PATH = IndexUtils.DEFAULT_INDEX_HOME + "/indexes";
+    String INDEX_CONFIG_PATH = IndexUtils.DEFAULT_INDEX_HOME + IndexUtils.INDEX_DEFINITIONS_NAME + "/indexes";
     // "/jcr:system/indexes";
 
     /**

@@ -16,107 +16,39 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
+
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-
-import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.plugins.index.IndexDefinition.INDEX_DATA_CHILD_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexDefinition.UNIQUE_PROPERTY_NAME;
 
 public class IndexUtils implements IndexConstants {
 
     /**
-     * switch to "oak:index" as soon as it is possible
-     */
-    public static final String DEFAULT_INDEX_HOME = "/oak:index";
-
-    private static final String TYPE_UNKNOWN = "unknown";
-
-    /**
-     * Builds an {@link IndexDefinition} out of a {@link ChildNodeEntry}
+     * Builds a list of the existing index definitions.
      * 
-     */
-    public static IndexDefinition getDefinition(String path, ChildNodeEntry def) {
-        String name = def.getName();
-        NodeState ns = def.getNodeState();
-        PropertyState typeProp = ns.getProperty(TYPE_PROPERTY_NAME);
-        String type = TYPE_UNKNOWN;
-        if (typeProp != null && !typeProp.isArray()) {
-            type = typeProp.getValue(STRING);
-        }
-
-        boolean unique = false;
-        PropertyState uniqueProp = ns.getProperty(UNIQUE_PROPERTY_NAME);
-        if (uniqueProp != null && !uniqueProp.isArray()) {
-            unique = uniqueProp.getValue(BOOLEAN);
-        }
-
-        Map<String, String> props = new HashMap<String, String>();
-        for (PropertyState ps : ns.getProperties()) {
-            if (ps != null && !ps.isArray()) {
-                String v = ps.getValue(STRING);
-                props.put(ps.getName(), v);
-            }
-        }
-        // TODO hack to circumvent observation events
-        if (ns.hasChildNode(INDEX_DATA_CHILD_NAME)) {
-            PropertyState ps = ns.getChildNode(INDEX_DATA_CHILD_NAME)
-                    .getProperty(LuceneIndexConstants.INDEX_UPDATE);
-            if (ps != null) {
-                props.put(LuceneIndexConstants.INDEX_UPDATE, ps.getValue(STRING));
-            }
-        }
-
-        return new IndexDefinitionImpl(name, type,
-                PathUtils.concat(path, name), unique, props);
-    }
-
-    /**
-     * @return the 'destination' node if the path exists, null if otherwise
-     */
-    public static NodeState getNode(NodeState nodeState, String destination) {
-        NodeState retval = nodeState;
-        Iterator<String> pathIterator = PathUtils.elements(destination)
-                .iterator();
-        while (pathIterator.hasNext()) {
-            String path = pathIterator.next();
-            if (retval.hasChildNode(path)) {
-                retval = retval.getChildNode(path);
-            } else {
-                return null;
-            }
-        }
-        return retval;
-    }
-
-    /**
-     * Builds a list of the existing index definitions from the repository
+     * Checks only children of the provided state for an index definitions
+     * container node, aka a node named {@link INDEX_DEFINITIONS_NAME}
      * 
+     * @return
      */
-    public static List<IndexDefinition> buildIndexDefinitions(
-            NodeState nodeState, String indexConfigPath, String typeFilter) {
-        NodeState definitions = getNode(nodeState, indexConfigPath);
+    public static List<IndexDefinition> buildIndexDefinitions(NodeState state,
+            String indexConfigPath, String typeFilter) {
+        NodeState definitions = state.getChildNode(INDEX_DEFINITIONS_NAME);
         if (definitions == null) {
             return Collections.emptyList();
         }
+        indexConfigPath = concat(indexConfigPath, INDEX_DEFINITIONS_NAME);
 
         List<IndexDefinition> defs = new ArrayList<IndexDefinition>();
         for (ChildNodeEntry c : definitions.getChildNodeEntries()) {
-            IndexDefinition def = getDefinition(indexConfigPath, c);
-            if (def == null
-                    || (typeFilter != null && !typeFilter.equals(def.getType()))) {
+            IndexDefinition def = getDefinition(indexConfigPath, c, typeFilter);
+            if (def == null) {
                 continue;
             }
             defs.add(def);
@@ -124,12 +56,23 @@ public class IndexUtils implements IndexConstants {
         return defs;
     }
 
-    public static NodeBuilder getChildBuilder(NodeState state, String path) {
-        NodeBuilder builder = state.builder();
-        for (String p : PathUtils.elements(path)) {
-            builder = builder.child(p);
+    /**
+     * Builds an {@link IndexDefinition} out of a {@link ChildNodeEntry}
+     * 
+     */
+    private static IndexDefinition getDefinition(String path,
+            ChildNodeEntry def, String typeFilter) {
+        String name = def.getName();
+        NodeState ns = def.getNodeState();
+        PropertyState typeProp = ns.getProperty(TYPE_PROPERTY_NAME);
+        String type = TYPE_UNKNOWN;
+        if (typeProp != null && !typeProp.isArray()) {
+            type = typeProp.getValue(STRING);
         }
-        return builder;
+        if (typeFilter != null && !typeFilter.equals(type)) {
+            return null;
+        }
+        return new IndexDefinitionImpl(name, type, concat(path, name), ns);
     }
 
 }

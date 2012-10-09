@@ -16,12 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.buildIndexDefinitions;
+
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.IndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
@@ -34,12 +35,7 @@ import org.slf4j.LoggerFactory;
  * content.
  * 
  * Currently it triggers a full reindex on any detected index definition change
- * (excepting the properties) OR on removing the
- * {@link LuceneIndexConstants#INDEX_UPDATE} property
- * 
- * Warning: This hook has to be placed before the updater {@link LuceneHook},
- * otherwise it is going to miss the {@link LuceneIndexConstants#INDEX_UPDATE}
- * change to null
+ * OR on the {@link IndexDefinition#isReindex()} flag
  * 
  */
 public class LuceneReindexHook implements CommitHook, LuceneIndexConstants {
@@ -53,21 +49,14 @@ public class LuceneReindexHook implements CommitHook, LuceneIndexConstants {
         this.indexConfigPath = indexConfigPath;
     }
 
-    /**
-     * TODO test only
-     */
-    public LuceneReindexHook() {
-        this(IndexUtils.DEFAULT_INDEX_HOME);
-    }
-
     @Override
     public NodeState processCommit(NodeState before, NodeState after)
             throws CommitFailedException {
 
-        List<IndexDefinition> defsBefore = IndexUtils.buildIndexDefinitions(
-                before, indexConfigPath, TYPE);
-        List<IndexDefinition> defsAfter = IndexUtils.buildIndexDefinitions(
-                after, indexConfigPath, TYPE);
+        List<IndexDefinition> defsBefore = buildIndexDefinitions(before,
+                indexConfigPath, TYPE_LUCENE);
+        List<IndexDefinition> defsAfter = buildIndexDefinitions(after,
+                indexConfigPath, TYPE_LUCENE);
 
         // TODO add a more fine-grained change verifier
         List<IndexDefinition> defsChanged = new ArrayList<IndexDefinition>();
@@ -75,8 +64,8 @@ public class LuceneReindexHook implements CommitHook, LuceneIndexConstants {
             if (!defsBefore.contains(def)) {
                 defsChanged.add(def);
             }
-            // verify initial state or forced reindex
-            if (def.getProperties().get(INDEX_UPDATE) == null) {
+            // verify reindex flag
+            if (def.isReindex()) {
                 defsChanged.add(def);
             }
         }

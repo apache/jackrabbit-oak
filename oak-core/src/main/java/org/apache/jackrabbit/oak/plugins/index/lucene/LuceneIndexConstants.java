@@ -16,12 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-public interface LuceneIndexConstants {
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 
-    String TYPE = "lucene";
+public interface LuceneIndexConstants extends IndexConstants {
+
+    String TYPE_LUCENE = "lucene";
 
     String DEFAULT_INDEX_NAME = "default-lucene";
-
-    String INDEX_UPDATE = "indexUpdate";
 
 }
