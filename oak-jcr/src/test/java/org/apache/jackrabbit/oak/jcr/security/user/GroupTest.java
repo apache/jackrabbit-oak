@@ -22,6 +22,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import javax.jcr.RepositoryException;
+import javax.jcr.UnsupportedRepositoryOperationException;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
@@ -95,6 +96,29 @@ public class GroupTest extends AbstractUserTest {
     @Test
     public void testIsGroup() throws NotExecutableException, RepositoryException {
         assertTrue(group.isGroup());
+    }
+
+    @Test
+    public void testGetID() throws NotExecutableException, RepositoryException {
+        assertNotNull(group.getID());
+        assertNotNull(userMgr.getAuthorizable(group.getID()).getID());
+    }
+
+    @Test
+    public void testGetPrincipal() throws RepositoryException, NotExecutableException {
+        assertNotNull(group.getPrincipal());
+        assertNotNull(userMgr.getAuthorizable(group.getID()).getPrincipal());
+    }
+
+    @Test
+    public void testGetPath() throws RepositoryException, NotExecutableException {
+        assertNotNull(group.getPath());
+        assertNotNull(userMgr.getAuthorizable(group.getID()).getPath());
+        try {
+            assertEquals(getNode(group, superuser).getPath(), group.getPath());
+        } catch (UnsupportedRepositoryOperationException e) {
+            // ok.
+        }
     }
 
     @Test

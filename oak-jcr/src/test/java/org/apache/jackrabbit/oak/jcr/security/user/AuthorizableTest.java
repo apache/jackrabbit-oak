@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.jcr.security.user;
 
 import java.security.Principal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -26,7 +27,6 @@ import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.PropertyIterator;
 import javax.jcr.PropertyType;
-import javax.jcr.RangeIterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Value;
@@ -38,14 +38,13 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.test.NotExecutableException;
+import org.apache.jackrabbit.util.Text;
 import org.apache.jackrabbit.value.StringValue;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
  * AuthorizableTest...
  */
-@Ignore // FIXME: enable again
 public class AuthorizableTest extends AbstractUserTest {
 
     private List<String> protectedUserProps = new ArrayList<String>();
@@ -68,17 +67,355 @@ public class AuthorizableTest extends AbstractUserTest {
     }
 
     @Test
-    public void testRemoveAdmin() throws NotExecutableException {
-        String adminID = superuser.getUserID();
+    public void testSetProperty() throws NotExecutableException, RepositoryException {
+        Authorizable auth = getTestUser(superuser);
+
+        String propName = "Fullname";
+        Value v = superuser.getValueFactory().createValue("Super User");
         try {
-            Authorizable admin = userMgr.getAuthorizable(adminID);
-            if (admin == null) {
-                throw new NotExecutableException("Admin user does not exist");
-            }
-            admin.remove();
-            fail("The admin user cannot be removed.");
+            auth.setProperty(propName, v);
+            superuser.save();
         } catch (RepositoryException e) {
-            // OK superuser cannot be removed. not even by the superuser itself.
+            throw new NotExecutableException("Cannot test 'Authorizable.setProperty'.");
+        }
+
+        try {
+            boolean found = false;
+            for (Iterator<String> it = auth.getPropertyNames(); it.hasNext() && !found;) {
+                found = propName.equals(it.next());
+            }
+            assertTrue(found);
+
+            found = false;
+            for (Iterator<String> it = auth.getPropertyNames("."); it.hasNext() && !found;) {
+                found = propName.equals(it.next());
+            }
+            assertTrue(found);
+
+            assertTrue(auth.hasProperty(propName));
+            assertTrue(auth.hasProperty("./" + propName));
+            
+            assertTrue(auth.getProperty(propName).length == 1);
+
+            assertEquals(v, auth.getProperty(propName)[0]);
+            assertEquals(v, auth.getProperty("./" + propName)[0]);
+
+            assertTrue(auth.removeProperty(propName));
+            assertFalse(auth.hasProperty(propName));
+            
+            superuser.save();
+        } finally {
+            // try to remove the property again even if previous calls failed.
+            auth.removeProperty(propName);
+            superuser.save();
+        }
+    }
+
+    @Test
+    public void testSetMultiValueProperty() throws NotExecutableException, RepositoryException {
+        Authorizable auth = getTestUser(superuser);
+
+        String propName = "Fullname";
+        Value[] v = new Value[] {superuser.getValueFactory().createValue("Super User")};
+        try {
+            auth.setProperty(propName, v);
+            superuser.save();
+        } catch (RepositoryException e) {
+            throw new NotExecutableException("Cannot test 'Authorizable.setProperty'.");
+        }
+
+        try {
+            boolean found = false;
+            for (Iterator<String> it = auth.getPropertyNames(); it.hasNext() && !found;) {
+                found = propName.equals(it.next());
+            }
+            assertTrue(found);
+
+            found = false;
+            for (Iterator<String> it = auth.getPropertyNames("."); it.hasNext() && !found;) {
+                found = propName.equals(it.next());
+            }
+            assertTrue(found);
+            
+            assertTrue(auth.hasProperty(propName));
+            assertTrue(auth.hasProperty("./" + propName));
+            
+            assertEquals(Arrays.asList(v), Arrays.asList(auth.getProperty(propName)));
+            assertEquals(Arrays.asList(v), Arrays.asList(auth.getProperty("./" + propName)));
+
+            assertTrue(auth.removeProperty(propName));
+            assertFalse(auth.hasProperty(propName));
+            
+            superuser.save();
+        } finally {
+            // try to remove the property again even if previous calls failed.
+            auth.removeProperty(propName);
+            superuser.save();
+        }
+    }
+
+    @Test
+    public void testSetPropertyByRelPath() throws NotExecutableException, RepositoryException {
+        Authorizable auth = getTestUser(superuser);
+        Value[] v = new Value[] {superuser.getValueFactory().createValue("Super User")};
+
+        List<String> relPaths = new ArrayList<String>();
+        relPaths.add("testing/Fullname");
+        relPaths.add("testing/Email");
+        relPaths.add("testing/testing/testing/Fullname");
+        relPaths.add("testing/testing/testing/Email");
+
+        for (String relPath : relPaths) {
+            try {
+                auth.setProperty(relPath, v);
+                superuser.save();
+
+                assertTrue(auth.hasProperty(relPath));
+                String propName = Text.getName(relPath);
+                assertFalse(auth.hasProperty(propName));
+            } finally {
+                // try to remove the property even if previous calls failed.
+                auth.removeProperty(relPath);
+                superuser.save();
+            }
+        }
+    }
+
+    @Test
+    public void testSetPropertyInvalidRelativePath() throws NotExecutableException, RepositoryException {
+        Authorizable auth = getTestUser(superuser);
+        Value[] v = new Value[] {superuser.getValueFactory().createValue("Super User")};
+
+        List<String> invalidPaths = new ArrayList<String>();
+        // try setting outside of tree defined by the user.
+        invalidPaths.add("../testing/Fullname");
+        invalidPaths.add("../../testing/Fullname");
+        invalidPaths.add("testing/testing/../../../Fullname");
+        // try absolute path -> must fail
+        invalidPaths.add("/testing/Fullname");
+
+        for (String invalidRelPath : invalidPaths) {
+            try {
+                auth.setProperty(invalidRelPath, v);
+                fail("Modifications outside of the scope of the authorizable must fail. Path was: " + invalidRelPath);
+            } catch (Exception e) {
+                // success.
+            } finally {
+                superuser.refresh(false);
+            }
+        }
+    }
+
+    @Test
+    public void testGetPropertyByInvalidRelativePath() throws NotExecutableException, RepositoryException {
+        Authorizable auth = getTestUser(superuser);
+
+        List<String> wrongPaths = new ArrayList<String>();
+        wrongPaths.add("../jcr:primaryType");
+        wrongPaths.add("../../jcr:primaryType");
+        wrongPaths.add("../testing/jcr:primaryType");
+        for (String path : wrongPaths) {
+            assertNull(auth.getProperty(path));
+        }
+
+        List<String> invalidPaths = new ArrayList<String>();
+        invalidPaths.add("/testing/jcr:primaryType");
+        invalidPaths.add("..");
+        invalidPaths.add(".");
+        invalidPaths.add(null);
+        for (String invalidPath : invalidPaths) {
+            try {
+                assertNull(auth.getProperty(invalidPath));
+            } catch (Exception e) {
+                // success
+            }
+        }
+    }
+
+    @Test
+    public void testHasPropertyByInvalidRelativePath() throws NotExecutableException, RepositoryException {
+        Authorizable auth = getTestUser(superuser);
+
+        List<String> wrongPaths = new ArrayList<String>();
+        wrongPaths.add("../jcr:primaryType");
+        wrongPaths.add("../../jcr:primaryType");
+        wrongPaths.add("../testing/jcr:primaryType");
+        for (String path : wrongPaths) {
+            assertFalse(auth.hasProperty(path));
+        }
+
+
+        List<String> invalidPaths = new ArrayList<String>();
+        invalidPaths.add("..");
+        invalidPaths.add(".");
+        invalidPaths.add(null);
+
+        for (String invalidPath : invalidPaths) {
+            try {
+                assertFalse(auth.hasProperty(invalidPath));
+            } catch (Exception e) {
+                // success
+            }
+        }
+    }
+
+    @Test
+    public void testGetPropertyNames() throws NotExecutableException, RepositoryException {
+        Authorizable auth = getTestUser(superuser);
+
+        String propName = "Fullname";
+        Value v = superuser.getValueFactory().createValue("Super User");
+        try {
+            auth.setProperty(propName, v);
+            superuser.save();
+        } catch (RepositoryException e) {
+            throw new NotExecutableException("Cannot test 'Authorizable.setProperty'.");
+        }
+
+        try {
+            for (Iterator<String> it = auth.getPropertyNames(); it.hasNext();) {
+                String name = it.next();
+                assertTrue(auth.hasProperty(name));
+                assertNotNull(auth.getProperty(name));
+            }
+        } finally {
+            // try to remove the property again even if previous calls failed.
+            auth.removeProperty(propName);
+            superuser.save();
+        }
+    }
+
+    @Test
+    public void testGetPropertyNamesByRelPath() throws NotExecutableException, RepositoryException {
+        Authorizable auth = getTestUser(superuser);
+
+        String relPath = "testing/Fullname";
+        Value v = superuser.getValueFactory().createValue("Super User");
+        try {
+            auth.setProperty(relPath, v);
+            superuser.save();
+        } catch (RepositoryException e) {
+            throw new NotExecutableException("Cannot test 'Authorizable.setProperty'.");
+        }
+
+        try {
+            for (Iterator<String> it = auth.getPropertyNames(); it.hasNext();) {
+                String name = it.next();
+                assertFalse("Fullname".equals(name));
+            }
+
+            for (Iterator<String> it = auth.getPropertyNames("testing"); it.hasNext();) {
+                String name = it.next();
+                String rp = "testing/" + name;
+                
+                assertFalse(auth.hasProperty(name));
+                assertNull(auth.getProperty(name));
+
+                assertTrue(auth.hasProperty(rp));
+                assertNotNull(auth.getProperty(rp));
+            }
+            for (Iterator<String> it = auth.getPropertyNames("./testing"); it.hasNext();) {
+                String name = it.next();
+                String rp = "testing/" + name;
+
+                assertFalse(auth.hasProperty(name));
+                assertNull(auth.getProperty(name));
+
+                assertTrue(auth.hasProperty(rp));
+                assertNotNull(auth.getProperty(rp));
+            }
+        } finally {
+            // try to remove the property again even if previous calls failed.
+            auth.removeProperty(relPath);
+            superuser.save();
+        }
+    }
+
+    @Test
+    public void testGetPropertyNamesByInvalidRelPath() throws NotExecutableException, RepositoryException {
+        Authorizable auth = getTestUser(superuser);
+
+        List<String> invalidPaths = new ArrayList<String>();
+        invalidPaths.add("../");
+        invalidPaths.add("../../");
+        invalidPaths.add("../testing");
+        invalidPaths.add("/testing");
+        invalidPaths.add(null);
+
+        for (String invalidRelPath : invalidPaths) {
+            try {
+                auth.getPropertyNames(invalidRelPath);
+                fail("Calling Authorizable#getPropertyNames with " + invalidRelPath + " must fail.");
+            } catch (Exception e) {
+                // success
+            }
+        }
+    }
+
+    @Test
+    public void testGetNotExistingProperty() throws RepositoryException, NotExecutableException {
+        Authorizable auth = getTestUser(superuser);
+        String hint = "Fullname";
+        String propName = hint;
+        int i = 0;
+        while (auth.hasProperty(propName)) {
+            propName = hint + i;
+            i++;
+        }
+        assertNull(auth.getProperty(propName));
+        assertFalse(auth.hasProperty(propName));
+    }
+
+    @Test
+    public void testRemoveNotExistingProperty() throws RepositoryException, NotExecutableException {
+        Authorizable auth = getTestUser(superuser);
+        String hint = "Fullname";
+        String propName = hint;
+        int i = 0;
+        while (auth.hasProperty(propName)) {
+            propName = hint + i;
+            i++;
+        }
+        assertFalse(auth.removeProperty(propName));
+        superuser.save();
+    }
+
+    /**
+     * Removing an authorizable that is still listed as member of a group.
+     * @throws javax.jcr.RepositoryException
+     * @throws org.apache.jackrabbit.test.NotExecutableException
+     */
+    public void testRemoveListedAuthorizable() throws RepositoryException, NotExecutableException {
+        String newUserId = null;
+        Group newGroup = null;
+
+        try {
+            Principal uP = getTestPrincipal();
+            User newUser = userMgr.createUser(uP.getName(), uP.getName());
+            superuser.save();
+            newUserId = newUser.getID();
+
+            newGroup = userMgr.createGroup(getTestPrincipal());
+            newGroup.addMember(newUser);
+            superuser.save();
+
+            // remove the new user that is still listed as member.
+            newUser.remove();
+            superuser.save();
+        } finally {
+            if (newUserId != null) {
+                Authorizable u = userMgr.getAuthorizable(newUserId);
+                if (u != null) {
+                    if (newGroup != null) {
+                        newGroup.removeMember(u);
+                    }
+                    u.remove();
+                }
+            }
+            if (newGroup != null) {
+                newGroup.remove();
+            }
+            superuser.save();
         }
     }
 
@@ -176,43 +513,6 @@ public class AuthorizableTest extends AbstractUserTest {
         Property p = n.getProperty(UserConstants.REP_MEMBERS);
         for (Value v : p.getValues()) {
             assertEquals(PropertyType.WEAKREFERENCE, v.getType());
-        }
-    }
-
-    @Test
-    public void testMemberOfRangeIterator() throws NotExecutableException, RepositoryException {
-        Authorizable auth = null;
-        Group group = null;
-
-        try {
-            auth = userMgr.createUser(createUserId(), "pw");
-            group = userMgr.createGroup(createGroupId());
-            superuser.save();
-
-            Iterator<Group> groups = auth.declaredMemberOf();
-            assertTrue(groups instanceof RangeIterator);
-            assertEquals(0, ((RangeIterator) groups).getSize());
-            groups = auth.memberOf();
-            assertTrue(groups instanceof RangeIterator);
-            assertEquals(0, ((RangeIterator) groups).getSize());
-
-            group.addMember(auth);
-            groups = auth.declaredMemberOf();
-            assertTrue(groups instanceof RangeIterator);
-            assertEquals(1, ((RangeIterator) groups).getSize());
-
-            groups = auth.memberOf();
-            assertTrue(groups instanceof RangeIterator);
-            assertEquals(1, ((RangeIterator) groups).getSize());
-
-        } finally {
-            if (auth != null) {
-                auth.remove();
-            }
-            if (group != null) {
-                group.remove();
-            }
-            superuser.save();
         }
     }
 
@@ -435,15 +735,5 @@ public class AuthorizableTest extends AbstractUserTest {
 
         assertFalse(user.equals(user3));
         assertTrue(s.add(user3));
-    }
-
-    @Test
-    public void testGetPath() throws Exception {
-        Authorizable user = getTestUser(superuser);
-        try {
-            assertEquals(getNode(user, superuser).getPath(), user.getPath());
-        } catch (UnsupportedRepositoryOperationException e) {
-            // ok.
-        }
     }
 }

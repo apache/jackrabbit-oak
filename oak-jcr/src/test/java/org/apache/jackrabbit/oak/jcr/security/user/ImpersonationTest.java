@@ -24,14 +24,13 @@ import javax.security.auth.Subject;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Impersonation;
 import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.test.NotExecutableException;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
  * ImpersonationTest...
  */
-@Ignore // FIXME: enable again
 public class ImpersonationTest extends AbstractUserTest {
 
     private User user2;
@@ -76,7 +75,7 @@ public class ImpersonationTest extends AbstractUserTest {
     }
 
     @Test
-    public void testAdminPrincipalAsImpersonator() throws RepositoryException, NotExecutableException {
+    public void testAdminAsImpersonator() throws RepositoryException, NotExecutableException {
         String adminId = superuser.getUserID();
         Authorizable admin = userMgr.getAuthorizable(adminId);
         if (admin == null || admin.isGroup() || !((User) admin).isAdmin()) {
@@ -98,6 +97,19 @@ public class ImpersonationTest extends AbstractUserTest {
 
         assertFalse(adminImpersonation.grantImpersonation(adminPrincipal));
         assertFalse(adminImpersonation.revokeImpersonation(adminPrincipal));
+        assertTrue(impersonation.allows(buildSubject(adminPrincipal)));
+    }
+
+    public void testAdminPrincipalAsImpersonator() throws RepositoryException, NotExecutableException {
+
+        Principal adminPrincipal = AdminPrincipal.INSTANCE;
+
+        // admin cannot be add/remove to set of impersonators of 'u' but is
+        // always allowed to impersonate that user.
+        Impersonation impersonation = user.getImpersonation();
+
+        assertFalse(impersonation.grantImpersonation(adminPrincipal));
+        assertFalse(impersonation.revokeImpersonation(adminPrincipal));
         assertTrue(impersonation.allows(buildSubject(adminPrincipal)));
     }
 }

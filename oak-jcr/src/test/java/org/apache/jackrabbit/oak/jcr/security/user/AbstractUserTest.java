@@ -36,7 +36,7 @@ import org.junit.After;
 import org.junit.Before;
 
 /**
- * AbstractUserTest...
+ * Base class for user mgt related tests
  */
 public abstract class AbstractUserTest extends AbstractJCRTest {
 
