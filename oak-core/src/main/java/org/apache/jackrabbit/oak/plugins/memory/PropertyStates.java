@@ -115,6 +115,7 @@ public final class PropertyStates {
         }
     }
 
+    @Nonnull
     public static PropertyState createProperty(String name, String value, int type) {
         switch (type) {
             case PropertyType.STRING:
