@@ -266,9 +266,18 @@
       org.apache.jackrabbit.oak.jcr.security.user.UserManagerTest#testCreateGroupWithExistingPrincipal3  <!-- OAK-343 -->
       org.apache.jackrabbit.oak.jcr.security.user.UserManagerTest#testEnforceAuthorizableFolderHierarchy <!-- OAK-343 -->
       org.apache.jackrabbit.oak.jcr.security.user.UserManagerTest#testCreateGroupWithExistingPrincipal2  <!-- OAK-343 -->
-      org.apache.jackrabbit.oak.jcr.security.user.GroupTest#testDeeplyNestedGroups                 <!-- OAK-343 -->
-      org.apache.jackrabbit.oak.jcr.security.user.GroupTest#testInheritedMembers                   <!-- OAK-343 -->
-      org.apache.jackrabbit.oak.jcr.security.user.GroupTest#testCyclicGroups                       <!-- OAK-343 -->
+      org.apache.jackrabbit.oak.jcr.security.user.GroupTest#testDeeplyNestedGroups                       <!-- OAK-343 -->
+      org.apache.jackrabbit.oak.jcr.security.user.GroupTest#testInheritedMembers                         <!-- OAK-343 -->
+      org.apache.jackrabbit.oak.jcr.security.user.GroupTest#testCyclicGroups                             <!-- OAK-343 -->
+      org.apache.jackrabbit.oak.jcr.security.user.AuthorizableTest#testRemoveListedAuthorizable          <!-- OAK-343 -->
+      org.apache.jackrabbit.oak.jcr.security.user.AuthorizableTest#testSetPropertyInvalidRelativePath    <!-- OAK-369 -->
+      org.apache.jackrabbit.oak.jcr.security.user.AuthorizableTest#testSetSpecialProperties                 <!-- protected properties not detected -->
+      org.apache.jackrabbit.oak.jcr.security.user.AuthorizableTest#testRemoveSpecialProperties              <!-- protected properties not detected -->
+      org.apache.jackrabbit.oak.jcr.security.user.AuthorizableTest#testProtectedUserProperties              <!-- protected properties not detected -->
+      org.apache.jackrabbit.oak.jcr.security.user.AuthorizableTest#testProtectedGroupProperties             <!-- protected properties not detected -->
+      org.apache.jackrabbit.oak.jcr.security.user.AuthorizableTest#testSetSpecialPropertiesDirectly         <!-- protected properties not detected -->
+      org.apache.jackrabbit.oak.jcr.security.user.AuthorizableTest#testRemoveSpecialUserPropertiesDirectly  <!-- protected properties not detected -->
+      org.apache.jackrabbit.oak.jcr.security.user.AuthorizableTest#testRemoveSpecialGroupPropertiesDirectly <!-- protected properties not detected -->
       org.apache.jackrabbit.oak.jcr.security.user.UserManagerTest#testUnknownUserLogin             <!-- due to dummy login -->
       org.apache.jackrabbit.oak.jcr.security.user.UserTest#testChangePassword2                     <!-- due to dummy login -->
       org.apache.jackrabbit.oak.jcr.security.user.UserTest#testChangePasswordWithOldPassword2      <!-- due to dummy login -->

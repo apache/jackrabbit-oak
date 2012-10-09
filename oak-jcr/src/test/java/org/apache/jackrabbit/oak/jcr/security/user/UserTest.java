@@ -20,12 +20,12 @@ import javax.jcr.LoginException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
+import javax.jcr.UnsupportedRepositoryOperationException;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.test.NotExecutableException;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -45,17 +45,31 @@ public class UserTest extends AbstractUserTest {
     }
 
     @Test
-    public void testIsAdmin() throws NotExecutableException, RepositoryException {
-        assertFalse(user.isAdmin());
+    public void testGetId() throws NotExecutableException, RepositoryException {
+        assertNotNull(user.getID());
+        assertNotNull(userMgr.getAuthorizable(user.getID()).getID());
     }
 
     @Test
-    public void testAdminIsAdmin() throws NotExecutableException, RepositoryException {
-        User admin = (User) userMgr.getAuthorizable(superuser.getUserID());
-        if (admin == null) {
-            throw new NotExecutableException("Admin user does not exist");
+    public void testGetPrincipal() throws RepositoryException, NotExecutableException {
+        assertNotNull(user.getPrincipal());
+        assertNotNull(userMgr.getAuthorizable(user.getID()).getPrincipal());
+    }
+
+    @Test
+    public void testGetPath() throws RepositoryException, NotExecutableException {
+        assertNotNull(user.getPath());
+        assertNotNull(userMgr.getAuthorizable(user.getID()).getPath());
+        try {
+            assertEquals(getNode(user, superuser).getPath(), user.getPath());
+        } catch (UnsupportedRepositoryOperationException e) {
+            // ok.
         }
-        assertTrue(admin.isAdmin());
+    }
+
+    @Test
+    public void testIsAdmin() throws NotExecutableException, RepositoryException {
+        assertFalse(user.isAdmin());
     }
 
     @Test
