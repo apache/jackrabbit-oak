@@ -29,13 +29,11 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
  * GroupTest...
  */
-@Ignore // FIXME: enable again
 public class GroupTest extends AbstractUserTest {
 
     private List<String> members = new ArrayList<String>();
@@ -164,7 +162,7 @@ public class GroupTest extends AbstractUserTest {
         User auth = getTestUser(superuser);
         Group newGroup = null;
         try {
-            newGroup = userMgr.createGroup(getTestPrincipal());
+            newGroup = userMgr.createGroup(createGroupId());
             superuser.save();
 
             assertFalse(newGroup.isMember(auth));
@@ -192,7 +190,7 @@ public class GroupTest extends AbstractUserTest {
         int size = 100;
         List<User> users = new ArrayList<User>(size);
         try {
-            newGroup = userMgr.createGroup(getTestPrincipal());
+            newGroup = userMgr.createGroup(createGroupId());
             superuser.save();
 
             for (int k = 0; k < size; k++) {
@@ -236,8 +234,8 @@ public class GroupTest extends AbstractUserTest {
         Group newGroup1 = null;
         Group newGroup2 = null;
         try {
-            newGroup1 = userMgr.createGroup(getTestPrincipal());
-            newGroup2 = userMgr.createGroup(getTestPrincipal());
+            newGroup1 = userMgr.createGroup(createGroupId());
+            newGroup2 = userMgr.createGroup(createGroupId());
             superuser.save();
 
             assertFalse(newGroup1.isMember(auth));
@@ -290,8 +288,8 @@ public class GroupTest extends AbstractUserTest {
         Group newGroup1 = null;
         Group newGroup2 = null;
         try {
-            newGroup1 = userMgr.createGroup(getTestPrincipal());
-            newGroup2 = userMgr.createGroup(getTestPrincipal());
+            newGroup1 = userMgr.createGroup(createGroupId());
+            newGroup2 = userMgr.createGroup(createGroupId());
             superuser.save();
 
             assertFalse(newGroup1.isDeclaredMember(auth));
@@ -327,7 +325,7 @@ public class GroupTest extends AbstractUserTest {
         User auth = getTestUser(superuser);
         Group newGroup = null;
         try {
-            newGroup = userMgr.createGroup(getTestPrincipal());
+            newGroup = userMgr.createGroup(createGroupId());
             superuser.save();
 
             assertTrue(newGroup.addMember(auth));
@@ -350,7 +348,7 @@ public class GroupTest extends AbstractUserTest {
         User auth = getTestUser(superuser);
         Group newGroup = null;
         try {
-            newGroup = userMgr.createGroup(getTestPrincipal());
+            newGroup = userMgr.createGroup(createGroupId());
             superuser.save();
 
             assertFalseMemberOfContainsGroup(auth.memberOf(), newGroup);
@@ -373,7 +371,7 @@ public class GroupTest extends AbstractUserTest {
         User auth = getTestUser(superuser);
         Group newGroup = null;
         try {
-            newGroup = userMgr.createGroup(getTestPrincipal());
+            newGroup = userMgr.createGroup(createGroupId());
             superuser.save();
 
             assertFalseIsMember(newGroup.getMembers(), auth);
@@ -394,31 +392,31 @@ public class GroupTest extends AbstractUserTest {
 
     @Test
     public void testIndirectMembers() throws NotExecutableException, RepositoryException {
-        User auth = getTestUser(superuser);
+        User user = getTestUser(superuser);
         Group newGroup = null;
         Group newGroup2 = null;
         try {
-            newGroup = userMgr.createGroup(getTestPrincipal());
-            newGroup2 = userMgr.createGroup(getTestPrincipal());
+            newGroup = userMgr.createGroup(createGroupId());
+            newGroup2 = userMgr.createGroup(createGroupId());
             superuser.save();
 
             newGroup.addMember(newGroup2);
             superuser.save();
             assertTrue(newGroup.isMember(newGroup2));
 
-            newGroup2.addMember(auth);
+            newGroup2.addMember(user);
             superuser.save();
 
             // testuser must not be declared member of 'newGroup'
-            assertFalseIsMember(newGroup.getDeclaredMembers(), auth);
-            assertFalseMemberOfContainsGroup(auth.declaredMemberOf(), newGroup);
+            assertFalseIsMember(newGroup.getDeclaredMembers(), user);
+            assertFalseMemberOfContainsGroup(user.declaredMemberOf(), newGroup);
 
             // testuser must however be member of 'newGroup' (indirect).
-            assertTrueIsMember(newGroup.getMembers(), auth);
-            assertTrueMemberOfContainsGroup(auth.memberOf(), newGroup);
+            assertTrueIsMember(newGroup.getMembers(), user);
+            assertTrueMemberOfContainsGroup(user.memberOf(), newGroup);
 
             // testuser cannot be removed from 'newGroup'
-            assertFalse(newGroup.removeMember(auth));
+            assertFalse(newGroup.removeMember(user));
             superuser.save();
         } finally {
             if (newGroup != null) {
@@ -427,7 +425,7 @@ public class GroupTest extends AbstractUserTest {
                 superuser.save();
             }
             if (newGroup2 != null) {
-                newGroup2.removeMember(auth);
+                newGroup2.removeMember(user);
                 newGroup2.remove();
                 superuser.save();
             }
@@ -440,8 +438,8 @@ public class GroupTest extends AbstractUserTest {
         Group newGroup = null;
         Group newGroup2 = null;
         try {
-            newGroup = userMgr.createGroup(getTestPrincipal());
-            newGroup2 = userMgr.createGroup(getTestPrincipal());
+            newGroup = userMgr.createGroup(createGroupId());
+            newGroup2 = userMgr.createGroup(createGroupId());
             superuser.save();
 
             newGroup.addMember(newGroup2);
@@ -480,12 +478,12 @@ public class GroupTest extends AbstractUserTest {
         Set<Group> groups = new HashSet<Group>();
         try {
             User auth = getTestUser(superuser);
-            Group topGroup = userMgr.createGroup(getTestPrincipal());
+            Group topGroup = userMgr.createGroup(createGroupId());
 
             // Create chain of nested groups with auth member of bottom group
             Group bottomGroup = topGroup;
             for (int k = 0; k < 100; k++) {
-                Group g = userMgr.createGroup(getTestPrincipal());
+                Group g = userMgr.createGroup(createGroupId());
                 groups.add(g);
                 bottomGroup.addMember(g);
                 bottomGroup = g;
@@ -518,13 +516,13 @@ public class GroupTest extends AbstractUserTest {
     public void testInheritedMembers() throws Exception {
         Set<Authorizable> authorizables = new HashSet<Authorizable>();
         try {
-            User testUser = userMgr.createUser(getTestPrincipal().getName(), "pw");
+            User testUser = userMgr.createUser(createUserId(), "pw");
             authorizables.add(testUser);
-            Group group1 = userMgr.createGroup(getTestPrincipal());
+            Group group1 = userMgr.createGroup(createGroupId());
             authorizables.add(group1);
-            Group group2 = userMgr.createGroup(getTestPrincipal());
+            Group group2 = userMgr.createGroup(createGroupId());
             authorizables.add(group2);
-            Group group3 = userMgr.createGroup(getTestPrincipal());
+            Group group3 = userMgr.createGroup(createGroupId());
 
             group1.addMember(testUser);
             group2.addMember(testUser);
@@ -552,9 +550,9 @@ public class GroupTest extends AbstractUserTest {
         Group group2 = null;
         Group group3 = null;
         try {
-            group1 = userMgr.createGroup(getTestPrincipal());
-            group2 = userMgr.createGroup(getTestPrincipal());
-            group3 = userMgr.createGroup(getTestPrincipal());
+            group1 = userMgr.createGroup(createGroupId());
+            group2 = userMgr.createGroup(createGroupId());
+            group3 = userMgr.createGroup(createGroupId());
 
             group1.addMember(getTestUser(superuser));
             group2.addMember(getTestUser(superuser));
@@ -562,8 +560,7 @@ public class GroupTest extends AbstractUserTest {
             assertTrue(group1.addMember(group2));
             assertTrue(group2.addMember(group3));
             assertFalse(group3.addMember(group1));
-        }
-        finally {
+        } finally {
             if (group1 != null) group1.remove();
             if (group2 != null) group2.remove();
             if (group3 != null) group3.remove();
@@ -575,7 +572,7 @@ public class GroupTest extends AbstractUserTest {
         User auth = getTestUser(superuser);
         Group newGroup = null;
         try {
-            newGroup = userMgr.createGroup(getTestPrincipal());
+            newGroup = userMgr.createGroup(createGroupId());
             superuser.save();
 
             assertTrue(newGroup.addMember(auth));
@@ -596,7 +593,7 @@ public class GroupTest extends AbstractUserTest {
     public void testAddItselfAsMember() throws RepositoryException, NotExecutableException {
         Group newGroup = null;
         try {
-            newGroup = userMgr.createGroup(getTestPrincipal());
+            newGroup = userMgr.createGroup(createGroupId());
             superuser.save();
 
             assertFalse(newGroup.addMember(newGroup));
@@ -617,7 +614,7 @@ public class GroupTest extends AbstractUserTest {
         String newGroupId = null;
 
         try {
-            Group newGroup = userMgr.createGroup(getTestPrincipal());
+            Group newGroup = userMgr.createGroup(createGroupId());
             superuser.save();
             newGroupId = newGroup.getID();
 
@@ -640,7 +637,7 @@ public class GroupTest extends AbstractUserTest {
         Group newGroup = null;
         String groupId;
         try {
-            newGroup = userMgr.createGroup(getTestPrincipal());
+            newGroup = userMgr.createGroup(createGroupId());
             groupId = newGroup.getID();
             superuser.save();
 

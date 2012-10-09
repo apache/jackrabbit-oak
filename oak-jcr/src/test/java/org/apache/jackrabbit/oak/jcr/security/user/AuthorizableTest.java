@@ -185,8 +185,8 @@ public class AuthorizableTest extends AbstractUserTest {
         Group group = null;
 
         try {
-            auth = userMgr.createUser(getTestPrincipal().getName(), "pw");
-            group = userMgr.createGroup(getTestPrincipal());
+            auth = userMgr.createUser(createUserId(), "pw");
+            group = userMgr.createGroup(createGroupId());
             superuser.save();
 
             Iterator<Group> groups = auth.declaredMemberOf();

@@ -31,7 +31,6 @@ import org.junit.Test;
 /**
  * UserTest...
  */
-@Ignore // FIXME: enable again
 public class UserTest extends AbstractUserTest {
 
     @Test
