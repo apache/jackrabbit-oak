@@ -56,7 +56,7 @@ public final class Permissions {
 
     public static final int MODIFY_CHILD_NODE_COLLECTION = RETENTION_MANAGEMENT << 1;
 
-    public static final int NODE_TYPE_DEFINITION_MANAGEMENT = RETENTION_MANAGEMENT << 1;
+    public static final int NODE_TYPE_DEFINITION_MANAGEMENT = MODIFY_CHILD_NODE_COLLECTION << 1;
 
     public static final int NAMESPACE_MANAGEMENT = NODE_TYPE_DEFINITION_MANAGEMENT << 1;
 
