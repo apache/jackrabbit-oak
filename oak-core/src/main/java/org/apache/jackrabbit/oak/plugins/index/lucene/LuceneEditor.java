@@ -16,6 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
+import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPathField;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPropertyField;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
+
 import java.io.IOException;
 
 import javax.jcr.PropertyType;
@@ -40,13 +46,6 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.Version;
 import org.apache.tika.Tika;
 import org.apache.tika.exception.TikaException;
-
-import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
-import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
-import static org.apache.jackrabbit.oak.plugins.index.IndexDefinition.INDEX_DATA_CHILD_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPathField;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPropertyField;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
 
 /**
  * This class updates a Lucene index when node content is changed.
@@ -98,7 +97,7 @@ class LuceneEditor implements CommitHook, LuceneIndexConstants {
                 diff.postProcess(after);
             } finally {
                 writer.close();
-                builder.setProperty(INDEX_UPDATE, System.currentTimeMillis());
+                builder.setProperty(REINDEX_PROPERTY_NAME, false);
             }
             return rootBuilder.getNodeState();
         } catch (IOException e) {
