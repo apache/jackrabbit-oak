@@ -62,10 +62,7 @@
               org.apache.jackrabbit.oak.spi.security.user,
               org.apache.jackrabbit.oak.spi.security.user.action,
               org.apache.jackrabbit.oak.security,
-              org.apache.jackrabbit.oak.security.authorization,
-              org.apache.jackrabbit.oak.security.principal,
               org.apache.jackrabbit.oak.security.privilege,
-              org.apache.jackrabbit.oak.security.user
             </Export-Package>
             <Bundle-Activator>
               org.apache.jackrabbit.oak.osgi.Activator
