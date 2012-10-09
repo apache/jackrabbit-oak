@@ -93,7 +93,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
      * @see org.apache.jackrabbit.api.security.user.Impersonation#grantImpersonation(Principal)
      */
     @Override
-    public synchronized boolean grantImpersonation(Principal principal) throws RepositoryException {
+    public boolean grantImpersonation(Principal principal) throws RepositoryException {
         String principalName = principal.getName();
         Principal p = principalProvider.getPrincipal(principalName);
         if (p == null) {
@@ -132,7 +132,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
      * @see Impersonation#revokeImpersonation(java.security.Principal)
      */
     @Override
-    public synchronized boolean revokeImpersonation(Principal principal) throws RepositoryException {
+    public boolean revokeImpersonation(Principal principal) throws RepositoryException {
         String pName = principal.getName();
 
         Tree userTree = getUserTree();

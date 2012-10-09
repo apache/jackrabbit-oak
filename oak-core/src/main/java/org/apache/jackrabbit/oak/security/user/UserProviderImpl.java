@@ -260,14 +260,11 @@ class UserProviderImpl extends AuthorizableBaseProvider implements UserProvider 
     }
 
     @Override
-    public String getPassword(String userID) {
-        Tree userTree = getAuthorizable(userID, AuthorizableType.USER);
-        if (userTree != null) {
-            NodeUtil n = new NodeUtil(userTree, valueFactory);
-            return n.getString(UserConstants.REP_PASSWORD, null);
-        } else {
-            return null;
-        }
+    public String getPasswordHash(Tree userTree) {
+        checkNotNull(userTree);
+
+        NodeUtil n = new NodeUtil(userTree, valueFactory);
+        return n.getString(UserConstants.REP_PASSWORD, null);
     }
 
     @Override
@@ -292,8 +289,45 @@ class UserProviderImpl extends AuthorizableBaseProvider implements UserProvider 
     }
 
     @Override
-    public Impersonation getImpersonation(String userId, PrincipalProvider principalProvider) {
-        return new ImpersonationImpl(userId, this, principalProvider);
+    public Impersonation getImpersonation(Tree userTree, PrincipalProvider principalProvider) {
+        // FIXME: for login the impersonation could be based on the tree directly -> improve
+        return new ImpersonationImpl(getAuthorizableId(userTree), this, principalProvider);
+    }
+
+    @Override
+    public boolean isDisabled(Tree userTree) {
+        checkNotNull(userTree);
+
+        return userTree.hasProperty(REP_DISABLED);
+    }
+
+    @Override
+    public String getDisableReason(Tree userTree) {
+        checkNotNull(userTree);
+
+        PropertyState disabled = userTree.getProperty(REP_DISABLED);
+        if (disabled != null) {
+            return disabled.getValue(STRING);
+        } else {
+            return null;
+        }
+    }
+
+    @Override
+    public void disable(Tree userTree, String reason) throws RepositoryException {
+        checkNotNull(userTree);
+
+        if (isAdminUser(userTree)) {
+            throw new RepositoryException("The administrator user cannot be disabled.");
+        }
+        if (reason == null) {
+            if (isDisabled(userTree)) {
+                // enable the user again.
+                setProtectedProperty(userTree, REP_DISABLED, (String) null, PropertyType.STRING);
+            } // else: not disabled -> nothing to
+        } else {
+            setProtectedProperty(userTree, REP_DISABLED, reason, PropertyType.STRING);
+        }
     }
 
     @Override

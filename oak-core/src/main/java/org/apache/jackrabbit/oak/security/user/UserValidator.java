@@ -48,6 +48,14 @@ class UserValidator extends DefaultValidator implements UserConstants {
     //----------------------------------------------------------< Validator >---
 
     @Override
+    public void propertyAdded(PropertyState after) throws CommitFailedException {
+        String name = after.getName();
+        if (REP_DISABLED.equals(name) && isAdminUser()) {
+            throw new CommitFailedException("Admin user cannot be disabled.");
+        }
+    }
+
+    @Override
     public void propertyChanged(PropertyState before, PropertyState after) throws CommitFailedException {
         String name = before.getName();
         if (REP_PRINCIPAL_NAME.equals(name) || REP_AUTHORIZABLE_ID.equals(name)) {
@@ -86,7 +94,7 @@ class UserValidator extends DefaultValidator implements UserConstants {
      * @param pathConstraint
      * @throws CommitFailedException
      */
-    void assertHierarchy(NodeUtil userNode, String pathConstraint) throws CommitFailedException {
+    private void assertHierarchy(NodeUtil userNode, String pathConstraint) throws CommitFailedException {
         if (!Text.isDescendant(pathConstraint, userNode.getTree().getPath())) {
             Exception e = new ConstraintViolationException("Attempt to create user/group outside of configured scope " + pathConstraint);
             throw new CommitFailedException(e);
@@ -101,5 +109,10 @@ class UserValidator extends DefaultValidator implements UserConstants {
             }
             parent = parent.getParent();
         }
+    }
+
+    private boolean isAdminUser() {
+        // FIXME: add implementation
+        return false;
     }
 }
