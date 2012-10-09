@@ -24,6 +24,8 @@ import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.LoginException;
 
+import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.plugins.nodetype.InitialContent;
@@ -42,6 +44,12 @@ public abstract class AbstractOakTest {
     @Before
     public void before() throws Exception {
         contentRepository = createRepository();
+    }
+
+    protected MicroKernel createMicroKernelWithInitialContent() {
+        MicroKernel mk = new MicroKernelImpl();
+        new InitialContent().available(mk);
+        return mk;
     }
 
     protected abstract ContentRepository createRepository();

@@ -51,9 +51,8 @@ public abstract class AbstractUserTest extends AbstractJCRTest {
 
         userMgr = getUserManager(superuser);
 
-        Principal p = getTestPrincipal();
-        user = userMgr.createUser(p.getName(), "pw");
-        group = userMgr.createGroup(getTestPrincipal());
+        user = userMgr.createUser(createUserId(), "pw");
+        group = userMgr.createGroup(createGroupId());
         superuser.save();
     }
 
@@ -99,8 +98,16 @@ public abstract class AbstractUserTest extends AbstractJCRTest {
         }
     }
 
+    protected String createUserId() throws RepositoryException {
+        return "testUser_" + UUID.randomUUID();
+    }
+
+    protected String createGroupId() throws RepositoryException {
+        return "testGroup_" + UUID.randomUUID();
+    }
+
     protected Principal getTestPrincipal() throws RepositoryException {
-        String pn = "any_principal" + UUID.randomUUID();
+        String pn = "testPrincipal_" + UUID.randomUUID();
         return getTestPrincipal(pn);
     }
 
