@@ -178,12 +178,11 @@ class GroupImpl extends AuthorizableImpl implements Group {
         } else {
             MembershipProvider mMgr = uMgr.getMembershipProvider();
             Iterator oakPaths = mMgr.getMembers(getTree(), AuthorizableType.AUTHORIZABLE, includeInherited);
-            if (!oakPaths.hasNext()) {
+            if (oakPaths.hasNext()) {
                 AuthorizableIterator iterator = AuthorizableIterator.create(oakPaths, uMgr, UserManager.SEARCH_TYPE_AUTHORIZABLE);
                 return new RangeIteratorAdapter(iterator, iterator.getSize());
             } else {
                 return RangeIteratorAdapter.EMPTY;
-
             }
         }
     }

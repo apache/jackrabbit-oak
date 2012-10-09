@@ -251,7 +251,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
                 sb.append(isGroup() ? "group:" : "user:");
                 sb.append(node.getSession().getWorkspace().getName());
                 sb.append(':');
-                sb.append(node.getIdentifier());
+                sb.append(id);
                 hashCode = sb.toString().hashCode();
             } catch (RepositoryException e) {
                 log.warn("Error while calculating hash code.",e.getMessage());
@@ -302,7 +302,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
 
     @Nonnull
     Tree getTree() {
-        Tree tree = userManager.getUserProvider().getAuthorizable(id);
+        Tree tree = getUserProvider().getAuthorizable(id);
         if (tree == null) {
             throw new IllegalStateException("Authorizable not associated with an existing tree");
         }
