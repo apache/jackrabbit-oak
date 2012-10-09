@@ -54,7 +54,8 @@ public class MongoMicroKernel implements MicroKernel {
 
     @Override
     public String branch(String trunkRevisionId) throws MicroKernelException {
-        throw new UnsupportedOperationException("Branch is currently not supported.");
+        // FIXME - Support branching if needed.
+        return getHeadRevision();
     }
 
     @Override
@@ -165,7 +166,8 @@ public class MongoMicroKernel implements MicroKernel {
 
     @Override
     public String merge(String branchRevisionId, String message) throws MicroKernelException {
-        throw new UnsupportedOperationException("Merge is currently not supported.");
+        // FIXME - Support merge if needed.
+        return getHeadRevision();
     }
 
     @Override
