@@ -25,8 +25,8 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
-import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,7 +42,9 @@ class AuthorizableIterator implements Iterator {
 
     private Authorizable next;
 
-    static AuthorizableIterator create(Iterator<String> authorizableOakPaths, UserManagerImpl userManager, int authorizableType) {
+    static AuthorizableIterator create(Iterator<String> authorizableOakPaths,
+                                       UserManagerImpl userManager,
+                                       AuthorizableType authorizableType) {
         Iterator it = Iterators.transform(authorizableOakPaths, new PathToAuthorizable(userManager, authorizableType));
         long size = getSize(authorizableOakPaths);
         return new AuthorizableIterator(Iterators.filter(it, Predicates.notNull()), size);
@@ -96,7 +98,7 @@ class AuthorizableIterator implements Iterator {
         private final UserManagerImpl userManager;
         private final Predicate predicate;
 
-        public PathToAuthorizable(UserManagerImpl userManager, int type) {
+        public PathToAuthorizable(UserManagerImpl userManager, AuthorizableType type) {
             this.userManager = userManager;
             this.predicate = new AuthorizableTypePredicate(type);
         }
@@ -137,28 +139,15 @@ class AuthorizableIterator implements Iterator {
 
     private static class AuthorizableTypePredicate implements Predicate<Authorizable> {
 
-        private final int authorizableType;
+        private final AuthorizableType authorizableType;
 
-        AuthorizableTypePredicate(int authorizableType) {
+        AuthorizableTypePredicate(AuthorizableType authorizableType) {
             this.authorizableType = authorizableType;
         }
 
         @Override
         public boolean apply(Authorizable authorizable) {
-            if (authorizable == null) {
-                return false;
-            }
-            switch (authorizableType) {
-                case UserManager.SEARCH_TYPE_AUTHORIZABLE:
-                    return true;
-                case UserManager.SEARCH_TYPE_GROUP:
-                    return authorizable.isGroup();
-                case UserManager.SEARCH_TYPE_USER:
-                    return !authorizable.isGroup();
-                default:
-                    log.warn("Illegal authorizable type " + authorizableType);
-                    return false;
-            }
+            return authorizableType.isType(authorizable);
         }
     }
 }

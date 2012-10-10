@@ -77,6 +77,7 @@ public class UserManagerImpl implements UserManager {
      */
     @Override
     public Authorizable getAuthorizable(String id) throws RepositoryException {
+        checkIsLive();
         Authorizable authorizable = null;
         Tree tree = getUserProvider().getAuthorizable(id);
         if (tree != null) {
@@ -90,6 +91,7 @@ public class UserManagerImpl implements UserManager {
      */
     @Override
     public Authorizable getAuthorizable(Principal principal) throws RepositoryException {
+        checkIsLive();
         return getAuthorizable(getUserProvider().getAuthorizableByPrincipal(principal));
     }
 
@@ -98,6 +100,7 @@ public class UserManagerImpl implements UserManager {
      */
     @Override
     public Authorizable getAuthorizableByPath(String path) throws RepositoryException {
+        checkIsLive();
         String oakPath = namePathMapper.getOakPath(path);
         if (oakPath == null) {
             throw new RepositoryException("Invalid path " + path);
@@ -112,6 +115,7 @@ public class UserManagerImpl implements UserManager {
 
     @Override
     public Iterator<Authorizable> findAuthorizables(String relPath, String value, int searchType) throws RepositoryException {
+        checkIsLive();
         String[] oakPaths =  new String[] {namePathMapper.getOakPath(relPath)};
         AuthorizableType authorizableType = getAuthorizableType(searchType);
         Iterator<Tree> result = userProvider.findAuthorizables(oakPaths, value, null, true, Long.MAX_VALUE, authorizableType);
@@ -121,6 +125,7 @@ public class UserManagerImpl implements UserManager {
 
     @Override
     public Iterator<Authorizable> findAuthorizables(Query query) throws RepositoryException {
+        checkIsLive();
         XPathQueryBuilder builder = new XPathQueryBuilder();
         query.build(builder);
         return new XPathQueryEvaluator(builder, this, session.getWorkspace().getQueryManager(), namePathMapper).eval();
@@ -139,6 +144,7 @@ public class UserManagerImpl implements UserManager {
 
     @Override
     public User createUser(String userID, String password, Principal principal, String intermediatePath) throws RepositoryException {
+        checkIsLive();
         checkValidID(userID);
         checkValidPrincipal(principal, false);
 
@@ -179,6 +185,7 @@ public class UserManagerImpl implements UserManager {
 
     @Override
     public Group createGroup(String groupID, Principal principal, String intermediatePath) throws RepositoryException {
+        checkIsLive();
         checkValidID(groupID);
         checkValidPrincipal(principal, true);
 
@@ -349,6 +356,12 @@ public class UserManagerImpl implements UserManager {
 
     private void setPrincipal(Tree userTree, Principal principal) {
         getUserProvider().setProtectedProperty(userTree, UserConstants.REP_PRINCIPAL_NAME, principal.getName(), PropertyType.STRING);
+    }
+
+    private void checkIsLive() throws RepositoryException {
+        if (!session.isLive()) {
+            throw new RepositoryException("UserManager has been closed.");
+        }
     }
 
     private static AuthorizableType getAuthorizableType(int searchType) {
