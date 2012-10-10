@@ -22,7 +22,7 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 
 /**
- * TokenInfo... TODO document, move to spi/api
+ * TokenInfo... TODO
  */
 public interface TokenInfo {
 

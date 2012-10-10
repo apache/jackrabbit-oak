@@ -28,10 +28,19 @@ import javax.security.auth.login.LoginException;
  */
 public interface LoginContext {
 
+    /**
+     * @see javax.security.auth.login.LoginContext#getSubject()
+     */
     Subject getSubject();
 
+    /**
+     * @see javax.security.auth.login.LoginContext#login()
+     */
     void login() throws LoginException;
 
+    /**
+     * @see javax.security.auth.login.LoginContext#logout()
+     */
     void logout() throws LoginException;
 
 }
