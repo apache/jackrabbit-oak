@@ -24,6 +24,8 @@ import javax.jcr.PropertyType;
 
 import com.google.common.base.Objects;
 
+import static com.google.common.base.Preconditions.checkState;
+
 /**
  * Instances of this class map Java types to {@link PropertyType property types}.
  * Passing an instance of this class to {@link PropertyState#getValue(Type)} determines
@@ -163,10 +165,18 @@ public final class Type<T> {
      * @throws IllegalStateException if {@code isArray} is false.
      */
     public Type<?> getBaseType() {
-        if (!isArray()) {
-            throw new IllegalStateException("Not an array: " + this);
-        }
+        checkState(isArray(), "Not an array: " + this);
         return fromTag(tag, false);
+    }
+
+    /**
+     * Determine the array type which has this type as base type
+     * @return  array type with this type as base type
+     * @throws IllegalStateException if {@code isArray} is true.
+     */
+    public Type<?> getArrayType() {
+        checkState(!isArray(), "Not a simply type: " + this);
+        return fromTag(tag, true);
     }
 
     @Override
