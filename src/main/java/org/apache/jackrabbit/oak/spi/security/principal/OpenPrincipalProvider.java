@@ -50,10 +50,6 @@ public class OpenPrincipalProvider implements PrincipalProvider {
         Principal p = getPrincipal(userID);
         principals.add(p);
         principals.addAll(getGroupMembership(p));
-        // TODO: remove again (currently needed because LoginContextProviderImpl uses this dummy principal provider)
-        if ("admin".equals(userID)) {
-            principals.add(AdminPrincipal.INSTANCE);
-        }
         return principals;
     }
 

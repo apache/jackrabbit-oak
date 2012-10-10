@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.authentication;
 
 import javax.jcr.Credentials;
-import javax.security.auth.Subject;
 
 /**
  * The {@code Authentication} interface defines methods to validate
@@ -46,15 +45,4 @@ public interface Authentication {
      * if the specified credentials are not supported or if validation failed.
      */
     boolean authenticate(Credentials credentials);
-
-    /**
-     * Test if the given subject (i.e. any of the principals it contains) is
-     * allowed to impersonate.
-     *
-     * @param subject The subject that wants to impersonate.
-     * @return true if this {@code Impersonation} allows the specified
-     * set of principals to impersonate.
-     */
-    boolean impersonate(Subject subject);
-
 }

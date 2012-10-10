@@ -32,7 +32,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlProvide
 public class AccessControlProviderImpl implements AccessControlProvider {
 
     @Override
-    public AccessControlContext createAccessControlContext(Subject subject) {
+    public AccessControlContext getAccessControlContext(Subject subject) {
         return new AccessControlContextImpl(subject);
     }
 

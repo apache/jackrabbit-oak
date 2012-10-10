@@ -29,7 +29,9 @@ import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.oak.api.AuthInfo;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.security.authentication.AuthInfoImpl;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.TokenProviderCallback;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
@@ -38,7 +40,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * TokenLoginModule... TODO
+ * {@code LoginModule} implementation that is able to handle login request
+ * based on {@link TokenCredentials}.
  */
 public class TokenLoginModule extends AbstractLoginModule {
 
@@ -55,7 +58,6 @@ public class TokenLoginModule extends AbstractLoginModule {
     private Set<? extends Principal> principals;
 
     //--------------------------------------------------------< LoginModule >---
-
     @Override
     public boolean login() throws LoginException {
         tokenProvider = getTokenProvider();
@@ -131,7 +133,12 @@ public class TokenLoginModule extends AbstractLoginModule {
     //--------------------------------------------------------------------------
     private TokenProvider getTokenProvider() {
         TokenProvider provider = null;
-        if (callbackHandler != null) {
+        SecurityProvider securityProvider = getSecurityProvider();
+        Root root = getRoot();
+        if (root != null && securityProvider != null) {
+            provider = securityProvider.getTokenProvider(root, options);
+        }
+        if (provider == null && callbackHandler != null) {
             try {
                 TokenProviderCallback tcCallback = new TokenProviderCallback();
                 callbackHandler.handle(new Callback[] {tcCallback});

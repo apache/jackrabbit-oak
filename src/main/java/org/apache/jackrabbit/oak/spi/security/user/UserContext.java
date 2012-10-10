@@ -31,6 +31,9 @@ import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 public interface UserContext {
 
     @Nonnull
+    UserConfig getUserConfig();
+
+    @Nonnull
     UserProvider getUserProvider(Root root);
 
     @Nonnull

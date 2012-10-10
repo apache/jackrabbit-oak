@@ -28,12 +28,14 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.OpenLoginContextProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.OpenAccessControlProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.OpenPrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
 import org.apache.jackrabbit.oak.spi.security.user.UserContext;
 import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -57,9 +59,21 @@ public class OpenSecurityProvider implements SecurityProvider {
 
     @Nonnull
     @Override
+    public TokenProvider getTokenProvider(Root root, ConfigurationParameters options) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Nonnull
+    @Override
     public UserContext getUserContext() {
         // TODO
         return new UserContext() {
+            @Nonnull
+            @Override
+            public UserConfig getUserConfig() {
+                return new UserConfig();
+            }
+
             @Nonnull
             @Override
             public UserProvider getUserProvider(Root root) {
