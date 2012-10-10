@@ -37,6 +37,7 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
@@ -330,6 +331,14 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
     }
 
     /**
+     * @return The membership provider associated with this authorizable
+     */
+    @Nonnull
+    MembershipProvider getMembershipProvider() {
+        return userManager.getMembershipProvider();
+    }
+
+    /**
      * @return The principal name of this authorizable.
      * @throws RepositoryException If no principal name can be retrieved.
      */
@@ -447,10 +456,10 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
             return Collections.<Group>emptySet().iterator();
         }
 
-        MembershipProvider mMgr = userManager.getMembershipProvider();
+        MembershipProvider mMgr = getMembershipProvider();
         Iterator<String> oakPaths = mMgr.getMembership(getTree(), includeInherited);
         if (oakPaths.hasNext()) {
-            AuthorizableIterator groups = AuthorizableIterator.create(oakPaths, userManager, UserManager.SEARCH_TYPE_GROUP);
+            AuthorizableIterator groups = AuthorizableIterator.create(oakPaths, userManager, AuthorizableType.GROUP);
             return new RangeIteratorAdapter(groups, groups.getSize());
         } else {
             return RangeIteratorAdapter.EMPTY;

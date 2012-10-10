@@ -140,7 +140,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
             return false;
         }
 
-        return getUserManager().getMembershipProvider().addMember(getTree(), authorizableImpl.getTree());
+        return getMembershipProvider().addMember(getTree(), authorizableImpl.getTree());
     }
 
     /**
@@ -155,8 +155,8 @@ class GroupImpl extends AuthorizableImpl implements Group {
         if (isEveryone()) {
             return false;
         } else {
-            MembershipProvider mMgr = getUserManager().getMembershipProvider();
-            return mMgr.removeMember(getTree(), ((AuthorizableImpl) authorizable).getTree());
+            Tree memberTree = ((AuthorizableImpl) authorizable).getTree();
+            return getMembershipProvider().removeMember(getTree(), memberTree);
         }
     }
 
@@ -170,16 +170,14 @@ class GroupImpl extends AuthorizableImpl implements Group {
      * @throws RepositoryException If an error occurs.
      */
     private Iterator<Authorizable> getMembers(boolean includeInherited) throws RepositoryException {
-        UserManagerImpl uMgr = getUserManager();
+        UserManagerImpl userMgr = getUserManager();
         if (isEveryone()) {
-            // TODO: improve using authorizable-query
             String propName = getJcrName(REP_PRINCIPAL_NAME);
-            return uMgr.findAuthorizables(propName, null, UserManager.SEARCH_TYPE_AUTHORIZABLE);
+            return userMgr.findAuthorizables(propName, null, UserManager.SEARCH_TYPE_AUTHORIZABLE);
         } else {
-            MembershipProvider mMgr = uMgr.getMembershipProvider();
-            Iterator oakPaths = mMgr.getMembers(getTree(), AuthorizableType.AUTHORIZABLE, includeInherited);
+            Iterator oakPaths = getMembershipProvider().getMembers(getTree(), AuthorizableType.AUTHORIZABLE, includeInherited);
             if (oakPaths.hasNext()) {
-                AuthorizableIterator iterator = AuthorizableIterator.create(oakPaths, uMgr, UserManager.SEARCH_TYPE_AUTHORIZABLE);
+                AuthorizableIterator iterator = AuthorizableIterator.create(oakPaths, userMgr, AuthorizableType.AUTHORIZABLE);
                 return new RangeIteratorAdapter(iterator, iterator.getSize());
             } else {
                 return RangeIteratorAdapter.EMPTY;
