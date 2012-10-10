@@ -40,7 +40,7 @@ public class TreeBasedPrincipal implements ItemBasedPrincipal {
     private static final Logger log = LoggerFactory.getLogger(TreeBasedPrincipal.class);
 
     private final String principalName;
-    private final Tree tree;
+    private final String path;
     private final PathMapper pathMapper;
 
     public TreeBasedPrincipal(Tree tree, PathMapper pathMapper) {
@@ -49,28 +49,28 @@ public class TreeBasedPrincipal implements ItemBasedPrincipal {
             throw new IllegalArgumentException("Tree doesn't have rep:principalName property");
         }
         this.principalName = prop.getValue(STRING);
-        this.tree = tree;
         this.pathMapper = pathMapper;
+        this.path = tree.getPath();
     }
 
     public TreeBasedPrincipal(String principalName, Tree tree, PathMapper pathMapper) {
-        this.principalName = principalName;
-        this.tree = tree;
-        this.pathMapper = pathMapper;
+        this(principalName, tree.getPath(), pathMapper);
     }
 
-    protected Tree getTree() {
-        return tree;
+    public TreeBasedPrincipal(String principalName, String oakPath, PathMapper pathMapper) {
+        this.principalName = principalName;
+        this.pathMapper = pathMapper;
+        this.path = oakPath;
     }
 
     public String getOakPath() {
-        return tree.getPath();
+        return path;
     }
 
     //-------------------------------------------------< ItemBasedPrincipal >---
     @Override
     public String getPath() {
-        return pathMapper.getJcrPath(tree.getPath());
+        return pathMapper.getJcrPath(path);
     }
 
     //----------------------------------------------------------< Principal >---

@@ -23,12 +23,13 @@ import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
-import javax.annotation.Nullable;
+import javax.annotation.Nonnull;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.PathMapper;
@@ -118,10 +119,25 @@ public class PrincipalProviderImpl implements PrincipalProvider {
     @Override
     public Iterator<? extends Principal> findPrincipals(String nameHint, int searchType) {
         String[] propNames = new String[] {UserConstants.REP_PRINCIPAL_NAME};
-        String[] ntNames = new String[] {UserConstants.NT_REP_AUTHORIZABLE};
-        Iterator<Tree> authorizables = userProvider.findAuthorizables(propNames, nameHint, ntNames, false, Long.MAX_VALUE, AuthorizableType.AUTHORIZABLE);
+        String ntName;
+        switch (searchType) {
+            case PrincipalManager.SEARCH_TYPE_GROUP:
+                ntName = UserConstants.NT_REP_GROUP;
+                break;
+            case PrincipalManager.SEARCH_TYPE_NOT_GROUP:
+                ntName = UserConstants.NT_REP_USER;
+                break;
+            default:
+                ntName = UserConstants.NT_REP_AUTHORIZABLE;
+        }
 
-        return Iterators.transform(authorizables, new AuthorizableToPrincipal());
+        Iterator<Tree> authorizables = userProvider.findAuthorizables(propNames,
+                nameHint, new String[] {ntName}, false, Long.MAX_VALUE,
+                AuthorizableType.AUTHORIZABLE);
+
+        return Iterators.transform(
+                Iterators.filter(authorizables, Predicates.<Object>notNull()),
+                new AuthorizableToPrincipal());
     }
 
     //------------------------------------------------------------< private >---
@@ -149,31 +165,23 @@ public class PrincipalProviderImpl implements PrincipalProvider {
         return UserConstants.NT_REP_GROUP.equals(ntName);
     }
 
-    /**
-     * Function to covert an authorizable tree to a principal.
-     */
-    private final class AuthorizableToPrincipal implements Function<Tree, TreeBasedPrincipal> {
-
-        @Override
-        public TreeBasedPrincipal apply(@Nullable Tree tree) {
-            if (tree == null) {
-                throw new IllegalArgumentException("null tree.");
-            }
-            if (userProvider.isAuthorizableType(tree, AuthorizableType.GROUP)) {
-                return new TreeBasedGroup(tree);
-            } else {
-                return new TreeBasedPrincipal(tree, pathMapper);
-            }
-        }
-    }
-
+    //--------------------------------------------------------------------------
     /**
      * Tree-based principal implementation that marks the principal as group.
      */
     private final class TreeBasedGroup extends TreeBasedPrincipal implements Group {
 
-        public TreeBasedGroup(Tree tree) {
-            super(tree, pathMapper);
+        private TreeBasedGroup(Tree groupTree) {
+            super(groupTree, pathMapper);
+        }
+
+        @Nonnull
+        private Tree getTree(String oakPath) {
+            Tree tree = userProvider.getAuthorizableByPath(oakPath);
+            if (tree == null) {
+                throw new IllegalStateException("Path " + oakPath + " cannot be resolved to an existing authorizable.");
+            }
+            return tree;
         }
 
         @Override
@@ -188,27 +196,50 @@ public class PrincipalProviderImpl implements PrincipalProvider {
 
         @Override
         public boolean isMember(Principal principal) {
-            return membershipProvider.isMember(getTree(), userProvider.getAuthorizableByPrincipal(principal), true);
+            Tree groupTree = getTree(getOakPath());
+            return membershipProvider.isMember(groupTree, userProvider.getAuthorizableByPrincipal(principal), true);
         }
 
         @Override
         public Enumeration<? extends Principal> members() {
-            Iterator<String> declaredMemberPaths = membershipProvider.getMembers(getTree(), AuthorizableType.AUTHORIZABLE, false);
-            Iterator<? extends Principal> members = Iterators.transform(declaredMemberPaths, new Function<String, Principal>() {
-                @Override
-                public Principal apply(@Nullable String oakPath) {
-                    Tree tree = userProvider.getAuthorizableByPath(oakPath);
-                    if (tree != null) {
-                        if (isGroup(tree)) {
-                            return new TreeBasedGroup(tree);
-                        } else {
-                            return new TreeBasedPrincipal(tree, pathMapper);
-                        }
-                    }
-                    return null;
-                }
-            });
+            Tree groupTree = getTree(getOakPath());
+            Iterator<String> declaredMemberPaths = membershipProvider.getMembers(groupTree, AuthorizableType.AUTHORIZABLE, false);
+            Iterator<? extends Principal> members = Iterators.transform(
+                    Iterators.filter(declaredMemberPaths, Predicates.<Object>notNull()),
+                    new PathToPrincipal());
             return Iterators.asEnumeration(Iterators.filter(members, Predicates.notNull()));
+        }
+    }
+
+    /**
+     * Function to covert an authorizable tree to a principal.
+     */
+    private final class AuthorizableToPrincipal implements Function<Tree, TreeBasedPrincipal> {
+        @Override
+        public TreeBasedPrincipal apply(Tree tree) {
+            if (userProvider.isAuthorizableType(tree, AuthorizableType.GROUP)) {
+                return new TreeBasedGroup(tree);
+            } else {
+                return new TreeBasedPrincipal(tree, pathMapper);
+            }
+        }
+    }
+
+    /**
+     * Function to convert a oak-path to a principal.
+     */
+    private final class PathToPrincipal implements Function<String, Principal> {
+        @Override
+        public Principal apply(String oakPath) {
+            Tree tree = userProvider.getAuthorizableByPath(oakPath);
+            if (tree != null) {
+                if (isGroup(tree)) {
+                    return new TreeBasedGroup(tree);
+                } else {
+                    return new TreeBasedPrincipal(tree, pathMapper);
+                }
+            }
+            return null;
         }
     }
 }
