@@ -34,7 +34,7 @@
   <packaging>pom</packaging>
 
   <properties>
-    <test.opts>-Xmx256m -XX:MaxPermSize=32m</test.opts>
+    <test.opts>-Xmx512m -XX:MaxPermSize=32m</test.opts>
     <skip.deployment>false</skip.deployment>
     <known.issues />
     <project.reporting.outputEncoding>
