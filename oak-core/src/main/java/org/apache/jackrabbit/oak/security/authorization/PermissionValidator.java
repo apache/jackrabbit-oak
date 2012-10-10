@@ -104,8 +104,6 @@ class PermissionValidator implements Validator {
         if (JcrConstants.JCR_PRIMARYTYPE.equals(name) || JcrConstants.JCR_MIXINTYPES.equals(name)) {
             // TODO: distinguish between autocreated and user-supplied modification (?)
             permission = Permissions.NODE_TYPE_MANAGEMENT;
-        } else if (PropertyState.OAK_CHILD_ORDER.equals(property.getName())) {
-            permission = Permissions.MODIFY_CHILD_NODE_COLLECTION;
         } else if (isLockProperty(name)) {
             permission = Permissions.LOCK_MANAGEMENT;
         } else if (isNamespaceDefinition(parentPath)) {

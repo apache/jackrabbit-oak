@@ -28,6 +28,13 @@ import javax.annotation.Nonnull;
  * which point an outdated snapshot will start throwing
  * {@code IllegalStateException}s to indicate that the snapshot is no
  * longer available.
+ * <p/>
+ * The children of a <code>Tree</code> are generally unordered. That is, the
+ * sequence of the children returned by {@link #getChildren()} may change over
+ * time as this Tree is modified either directly or through some other session.
+ * Calling {@link #orderBefore(String)} will persist the current order and
+ * maintain the order as new children are added or removed. In this case a new
+ * child will be inserted after the last child as seen by {@link #getChildren()}.
  * <p>
  * A tree instance belongs to the client and its state is only modified
  * in response to method calls made by the client. The various accessors
@@ -215,6 +222,21 @@ public interface Tree {
      */
     @Nonnull
     Tree addChild(String name);
+
+    /**
+     * Orders this <code>Tree</code> before the sibling tree with the given
+     * <code>name</code>. Calling this method for the first time on this
+     * <code>Tree</code> or any of its siblings will persist the current order
+     * of siblings and maintain it from this point on.
+     *
+     * @param name the name of the sibling node where this tree is ordered
+     *             before. This tree will become the last sibling if
+     *             <code>name</code> is <code>null</code>.
+     * @return <code>false</code> if there is no sibling with the given
+     *         <code>name</code> and no reordering was performed;
+     *         <code>true</code> otherwise.
+     */
+    boolean orderBefore(String name);
 
     /**
      * Set a property state

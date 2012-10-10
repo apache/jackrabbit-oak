@@ -18,30 +18,40 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.Map;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.RootImpl.PurgeListener;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.apache.jackrabbit.oak.util.NodeUtil;
+
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.collect.Iterables;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 
 public class TreeImpl implements Tree, PurgeListener {
+
+    /** Internal and hidden property that contains the child order */
+    static final String OAK_CHILD_ORDER = ":childOrder";
 
     /** Underlying {@code Root} of this {@code Tree} instance */
     private final RootImpl root;
@@ -147,8 +157,7 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public long getPropertyCount() {
-        // TODO: make sure cnt respects access control
-        return getNodeBuilder().getPropertyCount();
+        return Iterables.size(getProperties());
     }
 
     @Override
@@ -207,8 +216,14 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public Iterable<Tree> getChildren() {
+        Iterable<String> childNames;
+        if (hasOrderableChildren()) {
+            childNames = getOrderedChildNames();
+        } else {
+            childNames = getNodeBuilder().getChildNodeNames();
+        }
         return Iterables.filter(Iterables.transform(
-                getNodeBuilder().getChildNodeNames(),
+                childNames,
                 new Function<String, Tree>() {
                     @Override
                     public Tree apply(String input) {
@@ -232,6 +247,13 @@ public class TreeImpl implements Tree, PurgeListener {
     public Tree addChild(String name) {
         if (!hasChild(name)) {
             getNodeBuilder().child(name);
+            if (hasOrderableChildren()) {
+                getNodeBuilder().setProperty(PropertyStates.stringProperty(
+                        OAK_CHILD_ORDER,
+                        Iterables.concat(
+                                getOrderedChildNames(),
+                                Collections.singleton(name))));
+            }
             root.purge();
         }
 
@@ -251,11 +273,67 @@ public class TreeImpl implements Tree, PurgeListener {
             builder.removeNode(name);
             parent.children.remove(name);
             removed = true;
+            if (parent.hasOrderableChildren()) {
+                builder.setProperty(PropertyStates.stringProperty(
+                        OAK_CHILD_ORDER,
+                        Iterables.filter(parent.getOrderedChildNames(), new Predicate<String>() {
+                            @Override
+                            public boolean apply(@Nullable String input) {
+                                return !name.equals(input);
+                            }
+                        })));
+            }
             root.purge();
             return true;
         } else {
             return false;
         }
+    }
+
+    @Override
+    public boolean orderBefore(final String name) {
+        if (isRoot()) {
+            // root does not have siblings
+            return false;
+        }
+        if (name != null && !parent.hasChild(name)) {
+            // so such sibling or not accessible
+            return false;
+        }
+        // perform the reorder
+        parent.ensureChildOrderProperty();
+        // all siblings but not this one
+        Iterable<String> filtered = Iterables.filter(
+                parent.getOrderedChildNames(),
+                new Predicate<String>() {
+                    @Override
+                    public boolean apply(@Nullable String input) {
+                        return !TreeImpl.this.getName().equals(input);
+                    }
+                });
+        // create head and tail
+        Iterable<String> head;
+        Iterable<String> tail;
+        if (name == null) {
+            head = filtered;
+            tail = Collections.emptyList();
+        } else {
+            int idx = Iterables.indexOf(filtered, new Predicate<String>() {
+                @Override
+                public boolean apply(@Nullable String input) {
+                    return name.equals(input);
+                }
+            });
+            head = Iterables.limit(filtered, idx);
+            tail = Iterables.skip(filtered, idx);
+        }
+        // concatenate head, this name and tail
+        parent.getNodeBuilder().setProperty(PropertyStates.stringProperty(
+                OAK_CHILD_ORDER,
+                Iterables.concat(head, Collections.singleton(getName()), tail))
+        );
+        root.purge();
+        return true;
     }
 
     @Override
@@ -450,10 +528,70 @@ public class TreeImpl implements Tree, PurgeListener {
     }
 
     private boolean canReadProperty(String name) {
+        if (NodeStateUtils.isHidden(name)) {
+            return false;
+        }
         String path = PathUtils.concat(getPath(), name);
 
         // FIXME: special handling for access control item and version content
         return root.getPermissions().canRead(path, true);
+    }
+
+    /**
+     * @return <code>true</code> if this tree has orderable children;
+     *         <code>false</code> otherwise.
+     */
+    private boolean hasOrderableChildren() {
+        return internalGetProperty(OAK_CHILD_ORDER) != null;
+    }
+
+    /**
+     * Returns the ordered child names. This method must only be called when
+     * this tree {@link #hasOrderableChildren()}.
+     *
+     * @return the ordered child names.
+     */
+    private Iterable<String> getOrderedChildNames() {
+        assert hasOrderableChildren();
+        return new Iterable<String>() {
+            @Override
+            public Iterator<String> iterator() {
+                return new Iterator<String>() {
+                    PropertyState childOrder = internalGetProperty(OAK_CHILD_ORDER);
+                    int index = 0;
+
+                    @Override
+                    public boolean hasNext() {
+                        return index < childOrder.count();
+                    }
+
+                    @Override
+                    public String next() {
+                        return childOrder.getValue(Type.STRING, index++);
+                    }
+
+                    @Override
+                    public void remove() {
+                        throw new UnsupportedOperationException();
+                    }
+                };
+            }
+        };
+    }
+
+    /**
+     * Ensures that the {@link #OAK_CHILD_ORDER} exists. This method will create
+     * the property if it doesn't exist and initialize the value with the names
+     * of the children as returned by {@link NodeBuilder#getChildNodeNames()}.
+     */
+    private void ensureChildOrderProperty() {
+        PropertyState childOrder = getNodeBuilder().getProperty(OAK_CHILD_ORDER);
+        if (childOrder == null) {
+            getNodeBuilder().setProperty(
+                    PropertyStates.stringProperty(
+                            OAK_CHILD_ORDER,
+                            getNodeBuilder().getChildNodeNames()));
+        }
     }
 
     private static boolean isSame(NodeState state1, NodeState state2) {

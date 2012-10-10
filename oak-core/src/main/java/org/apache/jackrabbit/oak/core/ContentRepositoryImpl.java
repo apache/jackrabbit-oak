@@ -164,6 +164,7 @@ public class ContentRepositoryImpl implements ContentRepository {
     //--------------------------------------------------------------------------
     private static NodeStore createNodeStore(MicroKernel microKernel, CommitHook commitHook) {
         KernelNodeStore nodeStore = new KernelNodeStore(microKernel);
+        commitHook = new CompositeHook(commitHook, new OrderedChildrenEditor());
         nodeStore.setHook(commitHook);
         return nodeStore;
     }
