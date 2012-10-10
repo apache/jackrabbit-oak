@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.spi.lifecycle;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 
 /**
- * <code>DefaultMicroKernelTracker</code> is a default implementation of all methods
+ * {@code DefaultMicroKernelTracker} is a default implementation of all methods
  * specified in {@link MicroKernelTracker}. The methods immediately return and do
  * nothing.
  * </p>
