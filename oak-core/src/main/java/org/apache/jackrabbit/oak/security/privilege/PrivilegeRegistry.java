@@ -44,6 +44,7 @@ public class PrivilegeRegistry implements PrivilegeProvider, PrivilegeConstants 
 
     private static final Map<String, String[]> AGGREGATE_PRIVILEGES = new HashMap<String,String[]>();
     static {
+        AGGREGATE_PRIVILEGES.put(JCR_READ, AGGR_JCR_READ);
         AGGREGATE_PRIVILEGES.put(JCR_MODIFY_PROPERTIES, AGGR_JCR_MODIFY_PROPERTIES);
         AGGREGATE_PRIVILEGES.put(JCR_WRITE, AGGR_JCR_WRITE);
         AGGREGATE_PRIVILEGES.put(REP_WRITE, AGGR_REP_WRITE);
