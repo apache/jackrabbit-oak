@@ -203,7 +203,7 @@ public class MembershipProviderImpl extends AuthorizableBaseProvider implements 
     @Override
     public boolean addMember(Tree groupTree, Tree newMemberTree) {
         if (useMemberNode(groupTree)) {
-            NodeUtil groupNode = new NodeUtil(groupTree, valueFactory);
+            NodeUtil groupNode = new NodeUtil(groupTree);
             NodeUtil membersNode = groupNode.getOrAddChild(REP_MEMBERS, NT_REP_MEMBERS);
             // TODO: add implementation
             throw new UnsupportedOperationException("not implemented: addMember with member-node hierarchy");

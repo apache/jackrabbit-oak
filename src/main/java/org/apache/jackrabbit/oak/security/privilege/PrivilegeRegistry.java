@@ -129,7 +129,7 @@ public class PrivilegeRegistry implements PrivilegeProvider, PrivilegeConstants 
                 throw new RepositoryException("Repository doesn't contain node " + PRIVILEGES_PATH);
             }
 
-            NodeUtil privilegesNode = new NodeUtil(privilegesTree, latestRoot.getValueFactory());
+            NodeUtil privilegesNode = new NodeUtil(privilegesTree);
             writeDefinition(privilegesNode, toRegister);
 
             // delegate validation to the commit validation (see above)

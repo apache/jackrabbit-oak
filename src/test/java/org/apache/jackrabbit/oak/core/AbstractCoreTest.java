@@ -20,7 +20,6 @@ import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
-import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.security.authorization.AccessControlProviderImpl;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
@@ -41,7 +40,6 @@ public abstract class AbstractCoreTest {
 
     // TODO: use regular oak-repo setup
     protected KernelNodeStore store;
-    protected CoreValueFactory valueFactory;
 
     protected NodeState state;
 
@@ -49,7 +47,6 @@ public abstract class AbstractCoreTest {
     public void setUp() {
         MicroKernel microKernel = new MicroKernelImpl();
         store = new KernelNodeStore(microKernel);
-        valueFactory = store.getValueFactory();
         state = createInitialState(microKernel);
     }
 

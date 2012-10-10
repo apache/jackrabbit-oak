@@ -231,7 +231,7 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
         }
         type = types.addChild(oakName);
 
-        NodeUtil node = new NodeUtil(type, getCoreValueFactory(), getNameMapper());
+        NodeUtil node = new NodeUtil(type, getNameMapper());
         node.setName(JCR_PRIMARYTYPE, NT_NODETYPE);
         node.setName(JCR_NODETYPENAME, jcrName);
         node.setNames(JCR_SUPERTYPES, ntd.getDeclaredSupertypeNames());
