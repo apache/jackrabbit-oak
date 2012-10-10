@@ -28,7 +28,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
- * <code>InitialContent</code> implements a {@link MicroKernelTracker} and
+ * {@code InitialContent} implements a {@link MicroKernelTracker} and
  * registers built-in node types when the micro kernel becomes available.
  */
 @Component
