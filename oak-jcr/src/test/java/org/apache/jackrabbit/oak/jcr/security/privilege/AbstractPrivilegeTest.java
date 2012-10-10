@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 
 /**
- * AbstractPrivilegeTest... TODO
+ * Base class for privilege management tests.
  */
 abstract class AbstractPrivilegeTest extends AbstractJCRTest implements PrivilegeConstants {
 
