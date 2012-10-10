@@ -127,11 +127,10 @@ public class TokenProviderImpl implements TokenProvider {
         SimpleCredentials sc = extractSimpleCredentials(credentials);
         if (sc != null) {
             String userId = sc.getUserID();
-            CoreValueFactory valueFactory = root.getValueFactory();
             try {
                 Tree userTree = userProvider.getAuthorizable(userId, AuthorizableType.USER);
                 if (userTree != null) {
-                    NodeUtil userNode = new NodeUtil(userTree, valueFactory);
+                    NodeUtil userNode = new NodeUtil(userTree);
                     NodeUtil tokenParent = userNode.getChild(TOKENS_NODE_NAME);
                     if (tokenParent == null) {
                         tokenParent = userNode.addChild(TOKENS_NODE_NAME, TOKENS_NT_NAME);
@@ -189,7 +188,7 @@ public class TokenProviderImpl implements TokenProvider {
         if (tokenTree == null || userId == null) {
             return null;
         } else {
-            return new TokenInfoImpl(new NodeUtil(tokenTree, root.getValueFactory()), token, userId);
+            return new TokenInfoImpl(new NodeUtil(tokenTree), token, userId);
         }
     }
 
@@ -213,7 +212,7 @@ public class TokenProviderImpl implements TokenProvider {
     public boolean resetTokenExpiration(TokenInfo tokenInfo, long loginTime) {
         Tree tokenTree = getTokenTree(tokenInfo);
         if (tokenTree != null) {
-            NodeUtil tokenNode = new NodeUtil(tokenTree, root.getValueFactory());
+            NodeUtil tokenNode = new NodeUtil(tokenTree);
             long expTime = tokenNode.getLong(TOKEN_ATTRIBUTE_EXPIRY, 0);
             if (expTime - loginTime <= tokenExpiration/2) {
                 long expirationTime = loginTime + tokenExpiration;
