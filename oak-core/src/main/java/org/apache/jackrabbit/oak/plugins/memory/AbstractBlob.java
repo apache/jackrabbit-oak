@@ -26,6 +26,8 @@ import com.google.common.base.Optional;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hasher;
 import com.google.common.hash.Hashing;
+import com.google.common.io.ByteStreams;
+
 import org.apache.jackrabbit.oak.api.Blob;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -106,4 +108,34 @@ public abstract class AbstractBlob implements Blob {
             log.warn("Error while closing stream", e);
         }
     }
+
+    @Override
+    public int compareTo(Blob o) {
+        return compare(getNewStream(), o.getNewStream()) ? 0 : 1;
+    }
+
+    private static boolean compare(InputStream in2, InputStream in1) {
+        try {
+            try {
+                byte[] buf1 = new byte[0x1000];
+                byte[] buf2 = new byte[0x1000];
+
+                while (true) {
+                    int read1 = ByteStreams.read(in1, buf1, 0, 0x1000);
+                    int read2 = ByteStreams.read(in2, buf2, 0, 0x1000);
+                    if (read1 != read2 || !Arrays.equals(buf1, buf2)) {
+                        return false;
+                    } else if (read1 != 0x1000) {
+                        return true;
+                    }
+                }
+            } finally {
+                in1.close();
+                in2.close();
+            }
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
 }
