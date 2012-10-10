@@ -30,7 +30,6 @@ import javax.jcr.ValueFactory;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -222,15 +221,12 @@ public class NodeUtil {
     }
 
     public void setValues(String name, Value[] values) {
-        List<CoreValue> cvs = Lists.newArrayList();
-        for (Value value : values) {
-            try {
-                cvs.add(factory.createValue(value.getString(), value.getType()));
-            } catch (RepositoryException e) {
-                log.warn("Unable to convert a default value", e);
-            }
+        try {
+            tree.setProperty(PropertyStates.createProperty(name, values));
         }
-        tree.setProperty(PropertyStates.createProperty(name, cvs));
+        catch (RepositoryException e) {
+            log.warn("Unable to convert a default value", e);
+        }
     }
 
     public void setValues(String name, String[] values, int type) {

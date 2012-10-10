@@ -18,8 +18,8 @@ package org.apache.jackrabbit.oak.jcr;
 
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -315,9 +315,7 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
                     int targetType = getTargetType(value, type);
                     Value targetValue =
                             ValueHelper.convert(value, targetType, getValueFactory());
-                    CoreValue oakValue =
-                            ValueConverter.toCoreValue(targetValue, sessionDelegate);
-                    return new PropertyImpl(dlg.setProperty(oakName, oakValue));
+                    return new PropertyImpl(dlg.setProperty(oakName, targetValue));
                 }
             }
         });
@@ -354,8 +352,13 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
                     return p;
                 } else {
                     String oakName = sessionDelegate.getOakPathOrThrow(jcrName);
-                    List<CoreValue> oakValue = ValueConverter.toCoreValues(targetValues, sessionDelegate);
-                    return new PropertyImpl(dlg.setProperty(oakName, oakValue));
+                    ArrayList<Value> vs = Lists.newArrayList();
+                    for (Value targetValue : targetValues) {
+                        if (targetValue != null) {
+                            vs.add(targetValue);
+                        }
+                    }
+                    return new PropertyImpl(dlg.setProperty(oakName, vs.toArray(new Value[vs.size()])));
                 }
             }
         });
@@ -913,8 +916,8 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
                 // TODO: END
 
                 String jcrPrimaryType = sessionDelegate.getOakPathOrThrow(Property.JCR_PRIMARY_TYPE);
-                CoreValue cv = ValueConverter.toCoreValue(nodeTypeName, PropertyType.NAME, sessionDelegate);
-                dlg.setProperty(jcrPrimaryType, cv);
+                Value value = sessionDelegate.getValueFactory().createValue(nodeTypeName, PropertyType.NAME);
+                dlg.setProperty(jcrPrimaryType, value);
                 return null;
             }
         });
@@ -938,20 +941,26 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
                 boolean nodeModified = false;
                 if (mixins == null) {
                     nodeModified = true;
-                    dlg.setProperty(JcrConstants.JCR_MIXINTYPES, Collections.singletonList(cv));
+                    Value name = sessionDelegate.getValueFactory().createValue(mixinName, PropertyType.NAME);
+                    dlg.setProperty(JcrConstants.JCR_MIXINTYPES, new Value[]{name});
                 } else {
                     List<CoreValue> values = Lists.newArrayList(mixins.getValues());
                     if (!values.contains(cv)) {
                         values.add(cv);
                         nodeModified = true;
-                        dlg.setProperty(JcrConstants.JCR_MIXINTYPES, values);
+                        Value[] jcvValues = new Value[values.size()];
+                        int k = 0;
+                        for (CoreValue v : values) {
+                            jcvValues[k++] = sessionDelegate.getValueFactory().createValue(cv);
+                        }
+
+                        dlg.setProperty(JcrConstants.JCR_MIXINTYPES, jcvValues);
                     }
                 }
 
                 // TODO: hack -- make sure we assign a UUID
                 if (nodeModified && nt.isNodeType(JcrConstants.MIX_REFERENCEABLE)) {
-                    CoreValue value = ValueConverter.toCoreValue(IdentifierManager.generateUUID(),
-                            PropertyType.STRING, sessionDelegate);
+                    Value value = sessionDelegate.getValueFactory().createValue(IdentifierManager.generateUUID());
                     dlg.setProperty(JcrConstants.JCR_UUID, value);
                 }
                 return null;
