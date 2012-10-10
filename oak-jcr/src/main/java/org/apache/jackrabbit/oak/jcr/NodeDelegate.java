@@ -18,23 +18,22 @@ package org.apache.jackrabbit.oak.jcr;
 
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.List;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.ItemNotFoundException;
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
 import javax.jcr.ValueFormatException;
-
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.TreeLocation;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterators;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.TreeLocation;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 
 /**
  * {@code NodeDelegate} serve as internal representations of {@code Node}s.
@@ -179,8 +178,7 @@ public class NodeDelegate extends ItemDelegate {
      * @return  the set property
      */
     @Nonnull
-    public PropertyDelegate setProperty(String name, CoreValue value)
-            throws InvalidItemStateException, ValueFormatException {
+    public PropertyDelegate setProperty(String name, Value value) throws RepositoryException {
         Tree tree = getTree();
         PropertyState old = tree.getProperty(name);
         if (old != null && old.isArray()) {
@@ -197,18 +195,17 @@ public class NodeDelegate extends ItemDelegate {
     /**
      * Set a multi valued property
      * @param name  oak name
-     * @param value
+     * @param values
      * @return  the set property
      */
     @Nonnull
-    public PropertyDelegate setProperty(String name, List<CoreValue> value)
-            throws InvalidItemStateException, ValueFormatException {
+    public PropertyDelegate setProperty(String name, Value[] values) throws RepositoryException {
         Tree tree = getTree();
         PropertyState old = tree.getProperty(name);
         if (old != null && ! old.isArray()) {
             throw new ValueFormatException("Attempt to set multiple values to single valued property.");
         }
-        tree.setProperty(PropertyStates.createProperty(name, value));
+        tree.setProperty(PropertyStates.createProperty(name, values));
         return new PropertyDelegate(sessionDelegate, tree.getLocation().getChild(name));
     }
 

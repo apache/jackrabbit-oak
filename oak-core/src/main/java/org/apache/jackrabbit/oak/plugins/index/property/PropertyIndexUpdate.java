@@ -29,9 +29,8 @@ import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.CoreValues;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.plugins.memory.StringValue;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
 class PropertyIndexUpdate {
@@ -87,16 +86,16 @@ class PropertyIndexUpdate {
             Set<String> paths = entry.getValue();
             PropertyState property = index.getProperty(encoded);
             if (property != null) {
-                List<CoreValue> values = Lists.newArrayList();
-                for (CoreValue value : CoreValues.getValues(property)) {
-                    if (!paths.contains(value.getString())) {
+                List<String> values = Lists.newArrayList();
+                for (String value : property.getValue(Type.STRINGS)) {
+                    if (!paths.contains(values)) {
                         values.add(value);
                     }
                 }
                 if (values.isEmpty()) {
                     index.removeProperty(encoded);
                 } else {
-                    index.setProperty(PropertyStates.createProperty(encoded, values));
+                    index.setProperty(PropertyStates.stringProperty(encoded, values));
                 }
             }
         }
@@ -104,16 +103,16 @@ class PropertyIndexUpdate {
         for (Map.Entry<String, Set<String>> entry : insert.entrySet()) {
             String encoded = entry.getKey();
             Set<String> paths = entry.getValue();
-            List<CoreValue> values = Lists.newArrayList();
+            List<String> values = Lists.newArrayList();
             PropertyState property = index.getProperty(encoded);
             if (property != null) {
-                for (CoreValue value : CoreValues.getValues(property)) {
+                for (String value : property.getValue(Type.STRINGS)) {
                     values.add(value);
-                    paths.remove(value.getString());
+                    paths.remove(value);
                 }
             }
             for (String path : paths) {
-                values.add(new StringValue(path));
+                values.add(path);
             }
             if (values.isEmpty()) {
                 index.removeProperty(encoded);
@@ -121,7 +120,8 @@ class PropertyIndexUpdate {
                 throw new CommitFailedException(
                         "Uniqueness constraint violated");
             } else {
-                index.setProperty(PropertyStates.createProperty(encoded, values));
+                index.setProperty(PropertyStates
+                        .stringProperty(encoded, values));
             }
         }
     }

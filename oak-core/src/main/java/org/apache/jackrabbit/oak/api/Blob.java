@@ -36,7 +36,7 @@ public interface Blob extends Comparable<Blob> {
     InputStream getNewStream();
 
     /**
-     * Returns the length of this blob.
+     * Returns the length of this blob or -1 if unknown.
      *
      * @return the length of this blob.
      */
