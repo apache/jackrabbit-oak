@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.spi.lifecycle;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.oak.api.ContentRepository;
 
 /**
  * This interface is mainly used in an OSGi environment where various components
