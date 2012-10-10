@@ -76,7 +76,7 @@ public class UserProviderImplTest extends AbstractOakTest {
         contentSession = createAdminSession();
         root = contentSession.getLatestRoot();
 
-        defaultConfig = new UserConfig("admin");
+        defaultConfig = new UserConfig();
         defaultUserPath = defaultConfig.getConfigValue(UserConfig.PARAM_USER_PATH, UserConstants.DEFAULT_USER_PATH);
         defaultGroupPath = defaultConfig.getConfigValue(UserConfig.PARAM_GROUP_PATH, UserConstants.DEFAULT_GROUP_PATH);
 
@@ -113,7 +113,7 @@ public class UserProviderImplTest extends AbstractOakTest {
     private UserProvider createUserProvider(int defaultDepth) {
         Map<String, Object> options = new HashMap<String, Object>(customOptions);
         options.put(UserConfig.PARAM_DEFAULT_DEPTH, defaultDepth);
-        return new UserProviderImpl(root, new UserConfig("admin", options, Collections.<AuthorizableAction>emptySet()));
+        return new UserProviderImpl(root, new UserConfig(options, Collections.<AuthorizableAction>emptySet()));
     }
 
     @Test

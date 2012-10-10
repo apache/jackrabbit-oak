@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
  */
 public interface AccessControlProvider {
 
-    public AccessControlContext createAccessControlContext(Subject subject);
+    public AccessControlContext getAccessControlContext(Subject subject);
 
     public List<ValidatorProvider> getValidatorProviders();
 }

@@ -44,7 +44,7 @@ public class PermissionValidatorProvider implements ValidatorProvider {
 
         // FIXME: should use same provider as in ContentRepositoryImpl
         AccessControlContext context = new AccessControlProviderImpl()
-                .createAccessControlContext(subject);
+                .getAccessControlContext(subject);
 
         NodeUtil rootBefore = new NodeUtil(new ReadOnlyTree(before));
         NodeUtil rootAfter = new NodeUtil(new ReadOnlyTree(after));

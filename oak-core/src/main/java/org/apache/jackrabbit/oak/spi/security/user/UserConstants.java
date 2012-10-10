@@ -36,4 +36,7 @@ public interface UserConstants {
     String DEFAULT_USER_PATH = "/rep:security/rep:authorizables/rep:users";
     String DEFAULT_GROUP_PATH = "/rep:security/rep:authorizables/rep:groups";
     int DEFAULT_DEPTH = 2;
+
+    String DEFAULT_ADMIN_ID = "admin";
+    String DEFAULT_ANONYMOUS_ID = "anonymous";
 }

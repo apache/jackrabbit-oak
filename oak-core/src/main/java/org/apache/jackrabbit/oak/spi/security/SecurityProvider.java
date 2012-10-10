@@ -18,7 +18,9 @@ package org.apache.jackrabbit.oak.spi.security;
 
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserContext;
@@ -34,6 +36,9 @@ public interface SecurityProvider {
 
     @Nonnull
     AccessControlProvider getAccessControlProvider();
+
+    @Nonnull
+    TokenProvider getTokenProvider(Root root, ConfigurationParameters options);
 
     @Nonnull
     UserContext getUserContext(); // TODO review naming consistency

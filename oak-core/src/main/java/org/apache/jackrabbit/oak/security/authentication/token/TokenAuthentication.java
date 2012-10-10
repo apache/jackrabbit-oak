@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.security.authentication.token;
 import java.util.Date;
 import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
-import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
@@ -56,14 +55,6 @@ class TokenAuthentication implements Authentication {
             success = validateCredentials(tc);
         }
         return success;
-    }
-
-    /**
-     * Always returns {@code false}
-     */
-    @Override
-    public boolean impersonate(Subject subject) {
-        return false;
     }
 
     //-----------------------------------------------------------< internal >---
