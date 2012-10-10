@@ -34,11 +34,9 @@ import javax.jcr.nodetype.PropertyDefinitionTemplate;
 
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
-import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryValueFactory;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 
 /**
@@ -84,19 +82,6 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager {
     }
 
     /**
-     * Returns a {@link CoreValueFactory} to be used by this node type manager.
-     * This implementation returns a {@link MemoryValueFactory#INSTANCE}. A
-     * subclass may override this method and provide a different
-     * implementation.
-     *
-     * @return {@link CoreValueFactory} instance.
-     */
-    @Nonnull
-    protected CoreValueFactory getCoreValueFactory() {
-        return MemoryValueFactory.INSTANCE;
-    }
-
-    /**
      * Returns a {@link NameMapper} to be used by this node type manager. This
      * implementation returns the {@link NamePathMapperImpl#DEFAULT} instance. A
      * subclass may override this method and provide a different
@@ -124,7 +109,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager {
             Tree type = types.getChild(getOakName(name));
             if (type != null) {
                 return new NodeTypeImpl(this, getValueFactory(),
-                        new NodeUtil(type, getCoreValueFactory(), getNameMapper()));
+                        new NodeUtil(type, getNameMapper()));
             }
         }
         throw new NoSuchNodeTypeException(name);
@@ -137,7 +122,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager {
         if (types != null) {
             for (Tree type : types.getChildren()) {
                 list.add(new NodeTypeImpl(this, getValueFactory(),
-                        new NodeUtil(type, getCoreValueFactory(), getNameMapper())));
+                        new NodeUtil(type, getNameMapper())));
 
             }
         }
