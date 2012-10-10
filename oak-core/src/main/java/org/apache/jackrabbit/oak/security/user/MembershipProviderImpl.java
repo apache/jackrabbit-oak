@@ -29,22 +29,23 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
 import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.memory.CoreValues;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryPropertyBuilder;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
+import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.api.Type.WEAKREFERENCE;
 
 /**
  * {@code MembershipProvider} implementation storing group membership information
@@ -207,21 +208,17 @@ public class MembershipProviderImpl extends AuthorizableBaseProvider implements 
             // TODO: add implementation
             throw new UnsupportedOperationException("not implemented: addMember with member-node hierarchy");
         } else {
-            List<CoreValue> values;
-            CoreValue toAdd = createCoreValue(newMemberTree);
+            String toAdd = getContentID(newMemberTree);
             PropertyState property = groupTree.getProperty(REP_MEMBERS);
-            if (property != null) {
-                values = CoreValues.getValues(property);
-                if (values.contains(toAdd)) {
-                    return false;
-                } else {
-                    values = Lists.newArrayList(values);
-                    values.add(toAdd);
-                }
+            PropertyBuilder<String> propertyBuilder = property == null
+                ? MemoryPropertyBuilder.create(WEAKREFERENCE, REP_MEMBERS)
+                : MemoryPropertyBuilder.create(WEAKREFERENCE, property);
+            if (propertyBuilder.hasValue(toAdd)) {
+                return false;
             } else {
-                values = Collections.singletonList(toAdd);
+                propertyBuilder.addValue(toAdd);
             }
-            groupTree.setProperty(PropertyStates.createProperty(REP_MEMBERS, values));
+            groupTree.setProperty(propertyBuilder.getPropertyState(true));
         }
         return true;
     }
@@ -235,18 +232,19 @@ public class MembershipProviderImpl extends AuthorizableBaseProvider implements 
                 throw new UnsupportedOperationException("not implemented: remove member from member-node hierarchy");
             }
         } else {
+            String toRemove = getContentID(memberTree);
             PropertyState property = groupTree.getProperty(REP_MEMBERS);
-            if (property != null) {
-                CoreValue toRemove = createCoreValue(memberTree);
-                List<CoreValue> values = CoreValues.getValues(property);
-                if (values.remove(toRemove)) {
-                    if (values.isEmpty()) {
-                        groupTree.removeProperty(REP_MEMBERS);
-                    } else {
-                        groupTree.setProperty(PropertyStates.createProperty(REP_MEMBERS, values));
-                    }
-                    return true;
+            PropertyBuilder<String> propertyBuilder = property == null
+                ? MemoryPropertyBuilder.create(WEAKREFERENCE, REP_MEMBERS)
+                : MemoryPropertyBuilder.create(WEAKREFERENCE, property);
+            if (propertyBuilder.hasValue(toRemove)) {
+                propertyBuilder.removeValue(toRemove);
+                if (propertyBuilder.isEmpty()) {
+                    groupTree.removeProperty(REP_MEMBERS);
+                } else {
+                    groupTree.setProperty(propertyBuilder.getPropertyState(true));
                 }
+                return true;
             }
         }
 
@@ -256,10 +254,6 @@ public class MembershipProviderImpl extends AuthorizableBaseProvider implements 
     }
 
     //-----------------------------------------< private MembershipProvider >---
-
-    private CoreValue createCoreValue(Tree authorizableTree) {
-        return valueFactory.createValue(getContentID(authorizableTree), PropertyType.WEAKREFERENCE);
-    }
 
     private boolean useMemberNode(Tree groupTree) {
         return splitSize >= 4 && !groupTree.hasProperty(REP_MEMBERS);
