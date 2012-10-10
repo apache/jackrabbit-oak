@@ -23,16 +23,17 @@ import java.util.List;
 
 import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
 
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.kernel.TypeCodes;
 import org.apache.jackrabbit.oak.kernel.KernelBlob;
+import org.apache.jackrabbit.oak.kernel.TypeCodes;
 
 import static org.apache.jackrabbit.oak.api.Type.DATE;
 import static org.apache.jackrabbit.oak.api.Type.DATES;
@@ -52,64 +53,74 @@ public final class PropertyStates {
     private PropertyStates() {}
 
     @Nonnull
-    public static PropertyState createProperty(String name, CoreValue value) {
+    public static PropertyState createProperty(String name, Value value) throws RepositoryException {
         int type = value.getType();
-        if (PropertyType.BINARY == type) {
-           return binaryProperty(name, new ValueBasedBlob(value));
-        }
-        else {
-            return createProperty(name, value.getString(), value.getType());
+        switch (type) {
+            case PropertyType.STRING:
+                return stringProperty(name, value.getString());
+            case PropertyType.BINARY:
+                return binaryProperty(name, value);
+            case PropertyType.LONG:
+                return longProperty(name, value.getLong());
+            case PropertyType.DOUBLE:
+                return doubleProperty(name, value.getDouble());
+            case PropertyType.BOOLEAN:
+                return booleanProperty(name, value.getBoolean());
+            case PropertyType.DECIMAL:
+                return decimalProperty(name, value.getDecimal());
+            default:
+                return new GenericPropertyState(name, value.getString(), Type.fromTag(type, false));
         }
     }
 
     @Nonnull
-    public static PropertyState createProperty(String name, List<CoreValue> values) {
-        if (values.isEmpty()) {
+    public static PropertyState createProperty(String name, Value[] values) throws RepositoryException {
+        if (values.length == 0) {
             return emptyProperty(name, STRINGS);
         }
 
-        int type = values.get(0).getType();
+        int type = values[0].getType();
         switch (type) {
             case PropertyType.STRING:
                 List<String> strings = Lists.newArrayList();
-                for (CoreValue cv : values) {
-                    strings.add(cv.getString());
+                for (Value value : values) {
+                    strings.add(value.getString());
                 }
                 return stringProperty(name, strings);
             case PropertyType.BINARY:
                 List<Blob> blobs = Lists.newArrayList();
-                for (CoreValue cv : values) {
-                    blobs.add(new ValueBasedBlob(cv));
+                for (Value value : values) {
+                    blobs.add(new ValueBasedBlob(value));
                 }
                 return binaryPropertyFromBlob(name, blobs);
             case PropertyType.LONG:
                 List<Long> longs = Lists.newArrayList();
-                for (CoreValue cv : values) {
-                    longs.add(cv.getLong());
+                for (Value value : values) {
+                    longs.add(value.getLong());
                 }
                 return longProperty(name, longs);
             case PropertyType.DOUBLE:
                 List<Double> doubles = Lists.newArrayList();
-                for (CoreValue cv : values) {
-                    doubles.add(cv.getDouble());
+                for (Value value : values) {
+                    doubles.add(value.getDouble());
                 }
                 return doubleProperty(name, doubles);
             case PropertyType.BOOLEAN:
                 List<Boolean> booleans = Lists.newArrayList();
-                for (CoreValue cv : values) {
-                    booleans.add(cv.getBoolean());
+                for (Value value : values) {
+                    booleans.add(value.getBoolean());
                 }
                 return booleanProperty(name, booleans);
             case PropertyType.DECIMAL:
                 List<BigDecimal> decimals = Lists.newArrayList();
-                for (CoreValue cv : values) {
-                    decimals.add(cv.getDecimal());
+                for (Value value : values) {
+                    decimals.add(value.getDecimal());
                 }
                 return decimalProperty(name, decimals);
             default:
                 List<String> vals = Lists.newArrayList();
-                for (CoreValue cv : values) {
-                    vals.add(cv.getString());
+                for (Value value : values) {
+                    vals.add(value.getString());
                 }
                 return new GenericsPropertyState(name, vals, Type.fromTag(type, true));
         }
@@ -272,6 +283,10 @@ public final class PropertyStates {
 
     public static PropertyState binaryProperty(String name, Blob value) {
         return new BinaryPropertyState(name, value);
+    }
+
+    public static PropertyState binaryProperty(String name, Value value) {
+        return new BinaryPropertyState(name, new ValueBasedBlob(value));
     }
 
     public static PropertyState stringProperty(String name, Iterable<String> values) {
