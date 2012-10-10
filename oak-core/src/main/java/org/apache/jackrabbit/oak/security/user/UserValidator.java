@@ -136,9 +136,10 @@ class UserValidator extends DefaultValidator implements UserConstants {
         return node.hasPrimaryNodeTypeName(NT_REP_USER) || node.hasPrimaryNodeTypeName(NT_REP_GROUP);
     }
 
+    // FIXME: copied from UserProvider#isAdminUser
     private boolean isAdminUser(NodeUtil userNode) {
-        // FIXME: add proper implementation
-        return userNode.hasPrimaryNodeTypeName(NT_REP_USER) && "admin".equals(userNode.getName());
+        String id = (userNode.getString(REP_AUTHORIZABLE_ID, Text.unescapeIllegalJcrChars(userNode.getName())));
+        return userNode.hasPrimaryNodeTypeName(NT_REP_USER) && provider.getConfig().getAdminId().equals(id);
     }
 
     private static void fail(String msg) throws CommitFailedException {

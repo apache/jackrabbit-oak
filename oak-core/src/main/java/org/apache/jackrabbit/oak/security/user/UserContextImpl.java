@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.security.user;
 
 import java.util.Collections;
 import java.util.List;
+import javax.annotation.Nonnull;
 import javax.jcr.Session;
 
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -38,11 +39,17 @@ public class UserContextImpl implements UserContext {
 
     // TODO add proper configuration
     public UserContextImpl() {
-        this(new UserConfig("admin"));
+        this(new UserConfig());
     }
 
     public UserContextImpl(UserConfig config) {
         this.config = config;
+    }
+
+    @Nonnull
+    @Override
+    public UserConfig getUserConfig() {
+        return config;
     }
 
     @Override

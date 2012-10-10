@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
@@ -99,10 +100,13 @@ public class TokenProviderImpl implements TokenProvider {
     private final UserProvider userProvider;
     private final long tokenExpiration;
 
+    public TokenProviderImpl(Root root, ConfigurationParameters options, UserContext userContext) {
+        this(root, options.getConfigValue(PARAM_TOKEN_EXPIRATION, Long.valueOf(DEFAULT_TOKEN_EXPIRATION)), userContext);
+    }
+
     public TokenProviderImpl(Root root, long tokenExpiration, UserContext userContext) {
         this.root = root;
         this.tokenExpiration = tokenExpiration;
-
         this.userProvider = userContext.getUserProvider(root);
     }
 

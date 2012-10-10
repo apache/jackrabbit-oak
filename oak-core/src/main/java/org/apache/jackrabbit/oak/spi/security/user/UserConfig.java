@@ -21,20 +21,24 @@ import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * UserConfig provides utilities to retrieve configuration options
  * related to user management. In addition it defines some constants that
  * have been used in Jackrabbit 2.0 default user management implementation.
  */
-public class UserConfig {
+public class UserConfig extends ConfigurationParameters {
 
     private static final Logger log = LoggerFactory.getLogger(UserConfig.class);
+
+    /**
+     * Configuration option defining the ID of the administrator user.
+     */
+    public static final String PARAM_ADMIN_ID = "adminId";
 
     /**
      * Configuration option defining the ID of the anonymous user. The ID
@@ -93,68 +97,28 @@ public class UserConfig {
      */
     public static final String PARAM_PASSWORD_SALT_SIZE = "passwordSaltSize";
 
-    private final String adminId;
-    private final Map<String, Object> options;
     private final Set<AuthorizableAction> actions;
 
-    public UserConfig(String adminId) {
-        this(adminId, null, null);
+    public UserConfig() {
+        this(null, null);
     }
 
-    public UserConfig(String adminId, Map<String, Object> options, Set<AuthorizableAction> actions) {
-        this.adminId = checkNotNull(adminId);
-        this.options = (options == null) ? Collections.<String, Object>emptyMap() : Collections.unmodifiableMap(options);
+    public UserConfig(Map<String, Object> options, Set<AuthorizableAction> actions) {
+        super(options);
         this.actions = (actions == null) ? Collections.<AuthorizableAction>emptySet() : Collections.unmodifiableSet(actions);
     }
 
     @Nonnull
     public String getAdminId() {
-        return adminId;
+        return getConfigValue(PARAM_ADMIN_ID, UserConstants.DEFAULT_ADMIN_ID);
     }
 
     public String getAnonymousId() {
-        return getConfigValue(PARAM_ANONYMOUS_ID, null);
-    }
-
-    public <T> T getConfigValue(String key, T defaultValue) {
-        if (options != null && options.containsKey(key)) {
-            return convert(options.get(key), defaultValue);
-        } else {
-            return defaultValue;
-        }
+        return getConfigValue(PARAM_ANONYMOUS_ID, UserConstants.DEFAULT_ANONYMOUS_ID);
     }
 
     @Nonnull
     public AuthorizableAction[] getAuthorizableActions() {
         return actions.toArray(new AuthorizableAction[actions.size()]);
-    }
-
-    //--------------------------------------------------------< private >---
-    @SuppressWarnings("unchecked")
-    private static <T> T convert(Object configProperty, T defaultValue) {
-        T value;
-        String str = configProperty.toString();
-        Class targetClass = (defaultValue == null) ? String.class : defaultValue.getClass();
-        try {
-            if (targetClass == String.class) {
-                value = (T) str;
-            } else if (targetClass == Integer.class) {
-                value = (T) Integer.valueOf(str);
-            } else if (targetClass == Long.class) {
-                value = (T) Long.valueOf(str);
-            } else if (targetClass == Double.class) {
-                value = (T) Double.valueOf(str);
-            } else if (targetClass == Boolean.class) {
-                value = (T) Boolean.valueOf(str);
-            } else {
-                // unsupported target type
-                log.warn("Unsupported target type {} for value {}", targetClass.getName(), str);
-                throw new IllegalArgumentException("Cannot convert config entry " + str + " to " + targetClass.getName());
-            }
-        } catch (NumberFormatException e) {
-            log.warn("Invalid value {}; cannot be parsed into {}", str, targetClass.getName());
-            value = defaultValue;
-        }
-        return value;
     }
 }

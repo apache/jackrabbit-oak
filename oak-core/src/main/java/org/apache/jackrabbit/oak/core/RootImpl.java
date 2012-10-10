@@ -293,7 +293,7 @@ public class RootImpl implements Root {
     }
 
     CompiledPermissions getPermissions() {
-        return accProvider.createAccessControlContext(subject).getPermissions();
+        return accProvider.getAccessControlContext(subject).getPermissions();
     }
 
     //------------------------------------------------------------< private >---

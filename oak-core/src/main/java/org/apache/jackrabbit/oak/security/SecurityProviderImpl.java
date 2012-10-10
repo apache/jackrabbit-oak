@@ -25,12 +25,15 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.security.authentication.ConfigurationImpl;
 import org.apache.jackrabbit.oak.security.authentication.LoginContextProviderImpl;
+import org.apache.jackrabbit.oak.security.authentication.token.TokenProviderImpl;
 import org.apache.jackrabbit.oak.security.authorization.AccessControlProviderImpl;
 import org.apache.jackrabbit.oak.security.principal.PrincipalManagerImpl;
 import org.apache.jackrabbit.oak.security.principal.PrincipalProviderImpl;
 import org.apache.jackrabbit.oak.security.user.UserContextImpl;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
@@ -53,6 +56,12 @@ public class SecurityProviderImpl implements SecurityProvider {
     @Override
     public AccessControlProvider getAccessControlProvider() {
         return new AccessControlProviderImpl();
+    }
+
+    @Nonnull
+    @Override
+    public TokenProvider getTokenProvider(Root root, ConfigurationParameters options) {
+        return new TokenProviderImpl(root, options, getUserContext());
     }
 
     @Nonnull

@@ -24,13 +24,13 @@ import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 
 /**
  * This class implements an {@link AccessControlProvider} which grants
- * full access to any {@link Subject} passed to {@link #createAccessControlContext(Subject)}.
+ * full access to any {@link Subject} passed to {@link #getAccessControlContext(Subject)}.
  */
 public class OpenAccessControlProvider
         implements AccessControlProvider {
 
     @Override
-    public AccessControlContext createAccessControlContext(Subject subject) {
+    public AccessControlContext getAccessControlContext(Subject subject) {
         return new AccessControlContext() {
             @Override
             public CompiledPermissions getPermissions() {
