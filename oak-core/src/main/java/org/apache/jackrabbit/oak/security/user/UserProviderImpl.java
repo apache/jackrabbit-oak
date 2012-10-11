@@ -30,7 +30,6 @@ import javax.jcr.query.Query;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.user.Impersonation;
-import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
@@ -38,6 +37,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.TreeBasedPrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
@@ -206,14 +206,13 @@ class UserProviderImpl extends AuthorizableBaseProvider implements UserProvider 
         // can be omitted as principals names are stored in user defined
         // index as well.
         try {
-            CoreValue bindValue = valueFactory.createValue(principal.getName());
             StringBuilder stmt = new StringBuilder();
             stmt.append("SELECT * FROM [").append(UserConstants.NT_REP_AUTHORIZABLE).append(']');
             stmt.append("WHERE [").append(UserConstants.REP_PRINCIPAL_NAME).append("] = $principalName");
 
             Result result = root.getQueryEngine().executeQuery(stmt.toString(),
                     Query.JCR_SQL2, 1, 0,
-                    Collections.singletonMap("principalName", bindValue),
+                    Collections.singletonMap("principalName", PropertyValues.newString(principal.getName())),
                     root, new NamePathMapper.Default());
 
             Iterator<? extends ResultRow> rows = result.getRows().iterator();

@@ -30,13 +30,14 @@ import javax.jcr.query.RowIterator;
 
 import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
 import org.apache.jackrabbit.commons.iterator.RowIteratorAdapter;
-import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.NodeImpl;
 import org.apache.jackrabbit.oak.jcr.SessionDelegate;
+import org.apache.jackrabbit.oak.plugins.memory.CoreValues;
+import org.apache.jackrabbit.oak.spi.query.PropertyValue;
 
 /**
  * The implementation of the corresponding JCR interface.
@@ -227,8 +228,8 @@ public class QueryResultImpl implements QueryResult {
         };
     }
 
-    Value createValue(CoreValue value) {
-        return value == null ? null : sessionDelegate.getValueFactory().createValue(value);
+    Value createValue(PropertyValue value) {
+        return value == null ? null : sessionDelegate.getValueFactory().createValue(CoreValues.getValue(value));
     }
 
 }

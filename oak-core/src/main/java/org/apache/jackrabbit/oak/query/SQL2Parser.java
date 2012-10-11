@@ -16,11 +16,9 @@
  */
 package org.apache.jackrabbit.oak.query;
 
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.CoreValueFactory;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.ast.AstElementFactory;
-import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.ast.BindVariableValueImpl;
 import org.apache.jackrabbit.oak.query.ast.ColumnImpl;
 import org.apache.jackrabbit.oak.query.ast.ConstraintImpl;
@@ -28,12 +26,15 @@ import org.apache.jackrabbit.oak.query.ast.DynamicOperandImpl;
 import org.apache.jackrabbit.oak.query.ast.JoinConditionImpl;
 import org.apache.jackrabbit.oak.query.ast.JoinType;
 import org.apache.jackrabbit.oak.query.ast.LiteralImpl;
+import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.ast.OrderingImpl;
 import org.apache.jackrabbit.oak.query.ast.PropertyExistenceImpl;
 import org.apache.jackrabbit.oak.query.ast.PropertyValueImpl;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.ast.SourceImpl;
 import org.apache.jackrabbit.oak.query.ast.StaticOperandImpl;
+import org.apache.jackrabbit.oak.spi.query.PropertyValue;
+import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 
 import javax.jcr.PropertyType;
 import java.math.BigDecimal;
@@ -66,7 +67,7 @@ public class SQL2Parser {
     private int currentTokenType;
     private String currentToken;
     private boolean currentTokenQuoted;
-    private CoreValue currentValue;
+    private PropertyValue currentValue;
     private ArrayList<String> expected;
 
     // The bind variables
@@ -80,17 +81,14 @@ public class SQL2Parser {
     private boolean allowNumberLiterals = true;
 
     private final AstElementFactory factory = new AstElementFactory();
-    private final CoreValueFactory valueFactory;
 
     private boolean supportSQL1;
 
     /**
      * Create a new parser. A parser can be re-used, but it is not thread safe.
      *
-     * @param valueFactory the value factory
      */
-    public SQL2Parser(CoreValueFactory valueFactory) {
-        this.valueFactory = valueFactory;
+    public SQL2Parser() {
     }
 
     /**
@@ -136,7 +134,7 @@ public class SQL2Parser {
         if (!currentToken.isEmpty()) {
             throw getSyntaxError("<end>");
         }
-        Query q = new Query(source, constraint, orderings, columnArray, valueFactory);
+        Query q = new Query(source, constraint, orderings, columnArray);
         q.setExplain(explain);
         q.setMeasure(measure);
         try {
@@ -186,9 +184,9 @@ public class SQL2Parser {
     private String readName() throws ParseException {
         if (readIf("[")) {
             if (currentTokenType == VALUE) {
-                CoreValue value = readString();
+                PropertyValue value = readString();
                 read("]");
-                return value.getString();
+                return value.getValue(Type.STRING);
             } else {
                 int level = 1;
                 StringBuilder buff = new StringBuilder();
@@ -356,8 +354,8 @@ public class SQL2Parser {
                     if (!(esc instanceof LiteralImpl)) {
                         throw getSyntaxError("only ESCAPE '\' is supported");
                     }
-                    CoreValue v = ((LiteralImpl) esc).getLiteralValue();
-                    if (!v.getString().equals("\\")) {
+                    PropertyValue v = ((LiteralImpl) esc).getLiteralValue();
+                    if (!v.getValue(Type.STRING).equals("\\")) {
                         throw getSyntaxError("only ESCAPE '\' is supported");
                     }
                 }
@@ -518,7 +516,7 @@ public class SQL2Parser {
         } else if ("PROPERTY".equalsIgnoreCase(functionName)) {
             PropertyValueImpl pv = parsePropertyValue(readName());
             read(",");
-            op = factory.propertyValue(pv.getSelectorName(), pv.getPropertyName(), readString().getString());
+            op = factory.propertyValue(pv.getSelectorName(), pv.getPropertyName(), readString().getValue(Type.STRING));
         } else {
             throw getSyntaxError("LENGTH, NAME, LOCALNAME, SCORE, LOWER, UPPER, or PROPERTY");
         }
@@ -542,19 +540,19 @@ public class SQL2Parser {
             if (currentTokenType != VALUE) {
                 throw getSyntaxError("number");
             }
-            int valueType = currentValue.getType();
+            int valueType = currentValue.getType().tag();
             switch (valueType) {
             case PropertyType.LONG:
-                currentValue = valueFactory.createValue(-currentValue.getLong());
+                currentValue = PropertyValues.newLong(-currentValue.getValue(Type.LONG));
                 break;
             case PropertyType.DOUBLE:
-                currentValue = valueFactory.createValue(-currentValue.getDouble());
+                currentValue = PropertyValues.newDouble(-currentValue.getValue(Type.DOUBLE));
                 break;
             case PropertyType.BOOLEAN:
-                currentValue = valueFactory.createValue(!currentValue.getBoolean());
+                currentValue = PropertyValues.newBoolean(!currentValue.getValue(Type.BOOLEAN));
                 break;
             case PropertyType.DECIMAL:
-                currentValue = valueFactory.createValue(currentValue.getDecimal().negate());
+                currentValue = PropertyValues.newDecimal(currentValue.getValue(Type.DECIMAL).negate());
                 break;
             default:
                 throw getSyntaxError("Illegal operation: -" + currentValue);
@@ -577,10 +575,10 @@ public class SQL2Parser {
             }
             return var;
         } else if (readIf("TRUE")) {
-            LiteralImpl literal = getUncastLiteral(valueFactory.createValue(true));
+            LiteralImpl literal = getUncastLiteral(PropertyValues.newBoolean(true));
             return literal;
         } else if (readIf("FALSE")) {
-            LiteralImpl literal = getUncastLiteral(valueFactory.createValue(false));
+            LiteralImpl literal = getUncastLiteral(PropertyValues.newBoolean(false));
             return literal;
         } else if (readIf("CAST")) {
             read("(");
@@ -589,7 +587,7 @@ public class SQL2Parser {
                 throw getSyntaxError("literal");
             }
             LiteralImpl literal = (LiteralImpl) op;
-            CoreValue value = literal.getLiteralValue();
+            PropertyValue value = literal.getLiteralValue();
             read("AS");
             value = parseCastAs(value);
             read(")");
@@ -604,8 +602,8 @@ public class SQL2Parser {
                         throw getSyntaxError("literal");
                     }
                     LiteralImpl literal = (LiteralImpl) op;
-                    CoreValue value = literal.getLiteralValue();
-                    value = valueFactory.createValue(value.getString(), PropertyType.DATE);
+                    PropertyValue value = literal.getLiteralValue();
+                    value = PropertyValues.newDate(value.getValue(Type.STRING));
                     literal = factory.literal(value);
                     return literal;
                 }
@@ -620,44 +618,23 @@ public class SQL2Parser {
      * @param value the original value
      * @return the literal
      */
-    private LiteralImpl getUncastLiteral(CoreValue value) {
+    private LiteralImpl getUncastLiteral(PropertyValue value) {
         return factory.literal(value);
     }
 
-    private CoreValue parseCastAs(CoreValue value) throws ParseException {
+    private PropertyValue parseCastAs(PropertyValue value)
+            throws ParseException {
         if (currentTokenQuoted) {
             throw getSyntaxError("data type (STRING|BINARY|...)");
         }
         int propertyType = getPropertyTypeFromName(currentToken);
         read();
-        switch (propertyType) {
-        case PropertyType.STRING:
-            return valueFactory.createValue(value.getString());
-        case PropertyType.BINARY:
-            return valueFactory.createValue(value.getString(), PropertyType.BINARY);
-        case PropertyType.DATE:
-            return valueFactory.createValue(value.getString(), PropertyType.DATE);
-        case PropertyType.LONG:
-            return valueFactory.createValue(value.getLong());
-        case PropertyType.DOUBLE:
-            return valueFactory.createValue(value.getDouble());
-        case PropertyType.DECIMAL:
-            return valueFactory.createValue(value.getDecimal());
-        case PropertyType.BOOLEAN:
-            return valueFactory.createValue(value.getBoolean());
-        case PropertyType.NAME:
-            return valueFactory.createValue(value.getString(), PropertyType.NAME);
-        case PropertyType.PATH:
-            return valueFactory.createValue(value.getString(), PropertyType.PATH);
-        case PropertyType.REFERENCE:
-            return valueFactory.createValue(value.getString(), PropertyType.REFERENCE);
-        case PropertyType.WEAKREFERENCE:
-            return valueFactory.createValue(value.getString(), PropertyType.WEAKREFERENCE);
-        case PropertyType.URI:
-            return valueFactory.createValue(value.getString(), PropertyType.URI);
-        default:
+
+        PropertyValue v = PropertyValues.convert(value, propertyType, null);
+        if (v == null) {
             throw getSyntaxError("data type (STRING|BINARY|...)");
         }
+        return v;
     }
 
     /**
@@ -807,7 +784,7 @@ public class SQL2Parser {
         }
         String s;
         if (currentTokenType == VALUE) {
-            s = currentValue.getString();
+            s = currentValue.getValue(Type.STRING);
         } else {
             s = currentToken;
         }
@@ -815,11 +792,11 @@ public class SQL2Parser {
         return s;
     }
 
-    private CoreValue readString() throws ParseException {
+    private PropertyValue readString() throws ParseException {
         if (currentTokenType != VALUE) {
             throw getSyntaxError("string value");
         }
-        CoreValue value = currentValue;
+        PropertyValue value = currentValue;
         read();
         return value;
     }
@@ -999,7 +976,7 @@ public class SQL2Parser {
                         break;
                     }
                     checkLiterals(false);
-                    currentValue = valueFactory.createValue(number);
+                    currentValue = PropertyValues.newLong(number);
                     currentTokenType = VALUE;
                     currentToken = "0";
                     parseIndex = i;
@@ -1035,7 +1012,7 @@ public class SQL2Parser {
                 // (not in the JCR 1.0 spec)
                 // (confusing isn't it?)
                 currentTokenType = IDENTIFIER;
-                currentToken = currentValue.getString();
+                currentToken = currentValue.getValue(Type.STRING);
             }
             return;
         case CHAR_END:
@@ -1069,7 +1046,7 @@ public class SQL2Parser {
         }
         currentToken = "'";
         checkLiterals(false);
-        currentValue = valueFactory.createValue(result);
+        currentValue = PropertyValues.newString(result);
         parseIndex = i;
         currentTokenType = VALUE;
     }
@@ -1112,7 +1089,7 @@ public class SQL2Parser {
         }
         checkLiterals(false);
 
-        currentValue = valueFactory.createValue(bd);
+        currentValue = PropertyValues.newDecimal(bd);
         currentTokenType = VALUE;
     }
 

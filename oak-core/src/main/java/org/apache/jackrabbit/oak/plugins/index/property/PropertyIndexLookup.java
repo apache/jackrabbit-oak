@@ -18,11 +18,10 @@ package org.apache.jackrabbit.oak.plugins.index.property;
 
 import java.util.Set;
 
-import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.memory.CoreValues;
-import org.apache.jackrabbit.oak.plugins.memory.StringValue;
+import org.apache.jackrabbit.oak.spi.query.PropertyValue;
+import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -66,10 +65,10 @@ public class PropertyIndexLookup {
     }
 
     public Set<String> find(String name, String value) {
-        return find(name, new StringValue(value));
+        return find(name, PropertyValues.newString(value));
     }
 
-    public Set<String> find(String name, CoreValue value) {
+    public Set<String> find(String name, PropertyValue value) {
         Set<String> paths = Sets.newHashSet();
 
         PropertyState property = null;
@@ -79,7 +78,8 @@ public class PropertyIndexLookup {
             if (state != null) {
                 state = state.getChildNode(":index");
                 if (state != null) {
-                    property = state.getProperty(PropertyIndex.encode(value));
+                    //TODO what happens when I search using an mvp?
+                    property = state.getProperty(PropertyIndex.encode(value).get(0));
                 }
             }
         }
@@ -92,12 +92,9 @@ public class PropertyIndexLookup {
         } else {
             // No index available, so first check this node for a match
             property = root.getProperty(name);
-            if (property != null) {
-                for (CoreValue cv : CoreValues.getValues(property)) {
-                    if (cv.equals(value)) {
-                        paths.add("");
-                        break;
-                    }
+            if (property != null){
+                if(PropertyValues.match(property, value)){
+                    paths.add("");
                 }
             }
 

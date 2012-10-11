@@ -18,18 +18,19 @@
  */
 package org.apache.jackrabbit.oak.query.index;
 
-import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.query.ast.Operator;
-import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
-import org.apache.jackrabbit.oak.spi.query.Filter;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
+
 import javax.jcr.PropertyType;
+
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.query.ast.Operator;
+import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
+import org.apache.jackrabbit.oak.spi.query.Filter;
+import org.apache.jackrabbit.oak.spi.query.PropertyValue;
 
 /**
  * A filter or lookup condition.
@@ -182,46 +183,47 @@ public class FilterImpl implements Filter {
         x.propertyType = propertyType;
     }
 
-    public void restrictProperty(String propertyName, Operator op, CoreValue value) {
+    public void restrictProperty(String propertyName, Operator op, PropertyValue v) {
         PropertyRestriction x = propertyRestrictions.get(propertyName);
         if (x == null) {
             x = new PropertyRestriction();
             x.propertyName = propertyName;
             propertyRestrictions.put(propertyName, x);
         }
-        CoreValue oldFirst = x.first, oldLast = x.last;
+        PropertyValue oldFirst = x.first;
+        PropertyValue oldLast = x.last;
         switch (op) {
         case EQUAL:
-            x.first = maxValue(oldFirst, value);
+            x.first = maxValue(oldFirst, v);
             x.firstIncluding = x.first == oldFirst ? x.firstIncluding : true;
-            x.last = minValue(oldLast, value);
+            x.last = minValue(oldLast, v);
             x.lastIncluding = x.last == oldLast ? x.lastIncluding : true;
             break;
         case NOT_EQUAL:
-            if (value != null) {
+            if (v != null) {
                 throw new IllegalArgumentException("NOT_EQUAL only supported for NOT_EQUAL NULL");
             }
             break;
         case GREATER_THAN:
-            x.first = maxValue(oldFirst, value);
+            x.first = maxValue(oldFirst, v);
             x.firstIncluding = false;
             break;
         case GREATER_OR_EQUAL:
-            x.first = maxValue(oldFirst, value);
+            x.first = maxValue(oldFirst, v);
             x.firstIncluding = x.first == oldFirst ? x.firstIncluding : true;
             break;
         case LESS_THAN:
-            x.last = minValue(oldLast, value);
+            x.last = minValue(oldLast, v);
             x.lastIncluding = false;
             break;
         case LESS_OR_EQUAL:
-            x.last = minValue(oldLast, value);
+            x.last = minValue(oldLast, v);
             x.lastIncluding = x.last == oldLast ? x.lastIncluding : true;
             break;
         case LIKE:
             // LIKE is handled in the fulltext index
             x.isLike = true;
-            x.first = value;
+            x.first = v;
             break;
         }
         if (x.first != null && x.last != null) {
@@ -233,18 +235,18 @@ public class FilterImpl implements Filter {
         }
     }
 
-    static CoreValue maxValue(CoreValue a, CoreValue b) {
+    static PropertyValue maxValue(PropertyValue a, PropertyValue b) {
         if (a == null) {
             return b;
         }
         return a.compareTo(b) < 0 ? b : a;
     }
 
-    static CoreValue minValue(CoreValue a, CoreValue b) {
+    static PropertyValue minValue(PropertyValue a, PropertyValue b) {
         if (a == null) {
             return b;
         }
-        return a.compareTo(b) < 0 ? a : b;
+        return a.compareTo(b) <= 0 ? a : b;
     }
 
     @Override

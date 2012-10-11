@@ -18,11 +18,10 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.CoreValues;
-import org.apache.jackrabbit.oak.query.Query;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
+import org.apache.jackrabbit.oak.spi.query.PropertyValue;
+import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 
 /**
  * A comparison operation (including "like").
@@ -51,67 +50,76 @@ public class ComparisonImpl extends ConstraintImpl {
         return operand2;
     }
 
+    public static int getType(PropertyValue p, int ifUnknown) {
+        if (p.count() > 0) {
+            return p.getType().tag();
+        }
+        return ifUnknown;
+    }
+
     @Override
     public boolean evaluate() {
         // JCR 2.0 spec, 6.7.16 Comparison:
         // "operand1 may evaluate to an array of values"
-        PropertyState p1 = operand1.currentProperty();
+        PropertyValue p1 = operand1.currentProperty();
         if (p1 == null) {
             return false;
         }
-        // "operand2 always evaluates to a scalar value"
-        CoreValue v2 = operand2.currentValue();
-        if (v2 == null) {
+        PropertyValue p2 = operand2.currentValue();
+        if (p2 == null) {
             // if the property doesn't exist, the result is always false
             // even for "null <> 'x'" (same as in SQL) 
             return false;
         }
-        boolean isArray = p1.isArray();
-        int v1Type = Query.getType(p1, v2.getType());
-        if (v1Type != v2.getType()) {
+        int v1Type = getType(p1, p2.getType().tag());
+        if (v1Type != p2.getType().tag()) {
             // "the value of operand2 is converted to the
             // property type of the value of operand1"
-            v2 = query.convert(v2, v1Type);
-            if (v2 == null) {
+            p2 = PropertyValues.convert(p2, v1Type, query.getNamePathMapper());
+            if (p2 == null) {
                 return false;
             }
         }
-        if (!isArray) {
-            return evaluate(CoreValues.getValue(p1), v2);
-        }
-        // for multi-valued properties: if any of the value matches,
-        // then return true
-        for (CoreValue v1 : CoreValues.getValues(p1)) {
-            if (evaluate(v1, v2)) {
-                return true;
-            }
-        }
-        return false;
+        return evaluate(p1, p2);
     }
 
-    private boolean evaluate(CoreValue v1, CoreValue v2) {
+    /**
+     * "operand2 always evaluates to a scalar value"
+     * 
+     * for multi-valued properties: if any of the value matches, then return true
+     * 
+     * @param p1
+     * @param p2
+     * @return
+     */
+    private boolean evaluate(PropertyValue p1, PropertyValue p2) {
         switch (operator) {
         case EQUAL:
-            return v1.equals(v2);
-        case GREATER_OR_EQUAL:
-            return v1.compareTo(v2) >= 0;
-        case GREATER_THAN:
-            return v1.compareTo(v2) > 0;
-        case LESS_OR_EQUAL:
-            return v1.compareTo(v2) <= 0;
-        case LESS_THAN:
-            return v1.compareTo(v2) < 0;
+            return PropertyValues.match(p1, p2);
         case NOT_EQUAL:
-            return !v1.equals(v2);
+            return !PropertyValues.match(p1, p2);
+        case GREATER_OR_EQUAL:
+            return p1.compareTo(p2) >= 0;
+        case GREATER_THAN:
+            return p1.compareTo(p2) > 0;
+        case LESS_OR_EQUAL:
+            return p1.compareTo(p2) <= 0;
+        case LESS_THAN:
+            return p1.compareTo(p2) < 0;
         case LIKE:
-            return evaluateLike(v1, v2);
+            return evaluateLike(p1, p2);
         }
         throw new IllegalArgumentException("Unknown operator: " + operator);
     }
 
-    private static boolean evaluateLike(CoreValue v1, CoreValue v2) {
-        LikePattern like = new LikePattern(v2.getString());
-        return like.matches(v1.getString());
+    private static boolean evaluateLike(PropertyValue v1, PropertyValue v2) {
+        LikePattern like = new LikePattern(v2.getValue(Type.STRING));
+        for (String s : v1.getValue(Type.STRINGS)) {
+            if (like.matches(s)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
@@ -126,7 +134,7 @@ public class ComparisonImpl extends ConstraintImpl {
 
     @Override
     public void restrict(FilterImpl f) {
-        CoreValue v = operand2.currentValue();
+        PropertyValue v = operand2.currentValue();
         if (v != null) {
             operand1.restrict(f, operator, v);
             // TODO OAK-347
@@ -155,8 +163,7 @@ public class ComparisonImpl extends ConstraintImpl {
 
     @Override
     public void restrictPushDown(SelectorImpl s) {
-        CoreValue v = operand2.currentValue();
-        if (v != null) {
+        if (operand2.currentValue() != null) {
             if (operand1.canRestrictSelector(s)) {
                 s.restrictSelector(this);
             }

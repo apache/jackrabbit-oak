@@ -23,7 +23,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
@@ -33,12 +35,15 @@ import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.qom.QueryObjectModelFactory;
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.SessionQueryEngine;
+
 import org.apache.jackrabbit.oak.api.Result;
+import org.apache.jackrabbit.oak.api.SessionQueryEngine;
 import org.apache.jackrabbit.oak.jcr.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.query.qom.QueryObjectModelFactoryImpl;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.spi.query.PropertyValue;
+import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 
 /**
  * The implementation of the corresponding JCR interface.
@@ -110,7 +115,7 @@ public class QueryManagerImpl implements QueryManager {
     public QueryResult executeQuery(String statement, String language,
             long limit, long offset, HashMap<String, Value> bindVariableMap) throws RepositoryException {
         try {
-            HashMap<String, CoreValue> bindMap = convertMap(bindVariableMap);
+            Map<String, PropertyValue> bindMap = convertMap(bindVariableMap);
             NamePathMapper namePathMapper = sessionDelegate.getNamePathMapper();
             Result r = queryEngine.executeQuery(statement, language, limit, offset,
                     bindMap, sessionDelegate.getRoot(), namePathMapper);
@@ -122,10 +127,13 @@ public class QueryManagerImpl implements QueryManager {
         }
     }
 
-    private HashMap<String, CoreValue> convertMap(HashMap<String, Value> bindVariableMap) {
-        HashMap<String, CoreValue> map = new HashMap<String, CoreValue>();
+    private Map<String, PropertyValue> convertMap(
+            HashMap<String, Value> bindVariableMap) throws RepositoryException {
+        HashMap<String, PropertyValue> map = new HashMap<String, PropertyValue>();
         for (Entry<String, Value> e : bindVariableMap.entrySet()) {
-            map.put(e.getKey(), sessionDelegate.getValueFactory().getCoreValue(e.getValue()));
+            map.put(e.getKey(),
+                    PropertyValues.create(PropertyStates.createProperty("",
+                            e.getValue())));
         }
         return map;
     }
