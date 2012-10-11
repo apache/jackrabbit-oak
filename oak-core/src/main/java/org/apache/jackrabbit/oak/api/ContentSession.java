@@ -83,13 +83,5 @@ public interface ContentSession extends Closeable {
     @Nonnull
     Root getLatestRoot();
 
-    /**
-     * Returns the internal value factory.
-     *
-     * @return the internal value factory.
-     */
-    @Nonnull
-    CoreValueFactory getCoreValueFactory();
-
     // TODO : add versioning operations
 }

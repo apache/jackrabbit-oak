@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.memory;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
@@ -41,11 +40,6 @@ public class MemoryNodeStore implements NodeStore {
     @Override
     public NodeStoreBranch branch() {
         return new MemoryNodeStoreBranch(root.get());
-    }
-
-    @Override
-    public CoreValueFactory getValueFactory() {
-        return MemoryValueFactory.INSTANCE;
     }
 
     private class MemoryNodeStoreBranch implements NodeStoreBranch {

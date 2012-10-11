@@ -24,7 +24,6 @@ import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandlerProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
@@ -95,9 +94,4 @@ class ContentSessionImpl implements ContentSession {
         return workspaceName;
     }
 
-    @Nonnull
-    @Override
-    public CoreValueFactory getCoreValueFactory() {
-        return store.getValueFactory();
-    }
 }
