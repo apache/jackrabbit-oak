@@ -66,7 +66,6 @@ public abstract class AbstractLoginModule implements LoginModule {
      */
     public static final String SHARED_KEY_LOGIN_NAME = "javax.security.auth.login.name";
 
-
     protected Subject subject;
     protected CallbackHandler callbackHandler;
     protected Map sharedState;
@@ -86,16 +85,23 @@ public abstract class AbstractLoginModule implements LoginModule {
 
     @Override
     public boolean logout() throws LoginException {
-        if (subject.getPrincipals().isEmpty() || subject.getPublicCredentials(Credentials.class).isEmpty()) {
-            return false;
-        } else {
+        boolean success = false;
+        if (!subject.getPrincipals().isEmpty() && !subject.getPublicCredentials(Credentials.class).isEmpty()) {
             // clear subject if not readonly
             if (!subject.isReadOnly()) {
                 subject.getPrincipals().clear();
                 subject.getPublicCredentials().clear();
             }
-            return true;
+            success = true;
         }
+        // TODO: check if state should be cleared
+        return success;
+    }
+
+    @Override
+    public boolean abort() throws LoginException {
+        clearState();
+        return true;
     }
 
     //--------------------------------------------------------------------------
@@ -239,5 +245,13 @@ public abstract class AbstractLoginModule implements LoginModule {
             }
         }
         return root;
+    }
+
+    /**
+     * Clear state information that has been created during {@link #login()}.
+     */
+    protected void clearState() {
+        securityProvider = null;
+        root = null;
     }
 }
