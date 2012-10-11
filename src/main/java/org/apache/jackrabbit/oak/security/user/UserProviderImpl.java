@@ -269,10 +269,6 @@ class UserProviderImpl extends AuthorizableBaseProvider implements UserProvider 
 
     @Override
     public void setPassword(Tree userTree, String password, boolean forceHash) throws RepositoryException {
-        if (password == null) {
-            log.debug("Password is null.");
-            return;
-        }
         String pwHash;
         if (forceHash || PasswordUtility.isPlainTextPassword(password)) {
             try {
