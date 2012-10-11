@@ -31,6 +31,11 @@ public class StringBasedBlob extends AbstractBlob {
         this.value = value;
     }
 
+    @Override
+    public String toString() {
+        return value;
+    }
+
     @Nonnull
     @Override
     public InputStream getNewStream() {

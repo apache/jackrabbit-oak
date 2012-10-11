@@ -18,8 +18,8 @@
  */
 package org.apache.jackrabbit.oak.query.index;
 
-import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
+import org.apache.jackrabbit.oak.spi.query.PropertyValue;
 
 /**
  * A simple index row implementation.
@@ -38,7 +38,7 @@ public class IndexRowImpl implements IndexRow {
     }
 
     @Override
-    public CoreValue getValue(String columnName) {
+    public PropertyValue getValue(String columnName) {
         return null;
     }
 

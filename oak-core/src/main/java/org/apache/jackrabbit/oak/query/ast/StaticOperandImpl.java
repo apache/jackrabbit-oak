@@ -18,13 +18,13 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.spi.query.PropertyValue;
 
 /**
  * The base class for static operands (literal, bind variables).
  */
 public abstract class StaticOperandImpl extends AstElement {
 
-    abstract CoreValue currentValue();
+    abstract PropertyValue currentValue();
 
 }

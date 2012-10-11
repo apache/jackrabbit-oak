@@ -27,7 +27,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
@@ -50,22 +49,21 @@ class PropertyIndexUpdate {
         this.remove = Maps.newHashMap();
     }
 
-    public void insert(String path, Iterable<CoreValue> values) {
+    public void insert(String path, PropertyState value) {
         Preconditions.checkArgument(path.startsWith(this.path));
-        putValues(insert, path.substring(this.path.length()), values);
+        putValues(insert, path.substring(this.path.length()), value);
     }
 
-    public void remove(String path, Iterable<CoreValue> values) {
+    public void remove(String path, PropertyState value) {
         Preconditions.checkArgument(path.startsWith(this.path));
-        putValues(remove, path.substring(this.path.length()), values);
+        putValues(remove, path.substring(this.path.length()), value);
     }
 
-    private static void putValues(
-            Map<String, Set<String>> map,
-            String path, Iterable<CoreValue> values) {
-        for (CoreValue value : values) {
-            if (value.getType() != PropertyType.BINARY) {
-                String key = PropertyIndex.encode(value);
+    private static void putValues(Map<String, Set<String>> map, String path,
+            PropertyState value) {
+        if (value.getType().tag() != PropertyType.BINARY) {
+            List<String> keys = PropertyIndex.encode(value);
+            for (String key : keys) {
                 Set<String> paths = map.get(key);
                 if (paths == null) {
                     paths = Sets.newHashSet();
@@ -75,7 +73,6 @@ class PropertyIndexUpdate {
             }
         }
     }
-
 
     public void apply() throws CommitFailedException {
         boolean unique = node.getProperty("unique") != null;

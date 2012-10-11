@@ -19,23 +19,25 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import java.util.Locale;
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.query.SQL2Parser;
 
 import javax.jcr.PropertyType;
+
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.query.SQL2Parser;
+import org.apache.jackrabbit.oak.spi.query.PropertyValue;
 
 /**
  * A literal of a certain data type, possibly "cast(..)" of a literal.
  */
 public class LiteralImpl extends StaticOperandImpl {
 
-    private final CoreValue value;
+    private final PropertyValue value;
 
-    public LiteralImpl(CoreValue value) {
+    public LiteralImpl(PropertyValue value) {
         this.value = value;
     }
 
-    public CoreValue getLiteralValue() {
+    public PropertyValue getLiteralValue() {
         return value;
     }
 
@@ -46,16 +48,16 @@ public class LiteralImpl extends StaticOperandImpl {
 
     @Override
     public String toString() {
-        String type = PropertyType.nameFromValue(value.getType());
+        String type = PropertyType.nameFromValue(value.getType().tag());
         return "cast(" + escape() + " as " + type.toLowerCase(Locale.ENGLISH) + ')';
     }
 
     private String escape() {
-        return SQL2Parser.escapeStringLiteral(value.getString());
+        return SQL2Parser.escapeStringLiteral(value.getValue(Type.STRING));
     }
 
     @Override
-    CoreValue currentValue() {
+    PropertyValue currentValue() {
         return value;
     }
 

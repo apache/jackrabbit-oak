@@ -18,9 +18,8 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.query.Query;
+import org.apache.jackrabbit.oak.spi.query.PropertyValue;
+import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 
 /**
  * A result column expression.
@@ -55,14 +54,14 @@ public class ColumnImpl extends AstElement {
         }
     }
 
-    public PropertyState currentProperty() {
+    public PropertyValue currentProperty() {
         if (propertyName == null) {
             // TODO for SELECT * FROM queries, currently return the path (for testing only)
             String p = selector.currentPath();
             if (p == null) {
                 return null;
             }
-            return PropertyStates.stringProperty(Query.JCR_PATH, p);
+            return PropertyValues.newString(p);
         }
         return selector.currentProperty(propertyName);
     }

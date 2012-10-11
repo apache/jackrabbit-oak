@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.spi.query.PropertyValue;
 
 /**
  * The query engine allows to parse and execute queries.
@@ -61,7 +62,7 @@ public interface SessionQueryEngine {
      * @throws IllegalArgumentException if there was an error executing the query
      */
     Result executeQuery(String statement, String language,
-            long limit, long offset, Map<String, ? extends CoreValue> bindings,
+            long limit, long offset, Map<String, ? extends PropertyValue> bindings,
             Root root, NamePathMapper namePathMapper) throws ParseException;
 
     // TODO pass namespace mapping

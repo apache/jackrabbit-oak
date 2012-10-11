@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.spi.query;
 
-import org.apache.jackrabbit.oak.api.CoreValue;
 
 /**
  * A row returned by the index.
@@ -40,6 +39,6 @@ public interface IndexRow {
      * @param columnName the column name
      * @return the value, or null if not available
      */
-    CoreValue getValue(String columnName);
+    PropertyValue getValue(String columnName);
 
 }

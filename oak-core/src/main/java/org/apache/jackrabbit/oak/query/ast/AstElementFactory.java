@@ -13,7 +13,7 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.spi.query.PropertyValue;
 
 /**
  * A factory for syntax tree elements.
@@ -84,7 +84,7 @@ public class AstElementFactory {
         return new LengthImpl(propertyValue);
     }
 
-    public LiteralImpl literal(CoreValue literalValue) {
+    public LiteralImpl literal(PropertyValue literalValue) {
         return new LiteralImpl(literalValue);
     }
 

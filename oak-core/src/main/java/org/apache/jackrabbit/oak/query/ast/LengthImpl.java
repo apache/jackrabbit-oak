@@ -20,10 +20,10 @@ package org.apache.jackrabbit.oak.query.ast;
 
 import javax.jcr.PropertyType;
 
-import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
+import org.apache.jackrabbit.oak.spi.query.PropertyValue;
+import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 
 /**
  * The function "length(..)".
@@ -51,23 +51,23 @@ public class LengthImpl extends DynamicOperandImpl {
     }
 
     @Override
-    public PropertyState currentProperty() {
+    public PropertyValue currentProperty() {
         PropertyState p = propertyValue.currentProperty();
         if (p == null) {
             return null;
         }
         if (!p.isArray()) {
             long length = p.size();
-            return PropertyStates.longProperty("LENGTH", length);
+            return PropertyValues.newLong(length);
         }
         // TODO what is the expected result for LENGTH(multiValueProperty)?
         throw new IllegalArgumentException("LENGTH(x) on multi-valued property is not supported");
     }
 
     @Override
-    public void restrict(FilterImpl f, Operator operator, CoreValue v) {
+    public void restrict(FilterImpl f, Operator operator, PropertyValue v) {
         if (v != null) {
-            switch (v.getType()) {
+            switch (v.getType().tag()) {
             case PropertyType.LONG:
             case PropertyType.DECIMAL:
             case PropertyType.DOUBLE:
@@ -81,7 +81,7 @@ public class LengthImpl extends DynamicOperandImpl {
             default:
                 throw new IllegalArgumentException(
                         "Can not compare the length with a constant of type "
-                                + PropertyType.nameFromValue(v.getType()) +
+                                + PropertyType.nameFromValue(v.getType().tag()) +
                                 " and value " + v.toString());
             }
         }

@@ -18,11 +18,10 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
+import org.apache.jackrabbit.oak.spi.query.PropertyValue;
+import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.util.ISO9075;
 
 /**
@@ -52,18 +51,18 @@ public class NodeLocalNameImpl extends DynamicOperandImpl {
     }
 
     @Override
-    public PropertyState currentProperty() {
+    public PropertyValue currentProperty() {
         String name = PathUtils.getName(selector.currentPath());
         // Name escaping (convert space to _x0020_)
         name = ISO9075.encode(name);
         int colon = name.indexOf(':');
         // TODO LOCALNAME: evaluation of local name might not be correct
         String localName = colon < 0 ? name : name.substring(colon + 1);
-        return PropertyStates.stringProperty("LOCALNAME", localName);
+        return PropertyValues.newString(localName);
     }
 
     @Override
-    public void restrict(FilterImpl f, Operator operator, CoreValue v) {
+    public void restrict(FilterImpl f, Operator operator, PropertyValue v) {
         // TODO support LOCALNAME index conditions
     }
 

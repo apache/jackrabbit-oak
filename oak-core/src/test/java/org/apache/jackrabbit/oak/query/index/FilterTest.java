@@ -25,10 +25,10 @@ import static org.junit.Assert.fail;
 import java.util.ArrayList;
 import java.util.Random;
 
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.plugins.memory.StringValue;
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.spi.query.Filter;
+import org.apache.jackrabbit.oak.spi.query.PropertyValue;
+import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.junit.Test;
 
 /**
@@ -39,8 +39,8 @@ public class FilterTest {
     @Test
     public void propertyRestriction() {
 
-        CoreValue one = new StringValue("1");
-        CoreValue two = new StringValue("2");
+        PropertyValue one = PropertyValues.newString("1");
+        PropertyValue two = PropertyValues.newString("2");
 
         FilterImpl f = new FilterImpl(null);
         assertTrue(null == f.getPropertyRestriction("x"));
@@ -104,8 +104,10 @@ public class FilterTest {
         for (int i = 0; i < 10000; i++) {
             String p1 = paths.get(r.nextInt(paths.size()));
             String p2 = paths.get(r.nextInt(paths.size()));
-            Filter.PathRestriction r1 = Filter.PathRestriction.values()[r.nextInt(Filter.PathRestriction.values().length)];
-            Filter.PathRestriction r2 = Filter.PathRestriction.values()[r.nextInt(Filter.PathRestriction.values().length)];
+            Filter.PathRestriction r1 = Filter.PathRestriction.values()[r
+                    .nextInt(Filter.PathRestriction.values().length)];
+            Filter.PathRestriction r2 = Filter.PathRestriction.values()[r
+                    .nextInt(Filter.PathRestriction.values().length)];
             FilterImpl f1 = new FilterImpl(null);
             f1.restrictPath(p1, r1);
             FilterImpl f2 = new FilterImpl(null);
@@ -123,14 +125,16 @@ public class FilterTest {
                     fc = new FilterImpl(null);
                     fc.restrictPath(p1, r1);
                     fc.restrictPath(p2, r2);
-                    fail("not matched: " + p1 + "/" + r1.name() + " && " + p2 + "/" + r2.name());
+                    fail("not matched: " + p1 + "/" + r1.name() + " && " + p2
+                            + "/" + r2.name());
                 } else {
                     // not great, but not a problem
                     tooMany++;
                 }
             }
             if (tooMany > 3) {
-                fail("too many matches: " + p1 + "/" + r1.name() + " && " + p2 + "/" + r2.name() + " superfluous: " + tooMany);
+                fail("too many matches: " + p1 + "/" + r1.name() + " && " + p2
+                        + "/" + r2.name() + " superfluous: " + tooMany);
             }
         }
     }
@@ -139,7 +143,8 @@ public class FilterTest {
     public void pathRestrictions() throws Exception {
         FilterImpl f = new FilterImpl(null);
         assertEquals("/", f.getPath());
-        assertEquals(Filter.PathRestriction.ALL_CHILDREN, f.getPathRestriction());
+        assertEquals(Filter.PathRestriction.ALL_CHILDREN,
+                f.getPathRestriction());
 
         f.restrictPath("/test", Filter.PathRestriction.ALL_CHILDREN);
         f.restrictPath("/test2", Filter.PathRestriction.ALL_CHILDREN);
@@ -148,10 +153,12 @@ public class FilterTest {
         f = new FilterImpl(null);
         f.restrictPath("/test", Filter.PathRestriction.ALL_CHILDREN);
         assertEquals("/test", f.getPath());
-        assertEquals(Filter.PathRestriction.ALL_CHILDREN, f.getPathRestriction());
+        assertEquals(Filter.PathRestriction.ALL_CHILDREN,
+                f.getPathRestriction());
         f.restrictPath("/test/x", Filter.PathRestriction.DIRECT_CHILDREN);
         assertEquals("/test/x", f.getPath());
-        assertEquals(Filter.PathRestriction.DIRECT_CHILDREN, f.getPathRestriction());
+        assertEquals(Filter.PathRestriction.DIRECT_CHILDREN,
+                f.getPathRestriction());
         f.restrictPath("/test/x/y", Filter.PathRestriction.PARENT);
         assertEquals("/test/x/y", f.getPath());
         assertEquals(Filter.PathRestriction.PARENT, f.getPathRestriction());
@@ -212,13 +219,16 @@ public class FilterTest {
         f = new FilterImpl(null);
         f.restrictPath("/test", Filter.PathRestriction.DIRECT_CHILDREN);
         assertEquals("/test", f.getPath());
-        assertEquals(Filter.PathRestriction.DIRECT_CHILDREN, f.getPathRestriction());
+        assertEquals(Filter.PathRestriction.DIRECT_CHILDREN,
+                f.getPathRestriction());
         f.restrictPath("/", Filter.PathRestriction.ALL_CHILDREN);
         assertEquals("/test", f.getPath());
-        assertEquals(Filter.PathRestriction.DIRECT_CHILDREN, f.getPathRestriction());
+        assertEquals(Filter.PathRestriction.DIRECT_CHILDREN,
+                f.getPathRestriction());
         f.restrictPath("/test", Filter.PathRestriction.ALL_CHILDREN);
         assertEquals("/test", f.getPath());
-        assertEquals(Filter.PathRestriction.DIRECT_CHILDREN, f.getPathRestriction());
+        assertEquals(Filter.PathRestriction.DIRECT_CHILDREN,
+                f.getPathRestriction());
         f.restrictPath("/test/x/y", Filter.PathRestriction.PARENT);
         assertEquals("/test/x/y", f.getPath());
         assertEquals(Filter.PathRestriction.PARENT, f.getPathRestriction());

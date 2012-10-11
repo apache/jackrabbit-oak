@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertFalse;
+import static junit.framework.Assert.assertTrue;
+
 import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
@@ -25,19 +29,15 @@ import org.apache.jackrabbit.oak.core.RootImpl;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.index.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.IndexDefinitionImpl;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryValueFactory;
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.security.authorization.AccessControlProviderImpl;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
+import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.junit.Test;
-
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertTrue;
 
 public class LuceneIndexTest implements LuceneIndexConstants {
 
@@ -62,7 +62,7 @@ public class LuceneIndexTest implements LuceneIndexConstants {
         FilterImpl filter = new FilterImpl(null);
         filter.restrictPath("/", Filter.PathRestriction.EXACT);
         filter.restrictProperty("foo", Operator.EQUAL,
-                MemoryValueFactory.INSTANCE.createValue("bar"));
+                PropertyValues.newString("bar"));
         Cursor cursor = index.query(filter, store.getRoot());
         assertTrue(cursor.next());
         assertEquals("/", cursor.currentRow().getPath());
