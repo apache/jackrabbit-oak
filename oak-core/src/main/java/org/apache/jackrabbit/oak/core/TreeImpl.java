@@ -36,8 +36,6 @@ import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
-import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
-import org.apache.jackrabbit.oak.util.NodeUtil;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -528,9 +526,6 @@ public class TreeImpl implements Tree, PurgeListener {
     }
 
     private boolean canReadProperty(String name) {
-        if (NodeStateUtils.isHidden(name)) {
-            return false;
-        }
         String path = PathUtils.concat(getPath(), name);
 
         // FIXME: special handling for access control item and version content
