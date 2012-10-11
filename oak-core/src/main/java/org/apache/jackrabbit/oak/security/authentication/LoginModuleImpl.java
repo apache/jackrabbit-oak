@@ -88,7 +88,7 @@ import org.slf4j.LoggerFactory;
  *
  *
  */
-public class LoginModuleImpl extends AbstractLoginModule {
+public final class LoginModuleImpl extends AbstractLoginModule {
 
     private static final Logger log = LoggerFactory.getLogger(LoginModuleImpl.class);
 
@@ -114,15 +114,20 @@ public class LoginModuleImpl extends AbstractLoginModule {
         credentials = getCredentials();
         userID = getUserID();
 
+        if (credentials == null || userID == null) {
+            log.debug("Could not extract userId/credentials");
+            return false;
+        }
+
         Authentication authentication = new AuthenticationImpl(userID, getUserProvider(), getPrincipalProvider());
         boolean success = authentication.authenticate(credentials);
         if (success) {
             principals = getPrincipals(userID);
 
-            log.debug("Login: adding Credentials to shared state.");
+            log.debug("Adding Credentials to shared state.");
             sharedState.put(SHARED_KEY_CREDENTIALS, credentials);
 
-            log.debug("Login: adding login name to shared state.");
+            log.debug("Adding login name to shared state.");
             sharedState.put(SHARED_KEY_LOGIN_NAME, userID);
         }
         return success;
@@ -131,6 +136,7 @@ public class LoginModuleImpl extends AbstractLoginModule {
     @Override
     public boolean commit() throws LoginException {
         if (credentials == null || principals.isEmpty()) {
+            clearState();
             return false;
         } else {
             if (!subject.isReadOnly()) {
@@ -144,17 +150,19 @@ public class LoginModuleImpl extends AbstractLoginModule {
         }
     }
 
-    @Override
-    public boolean abort() throws LoginException {
-        credentials = null;
-        principals = null;
-        return true;
-    }
-
     //------------------------------------------------< AbstractLoginModule >---
     @Override
     protected Set<Class> getSupportedCredentials() {
         return SUPPORTED_CREDENTIALS;
+    }
+
+    @Override
+    protected void clearState() {
+        super.clearState();
+
+        credentials = null;
+        principals = null;
+        userID = null;
     }
 
     //--------------------------------------------------------------------------

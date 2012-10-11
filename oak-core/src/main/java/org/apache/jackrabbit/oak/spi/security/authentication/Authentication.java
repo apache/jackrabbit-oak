@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.spi.security.authentication;
 
 import javax.jcr.Credentials;
+import javax.security.auth.login.LoginException;
 
 /**
  * The {@code Authentication} interface defines methods to validate
@@ -42,7 +43,9 @@ public interface Authentication {
      *
      * @param credentials to verify
      * @return {@code true} if the validation was successful; {@code false}
-     * if the specified credentials are not supported or if validation failed.
+     * if the specified credentials are not supported and this authentication
+     * implementation cannot verify their validity.
+     * @throws LoginException if the authentication failed.
      */
-    boolean authenticate(Credentials credentials);
+    boolean authenticate(Credentials credentials) throws LoginException;
 }

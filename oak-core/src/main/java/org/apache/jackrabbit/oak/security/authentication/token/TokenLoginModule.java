@@ -43,7 +43,7 @@ import org.slf4j.LoggerFactory;
  * {@code LoginModule} implementation that is able to handle login request
  * based on {@link TokenCredentials}.
  */
-public class TokenLoginModule extends AbstractLoginModule {
+public final class TokenLoginModule extends AbstractLoginModule {
 
     /**
      * logger instance
