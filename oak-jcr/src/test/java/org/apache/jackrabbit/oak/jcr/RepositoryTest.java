@@ -172,6 +172,25 @@ public class RepositoryTest extends AbstractRepositoryTest {
     }
 
     @Test
+    public void getNode2() throws RepositoryException {
+        Node node = getNode("/foo");
+        Node same = node.getNode(".");
+        assertNotNull(same);
+        assertEquals("foo", same.getName());
+        assertTrue(same.isSame(node));
+    }
+
+    @Ignore // FIXME OAK-369
+    @Test
+    public void getNode3() throws RepositoryException {
+        Node node = getNode("/foo");
+        Node root = node.getNode("..");
+        assertNotNull(root);
+        assertEquals("", root.getName());
+        assertTrue("/".equals(root.getPath()));
+    }
+
+    @Test
     public void getNode() throws RepositoryException {
         Node node = getNode("/foo");
         assertNotNull(node);

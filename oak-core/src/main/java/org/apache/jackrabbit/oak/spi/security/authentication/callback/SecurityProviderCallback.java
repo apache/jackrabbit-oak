@@ -20,8 +20,6 @@ import javax.annotation.CheckForNull;
 import javax.security.auth.callback.Callback;
 
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * SecurityProviderCallback... TODO

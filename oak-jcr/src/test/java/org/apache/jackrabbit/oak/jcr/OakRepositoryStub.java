@@ -60,7 +60,6 @@ public class OakRepositoryStub extends RepositoryStub {
         }
     }
 
-
     /**
      * Returns the configured repository instance.
      * 

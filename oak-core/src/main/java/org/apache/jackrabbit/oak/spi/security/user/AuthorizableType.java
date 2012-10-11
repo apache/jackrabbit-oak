@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user;
 
+import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
 
 /**
@@ -33,5 +34,20 @@ public enum AuthorizableType {
 
     private AuthorizableType(int userType) {
         this.userType = userType;
+    }
+
+    public boolean isType(Authorizable authorizable) {
+        if (authorizable == null) {
+            return false;
+        }
+        switch (userType) {
+            case UserManager.SEARCH_TYPE_GROUP:
+                return authorizable.isGroup();
+            case UserManager.SEARCH_TYPE_USER:
+                return !authorizable.isGroup();
+            default:
+                // TYPE_AUTHORIZABLE:
+                return true;
+        }
     }
 }

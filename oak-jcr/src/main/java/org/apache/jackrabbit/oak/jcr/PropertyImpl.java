@@ -37,6 +37,7 @@ import javax.jcr.ValueFormatException;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.PropertyDefinition;
 
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.jcr.value.ValueConverter;
 import org.apache.jackrabbit.value.ValueHelper;
@@ -675,7 +676,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
             dlg.remove();
         } else {
             Value targetValue = ValueHelper.convert(value, requiredType, sessionDelegate.getValueFactory());
-            dlg.setValue(ValueConverter.toCoreValue(targetValue, sessionDelegate));
+            dlg.setValue(targetValue);
         }
     }
 
@@ -695,7 +696,14 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
             dlg.remove();
         } else {
             Value[] targetValues = ValueHelper.convert(values, requiredType, sessionDelegate.getValueFactory());
-            dlg.setValues(ValueConverter.toCoreValues(targetValues, sessionDelegate));
+            List<Value> vs = Lists.newArrayList();
+            for (Value value : targetValues) {
+                if (value != null) {
+                    vs.add(value);
+                }
+            }
+
+            dlg.setValues(vs.toArray(new Value[vs.size()]));
         }
     }
 

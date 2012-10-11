@@ -16,10 +16,9 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import java.util.List;
-
 import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
+import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Value;
 import javax.jcr.nodetype.NodeType;
@@ -181,7 +180,7 @@ public class PropertyDelegate extends ItemDelegate {
      * Set the value of the property
      * @param value
      */
-    public void setValue(CoreValue value) throws InvalidItemStateException {
+    public void setValue(Value value) throws RepositoryException {
         getLocation().set(PropertyStates.createProperty(getName(), value));
     }
 
@@ -189,7 +188,7 @@ public class PropertyDelegate extends ItemDelegate {
      * Set the values of the property
      * @param values
      */
-    public void setValues(List<CoreValue> values) throws InvalidItemStateException {
+    public void setValues(Value[] values) throws RepositoryException {
         getLocation().set(PropertyStates.createProperty(getName(), values));
     }
 

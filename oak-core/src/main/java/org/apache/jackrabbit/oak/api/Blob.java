@@ -25,7 +25,7 @@ import javax.annotation.Nonnull;
 /**
  * Immutable representation of a binary value of finite length.
  */
-public interface Blob {
+public interface Blob extends Comparable<Blob> {
 
     /**
      * Returns a new stream for this value object. Multiple calls to this
@@ -36,7 +36,7 @@ public interface Blob {
     InputStream getNewStream();
 
     /**
-     * Returns the length of this blob.
+     * Returns the length of this blob or -1 if unknown.
      *
      * @return the length of this blob.
      */

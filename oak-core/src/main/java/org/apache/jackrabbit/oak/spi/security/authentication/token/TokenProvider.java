@@ -20,14 +20,19 @@ import javax.annotation.CheckForNull;
 import javax.jcr.Credentials;
 
 /**
- * TokenProvider... TODO document, move to spi/api
+ * TokenProvider... TODO
  */
 public interface TokenProvider {
 
     /**
+     * Optional configuration parameter to set the token expiration time in ms.
+     */
+    String PARAM_TOKEN_EXPIRATION = "tokenExpiration";
+
+    /**
      * Default expiration time in ms for login tokens is 2 hours.
      */
-    long TOKEN_EXPIRATION = 2 * 3600 * 1000;
+    long DEFAULT_TOKEN_EXPIRATION = 2 * 3600 * 1000;
 
     boolean doCreateToken(Credentials credentials);
 

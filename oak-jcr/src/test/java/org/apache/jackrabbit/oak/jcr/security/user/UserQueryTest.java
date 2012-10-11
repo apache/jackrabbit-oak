@@ -34,10 +34,8 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.Query;
 import org.apache.jackrabbit.api.security.user.QueryBuilder;
 import org.apache.jackrabbit.api.security.user.User;
-import org.junit.Ignore;
 import org.junit.Test;
 
-@Ignore //FIXME: requires UserManager#findAuthorizables
 public class UserQueryTest extends AbstractUserTest {
 
     private User kangaroo;

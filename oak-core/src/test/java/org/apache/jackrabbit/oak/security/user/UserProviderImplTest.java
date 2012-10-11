@@ -40,7 +40,6 @@ import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
 import org.apache.jackrabbit.util.Text;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static junit.framework.Assert.assertEquals;
@@ -77,7 +76,7 @@ public class UserProviderImplTest extends AbstractOakTest {
         contentSession = createAdminSession();
         root = contentSession.getLatestRoot();
 
-        defaultConfig = new UserConfig("admin");
+        defaultConfig = new UserConfig();
         defaultUserPath = defaultConfig.getConfigValue(UserConfig.PARAM_USER_PATH, UserConstants.DEFAULT_USER_PATH);
         defaultGroupPath = defaultConfig.getConfigValue(UserConfig.PARAM_GROUP_PATH, UserConstants.DEFAULT_GROUP_PATH);
 
@@ -104,7 +103,7 @@ public class UserProviderImplTest extends AbstractOakTest {
 
     @Override
     protected ContentRepository createRepository() {
-        return new Oak().with(new PropertyIndexHook()).with(new OpenSecurityProvider()).createContentRepository();
+        return new Oak(createMicroKernelWithInitialContent()).with(new PropertyIndexHook()).with(new OpenSecurityProvider()).createContentRepository();
     }
 
     private UserProvider createUserProvider() {
@@ -114,7 +113,7 @@ public class UserProviderImplTest extends AbstractOakTest {
     private UserProvider createUserProvider(int defaultDepth) {
         Map<String, Object> options = new HashMap<String, Object>(customOptions);
         options.put(UserConfig.PARAM_DEFAULT_DEPTH, defaultDepth);
-        return new UserProviderImpl(root, new UserConfig("admin", options, Collections.<AuthorizableAction>emptySet()));
+        return new UserProviderImpl(root, new UserConfig(options, Collections.<AuthorizableAction>emptySet()));
     }
 
     @Test
@@ -207,7 +206,6 @@ public class UserProviderImplTest extends AbstractOakTest {
         }
     }
 
-    @Ignore("OAK-270: UUID collisions are not yet detected upon commit.")
     @Test
     public void testCreateWithCollision() throws Exception {
         UserProvider userProvider = createUserProvider();
@@ -329,8 +327,12 @@ public class UserProviderImplTest extends AbstractOakTest {
     public void testIsAdminUser() throws Exception {
         UserProvider userProvider = createUserProvider();
 
-        Tree adminTree = userProvider.createUser(defaultConfig.getAdminId(), null);
-        userProvider.isAdminUser(adminTree);
+        String adminId = defaultConfig.getAdminId();
+        Tree adminTree = userProvider.getAuthorizable(adminId, AuthorizableType.USER);
+        if (adminTree == null) {
+            adminTree = userProvider.createUser(defaultConfig.getAdminId(), null);
+        }
+        assertTrue(userProvider.isAdminUser(adminTree));
 
         List<Tree> others = new ArrayList<Tree>();
         others.add(userProvider.createUser("laura", null));

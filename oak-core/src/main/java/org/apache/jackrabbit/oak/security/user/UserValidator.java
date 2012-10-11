@@ -48,10 +48,30 @@ class UserValidator extends DefaultValidator implements UserConstants {
     //----------------------------------------------------------< Validator >---
 
     @Override
+    public void propertyAdded(PropertyState after) throws CommitFailedException {
+        String name = after.getName();
+        if (REP_DISABLED.equals(name) && isAdminUser(parentAfter)) {
+            String msg = "Admin user cannot be disabled.";
+            fail(msg);
+        }
+    }
+
+    @Override
     public void propertyChanged(PropertyState before, PropertyState after) throws CommitFailedException {
         String name = before.getName();
-        if (REP_PRINCIPAL_NAME.equals(name) || REP_AUTHORIZABLE_ID.equals(name)) {
-            throw new CommitFailedException("Authorizable property " + name + " may not be altered after user/group creation.");
+        if (isAuthorizableNode(parentBefore) && (REP_PRINCIPAL_NAME.equals(name) || REP_AUTHORIZABLE_ID.equals(name))) {
+            String msg = "Authorizable property " + name + " may not be altered after user/group creation.";
+            fail(msg);
+        }
+    }
+
+
+    @Override
+    public void propertyDeleted(PropertyState before) throws CommitFailedException {
+        String name = before.getName();
+        if (isAuthorizableNode(parentBefore) && (REP_PASSWORD.equals(name) || REP_PRINCIPAL_NAME.equals(name) || REP_AUTHORIZABLE_ID.equals(name))) {
+            String msg = "Authorizable property " + name + " may not be removed.";
+            fail(msg);
         }
     }
 
@@ -76,6 +96,16 @@ class UserValidator extends DefaultValidator implements UserConstants {
         return new UserValidator(parentBefore.getChild(name), parentAfter.getChild(name), provider);
     }
 
+    @Override
+    public Validator childNodeDeleted(String name, NodeState before) throws CommitFailedException {
+        NodeUtil node = parentBefore.getChild(name);
+        if (isAdminUser(node)) {
+            String msg = "The admin user cannot be removed.";
+            fail(msg);
+        }
+        return null;
+    }
+
     //------------------------------------------------------------< private >---
 
     /**
@@ -86,20 +116,34 @@ class UserValidator extends DefaultValidator implements UserConstants {
      * @param pathConstraint
      * @throws CommitFailedException
      */
-    void assertHierarchy(NodeUtil userNode, String pathConstraint) throws CommitFailedException {
+    private void assertHierarchy(NodeUtil userNode, String pathConstraint) throws CommitFailedException {
         if (!Text.isDescendant(pathConstraint, userNode.getTree().getPath())) {
-            Exception e = new ConstraintViolationException("Attempt to create user/group outside of configured scope " + pathConstraint);
-            throw new CommitFailedException(e);
+            String msg = "Attempt to create user/group outside of configured scope " + pathConstraint;
+            fail(msg);
         }
 
         NodeUtil parent = userNode.getParent();
         while (!parent.getTree().isRoot()) {
             if (!parent.hasPrimaryNodeTypeName(NT_REP_AUTHORIZABLE_FOLDER)) {
                 String msg = "Cannot create user/group: Intermediate folders must be of type rep:AuthorizableFolder.";
-                Exception e = new ConstraintViolationException(msg);
-                throw new CommitFailedException(e);
+                fail(msg);
             }
             parent = parent.getParent();
         }
+    }
+
+    private boolean isAuthorizableNode(NodeUtil node) {
+        return node.hasPrimaryNodeTypeName(NT_REP_USER) || node.hasPrimaryNodeTypeName(NT_REP_GROUP);
+    }
+
+    // FIXME: copied from UserProvider#isAdminUser
+    private boolean isAdminUser(NodeUtil userNode) {
+        String id = (userNode.getString(REP_AUTHORIZABLE_ID, Text.unescapeIllegalJcrChars(userNode.getName())));
+        return userNode.hasPrimaryNodeTypeName(NT_REP_USER) && provider.getConfig().getAdminId().equals(id);
+    }
+
+    private static void fail(String msg) throws CommitFailedException {
+        Exception e = new ConstraintViolationException(msg);
+        throw new CommitFailedException(e);
     }
 }

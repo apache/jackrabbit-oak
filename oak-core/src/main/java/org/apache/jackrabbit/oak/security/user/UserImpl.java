@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.security.user;
 
 import java.security.Principal;
 import javax.jcr.Credentials;
-import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 
@@ -97,7 +96,7 @@ class UserImpl extends AuthorizableImpl implements User {
      */
     @Override
     public Impersonation getImpersonation() throws RepositoryException {
-        return getUserProvider().getImpersonation(getID(), getUserManager().getPrincipalProvider());
+        return getUserProvider().getImpersonation(getTree(), getUserManager().getPrincipalProvider());
     }
 
     /**
@@ -132,18 +131,7 @@ class UserImpl extends AuthorizableImpl implements User {
      */
     @Override
     public void disable(String reason) throws RepositoryException {
-        if (isAdmin()) {
-            throw new RepositoryException("The administrator user cannot be disabled.");
-        }
-        Tree userTree = getTree();
-        if (reason == null) {
-            if (isDisabled()) {
-                // enable the user again.
-                getUserProvider().setProtectedProperty(userTree, REP_DISABLED, (String) null, PropertyType.STRING);
-            } // else: not disabled -> nothing to
-        } else {
-            getUserProvider().setProtectedProperty(userTree, REP_DISABLED, reason, PropertyType.STRING);
-        }
+        getUserProvider().disable(getTree(), reason);
     }
 
     /**
@@ -151,7 +139,7 @@ class UserImpl extends AuthorizableImpl implements User {
      */
     @Override
     public boolean isDisabled() throws RepositoryException {
-        return getTree().hasProperty(REP_DISABLED);
+        return getUserProvider().isDisabled(getTree());
     }
 
     /**
@@ -159,10 +147,6 @@ class UserImpl extends AuthorizableImpl implements User {
      */
     @Override
     public String getDisabledReason() throws RepositoryException {
-        PropertyState disabled = getTree().getProperty(REP_DISABLED);
-        if (disabled != null) {
-            return disabled.getValue(STRING);
-        } else
-            return null;
+        return getUserProvider().getDisableReason(getTree());
     }
 }

@@ -39,4 +39,7 @@ public interface UserConstants {
     String DEFAULT_GROUP_PATH = "/home/groups";
 
     int DEFAULT_DEPTH = 2;
+
+    String DEFAULT_ADMIN_ID = "admin";
+    String DEFAULT_ANONYMOUS_ID = "anonymous";
 }

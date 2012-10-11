@@ -19,15 +19,17 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 import javax.jcr.PropertyType;
 
+import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.memory.CoreValues;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.query.SQL2Parser;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
@@ -115,17 +117,15 @@ public class PropertyValueImpl extends DynamicOperandImpl {
         // asterisk - create a multi-value property
         // warning: the returned property state may have a mixed type
         // (not all values may have the same type)
-        ArrayList<CoreValue> values = new ArrayList<CoreValue>();
+
+        //TODO this doesn't play well with the idea that the types may be different
+        List<String> values = new ArrayList<String>();
         for (PropertyState p : tree.getProperties()) {
             if (matchesPropertyType(p)) {
-                if (p.isArray()) {
-                    values.addAll(CoreValues.getValues(p));
-                } else {
-                    values.add(CoreValues.getValue(p));
-                }
+                Iterables.addAll(values, p.getValue(Type.STRINGS));
             }
         }
-        return PropertyStates.createProperty("*", values);
+        return PropertyStates.stringProperty("*", values);
     }
 
     private boolean matchesPropertyType(PropertyState state) {

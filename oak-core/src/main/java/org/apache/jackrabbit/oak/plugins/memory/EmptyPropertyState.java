@@ -23,6 +23,7 @@ import java.util.Collections;
 import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 
+import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 
@@ -110,7 +111,8 @@ abstract class EmptyPropertyState implements PropertyState {
                 return getValue(BINARIES).equals(that.getValue(BINARIES));
             }
             else {
-                return getValue(STRINGS).equals(that.getValue(STRINGS));
+                return Iterables.elementsEqual(
+                        getValue(STRINGS), that.getValue(STRINGS));
             }
         }
         else {

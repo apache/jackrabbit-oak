@@ -146,6 +146,13 @@ public class ReadOnlyTree implements Tree {
         return state.getChildNodeCount();
     }
 
+    /**
+     * This implementation does not respect ordered child nodes, but always
+     * returns them in some implementation specific order.
+     *
+     * TODO: respect orderable children (needed?)
+     * @return the children.
+     */
     @Override
     public Iterable<Tree> getChildren() {
         return new Iterable<Tree>() {
@@ -181,6 +188,11 @@ public class ReadOnlyTree implements Tree {
 
     @Override
     public boolean remove() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean orderBefore(String name) {
         throw new UnsupportedOperationException();
     }
 

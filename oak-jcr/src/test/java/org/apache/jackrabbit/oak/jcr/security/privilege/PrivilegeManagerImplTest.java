@@ -103,6 +103,8 @@ public class PrivilegeManagerImplTest extends AbstractPrivilegeTest {
         assertTrue(aggr.remove(privilegeManager.getPrivilege(Privilege.JCR_VERSION_MANAGEMENT)));
         assertTrue(aggr.remove(privilegeManager.getPrivilege(Privilege.JCR_WRITE)));
         assertTrue(aggr.remove(privilegeManager.getPrivilege(PrivilegeConstants.REP_WRITE)));
+        assertTrue(aggr.remove(privilegeManager.getPrivilege(PrivilegeConstants.REP_READ_NODES)));
+        assertTrue(aggr.remove(privilegeManager.getPrivilege(PrivilegeConstants.REP_READ_PROPERTIES)));
         assertTrue(aggr.remove(privilegeManager.getPrivilege(PrivilegeConstants.REP_ADD_PROPERTIES)));
         assertTrue(aggr.remove(privilegeManager.getPrivilege(PrivilegeConstants.REP_ALTER_PROPERTIES)));
         assertTrue(aggr.remove(privilegeManager.getPrivilege(PrivilegeConstants.REP_REMOVE_PROPERTIES)));
@@ -117,16 +119,16 @@ public class PrivilegeManagerImplTest extends AbstractPrivilegeTest {
 
     @Test
     public void testGetPrivilegeFromName() throws AccessControlException, RepositoryException {
-        Privilege p = privilegeManager.getPrivilege(Privilege.JCR_READ);
+        Privilege p = privilegeManager.getPrivilege(Privilege.JCR_VERSION_MANAGEMENT);
 
         assertTrue(p != null);
-        assertEquals("jcr:read", p.getName());
+        assertEquals(PrivilegeConstants.JCR_VERSION_MANAGEMENT, p.getName());
         assertFalse(p.isAggregate());
 
         p = privilegeManager.getPrivilege(Privilege.JCR_WRITE);
 
         assertTrue(p != null);
-        assertEquals("jcr:write", p.getName());
+        assertEquals(PrivilegeConstants.JCR_WRITE, p.getName());
         assertTrue(p.isAggregate());
     }
 

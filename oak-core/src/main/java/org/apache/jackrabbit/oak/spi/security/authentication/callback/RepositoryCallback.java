@@ -52,9 +52,7 @@ public class RepositoryCallback implements Callback {
     public Root getRoot() {
         if (nodeStore != null) {
             try {
-                // FIXME: need a direct and fast way to create Root from the node store
-                // FIXME: - without login
-                // FIXME: - without ContentSession#getLatestRoot which is unbearably slow
+                // FIXME: need a direct and fast way to create Root from the node store without having to call login
                 SecurityProvider sp = new OpenSecurityProvider();
                 return new ContentRepositoryImpl(nodeStore, null, sp).login(null, workspaceName).getLatestRoot();
             } catch (LoginException e) {

@@ -30,14 +30,11 @@ import javax.jcr.ValueFactory;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryValueFactory;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.Logger;
@@ -58,24 +55,17 @@ public class NodeUtil {
 
     private static final Logger log = LoggerFactory.getLogger(NodeUtil.class);
 
-    private final CoreValueFactory factory;
-
     private final NameMapper mapper;
 
     private final Tree tree;
 
-    public NodeUtil(Tree tree, CoreValueFactory factory, NameMapper mapper) {
-        this.factory = factory;
+    public NodeUtil(Tree tree, NameMapper mapper) {
         this.mapper = mapper;
         this.tree = tree;
     }
 
-    public NodeUtil(Tree tree, CoreValueFactory factory) {
-        this(tree, factory, NamePathMapper.DEFAULT);
-    }
-
     public NodeUtil(Tree tree) {
-        this(tree, MemoryValueFactory.INSTANCE);
+        this(tree, NamePathMapper.DEFAULT);
     }
 
     @Nonnull
@@ -89,7 +79,7 @@ public class NodeUtil {
     }
 
     public NodeUtil getParent() {
-        return new NodeUtil(tree.getParent(), factory, mapper);
+        return new NodeUtil(tree.getParent(), mapper);
     }
 
     public boolean hasChild(String name) {
@@ -99,13 +89,13 @@ public class NodeUtil {
     @CheckForNull
     public NodeUtil getChild(String name) {
         Tree child = tree.getChild(name);
-        return (child == null) ? null : new NodeUtil(child, factory, mapper);
+        return (child == null) ? null : new NodeUtil(child, mapper);
     }
 
     @Nonnull
     public NodeUtil addChild(String name, String primaryNodeTypeName) {
         Tree child = tree.addChild(name);
-        NodeUtil childUtil = new NodeUtil(child, factory, mapper);
+        NodeUtil childUtil = new NodeUtil(child, mapper);
         childUtil.setName(JcrConstants.JCR_PRIMARYTYPE, primaryNodeTypeName);
         return childUtil;
     }
@@ -215,22 +205,19 @@ public class NodeUtil {
         List<NodeUtil> nodes = Lists.newArrayList();
         for (Tree child : tree.getChildren()) {
             if (child.getName().startsWith(namePrefix)) {
-                nodes.add(new NodeUtil(child, factory, mapper));
+                nodes.add(new NodeUtil(child, mapper));
             }
         }
         return nodes;
     }
 
     public void setValues(String name, Value[] values) {
-        List<CoreValue> cvs = Lists.newArrayList();
-        for (Value value : values) {
-            try {
-                cvs.add(factory.createValue(value.getString(), value.getType()));
-            } catch (RepositoryException e) {
-                log.warn("Unable to convert a default value", e);
-            }
+        try {
+            tree.setProperty(PropertyStates.createProperty(name, values));
         }
-        tree.setProperty(PropertyStates.createProperty(name, cvs));
+        catch (RepositoryException e) {
+            log.warn("Unable to convert a default value", e);
+        }
     }
 
     public void setValues(String name, String[] values, int type) {

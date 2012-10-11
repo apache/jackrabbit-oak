@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.security.authentication;
 
 import java.io.IOException;
 import java.security.Principal;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -35,6 +34,7 @@ import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.oak.api.AuthInfo;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule;
 import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
@@ -111,16 +111,11 @@ public class LoginModuleImpl extends AbstractLoginModule {
 
     @Override
     public boolean login() throws LoginException {
-        // TODO
         credentials = getCredentials();
         userID = getUserID();
 
         Authentication authentication = new AuthenticationImpl(userID, getUserProvider(), getPrincipalProvider());
         boolean success = authentication.authenticate(credentials);
-        if (!success) {
-            success = impersonate(authentication);
-        }
-
         if (success) {
             principals = getPrincipals(userID);
 
@@ -157,7 +152,6 @@ public class LoginModuleImpl extends AbstractLoginModule {
     }
 
     //------------------------------------------------< AbstractLoginModule >---
-
     @Override
     protected Set<Class> getSupportedCredentials() {
         return SUPPORTED_CREDENTIALS;
@@ -197,19 +191,12 @@ public class LoginModuleImpl extends AbstractLoginModule {
     }
 
     private String getAnonymousID() {
-        // TODO
-        return "anonymous";
-    }
-
-    private boolean impersonate(Authentication authentication) {
-        if (credentials instanceof ImpersonationCredentials) {
-            AuthInfo info = ((ImpersonationCredentials) credentials).getImpersonatorInfo();
-            Subject subject = new Subject(true, info.getPrincipals(), Collections.emptySet(), Collections.emptySet());
-            if (authentication.impersonate(subject)) {
-                return true;
-            }
+        SecurityProvider sp = getSecurityProvider();
+        if (sp == null) {
+            return null;
+        } else {
+            return sp.getUserContext().getUserConfig().getAnonymousId();
         }
-        return false;
     }
 
     private AuthInfo createAuthInfo() {

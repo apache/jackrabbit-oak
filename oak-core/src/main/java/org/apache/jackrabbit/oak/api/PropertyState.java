@@ -34,18 +34,6 @@ import javax.annotation.Nonnull;
 public interface PropertyState {
 
     /**
-     * If a JCR node is orderable the OAK API will expose an "{@code oak:childOrder}"
-     * property state indicating the order of child nodes.
-     *
-     * NOTE: this is an temporary solution (OAK-232) until we reach consensus (see also OAK-182)
-     *
-     * // TODO: Use a proper namespace for this property?
-     * // TODO: Expose this a API method on the Tree interface (see http://markmail.org/message/kzt7csiz2bd5n3ww) ?
-     * // TODO: Define if/how this internal property is exposed on the JCR API
-     */
-    String OAK_CHILD_ORDER = "childOrder";
-
-    /**
      * @return the name of this property state
      */
     @Nonnull

@@ -37,6 +37,7 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
@@ -251,7 +252,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
                 sb.append(isGroup() ? "group:" : "user:");
                 sb.append(node.getSession().getWorkspace().getName());
                 sb.append(':');
-                sb.append(node.getIdentifier());
+                sb.append(id);
                 hashCode = sb.toString().hashCode();
             } catch (RepositoryException e) {
                 log.warn("Error while calculating hash code.",e.getMessage());
@@ -302,7 +303,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
 
     @Nonnull
     Tree getTree() {
-        Tree tree = userManager.getUserProvider().getAuthorizable(id);
+        Tree tree = getUserProvider().getAuthorizable(id);
         if (tree == null) {
             throw new IllegalStateException("Authorizable not associated with an existing tree");
         }
@@ -327,6 +328,14 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
     @Nonnull
     UserProvider getUserProvider() {
         return userManager.getUserProvider();
+    }
+
+    /**
+     * @return The membership provider associated with this authorizable
+     */
+    @Nonnull
+    MembershipProvider getMembershipProvider() {
+        return userManager.getMembershipProvider();
     }
 
     /**
@@ -447,10 +456,10 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
             return Collections.<Group>emptySet().iterator();
         }
 
-        MembershipProvider mMgr = userManager.getMembershipProvider();
+        MembershipProvider mMgr = getMembershipProvider();
         Iterator<String> oakPaths = mMgr.getMembership(getTree(), includeInherited);
         if (oakPaths.hasNext()) {
-            AuthorizableIterator groups = AuthorizableIterator.create(oakPaths, userManager, UserManager.SEARCH_TYPE_GROUP);
+            AuthorizableIterator groups = AuthorizableIterator.create(oakPaths, userManager, AuthorizableType.GROUP);
             return new RangeIteratorAdapter(groups, groups.getSize());
         } else {
             return RangeIteratorAdapter.EMPTY;
