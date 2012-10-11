@@ -168,13 +168,13 @@ public class PropertyValues {
     /**
      * Convert a value to the given target type, if possible.
      * 
-     * @param v
+     * @param value
      *            the value to convert
      * @param targetType
      *            the target property type
      * @return the converted value, or null if converting is not possible
      */
-    public static PropertyValue convert(PropertyState value, int targetType,
+    public static PropertyValue convert(PropertyValue value, int targetType,
             NamePathMapper mapper) {
         // TODO support full set of conversion features defined in the JCR spec
         // at 3.6.4 Property Type Conversion

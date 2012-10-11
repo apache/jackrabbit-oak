@@ -79,7 +79,7 @@ public class PropertyIndexLookup {
                 state = state.getChildNode(":index");
                 if (state != null) {
                     //TODO what happens when I search using an mvp?
-                    property = state.getProperty(PropertyIndex.encode(value).get(0));
+                    property = state.getProperty(PropertyIndex.encode(value.unwrap()).get(0));
                 }
             }
         }
