@@ -482,7 +482,7 @@ public class Query {
         PropertyValue[] values = new PropertyValue[columnCount];
         for (int i = 0; i < columnCount; i++) {
             ColumnImpl c = columns[i];
-            values[i] = PropertyValues.create(c.currentProperty());
+            values[i] = c.currentProperty();
         }
         PropertyValue[] orderValues;
         if (orderings == null) {
@@ -491,7 +491,7 @@ public class Query {
             int size = orderings.length;
             orderValues = new PropertyValue[size];
             for (int i = 0; i < size; i++) {
-                orderValues[i] = PropertyValues.create(orderings[i].getOperand().currentProperty());
+                orderValues[i] = orderings[i].getOperand().currentProperty();
             }
         }
         return new ResultRowImpl(this, paths, values, orderValues);

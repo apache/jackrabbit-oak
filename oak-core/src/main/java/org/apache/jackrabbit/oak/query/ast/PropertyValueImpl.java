@@ -87,7 +87,7 @@ public class PropertyValueImpl extends DynamicOperandImpl {
         boolean asterisk = propertyName.equals("*");
         if (!relative && !asterisk) {
             PropertyValue p = selector.currentProperty(propertyName);
-            return matchesPropertyType(p) ? p : null;
+            return matchesPropertyType(p.unwrap()) ? p : null;
         }
         Tree tree = getTree(selector.currentPath());
         if (tree == null) {

@@ -18,12 +18,11 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.PropertyValue;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+
+import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 /**
  * The function "upper(..)".
@@ -52,7 +51,7 @@ public class UpperCaseImpl extends DynamicOperandImpl {
 
     @Override
     public PropertyValue currentProperty() {
-        PropertyState p = operand.currentProperty();
+        PropertyValue p = operand.currentProperty();
         if (p == null) {
             return null;
         }
