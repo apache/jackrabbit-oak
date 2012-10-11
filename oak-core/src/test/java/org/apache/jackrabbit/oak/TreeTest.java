@@ -18,17 +18,20 @@
  */
 package org.apache.jackrabbit.oak;
 
-import java.util.Iterator;
+import java.util.Set;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.commit.ConflictValidator;
+import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.Test;
 
+import com.google.common.collect.Sets;
+
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 /**
  * Contains tests related to {@link Tree}
@@ -37,7 +40,8 @@ public class TreeTest extends AbstractOakTest {
 
     @Override
     protected ContentRepository createRepository() {
-        return createEmptyRepository();
+        return new Oak().with(new OpenSecurityProvider()).with(
+                new ConflictValidator()).createContentRepository();
     }
     @Test
     public void orderBefore() throws Exception {
@@ -52,23 +56,23 @@ public class TreeTest extends AbstractOakTest {
             t = r.getTree("/");
             t.getChild("node1").orderBefore("node2");
             t.getChild("node3").orderBefore(null);
-            checkSequence(t.getChildren().iterator(), "node1", "node2", "node3");
+            checkSequence(t.getChildren(), "node1", "node2", "node3");
             r.commit();
             // check again after commit
             t = r.getTree("/");
-            checkSequence(t.getChildren().iterator(), "node1", "node2", "node3");
+            checkSequence(t.getChildren(), "node1", "node2", "node3");
 
             t.getChild("node3").orderBefore("node2");
-            checkSequence(t.getChildren().iterator(), "node1", "node3", "node2");
+            checkSequence(t.getChildren(), "node1", "node3", "node2");
             r.commit();
             t = r.getTree("/");
-            checkSequence(t.getChildren().iterator(), "node1", "node3", "node2");
+            checkSequence(t.getChildren(), "node1", "node3", "node2");
 
             t.getChild("node1").orderBefore(null);
-            checkSequence(t.getChildren().iterator(), "node3", "node2", "node1");
+            checkSequence(t.getChildren(), "node3", "node2", "node1");
             r.commit();
             t = r.getTree("/");
-            checkSequence(t.getChildren().iterator(), "node3", "node2", "node1");
+            checkSequence(t.getChildren(), "node3", "node2", "node1");
 
             // TODO :childOrder property invisible?
             //assertEquals("must not have any properties", 0, t.getPropertyCount());
@@ -77,11 +81,82 @@ public class TreeTest extends AbstractOakTest {
         }
     }
 
-    private void checkSequence(Iterator<Tree> trees, String... names) {
-        for (String name : names) {
-            assertTrue(trees.hasNext());
-            assertEquals("wrong sequence", name, trees.next().getName());
+    @Test
+    public void concurrentAddChildOrderable() throws Exception {
+        ContentSession s1 = createAdminSession();
+        try {
+            Root r1 = s1.getLatestRoot();
+            Tree t1 = r1.getTree("/");
+            t1.addChild("node1").orderBefore(null);
+            t1.addChild("node2");
+            t1.addChild("node3");
+            r1.commit();
+            ContentSession s2 = createAdminSession();
+            try {
+                Root r2 = s2.getLatestRoot();
+                Tree t2 = r2.getTree("/");
+
+                t1 = r1.getTree("/");
+                // node4 from s1
+                t1.addChild("node4");
+                r1.commit();
+
+                // node5 from s2
+                t2.addChild("node5");
+                try {
+                    r2.commit();
+                    // commit must fail
+                } catch (CommitFailedException e) {
+                }
+
+                r1 = s1.getLatestRoot();
+                t1 = r1.getTree("/");
+                checkSequence(t1.getChildren(), "node1", "node2", "node3", "node4");
+            } finally {
+                s2.close();
+            }
+        } finally {
+            s1.close();
         }
-        assertFalse("no more nodes expected", trees.hasNext());
+
+    }
+
+    @Test
+    public void concurrentAddChild() throws Exception {
+        ContentSession s1 = createAdminSession();
+        try {
+            Root r1 = s1.getLatestRoot();
+            Tree t1 = r1.getTree("/");
+            t1.addChild("node1");
+            t1.addChild("node2");
+            t1.addChild("node3");
+            r1.commit();
+            ContentSession s2 = createAdminSession();
+            try {
+                Root r2 = s2.getLatestRoot();
+                Tree t2 = r2.getTree("/");
+
+                t1 = r1.getTree("/");
+                // node4 from s1
+                t1.addChild("node4");
+                r1.commit();
+
+                // node5 from s2
+                t2.addChild("node5");
+                r2.commit();
+
+                r1 = s1.getLatestRoot();
+                t1 = r1.getTree("/");
+                Set<String> names = Sets.newHashSet();
+                for (Tree t : t1.getChildren()) {
+                    names.add(t.getName());
+                }
+                assertEquals(Sets.newHashSet("node1", "node2", "node3", "node4", "node5"), names);
+            } finally {
+                s2.close();
+            }
+        } finally {
+            s1.close();
+        }
     }
 }
