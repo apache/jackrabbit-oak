@@ -18,8 +18,6 @@ package org.apache.jackrabbit.oak.spi.state;
 
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.api.CoreValueFactory;
-
 /**
  * Storage abstraction for trees. At any given point in time the stored
  * tree is rooted at a single immutable node state.
@@ -45,13 +43,5 @@ public interface NodeStore {
      */
     @Nonnull
     NodeStoreBranch branch();
-
-    /**
-     * Returns the factory for creating values used for building node states.
-     *
-     * @return value factory
-     */
-    @Nonnull
-    CoreValueFactory getValueFactory();
 
 }

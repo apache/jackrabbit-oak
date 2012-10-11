@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.query;
 
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
-import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -49,10 +48,9 @@ public class JsopUtil {
      * 
      * @param root
      * @param commit the commit string
-     * @param vf the value factory
      * @throws UnsupportedOperationException if the operation is not supported
      */
-    public static void apply(Root root, String commit, CoreValueFactory vf)
+    public static void apply(Root root, String commit)
             throws UnsupportedOperationException {
         int index = commit.indexOf(' ');
         String path = commit.substring(0, index).trim();
@@ -66,7 +64,7 @@ public class JsopUtil {
         if (tokenizer.matches('-')) {
             removeTree(c, tokenizer);
         } else if (tokenizer.matches('+')) {
-            addTree(c, tokenizer, vf);
+            addTree(c, tokenizer);
         } else {
             throw new UnsupportedOperationException(
                     "Unsupported " + (char) tokenizer.read() + 
@@ -85,14 +83,14 @@ public class JsopUtil {
         t.remove();
     }
 
-    private static void addTree(Tree t, JsopTokenizer tokenizer, CoreValueFactory vf) {
+    private static void addTree(Tree t, JsopTokenizer tokenizer) {
         do {
             String key = tokenizer.readString();
             tokenizer.read(':');
             if (tokenizer.matches('{')) {
                 Tree c = t.addChild(key);
                 if (!tokenizer.matches('}')) {
-                    addTree(c, tokenizer, vf);
+                    addTree(c, tokenizer);
                     tokenizer.read('}');
                 }
             } else if (tokenizer.matches('[')) {

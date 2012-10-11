@@ -22,7 +22,6 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
-import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyObserver;
@@ -120,11 +119,6 @@ public class KernelNodeStore implements NodeStore {
     @Override
     public NodeStoreBranch branch() {
         return new KernelNodeStoreBranch(this, getRoot());
-    }
-
-    @Override
-    public CoreValueFactory getValueFactory() {
-        return new CoreValueFactoryImpl(kernel);
     }
 
     //-----------------------------------------------------------< internal >---
