@@ -54,7 +54,7 @@ public final class TokenLoginModule extends AbstractLoginModule {
 
     private TokenCredentials tokenCredentials;
     private TokenInfo tokenInfo;
-    private String userID;
+    private String userId;
     private Set<? extends Principal> principals;
 
     //--------------------------------------------------------< LoginModule >---
@@ -72,11 +72,11 @@ public final class TokenLoginModule extends AbstractLoginModule {
             if (authentication.authenticate(tc)) {
                 tokenCredentials = tc;
                 tokenInfo = authentication.getTokenInfo();
-                userID = tokenInfo.getUserId();
-                principals = getPrincipals(userID);
+                userId = tokenInfo.getUserId();
+                principals = getPrincipals(userId);
 
                 log.debug("Login: adding login name to shared state.");
-                sharedState.put(SHARED_KEY_LOGIN_NAME, userID);
+                sharedState.put(SHARED_KEY_LOGIN_NAME, userId);
                 return true;
             }
         }
@@ -85,7 +85,7 @@ public final class TokenLoginModule extends AbstractLoginModule {
     }
 
     @Override
-    public boolean commit() throws LoginException {
+    public boolean commit() {
         if (tokenCredentials != null) {
             if (!subject.isReadOnly()) {
                 subject.getPublicCredentials().add(tokenCredentials);
@@ -95,6 +95,9 @@ public final class TokenLoginModule extends AbstractLoginModule {
             return true;
         }
 
+        // the login attempt on this module did not succeed: clear state
+        // and check if another successful login asks for a new token to be created.
+        clearState();
         if (tokenProvider != null && sharedState.containsKey(SHARED_KEY_CREDENTIALS)) {
             Credentials shared = getSharedCredentials();
             if (shared != null && tokenProvider.doCreateToken(shared)) {
@@ -113,21 +116,23 @@ public final class TokenLoginModule extends AbstractLoginModule {
                 }
             }
         }
-
         return false;
-    }
-
-    @Override
-    public boolean abort() throws LoginException {
-        tokenCredentials = null;
-        principals = null;
-        return true;
     }
 
     //------------------------------------------------< AbstractLoginModule >---
     @Override
     protected Set<Class> getSupportedCredentials() {
         return Collections.<Class>singleton(TokenCredentials.class);
+    }
+
+    @Override
+    protected void clearState() {
+        super.clearState();
+
+        tokenCredentials = null;
+        tokenInfo = null;
+        userId = null;
+        principals = null;
     }
 
     //--------------------------------------------------------------------------
@@ -160,6 +165,6 @@ public final class TokenLoginModule extends AbstractLoginModule {
                 attributes.put(attrName, publicAttributes.get(attrName));
             }
         }
-        return new AuthInfoImpl(userID, attributes, principals);
+        return new AuthInfoImpl(userId, attributes, principals);
     }
 }
