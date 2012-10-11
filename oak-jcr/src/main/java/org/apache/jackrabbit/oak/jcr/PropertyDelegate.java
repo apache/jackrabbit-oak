@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import java.util.List;
+
 import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.RepositoryException;
@@ -24,13 +26,12 @@ import javax.jcr.Value;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.PropertyDefinition;
 
-import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.core.TreeImpl.PropertyLocation;
-import org.apache.jackrabbit.oak.plugins.memory.CoreValues;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.util.TODO;
+import org.apache.jackrabbit.oak.value.ValueFactoryImpl;
 
 /**
  * {@code PropertyDelegate} serve as internal representations of {@code Property}s.
@@ -47,22 +48,21 @@ public class PropertyDelegate extends ItemDelegate {
     /**
      * Get the value of the property
      * @return  the value of the property
-     * @throws IllegalStateException  if {@code isMultivalue()} is {@code true}.
-     *
+     * @throws InvalidItemStateException
      */
     @Nonnull
-    public CoreValue getValue() throws InvalidItemStateException {
-        return CoreValues.getValue(getPropertyState());
+    public Value getValue() throws InvalidItemStateException {
+        return ValueFactoryImpl.createValue(getPropertyState(), sessionDelegate.getNamePathMapper());
     }
 
     /**
-     * Get the value of the property
+     * Get the values of the property
      * @return  the values of the property
-     * @throws IllegalStateException  if {@code isMultivalue()} is {@code false}.
+     * @throws InvalidItemStateException
      */
     @Nonnull
-    public Iterable<CoreValue> getValues() throws InvalidItemStateException {
-        return CoreValues.getValues(getPropertyState());
+    public List<Value> getValues() throws InvalidItemStateException {
+        return ValueFactoryImpl.createValues(getPropertyState(), sessionDelegate.getNamePathMapper());
     }
 
     /**
@@ -188,7 +188,7 @@ public class PropertyDelegate extends ItemDelegate {
      * Set the values of the property
      * @param values
      */
-    public void setValues(Value[] values) throws RepositoryException {
+    public void setValues(Iterable<Value> values) throws RepositoryException {
         getLocation().set(PropertyStates.createProperty(getName(), values));
     }
 

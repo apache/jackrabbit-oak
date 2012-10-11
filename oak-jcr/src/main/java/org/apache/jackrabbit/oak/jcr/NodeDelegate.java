@@ -199,7 +199,7 @@ public class NodeDelegate extends ItemDelegate {
      * @return  the set property
      */
     @Nonnull
-    public PropertyDelegate setProperty(String name, Value[] values) throws RepositoryException {
+    public PropertyDelegate setProperty(String name, Iterable<Value> values) throws RepositoryException {
         Tree tree = getTree();
         PropertyState old = tree.getProperty(name);
         if (old != null && ! old.isArray()) {

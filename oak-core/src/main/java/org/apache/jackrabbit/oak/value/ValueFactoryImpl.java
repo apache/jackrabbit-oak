@@ -22,6 +22,8 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.util.Calendar;
+import java.util.List;
+
 import javax.jcr.Binary;
 import javax.jcr.Node;
 import javax.jcr.PropertyType;
@@ -30,10 +32,13 @@ import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 import javax.jcr.ValueFormatException;
 
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.CoreValueFactory;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
+import org.apache.jackrabbit.oak.plugins.memory.CoreValues;
 import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,6 +77,19 @@ public class ValueFactoryImpl implements ValueFactory {
 
     public Value createValue(CoreValue coreValue) {
         return new ValueImpl(coreValue, namePathMapper);
+    }
+
+    public static Value createValue(PropertyState property, NamePathMapper namePathMapper) {
+        return new ValueImpl(CoreValues.getValue(property), namePathMapper);
+    }
+
+    public static List<Value> createValues(PropertyState property, NamePathMapper namePathMapper) {
+        List<CoreValue> cvs = CoreValues.getValues(property);
+        List<Value> vs = Lists.newArrayList();
+        for (CoreValue cv : cvs) {
+            vs.add(new ValueImpl(cv, namePathMapper));
+        }
+        return vs;
     }
 
     public CoreValue getCoreValue(Value jcrValue) {
