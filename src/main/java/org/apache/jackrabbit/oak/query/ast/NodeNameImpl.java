@@ -23,8 +23,8 @@ import javax.jcr.PropertyType;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
-import org.apache.jackrabbit.oak.spi.query.PropertyValue;
-import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+import org.apache.jackrabbit.oak.value.PropertyValue;
+import org.apache.jackrabbit.oak.value.PropertyValues;
 import org.apache.jackrabbit.util.ISO9075;
 
 /**

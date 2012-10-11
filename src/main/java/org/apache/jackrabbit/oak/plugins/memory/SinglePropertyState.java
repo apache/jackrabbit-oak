@@ -61,7 +61,7 @@ abstract class SinglePropertyState extends EmptyPropertyState {
     }
 
     protected boolean getBoolean() {
-        throw new UnsupportedOperationException("Unsupported conversion.");
+        return Boolean.parseBoolean(getString());
     }
 
     protected BigDecimal getDecimal() {

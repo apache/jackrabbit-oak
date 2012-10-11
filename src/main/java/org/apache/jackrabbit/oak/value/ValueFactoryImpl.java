@@ -16,11 +16,12 @@
  */
 package org.apache.jackrabbit.oak.value;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Calendar;
 import java.util.List;
 
@@ -33,127 +34,98 @@ import javax.jcr.ValueFactory;
 import javax.jcr.ValueFormatException;
 
 import com.google.common.collect.Lists;
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.CoreValueFactory;
+import com.google.common.io.ByteStreams;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
-import org.apache.jackrabbit.oak.plugins.memory.CoreValues;
+import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
 import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Implementation of {@link ValueFactory} interface based on the
- * {@link CoreValueFactory} exposed by the
- * {@link org.apache.jackrabbit.oak.api.ContentSession#getCoreValueFactory()}
- * being aware of namespaces remapped on the editing session.
+ * Implementation of {@link ValueFactory} interface.
  */
 public class ValueFactoryImpl implements ValueFactory {
-
-    /**
-     * logger instance
-     */
     private static final Logger log = LoggerFactory.getLogger(ValueFactoryImpl.class);
 
-    private final CoreValueFactory factory;
     private final NamePathMapper namePathMapper;
 
     /**
      * Creates a new instance of {@code ValueFactory}.
      *
-     * @param factory The core value factory.
      * @param namePathMapper The name/path mapping used for converting JCR names/paths to
      * the internal representation.
      */
-    public ValueFactoryImpl(CoreValueFactory factory, NamePathMapper namePathMapper) {
-        this.factory = factory;
+    public ValueFactoryImpl(NamePathMapper namePathMapper) {
         this.namePathMapper = namePathMapper;
     }
 
-    public CoreValueFactory getCoreValueFactory() {
-        return factory;
-    }
-
-    public Value createValue(CoreValue coreValue) {
-        return new ValueImpl(coreValue, namePathMapper);
-    }
-
     public static Value createValue(PropertyState property, NamePathMapper namePathMapper) {
-        return new ValueImpl(CoreValues.getValue(property), namePathMapper);
+        return new ValueImpl(property, namePathMapper);
     }
 
     public static List<Value> createValues(PropertyState property, NamePathMapper namePathMapper) {
-        List<CoreValue> cvs = CoreValues.getValues(property);
-        List<Value> vs = Lists.newArrayList();
-        for (CoreValue cv : cvs) {
-            vs.add(new ValueImpl(cv, namePathMapper));
+        List<PropertyValue> propertyValues = PropertyValues.create(property).values();
+        List<Value> values = Lists.newArrayList();
+        for (PropertyValue val : propertyValues) {
+            values.add(new ValueImpl(val, namePathMapper));
         }
-        return vs;
-    }
-
-    public CoreValue getCoreValue(Value jcrValue) {
-        ValueImpl v;
-        if (jcrValue instanceof ValueImpl) {
-            v = (ValueImpl) jcrValue;
-        } else {
-            // TODO add proper implementation
-            try {
-                switch (jcrValue.getType()) {
-                    case PropertyType.BINARY:
-                        v = (ValueImpl) createValue(jcrValue.getStream());
-                        break;
-                    default:
-                        v = (ValueImpl) createValue(jcrValue.getString(), jcrValue.getType());
-                }
-            } catch (RepositoryException e) {
-                throw new UnsupportedOperationException("Not implemented yet...");
-            }
-        }
-
-        return v.unwrap();
+        return values;
     }
 
     //-------------------------------------------------------< ValueFactory >---
+
     @Override
     public Value createValue(String value) {
-        CoreValue cv = factory.createValue(value, PropertyType.STRING);
-        return new ValueImpl(cv, namePathMapper);
+        return new ValueImpl(PropertyValues.newString(value), namePathMapper);
+    }
+
+    @Override
+    public ValueImpl createValue(InputStream value) {
+        try {
+            try {
+                // TODO add streaming capability to ContentSession via KernelBasedBlob
+                PropertyValue pv = PropertyValues.newBinary(ByteStreams.toByteArray(value));
+                return new ValueImpl(pv, namePathMapper);
+            } finally {
+                value.close();
+            }
+        } catch (IOException ex) {
+            // TODO return a value which throws on each access instead
+            throw new RuntimeException(ex);
+        }
+    }
+
+    @Override
+    public Value createValue(Binary value) {
+        try {
+            return createValue(value.getStream());
+        } catch (RepositoryException ex) {
+            // TODO return a value which throws on each access instead
+            throw new RuntimeException(ex);
+        }
     }
 
     @Override
     public Value createValue(long value) {
-        CoreValue cv = factory.createValue(value);
-        return new ValueImpl(cv, namePathMapper);
+        return new ValueImpl(PropertyValues.newLong(value), namePathMapper);
     }
 
     @Override
     public Value createValue(double value) {
-        CoreValue cv = factory.createValue(value);
-        return new ValueImpl(cv, namePathMapper);
-    }
-
-    @Override
-    public Value createValue(boolean value) {
-        CoreValue cv = factory.createValue(value);
-        return new ValueImpl(cv, namePathMapper);
+        return new ValueImpl(PropertyValues.newDouble(value), namePathMapper);
     }
 
     @Override
     public Value createValue(Calendar value) {
         String dateStr = ISO8601.format(value);
-        CoreValue cv = factory.createValue(dateStr, PropertyType.DATE);
-        return new ValueImpl(cv, namePathMapper);
+        return new ValueImpl(PropertyValues.newDate(dateStr), namePathMapper);
     }
 
     @Override
-    public Value createValue(InputStream value) {
-        try {
-            CoreValue cv = factory.createValue(value);
-            return new ValueImpl(cv, namePathMapper);
-        } catch (IOException ex) {
-            throw new RuntimeException(ex);
-        }
+    public Value createValue(boolean value) {
+        return new ValueImpl(PropertyValues.newBoolean(value), namePathMapper);
     }
 
     @Override
@@ -162,24 +134,50 @@ public class ValueFactoryImpl implements ValueFactory {
     }
 
     @Override
-    public Value createValue(String value, int type) throws ValueFormatException {
+    public Value createValue(Node value, boolean weak) throws RepositoryException {
+        return weak
+            ? new ValueImpl(PropertyValues.newWeakReference(value.getUUID()), namePathMapper)
+            : new ValueImpl(PropertyValues.newReference(value.getUUID()), namePathMapper);
+    }
 
+    @Override
+    public Value createValue(BigDecimal value) {
+        return new ValueImpl(PropertyValues.newDecimal(value), namePathMapper);
+    }
+
+    @Override
+    public Value createValue(String value, int type) throws ValueFormatException {
         if (value == null) {
             throw new ValueFormatException();
         }
 
         try {
-            CoreValue cv;
-
+            PropertyValue pv;
             switch (type) {
+                case PropertyType.STRING:
+                    return createValue(value);
+                case PropertyType.BINARY:
+                    pv = PropertyValues.newBinary(value.getBytes("UTF-8"));
+                    break;
+                case PropertyType.LONG:
+                    return createValue(StringPropertyState.getLong(value));
+                case PropertyType.DOUBLE:
+                    return createValue(StringPropertyState.getDouble(value));
+                case PropertyType.DATE:
+                    if (ISO8601.parse(value) == null) {
+                        throw new ValueFormatException("Invalid date " + value);
+                    }
+                    pv = PropertyValues.newDate(value);
+                    break;
+                case PropertyType.BOOLEAN:
+                    return createValue(StringPropertyState.getBoolean(value));
                 case PropertyType.NAME:
                     String oakName = namePathMapper.getOakName(value);
                     if (oakName == null) {
                         throw new ValueFormatException("Invalid name: " + value);
                     }
-                    cv = factory.createValue(oakName, type);
+                    pv = PropertyValues.newName(oakName);
                     break;
-
                 case PropertyType.PATH:
                     String oakValue = value;
                     if (value.startsWith("[") && value.endsWith("]")) {
@@ -190,67 +188,44 @@ public class ValueFactoryImpl implements ValueFactory {
                     if (oakValue == null) {
                         throw new ValueFormatException("Invalid path: " + value);
                     }
-                    cv = factory.createValue(oakValue, type);
+                    pv = PropertyValues.newPath(oakValue);
                     break;
-
-                case PropertyType.DATE:
-                    if (ISO8601.parse(value) == null) {
-                        throw new ValueFormatException("Invalid date " + value);
-                    }
-                    cv = factory.createValue(value, type);
-                    break;
-
                 case PropertyType.REFERENCE:
-                case PropertyType.WEAKREFERENCE:
                     if (!IdentifierManager.isValidUUID(value)) {
                         throw new ValueFormatException("Invalid reference value " + value);
                     }
-                    cv = factory.createValue(value, type);
+                    pv = PropertyValues.newReference(value);
                     break;
-
-                case PropertyType.BINARY:
-                    cv = factory.createValue(new ByteArrayInputStream(value.getBytes("UTF-8")));
+                case PropertyType.WEAKREFERENCE:
+                    if (!IdentifierManager.isValidUUID(value)) {
+                        throw new ValueFormatException("Invalid weak reference value " + value);
+                    }
+                    pv = PropertyValues.newWeakReference(value);
                     break;
-
+                case PropertyType.URI:
+                    new URI(value);
+                    pv = PropertyValues.newUri(value);
+                    break;
+                case PropertyType.DECIMAL:
+                    return createValue(StringPropertyState.getDecimal(value));
                 default:
-                    cv = factory.createValue(value, type);
-                    break;
+                    throw new ValueFormatException("Invalid type: " + type);
             }
 
-            return new ValueImpl(cv, namePathMapper);
+            return new ValueImpl(pv, namePathMapper);
         } catch (UnsupportedEncodingException e) {
             throw new ValueFormatException("Encoding UTF-8 not supported (this should not happen!)", e);
         } catch (IOException e) {
             throw new ValueFormatException(e);
         } catch (NumberFormatException e) {
-            throw new ValueFormatException("Invalid value " + value + " for type " + PropertyType.nameFromValue(type));
+            throw new ValueFormatException("Invalid value " + value + " for type " + PropertyType.nameFromValue(type), e);
+        } catch (URISyntaxException e) {
+            throw new ValueFormatException("Invalid value " + value + " for type " + PropertyType.nameFromValue(type), e);
         }
     }
 
     @Override
     public Binary createBinary(InputStream stream) throws RepositoryException {
-        ValueImpl value = (ValueImpl) createValue(stream);
-        return new BinaryImpl(value);
-    }
-
-    @Override
-    public Value createValue(Binary value) {
-        try {
-            return createValue(value.getStream());
-        } catch (RepositoryException ex) {
-            throw new RuntimeException(ex);
-        }
-    }
-
-    @Override
-    public Value createValue(BigDecimal value) {
-        CoreValue cv = factory.createValue(value);
-        return new ValueImpl(cv, namePathMapper);
-    }
-
-    @Override
-    public Value createValue(Node value, boolean weak) throws RepositoryException {
-        CoreValue cv = factory.createValue(value.getUUID(), weak ? PropertyType.WEAKREFERENCE : PropertyType.REFERENCE);
-        return new ValueImpl(cv, namePathMapper);
+        return new BinaryImpl(createValue(stream));
     }
 }

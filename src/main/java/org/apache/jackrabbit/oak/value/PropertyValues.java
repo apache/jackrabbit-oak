@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.spi.query;
+package org.apache.jackrabbit.oak.value;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -26,6 +26,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -109,6 +110,11 @@ public class PropertyValues {
 
     @Nonnull
     public static PropertyValue newBinary(byte[] value) {
+        return new PropertyValue(PropertyStates.binaryProperty("", value));
+    }
+
+    @Nonnull
+    public static PropertyValue newBinary(Blob value) {
         return new PropertyValue(PropertyStates.binaryProperty("", value));
     }
 

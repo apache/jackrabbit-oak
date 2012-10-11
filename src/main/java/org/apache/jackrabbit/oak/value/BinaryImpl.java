@@ -50,13 +50,13 @@ class BinaryImpl implements Binary {
                     throw new RepositoryException(e.getMessage());
                 }
             default:
-                return value.unwrap().getNewStream();
+                return value.getNewStream();
         }
     }
 
     @Override
     public int read(byte[] b, long position) throws IOException, RepositoryException {
-        InputStream stream = value.unwrap().getNewStream();
+        InputStream stream = value.getNewStream();
         try {
             if (position != stream.skip(position)) {
                 throw new IOException("Can't skip to position " + position);
@@ -75,7 +75,7 @@ class BinaryImpl implements Binary {
                 // need to respect namespace remapping
                 return value.getString().length();
             default:
-                return value.unwrap().length();
+                return value.getStreamLength();
         }
     }
 

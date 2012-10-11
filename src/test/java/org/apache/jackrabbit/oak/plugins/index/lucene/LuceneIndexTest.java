@@ -35,7 +35,7 @@ import org.apache.jackrabbit.oak.security.authorization.AccessControlProviderImp
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
-import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+import org.apache.jackrabbit.oak.value.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.junit.Test;
 
