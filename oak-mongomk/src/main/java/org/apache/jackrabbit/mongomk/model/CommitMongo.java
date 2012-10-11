@@ -30,12 +30,15 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import com.mongodb.BasicDBObject;
 
 /**
+ * FIXME - Should look into merging this and {@code CommitImpl}
+ *
  * The {@code MongoDB} representation of a commit.
  */
 public class CommitMongo extends BasicDBObject {
 
     public static final String KEY_AFFECTED_PATH = "affPaths";
     public static final String KEY_BASE_REVISION_ID = "baseRevId";
+    public static final String KEY_BRANCH_ID = "branchId";
     public static final String KEY_DIFF = "diff";
     public static final String KEY_FAILED = "failed";
     public static final String KEY_MESSAGE = "msg";
@@ -60,6 +63,8 @@ public class CommitMongo extends BasicDBObject {
         if (revisionId != null) {
             commitMongo.setRevisionId(revisionId);
         }
+
+        commitMongo.setBranchId(commit.getBranchId());
 
         commitMongo.setTimestamp(commit.getTimestamp());
 
@@ -97,6 +102,14 @@ public class CommitMongo extends BasicDBObject {
         put(KEY_BASE_REVISION_ID, baseRevisionId);
     }
 
+    public String getBranchId() {
+        return getString(KEY_BRANCH_ID);
+    }
+
+    public void setBranchId(String branchId) {
+        put(KEY_BRANCH_ID, branchId);
+    }
+
     public String getDiff() {
         return getString(KEY_DIFF);
     }
@@ -129,7 +142,7 @@ public class CommitMongo extends BasicDBObject {
         put(KEY_REVISION_ID, revisionId);
     }
 
-    public boolean hasFailed() {
+    public boolean isFailed() {
         return getBoolean(KEY_FAILED);
     }
 

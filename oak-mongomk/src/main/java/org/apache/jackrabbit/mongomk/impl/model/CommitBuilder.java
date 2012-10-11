@@ -31,14 +31,16 @@ import org.apache.jackrabbit.mongomk.impl.instruction.RemoveNodeInstructionImpl;
 import org.apache.jackrabbit.mongomk.impl.instruction.SetPropertyInstructionImpl;
 import org.apache.jackrabbit.mongomk.impl.json.DefaultJsopHandler;
 import org.apache.jackrabbit.mongomk.impl.json.JsopParser;
+import org.apache.jackrabbit.mongomk.util.MongoUtil;
 
 /**
- * A builder to convert a <a href="http://wiki.apache.org/jackrabbit/Jsop">JSOP</a> diff into a {@link Commit}.
+ * A builder to convert a <a href="http://wiki.apache.org/jackrabbit/Jsop">JSOP</a>
+ * diff into a {@link Commit}.
  */
 public class CommitBuilder {
 
     /**
-     * Creates and returns the {@link Commit}.
+     * Creates and returns a {@link Commit} without a base revision id.
      *
      * @param path The root path of the {@code Commit}.
      * @param diff The {@code JSOP} diff of the {@code Commit}.
@@ -47,8 +49,26 @@ public class CommitBuilder {
      * @return The {@code Commit}.
      * @throws Exception If an error occurred while creating the {@code Commit}.
      */
-    public static Commit build(String path, String diff, String message) throws Exception {
+    public static Commit build(String path, String diff, String message)
+            throws Exception {
+        return CommitBuilder.build(path, diff, null, message);
+    }
+
+    /**
+     * Creates and returns a {@link Commit}.
+     *
+     * @param path The root path of the {@code Commit}.
+     * @param diff The {@code JSOP} diff of the {@code Commit}.
+     * @param revisionId The revision id the commit is based on.
+     * @param message The message of the {@code Commit}.
+     *
+     * @return The {@code Commit}.
+     * @throws Exception If an error occurred while creating the {@code Commit}.
+     */
+    public static Commit build(String path, String diff, String revisionId,
+            String message) throws Exception {
         CommitImpl commit = new CommitImpl(path, diff, message);
+        commit.setBaseRevisionId(MongoUtil.toMongoRepresentation(revisionId));
         CommitHandler commitHandler = new CommitHandler(commit);
         JsopParser jsopParser = new JsopParser(path, diff, commitHandler);
         jsopParser.parse();

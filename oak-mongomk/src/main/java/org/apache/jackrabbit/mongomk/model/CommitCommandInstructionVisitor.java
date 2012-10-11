@@ -40,11 +40,17 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
     private final MongoConnection mongoConnection;
     private final Map<String, NodeMongo> pathNodeMap;
 
+    private String branchId;
+
     public CommitCommandInstructionVisitor(MongoConnection mongoConnection,
             long headRevisionId) {
         this.mongoConnection = mongoConnection;
         this.headRevisionId = headRevisionId;
         pathNodeMap = new HashMap<String, NodeMongo>();
+    }
+
+    public void setBranchId(String branchId) {
+        this.branchId = branchId;
     }
 
     public Map<String, NodeMongo> getPathNodeMap() {
@@ -269,7 +275,9 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         if (node == null) {
             // FIXME This is not efficient but needed for all MicroKernelIT
             // tests to pass. Fix it later.
-            NodeExistsCommandMongo existCommand = new NodeExistsCommandMongo(mongoConnection, path, headRevisionId);
+            NodeExistsCommandMongo existCommand = new NodeExistsCommandMongo(mongoConnection,
+                    path, headRevisionId);
+            existCommand.setBranchId(branchId);
             boolean exists = false;
             try {
                 exists = existCommand.execute();

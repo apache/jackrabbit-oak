@@ -40,6 +40,7 @@ public class NodeMongo extends BasicDBObject {
     public static final String KEY_PATH = "path";
     public static final String KEY_PROPERTIES = "props";
     public static final String KEY_REVISION_ID = "revId";
+    public static final String KEY_BRANCH_ID = "branchId";
 
     private static final long serialVersionUID = 3153393934945155106L;
 
@@ -90,6 +91,14 @@ public class NodeMongo extends BasicDBObject {
 
     public void setBaseRevisionId(long baseRevisionId) {
         put(KEY_BASE_REVISION_ID, baseRevisionId);
+    }
+
+    public String getBranchId() {
+        return getString(KEY_BRANCH_ID);
+    }
+
+    public void setBranchId(String branchId) {
+        put(KEY_BRANCH_ID, branchId);
     }
 
     @SuppressWarnings("unchecked")
@@ -185,9 +194,8 @@ public class NodeMongo extends BasicDBObject {
 
     /**
      * Other methods
-     * @param childName
-     * @return
      */
+
     public boolean childExists(String childName) {
         List<String> children = getChildren();
         if (children != null && !children.isEmpty()) {

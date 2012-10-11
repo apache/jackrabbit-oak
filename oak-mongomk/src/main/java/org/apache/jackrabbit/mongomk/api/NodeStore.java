@@ -22,27 +22,29 @@ import org.apache.jackrabbit.mongomk.api.model.Commit;
 import org.apache.jackrabbit.mongomk.api.model.Node;
 
 /**
- * The <code>NodeStore</code> interface deals with all node related operations of the {@link MicroKernel}.
+ * The <code>NodeStore</code> interface deals with all node related operations
+ * of the {@code MicroKernel}.
  *
  * <p>
- * Since binary storage and node storage most likely use different backend technologies two separate interfaces for
- * these operations are provided.
+ * Since binary storage and node storage most likely use different back-end
+ * technologies two separate interfaces for these operations are provided.
  * </p>
  *
  * <p>
- * This interface is not only a partly {@code MicroKernel} but also provides a different layer of abstraction by
- * converting the {@link String} parameters into higher level objects to ease the development for implementors of the
+ * This interface is not only a partly {@code MicroKernel} but also provides a
+ * different layer of abstraction by converting the {@link String} parameters
+ * into higher level objects to ease the development for implementors of the
  * {@code MicroKernel}.
  * </p>
  *
- * @see BlobStore
+ * @see {@code BlobStore}
  */
 public interface NodeStore {
 
     /**
      * @see MicroKernel#commit(String, String, String, String)
      *
-     * @param commit The {@link Commit} object to store in the backend.
+     * @param commit The {@link Commit} object to store in the back-end.
      * @return The revision id of this commit.
      * @throws Exception If an error occurred while committing.
      */

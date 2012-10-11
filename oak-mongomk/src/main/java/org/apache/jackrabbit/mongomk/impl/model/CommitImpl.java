@@ -35,6 +35,8 @@ public class CommitImpl implements Commit {
     private final String path;
     private final long timestamp;
 
+    private Long baseRevisionId;
+    private String branchId;
     private Long revisionId;
 
     /**
@@ -61,30 +63,55 @@ public class CommitImpl implements Commit {
         instructions.add(instruction);
     }
 
+    @Override
+    public Long getBaseRevisionId() {
+        return baseRevisionId;
+    }
+
+    public void setBaseRevisionId(Long baseRevisionId) {
+        this.baseRevisionId = baseRevisionId;
+    }
+
+    @Override
+    public String getBranchId() {
+        return branchId;
+    }
+
+    public void setBranchId(String branchId) {
+        this.branchId = branchId;
+    }
+
+    @Override
     public String getDiff() {
         return diff;
     }
 
+    @Override
     public List<Instruction> getInstructions() {
         return Collections.unmodifiableList(instructions);
     }
 
+    @Override
     public String getMessage() {
         return message;
     }
 
+    @Override
     public String getPath() {
         return path;
     }
 
+    @Override
     public Long getRevisionId() {
         return revisionId;
     }
 
+    @Override
     public void setRevisionId(Long revisionId) {
         this.revisionId = revisionId;
     }
 
+    @Override
     public long getTimestamp() {
         return timestamp;
     }

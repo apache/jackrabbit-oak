@@ -24,12 +24,16 @@ import org.apache.jackrabbit.mongomk.model.NodeMongo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.QueryBuilder;
 
 /**
+ * FIXME - Create a constructor with required parameters and handle optional
+ * parameters with setters.
+
  * A query for fetching nodes by path and depth.
  */
 public class FetchNodesByPathAndDepthQuery extends AbstractQuery<List<NodeMongo>> {
@@ -39,6 +43,8 @@ public class FetchNodesByPathAndDepthQuery extends AbstractQuery<List<NodeMongo>
     private final int depth;
     private final String path;
     private final long revisionId;
+
+    private String branchId;
 
     /**
      * Constructs a new {@code FetchNodesByPathAndDepthQuery}.
@@ -56,6 +62,15 @@ public class FetchNodesByPathAndDepthQuery extends AbstractQuery<List<NodeMongo>
         this.depth = depth;
     }
 
+    /**
+     * Sets the branchId for the query.
+     *
+     * @param branchId Branch id.
+     */
+    public void setBranchId(String branchId) {
+        this.branchId = branchId;
+    }
+
     @Override
     public List<NodeMongo> execute() {
         DBCursor dbCursor = performQuery();
@@ -69,6 +84,14 @@ public class FetchNodesByPathAndDepthQuery extends AbstractQuery<List<NodeMongo>
         if (revisionId > 0) {
             queryBuilder = queryBuilder.and(NodeMongo.KEY_REVISION_ID).lessThanEquals(revisionId);
         }
+
+        if (branchId == null) {
+            DBObject query = new BasicDBObject(NodeMongo.KEY_BRANCH_ID, new BasicDBObject("$exists", false));
+            queryBuilder = queryBuilder.and(query);
+        } else {
+            queryBuilder = queryBuilder.and(NodeMongo.KEY_BRANCH_ID).is(branchId);
+        }
+
         DBObject query = queryBuilder.get();
 
         LOG.debug(String.format("Executing query: %s", query));

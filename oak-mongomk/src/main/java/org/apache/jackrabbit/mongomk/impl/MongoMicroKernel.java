@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.mongomk.impl;
 
 import java.io.InputStream;
+import java.util.UUID;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
@@ -28,6 +29,7 @@ import org.apache.jackrabbit.mongomk.api.model.Commit;
 import org.apache.jackrabbit.mongomk.api.model.Node;
 import org.apache.jackrabbit.mongomk.impl.json.JsonUtil;
 import org.apache.jackrabbit.mongomk.impl.model.CommitBuilder;
+import org.apache.jackrabbit.mongomk.impl.model.CommitImpl;
 
 /**
  * The {@code MongoDB} implementation of the {@link MicroKernel}.
@@ -54,8 +56,15 @@ public class MongoMicroKernel implements MicroKernel {
 
     @Override
     public String branch(String trunkRevisionId) throws MicroKernelException {
-        // FIXME - Support branching if needed.
-        return getHeadRevision();
+        String revId = trunkRevisionId == null ? getHeadRevision() : trunkRevisionId;
+
+        try {
+            CommitImpl commit = (CommitImpl)CommitBuilder.build("", "", revId, "");
+            commit.setBranchId(UUID.randomUUID().toString());
+            return nodeStore.commit(commit);
+        } catch (Exception e) {
+            throw new MicroKernelException(e);
+        }
     }
 
     @Override
@@ -63,7 +72,7 @@ public class MongoMicroKernel implements MicroKernel {
         String newRevisionId = null;
 
         try {
-            Commit commit = CommitBuilder.build(path, jsonDiff, message);
+            Commit commit = CommitBuilder.build(path, jsonDiff, revisionId, message);
             newRevisionId = nodeStore.commit(commit);
         } catch (Exception e) {
             throw new MicroKernelException(e);
@@ -175,12 +184,7 @@ public class MongoMicroKernel implements MicroKernel {
         boolean exists = false;
 
         try {
-            String revId = null;
-            if (revisionId != null) {
-                revId = new String(revisionId);
-            }
-
-            exists = nodeStore.nodeExists(path, revId);
+            exists = nodeStore.nodeExists(path, revisionId);
         } catch (Exception e) {
             throw new MicroKernelException(e);
         }

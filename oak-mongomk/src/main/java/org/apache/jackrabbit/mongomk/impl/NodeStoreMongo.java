@@ -126,8 +126,17 @@ public class NodeStoreMongo implements NodeStore {
 
     @Override
     public boolean nodeExists(String path, String revisionId) throws Exception {
-        Command<Boolean> command = new NodeExistsCommandMongo(mongoConnection, path,
+        String branchId = null;
+        if (revisionId != null) {
+            FetchCommitQuery query = new FetchCommitQuery(mongoConnection,
+                    MongoUtil.toMongoRepresentation(revisionId));
+            CommitMongo baseCommit = query.execute();
+            branchId = baseCommit.getBranchId();
+        }
+
+        NodeExistsCommandMongo command = new NodeExistsCommandMongo(mongoConnection, path,
                 MongoUtil.toMongoRepresentation(revisionId));
+        command.setBranchId(branchId);
         return commandExecutor.execute(command);
     }
 

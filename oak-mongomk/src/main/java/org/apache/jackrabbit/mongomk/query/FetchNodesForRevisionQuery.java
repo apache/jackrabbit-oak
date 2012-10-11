@@ -26,12 +26,16 @@ import org.apache.jackrabbit.mongomk.model.NodeMongo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.QueryBuilder;
 
 /**
+ * FIXME - This should either merge or at least share a base class with
+ * {@code FetchNodesByPathAndDepthQuery}
+ *
  * An query for fetching nodes for a specific revision.
  */
 public class FetchNodesForRevisionQuery extends AbstractQuery<List<NodeMongo>> {
@@ -41,12 +45,15 @@ public class FetchNodesForRevisionQuery extends AbstractQuery<List<NodeMongo>> {
     private final Set<String> paths;
     private final Long revisionId;
 
+    private String branchId;
+
     /**
      * Constructs a new {@code FetchNodesForRevisionQuery}.
      *
      * @param mongoConnection The {@link MongoConnection}.
      * @param paths The paths to fetch.
      * @param revisionId The revision id.
+     * @param branchId
      */
     public FetchNodesForRevisionQuery(MongoConnection mongoConnection, Set<String> paths,
             Long revisionId) {
@@ -56,6 +63,16 @@ public class FetchNodesForRevisionQuery extends AbstractQuery<List<NodeMongo>> {
     }
 
     /**
+     * Sets the branchId for the query.
+     *
+     * @param branchId Branch id.
+     */
+    public void setBranchId(String branchId) {
+        this.branchId = branchId;
+    }
+
+    /**
+     * FIXME - Consider removing this.
      * Constructs a new {@code FetchNodesForRevisionQuery}.
      *
      * @param mongoConnection The {@link MongoConnection}.
@@ -77,10 +94,18 @@ public class FetchNodesForRevisionQuery extends AbstractQuery<List<NodeMongo>> {
 
     private DBCursor retrieveAllNodes() {
         DBCollection nodeCollection = mongoConnection.getNodeCollection();
-        DBObject query = QueryBuilder.start(NodeMongo.KEY_PATH).in(paths)
+        QueryBuilder queryBuilder = QueryBuilder.start(NodeMongo.KEY_PATH).in(paths)
                 .and(NodeMongo.KEY_REVISION_ID)
-                .lessThanEquals(revisionId).get();
+                .lessThanEquals(revisionId);
 
+        if (branchId == null) {
+            DBObject query = new BasicDBObject(NodeMongo.KEY_BRANCH_ID, new BasicDBObject("$exists", false));
+            queryBuilder = queryBuilder.and(query);
+        } else {
+            queryBuilder = queryBuilder.and(NodeMongo.KEY_BRANCH_ID).is(branchId);
+        }
+
+        DBObject query = queryBuilder.get();
         LOG.debug(String.format("Executing query: %s", query));
 
         return nodeCollection.find(query);

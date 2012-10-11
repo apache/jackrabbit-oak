@@ -35,6 +35,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * FIXME - Create a constructor with required parameters and handle optional
+ * parameters with setters.
+ *
  * A {@code Command} for getting nodes from {@code MongoDB}.
  */
 public class GetNodesCommandMongo extends AbstractCommand<Node> {
@@ -45,6 +48,7 @@ public class GetNodesCommandMongo extends AbstractCommand<Node> {
     private final String path;
     private final int depth;
 
+    private String branchId;
     private Long revisionId;
     private List<CommitMongo> lastCommits;
     private List<NodeMongo> nodeMongos;
@@ -67,6 +71,15 @@ public class GetNodesCommandMongo extends AbstractCommand<Node> {
         this.path = path;
         this.revisionId = revisionId;
         this.depth = depth;
+    }
+
+    /**
+     * Sets the branchId for the command.
+     *
+     * @param branchId Branch id.
+     */
+    public void setBranchId(String branchId) {
+        this.branchId = branchId;
     }
 
     @Override
@@ -158,7 +171,6 @@ public class GetNodesCommandMongo extends AbstractCommand<Node> {
             for (CommitMongo commitMongo : lastCommits) {
                 if (commitMongo.getRevisionId() == revisionId) {
                     revisionExists = true;
-
                     break;
                 }
             }
@@ -172,6 +184,7 @@ public class GetNodesCommandMongo extends AbstractCommand<Node> {
     private void readNodesByPath() {
         FetchNodesByPathAndDepthQuery query = new FetchNodesByPathAndDepthQuery(mongoConnection,
                 path, revisionId, depth);
+        query.setBranchId(branchId);
         nodeMongos = query.execute();
     }
 

@@ -29,6 +29,8 @@ import com.mongodb.DBObject;
 import com.mongodb.QueryBuilder;
 
 /**
+ * FIXME - This should really merge with {@code FetchNodesByPathAndDepthQuery}
+ *
  * A query for fetching a node by a given path.
  */
 public class FetchNodeByPathQuery extends AbstractQuery<NodeMongo> {

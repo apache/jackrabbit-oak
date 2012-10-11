@@ -26,14 +26,31 @@ import org.apache.jackrabbit.mongomk.api.instruction.Instruction;
 public interface Commit {
 
     /**
-     * Returns the <a href="http://wiki.apache.org/jackrabbit/Jsop">JSOP</a> diff of this commit.
+     * Returns the private branch id the commit is under or {@code null} if the
+     * commit is in the public branch.
+     *
+     * @return The private branch id or {@code null}
+     */
+    String getBranchId();
+
+    /**
+     * Returns the base revision id the commit is based on.
+     *
+     * @return The base revision id the commit is based on.
+     */
+    Long getBaseRevisionId();
+
+    /**
+     * Returns the <a href="http://wiki.apache.org/jackrabbit/Jsop">JSOP</a>
+     * diff of this commit.
      *
      * @return The {@link String} representing the diff.
      */
     String getDiff();
 
     /**
-     * Returns the {@link List} of {@link Instruction}s which were created from the diff.
+     * Returns the {@link List} of {@link Instruction}s which were created from
+     * the diff.
      *
      * @see #getDiff()
      *
@@ -56,10 +73,9 @@ public interface Commit {
     String getPath();
 
     /**
-     * Returns the revision id of this commit if known already, else this will return {@code null}.
-     * The revision id will be determined only after the commit has been successfully performed.
-     *
-     * @see #setRevisionId(Long)
+     * Returns the revision id of this commit if known already, else this will
+     * return {@code null}. The revision id will be determined only after the
+     * commit has been successfully performed.
      *
      * @return The revision id of this commit or {@code null}.
      */
@@ -68,12 +84,9 @@ public interface Commit {
     /**
      * Sets the revision id of this commit.
      *
-     * @see #getRevisionId()
-     *
      * @param revisionId The revision id to set.
      */
     void setRevisionId(Long revisionId);
-
 
     /**
      * Returns the timestamp of this commit.

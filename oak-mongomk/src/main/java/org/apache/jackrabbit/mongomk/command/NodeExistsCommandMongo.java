@@ -31,6 +31,7 @@ public class NodeExistsCommandMongo extends AbstractCommand<Boolean> {
     private final MongoConnection mongoConnection;
     private final Long revisionId;
 
+    private String branchId;
     private Node parentNode;
     private String path;
 
@@ -46,6 +47,15 @@ public class NodeExistsCommandMongo extends AbstractCommand<Boolean> {
         this.mongoConnection = mongoConnection;
         this.path = path;
         this.revisionId = revisionId;
+    }
+
+    /**
+     * Sets the branchId for the command.
+     *
+     * @param branchId Branch id.
+     */
+    public void setBranchId(String branchId) {
+        this.branchId = branchId;
     }
 
     @Override
@@ -70,7 +80,9 @@ public class NodeExistsCommandMongo extends AbstractCommand<Boolean> {
         String parentPath = PathUtils.getParentPath(path);
         // FIXME - This used to be FetchNodeByPathQuery but changed to GetNodesCommandMongo to make
         // sure nodes are in a valid commit etc. Check if GetNodesCommandMongo is really needed.
-        GetNodesCommandMongo command = new GetNodesCommandMongo(mongoConnection, parentPath, revisionId, -1);
+        GetNodesCommandMongo command = new GetNodesCommandMongo(mongoConnection,
+                parentPath, revisionId, -1);
+        command.setBranchId(branchId);
         parentNode = command.execute();
     }
 
