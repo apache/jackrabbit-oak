@@ -27,16 +27,12 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.util.ISO8601;
 
-public class PropertyValue implements PropertyState, Comparable<PropertyValue> {
+public class PropertyValue implements Comparable<PropertyValue> {
 
     private final PropertyState ps;
 
     protected PropertyValue(PropertyState ps) {
         this.ps = ps;
-    }
-
-    public String getName() {
-        return ps.getName();
     }
 
     public boolean isArray() {

@@ -229,7 +229,7 @@ public class QueryResultImpl implements QueryResult {
     }
 
     Value createValue(PropertyValue value) {
-        return value == null ? null : sessionDelegate.getValueFactory().createValue(CoreValues.getValue(value));
+        return value == null ? null : sessionDelegate.getValueFactory().createValue(CoreValues.getValue(value.unwrap()));
     }
 
 }

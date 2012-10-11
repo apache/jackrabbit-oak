@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.query.ast;
 
 import javax.jcr.PropertyType;
 
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.PropertyValue;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
@@ -52,7 +51,7 @@ public class LengthImpl extends DynamicOperandImpl {
 
     @Override
     public PropertyValue currentProperty() {
-        PropertyState p = propertyValue.currentProperty();
+        PropertyValue p = propertyValue.currentProperty();
         if (p == null) {
             return null;
         }
