@@ -29,7 +29,8 @@ public class BinaryPropertyState extends SinglePropertyState {
 
     @Override
     public String getString() {
-        return "<binary>";
+        // TODO find a better way to represent string values with Blobs
+        return value.toString();
     }
 
     @Override

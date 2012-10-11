@@ -18,11 +18,10 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.query.Query;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
+import org.apache.jackrabbit.oak.spi.query.PropertyValue;
+import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 
 /**
  * A fulltext search score expression.
@@ -47,11 +46,11 @@ public class FullTextSearchScoreImpl extends DynamicOperandImpl {
     }
 
     @Override
-    public PropertyState currentProperty() {
-        PropertyState p = selector.currentProperty(Query.JCR_SCORE);
+    public PropertyValue currentProperty() {
+        PropertyValue p = selector.currentProperty(Query.JCR_SCORE);
         if (p == null) {
             // TODO if score() is not supported by the index, use the value 0.0?
-            return PropertyStates.doubleProperty(Query.JCR_SCORE, 0.0);
+            return PropertyValues.newDouble(0.0);
         }
         return p;
     }
@@ -61,7 +60,7 @@ public class FullTextSearchScoreImpl extends DynamicOperandImpl {
     }
 
     @Override
-    public void restrict(FilterImpl f, Operator operator, CoreValue v) {
+    public void restrict(FilterImpl f, Operator operator, PropertyValue v) {
         if (f.getSelector() == selector) {
             if (operator == Operator.NOT_EQUAL && v != null) {
                 // not supported

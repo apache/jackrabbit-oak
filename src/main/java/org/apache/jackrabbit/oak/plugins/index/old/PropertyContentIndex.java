@@ -19,7 +19,9 @@
 package org.apache.jackrabbit.oak.plugins.index.old;
 
 import java.util.Iterator;
-import org.apache.jackrabbit.oak.api.CoreValue;
+
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.query.index.IndexRowImpl;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
@@ -69,8 +71,8 @@ public class PropertyContentIndex implements QueryIndex {
         if (restriction == null) {
             throw new IllegalArgumentException("No restriction for " + propertyName);
         }
-        CoreValue first = restriction.first;
-        String f = first == null ? null : first.toString();
+        PropertyState first = restriction.first;
+        String f = first == null ? null : first.getValue(Type.STRING);
         // TODO revisit code after the removal of revisionId
         String revisionId = "";
         Iterator<String> it = index.getPaths(f, revisionId);

@@ -18,17 +18,20 @@ package org.apache.jackrabbit.oak.plugins.index.property;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 
-import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.query.index.IndexRowImpl;
 import org.apache.jackrabbit.oak.query.index.TraversingCursor;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
-import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
+import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -39,16 +42,20 @@ public class PropertyIndex implements QueryIndex {
 
     private static final int MAX_STRING_LENGTH = 100; // TODO: configurable
 
-    static String encode(CoreValue value) {
-        try {
-            String string = value.getString();
-            if (string.length() > MAX_STRING_LENGTH) {
-                string.substring(0, MAX_STRING_LENGTH);
+    static List<String> encode(PropertyState value) {
+        List<String> values = new ArrayList<String>();
+
+        for (String v : value.getValue(Type.STRINGS)) {
+            try {
+                if (v.length() > MAX_STRING_LENGTH) {
+                    v = v.substring(0, MAX_STRING_LENGTH);
+                }
+                values.add(URLEncoder.encode(v, Charsets.UTF_8.name()));
+            } catch (UnsupportedEncodingException e) {
+                throw new IllegalStateException("UTF-8 is unsupported", e);
             }
-            return URLEncoder.encode(string, Charsets.UTF_8.name());
-        } catch (UnsupportedEncodingException e) {
-           throw new IllegalStateException("UTF-8 is unsupported", e);
         }
+        return values;
     }
 
 

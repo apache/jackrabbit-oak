@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+
 import java.util.Set;
 
 import javax.annotation.CheckForNull;
@@ -26,10 +28,8 @@ import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeIterator;
 import javax.jcr.nodetype.NodeTypeManager;
 
-import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.query.Query;
@@ -37,10 +37,12 @@ import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
+import org.apache.jackrabbit.oak.spi.query.PropertyValue;
+import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import com.google.common.collect.ImmutableSet;
 
 /**
  * A selector within a query.
@@ -216,7 +218,7 @@ public class SelectorImpl extends SourceImpl {
         return cursor == null ? null : cursor.currentRow().getPath();
     }
 
-    public PropertyState currentProperty(String propertyName) {
+    public PropertyValue currentProperty(String propertyName) {
         if (propertyName.equals(Query.JCR_PATH)) {
             String p = currentPath();
             if (p == null) {
@@ -227,7 +229,7 @@ public class SelectorImpl extends SourceImpl {
                 // not a local path
                 return null;
             }
-            return PropertyStates.stringProperty(Query.JCR_PATH, local);
+            return PropertyValues.newString(local);
         }
         if (cursor == null) {
             return null;
@@ -243,7 +245,7 @@ public class SelectorImpl extends SourceImpl {
             return null;
         }
         Tree t = getTree(path);
-        return t == null ? null : t.getProperty(propertyName);
+        return t == null ? null : PropertyValues.create(t.getProperty(propertyName));
     }
 
     @Override

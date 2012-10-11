@@ -33,7 +33,6 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
@@ -42,7 +41,9 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.memory.StringValue;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.spi.query.PropertyValue;
+import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -156,8 +157,8 @@ public class IdentifierManager {
      * such tree exists or isn't accessible to the content session.
      */
     @CheckForNull
-    public String getPath(CoreValue referenceValue) {
-        int type = referenceValue.getType();
+    public String getPath(PropertyState referenceValue) {
+        int type = referenceValue.getType().tag();
         if (type == PropertyType.REFERENCE || type == PropertyType.WEAKREFERENCE) {
             return resolveUUID(referenceValue);
         } else {
@@ -188,7 +189,7 @@ public class IdentifierManager {
                 final String uuid = getIdentifier(tree);
                 String reference = weak ? PropertyType.TYPENAME_WEAKREFERENCE : PropertyType.TYPENAME_REFERENCE;
                 String pName = propertyName == null ? "*" : propertyName;   // TODO: sanitize against injection attacks!?
-                Map<String, ? extends CoreValue> bindings = Collections.singletonMap("uuid", new StringValue(uuid));
+                Map<String, ? extends PropertyValue> bindings = Collections.singletonMap("uuid", PropertyValues.newString(uuid));
 
                 Result result = root.getQueryEngine().executeQuery(
                         "SELECT * FROM [nt:base] WHERE PROPERTY([" + pName + "], '" + reference + "') = $uuid",
@@ -283,12 +284,12 @@ public class IdentifierManager {
 
     @CheckForNull
     private String resolveUUID(String uuid) {
-        return resolveUUID(new StringValue(uuid));
+        return resolveUUID(PropertyStates.stringProperty("", uuid));
     }
 
-    private String resolveUUID(CoreValue uuid) {
+    private String resolveUUID(PropertyState uuid) {
         try {
-            Map<String, CoreValue> bindings = Collections.singletonMap("id", uuid);
+            Map<String, PropertyValue> bindings = Collections.singletonMap("id", PropertyValues.create(uuid));
             Result result = root.getQueryEngine().executeQuery(
                     "SELECT * FROM [nt:base] WHERE [jcr:uuid] = $id", Query.JCR_SQL2,
                     Long.MAX_VALUE, 0, bindings, root, new NamePathMapper.Default());

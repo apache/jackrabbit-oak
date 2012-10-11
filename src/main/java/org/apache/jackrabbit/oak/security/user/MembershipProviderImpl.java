@@ -36,6 +36,8 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.memory.CoreValues;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryPropertyBuilder;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
@@ -151,7 +153,7 @@ public class MembershipProviderImpl extends AuthorizableBaseProvider implements 
                 memberPaths = Iterables.transform(vs, new Function<CoreValue,String>() {
                     @Override
                     public String apply(@Nullable CoreValue value) {
-                        return identifierManager.getPath(value);
+                        return identifierManager.getPath(PropertyStates.createProperty("", value.getString(), value.getType()));
                     }
                 });
             }

@@ -20,11 +20,11 @@ package org.apache.jackrabbit.oak.query.ast;
 
 import javax.jcr.PropertyType;
 
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
+import org.apache.jackrabbit.oak.spi.query.PropertyValue;
+import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.util.ISO9075;
 
 /**
@@ -59,22 +59,22 @@ public class NodeNameImpl extends DynamicOperandImpl {
     }
 
     @Override
-    public PropertyState currentProperty() {
+    public PropertyValue currentProperty() {
         String path = selector.currentPath();
         // Name escaping (convert space to _x0020_)
         String name = ISO9075.encode(PathUtils.getName(path));
-        return PropertyStates.nameProperty("NAME", name);
+        return PropertyValues.newName(name);
     }
 
     @Override
-    public void restrict(FilterImpl f, Operator operator, CoreValue v) {
+    public void restrict(FilterImpl f, Operator operator, PropertyValue v) {
         if (v == null) {
             return;
         }
         if (!isName(v)) {
             throw new IllegalArgumentException("Invalid name value: " + v.toString());
         }
-        String path = v.getString();
+        String path = v.getValue(Type.STRING);
         // Name escaping (convert _x0020_ to space)
         path = decodeName(path);
         if (PathUtils.isAbsolute(path)) {
@@ -95,7 +95,7 @@ public class NodeNameImpl extends DynamicOperandImpl {
         // Name escaping (convert _x0020_ to space)
         path = ISO9075.decode(path);
         // normalize paths (./name > name)
-        path = query.getOakPath(path);
+        path = PropertyValues.getOakPath(path, query.getNamePathMapper());
         return path;
     }
 
@@ -105,9 +105,9 @@ public class NodeNameImpl extends DynamicOperandImpl {
      * @param v the value
      * @return true if it can be converted
      */
-    private static boolean isName(CoreValue v) {
+    private static boolean isName(PropertyValue v) {
         // TODO correctly validate JCR names - see JCR 2.0 spec 3.2.4 Naming Restrictions
-        switch (v.getType()) {
+        switch (v.getType().tag()) {
         case PropertyType.DATE:
         case PropertyType.DECIMAL:
         case PropertyType.DOUBLE:
@@ -115,7 +115,7 @@ public class NodeNameImpl extends DynamicOperandImpl {
         case PropertyType.BOOLEAN:
             return false;
         }
-        String n = v.getString();
+        String n = v.getValue(Type.STRING);
         if (n.startsWith("[") && !n.endsWith("]")) {
             return false;
         }

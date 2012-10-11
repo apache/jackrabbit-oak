@@ -24,15 +24,16 @@ import java.util.Locale;
 
 import javax.jcr.PropertyType;
 
-import com.google.common.collect.Iterables;
-import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.query.SQL2Parser;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
+import org.apache.jackrabbit.oak.spi.query.PropertyValue;
+import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+
+import com.google.common.collect.Iterables;
 
 /**
  * A property expression.
@@ -81,11 +82,11 @@ public class PropertyValueImpl extends DynamicOperandImpl {
     }
 
     @Override
-    public PropertyState currentProperty() {
+    public PropertyValue currentProperty() {
         boolean relative = propertyName.indexOf('/') >= 0;
         boolean asterisk = propertyName.equals("*");
         if (!relative && !asterisk) {
-            PropertyState p = selector.currentProperty(propertyName);
+            PropertyValue p = selector.currentProperty(propertyName);
             return matchesPropertyType(p) ? p : null;
         }
         Tree tree = getTree(selector.currentPath());
@@ -112,7 +113,7 @@ public class PropertyValueImpl extends DynamicOperandImpl {
                 return null;
             }
             PropertyState p = tree.getProperty(name);
-            return matchesPropertyType(p) ? p : null;
+            return matchesPropertyType(p) ? PropertyValues.create(p) : null;
         }
         // asterisk - create a multi-value property
         // warning: the returned property state may have a mixed type
@@ -125,7 +126,8 @@ public class PropertyValueImpl extends DynamicOperandImpl {
                 Iterables.addAll(values, p.getValue(Type.STRINGS));
             }
         }
-        return PropertyStates.stringProperty("*", values);
+        // "*"
+        return PropertyValues.newString(values);
     }
 
     private boolean matchesPropertyType(PropertyState state) {
@@ -143,7 +145,7 @@ public class PropertyValueImpl extends DynamicOperandImpl {
     }
 
     @Override
-    public void restrict(FilterImpl f, Operator operator, CoreValue v) {
+    public void restrict(FilterImpl f, Operator operator, PropertyValue v) {
         if (f.getSelector() == selector) {
             if (operator == Operator.NOT_EQUAL && v != null) {
                 // not supported

@@ -18,11 +18,9 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.CoreValues;
-import org.apache.jackrabbit.oak.query.Query;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
+import org.apache.jackrabbit.oak.spi.query.PropertyValue;
+import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 
 /**
  * The "a.x = b.y" join condition.
@@ -62,61 +60,53 @@ public class EquiJoinConditionImpl extends JoinConditionImpl {
 
     @Override
     public boolean evaluate() {
-        PropertyState p1 = selector1.currentProperty(property1Name);
+        PropertyValue p1 = selector1.currentProperty(property1Name);
         if (p1 == null) {
             return false;
         }
-        PropertyState p2 = selector2.currentProperty(property2Name);
+        PropertyValue p2 = selector2.currentProperty(property2Name);
         if (p2 == null) {
             return false;
         }
         if (!p1.isArray() && !p2.isArray()) {
             // both are single valued
-            return CoreValues.getValue(p1).equals(CoreValues.getValue(p2));
+            return PropertyValues.match(p1, p2);
         }
         // TODO what is the expected result of an equi join for multi-valued properties?
         if (!p1.isArray() && p2.isArray()) {
-            CoreValue x = CoreValues.getValue(p1);
-            for (CoreValue y : CoreValues.getValues(p2)) {
-                if (y.getType() != x.getType()) {
-                    y = query.convert(y, x.getType());
-                }
-                if (y != null && x.equals(y)) {
-                    return true;
-                }
+            if (p1.getType().tag() != p2.getType().tag()) {
+                p1 = PropertyValues.convert(p1, p2.getType().tag(), query.getNamePathMapper());
+            }
+            if (p1 != null && PropertyValues.match(p1, p2)) {
+                return true;
             }
             return false;
         } else if (p1.isArray() && !p2.isArray()) {
-            CoreValue x = CoreValues.getValue(p2);
-            for (CoreValue y : CoreValues.getValues(p1)) {
-                if (y.getType() != x.getType()) {
-                    y = query.convert(y, x.getType());
-                }
-                if (x.equals(y)) {
-                    return true;
-                }
+            if (p1.getType().tag() != p2.getType().tag()) {
+                p2 = PropertyValues.convert(p2, p1.getType().tag(), query.getNamePathMapper());
+            }
+            if (p2 != null && PropertyValues.match(p1, p2)) {
+                return true;
             }
             return false;
         }
-        CoreValue[] l1 = CoreValues.getValues(p1).toArray(new CoreValue[p1.count()]);
-        CoreValue[] l2 = CoreValues.getValues(p2).toArray(new CoreValue[p2.count()]);
-        return Query.compareValues(l1, l2) == 0;
+        return PropertyValues.match(p1, p2);
     }
 
     @Override
     public void restrict(FilterImpl f) {
-        PropertyState p1 = selector1.currentProperty(property1Name);
-        PropertyState p2 = selector2.currentProperty(property2Name);
+        PropertyValue p1 = selector1.currentProperty(property1Name);
+        PropertyValue p2 = selector2.currentProperty(property2Name);
         if (f.getSelector() == selector1 && p2 != null) {
             if (!p2.isArray()) {
                 // TODO support join on multi-valued properties
-                f.restrictProperty(property1Name, Operator.EQUAL, CoreValues.getValue(p2));
+                f.restrictProperty(property1Name, Operator.EQUAL, p2);
             }
         }
         if (f.getSelector() == selector2 && p1 != null) {
             if (!p1.isArray()) {
                 // TODO support join on multi-valued properties
-                f.restrictProperty(property2Name, Operator.EQUAL, CoreValues.getValue(p1));
+                f.restrictProperty(property2Name, Operator.EQUAL, p1);
             }
         }
     }

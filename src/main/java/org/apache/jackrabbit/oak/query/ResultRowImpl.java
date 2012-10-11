@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.query;
 
-import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.query.ast.ColumnImpl;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
+import org.apache.jackrabbit.oak.spi.query.PropertyValue;
 
 /**
  * A query result row that keeps all data in memory.
@@ -28,10 +28,10 @@ public class ResultRowImpl implements ResultRow, Comparable<ResultRowImpl> {
 
     private final Query query;
     private final String[] paths;
-    private final CoreValue[] values;
-    private final CoreValue[][] orderValues;
+    private final PropertyValue[] values;
+    private final PropertyValue[] orderValues;
 
-    ResultRowImpl(Query query, String[] paths, CoreValue[] values, CoreValue[][] orderValues) {
+    ResultRowImpl(Query query, String[] paths, PropertyValue[] values, PropertyValue[] orderValues) {
         this.query = query;
         this.paths = paths;
         this.values = values;
@@ -58,13 +58,13 @@ public class ResultRowImpl implements ResultRow, Comparable<ResultRowImpl> {
     }
 
     @Override
-    public CoreValue getValue(String columnName) {
+    public PropertyValue getValue(String columnName) {
         return values[query.getColumnIndex(columnName)];
     }
 
     @Override
-    public CoreValue[] getValues() {
-        CoreValue[] v2 = new CoreValue[values.length];
+    public PropertyValue[] getValues() {
+        PropertyValue[] v2 = new PropertyValue[values.length];
         System.arraycopy(values, 0, v2, 0, values.length);
         return v2;
     }

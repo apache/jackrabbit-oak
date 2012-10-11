@@ -29,6 +29,7 @@ import javax.jcr.nodetype.NodeTypeIterator;
 import javax.jcr.nodetype.NodeTypeManager;
 
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
 import org.apache.jackrabbit.oak.plugins.index.IndexDefinition;
@@ -200,10 +201,10 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
             boolean isLike = pr.isLike;
 
             if (pr.first != null) {
-                first = pr.first.getString();
+                first = pr.first.getValue(Type.STRING);
             }
             if (pr.last != null) {
-                last = pr.last.getString();
+                last = pr.last.getValue(Type.STRING);
             }
 
             if (isLike) {
