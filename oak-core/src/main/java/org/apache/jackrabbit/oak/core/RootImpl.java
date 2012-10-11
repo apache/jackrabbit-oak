@@ -181,7 +181,7 @@ public class RootImpl implements Root {
             NodeState base = getBaseState();
             NodeState head = rootTree.getNodeState();
             refresh();
-            MergingNodeStateDiff.merge(base, head, rootTree, conflictHandler);
+            MergingNodeStateDiff.merge(base, head, rootTree.getNodeBuilder(), conflictHandler);
         }
     }
 
