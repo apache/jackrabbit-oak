@@ -31,7 +31,6 @@ import javax.jcr.nodetype.PropertyDefinition;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
@@ -39,7 +38,6 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.value.ValueFactoryImpl;
-import org.apache.jackrabbit.oak.value.ValueImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -344,21 +342,6 @@ class TypeValidator implements Validator {
                 }
             }
             return false;
-        }
-
-        private Value[] jcrValues(List<CoreValue> values) {
-            Value[] jcrValues = new  Value[values.size()];
-
-            int k = 0;
-            for (CoreValue value : values) {
-                jcrValues[k++] = jcrValue(value);
-            }
-
-            return jcrValues;
-        }
-
-        private Value jcrValue(CoreValue value) {
-            return new ValueImpl(value, mapper);
         }
 
     }
