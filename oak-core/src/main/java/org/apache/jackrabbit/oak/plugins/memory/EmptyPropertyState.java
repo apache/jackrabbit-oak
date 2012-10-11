@@ -108,7 +108,8 @@ abstract class EmptyPropertyState implements PropertyState {
                 return false;
             }
             if (getType().tag() == PropertyType.BINARY) {
-                return getValue(BINARIES).equals(that.getValue(BINARIES));
+                return Iterables.elementsEqual(
+                        getValue(BINARIES), that.getValue(BINARIES));
             }
             else {
                 return Iterables.elementsEqual(
