@@ -26,6 +26,7 @@ import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.json.JsopReader;
@@ -74,12 +75,13 @@ public final class PropertyStates {
     }
 
     @Nonnull
-    public static PropertyState createProperty(String name, Value[] values) throws RepositoryException {
-        if (values.length == 0) {
+    public static PropertyState createProperty(String name, Iterable<Value> values) throws RepositoryException {
+        Value first = Iterables.getFirst(values, null);
+        if (first == null) {
             return emptyProperty(name, STRINGS);
         }
 
-        int type = values[0].getType();
+        int type = first.getType();
         switch (type) {
             case PropertyType.STRING:
                 List<String> strings = Lists.newArrayList();
