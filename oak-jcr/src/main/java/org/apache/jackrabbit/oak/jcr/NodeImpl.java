@@ -18,8 +18,9 @@ package org.apache.jackrabbit.oak.jcr;
 
 import java.io.InputStream;
 import java.math.BigDecimal;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -54,21 +55,19 @@ import javax.jcr.version.VersionHistory;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.ItemNameMatcher;
 import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
 import org.apache.jackrabbit.commons.iterator.PropertyIteratorAdapter;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.jcr.value.ValueConverter;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.util.TODO;
@@ -352,13 +351,11 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
                     return p;
                 } else {
                     String oakName = sessionDelegate.getOakPathOrThrow(jcrName);
-                    ArrayList<Value> vs = Lists.newArrayList();
-                    for (Value targetValue : targetValues) {
-                        if (targetValue != null) {
-                            vs.add(targetValue);
-                        }
-                    }
-                    return new PropertyImpl(dlg.setProperty(oakName, vs.toArray(new Value[vs.size()])));
+                    Iterable<Value> nonNullValues = Iterables.filter(
+                            Arrays.asList(targetValues),
+                            Predicates.notNull());
+
+                    return new PropertyImpl(dlg.setProperty(oakName, nonNullValues));
                 }
             }
         });
@@ -936,32 +933,25 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
                 // TODO: END
 
                 PropertyDelegate mixins = dlg.getProperty(JcrConstants.JCR_MIXINTYPES);
-                CoreValue cv = ValueConverter.toCoreValue(mixinName, PropertyType.NAME, sessionDelegate);
+                Value value = sessionDelegate.getValueFactory().createValue(mixinName, PropertyType.NAME);
 
                 boolean nodeModified = false;
                 if (mixins == null) {
                     nodeModified = true;
-                    Value name = sessionDelegate.getValueFactory().createValue(mixinName, PropertyType.NAME);
-                    dlg.setProperty(JcrConstants.JCR_MIXINTYPES, new Value[]{name});
+                    dlg.setProperty(JcrConstants.JCR_MIXINTYPES, Collections.singletonList(value));
                 } else {
-                    List<CoreValue> values = Lists.newArrayList(mixins.getValues());
-                    if (!values.contains(cv)) {
-                        values.add(cv);
+                    List<Value> values = mixins.getValues();
+                    if (!values.contains(value)) {
+                        values.add(value);
                         nodeModified = true;
-                        Value[] jcvValues = new Value[values.size()];
-                        int k = 0;
-                        for (CoreValue v : values) {
-                            jcvValues[k++] = sessionDelegate.getValueFactory().createValue(cv);
-                        }
-
-                        dlg.setProperty(JcrConstants.JCR_MIXINTYPES, jcvValues);
+                        dlg.setProperty(JcrConstants.JCR_MIXINTYPES, values);
                     }
                 }
 
                 // TODO: hack -- make sure we assign a UUID
                 if (nodeModified && nt.isNodeType(JcrConstants.MIX_REFERENCEABLE)) {
-                    Value value = sessionDelegate.getValueFactory().createValue(IdentifierManager.generateUUID());
-                    dlg.setProperty(JcrConstants.JCR_UUID, value);
+                    Value uuid = sessionDelegate.getValueFactory().createValue(IdentifierManager.generateUUID());
+                    dlg.setProperty(JcrConstants.JCR_UUID, uuid);
                 }
                 return null;
             }
