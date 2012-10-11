@@ -96,7 +96,7 @@ public class SessionDelegate {
         this.session = new SessionImpl(this);
         this.idManager = new IdentifierManager(root);
         this.namePathMapper = new NamePathMapperImpl(new SessionNameMapper(this), idManager);
-        this.valueFactory = new ValueFactoryImpl(contentSession.getCoreValueFactory(), namePathMapper);
+        this.valueFactory = new ValueFactoryImpl(namePathMapper);
     }
 
     /**

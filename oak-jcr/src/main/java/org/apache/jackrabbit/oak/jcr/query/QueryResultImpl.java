@@ -36,8 +36,8 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.NodeImpl;
 import org.apache.jackrabbit.oak.jcr.SessionDelegate;
-import org.apache.jackrabbit.oak.plugins.memory.CoreValues;
-import org.apache.jackrabbit.oak.spi.query.PropertyValue;
+import org.apache.jackrabbit.oak.value.PropertyValue;
+import org.apache.jackrabbit.oak.value.ValueFactoryImpl;
 
 /**
  * The implementation of the corresponding JCR interface.
@@ -229,7 +229,9 @@ public class QueryResultImpl implements QueryResult {
     }
 
     Value createValue(PropertyValue value) {
-        return value == null ? null : sessionDelegate.getValueFactory().createValue(CoreValues.getValue(value.unwrap()));
+        return value == null
+            ? null
+            : ValueFactoryImpl.createValue(value.unwrap(), sessionDelegate.getNamePathMapper());
     }
 
 }

@@ -19,6 +19,8 @@
 package org.apache.jackrabbit.oak.spi.query;
 
 
+import org.apache.jackrabbit.oak.value.PropertyValue;
+
 /**
  * A row returned by the index.
  */

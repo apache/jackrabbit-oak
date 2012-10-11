@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
-import org.apache.jackrabbit.oak.spi.query.PropertyValue;
+import org.apache.jackrabbit.oak.value.PropertyValue;
 
 /**
  * The base class for dynamic operands (such as a function or property).
