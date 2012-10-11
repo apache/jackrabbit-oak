@@ -34,7 +34,6 @@ import java.util.Map;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.AbstractOakTest;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
@@ -63,7 +62,6 @@ public abstract class AbstractQueryTest extends AbstractOakTest implements
     protected static final String TEST_INDEX_HOME = DEFAULT_INDEX_HOME;
     protected static final String INDEX_DEFINITION_NODE_TYPE = "nam:oak:queryIndexDefinition";
 
-    protected CoreValueFactory vf;
     protected SessionQueryEngine qe;
     protected ContentSession session;
     protected Root root;
@@ -75,7 +73,6 @@ public abstract class AbstractQueryTest extends AbstractOakTest implements
         session = createAdminSession();
         root = session.getLatestRoot();
         qe = root.getQueryEngine();
-        vf = root.getValueFactory();
         createTestIndexNode();
     }
 
@@ -140,8 +137,7 @@ public abstract class AbstractQueryTest extends AbstractOakTest implements
     public void bindVariableTest() throws Exception {
         JsopUtil.apply(
                 root,
-                "/ + \"test\": { \"hello\": {\"id\": \"1\"}, \"world\": {\"id\": \"2\"}}",
-                vf);
+                "/ + \"test\": { \"hello\": {\"id\": \"1\"}, \"world\": {\"id\": \"2\"}}");
         root.commit();
 
         Map<String, PropertyValue> sv = new HashMap<String, PropertyValue>();
@@ -249,7 +245,7 @@ public abstract class AbstractQueryTest extends AbstractOakTest implements
                 } else if (line.startsWith("commit")) {
                     w.println(line);
                     line = line.substring("commit".length()).trim();
-                    JsopUtil.apply(root, line, vf);
+                    JsopUtil.apply(root, line);
                     root.commit();
                 }
                 w.flush();
