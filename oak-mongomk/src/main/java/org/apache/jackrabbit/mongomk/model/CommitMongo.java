@@ -64,7 +64,10 @@ public class CommitMongo extends BasicDBObject {
             commitMongo.setRevisionId(revisionId);
         }
 
-        commitMongo.setBranchId(commit.getBranchId());
+        String branchId = commit.getBranchId();
+        if (branchId != null) {
+            commitMongo.setBranchId(branchId);
+        }
 
         commitMongo.setTimestamp(commit.getTimestamp());
 

@@ -24,15 +24,19 @@ import java.util.Map;
 
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
+import org.apache.jackrabbit.mongomk.model.NodeMongo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.QueryBuilder;
 
 /**
+ * FIXME - Clean up the constructors.
+ *
  * An query for fetching valid commits.
  */
 public class FetchValidCommitsQuery extends AbstractQuery<List<CommitMongo>> {
@@ -43,6 +47,7 @@ public class FetchValidCommitsQuery extends AbstractQuery<List<CommitMongo>> {
     private long fromRevisionId = 0L;
     private long toRevisionId = Long.MAX_VALUE;
     private int maxEntries = LIMITLESS;
+    private boolean includeBranchCommits = true;
 
     /**
      * Constructs a new {@link FetchValidCommitsQuery} with 0 fromRevisionId
@@ -70,6 +75,15 @@ public class FetchValidCommitsQuery extends AbstractQuery<List<CommitMongo>> {
         this.fromRevisionId = fromRevisionId;
         this.toRevisionId = toRevisionId;
         this.maxEntries = maxEntries;
+    }
+
+    /**
+     * Sets whether the branch commits are included in the query.
+     *
+     * @param includeBranchCommits Whether the branch commits are included.
+     */
+    public void includeBranchCommits(boolean includeBranchCommits) {
+        this.includeBranchCommits = includeBranchCommits;
     }
 
     @Override
@@ -116,9 +130,15 @@ public class FetchValidCommitsQuery extends AbstractQuery<List<CommitMongo>> {
 
     private DBCursor fetchListOfValidCommits() {
         DBCollection commitCollection = mongoConnection.getCommitCollection();
-        DBObject query = QueryBuilder.start(CommitMongo.KEY_FAILED).notEquals(Boolean.TRUE)
-                .and(CommitMongo.KEY_REVISION_ID).lessThanEquals(toRevisionId)
-                .get();
+        QueryBuilder queryBuilder = QueryBuilder.start(CommitMongo.KEY_FAILED).notEquals(Boolean.TRUE)
+                .and(CommitMongo.KEY_REVISION_ID).lessThanEquals(toRevisionId);
+
+        if (!includeBranchCommits) {
+            queryBuilder = queryBuilder.and(new BasicDBObject(NodeMongo.KEY_BRANCH_ID,
+                    new BasicDBObject("$exists", false)));
+        }
+
+        DBObject query = queryBuilder.get();
 
         LOG.debug(String.format("Executing query: %s", query));
 
