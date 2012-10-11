@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.user;
 
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
@@ -41,13 +40,11 @@ abstract class AuthorizableBaseProvider implements UserConstants {
 
     final UserConfig config;
     final Root root;
-    final CoreValueFactory valueFactory;
     final IdentifierManager identifierManager;
 
     AuthorizableBaseProvider(Root root, UserConfig config) {
         this.root = root;
         this.config = config;
-        this.valueFactory = root.getValueFactory();
         this.identifierManager = new IdentifierManager(root);
     }
 

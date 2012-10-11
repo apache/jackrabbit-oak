@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.security.user;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -30,14 +29,11 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
-import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.plugins.memory.CoreValues;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryPropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
@@ -149,11 +145,11 @@ public class MembershipProviderImpl extends AuthorizableBaseProvider implements 
         } else {
             PropertyState property = groupTree.getProperty(REP_MEMBERS);
             if (property != null) {
-                List<CoreValue> vs = CoreValues.getValues(property);
-                memberPaths = Iterables.transform(vs, new Function<CoreValue,String>() {
+                Iterable<String> vs = property.getValue(STRINGS);
+                memberPaths = Iterables.transform(vs, new Function<String, String>() {
                     @Override
-                    public String apply(@Nullable CoreValue value) {
-                        return identifierManager.getPath(PropertyStates.createProperty("", value.getString(), value.getType()));
+                    public String apply(@Nullable String value) {
+                        return identifierManager.getPath(PropertyStates.createProperty("", value, WEAKREFERENCE));
                     }
                 });
             }
