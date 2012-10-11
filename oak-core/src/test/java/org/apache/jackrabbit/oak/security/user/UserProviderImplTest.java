@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexHook;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
+import org.apache.jackrabbit.oak.spi.security.user.PasswordUtility;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
@@ -371,6 +372,64 @@ public class UserProviderImplTest extends AbstractOakTest {
         if (up.getAuthorizable("bb") != null) {
             fail("Removing the top authorizable folder must remove all users contained.");
             u2.remove();
+        }
+    }
+
+    @Test
+    public void testGetPasswordHash() throws Exception {
+        UserProvider up = createUserProvider();
+        Tree user = up.createUser("a", null);
+
+        assertNull(up.getPasswordHash(user));
+    }
+
+    @Test
+    public void testSetPassword() throws Exception {
+        UserProvider up = createUserProvider();
+        Tree user = up.createUser("a", null);
+
+        List<String> pwds = new ArrayList<String>();
+        pwds.add("pw");
+        pwds.add("");
+        pwds.add("{sha1}pw");
+
+        for (String pw : pwds) {
+            up.setPassword(user, pw, true);
+            String pwHash = up.getPasswordHash(user);
+            assertNotNull(pwHash);
+            assertTrue(PasswordUtility.isSame(pwHash, pw));
+        }
+
+        for (String pw : pwds) {
+            up.setPassword(user, pw, false);
+            String pwHash = up.getPasswordHash(user);
+            assertNotNull(pwHash);
+            if (!pw.startsWith("{")) {
+                assertTrue(PasswordUtility.isSame(pwHash, pw));
+            } else {
+                assertFalse(PasswordUtility.isSame(pwHash, pw));
+                assertEquals(pw, pwHash);
+            }
+        }
+    }
+
+    @Test
+    public void setPasswordNull() throws Exception {
+        UserProvider up = createUserProvider();
+        Tree user = up.createUser("a", null);
+
+        try {
+            up.setPassword(user, null, true);
+            fail("setting null password should fail");
+        } catch (IllegalArgumentException e) {
+            // expected
+        }
+
+        try {
+            up.setPassword(user, null, false);
+            fail("setting null password should fail");
+        } catch (IllegalArgumentException e) {
+            // expected
         }
     }
 }
