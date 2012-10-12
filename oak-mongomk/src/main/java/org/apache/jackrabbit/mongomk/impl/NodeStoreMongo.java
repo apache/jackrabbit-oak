@@ -44,12 +44,15 @@ import org.apache.jackrabbit.mongomk.query.FetchCommitQuery;
 import org.apache.jackrabbit.mongomk.query.FetchHeadRevisionIdQuery;
 import org.apache.jackrabbit.mongomk.query.FetchValidCommitsQuery;
 import org.apache.jackrabbit.mongomk.util.MongoUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Implementation of {@link NodeStore} for the {@code MongoDB}.
  */
 public class NodeStoreMongo implements NodeStore {
 
+    private static final Logger LOG = LoggerFactory.getLogger(NodeStoreMongo.class);
     private static final long WAIT_FOR_COMMIT_POLL_MILLIS = 1000;
 
     private final CommandExecutor commandExecutor;
@@ -104,14 +107,8 @@ public class NodeStoreMongo implements NodeStore {
             }
         }
 
-        // FIXME - FetchNodesByPath?
-        GetNodesCommandMongo command = new GetNodesCommandMongo(mongoConnection, path, fromRevisionId, -1);
-        Node before = command.execute();
-        NodeState beforeState = before != null? new MongoNodeState(before) : null;
-
-        command = new GetNodesCommandMongo(mongoConnection, path, toRevisionId, -1);
-        Node after = command.execute();
-        NodeState afterState = after != null? new MongoNodeState(after) : null;
+        NodeState beforeState = wrap(getNode(path, fromRevisionId));
+        NodeState afterState = wrap(getNode(path, toRevisionId));
 
         return new DiffBuilder(beforeState, afterState, path, depth,
                 new MongoNodeStore(), path).build();
@@ -144,31 +141,27 @@ public class NodeStoreMongo implements NodeStore {
         Long rootNodeId = commit.getRevisionId();
         Long currentHead =  new FetchHeadRevisionIdQuery(mongoConnection).execute();
 
-        // FIXME - FetchNodesByPath?
-        GetNodesCommandMongo command = new GetNodesCommandMongo(mongoConnection,
-                "/", rootNodeId, -1);
-        command.setBranchId(branchId);
-        Node ourRoot = command.execute();
+        Node ourRoot = getNode("/", rootNodeId, branchId);
 
-        // Merge changes from head to branch.
-        // FIXME - I think this might need to be real branch root it, rather than
-        // base revision id.
+        // FIXME - branchRootId might need to be real branch root it, rather
+        // than base revision id.
         Long branchRootId = commit.getBaseRevId();
-        NodeImpl mergedNode = merge(ourRoot, currentHead, branchRootId);
 
-        command = new GetNodesCommandMongo(mongoConnection, "/", currentHead, -1);
-        Node theirRoot = command.execute();
+        // Merge nodes from head to branch.
+        ourRoot = mergeNodes(ourRoot, currentHead, branchRootId);
 
-        String diff = new DiffBuilder(new MongoNodeState(theirRoot),
-                new MongoNodeState(mergedNode), "/", -1,
+        // FIXME - Handle the case when there are no changes.
+
+        String diff = new DiffBuilder(wrap(getNode("/", currentHead)),
+                wrap(ourRoot), "/", -1,
                 new MongoNodeStore(), "").build();
 
         if (diff.isEmpty()) {
-            // FIXME - handle.
+            LOG.debug("Merge of empty branch {} with differing content hashes encountered, " +
+                    "ignore and keep current head {}", branchRevisionId, currentHead);
             return MongoUtil.fromMongoRepresentation(currentHead);
         }
 
-        // FIXME - Is it OK that path is /?
         Commit newCommit = CommitBuilder.build("", diff,
                 MongoUtil.fromMongoRepresentation(currentHead), message);
 
@@ -308,43 +301,41 @@ public class NodeStoreMongo implements NodeStore {
         return null;
     }
 
-    // FIXME - Move merge related functions to the right place, make sure they
-    // work as expected and consolidate with Oak if possible.
+    private Node getNode(String path, Long revisionId) throws Exception {
+        return getNode(path, revisionId, null);
+    }
 
-    public NodeImpl merge(Node ourRoot, Long newBaseRevisionId,
-            Long commonAncestorRevisionId) throws Exception {
-        // reset staging area to new base revision
-        //reset(newBaseRevisionId);
-
+    private Node getNode(String path, Long revisionId, String branchId) throws Exception {
+        // FIXME - Should this use FetchNodesByPath instead?
         GetNodesCommandMongo command = new GetNodesCommandMongo(mongoConnection,
-                "/", commonAncestorRevisionId, -1);
-        Node baseRoot = command.execute();
+                path, revisionId, -1);
+        command.setBranchId(branchId);
+        return command.execute();
+    }
 
-        command = new GetNodesCommandMongo(mongoConnection,
-                "/", newBaseRevisionId, -1);
-        Node theirRoot = command.execute();
+    // FIXME - Make sure merge related functions work as expected.
+    private NodeImpl mergeNodes(Node ourRoot, Long newBaseRevisionId,
+            Long commonAncestorRevisionId) throws Exception {
 
-        // recursively merge 'our' changes with 'their' changes...
+        Node baseRoot = getNode("/", commonAncestorRevisionId);
+        Node theirRoot = getNode("/", newBaseRevisionId);
+
+        // Recursively merge 'our' changes with 'their' changes...
         NodeImpl mergedNode = mergeNode(baseRoot, ourRoot, theirRoot, "/");
 
-        // persist staged nodes
-        //return persist(token)
         return mergedNode;
     }
 
     private NodeImpl mergeNode(Node baseNode, Node ourNode, Node theirNode,
             String path) throws Exception {
-        NodeState node1 = baseNode != null? new MongoNodeState(baseNode) : null;
-        NodeState node2 = theirNode != null? new MongoNodeState(theirNode) : null;
-        MongoNodeDelta theirChanges = new MongoNodeDelta(new MongoNodeStore(), node1, node2);
-
-        NodeState node3 = baseNode != null? new MongoNodeState(baseNode) : null;
-        NodeState node4 = ourNode != null? new MongoNodeState(ourNode) : null;
-        MongoNodeDelta ourChanges = new MongoNodeDelta(new MongoNodeStore(), node3, node4);
+        MongoNodeDelta theirChanges = new MongoNodeDelta(new MongoNodeStore(),
+                wrap(baseNode), wrap(theirNode));
+        MongoNodeDelta ourChanges = new MongoNodeDelta(new MongoNodeStore(),
+                wrap(baseNode), wrap(ourNode));
 
         NodeImpl stagedNode = (NodeImpl)theirNode; //new NodeImpl(path);
 
-        // merge non-conflicting changes
+        // Merge non-conflicting changes
         stagedNode.getProperties().putAll(ourChanges.getAddedProperties());
         stagedNode.getProperties().putAll(ourChanges.getChangedProperties());
         for (String name : ourChanges.getRemovedProperties().keySet()) {
@@ -404,5 +395,9 @@ public class NodeStoreMongo implements NodeStore {
 //
 //        }
         return stagedNode;
+    }
+
+    private NodeState wrap(Node node) {
+        return node != null? new MongoNodeState(node) : null;
     }
 }
