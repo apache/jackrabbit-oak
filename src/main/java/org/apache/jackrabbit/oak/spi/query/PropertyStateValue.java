@@ -26,14 +26,19 @@ import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.util.ISO8601;
 
-public class PropertyValue implements Comparable<PropertyValue> {
+/**
+ * A {@link PropertyValue} implementation that wraps a {@link PropertyState}
+ * 
+ */
+public class PropertyStateValue implements PropertyValue {
 
     private final PropertyState ps;
 
-    protected PropertyValue(PropertyState ps) {
+    protected PropertyStateValue(PropertyState ps) {
         this.ps = ps;
     }
 
@@ -161,8 +166,8 @@ public class PropertyValue implements Comparable<PropertyValue> {
     public boolean equals(Object o) {
         if (o == this) {
             return true;
-        } else if (o instanceof PropertyValue) {
-            return compareTo((PropertyValue) o) == 0;
+        } else if (o instanceof PropertyStateValue) {
+            return compareTo((PropertyStateValue) o) == 0;
         } else {
             return false;
         }

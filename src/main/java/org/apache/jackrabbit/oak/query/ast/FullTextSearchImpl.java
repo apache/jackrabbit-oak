@@ -22,11 +22,12 @@ import java.text.ParseException;
 import java.util.ArrayList;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.query.ast.ComparisonImpl.LikePattern;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
-import org.apache.jackrabbit.oak.spi.query.PropertyValue;
+import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
@@ -82,14 +83,14 @@ public class FullTextSearchImpl extends ConstraintImpl {
             if (p == null) {
                 return false;
             }
-            appendString(buff, p.unwrap());
+            appendString(buff, p);
         } else {
             Tree tree = getTree(selector.currentPath());
             if (tree == null) {
                 return false;
             }
             for (PropertyState p : tree.getProperties()) {
-                appendString(buff, p);
+                appendString(buff, PropertyValues.create(p));
             }
         }
         // TODO fulltext conditions: need a way to disable evaluation
@@ -105,7 +106,7 @@ public class FullTextSearchImpl extends ConstraintImpl {
         }
     }
 
-    private static void appendString(StringBuilder buff, PropertyState p) {
+    private static void appendString(StringBuilder buff, PropertyValue p) {
         if (p.isArray()) {
             for (String v : p.getValue(STRINGS)) {
                 buff.append(v).append(' ');

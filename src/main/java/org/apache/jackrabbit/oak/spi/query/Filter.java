@@ -19,9 +19,10 @@
 package org.apache.jackrabbit.oak.spi.query;
 
 import java.util.Collection;
+
 import javax.jcr.PropertyType;
 
-import org.apache.jackrabbit.oak.spi.query.PropertyValue;
+import org.apache.jackrabbit.oak.api.PropertyValue;
 
 /**
  * The filter for an index lookup.
