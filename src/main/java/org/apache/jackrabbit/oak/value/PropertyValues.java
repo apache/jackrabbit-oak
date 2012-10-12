@@ -26,7 +26,6 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 
-import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -110,11 +109,6 @@ public class PropertyValues {
 
     @Nonnull
     public static PropertyValue newBinary(byte[] value) {
-        return new PropertyValue(PropertyStates.binaryProperty("", value));
-    }
-
-    @Nonnull
-    public static PropertyValue newBinary(Blob value) {
         return new PropertyValue(PropertyStates.binaryProperty("", value));
     }
 
