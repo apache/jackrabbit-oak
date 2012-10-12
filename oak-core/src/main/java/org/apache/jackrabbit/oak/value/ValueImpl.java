@@ -42,7 +42,7 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.base.Preconditions.checkArgument;
 
 /**
- * ValueImpl...
+ * Implementation of {@link Value} based on {@code PropertyState}.
  */
 public class ValueImpl implements Value {
     private static final Logger log = LoggerFactory.getLogger(ValueImpl.class);
@@ -53,13 +53,28 @@ public class ValueImpl implements Value {
 
     private InputStream stream = null;
 
-    ValueImpl(PropertyState propertyState, int index, NamePathMapper namePathMapper) {
-        checkArgument(index < propertyState.count());
-        this.propertyState = propertyState;
+    /**
+     * Create a new {@code Value} instance
+     * @param property  The property state this instance is based on
+     * @param index  The index
+     * @param namePathMapper The name/path mapping used for converting JCR names/paths to
+     * the internal representation.
+     * @throws IllegalArgumentException if {@code index < propertyState.count()}
+     */
+    ValueImpl(PropertyState property, int index, NamePathMapper namePathMapper) {
+        checkArgument(index < property.count());
+        this.propertyState = property;
         this.index = index;
         this.namePathMapper = namePathMapper;
     }
 
+    /**
+     * Create a new {@code Value} instance
+     * @param property  The property state this instance is based on
+     * @param namePathMapper The name/path mapping used for converting JCR names/paths to
+     * the internal representation.
+     * @throws IllegalArgumentException if {@code property.isArray()} is {@code true}.
+     */
     ValueImpl(PropertyState property, NamePathMapper namePathMapper) {
         this(checkSingleValued(property), 0, namePathMapper);
     }
