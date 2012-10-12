@@ -24,6 +24,9 @@ public class GenericPropertyState extends SinglePropertyState {
     private final String value;
     private final Type<?> type;
 
+    /**
+     * @throws IllegalArgumentException if {@code type.isArray()} is {@code true}
+     */
     protected GenericPropertyState(String name, String value, Type<?> type) {
         super(name);
         checkArgument(!type.isArray());
