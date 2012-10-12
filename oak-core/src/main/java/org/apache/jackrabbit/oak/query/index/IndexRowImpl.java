@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.query.index;
 
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
-import org.apache.jackrabbit.oak.value.PropertyValue;
+import org.apache.jackrabbit.oak.spi.query.PropertyValue;
 
 /**
  * A simple index row implementation.

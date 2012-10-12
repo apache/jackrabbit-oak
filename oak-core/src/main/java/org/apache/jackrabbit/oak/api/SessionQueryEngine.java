@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.value.PropertyValue;
+import org.apache.jackrabbit.oak.spi.query.PropertyValue;
 
 /**
  * The query engine allows to parse and execute queries.

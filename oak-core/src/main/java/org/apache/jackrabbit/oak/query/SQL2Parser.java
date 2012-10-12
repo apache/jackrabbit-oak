@@ -33,8 +33,8 @@ import org.apache.jackrabbit.oak.query.ast.PropertyValueImpl;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.ast.SourceImpl;
 import org.apache.jackrabbit.oak.query.ast.StaticOperandImpl;
-import org.apache.jackrabbit.oak.value.PropertyValue;
-import org.apache.jackrabbit.oak.value.PropertyValues;
+import org.apache.jackrabbit.oak.spi.query.PropertyValue;
+import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 
 import javax.jcr.PropertyType;
 import java.math.BigDecimal;

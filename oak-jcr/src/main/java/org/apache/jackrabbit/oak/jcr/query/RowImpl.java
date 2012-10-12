@@ -24,7 +24,7 @@ import javax.jcr.Value;
 import javax.jcr.query.Row;
 
 import org.apache.jackrabbit.oak.api.ResultRow;
-import org.apache.jackrabbit.oak.value.PropertyValue;
+import org.apache.jackrabbit.oak.spi.query.PropertyValue;
 
 /**
  * The implementation of the corresponding JCR interface.
