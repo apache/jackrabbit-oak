@@ -27,13 +27,23 @@ import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
+/**
+ * Abstract base class for {@link PropertyState} implementations
+ * providing default implementation which correspond to a property
+ * without any value.
+ */
 abstract class EmptyPropertyState implements PropertyState {
     private final String name;
 
+    /**
+     * Create a new property state with the given {@code name}
+     * @param name  The name of the property state.
+     */
     protected EmptyPropertyState(String name) {
         this.name = name;
     }
@@ -44,39 +54,54 @@ abstract class EmptyPropertyState implements PropertyState {
         return name;
     }
 
+    /**
+     * @return {@code true}
+     */
     @Override
     public boolean isArray() {
         return true;
     }
 
+    /**
+     * @return An empty list if {@code type.isArray()} is {@code true}.
+     * @throws IllegalArgumentException {@code type.isArray()} is {@code false}.
+     */
     @SuppressWarnings("unchecked")
     @Nonnull
     @Override
     public <T> T getValue(Type<T> type) {
-        if (type.isArray()) {
-            return (T) Collections.emptyList();
-        }
-        else {
-            throw new IllegalStateException("Not a single valued property");
-        }
+        checkArgument(type.isArray(), "Type must be an array type");
+        return (T) Collections.emptyList();
     }
 
+    /**
+     * @throws IndexOutOfBoundsException always
+     */
     @Nonnull
     @Override
     public <T> T getValue(Type<T> type, int index) {
         throw new IndexOutOfBoundsException(String.valueOf(index));
     }
 
+    /**
+     * @throws IllegalStateException always
+     */
     @Override
     public long size() {
         throw new IllegalStateException("Not a single valued property");
     }
 
+    /**
+     * @throws IndexOutOfBoundsException always
+     */
     @Override
     public long size(int index) {
         throw new IndexOutOfBoundsException(String.valueOf(index));
     }
 
+    /**
+     * @return {@code 0}
+     */
     @Override
     public int count() {
         return 0;

@@ -26,53 +26,112 @@ import javax.jcr.PropertyType;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Type;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Collections.singleton;
 
+/**
+ * Abstract base class for single valued {@code PropertyState} implementations.
+ */
 abstract class SinglePropertyState extends EmptyPropertyState {
 
-    public static long getLong(String value) {
-        return Long.parseLong(value);
-    }
-
-    public static double getDouble(String value) {
-        return Double.parseDouble(value);
-    }
-
-    public static BigDecimal getDecimal(String value) {
-        return new BigDecimal(value);
-    }
-
+    /**
+     * Create a new property state with the given {@code name}
+     * @param name  The name of the property state.
+     */
     protected SinglePropertyState(String name) {
         super(name);
     }
 
+    /**
+     * Utility method defining the conversion from {@code String}
+     * to {@code long}.
+     * @param value  The string to convert to a long
+     * @return  The long value parsed from {@code value}
+     * @throws NumberFormatException  if the string does not contain a
+     * parseable long.
+     */
+    public static long getLong(String value) {
+        return Long.parseLong(value);
+    }
+
+    /**
+     * Utility method defining the conversion from {@code String}
+     * to {@code double}.
+     * @param value  The string to convert to a double
+     * @return  The double value parsed from {@code value}
+     * @throws NumberFormatException  if the string does not contain a
+     * parseable double.
+     */
+    public static double getDouble(String value) {
+        return Double.parseDouble(value);
+    }
+
+    /**
+     * Utility method defining the conversion from {@code String}
+     * to {@code BigDecimal}.
+     * @param value  The string to convert to a BigDecimal
+     * @return  The BigDecimal value parsed from {@code value}
+     * @throws NumberFormatException  if the string does not contain a
+     * parseable BigDecimal.
+     */
+    public static BigDecimal getDecimal(String value) {
+        return new BigDecimal(value);
+    }
+
+    /**
+     * String representation of the value of the property state.
+     * @return
+     */
     protected abstract String getString();
 
+    /**
+     * @return  A {@link StringBasedBlob} instance created by calling
+     * {@link #getString()}.
+     */
     protected Blob getBlob() {
         return new StringBasedBlob(getString());
     }
 
+    /**
+     * @return  {@code getLong(getString())}
+     */
     protected long getLong() {
         return getLong(getString());
     }
 
+    /**
+     * @return  {@code getDouble(getString())}
+     */
     protected double getDouble() {
         return getDouble(getString());
     }
 
+    /**
+     * @return  {@code StringPropertyState.getBoolean(getString())}
+     */
     protected boolean getBoolean() {
-        return Boolean.parseBoolean(getString());
+        return StringPropertyState.getBoolean(getString());
     }
 
+    /**
+     * @return  {@code getDecimal(getString())}
+     */
     protected BigDecimal getDecimal() {
         return getDecimal(getString());
     }
 
+    /**
+     * @return  {@code false}
+     */
     @Override
     public boolean isArray() {
         return false;
     }
 
+    /**
+     * @throws IllegalArgumentException if {@code type} is not one of the
+     * values defined in {@link Type}.
+     */
     @SuppressWarnings("unchecked")
     @Nonnull
     @Override
@@ -113,23 +172,32 @@ abstract class SinglePropertyState extends EmptyPropertyState {
         }
     }
 
+    /**
+     * @throws IllegalArgumentException  if {@code type.isArray} is {@code true}
+     * @throws IndexOutOfBoundsException  if {@code index != 0}
+     */
     @Nonnull
     @Override
     public <T> T getValue(Type<T> type, int index) {
-        if (type.isArray()) {
-            throw new IllegalArgumentException("Nested arrows not supported");
-        }
+        checkArgument(!type.isArray(), "Type must not be an array type");
         if (index != 0) {
             throw new IndexOutOfBoundsException(String.valueOf(index));
         }
         return getValue(type);
     }
 
+    /**
+     * @return  {@code getString().length()}
+     */
     @Override
     public long size() {
         return getString().length();
     }
 
+    /**
+     * @return  {@code size}
+     * @throws IndexOutOfBoundsException  if {@code index != 0}
+     */
     @Override
     public long size(int index) {
         if (index != 0) {
@@ -138,6 +206,9 @@ abstract class SinglePropertyState extends EmptyPropertyState {
         return size();
     }
 
+    /**
+     * @return {@code 1}
+     */
     @Override
     public int count() {
         return 1;
