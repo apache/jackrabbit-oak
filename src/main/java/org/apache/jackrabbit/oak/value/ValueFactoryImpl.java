@@ -82,27 +82,25 @@ public class ValueFactoryImpl implements ValueFactory {
     }
 
     @Override
-    public ValueImpl createValue(InputStream value) {
+    public Value createValue(InputStream value) {
         try {
             try {
-                // TODO add streaming capability to ContentSession via KernelBasedBlob
-                return new ValueImpl(PropertyStates.binaryProperty("", ByteStreams.toByteArray(value)), namePathMapper);
+                return createValueImpl(value);
             } finally {
                 value.close();
             }
-        } catch (IOException ex) {
-            // TODO return a value which throws on each access instead
-            throw new RuntimeException(ex);
+        } catch (IOException e) {
+            return new ErrorValue(e, PropertyType.BINARY);
         }
     }
-
     @Override
     public Value createValue(Binary value) {
         try {
-            return createValue(value.getStream());
-        } catch (RepositoryException ex) {
-            // TODO return a value which throws on each access instead
-            throw new RuntimeException(ex);
+            return createValueImpl(value.getStream());
+        } catch (RepositoryException e) {
+            return new ErrorValue(e, PropertyType.BINARY);
+        } catch (IOException e) {
+            return new ErrorValue(e, PropertyType.BINARY);
         }
     }
 
@@ -225,6 +223,91 @@ public class ValueFactoryImpl implements ValueFactory {
 
     @Override
     public Binary createBinary(InputStream stream) throws RepositoryException {
-        return new BinaryImpl(createValue(stream));
+        try {
+            return new BinaryImpl(createValueImpl(stream));
+        }
+        catch (IOException e) {
+            throw new RepositoryException(e);
+        }
+    }
+
+    private ValueImpl createValueImpl(InputStream value) throws IOException {
+        try {
+            // TODO add streaming capability to ContentSession via KernelBasedBlob
+            return new ValueImpl(PropertyStates.binaryProperty("", ByteStreams.toByteArray(value)), namePathMapper);
+        } finally {
+            value.close();
+        }
+    }
+
+    //------------------------------------------------------------< ErrorValue >---
+
+    private static class ErrorValue implements Value {
+        private final Exception exception;
+        private final int type;
+
+        private ErrorValue(Exception exception, int type) {
+            this.exception = exception;
+            this.type = type;
+        }
+
+        @Override
+        public String getString() throws RepositoryException {
+            throw createException();
+        }
+
+        @Override
+        public InputStream getStream() throws RepositoryException {
+            throw createException();
+        }
+
+        @Override
+        public Binary getBinary() throws RepositoryException {
+            throw createException();
+        }
+
+        @Override
+        public long getLong() throws RepositoryException {
+            throw createException();
+        }
+
+        @Override
+        public double getDouble() throws RepositoryException {
+            throw createException();
+        }
+
+        @Override
+        public BigDecimal getDecimal() throws RepositoryException {
+            throw createException();
+        }
+
+        @Override
+        public Calendar getDate() throws RepositoryException {
+            throw createException();
+        }
+
+        @Override
+        public boolean getBoolean() throws RepositoryException {
+            throw createException();
+        }
+
+        @Override
+        public int getType() {
+            return type;
+        }
+
+        private RepositoryException createException() {
+            return new RepositoryException("Inaccessible value", exception);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            return false;
+        }
+
+        @Override
+        public String toString() {
+            return "Inaccessible value: " + exception.getMessage();
+        }
     }
 }
