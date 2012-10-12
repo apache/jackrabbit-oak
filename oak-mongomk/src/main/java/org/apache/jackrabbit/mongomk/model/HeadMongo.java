@@ -30,9 +30,11 @@ public class HeadMongo extends BasicDBObject {
     private static final long serialVersionUID = 3541425042129003691L;
 
     public static HeadMongo fromDBObject(DBObject dbObject) {
+        if (dbObject == null) {
+            return null;
+        }
         HeadMongo headMongo = new HeadMongo();
         headMongo.putAll(dbObject);
-
         return headMongo;
     }
 

@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.jackrabbit.mongomk.model.CommitMongo;
 import org.apache.jackrabbit.mongomk.model.NodeMongo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,16 +36,18 @@ public class QueryUtils {
     private static final Logger LOG = LoggerFactory.getLogger(QueryUtils.class);
 
     /**
-     * Reads nodes from the given {@link DBCursor} and adds them to the returned list
-     * if their revision id is contained in the list of given valid revisions.
+     * Reads nodes from the given {@link DBCursor} and adds them to the returned
+     * list if their revision id is contained in the list of given valid commits.
      * If multiple nodes with the same path are read by the cursor the one with
      * the highest revision id will win.
      *
      * @param dbCursor The {@code DBCursor} to read from.
-     * @param validRevisions The list of valid revisions.
+     * @param validCommits The list of valid commits.
      * @return The list containing the valid nodes.
      */
-    public static List<NodeMongo> getMostRecentValidNodes(DBCursor dbCursor, List<Long> validRevisions) {
+    public static List<NodeMongo> getMostRecentValidNodes(DBCursor dbCursor,
+            List<CommitMongo> validCommits) {
+        List<Long> validRevisions = extractRevisionIds(validCommits);
         Map<String, NodeMongo> nodeMongos = new HashMap<String, NodeMongo>();
 
         while (dbCursor.hasNext()) {
@@ -78,5 +81,13 @@ public class QueryUtils {
         }
 
         return new ArrayList<NodeMongo>(nodeMongos.values());
+    }
+
+    private static List<Long> extractRevisionIds(List<CommitMongo> validCommits) {
+        List<Long> validRevisions = new ArrayList<Long>(validCommits.size());
+        for (CommitMongo commitMongo : validCommits) {
+            validRevisions.add(commitMongo.getRevisionId());
+        }
+        return validRevisions;
     }
 }

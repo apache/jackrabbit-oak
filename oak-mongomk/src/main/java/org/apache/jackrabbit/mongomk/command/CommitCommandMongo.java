@@ -270,7 +270,7 @@ public class CommitCommandMongo extends AbstractCommand<Long> {
         }
     }
 
-    private void readBranchIdFromBaseCommit() {
+    private void readBranchIdFromBaseCommit() throws Exception {
         String commitBranchId = commit.getBranchId();
         if (commitBranchId != null) {
             // This is a newly created branch, so no need to check the base

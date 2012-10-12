@@ -25,7 +25,7 @@ import com.mongodb.DBObject;
 import com.mongodb.QueryBuilder;
 
 /**
- * An query for saveing and setting the head revision id.
+ * An query for saving and setting the head revision id.
  */
 public class SaveAndSetHeadRevisionQuery extends AbstractQuery<HeadMongo> {
 
@@ -35,31 +35,23 @@ public class SaveAndSetHeadRevisionQuery extends AbstractQuery<HeadMongo> {
     /**
      * Constructs a new {@code SaveAndSetHeadRevisionQuery}.
      *
-     * @param mongoConnection
-     *            The {@link MongoConnection}.
+     * @param mongoConnection  The {@link MongoConnection}.
      * @param oldHeadRevision
      * @param newHeadRevision
      */
-    public SaveAndSetHeadRevisionQuery(MongoConnection mongoConnection, long oldHeadRevision, long newHeadRevision) {
+    public SaveAndSetHeadRevisionQuery(MongoConnection mongoConnection,
+            long oldHeadRevision, long newHeadRevision) {
         super(mongoConnection);
-
         this.oldHeadRevision = oldHeadRevision;
         this.newHeadRevision = newHeadRevision;
     }
 
     @Override
     public HeadMongo execute() throws Exception {
-        HeadMongo headMongo = null;
-
         DBCollection headCollection = mongoConnection.getHeadCollection();
         DBObject query = QueryBuilder.start(HeadMongo.KEY_HEAD_REVISION_ID).is(oldHeadRevision).get();
         DBObject update = new BasicDBObject("$set", new BasicDBObject(HeadMongo.KEY_HEAD_REVISION_ID, newHeadRevision));
-
         DBObject dbObject = headCollection.findAndModify(query, null, null, false, update, true, false);
-        if (dbObject != null) {
-            headMongo = HeadMongo.fromDBObject(dbObject);
-        }
-
-        return headMongo;
+        return HeadMongo.fromDBObject(dbObject);
     }
 }

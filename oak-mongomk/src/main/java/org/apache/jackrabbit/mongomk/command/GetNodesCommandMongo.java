@@ -28,8 +28,9 @@ import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.impl.model.NodeImpl;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
 import org.apache.jackrabbit.mongomk.model.NodeMongo;
+import org.apache.jackrabbit.mongomk.query.FetchCommitQuery;
 import org.apache.jackrabbit.mongomk.query.FetchNodesQuery;
-import org.apache.jackrabbit.mongomk.query.FetchValidCommitsQuery;
+import org.apache.jackrabbit.mongomk.query.FetchCommitsQuery;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -163,26 +164,14 @@ public class GetNodesCommandMongo extends AbstractCommand<Node> {
     private void ensureRevisionId() throws Exception {
         if (revisionId == null) {
             revisionId = new GetHeadRevisionCommandMongo(mongoConnection).execute();
+        } else {
+            // Ensure that commit with revision id exists.
+            new FetchCommitQuery(mongoConnection, revisionId).execute();
         }
     }
 
     private void readLastCommits() throws Exception {
-        lastCommits = new FetchValidCommitsQuery(mongoConnection, revisionId).execute();
-
-        // FIXME Move this into the Query which should throw the exception in case the commit doesn't exist
-        if (revisionId != null) {
-            boolean revisionExists = false;
-            for (CommitMongo commitMongo : lastCommits) {
-                if (commitMongo.getRevisionId() == revisionId) {
-                    revisionExists = true;
-                    break;
-                }
-            }
-
-            if (!revisionExists) {
-                throw new Exception(String.format("Revision %d could not be found", revisionId));
-            }
-        }
+        lastCommits = new FetchCommitsQuery(mongoConnection, revisionId).execute();
     }
 
     private void readNodesByPath() {

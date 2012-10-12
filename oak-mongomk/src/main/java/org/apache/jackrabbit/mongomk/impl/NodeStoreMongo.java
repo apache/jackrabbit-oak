@@ -42,7 +42,7 @@ import org.apache.jackrabbit.mongomk.impl.model.tree.MongoNodeStore;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
 import org.apache.jackrabbit.mongomk.query.FetchCommitQuery;
 import org.apache.jackrabbit.mongomk.query.FetchHeadRevisionIdQuery;
-import org.apache.jackrabbit.mongomk.query.FetchValidCommitsQuery;
+import org.apache.jackrabbit.mongomk.query.FetchCommitsQuery;
 import org.apache.jackrabbit.mongomk.util.MongoUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -196,7 +196,7 @@ public class NodeStoreMongo implements NodeStore {
         Long toRevision = toRevisionId == null? new FetchHeadRevisionIdQuery(mongoConnection).execute()
                 : MongoUtil.toMongoRepresentation(toRevisionId);
 
-        List<CommitMongo> commits = new FetchValidCommitsQuery(mongoConnection,
+        List<CommitMongo> commits = new FetchCommitsQuery(mongoConnection,
                 fromRevision, toRevision).execute();
 
         CommitMongo toCommit = getCommit(commits, toRevision);
@@ -245,7 +245,7 @@ public class NodeStoreMongo implements NodeStore {
       boolean filtered = !"/".equals(path);
       maxEntries = maxEntries < 0 ? Integer.MAX_VALUE : maxEntries;
 
-      FetchValidCommitsQuery query = new FetchValidCommitsQuery(mongoConnection, 0L,
+      FetchCommitsQuery query = new FetchCommitsQuery(mongoConnection, 0L,
               Long.MAX_VALUE);
       query.setMaxEntries(maxEntries);
       query.includeBranchCommits(false);

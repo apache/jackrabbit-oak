@@ -26,13 +26,14 @@ import com.mongodb.DBObject;
 import com.mongodb.QueryBuilder;
 
 /**
- * A query for fetching a commit.
+ * A query for fetching a commit. An exception is thrown if a commit with the
+ * revision id does not exist.
  */
 public class FetchCommitQuery extends AbstractQuery<CommitMongo> {
 
     private static final Logger LOG = LoggerFactory.getLogger(FetchCommitQuery.class);
 
-    private final Long revisionId;
+    private final long revisionId;
 
     /**
      * Constructs a new {@link FetchCommitQuery}
@@ -40,13 +41,13 @@ public class FetchCommitQuery extends AbstractQuery<CommitMongo> {
      * @param mongoConnection Mongo connection.
      * @param revisionId Revision id.
      */
-    public FetchCommitQuery(MongoConnection mongoConnection, Long revisionId) {
+    public FetchCommitQuery(MongoConnection mongoConnection, long revisionId) {
         super(mongoConnection);
         this.revisionId = revisionId;
     }
 
     @Override
-    public CommitMongo execute() {
+    public CommitMongo execute() throws Exception {
         DBCollection commitCollection = mongoConnection.getCommitCollection();
         DBObject query = QueryBuilder.start(CommitMongo.KEY_FAILED).notEquals(Boolean.TRUE)
                 .and(CommitMongo.KEY_REVISION_ID).is(revisionId)
@@ -55,6 +56,9 @@ public class FetchCommitQuery extends AbstractQuery<CommitMongo> {
         LOG.debug(String.format("Executing query: %s", query));
 
         DBObject dbObject = commitCollection.findOne(query);
+        if (dbObject == null) {
+            throw new Exception(String.format("Commit with revision %d could not be found", revisionId));
+        }
         return (CommitMongo)dbObject;
     }
 }

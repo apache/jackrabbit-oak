@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
+import org.apache.jackrabbit.mongomk.model.CommitMongo;
 import org.apache.jackrabbit.mongomk.model.NodeMongo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,8 +70,9 @@ public class FetchNodesForPathsQuery extends AbstractQuery<List<NodeMongo>> {
     @Override
     public List<NodeMongo> execute() {
         DBCursor dbCursor = performQuery();
-        List<Long> validRevisions = new FetchValidRevisionsQuery(mongoConnection, revisionId).execute();
-        return QueryUtils.getMostRecentValidNodes(dbCursor, validRevisions);
+        FetchCommitsQuery query = new FetchCommitsQuery(mongoConnection, revisionId);
+        List<CommitMongo> validCommits = query.execute();
+        return QueryUtils.getMostRecentValidNodes(dbCursor, validCommits);
     }
 
     private DBCursor performQuery() {
