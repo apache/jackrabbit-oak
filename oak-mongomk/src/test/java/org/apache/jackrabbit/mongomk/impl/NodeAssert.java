@@ -49,6 +49,22 @@ public class NodeAssert {
         }
     }
 
+    public static void assertEquals(Iterator<Node> expecteds, Collection<Node> actuals) {
+        for (Iterator<Node> iter1 = expecteds; iter1.hasNext();) {
+            Node expected = iter1.next();
+            boolean valid = false;
+            for (Iterator<Node> iter2 = actuals.iterator(); iter2.hasNext();) {
+                Node actual = iter2.next();
+                if (expected.getPath().equals(actual.getPath())) {
+                    assertEquals(expected, actual);
+                    valid = true;
+                    break;
+                }
+            }
+            Assert.assertTrue(valid);
+        }
+    }
+
     public static void assertEquals(Collection<Node> expecteds, Collection<Node> actuals) {
         Assert.assertEquals(expecteds.size(), actuals.size());
 
@@ -99,9 +115,5 @@ public class NodeAssert {
         if ((actualProperties != null) && (expectedProperties != null)) {
             Assert.assertEquals(expectedProperties, actualProperties);
         }
-    }
-
-    private NodeAssert() {
-        // no instantiation
     }
 }

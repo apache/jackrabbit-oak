@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.mongomk.query;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -53,7 +54,7 @@ public class FetchNodesQueryTest extends BaseMongoTest {
 
         //String json = String.format("{\"/#%1$s\" : { \"a#%2$s\" : {}, \"b#%3$s\" : {}, \"c#%1$s\" : {} }}", revisionId3, revisionId1, revisionId2);
         String json = String.format("{\"/#%2$s\" : { \"b#%1$s\" : {}, \"c#%2$s\" : {} }}", revisionId2, revisionId3);
-        Set<Node> expecteds = NodeBuilder.build(json).getDescendants(true);
+        Iterator<Node> expecteds = NodeBuilder.build(json).getChildNodeEntries(0, -1);
         NodeAssert.assertEquals(expecteds, actuals);
     }
 
@@ -71,7 +72,7 @@ public class FetchNodesQueryTest extends BaseMongoTest {
 
         //String json = String.format("{\"/#%1$s\" : { \"a#%2$s\" : {}, \"b#%3$s\" : {}, \"c#%1$s\" : {} }}", revisionId3, revisionId1, revisionId2);
         String json = String.format("{\"/#%2$s\" : { \"a#%1$s\" : {}, \"b#%2$s\" : {} }}", revisionId1, revisionId2);
-        Set<Node> expecteds = NodeBuilder.build(json).getDescendants(true);
+        Iterator<Node> expecteds = NodeBuilder.build(json).getChildNodeEntries(0, -1);
         NodeAssert.assertEquals(expecteds, actuals);
     }
 
@@ -89,7 +90,7 @@ public class FetchNodesQueryTest extends BaseMongoTest {
         List<Node> actuals = NodeMongo.toNode(query.execute());
 
         String json = String.format("{\"/#%2$s\" : { \"a#%1$s\" : {}, \"c#%2$s\" : {} }}", revisionId1, revisionId3);
-        Set<Node> expecteds = NodeBuilder.build(json).getDescendants(true);
+        Iterator<Node> expecteds = NodeBuilder.build(json).getChildNodeEntries(0, -1);
         NodeAssert.assertEquals(expecteds, actuals);
     }
 
@@ -105,7 +106,7 @@ public class FetchNodesQueryTest extends BaseMongoTest {
         List<NodeMongo> result = query.execute();
         List<Node> actuals = NodeMongo.toNode(result);
         Node expected = NodeBuilder.build(String.format("{ \"/#%1$s\" : {} }", firstRevisionId));
-        Set<Node> expecteds = expected.getDescendants(true);
+        Iterator<Node> expecteds = expected.getChildNodeEntries(0, -1);
         NodeAssert.assertEquals(expecteds, actuals);
 
         query = new FetchNodesQuery(mongoConnection, "/", secondRevisionId);
@@ -113,7 +114,7 @@ public class FetchNodesQueryTest extends BaseMongoTest {
         result = query.execute();
         actuals = NodeMongo.toNode(result);
         expected = NodeBuilder.build(String.format("{ \"/#%1$s\" : {} }", firstRevisionId));
-        expecteds = expected.getDescendants(true);
+        expecteds = expected.getChildNodeEntries(0, -1);
         NodeAssert.assertEquals(expecteds, actuals);
 
         query = new FetchNodesQuery(mongoConnection, "/", firstRevisionId);
@@ -122,7 +123,7 @@ public class FetchNodesQueryTest extends BaseMongoTest {
         actuals = NodeMongo.toNode(result);
         expected = NodeBuilder.build(String.format("{ \"/#%1$s\" : { \"a#%1$s\" : { \"int\" : 1 } } }",
                 firstRevisionId));
-        expecteds = expected.getDescendants(true);
+        expecteds = expected.getChildNodeEntries(0, -1);
         NodeAssert.assertEquals(expecteds, actuals);
 
         query = new FetchNodesQuery(mongoConnection, "/", secondRevisionId);
@@ -132,7 +133,7 @@ public class FetchNodesQueryTest extends BaseMongoTest {
         expected = NodeBuilder.build(String.format(
                 "{ \"/#%1$s\" : { \"a#%2$s\" : { \"int\" : 1 , \"double\" : 0.123 } } }", firstRevisionId,
                 secondRevisionId));
-        expecteds = expected.getDescendants(true);
+        expecteds = expected.getChildNodeEntries(0, -1);
         NodeAssert.assertEquals(expecteds, actuals);
 
         query = new FetchNodesQuery(mongoConnection, "/", firstRevisionId);
@@ -143,7 +144,7 @@ public class FetchNodesQueryTest extends BaseMongoTest {
                 .build(String
                         .format("{ \"/#%1$s\" : { \"a#%1$s\" : { \"int\" : 1, \"b#%1$s\" : { \"string\" : \"foo\" } , \"c#%1$s\" : { \"bool\" : true } } } }",
                                 firstRevisionId));
-        expecteds = expected.getDescendants(true);
+        expecteds = expected.getChildNodeEntries(0, -1);
         NodeAssert.assertEquals(expecteds, actuals);
 
         query = new FetchNodesQuery(mongoConnection, "/", secondRevisionId);
@@ -154,7 +155,7 @@ public class FetchNodesQueryTest extends BaseMongoTest {
                 .build(String
                         .format("{ \"/#%1$s\" : { \"a#%2$s\" : { \"int\" : 1 , \"double\" : 0.123 , \"b#%2$s\" : { \"string\" : \"foo\" } , \"c#%1$s\" : { \"bool\" : true }, \"d#%2$s\" : { \"null\" : null } } } }",
                                 firstRevisionId, secondRevisionId));
-        expecteds = expected.getDescendants(true);
+        expecteds = expected.getChildNodeEntries(0, -1);
         NodeAssert.assertEquals(expecteds, actuals);
 
         query = new FetchNodesQuery(mongoConnection, "/", firstRevisionId);
@@ -164,7 +165,7 @@ public class FetchNodesQueryTest extends BaseMongoTest {
                 .build(String
                         .format("{ \"/#%1$s\" : { \"a#%1$s\" : { \"int\" : 1 , \"b#%1$s\" : { \"string\" : \"foo\" } , \"c#%1$s\" : { \"bool\" : true } } } }",
                                 firstRevisionId));
-        expecteds = expected.getDescendants(true);
+        expecteds = expected.getChildNodeEntries(0, -1);
         NodeAssert.assertEquals(expecteds, actuals);
 
         query = new FetchNodesQuery(mongoConnection, "/", secondRevisionId);
@@ -174,7 +175,7 @@ public class FetchNodesQueryTest extends BaseMongoTest {
                 .build(String
                         .format("{ \"/#%1$s\" : { \"a#%2$s\" : { \"int\" : 1 , \"double\" : 0.123 , \"b#%2$s\" : { \"string\" : \"foo\", \"e#%2$s\" : { \"array\" : [ 123, null, 123.456, \"for:bar\", true ] } } , \"c#%1$s\" : { \"bool\" : true }, \"d#%2$s\" : { \"null\" : null } } } }",
                                 firstRevisionId, secondRevisionId));
-        expecteds = expected.getDescendants(true);
+        expecteds = expected.getChildNodeEntries(0, -1);
         NodeAssert.assertEquals(expecteds, actuals);
     }
 

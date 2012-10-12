@@ -18,7 +18,6 @@ package org.apache.jackrabbit.mongomk.api.model;
 
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.jackrabbit.mk.model.NodeDiffHandler;
 
@@ -74,14 +73,6 @@ public interface Node {
     void diff(Node otherNode, NodeDiffHandler nodeDiffHandler);
 
     // FIXME - Rest are not in-line with Oak, see if we really need them.
-    /**
-     * Returns the descendants (children, children of the children, etc) this {@code Node} was created with.
-     *
-     * @param includeThis Flag indicating whether this {@code Node} should be included in the list.
-     * @return The descendants.
-     */
-    Set<Node> getDescendants(boolean includeThis);
-
     /**
      * Returns the name of this {@code Node}.
      *

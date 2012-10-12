@@ -18,6 +18,7 @@ package org.apache.jackrabbit.mongomk.query;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -50,12 +51,12 @@ public class FetchNodesForPathsQueryTest extends BaseMongoTest {
         updateBaseRevisionId(revisionId2, 0L);
 
         FetchNodesForPathsQuery query = new FetchNodesForPathsQuery(mongoConnection,
-                getPathSet("/", "/a", "/b", "/c", "not_existing"), revisionId3);
+                getPathSet("/a", "/b", "/c", "not_existing"), revisionId3);
         List<Node> actuals = NodeMongo.toNode(query.execute());
 
         //String json = String.format("{\"/#%1$s\" : { \"a#%2$s\" : {}, \"b#%3$s\" : {}, \"c#%1$s\" : {} }}", revisionId3, revisionId1, revisionId2);
         String json = String.format("{\"/#%2$s\" : { \"b#%1$s\" : {}, \"c#%2$s\" : {} }}", revisionId2, revisionId3);
-        Set<Node> expecteds = NodeBuilder.build(json).getDescendants(true);
+        Iterator<Node> expecteds = NodeBuilder.build(json).getChildNodeEntries(0, -1);
         NodeAssert.assertEquals(expecteds, actuals);
     }
 
@@ -68,11 +69,11 @@ public class FetchNodesForPathsQueryTest extends BaseMongoTest {
         invalidateCommit(revisionId3);
 
         FetchNodesForPathsQuery query = new FetchNodesForPathsQuery(mongoConnection,
-                getPathSet("/", "/a", "/b", "/c", "not_existing"), revisionId3);
+                getPathSet("/a", "/b", "/c", "not_existing"), revisionId3);
         List<Node> actuals = NodeMongo.toNode(query.execute());
 
         String json = String.format("{\"/#%2$s\" : { \"a#%1$s\" : {}, \"b#%2$s\" : {} }}", revisionId1, revisionId2);
-        Set<Node> expecteds = NodeBuilder.build(json).getDescendants(true);
+        Iterator<Node> expecteds = NodeBuilder.build(json).getChildNodeEntries(0, -1);
         NodeAssert.assertEquals(expecteds, actuals);
     }
 
@@ -86,11 +87,11 @@ public class FetchNodesForPathsQueryTest extends BaseMongoTest {
         updateBaseRevisionId(revisionId3, revisionId1);
 
         FetchNodesForPathsQuery query = new FetchNodesForPathsQuery(mongoConnection,
-                getPathSet("/", "/a", "/b", "/c", "not_existing"), revisionId3);
+                getPathSet("/a", "/b", "/c", "not_existing"), revisionId3);
         List<Node> actuals = NodeMongo.toNode(query.execute());
 
         String json = String.format("{\"/#%2$s\" : { \"a#%1$s\" : {}, \"c#%2$s\" : {} }}", revisionId1, revisionId3);
-        Set<Node> expecteds = NodeBuilder.build(json).getDescendants(true);
+        Iterator<Node> expecteds = NodeBuilder.build(json).getChildNodeEntries(0, -1);
         NodeAssert.assertEquals(expecteds, actuals);
     }
 
@@ -100,23 +101,23 @@ public class FetchNodesForPathsQueryTest extends BaseMongoTest {
         Long revisionId = scenario.create();
 
         FetchNodesForPathsQuery query = new FetchNodesForPathsQuery(mongoConnection,
-                getPathSet("/", "/a", "/a/b", "/a/c", "not_existing"), revisionId);
+                getPathSet("/a", "/a/b", "/a/c", "not_existing"), revisionId);
         List<NodeMongo> nodeMongos = query.execute();
         List<Node> actuals = NodeMongo.toNode(nodeMongos);
         Node expected = NodeBuilder
                 .build(String
                         .format("{ \"/#%1$s\" : { \"a#%1$s\" : { \"int\" : 1 , \"b#%1$s\" : { \"string\" : \"foo\" } , \"c#%1$s\" : { \"bool\" : true } } } }",
                                 revisionId));
-        Set<Node> expecteds = expected.getDescendants(true);
+        Iterator<Node> expecteds = expected.getChildNodeEntries(0, -1);
         NodeAssert.assertEquals(expecteds, actuals);
 
         query = new FetchNodesForPathsQuery(mongoConnection,
-                getPathSet("/", "/a", "not_existing"), revisionId);
+                getPathSet("/a", "not_existing"), revisionId);
         nodeMongos = query.execute();
         actuals = NodeMongo.toNode(nodeMongos);
         expected = NodeBuilder.build(String.format("{ \"/#%1$s\" : { \"a#%1$s\" : { \"int\" : 1 } } }",
                 revisionId));
-        expecteds = expected.getDescendants(true);
+        expecteds = expected.getChildNodeEntries(0, -1);
         NodeAssert.assertEquals(expecteds, actuals);
     }
 
@@ -127,7 +128,7 @@ public class FetchNodesForPathsQueryTest extends BaseMongoTest {
         Long secondRevisionId = scenario.update_A_and_add_D_and_E();
 
         FetchNodesForPathsQuery query = new FetchNodesForPathsQuery(mongoConnection,
-                getPathSet("/", "/a", "/a/b", "/a/c", "/a/d", "/a/b/e", "not_existing"),
+                getPathSet("/a", "/a/b", "/a/c", "/a/d", "/a/b/e", "not_existing"),
                 firstRevisionId);
         List<NodeMongo> nodeMongos = query.execute();
         List<Node> actuals = NodeMongo.toNode(nodeMongos);
@@ -135,11 +136,11 @@ public class FetchNodesForPathsQueryTest extends BaseMongoTest {
                 .build(String
                         .format("{ \"/#%1$s\" : { \"a#%1$s\" : { \"int\" : 1 , \"b#%1$s\" : { \"string\" : \"foo\" } , \"c#%1$s\" : { \"bool\" : true } } } }",
                                 firstRevisionId));
-        Set<Node> expecteds = expected.getDescendants(true);
+        Iterator<Node> expecteds = expected.getChildNodeEntries(0, -1);
         NodeAssert.assertEquals(expecteds, actuals);
 
         query = new FetchNodesForPathsQuery(mongoConnection,
-                getPathSet("/", "/a", "/a/b", "/a/c", "/a/d", "/a/b/e", "not_existing"),
+                getPathSet("/a", "/a/b", "/a/c", "/a/d", "/a/b/e", "not_existing"),
                 secondRevisionId);
         nodeMongos = query.execute();
         actuals = NodeMongo.toNode(nodeMongos);
@@ -147,7 +148,7 @@ public class FetchNodesForPathsQueryTest extends BaseMongoTest {
                 .build(String
                         .format("{ \"/#%1$s\" : { \"a#%2$s\" : { \"int\" : 1 , \"double\" : 0.123 , \"b#%2$s\" : { \"string\" : \"foo\" , \"e#%2$s\" : { \"array\" : [ 123, null, 123.456, \"for:bar\", true ] } } , \"c#%1$s\" : { \"bool\" : true }, \"d#%2$s\" : { \"null\" : null } } } }",
                                 firstRevisionId, secondRevisionId));
-        expecteds = expected.getDescendants(true);
+        expecteds = expected.getChildNodeEntries(0, -1);
         NodeAssert.assertEquals(expecteds, actuals);
     }
 

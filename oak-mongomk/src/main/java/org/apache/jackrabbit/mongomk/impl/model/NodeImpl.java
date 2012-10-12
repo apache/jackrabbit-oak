@@ -18,7 +18,6 @@ package org.apache.jackrabbit.mongomk.impl.model;
 
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -69,14 +68,7 @@ public class NodeImpl implements Node {
 
     @Override
     public Node getChildNodeEntry(String name) {
-        Set<Node> children = getDescendants(false);
-        for (Iterator<Node> iterator = children.iterator(); iterator.hasNext();) {
-            Node node = iterator.next();
-            if (node.getName().equals(name)) {
-                return node;
-            }
-        }
-        return null;
+        return childEntries.get(name);
     }
 
     @Override
@@ -112,26 +104,6 @@ public class NodeImpl implements Node {
     @Override
     public Map<String, Object> getProperties() {
         return properties;
-    }
-
-    @Override
-    public Set<Node> getDescendants(boolean includeThis) {
-        Set<Node> descendants = new HashSet<Node>();
-        if (includeThis) {
-            descendants.add(this);
-        }
-
-        getDescendants(this, descendants);
-
-        return Collections.unmodifiableSet(descendants);
-    }
-
-    private void getDescendants(Node node, Set<Node> descendants) {
-        for (Iterator<Node> it = node.getChildNodeEntries(0, -1); it.hasNext(); ) {
-            Node child = it.next();
-            descendants.add(child);
-            getDescendants(child, descendants);
-        }
     }
 
     @Override
