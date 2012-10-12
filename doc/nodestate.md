@@ -84,7 +84,7 @@ interface contains the following key methods:
   * The `setProperty` and `removeProperty` methods for modifying properties
   * The `removeNode` method for removing a subtree
   * The `setNode` method for adding or replacing a subtree
-  * The `getChildBuilder` method for creating or modifying a subtree with
+  * The `child` method for creating or modifying a subtree with
     a connected child builder
   * The `getNodeState` method for getting a frozen snapshot of the modified
     content tree
@@ -110,7 +110,7 @@ re-connect each modified node state along the path from the root to the
 modified content in `/foo/bar`. This is because each `NodeBuilder` instance
 created by the `getBuilder` method is independent and can only be used to
 affect other builders in the manner shown above. In contrast the
-`getChildBuilder` method returns a builder instance that is "connected" to
+`child` method returns a builder instance that is "connected" to
 the parent builder in a way that any changes recorded in the child builder
 will automatically show up also in the node states created by the parent
 builder. With connected builders the above code can be simplified to:
@@ -118,13 +118,13 @@ builder. With connected builders the above code can be simplified to:
     NodeState root = …;
     NodeBuilder rootBuilder = root.getBuilder();
     rootBuilder
-        .getChildBuilder("foo")
-        .getChildBuilder("bar")
+        .child("foo")
+        .child("bar")
         .setProperty("test", …);
     root = rootBuilder.getNodeState();
 
 Typically the only case where the `setNode` method is preferable over
-`getChildBuilder` is when moving or copying subtrees from one location
+`child` is when moving or copying subtrees from one location
 to another. For example, the following code copies the `/orig` subtree
 to `/copy`:
 
