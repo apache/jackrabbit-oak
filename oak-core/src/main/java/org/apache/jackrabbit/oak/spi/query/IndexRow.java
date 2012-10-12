@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.spi.query;
 
 
-import org.apache.jackrabbit.oak.spi.query.PropertyValue;
+import org.apache.jackrabbit.oak.spi.query.PropertyStateValue;
 
 /**
  * A row returned by the index.
@@ -41,6 +41,6 @@ public interface IndexRow {
      * @param columnName the column name
      * @return the value, or null if not available
      */
-    PropertyValue getValue(String columnName);
+    PropertyStateValue getValue(String columnName);
 
 }

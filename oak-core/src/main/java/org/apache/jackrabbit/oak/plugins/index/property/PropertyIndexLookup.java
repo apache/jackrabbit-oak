@@ -19,8 +19,8 @@ package org.apache.jackrabbit.oak.plugins.index.property;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.spi.query.PropertyValue;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -79,7 +79,7 @@ public class PropertyIndexLookup {
                 state = state.getChildNode(":index");
                 if (state != null) {
                     //TODO what happens when I search using an mvp?
-                    property = state.getProperty(PropertyIndex.encode(value.unwrap()).get(0));
+                    property = state.getProperty(PropertyIndex.encode(value).get(0));
                 }
             }
         }

@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
 class PropertyIndexUpdate {
@@ -62,7 +63,7 @@ class PropertyIndexUpdate {
     private static void putValues(Map<String, Set<String>> map, String path,
             PropertyState value) {
         if (value.getType().tag() != PropertyType.BINARY) {
-            List<String> keys = PropertyIndex.encode(value);
+            List<String> keys = PropertyIndex.encode(PropertyValues.create(value));
             for (String key : keys) {
                 Set<String> paths = map.get(key);
                 if (paths == null) {

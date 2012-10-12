@@ -37,10 +37,12 @@ import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
+import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,6 +77,18 @@ public class ValueFactoryImpl implements ValueFactory {
      */
     public static Value createValue(PropertyState property, NamePathMapper namePathMapper) {
         return new ValueImpl(property, namePathMapper);
+    }
+
+    /**
+     * Utility method for creating a {@code Value} based on a {@code PropertyValue}.
+     * @param property  The property value
+     * @param namePathMapper The name/path mapping used for converting JCR names/paths to
+     * the internal representation.
+     * @return  New {@code Value} instance
+     * @throws IllegalArgumentException if {@code property.isArray()} is {@code true}.
+     */
+    public static Value createValue(PropertyValue property, NamePathMapper namePathMapper) {
+        return new ValueImpl(PropertyValues.create(property), namePathMapper);
     }
 
     /**
