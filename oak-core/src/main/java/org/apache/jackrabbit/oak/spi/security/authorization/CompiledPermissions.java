@@ -24,7 +24,9 @@ import org.apache.jackrabbit.oak.api.Tree;
  */
 public interface CompiledPermissions {
 
-    boolean canRead(String path, boolean isProperty);
+    boolean canRead(Tree tree);
+
+    boolean canRead(Tree tree, PropertyState property);
 
     boolean isGranted(int permissions);
 

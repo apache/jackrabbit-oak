@@ -34,7 +34,13 @@ class CompiledPermissionImpl implements CompiledPermissions {
     }
 
     @Override
-    public boolean canRead(String path, boolean isProperty) {
+    public boolean canRead(Tree tree) {
+        // TODO
+        return true;
+    }
+
+    @Override
+    public boolean canRead(Tree tree, PropertyState property) {
         // TODO
         return true;
     }

@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization;
 
-import java.security.Principal;
-import java.util.Set;
-
 /**
  * PermissionProvider... TODO
  */

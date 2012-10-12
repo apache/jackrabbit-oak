@@ -130,8 +130,9 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public PropertyState getProperty(String name) {
-        if (canReadProperty(name)) {
-            return internalGetProperty(name);
+        PropertyState property = internalGetProperty(name);
+        if (canRead(property)) {
+            return property;
         } else {
             return null;
         }
@@ -140,11 +141,30 @@ public class TreeImpl implements Tree, PurgeListener {
     @Override
     public Status getPropertyStatus(String name) {
         // TODO: see OAK-212
-        if (canReadProperty(name)) {
-            return internalGetPropertyStatus(name);
-        }
-        else {
-            return null;
+        Status nodeStatus = getStatus();
+        if (nodeStatus == Status.NEW) {
+            return (hasProperty(name)) ? Status.NEW : null;
+        } else if (nodeStatus == Status.REMOVED) {
+            return Status.REMOVED; // FIXME not correct if no property existed with that name
+        } else {
+            PropertyState head = internalGetProperty(name);
+            if (head != null && !canRead(head)) {
+                // no permission to read status information for existing property
+                return null;
+            }
+
+            PropertyState base = getBaseState().getProperty(name);
+            if (head == null) {
+                return (base == null) ? null : Status.REMOVED;
+            } else {
+                if (base == null) {
+                    return Status.NEW;
+                } else if (head.equals(base)) {
+                    return Status.EXISTING;
+                } else {
+                    return Status.MODIFIED;
+                }
+            }
         }
     }
 
@@ -164,7 +184,7 @@ public class TreeImpl implements Tree, PurgeListener {
                 new Predicate<PropertyState>() {
                     @Override
                     public boolean apply(PropertyState propertyState) {
-                        return propertyState != null && canReadProperty(propertyState.getName());
+                        return canRead(propertyState);
                     }
                 });
     }
@@ -462,53 +482,6 @@ public class TreeImpl implements Tree, PurgeListener {
         return getNodeBuilder().getProperty(propertyName);
     }
 
-    private Status internalGetPropertyStatus(String name) {
-        if (isRemoved()) {
-            return Status.REMOVED;
-        }
-
-        NodeState baseState = getBaseState();
-        boolean exists = internalGetProperty(name) != null;
-        if (baseState == null) {
-            // This instance is NEW...
-            if (exists) {
-                // ...so all children are new
-                return Status.NEW;
-            } else {
-                // ...unless they don't exist.
-                return null;
-            }
-        } else {
-            if (exists) {
-                // We have the property...
-                if (baseState.getProperty(name) == null) {
-                    // ...but didn't have it before. So its NEW.
-                    return Status.NEW;
-                } else {
-                    // ... and did have it before. So...
-                    PropertyState base = baseState.getProperty(name);
-                    PropertyState head = getProperty(name);
-                    if (base == null ? head == null : base.equals(head)) {
-                        // ...it's EXISTING if it hasn't changed
-                        return Status.EXISTING;
-                    } else {
-                        // ...and MODIFIED otherwise.
-                        return Status.MODIFIED;
-                    }
-                }
-            } else {
-                // We don't have the property
-                if (baseState.getProperty(name) == null) {
-                    // ...and didn't have it before. So it doesn't exist.
-                    return null;
-                } else {
-                    // ...but did have it before. So it's REMOVED
-                    return Status.REMOVED;
-                }
-            }
-        }
-    }
-
     private boolean isRemoved() {
         return removed || (parent != null && parent.isRemoved());
     }
@@ -521,15 +494,15 @@ public class TreeImpl implements Tree, PurgeListener {
     }
 
     private boolean canRead(Tree tree) {
+        // FIXME: access control eval must have full access to the tree
         // FIXME: special handling for access control item and version content
-        return root.getPermissions().canRead(tree.getPath(), false);
+        return root.getPermissions().canRead(tree);
     }
 
-    private boolean canReadProperty(String name) {
-        String path = PathUtils.concat(getPath(), name);
-
+    private boolean canRead(PropertyState property) {
+        // FIXME: access control eval must have full access to the tree/property
         // FIXME: special handling for access control item and version content
-        return root.getPermissions().canRead(path, true);
+        return (property != null) && root.getPermissions().canRead(this, property);
     }
 
     /**
@@ -723,14 +696,14 @@ public class TreeImpl implements Tree, PurgeListener {
 
         @Override
         public PropertyState getProperty() {
-            return root.getPermissions().canRead(getPath(), true)
+            return canRead(property)
                 ? property
                 : null;
         }
 
         @Override
         public Status getStatus() {
-            return parent.tree.internalGetPropertyStatus(property.getName());
+            return parent.tree.getPropertyStatus(property.getName());
         }
 
         /**
@@ -748,10 +721,6 @@ public class TreeImpl implements Tree, PurgeListener {
         public boolean remove() {
             parent.tree.removeProperty(property.getName());
             return true;
-        }
-
-        private boolean canRead() {
-            return root.getPermissions().canRead(getPath(), true);
         }
     }
 
