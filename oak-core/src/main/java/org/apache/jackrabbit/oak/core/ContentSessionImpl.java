@@ -17,12 +17,14 @@
 package org.apache.jackrabbit.oak.core;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
 import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.oak.api.AuthInfo;
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandlerProvider;
@@ -78,6 +80,11 @@ class ContentSessionImpl implements ContentSession {
             root.setConflictHandler(conflictHandlerProvider.getConflictHandler());
         }
         return root;
+    }
+
+    @Override
+    public Blob createBlob(InputStream inputStream) throws IOException {
+        return store.createBlob(inputStream);
     }
 
     @Override

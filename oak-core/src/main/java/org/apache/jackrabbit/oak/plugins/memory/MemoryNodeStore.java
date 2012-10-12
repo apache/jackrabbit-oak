@@ -16,8 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.google.common.io.ByteStreams;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -40,6 +43,19 @@ public class MemoryNodeStore implements NodeStore {
     @Override
     public NodeStoreBranch branch() {
         return new MemoryNodeStoreBranch(root.get());
+    }
+
+    /**
+     * @return An instance of {@link ArrayBasedBlob}.
+     */
+    @Override
+    public ArrayBasedBlob createBlob(InputStream inputStream) throws IOException {
+        try {
+            return new ArrayBasedBlob(ByteStreams.toByteArray(inputStream));
+        }
+        finally {
+            inputStream.close();
+        }
     }
 
     private class MemoryNodeStoreBranch implements NodeStoreBranch {
