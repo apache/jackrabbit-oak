@@ -277,7 +277,12 @@ public class ValueImpl implements Value {
      */
     @Override
     public int hashCode() {
-        return propertyState.hashCode();
+        if (getType() == PropertyType.BINARY) {
+            return propertyState.getValue(Type.BINARY, index).hashCode();
+        }
+        else {
+            return propertyState.getValue(Type.STRING, index).hashCode();
+        }
     }
 
     @Override
