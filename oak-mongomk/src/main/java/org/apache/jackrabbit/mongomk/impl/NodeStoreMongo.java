@@ -17,8 +17,11 @@
 package org.apache.jackrabbit.mongomk.impl;
 
 import java.util.List;
+import java.util.Map;
 
+import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
+import org.apache.jackrabbit.mk.model.Id;
 import org.apache.jackrabbit.mk.model.tree.DiffBuilder;
 import org.apache.jackrabbit.mk.model.tree.NodeState;
 import org.apache.jackrabbit.mongomk.api.NodeStore;
@@ -31,6 +34,9 @@ import org.apache.jackrabbit.mongomk.command.GetHeadRevisionCommandMongo;
 import org.apache.jackrabbit.mongomk.command.GetNodesCommandMongo;
 import org.apache.jackrabbit.mongomk.command.NodeExistsCommandMongo;
 import org.apache.jackrabbit.mongomk.impl.command.CommandExecutorImpl;
+import org.apache.jackrabbit.mongomk.impl.model.CommitBuilder;
+import org.apache.jackrabbit.mongomk.impl.model.NodeImpl;
+import org.apache.jackrabbit.mongomk.impl.model.tree.MongoNodeDelta;
 import org.apache.jackrabbit.mongomk.impl.model.tree.MongoNodeState;
 import org.apache.jackrabbit.mongomk.impl.model.tree.MongoNodeStore;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
@@ -107,7 +113,8 @@ public class NodeStoreMongo implements NodeStore {
         Node after = command.execute();
         NodeState afterState = after != null? new MongoNodeState(after) : null;
 
-        return new DiffBuilder(beforeState, afterState, path, depth,new MongoNodeStore(), path).build();
+        return new DiffBuilder(beforeState, afterState, path, depth,
+                new MongoNodeStore(), path).build();
     }
 
     @Override
@@ -122,6 +129,50 @@ public class NodeStoreMongo implements NodeStore {
         Command<Node> command = new GetNodesCommandMongo(mongoConnection, path,
                 MongoUtil.toMongoRepresentation(revisionId), depth);
         return commandExecutor.execute(command);
+    }
+
+    @Override
+    public String merge(String branchRevisionId, String message) throws Exception {
+        FetchCommitQuery query = new FetchCommitQuery(mongoConnection,
+                MongoUtil.toMongoRepresentation(branchRevisionId));
+        CommitMongo commit = query.execute();
+        String branchId = commit.getBranchId();
+        if (branchId == null) {
+            throw new Exception("Can only merge a private branch commit");
+        }
+
+        Long rootNodeId = commit.getRevisionId();
+        Long currentHead =  new FetchHeadRevisionIdQuery(mongoConnection).execute();
+
+        // FIXME - FetchNodesByPath?
+        GetNodesCommandMongo command = new GetNodesCommandMongo(mongoConnection,
+                "/", rootNodeId, -1);
+        command.setBranchId(branchId);
+        Node ourRoot = command.execute();
+
+        // Merge changes from head to branch.
+        // FIXME - I think this might need to be real branch root it, rather than
+        // base revision id.
+        Long branchRootId = commit.getBaseRevId();
+        NodeImpl mergedNode = merge(ourRoot, currentHead, branchRootId);
+
+        command = new GetNodesCommandMongo(mongoConnection, "/", currentHead, -1);
+        Node theirRoot = command.execute();
+
+        String diff = new DiffBuilder(new MongoNodeState(theirRoot),
+                new MongoNodeState(mergedNode), "/", -1,
+                new MongoNodeStore(), "").build();
+
+        if (diff.isEmpty()) {
+            // FIXME - handle.
+            return MongoUtil.fromMongoRepresentation(currentHead);
+        }
+
+        // FIXME - Is it OK that path is /?
+        Commit newCommit = CommitBuilder.build("", diff,
+                MongoUtil.fromMongoRepresentation(currentHead), message);
+
+        return commit(newCommit);
     }
 
     @Override
@@ -155,6 +206,9 @@ public class NodeStoreMongo implements NodeStore {
                 fromRevision, toRevision, 0).execute();
 
         CommitMongo toCommit = getCommit(commits, toRevision);
+        if (toCommit.getBranchId() != null) {
+            throw new MicroKernelException("Branch revisions are not supported: " + toRevisionId);
+        }
 
         CommitMongo fromCommit;
         if (toRevision == fromRevision) {
@@ -165,6 +219,9 @@ public class NodeStoreMongo implements NodeStore {
                 // negative range, return empty journal
                 return "[]";
             }
+        }
+        if (fromCommit.getBranchId() != null) {
+            throw new MicroKernelException("Branch revisions are not supported: " + fromRevisionId);
         }
 
         JsopBuilder commitBuff = new JsopBuilder().array();
@@ -249,5 +306,103 @@ public class NodeStoreMongo implements NodeStore {
             }
         }
         return null;
+    }
+
+    // FIXME - Move merge related functions to the right place, make sure they
+    // work as expected and consolidate with Oak if possible.
+
+    public NodeImpl merge(Node ourRoot, Long newBaseRevisionId,
+            Long commonAncestorRevisionId) throws Exception {
+        // reset staging area to new base revision
+        //reset(newBaseRevisionId);
+
+        GetNodesCommandMongo command = new GetNodesCommandMongo(mongoConnection,
+                "/", commonAncestorRevisionId, -1);
+        Node baseRoot = command.execute();
+
+        command = new GetNodesCommandMongo(mongoConnection,
+                "/", newBaseRevisionId, -1);
+        Node theirRoot = command.execute();
+
+        // recursively merge 'our' changes with 'their' changes...
+        NodeImpl mergedNode = mergeNode(baseRoot, ourRoot, theirRoot, "/");
+
+        // persist staged nodes
+        //return persist(token)
+        return mergedNode;
+    }
+
+    private NodeImpl mergeNode(Node baseNode, Node ourNode, Node theirNode,
+            String path) throws Exception {
+        NodeState node1 = baseNode != null? new MongoNodeState(baseNode) : null;
+        NodeState node2 = theirNode != null? new MongoNodeState(theirNode) : null;
+        MongoNodeDelta theirChanges = new MongoNodeDelta(new MongoNodeStore(), node1, node2);
+
+        NodeState node3 = baseNode != null? new MongoNodeState(baseNode) : null;
+        NodeState node4 = ourNode != null? new MongoNodeState(ourNode) : null;
+        MongoNodeDelta ourChanges = new MongoNodeDelta(new MongoNodeStore(), node3, node4);
+
+        NodeImpl stagedNode = (NodeImpl)theirNode; //new NodeImpl(path);
+
+        // merge non-conflicting changes
+        stagedNode.getProperties().putAll(ourChanges.getAddedProperties());
+        stagedNode.getProperties().putAll(ourChanges.getChangedProperties());
+        for (String name : ourChanges.getRemovedProperties().keySet()) {
+            stagedNode.getProperties().remove(name);
+        }
+
+        for (Map.Entry<String, NodeState> entry : ourChanges.getAddedChildNodes().entrySet()) {
+            MongoNodeState nodeState = (MongoNodeState)entry.getValue();
+            stagedNode.addChild(nodeState.unwrap());
+            //stagedNode.addChild(new NodeImpl(entry.getKey()));
+        }
+        for (Map.Entry<String, Id> entry : ourChanges.getChangedChildNodes().entrySet()) {
+            stagedNode.addChild(new NodeImpl(entry.getKey()));
+        }
+        // FIXME
+//        for (String name : ourChanges.getRemovedChildNodes().keySet()) {
+//            stagedNode.remove(name);
+//        }
+
+//        List<NodeDelta.Conflict> conflicts = theirChanges.listConflicts(ourChanges);
+//        // resolve/report merge conflicts
+//        for (NodeDelta.Conflict conflict : conflicts) {
+//            String conflictName = conflict.getName();
+//            String conflictPath = PathUtils.concat(path, conflictName);
+//            switch (conflict.getType()) {
+//                case PROPERTY_VALUE_CONFLICT:
+//                    throw new Exception(
+//                            "concurrent modification of property " + conflictPath
+//                                    + " with conflicting values: \""
+//                                    + ourNode.getProperties().get(conflictName)
+//                                    + "\", \""
+//                                    + theirNode.getProperties().get(conflictName));
+//
+//                case NODE_CONTENT_CONFLICT: {
+//                    if (ourChanges.getChangedChildNodes().containsKey(conflictName)) {
+//                        // modified subtrees
+//                        StoredNode baseChild = store.getNode(baseNode.getChildNodeEntry(conflictName).getId());
+//                        StoredNode ourChild = store.getNode(ourNode.getChildNodeEntry(conflictName).getId());
+//                        StoredNode theirChild = store.getNode(theirNode.getChildNodeEntry(conflictName).getId());
+//                        // merge the dirty subtrees recursively
+//                        mergeNode(baseChild, ourChild, theirChild, PathUtils.concat(path, conflictName));
+//                    } else {
+//                        // todo handle/merge colliding node creation
+//                        throw new Exception("colliding concurrent node creation: " + conflictPath);
+//                    }
+//                    break;
+//                }
+//
+//                case REMOVED_DIRTY_PROPERTY_CONFLICT:
+//                    stagedNode.getProperties().remove(conflictName);
+//                    break;
+//
+//                case REMOVED_DIRTY_NODE_CONFLICT:
+//                    stagedNode.remove(conflictName);
+//                    break;
+//            }
+//
+//        }
+        return stagedNode;
     }
 }

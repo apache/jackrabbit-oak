@@ -175,8 +175,11 @@ public class MongoMicroKernel implements MicroKernel {
 
     @Override
     public String merge(String branchRevisionId, String message) throws MicroKernelException {
-        // FIXME - Support merge if needed.
-        return getHeadRevision();
+        try {
+            return nodeStore.merge(branchRevisionId, message);
+        } catch (Exception e) {
+            throw new MicroKernelException(e);
+        }
     }
 
     @Override

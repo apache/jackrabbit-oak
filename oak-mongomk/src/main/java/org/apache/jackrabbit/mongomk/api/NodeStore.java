@@ -111,6 +111,16 @@ public interface NodeStore {
             String filter) throws Exception;
 
     /**
+     * @see MicroKernel#merge(String, String)
+     *
+     * @param branchRevisionId Branch revision id to merge.
+     * @param message Merge message.
+     * @return The revision id after merge.
+     * @throws Exception If an error occurred while merging.
+     */
+    String merge(String branchRevisionId, String message) throws Exception;
+
+    /**
      * @see MicroKernel#nodeExists(String, String)
      *
      * @param path The path of the node to test.
