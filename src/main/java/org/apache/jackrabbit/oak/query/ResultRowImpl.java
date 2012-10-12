@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.query;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.query.ast.ColumnImpl;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
-import org.apache.jackrabbit.oak.value.PropertyValue;
+import org.apache.jackrabbit.oak.spi.query.PropertyValue;
 
 /**
  * A query result row that keeps all data in memory.
