@@ -38,6 +38,7 @@ import com.google.common.io.ByteStreams;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
 import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.Logger;
@@ -66,10 +67,9 @@ public class ValueFactoryImpl implements ValueFactory {
     }
 
     public static List<Value> createValues(PropertyState property, NamePathMapper namePathMapper) {
-        List<PropertyValue> propertyValues = PropertyValues.create(property).values();
         List<Value> values = Lists.newArrayList();
-        for (PropertyValue val : propertyValues) {
-            values.add(new ValueImpl(val, namePathMapper));
+        for (int i = 0; i < property.count(); i++) {
+            values.add(new ValueImpl(property, i, namePathMapper));
         }
         return values;
     }
@@ -78,7 +78,7 @@ public class ValueFactoryImpl implements ValueFactory {
 
     @Override
     public Value createValue(String value) {
-        return new ValueImpl(PropertyValues.newString(value), namePathMapper);
+        return new ValueImpl(PropertyStates.stringProperty("", value), namePathMapper);
     }
 
     @Override
@@ -86,8 +86,7 @@ public class ValueFactoryImpl implements ValueFactory {
         try {
             try {
                 // TODO add streaming capability to ContentSession via KernelBasedBlob
-                PropertyValue pv = PropertyValues.newBinary(ByteStreams.toByteArray(value));
-                return new ValueImpl(pv, namePathMapper);
+                return new ValueImpl(PropertyStates.binaryProperty("", ByteStreams.toByteArray(value)), namePathMapper);
             } finally {
                 value.close();
             }
@@ -109,23 +108,23 @@ public class ValueFactoryImpl implements ValueFactory {
 
     @Override
     public Value createValue(long value) {
-        return new ValueImpl(PropertyValues.newLong(value), namePathMapper);
+        return new ValueImpl(PropertyStates.longProperty("", value), namePathMapper);
     }
 
     @Override
     public Value createValue(double value) {
-        return new ValueImpl(PropertyValues.newDouble(value), namePathMapper);
+        return new ValueImpl(PropertyStates.doubleProperty("", value), namePathMapper);
     }
 
     @Override
     public Value createValue(Calendar value) {
         String dateStr = ISO8601.format(value);
-        return new ValueImpl(PropertyValues.newDate(dateStr), namePathMapper);
+        return new ValueImpl(PropertyStates.dateProperty("", dateStr), namePathMapper);
     }
 
     @Override
     public Value createValue(boolean value) {
-        return new ValueImpl(PropertyValues.newBoolean(value), namePathMapper);
+        return new ValueImpl(PropertyStates.booleanProperty("", value), namePathMapper);
     }
 
     @Override
@@ -136,13 +135,13 @@ public class ValueFactoryImpl implements ValueFactory {
     @Override
     public Value createValue(Node value, boolean weak) throws RepositoryException {
         return weak
-            ? new ValueImpl(PropertyValues.newWeakReference(value.getUUID()), namePathMapper)
-            : new ValueImpl(PropertyValues.newReference(value.getUUID()), namePathMapper);
+            ? new ValueImpl(PropertyStates.weakreferenceProperty("", value.getUUID()), namePathMapper)
+            : new ValueImpl(PropertyStates.referenceProperty("", value.getUUID()), namePathMapper);
     }
 
     @Override
     public Value createValue(BigDecimal value) {
-        return new ValueImpl(PropertyValues.newDecimal(value), namePathMapper);
+        return new ValueImpl(PropertyStates.decimalProperty("", value), namePathMapper);
     }
 
     @Override
@@ -152,12 +151,12 @@ public class ValueFactoryImpl implements ValueFactory {
         }
 
         try {
-            PropertyValue pv;
+            PropertyState pv;
             switch (type) {
                 case PropertyType.STRING:
                     return createValue(value);
                 case PropertyType.BINARY:
-                    pv = PropertyValues.newBinary(value.getBytes("UTF-8"));
+                    pv = PropertyStates.binaryProperty("", value.getBytes("UTF-8"));
                     break;
                 case PropertyType.LONG:
                     return createValue(StringPropertyState.getLong(value));
@@ -167,7 +166,7 @@ public class ValueFactoryImpl implements ValueFactory {
                     if (ISO8601.parse(value) == null) {
                         throw new ValueFormatException("Invalid date " + value);
                     }
-                    pv = PropertyValues.newDate(value);
+                    pv = PropertyStates.dateProperty("", value);
                     break;
                 case PropertyType.BOOLEAN:
                     return createValue(StringPropertyState.getBoolean(value));
@@ -176,7 +175,7 @@ public class ValueFactoryImpl implements ValueFactory {
                     if (oakName == null) {
                         throw new ValueFormatException("Invalid name: " + value);
                     }
-                    pv = PropertyValues.newName(oakName);
+                    pv = PropertyStates.nameProperty("", oakName);
                     break;
                 case PropertyType.PATH:
                     String oakValue = value;
@@ -188,23 +187,23 @@ public class ValueFactoryImpl implements ValueFactory {
                     if (oakValue == null) {
                         throw new ValueFormatException("Invalid path: " + value);
                     }
-                    pv = PropertyValues.newPath(oakValue);
+                    pv = PropertyStates.pathProperty("", oakValue);
                     break;
                 case PropertyType.REFERENCE:
                     if (!IdentifierManager.isValidUUID(value)) {
                         throw new ValueFormatException("Invalid reference value " + value);
                     }
-                    pv = PropertyValues.newReference(value);
+                    pv = PropertyStates.referenceProperty("", value);
                     break;
                 case PropertyType.WEAKREFERENCE:
                     if (!IdentifierManager.isValidUUID(value)) {
                         throw new ValueFormatException("Invalid weak reference value " + value);
                     }
-                    pv = PropertyValues.newWeakReference(value);
+                    pv = PropertyStates.weakreferenceProperty("", value);
                     break;
                 case PropertyType.URI:
                     new URI(value);
-                    pv = PropertyValues.newUri(value);
+                    pv = PropertyStates.uriProperty("", value);
                     break;
                 case PropertyType.DECIMAL:
                     return createValue(StringPropertyState.getDecimal(value));

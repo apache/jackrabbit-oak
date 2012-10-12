@@ -45,27 +45,30 @@ import org.slf4j.LoggerFactory;
 public class ValueImpl implements Value {
     private static final Logger log = LoggerFactory.getLogger(ValueImpl.class);
 
-    private final PropertyValue value;
+    private final PropertyState propertyState;
+    private final int index;
     private final NamePathMapper namePathMapper;
 
     private InputStream stream = null;
 
-    ValueImpl(PropertyValue value, NamePathMapper namePathMapper) {
-        this.value = value;
+    ValueImpl(PropertyState propertyState, int index, NamePathMapper namePathMapper) {
+        this.propertyState = propertyState;
+        this.index = index;
         this.namePathMapper = namePathMapper;
     }
 
-    public ValueImpl(PropertyState property, NamePathMapper namePathMapper) {
-        this(PropertyValues.create(property), namePathMapper);
+    ValueImpl(PropertyState property, NamePathMapper namePathMapper) {
+        this(property, 0, namePathMapper);
     }
 
     //--------------------------------------------------------------< Value >---
+
     /**
      * @see javax.jcr.Value#getType()
      */
     @Override
     public int getType() {
-        return value.getType().tag();
+        return propertyState.getType().tag();
     }
 
     /**
@@ -74,7 +77,7 @@ public class ValueImpl implements Value {
     @Override
     public boolean getBoolean() throws RepositoryException {
         if (getType() == PropertyType.STRING || getType() == PropertyType.BINARY || getType() == PropertyType.BOOLEAN) {
-            return value.getValue(Type.BOOLEAN);
+            return propertyState.getValue(Type.BOOLEAN, index);
         } else {
             throw new ValueFormatException("Incompatible type " + PropertyType.nameFromValue(getType()));
         }
@@ -113,7 +116,7 @@ public class ValueImpl implements Value {
                     Calendar cal = getDate();
                     return BigDecimal.valueOf(cal.getTimeInMillis());
                 default:
-                    return value.getValue(Type.DECIMAL);
+                    return propertyState.getValue(Type.DECIMAL, index);
             }
         } catch (NumberFormatException e) {
             throw new ValueFormatException("Incompatible type " + PropertyType.nameFromValue(getType()));
@@ -131,7 +134,7 @@ public class ValueImpl implements Value {
                     Calendar cal = getDate();
                     return cal.getTimeInMillis();
                 default:
-                    return value.getValue(Type.DOUBLE);
+                    return propertyState.getValue(Type.DOUBLE, index);
             }
         } catch (NumberFormatException e) {
             throw new ValueFormatException("Incompatible type " + PropertyType.nameFromValue(getType()));
@@ -149,7 +152,7 @@ public class ValueImpl implements Value {
                     Calendar cal = getDate();
                     return cal.getTimeInMillis();
                 default:
-                    return value.getValue(Type.LONG);
+                    return propertyState.getValue(Type.LONG, index);
             }
         } catch (NumberFormatException e) {
             throw new ValueFormatException("Incompatible type " + PropertyType.nameFromValue(getType()));
@@ -163,9 +166,9 @@ public class ValueImpl implements Value {
     public String getString() throws RepositoryException {
         switch (getType()) {
             case PropertyType.NAME:
-                return namePathMapper.getJcrName(value.getValue(Type.STRING));
+                return namePathMapper.getJcrName(propertyState.getValue(Type.STRING, index));
             case PropertyType.PATH:
-                String s = value.getValue(Type.STRING);
+                String s = propertyState.getValue(Type.STRING, index);
                 if (s.startsWith("[") && s.endsWith("]")) {
                     // identifier paths are returned as-is (JCR 2.0, 3.4.3.1)
                     return s;
@@ -178,7 +181,7 @@ public class ValueImpl implements Value {
                             "In this case a new Value instance must be acquired in order to successfully call this method.");
                 }
                 try {
-                    final InputStream is = value.getValue(Type.BINARY).getNewStream();
+                    final InputStream is = propertyState.getValue(Type.BINARY, index).getNewStream();
                     try {
                         return CharStreams.toString(CharStreams.newReaderSupplier(
                                 new InputSupplier<InputStream>() {
@@ -194,7 +197,7 @@ public class ValueImpl implements Value {
                     throw new RepositoryException("conversion from stream to string failed", e);
                 }
             default:
-                return value.getValue(Type.STRING);
+                return propertyState.getValue(Type.STRING, index);
         }
     }
 
@@ -216,11 +219,11 @@ public class ValueImpl implements Value {
                 return new ByteArrayInputStream(
                         getString().getBytes(Charsets.UTF_8));
         }
-        return value.getValue(Type.BINARY).getNewStream();
+        return propertyState.getValue(Type.BINARY, index).getNewStream();
     }
 
     long getStreamLength() {
-        return value.getValue(Type.BINARY).length();
+        return propertyState.getValue(Type.BINARY, index).length();
     }
 
     /**
@@ -237,9 +240,16 @@ public class ValueImpl implements Value {
      * @see Object#equals(Object)
      */
     @Override
-    public boolean equals(Object obj) {
-        if (obj instanceof ValueImpl) {
-            return value.equals(((ValueImpl) obj).value);
+    public boolean equals(Object other) {
+        if (other instanceof ValueImpl) {
+            ValueImpl that = (ValueImpl) other;
+            try {
+                // FIXME real equals implementation
+                return getType() == that.getType() && getString().equals(that.getString());
+            }
+            catch (RepositoryException e) {
+                throw new RuntimeException();
+            }
         } else {
             return false;
         }
@@ -250,12 +260,12 @@ public class ValueImpl implements Value {
      */
     @Override
     public int hashCode() {
-        return value.hashCode();
+        return propertyState.hashCode();
     }
 
     @Override
     public String toString() {
-        return value.toString();
+        return propertyState.getValue(Type.STRING, index);
     }
 
 }

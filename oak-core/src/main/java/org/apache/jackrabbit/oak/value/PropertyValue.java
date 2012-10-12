@@ -18,17 +18,13 @@
  */
 package org.apache.jackrabbit.oak.value;
 
-import java.math.BigDecimal;
 import java.util.Calendar;
 import java.util.Iterator;
-import java.util.List;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 
-import com.google.common.collect.Lists;
-import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.util.ISO8601;
@@ -58,77 +54,6 @@ public class PropertyValue implements Comparable<PropertyValue> {
     @Nonnull
     public <T> T getValue(Type<T> type, int index) {
         return ps.getValue(type, index);
-    }
-
-    public List<PropertyValue> values() {
-        List<PropertyValue> pvs = Lists.newArrayList();
-
-        int type = getType().tag();
-        switch (type) {
-            case PropertyType.STRING:
-                for (String value : getValue(Type.STRINGS)) {
-                    pvs.add(PropertyValues.newString(value));
-                }
-                break;
-            case PropertyType.BINARY:
-                for (Blob value : getValue(Type.BINARIES)) {
-                    pvs.add(PropertyValues.newBinary(value));
-                }
-                break;
-            case PropertyType.LONG:
-                for (Long value : getValue(Type.LONGS)) {
-                    pvs.add(PropertyValues.newLong(value));
-                }
-                break;
-            case PropertyType.DOUBLE:
-                for (Double value : getValue(Type.DOUBLES)) {
-                    pvs.add(PropertyValues.newDouble(value));
-                }
-                break;
-            case PropertyType.DATE:
-                for (String value : getValue(Type.DATES)) {
-                    pvs.add(PropertyValues.newDate(value));
-                }
-                break;
-            case PropertyType.BOOLEAN:
-                for (Boolean value : getValue(Type.BOOLEANS)) {
-                    pvs.add(PropertyValues.newBoolean(value));
-                }
-                break;
-            case PropertyType.NAME:
-                for (String value : getValue(Type.NAMES)) {
-                    pvs.add(PropertyValues.newName(value));
-                }
-                break;
-            case PropertyType.PATH:
-                for (String value : getValue(Type.PATHS)) {
-                    pvs.add(PropertyValues.newPath(value));
-                }
-                break;
-            case PropertyType.REFERENCE:
-                for (String value : getValue(Type.REFERENCES)) {
-                    pvs.add(PropertyValues.newReference(value));
-                }
-                break;
-            case PropertyType.WEAKREFERENCE:
-                for (String value : getValue(Type.WEAKREFERENCES)) {
-                    pvs.add(PropertyValues.newWeakReference(value));
-                }
-                break;
-            case PropertyType.URI:
-                for (String value : getValue(Type.URIS)) {
-                    pvs.add(PropertyValues.newUri(value));
-                }
-                break;
-            case PropertyType.DECIMAL:
-                for (BigDecimal value : getValue(Type.DECIMALS)) {
-                    pvs.add(PropertyValues.newDecimal(value));
-                }
-                break;
-            default:
-                throw new IllegalStateException("Invalid type: " + getType());
-        }
-        return pvs;
     }
 
     public long size() {
