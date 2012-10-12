@@ -243,13 +243,7 @@ public class ValueImpl implements Value {
     public boolean equals(Object other) {
         if (other instanceof ValueImpl) {
             ValueImpl that = (ValueImpl) other;
-            try {
-                // FIXME real equals implementation
-                return getType() == that.getType() && getString().equals(that.getString());
-            }
-            catch (RepositoryException e) {
-                throw new RuntimeException();
-            }
+            return compare(propertyState, index, that.propertyState, that.index) == 0;
         } else {
             return false;
         }
@@ -266,6 +260,34 @@ public class ValueImpl implements Value {
     @Override
     public String toString() {
         return propertyState.getValue(Type.STRING, index);
+    }
+
+    private static int compare(PropertyState p1, int i1, PropertyState p2, int i2) {
+        if (p1.getType().tag() != p2.getType().tag()) {
+            return Integer.signum(p1.getType().tag() - p2.getType().tag());
+        }
+        switch (p1.getType().tag()) {
+            case PropertyType.BINARY:
+                return compare(p1.getValue(Type.BINARY, i1), p2.getValue(Type.BINARY, i2));
+            case PropertyType.DOUBLE:
+                return compare(p1.getValue(Type.DOUBLE, i1), p2.getValue(Type.DOUBLE, i2));
+            case PropertyType.DATE:
+                return compareAsDate(p1.getValue(Type.STRING, i1), p2.getValue(Type.STRING, i2));
+            default:
+                return compare(p1.getValue(Type.STRING, i1), p2.getValue(Type.STRING, i2));
+        }
+    }
+
+    private static <T extends Comparable<T>> int compare(T p1, T p2) {
+        return p1.compareTo(p2);
+    }
+
+    private static int compareAsDate(String p1, String p2) {
+        Calendar c1 = ISO8601.parse(p1);
+        Calendar c2 = ISO8601.parse(p2);
+        return c1 != null && c2 != null
+                ? c1.compareTo(c2)
+                : p1.compareTo(p2);
     }
 
 }
