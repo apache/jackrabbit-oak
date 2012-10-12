@@ -33,7 +33,12 @@ public final class AllPermissions implements CompiledPermissions {
     }
 
     @Override
-    public boolean canRead(String path, boolean isProperty) {
+    public boolean canRead(Tree tree) {
+        return true;
+    }
+
+    @Override
+    public boolean canRead(Tree tree, PropertyState property) {
         return true;
     }
 
