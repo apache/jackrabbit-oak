@@ -150,7 +150,7 @@ public class IdentifierManager {
 
     /**
      * Returns the path of the tree references by the specified (weak)
-     * reference {@code CoreValue value}.
+     * reference {@code PropertyState}.
      *
      * @param referenceValue A (weak) reference value.
      * @return The tree with the given {@code identifier} or {@code null} if no
