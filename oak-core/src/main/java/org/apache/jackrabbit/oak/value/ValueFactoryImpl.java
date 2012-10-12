@@ -62,10 +62,25 @@ public class ValueFactoryImpl implements ValueFactory {
         this.namePathMapper = namePathMapper;
     }
 
+    /**
+     * Utility method for creating a {@code Value} based on a {@code PropertyState}.
+     * @param property  The property state
+     * @param namePathMapper The name/path mapping used for converting JCR names/paths to
+     * the internal representation.
+     * @return  New {@code Value} instance
+     * @throws IllegalArgumentException if {@code property.isArray()} is {@code true}.
+     */
     public static Value createValue(PropertyState property, NamePathMapper namePathMapper) {
         return new ValueImpl(property, namePathMapper);
     }
 
+    /**
+     * Utility method for creating {@code Value}s based on a {@code PropertyState}.
+     * @param property  The property state
+     * @param namePathMapper The name/path mapping used for converting JCR names/paths to
+     * the internal representation.
+     * @return  A list of new {@code Value} instances
+     */
     public static List<Value> createValues(PropertyState property, NamePathMapper namePathMapper) {
         List<Value> values = Lists.newArrayList();
         for (int i = 0; i < property.count(); i++) {
@@ -93,6 +108,7 @@ public class ValueFactoryImpl implements ValueFactory {
             return new ErrorValue(e, PropertyType.BINARY);
         }
     }
+
     @Override
     public Value createValue(Binary value) {
         try {
@@ -242,6 +258,10 @@ public class ValueFactoryImpl implements ValueFactory {
 
     //------------------------------------------------------------< ErrorValue >---
 
+    /**
+     * Instances of this class represent a {@code Value} which couldn't be retrieved.
+     * All its accessors throw a {@code RepositoryException}.
+     */
     private static class ErrorValue implements Value {
         private final Exception exception;
         private final int type;
@@ -300,6 +320,10 @@ public class ValueFactoryImpl implements ValueFactory {
             return new RepositoryException("Inaccessible value", exception);
         }
 
+        /**
+         * Error values are never equal.
+         * @return {@code false}
+         */
         @Override
         public boolean equals(Object obj) {
             return false;
