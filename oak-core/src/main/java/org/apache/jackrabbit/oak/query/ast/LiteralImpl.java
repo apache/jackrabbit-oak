@@ -22,9 +22,9 @@ import java.util.Locale;
 
 import javax.jcr.PropertyType;
 
+import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.query.SQL2Parser;
-import org.apache.jackrabbit.oak.spi.query.PropertyValue;
 
 /**
  * A literal of a certain data type, possibly "cast(..)" of a literal.

@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.query;
 
+import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.ast.AstElementFactory;
@@ -33,7 +34,6 @@ import org.apache.jackrabbit.oak.query.ast.PropertyValueImpl;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.ast.SourceImpl;
 import org.apache.jackrabbit.oak.query.ast.StaticOperandImpl;
-import org.apache.jackrabbit.oak.spi.query.PropertyValue;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 
 import javax.jcr.PropertyType;

@@ -24,7 +24,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.query.index.IndexRowImpl;
 import org.apache.jackrabbit.oak.query.index.TraversingCursor;
@@ -42,7 +42,7 @@ public class PropertyIndex implements QueryIndex {
 
     private static final int MAX_STRING_LENGTH = 100; // TODO: configurable
 
-    static List<String> encode(PropertyState value) {
+    static List<String> encode(PropertyValue value) {
         List<String> values = new ArrayList<String>();
 
         for (String v : value.getValue(Type.STRINGS)) {

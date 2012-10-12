@@ -25,12 +25,12 @@ import java.util.Locale;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.SQL2Parser;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
-import org.apache.jackrabbit.oak.spi.query.PropertyValue;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 
 import com.google.common.collect.Iterables;
@@ -87,7 +87,7 @@ public class PropertyValueImpl extends DynamicOperandImpl {
         boolean asterisk = propertyName.equals("*");
         if (!relative && !asterisk) {
             PropertyValue p = selector.currentProperty(propertyName);
-            return p != null && matchesPropertyType(p.unwrap()) ? p : null;
+            return matchesPropertyType(p) ? p : null;
         }
         Tree tree = getTree(selector.currentPath());
         if (tree == null) {
@@ -128,6 +128,16 @@ public class PropertyValueImpl extends DynamicOperandImpl {
         }
         // "*"
         return PropertyValues.newString(values);
+    }
+
+    private boolean matchesPropertyType(PropertyValue value) {
+        if (value == null) {
+            return false;
+        }
+        if (propertyType == PropertyType.UNDEFINED) {
+            return true;
+        }
+        return value.getType().tag() == propertyType;
     }
 
     private boolean matchesPropertyType(PropertyState state) {
