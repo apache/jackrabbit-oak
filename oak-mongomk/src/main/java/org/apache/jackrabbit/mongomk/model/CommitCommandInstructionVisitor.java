@@ -22,16 +22,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.jackrabbit.mongomk.api.instruction.InstructionVisitor;
 import org.apache.jackrabbit.mongomk.api.instruction.Instruction.AddNodeInstruction;
 import org.apache.jackrabbit.mongomk.api.instruction.Instruction.AddPropertyInstruction;
 import org.apache.jackrabbit.mongomk.api.instruction.Instruction.CopyNodeInstruction;
 import org.apache.jackrabbit.mongomk.api.instruction.Instruction.MoveNodeInstruction;
 import org.apache.jackrabbit.mongomk.api.instruction.Instruction.RemoveNodeInstruction;
 import org.apache.jackrabbit.mongomk.api.instruction.Instruction.SetPropertyInstruction;
+import org.apache.jackrabbit.mongomk.api.instruction.InstructionVisitor;
 import org.apache.jackrabbit.mongomk.command.NodeExistsCommandMongo;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
-import org.apache.jackrabbit.mongomk.query.FetchNodeByPathQuery;
+import org.apache.jackrabbit.mongomk.query.FetchNodesByPathAndDepthQuery;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
 public class CommitCommandInstructionVisitor implements InstructionVisitor {
@@ -287,11 +287,13 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
                 return null;
             }
 
-            FetchNodeByPathQuery query = new FetchNodeByPathQuery(mongoConnection,
+            FetchNodesByPathAndDepthQuery query = new FetchNodesByPathAndDepthQuery(mongoConnection,
                     path, headRevisionId);
-            query.setFetchAllPropeties(true);
-            node = query.execute();
-            if (node != null) {
+            query.setBranchId(branchId);
+            query.setFetchDescendants(false);
+            List<NodeMongo> nodes = query.execute();
+            if (!nodes.isEmpty()) {
+                node = nodes.get(0);
                 node.removeField("_id");
                 pathNodeMap.put(path, node);
             }

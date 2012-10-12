@@ -43,6 +43,7 @@ public class FetchNodesByPathAndDepthQuery extends AbstractQuery<List<NodeMongo>
 
     private String branchId;
     private int depth = LIMITLESS_DEPTH;
+    private boolean fetchDescendants = true;
 
     /**
      * Constructs a new {@code FetchNodesByPathAndDepthQuery}.
@@ -51,8 +52,8 @@ public class FetchNodesByPathAndDepthQuery extends AbstractQuery<List<NodeMongo>
      * @param path The path.
      * @param revisionId The revision id.
      */
-    public FetchNodesByPathAndDepthQuery(MongoConnection mongoConnection, String path,
-            long revisionId) {
+    public FetchNodesByPathAndDepthQuery(MongoConnection mongoConnection,
+            String path, long revisionId) {
         super(mongoConnection);
         this.path = path;
         this.revisionId = revisionId;
@@ -76,6 +77,15 @@ public class FetchNodesByPathAndDepthQuery extends AbstractQuery<List<NodeMongo>
         this.depth = depth;
     }
 
+    /**
+     * Determines whether all the descendants of the path will be fetched.
+     *
+     * @param fetchDescendants
+     */
+    public void setFetchDescendants(boolean fetchDescendants) {
+        this.fetchDescendants = fetchDescendants;
+    }
+
     @Override
     public List<NodeMongo> execute() {
         DBCursor dbCursor = performQuery();
@@ -84,8 +94,14 @@ public class FetchNodesByPathAndDepthQuery extends AbstractQuery<List<NodeMongo>
     }
 
     private DBCursor performQuery() {
-        Pattern pattern = createPrefixRegExp();
-        QueryBuilder queryBuilder = QueryBuilder.start(NodeMongo.KEY_PATH).regex(pattern);
+        QueryBuilder queryBuilder = QueryBuilder.start(NodeMongo.KEY_PATH);
+        if (fetchDescendants) {
+            Pattern pattern = createPrefixRegExp();
+            queryBuilder = queryBuilder.regex(pattern);
+        } else {
+            queryBuilder = queryBuilder.is(path);
+        }
+
         if (revisionId > 0) {
             queryBuilder = queryBuilder.and(NodeMongo.KEY_REVISION_ID).lessThanEquals(revisionId);
         }
@@ -98,7 +114,6 @@ public class FetchNodesByPathAndDepthQuery extends AbstractQuery<List<NodeMongo>
         }
 
         DBObject query = queryBuilder.get();
-
         LOG.debug(String.format("Executing query: %s", query));
 
         DBCollection nodeCollection = mongoConnection.getNodeCollection();
