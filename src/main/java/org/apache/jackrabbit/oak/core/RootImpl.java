@@ -26,7 +26,7 @@ import java.util.List;
 import javax.annotation.Nonnull;
 import javax.security.auth.Subject;
 
-import org.apache.jackrabbit.oak.api.ChangeExtractor;
+import org.apache.jackrabbit.oak.spi.observation.ChangeExtractor;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.SessionQueryEngine;
@@ -233,7 +233,6 @@ public class RootImpl implements Root {
         return !getBaseState().equals(rootTree.getNodeState());
     }
 
-    @Override
     @Nonnull
     public ChangeExtractor getChangeExtractor() {
         return new ChangeExtractor() {
