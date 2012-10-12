@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.mongomk.query;
 
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -55,8 +53,8 @@ public class FetchNodesForRevisionQuery extends AbstractQuery<List<NodeMongo>> {
      * @param revisionId The revision id.
      * @param branchId
      */
-    public FetchNodesForRevisionQuery(MongoConnection mongoConnection, Set<String> paths,
-            Long revisionId) {
+    public FetchNodesForRevisionQuery(MongoConnection mongoConnection,
+            Set<String> paths, Long revisionId) {
         super(mongoConnection);
         this.paths = paths;
         this.revisionId = revisionId;
@@ -69,19 +67,6 @@ public class FetchNodesForRevisionQuery extends AbstractQuery<List<NodeMongo>> {
      */
     public void setBranchId(String branchId) {
         this.branchId = branchId;
-    }
-
-    /**
-     * FIXME - Consider removing this.
-     * Constructs a new {@code FetchNodesForRevisionQuery}.
-     *
-     * @param mongoConnection The {@link MongoConnection}.
-     * @param paths The paths to fetch.
-     * @param revisionId The revision id.
-     */
-    public FetchNodesForRevisionQuery(MongoConnection mongoConnection, String[] paths,
-            Long revisionId) {
-        this(mongoConnection, new HashSet<String>(Arrays.asList(paths)), revisionId);
     }
 
     @Override

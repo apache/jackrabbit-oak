@@ -35,9 +35,7 @@ import com.mongodb.DBObject;
 import com.mongodb.QueryBuilder;
 
 /**
- * FIXME - Clean up the constructors.
- *
- * An query for fetching valid commits.
+ * A query for fetching valid commits.
  */
 public class FetchValidCommitsQuery extends AbstractQuery<List<CommitMongo>> {
 
@@ -50,8 +48,7 @@ public class FetchValidCommitsQuery extends AbstractQuery<List<CommitMongo>> {
     private boolean includeBranchCommits = true;
 
     /**
-     * Constructs a new {@link FetchValidCommitsQuery} with 0 fromRevisionId
-     * and limitless maxEntries.
+     * Constructs a new {@link FetchValidCommitsQuery} with 0 fromRevisionId.
      *
      * @param mongoConnection Mongo connection.
      * @param toRevisionId To revision id.
@@ -67,13 +64,20 @@ public class FetchValidCommitsQuery extends AbstractQuery<List<CommitMongo>> {
      * @param mongoConnection Mongo connection.
      * @param fromRevisionId From revision id.
      * @param toRevisionId To revision id.
-     * @param maxEntries Max number of entries that should be fetched.
      */
     public FetchValidCommitsQuery(MongoConnection mongoConnection, long fromRevisionId,
-            long toRevisionId, int maxEntries) {
+            long toRevisionId) {
         super(mongoConnection);
         this.fromRevisionId = fromRevisionId;
         this.toRevisionId = toRevisionId;
+    }
+
+    /**
+     * Sets the max number of entries that should be fetched.
+     *
+     * @param maxEntries The max number of entries.
+     */
+    public void setMaxEntries(int maxEntries) {
         this.maxEntries = maxEntries;
     }
 

@@ -35,9 +35,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * FIXME - Create a constructor with required parameters and handle optional
- * parameters with setters.
- *
  * A {@code Command} for getting nodes from {@code MongoDB}.
  */
 public class GetNodesCommandMongo extends AbstractCommand<Node> {
@@ -46,9 +43,9 @@ public class GetNodesCommandMongo extends AbstractCommand<Node> {
 
     private final MongoConnection mongoConnection;
     private final String path;
-    private final int depth;
 
     private String branchId;
+    private int depth = FetchNodesByPathAndDepthQuery.LIMITLESS_DEPTH;
     private Long revisionId;
     private List<CommitMongo> lastCommits;
     private List<NodeMongo> nodeMongos;
@@ -62,15 +59,13 @@ public class GetNodesCommandMongo extends AbstractCommand<Node> {
      *
      * @param mongoConnection The {@link MongoConnection}.
      * @param path The root path of the nodes to get.
-     * @param revisionId The revision id or null.
-     * @param depth The depth.
+     * @param revisionId The revision id or null for head revision.
      */
     public GetNodesCommandMongo(MongoConnection mongoConnection, String path,
-            Long revisionId, int depth) {
+            Long revisionId) {
         this.mongoConnection = mongoConnection;
         this.path = path;
         this.revisionId = revisionId;
-        this.depth = depth;
     }
 
     /**
@@ -80,6 +75,15 @@ public class GetNodesCommandMongo extends AbstractCommand<Node> {
      */
     public void setBranchId(String branchId) {
         this.branchId = branchId;
+    }
+
+    /**
+     * Sets the depth for the command.
+     *
+     * @param depth The depth for the command or -1 for limitless depth.
+     */
+    public void setDepth(int depth) {
+        this.depth = depth;
     }
 
     @Override
@@ -183,8 +187,9 @@ public class GetNodesCommandMongo extends AbstractCommand<Node> {
 
     private void readNodesByPath() {
         FetchNodesByPathAndDepthQuery query = new FetchNodesByPathAndDepthQuery(mongoConnection,
-                path, revisionId, depth);
+                path, revisionId);
         query.setBranchId(branchId);
+        query.setDepth(depth);
         nodeMongos = query.execute();
     }
 

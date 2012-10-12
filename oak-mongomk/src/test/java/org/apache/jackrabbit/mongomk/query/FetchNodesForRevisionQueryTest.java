@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.mongomk.query;
 
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -55,7 +57,7 @@ public class FetchNodesForRevisionQueryTest extends BaseMongoTest {
         updateBaseRevisionId(revisionId2, 0L);
 
         FetchNodesForRevisionQuery query = new FetchNodesForRevisionQuery(mongoConnection,
-                new String[] { "/", "/a", "/b", "/c", "not_existing" }, revisionId3);
+                getPathSet("/", "/a", "/b", "/c", "not_existing"), revisionId3);
         List<Node> actuals = NodeMongo.toNode(query.execute());
 
         //String json = String.format("{\"/#%1$s\" : { \"a#%2$s\" : {}, \"b#%3$s\" : {}, \"c#%1$s\" : {} }}", revisionId3, revisionId1, revisionId2);
@@ -73,7 +75,7 @@ public class FetchNodesForRevisionQueryTest extends BaseMongoTest {
         invalidateCommit(revisionId3);
 
         FetchNodesForRevisionQuery query = new FetchNodesForRevisionQuery(mongoConnection,
-                new String[] { "/", "/a", "/b", "/c", "not_existing" }, revisionId3);
+                getPathSet("/", "/a", "/b", "/c", "not_existing"), revisionId3);
         List<Node> actuals = NodeMongo.toNode(query.execute());
 
         String json = String.format("{\"/#%2$s\" : { \"a#%1$s\" : {}, \"b#%2$s\" : {} }}", revisionId1, revisionId2);
@@ -91,7 +93,7 @@ public class FetchNodesForRevisionQueryTest extends BaseMongoTest {
         updateBaseRevisionId(revisionId3, revisionId1);
 
         FetchNodesForRevisionQuery query = new FetchNodesForRevisionQuery(mongoConnection,
-                new String[] { "/", "/a", "/b", "/c", "not_existing" }, revisionId3);
+                getPathSet("/", "/a", "/b", "/c", "not_existing"), revisionId3);
         List<Node> actuals = NodeMongo.toNode(query.execute());
 
         String json = String.format("{\"/#%2$s\" : { \"a#%1$s\" : {}, \"c#%2$s\" : {} }}", revisionId1, revisionId3);
@@ -104,8 +106,8 @@ public class FetchNodesForRevisionQueryTest extends BaseMongoTest {
         SimpleNodeScenario scenario = new SimpleNodeScenario(mongoConnection);
         Long revisionId = scenario.create();
 
-        FetchNodesForRevisionQuery query = new FetchNodesForRevisionQuery(mongoConnection, new String[] { "/", "/a",
-                "/a/b", "/a/c", "not_existing" }, revisionId);
+        FetchNodesForRevisionQuery query = new FetchNodesForRevisionQuery(mongoConnection,
+                getPathSet("/", "/a", "/a/b", "/a/c", "not_existing"), revisionId);
         List<NodeMongo> nodeMongos = query.execute();
         List<Node> actuals = NodeMongo.toNode(nodeMongos);
         Node expected = NodeBuilder
@@ -115,7 +117,8 @@ public class FetchNodesForRevisionQueryTest extends BaseMongoTest {
         Set<Node> expecteds = expected.getDescendants(true);
         NodeAssert.assertEquals(expecteds, actuals);
 
-        query = new FetchNodesForRevisionQuery(mongoConnection, new String[] { "/", "/a", "not_existing" }, revisionId);
+        query = new FetchNodesForRevisionQuery(mongoConnection,
+                getPathSet("/", "/a", "not_existing"), revisionId);
         nodeMongos = query.execute();
         actuals = NodeMongo.toNode(nodeMongos);
         expected = NodeBuilder.build(String.format("{ \"/#%1$s\" : { \"a#%1$s\" : { \"int\" : 1 } } }",
@@ -131,7 +134,7 @@ public class FetchNodesForRevisionQueryTest extends BaseMongoTest {
         Long secondRevisionId = scenario.update_A_and_add_D_and_E();
 
         FetchNodesForRevisionQuery query = new FetchNodesForRevisionQuery(mongoConnection,
-                new String[] { "/", "/a", "/a/b", "/a/c", "/a/d", "/a/b/e", "not_existing" },
+                getPathSet("/", "/a", "/a/b", "/a/c", "/a/d", "/a/b/e", "not_existing"),
                 firstRevisionId);
         List<NodeMongo> nodeMongos = query.execute();
         List<Node> actuals = NodeMongo.toNode(nodeMongos);
@@ -142,8 +145,9 @@ public class FetchNodesForRevisionQueryTest extends BaseMongoTest {
         Set<Node> expecteds = expected.getDescendants(true);
         NodeAssert.assertEquals(expecteds, actuals);
 
-        query = new FetchNodesForRevisionQuery(mongoConnection, new String[] { "/", "/a", "/a/b", "/a/c", "/a/d",
-                "/a/b/e", "not_existing" }, secondRevisionId);
+        query = new FetchNodesForRevisionQuery(mongoConnection,
+                getPathSet("/", "/a", "/a/b", "/a/c", "/a/d", "/a/b/e", "not_existing"),
+                secondRevisionId);
         nodeMongos = query.execute();
         actuals = NodeMongo.toNode(nodeMongos);
         expected = NodeBuilder
@@ -158,6 +162,10 @@ public class FetchNodesForRevisionQueryTest extends BaseMongoTest {
         Commit commit = CommitBuilder.build("/", "+\"" + nodeName + "\" : {}", "Add /" + nodeName);
         CommitCommandMongo command = new CommitCommandMongo(mongoConnection, commit);
         return command.execute();
+    }
+
+    private Set<String> getPathSet(String... paths) {
+        return new HashSet<String>(Arrays.asList(paths));
     }
 
     private void invalidateCommit(Long revisionId) {

@@ -105,7 +105,8 @@ public class ConcurrentCommitCommandMongoTest extends BaseMongoTest {
         List<String> lastChildren = new LinkedList<String>();
         for (int i = 0; i < numOfConcurrentThreads; ++i) {
             Long revisionId = revisionIds.get(i);
-            GetNodesCommandMongo command2 = new GetNodesCommandMongo(mongoConnection, "/", revisionId, 0);
+            GetNodesCommandMongo command2 = new GetNodesCommandMongo(mongoConnection,
+                    "/", revisionId);
             Node root = command2.execute();
 
             for (String lastChild : lastChildren) {

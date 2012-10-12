@@ -31,20 +31,18 @@ import com.mongodb.DBObject;
 import com.mongodb.QueryBuilder;
 
 /**
- * FIXME - Create a constructor with required parameters and handle optional
- * parameters with setters.
-
  * A query for fetching nodes by path and depth.
  */
 public class FetchNodesByPathAndDepthQuery extends AbstractQuery<List<NodeMongo>> {
 
+    public static final int LIMITLESS_DEPTH = -1;
     private static final Logger LOG = LoggerFactory.getLogger(FetchNodesByPathAndDepthQuery.class);
 
-    private final int depth;
     private final String path;
     private final long revisionId;
 
     private String branchId;
+    private int depth = LIMITLESS_DEPTH;
 
     /**
      * Constructs a new {@code FetchNodesByPathAndDepthQuery}.
@@ -52,14 +50,12 @@ public class FetchNodesByPathAndDepthQuery extends AbstractQuery<List<NodeMongo>
      * @param mongoConnection The {@link MongoConnection}.
      * @param path The path.
      * @param revisionId The revision id.
-     * @param depth The depth.
      */
     public FetchNodesByPathAndDepthQuery(MongoConnection mongoConnection, String path,
-            long revisionId, int depth) {
+            long revisionId) {
         super(mongoConnection);
         this.path = path;
         this.revisionId = revisionId;
-        this.depth = depth;
     }
 
     /**
@@ -69,6 +65,15 @@ public class FetchNodesByPathAndDepthQuery extends AbstractQuery<List<NodeMongo>
      */
     public void setBranchId(String branchId) {
         this.branchId = branchId;
+    }
+
+    /**
+     * Sets the depth for the command.
+     *
+     * @param depth The depth for the command or -1 for limitless depth.
+     */
+    public void setDepth(int depth) {
+        this.depth = depth;
     }
 
     @Override

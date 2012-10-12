@@ -104,7 +104,8 @@ public class FetchValidCommitsQueryTest extends BaseMongoTest {
 
         int maxEntries = 0;
         FetchValidCommitsQuery query = new FetchValidCommitsQuery(mongoConnection,
-                0L, Long.MAX_VALUE, maxEntries);
+                0L, Long.MAX_VALUE);
+        query.setMaxEntries(maxEntries);
         List<CommitMongo> commits = query.execute();
         assertEquals(SIMPLE_SCENARIO_COMMITS + numberOfChildren, commits.size());
     }
@@ -119,7 +120,8 @@ public class FetchValidCommitsQueryTest extends BaseMongoTest {
 
         int maxEntries = 2;
         FetchValidCommitsQuery query = new FetchValidCommitsQuery(mongoConnection,
-                0L, Long.MAX_VALUE, maxEntries);
+                0L, Long.MAX_VALUE);
+        query.setMaxEntries(maxEntries);
         List<CommitMongo> commits = query.execute();
         assertEquals(maxEntries, commits.size());
     }

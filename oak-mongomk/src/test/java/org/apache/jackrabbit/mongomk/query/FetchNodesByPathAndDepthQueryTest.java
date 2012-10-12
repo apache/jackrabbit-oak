@@ -48,7 +48,7 @@ public class FetchNodesByPathAndDepthQueryTest extends BaseMongoTest {
         updateBaseRevisionId(revisionId2, 0L);
 
         FetchNodesByPathAndDepthQuery query = new FetchNodesByPathAndDepthQuery(mongoConnection,
-                "/", revisionId3, -1);
+                "/", revisionId3);
         List<Node> actuals = NodeMongo.toNode(query.execute());
 
         //String json = String.format("{\"/#%1$s\" : { \"a#%2$s\" : {}, \"b#%3$s\" : {}, \"c#%1$s\" : {} }}", revisionId3, revisionId1, revisionId2);
@@ -66,7 +66,7 @@ public class FetchNodesByPathAndDepthQueryTest extends BaseMongoTest {
         invalidateCommit(revisionId3);
 
         FetchNodesByPathAndDepthQuery query = new FetchNodesByPathAndDepthQuery(mongoConnection,
-                "/", revisionId3, -1);
+                "/", revisionId3);
         List<Node> actuals = NodeMongo.toNode(query.execute());
 
         //String json = String.format("{\"/#%1$s\" : { \"a#%2$s\" : {}, \"b#%3$s\" : {}, \"c#%1$s\" : {} }}", revisionId3, revisionId1, revisionId2);
@@ -85,7 +85,7 @@ public class FetchNodesByPathAndDepthQueryTest extends BaseMongoTest {
         updateBaseRevisionId(revisionId3, revisionId1);
 
         FetchNodesByPathAndDepthQuery query = new FetchNodesByPathAndDepthQuery(mongoConnection,
-                "/", revisionId3, -1);
+                "/", revisionId3);
         List<Node> actuals = NodeMongo.toNode(query.execute());
 
         String json = String.format("{\"/#%2$s\" : { \"a#%1$s\" : {}, \"c#%2$s\" : {} }}", revisionId1, revisionId3);
@@ -100,21 +100,24 @@ public class FetchNodesByPathAndDepthQueryTest extends BaseMongoTest {
         Long secondRevisionId = scenario.update_A_and_add_D_and_E();
 
         FetchNodesByPathAndDepthQuery query = new FetchNodesByPathAndDepthQuery(mongoConnection,
-                "/", firstRevisionId, 0);
+                "/", firstRevisionId);
+        query.setDepth(0);
         List<NodeMongo> result = query.execute();
         List<Node> actuals = NodeMongo.toNode(result);
         Node expected = NodeBuilder.build(String.format("{ \"/#%1$s\" : {} }", firstRevisionId));
         Set<Node> expecteds = expected.getDescendants(true);
         NodeAssert.assertEquals(expecteds, actuals);
 
-        query = new FetchNodesByPathAndDepthQuery(mongoConnection, "/", secondRevisionId, 0);
+        query = new FetchNodesByPathAndDepthQuery(mongoConnection, "/", secondRevisionId);
+        query.setDepth(0);
         result = query.execute();
         actuals = NodeMongo.toNode(result);
         expected = NodeBuilder.build(String.format("{ \"/#%1$s\" : {} }", firstRevisionId));
         expecteds = expected.getDescendants(true);
         NodeAssert.assertEquals(expecteds, actuals);
 
-        query = new FetchNodesByPathAndDepthQuery(mongoConnection, "/", firstRevisionId, 1);
+        query = new FetchNodesByPathAndDepthQuery(mongoConnection, "/", firstRevisionId);
+        query.setDepth(1);
         result = query.execute();
         actuals = NodeMongo.toNode(result);
         expected = NodeBuilder.build(String.format("{ \"/#%1$s\" : { \"a#%1$s\" : { \"int\" : 1 } } }",
@@ -122,7 +125,8 @@ public class FetchNodesByPathAndDepthQueryTest extends BaseMongoTest {
         expecteds = expected.getDescendants(true);
         NodeAssert.assertEquals(expecteds, actuals);
 
-        query = new FetchNodesByPathAndDepthQuery(mongoConnection, "/", secondRevisionId, 1);
+        query = new FetchNodesByPathAndDepthQuery(mongoConnection, "/", secondRevisionId);
+        query.setDepth(1);
         result = query.execute();
         actuals = NodeMongo.toNode(result);
         expected = NodeBuilder.build(String.format(
@@ -131,7 +135,8 @@ public class FetchNodesByPathAndDepthQueryTest extends BaseMongoTest {
         expecteds = expected.getDescendants(true);
         NodeAssert.assertEquals(expecteds, actuals);
 
-        query = new FetchNodesByPathAndDepthQuery(mongoConnection, "/", firstRevisionId, 2);
+        query = new FetchNodesByPathAndDepthQuery(mongoConnection, "/", firstRevisionId);
+        query.setDepth(2);
         result = query.execute();
         actuals = NodeMongo.toNode(result);
         expected = NodeBuilder
@@ -141,7 +146,8 @@ public class FetchNodesByPathAndDepthQueryTest extends BaseMongoTest {
         expecteds = expected.getDescendants(true);
         NodeAssert.assertEquals(expecteds, actuals);
 
-        query = new FetchNodesByPathAndDepthQuery(mongoConnection, "/", secondRevisionId, 2);
+        query = new FetchNodesByPathAndDepthQuery(mongoConnection, "/", secondRevisionId);
+        query.setDepth(2);
         result = query.execute();
         actuals = NodeMongo.toNode(result);
         expected = NodeBuilder
@@ -151,7 +157,7 @@ public class FetchNodesByPathAndDepthQueryTest extends BaseMongoTest {
         expecteds = expected.getDescendants(true);
         NodeAssert.assertEquals(expecteds, actuals);
 
-        query = new FetchNodesByPathAndDepthQuery(mongoConnection, "/", firstRevisionId, -1);
+        query = new FetchNodesByPathAndDepthQuery(mongoConnection, "/", firstRevisionId);
         result = query.execute();
         actuals = NodeMongo.toNode(result);
         expected = NodeBuilder
@@ -161,7 +167,7 @@ public class FetchNodesByPathAndDepthQueryTest extends BaseMongoTest {
         expecteds = expected.getDescendants(true);
         NodeAssert.assertEquals(expecteds, actuals);
 
-        query = new FetchNodesByPathAndDepthQuery(mongoConnection, "/", secondRevisionId, -1);
+        query = new FetchNodesByPathAndDepthQuery(mongoConnection, "/", secondRevisionId);
         result = query.execute();
         actuals = NodeMongo.toNode(result);
         expected = NodeBuilder

@@ -81,7 +81,7 @@ public class NodeExistsCommandMongo extends AbstractCommand<Boolean> {
         // FIXME - This used to be FetchNodeByPathQuery but changed to GetNodesCommandMongo to make
         // sure nodes are in a valid commit etc. Check if GetNodesCommandMongo is really needed.
         GetNodesCommandMongo command = new GetNodesCommandMongo(mongoConnection,
-                parentPath, revisionId, -1);
+                parentPath, revisionId);
         command.setBranchId(branchId);
         parentNode = command.execute();
     }

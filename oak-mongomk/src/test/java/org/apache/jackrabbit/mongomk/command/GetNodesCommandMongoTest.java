@@ -37,13 +37,15 @@ public class GetNodesCommandMongoTest extends BaseMongoTest {
         Long secondRevisionId = scenario.update_A_and_add_D_and_E();
 
         GetNodesCommandMongo command = new GetNodesCommandMongo(mongoConnection, "/",
-                firstRevisionId, 0);
+                firstRevisionId);
+        command.setDepth(0);
         Node actual = command.execute();
         Node expected = NodeBuilder.build(String.format("{ \"/#%1$s\" : { \"a\" : {} } }",
                 firstRevisionId));
         NodeAssert.assertDeepEquals(expected, actual);
 
-        command = new GetNodesCommandMongo(mongoConnection, "/", secondRevisionId, 0);
+        command = new GetNodesCommandMongo(mongoConnection, "/", secondRevisionId);
+        command.setDepth(0);
         actual = command.execute();
         expected = NodeBuilder.build(String.format("{ \"/#%1$s\" : { \"a\" : {} } }",
                 firstRevisionId, secondRevisionId));
@@ -56,35 +58,40 @@ public class GetNodesCommandMongoTest extends BaseMongoTest {
         Long firstRevisionId = scenario.create();
         Long secondRevisionId = scenario.update_A_and_add_D_and_E();
 
-        GetNodesCommandMongo command = new GetNodesCommandMongo(mongoConnection, "/", firstRevisionId, 1);
+        GetNodesCommandMongo command = new GetNodesCommandMongo(mongoConnection,
+                "/", firstRevisionId);
+        command.setDepth(1);
         Node actual = command.execute();
         Node expected = NodeBuilder.build(
                 String.format("{ \"/#%1$s\" : { \"a#%1$s\" : { \"int\" : 1 , \"b\" : {} , \"c\" : {} } } }",
                         firstRevisionId));
         NodeAssert.assertDeepEquals(expected, actual);
 
-        command = new GetNodesCommandMongo(mongoConnection, "/", secondRevisionId, 1);
+        command = new GetNodesCommandMongo(mongoConnection, "/", secondRevisionId);
+        command.setDepth(1);
         actual = command.execute();
         expected = NodeBuilder.build(
                 String.format("{ \"/#%1$s\" : { \"a#%2$s\" : { \"int\" : 1 , \"double\" : 0.123, \"b\" : {} , \"c\" : {} , \"d\" : {} } } }",
                         firstRevisionId, secondRevisionId));
         NodeAssert.assertDeepEquals(expected, actual);
 
-        command = new GetNodesCommandMongo(mongoConnection, "/", firstRevisionId, 2);
+        command = new GetNodesCommandMongo(mongoConnection, "/", firstRevisionId);
+        command.setDepth(2);
         actual = command.execute();
         expected = NodeBuilder.build(
                 String.format("{ \"/#%1$s\" : { \"a#%1$s\" : { \"int\" : 1 , \"b#%1$s\" : { \"string\" : \"foo\" } , \"c#%1$s\" : { \"bool\" : true } } } }",
                         firstRevisionId));
         NodeAssert.assertDeepEquals(expected, actual);
 
-        command = new GetNodesCommandMongo(mongoConnection, "/", secondRevisionId, 2);
+        command = new GetNodesCommandMongo(mongoConnection, "/", secondRevisionId);
+        command.setDepth(2);
         actual = command.execute();
         expected = NodeBuilder.build(
                 String.format("{ \"/#%1$s\" : { \"a#%2$s\" : { \"int\" : 1 , \"double\" : 0.123 , \"b#%2$s\" : { \"string\" : \"foo\" , \"e\" : {} } , \"c#%1$s\" : { \"bool\" : true }, \"d#%2$s\" : { \"null\" : null } } } }",
                         firstRevisionId, secondRevisionId));
         NodeAssert.assertDeepEquals(expected, actual);
 
-        command = new GetNodesCommandMongo(mongoConnection, "/", firstRevisionId, -1);
+        command = new GetNodesCommandMongo(mongoConnection, "/", firstRevisionId);
         actual = command.execute();
         expected = NodeBuilder
                 .build(String
@@ -92,7 +99,7 @@ public class GetNodesCommandMongoTest extends BaseMongoTest {
                                 firstRevisionId));
         NodeAssert.assertDeepEquals(expected, actual);
 
-        command = new GetNodesCommandMongo(mongoConnection, "/", secondRevisionId, -1);
+        command = new GetNodesCommandMongo(mongoConnection, "/", secondRevisionId);
         actual = command.execute();
         expected = NodeBuilder
                 .build(String
@@ -107,14 +114,15 @@ public class GetNodesCommandMongoTest extends BaseMongoTest {
         Long firstRevisionId = scenario.create();
         Long secondRevisionId = scenario.update_A_and_add_D_and_E();
 
-        GetNodesCommandMongo command = new GetNodesCommandMongo(mongoConnection, "/", firstRevisionId, -1);
+        GetNodesCommandMongo command = new GetNodesCommandMongo(mongoConnection,
+                "/", firstRevisionId);
         Node actual = command.execute();
         Node expected = NodeBuilder.build(
                 String.format("{ \"/#%1$s\" : { \"a#%1$s\" : { \"int\" : 1 , \"b#%1$s\" : { \"string\" : \"foo\" } , \"c#%1$s\" : { \"bool\" : true } } } }",
                         firstRevisionId));
         NodeAssert.assertDeepEquals(expected, actual);
 
-        command = new GetNodesCommandMongo(mongoConnection, "/", secondRevisionId, -1);
+        command = new GetNodesCommandMongo(mongoConnection, "/", secondRevisionId);
         actual = command.execute();
         expected = NodeBuilder.build(
                 String.format("{ \"/#%1$s\" : { \"a#%2$s\" : { \"int\" : 1 , \"double\" : 0.123 , \"b#%2$s\" : { \"string\" : \"foo\" , \"e#%2$s\" : { \"array\" : [ 123, null, 123.456, \"for:bar\", true ] } } , \"c#%1$s\" : { \"bool\" : true }, \"d#%2$s\" : { \"null\" : null } } } }",
@@ -128,7 +136,8 @@ public class GetNodesCommandMongoTest extends BaseMongoTest {
         Long revisionId = scenario.create();
         revisionId = scenario.delete_A();
 
-        GetNodesCommandMongo command = new GetNodesCommandMongo(mongoConnection, "/", revisionId, -1);
+        GetNodesCommandMongo command = new GetNodesCommandMongo(mongoConnection,
+                "/", revisionId);
         Node actual = command.execute();
         Node expected = NodeBuilder.build(String.format("{ \"/#%1$s\" : {} }", revisionId));
 
@@ -141,7 +150,7 @@ public class GetNodesCommandMongoTest extends BaseMongoTest {
         scenario.create();
 
         GetNodesCommandMongo command = new GetNodesCommandMongo(mongoConnection,
-                "/", Long.MAX_VALUE, -1);
+                "/", Long.MAX_VALUE);
         try {
             command.execute();
             fail("Exception expected");

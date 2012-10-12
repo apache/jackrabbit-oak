@@ -123,8 +123,9 @@ public class NodeStoreMongo implements NodeStore {
     @Override
     public Node getNodes(String path, String revisionId, int depth, long offset,
             int maxChildNodes, String filter) throws Exception {
-        Command<Node> command = new GetNodesCommandMongo(mongoConnection, path,
-                MongoUtil.toMongoRepresentation(revisionId), depth);
+        GetNodesCommandMongo command = new GetNodesCommandMongo(mongoConnection, path,
+                MongoUtil.toMongoRepresentation(revisionId));
+        command.setDepth(depth);
         return commandExecutor.execute(command);
     }
 
@@ -196,7 +197,7 @@ public class NodeStoreMongo implements NodeStore {
                 : MongoUtil.toMongoRepresentation(toRevisionId);
 
         List<CommitMongo> commits = new FetchValidCommitsQuery(mongoConnection,
-                fromRevision, toRevision, 0).execute();
+                fromRevision, toRevision).execute();
 
         CommitMongo toCommit = getCommit(commits, toRevision);
         if (toCommit.getBranchId() != null) {
@@ -245,7 +246,8 @@ public class NodeStoreMongo implements NodeStore {
       maxEntries = maxEntries < 0 ? Integer.MAX_VALUE : maxEntries;
 
       FetchValidCommitsQuery query = new FetchValidCommitsQuery(mongoConnection, 0L,
-              Long.MAX_VALUE, maxEntries);
+              Long.MAX_VALUE);
+      query.setMaxEntries(maxEntries);
       query.includeBranchCommits(false);
 
       List<CommitMongo> history = query.execute();
@@ -308,7 +310,7 @@ public class NodeStoreMongo implements NodeStore {
     private Node getNode(String path, Long revisionId, String branchId) throws Exception {
         // FIXME - Should this use FetchNodesByPath instead?
         GetNodesCommandMongo command = new GetNodesCommandMongo(mongoConnection,
-                path, revisionId, -1);
+                path, revisionId);
         command.setBranchId(branchId);
         return command.execute();
     }

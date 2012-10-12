@@ -209,7 +209,8 @@ public class CommitCommandMongoTest extends BaseMongoTest {
         MongoAssert.assertNodesExist(NodeBuilder.build(String.format(
                 "{ \"/#%1$s\" : { \"a#%1$s\" : {}, \"b#%1$s\" : {} , \"c#%1$s\" : {} } }", revisionId)));
 
-        GetNodesCommandMongo command2 = new GetNodesCommandMongo(mongoConnection, "/", revisionId, 0);
+        GetNodesCommandMongo command2 = new GetNodesCommandMongo(mongoConnection,
+                "/", revisionId);
         Node rootOfPath = command2.execute();
         assertEquals(3, rootOfPath.getChildNodeCount());
     }
