@@ -26,6 +26,9 @@ import javax.jcr.Binary;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
+/**
+ * This {@code Blob} implementations is based on {@link Value}
+ */
 public class ValueBasedBlob extends AbstractBlob {
     private final Value value;
 
@@ -33,12 +36,19 @@ public class ValueBasedBlob extends AbstractBlob {
         this.value = value;
     }
 
+    /**
+     * This implementation return the stream of the underlying {@code Value}.
+     */
     @Nonnull
     @Override
     public InputStream getNewStream() {
         return new ValueBasedInputStream(value);
     }
 
+    /**
+     * This implementation returns the size of the {@link Binary} of the underlying
+     * {@code Value}.
+     */
     @Override
     public long length() {
         try {

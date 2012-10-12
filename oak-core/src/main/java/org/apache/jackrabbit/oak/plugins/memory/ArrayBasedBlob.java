@@ -24,6 +24,9 @@ import java.io.UnsupportedEncodingException;
 
 import javax.annotation.Nonnull;
 
+/**
+ * This {@code Blob} implementations is based on an array of bytes.
+ */
 public class ArrayBasedBlob extends AbstractBlob {
     private final byte[] value;
 
