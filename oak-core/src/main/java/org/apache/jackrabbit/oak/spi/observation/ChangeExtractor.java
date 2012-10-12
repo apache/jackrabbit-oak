@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.api;
+package org.apache.jackrabbit.oak.spi.observation;
 
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
 /**
  * An instance of {@code ChangeExtractor} can be used to follow changes
- * done to a {@link Root} instance.
+ * done to a {@link org.apache.jackrabbit.oak.api.Root} instance.
  */
 public interface ChangeExtractor {
 

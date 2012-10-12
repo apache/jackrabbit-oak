@@ -121,13 +121,6 @@ public interface Root {
     boolean hasPendingChanges();
 
     /**
-     * Return a {@link ChangeExtractor} for this {@code Root}.
-     * @return a {@code ChangeExtractor}.
-     */
-    @Nonnull
-    ChangeExtractor getChangeExtractor();
-
-    /**
      * Get the query engine.
      * 
      * @return the query engine
