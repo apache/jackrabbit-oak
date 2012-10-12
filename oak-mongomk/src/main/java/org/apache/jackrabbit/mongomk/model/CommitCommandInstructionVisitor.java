@@ -31,7 +31,7 @@ import org.apache.jackrabbit.mongomk.api.instruction.Instruction.SetPropertyInst
 import org.apache.jackrabbit.mongomk.api.instruction.InstructionVisitor;
 import org.apache.jackrabbit.mongomk.command.NodeExistsCommandMongo;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
-import org.apache.jackrabbit.mongomk.query.FetchNodesByPathAndDepthQuery;
+import org.apache.jackrabbit.mongomk.query.FetchNodesQuery;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
 public class CommitCommandInstructionVisitor implements InstructionVisitor {
@@ -287,7 +287,7 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
                 return null;
             }
 
-            FetchNodesByPathAndDepthQuery query = new FetchNodesByPathAndDepthQuery(mongoConnection,
+            FetchNodesQuery query = new FetchNodesQuery(mongoConnection,
                     path, headRevisionId);
             query.setBranchId(branchId);
             query.setFetchDescendants(false);

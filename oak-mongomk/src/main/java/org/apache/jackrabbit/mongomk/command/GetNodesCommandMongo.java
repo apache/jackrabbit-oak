@@ -28,7 +28,7 @@ import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.impl.model.NodeImpl;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
 import org.apache.jackrabbit.mongomk.model.NodeMongo;
-import org.apache.jackrabbit.mongomk.query.FetchNodesByPathAndDepthQuery;
+import org.apache.jackrabbit.mongomk.query.FetchNodesQuery;
 import org.apache.jackrabbit.mongomk.query.FetchValidCommitsQuery;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.slf4j.Logger;
@@ -45,7 +45,7 @@ public class GetNodesCommandMongo extends AbstractCommand<Node> {
     private final String path;
 
     private String branchId;
-    private int depth = FetchNodesByPathAndDepthQuery.LIMITLESS_DEPTH;
+    private int depth = FetchNodesQuery.LIMITLESS_DEPTH;
     private Long revisionId;
     private List<CommitMongo> lastCommits;
     private List<NodeMongo> nodeMongos;
@@ -186,7 +186,7 @@ public class GetNodesCommandMongo extends AbstractCommand<Node> {
     }
 
     private void readNodesByPath() {
-        FetchNodesByPathAndDepthQuery query = new FetchNodesByPathAndDepthQuery(mongoConnection,
+        FetchNodesQuery query = new FetchNodesQuery(mongoConnection,
                 path, revisionId);
         query.setBranchId(branchId);
         query.setDepth(depth);

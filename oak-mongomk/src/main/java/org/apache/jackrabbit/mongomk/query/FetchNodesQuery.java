@@ -31,12 +31,12 @@ import com.mongodb.DBObject;
 import com.mongodb.QueryBuilder;
 
 /**
- * A query for fetching nodes by path and depth.
+ * A query for fetching nodes by path, revision and depth.
  */
-public class FetchNodesByPathAndDepthQuery extends AbstractQuery<List<NodeMongo>> {
+public class FetchNodesQuery extends AbstractQuery<List<NodeMongo>> {
 
     public static final int LIMITLESS_DEPTH = -1;
-    private static final Logger LOG = LoggerFactory.getLogger(FetchNodesByPathAndDepthQuery.class);
+    private static final Logger LOG = LoggerFactory.getLogger(FetchNodesQuery.class);
 
     private final String path;
     private final long revisionId;
@@ -52,8 +52,8 @@ public class FetchNodesByPathAndDepthQuery extends AbstractQuery<List<NodeMongo>
      * @param path The path.
      * @param revisionId The revision id.
      */
-    public FetchNodesByPathAndDepthQuery(MongoConnection mongoConnection,
-            String path, long revisionId) {
+    public FetchNodesQuery(MongoConnection mongoConnection, String path,
+            long revisionId) {
         super(mongoConnection);
         this.path = path;
         this.revisionId = revisionId;
@@ -126,8 +126,7 @@ public class FetchNodesByPathAndDepthQuery extends AbstractQuery<List<NodeMongo>
         if (depth < 0) {
             sb.append("^");
             sb.append(path);
-        }
-        if (depth == 0) {
+        } else if (depth == 0) {
             sb.append("^");
             sb.append(path);
             sb.append("$");
@@ -142,8 +141,6 @@ public class FetchNodesByPathAndDepthQuery extends AbstractQuery<List<NodeMongo>
             sb.append("}$");
         }
 
-        Pattern pattern = Pattern.compile(sb.toString());
-
-        return pattern;
+        return Pattern.compile(sb.toString());
     }
 }

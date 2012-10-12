@@ -71,17 +71,14 @@ public class FetchNodesForRevisionQuery extends AbstractQuery<List<NodeMongo>> {
 
     @Override
     public List<NodeMongo> execute() {
+        DBCursor dbCursor = performQuery();
         List<Long> validRevisions = new FetchValidRevisionsQuery(mongoConnection, revisionId).execute();
-        DBCursor dbCursor = retrieveAllNodes();
-        List<NodeMongo> nodes = QueryUtils.getMostRecentValidNodes(dbCursor, validRevisions);
-        return nodes;
+        return QueryUtils.getMostRecentValidNodes(dbCursor, validRevisions);
     }
 
-    private DBCursor retrieveAllNodes() {
-        DBCollection nodeCollection = mongoConnection.getNodeCollection();
+    private DBCursor performQuery() {
         QueryBuilder queryBuilder = QueryBuilder.start(NodeMongo.KEY_PATH).in(paths)
-                .and(NodeMongo.KEY_REVISION_ID)
-                .lessThanEquals(revisionId);
+                .and(NodeMongo.KEY_REVISION_ID).lessThanEquals(revisionId);
 
         if (branchId == null) {
             DBObject query = new BasicDBObject(NodeMongo.KEY_BRANCH_ID, new BasicDBObject("$exists", false));
@@ -93,6 +90,7 @@ public class FetchNodesForRevisionQuery extends AbstractQuery<List<NodeMongo>> {
         DBObject query = queryBuilder.get();
         LOG.debug(String.format("Executing query: %s", query));
 
+        DBCollection nodeCollection = mongoConnection.getNodeCollection();
         return nodeCollection.find(query);
     }
 }
