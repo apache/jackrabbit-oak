@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.value;
+package org.apache.jackrabbit.oak.spi.query;
 
 import java.io.IOException;
 import java.math.BigDecimal;

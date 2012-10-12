@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.api;
 
-import org.apache.jackrabbit.oak.value.PropertyValue;
+import org.apache.jackrabbit.oak.spi.query.PropertyValue;
 
 /**
  * A query result row.

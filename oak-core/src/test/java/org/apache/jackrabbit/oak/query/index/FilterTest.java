@@ -27,8 +27,8 @@ import java.util.Random;
 
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.spi.query.Filter;
-import org.apache.jackrabbit.oak.value.PropertyValue;
-import org.apache.jackrabbit.oak.value.PropertyValues;
+import org.apache.jackrabbit.oak.spi.query.PropertyValue;
+import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.junit.Test;
 
 /**
