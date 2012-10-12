@@ -42,16 +42,6 @@ public class FetchNodeByPathQuery extends AbstractQuery<NodeMongo> {
     private boolean fetchAllProperties;
 
     /**
-     * Constructs a new {@code FetchNodeByPathQuery} with path and zero revision id.
-     *
-     * @param mongoConnection The {@link MongoConnection}.
-     * @param path The path.
-     */
-    public FetchNodeByPathQuery(MongoConnection mongoConnection, String path) {
-        this(mongoConnection, path, 0);
-    }
-
-    /**
      * Constructs a new {@code FetchNodeByPathQuery} with path and revision id.
      *
      * @param mongoConnection The {@link MongoConnection}.
@@ -99,9 +89,9 @@ public class FetchNodeByPathQuery extends AbstractQuery<NodeMongo> {
 
         DBObject filter = null;
         if (!fetchAllProperties) {
-            QueryBuilder filterBuilder = QueryBuilder.start(NodeMongo.KEY_REVISION_ID).is(1);
-            filterBuilder.and(NodeMongo.KEY_CHILDREN).is(1);
-            filter = filterBuilder.get();
+            filter = QueryBuilder.start(NodeMongo.KEY_PATH).is(1)
+                    .and(NodeMongo.KEY_REVISION_ID).is(1)
+                    .and(NodeMongo.KEY_CHILDREN).is(1).get();
         }
 
         DBCollection nodeCollection = mongoConnection.getNodeCollection();
