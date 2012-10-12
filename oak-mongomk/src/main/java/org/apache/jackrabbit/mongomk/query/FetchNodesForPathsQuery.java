@@ -31,17 +31,14 @@ import com.mongodb.DBObject;
 import com.mongodb.QueryBuilder;
 
 /**
- * FIXME - This should either merge or at least share a base class with
- * {@code FetchNodesByPathAndDepthQuery}
- *
- * An query for fetching nodes for a specific revision.
+ * A query for fetching nodes under certain paths.
  */
-public class FetchNodesForRevisionQuery extends AbstractQuery<List<NodeMongo>> {
+public class FetchNodesForPathsQuery extends AbstractQuery<List<NodeMongo>> {
 
-    private static final Logger LOG = LoggerFactory.getLogger(FetchNodesForRevisionQuery.class);
+    private static final Logger LOG = LoggerFactory.getLogger(FetchNodesForPathsQuery.class);
 
     private final Set<String> paths;
-    private final Long revisionId;
+    private final long revisionId;
 
     private String branchId;
 
@@ -53,8 +50,8 @@ public class FetchNodesForRevisionQuery extends AbstractQuery<List<NodeMongo>> {
      * @param revisionId The revision id.
      * @param branchId
      */
-    public FetchNodesForRevisionQuery(MongoConnection mongoConnection,
-            Set<String> paths, Long revisionId) {
+    public FetchNodesForPathsQuery(MongoConnection mongoConnection,
+            Set<String> paths, long revisionId) {
         super(mongoConnection);
         this.paths = paths;
         this.revisionId = revisionId;

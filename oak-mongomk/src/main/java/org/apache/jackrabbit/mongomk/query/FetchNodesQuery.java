@@ -31,7 +31,10 @@ import com.mongodb.DBObject;
 import com.mongodb.QueryBuilder;
 
 /**
- * A query for fetching nodes by path, revision and depth.
+ * A query for fetching node and its descendants (if fetchDescendants is enabled)
+ * under a single path and less than or equal to revision id. Optional branch id
+ * can be used to limit the nodes under a certain branch and optional depth can
+ * be used to limit the depth of returned nodes (when fetchDescendants is enabled).
  */
 public class FetchNodesQuery extends AbstractQuery<List<NodeMongo>> {
 
@@ -69,7 +72,7 @@ public class FetchNodesQuery extends AbstractQuery<List<NodeMongo>> {
     }
 
     /**
-     * Sets the depth for the command.
+     * Sets the depth for the command. Only used when fetchDescendants is enabled.
      *
      * @param depth The depth for the command or -1 for limitless depth.
      */

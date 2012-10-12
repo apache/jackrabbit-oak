@@ -31,7 +31,7 @@ import org.apache.jackrabbit.mongomk.model.CommitMongo;
 import org.apache.jackrabbit.mongomk.model.HeadMongo;
 import org.apache.jackrabbit.mongomk.model.NodeMongo;
 import org.apache.jackrabbit.mongomk.query.FetchCommitQuery;
-import org.apache.jackrabbit.mongomk.query.FetchNodesForRevisionQuery;
+import org.apache.jackrabbit.mongomk.query.FetchNodesForPathsQuery;
 import org.apache.jackrabbit.mongomk.query.ReadAndIncHeadRevisionQuery;
 import org.apache.jackrabbit.mongomk.query.SaveAndSetHeadRevisionQuery;
 import org.apache.jackrabbit.mongomk.query.SaveCommitQuery;
@@ -299,7 +299,7 @@ public class CommitCommandMongo extends AbstractCommand<Long> {
             paths.add(nodeMongo.getPath());
         }
 
-        FetchNodesForRevisionQuery query = new FetchNodesForRevisionQuery(mongoConnection,
+        FetchNodesForPathsQuery query = new FetchNodesForPathsQuery(mongoConnection,
                 paths, headMongo.getHeadRevisionId());
         query.setBranchId(branchId);
         existingNodes = query.execute();
