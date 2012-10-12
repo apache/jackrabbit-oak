@@ -45,14 +45,11 @@ import java.util.Properties;
         description = "%oak.mongomk.description",
         policy = ConfigurationPolicy.REQUIRE
 )
-public class MongoMicroKernalService {
+public class MongoMicroKernelService {
 
     private static final String DEFAULT_HOST = "localhost";
-
     private static final int DEFAULT_PORT= 27017;
-
     private static final String DEFAULT_DB = "oak";
-
 
     @Property(value = DEFAULT_HOST)
     private static final String PROP_HOST = "host";
@@ -66,7 +63,6 @@ public class MongoMicroKernalService {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     private ServiceRegistration reg;
-
     private MongoConnection connection;
 
     @Activate
@@ -75,14 +71,16 @@ public class MongoMicroKernalService {
         int port = PropertiesUtil.toInteger(config.get(PROP_PORT), DEFAULT_PORT);
         String db = PropertiesUtil.toString(config.get(PROP_DB), DEFAULT_DB);
 
-        logger.info("Starting MongoDB MicroKernal with host={}, port={}, db={}",
+        logger.info("Starting MongoDB MicroKernel with host={}, port={}, db={}",
                 new Object[] {host, port, db});
-        connection = new MongoConnection(host,port,db);
+        connection = new MongoConnection(host, port, db);
 
         MongoUtil.bootstrap(connection);
         logger.info("Connected to database {}", connection.getDB());
 
-        MongoMicroKernel mk = new MongoMicroKernel( new NodeStoreMongo(connection),new BlobStoreMongo(connection));
+        NodeStoreMongo nodeStore = new NodeStoreMongo(connection);
+        BlobStoreMongo blobStore = new BlobStoreMongo(connection);
+        MongoMicroKernel mk = new MongoMicroKernel(nodeStore, blobStore);
 
         Properties props = new Properties();
         props.setProperty("oak.mk.type","mongo");
@@ -90,14 +88,13 @@ public class MongoMicroKernalService {
     }
 
     @Deactivate
-    private void deactivate(){
-        if(reg != null){
+    private void deactivate() {
+        if (reg != null){
             reg.unregister();
         }
 
-        if(connection != null){
+        if (connection != null){
             connection.close();
         }
     }
-
 }
