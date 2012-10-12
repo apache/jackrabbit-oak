@@ -77,7 +77,7 @@ class TokenAuthentication implements Authentication {
 
         tokenInfo = tokenProvider.getTokenInfo(token);
         if (tokenInfo == null) {
-            log.debug("Invalid token credentials");
+            log.debug("No valid TokenInfo for token.");
             return false;
         }
 
