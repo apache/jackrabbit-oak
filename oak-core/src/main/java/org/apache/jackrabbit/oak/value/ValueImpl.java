@@ -39,6 +39,8 @@ import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 /**
  * ValueImpl...
  */
@@ -52,13 +54,19 @@ public class ValueImpl implements Value {
     private InputStream stream = null;
 
     ValueImpl(PropertyState propertyState, int index, NamePathMapper namePathMapper) {
+        checkArgument(index < propertyState.count());
         this.propertyState = propertyState;
         this.index = index;
         this.namePathMapper = namePathMapper;
     }
 
     ValueImpl(PropertyState property, NamePathMapper namePathMapper) {
-        this(property, 0, namePathMapper);
+        this(checkSingleValued(property), 0, namePathMapper);
+    }
+
+    private static PropertyState checkSingleValued(PropertyState property) {
+        checkArgument(!property.isArray());
+        return property;
     }
 
     //--------------------------------------------------------------< Value >---
