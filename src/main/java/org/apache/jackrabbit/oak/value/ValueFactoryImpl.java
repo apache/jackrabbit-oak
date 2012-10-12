@@ -34,7 +34,8 @@ import javax.jcr.ValueFactory;
 import javax.jcr.ValueFormatException;
 
 import com.google.common.collect.Lists;
-import com.google.common.io.ByteStreams;
+import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
@@ -50,6 +51,7 @@ import org.slf4j.LoggerFactory;
 public class ValueFactoryImpl implements ValueFactory {
     private static final Logger log = LoggerFactory.getLogger(ValueFactoryImpl.class);
 
+    private final ContentSession contentSession;
     private final NamePathMapper namePathMapper;
 
     /**
@@ -58,7 +60,8 @@ public class ValueFactoryImpl implements ValueFactory {
      * @param namePathMapper The name/path mapping used for converting JCR names/paths to
      * the internal representation.
      */
-    public ValueFactoryImpl(NamePathMapper namePathMapper) {
+    public ValueFactoryImpl(ContentSession session, NamePathMapper namePathMapper) {
+        this.contentSession = session;
         this.namePathMapper = namePathMapper;
     }
 
@@ -99,11 +102,7 @@ public class ValueFactoryImpl implements ValueFactory {
     @Override
     public Value createValue(InputStream value) {
         try {
-            try {
-                return createValueImpl(value);
-            } finally {
-                value.close();
-            }
+            return createValueImpl(value);
         } catch (IOException e) {
             return new ErrorValue(e, PropertyType.BINARY);
         }
@@ -112,7 +111,14 @@ public class ValueFactoryImpl implements ValueFactory {
     @Override
     public Value createValue(Binary value) {
         try {
-            return createValueImpl(value.getStream());
+            ValueImpl binaryValue = null;
+            if (value instanceof BinaryImpl) {
+                binaryValue = ((BinaryImpl) value).getBinaryValue();
+            }
+            // No need to create the value again if we have it already underlying the binary
+            return binaryValue == null
+                ? createValueImpl(value.getStream())
+                : binaryValue;
         } catch (RepositoryException e) {
             return new ErrorValue(e, PropertyType.BINARY);
         } catch (IOException e) {
@@ -248,12 +254,8 @@ public class ValueFactoryImpl implements ValueFactory {
     }
 
     private ValueImpl createValueImpl(InputStream value) throws IOException {
-        try {
-            // TODO add streaming capability to ContentSession via KernelBasedBlob
-            return new ValueImpl(PropertyStates.binaryProperty("", ByteStreams.toByteArray(value)), namePathMapper);
-        } finally {
-            value.close();
-        }
+        Blob blob = contentSession.createBlob(value);
+        return new ValueImpl(PropertyStates.binaryProperty("", blob), namePathMapper);
     }
 
     //------------------------------------------------------------< ErrorValue >---

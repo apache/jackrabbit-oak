@@ -36,6 +36,10 @@ class BinaryImpl implements Binary {
         this.value = value;
     }
 
+    ValueImpl getBinaryValue() {
+        return value.getType() == PropertyType.BINARY ? value : null;
+    }
+
     //-------------------------------------------------------------< Binary >---
     @Override
     public InputStream getStream() throws RepositoryException {
