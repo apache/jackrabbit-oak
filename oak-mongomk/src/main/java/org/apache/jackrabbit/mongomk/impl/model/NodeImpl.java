@@ -190,7 +190,9 @@ public class NodeImpl implements Node {
             if (newChild == null) {
                 handler.childNodeDeleted(new ChildNodeEntry(child.getName(), null));
             } else {
-                if (child.getRevisionId() != newChild.getRevisionId()) {
+                // FIXME - Not so sure if this comparison is correct.
+                //if (child.getRevisionId() != newChild.getRevisionId()) {
+                if (!child.equals(newChild)) {
                     handler.childNodeChanged(new ChildNodeEntry(child.getName(), null),
                             null /*newId*/);
                 }
