@@ -84,9 +84,9 @@ public class NodeStoreMongo implements NodeStore {
             throw new IllegalArgumentException("depth");
         }
 
-        Long fromRevisionId, toRevisionId;
+        long fromRevisionId, toRevisionId;
         if (fromRevision == null || toRevision == null) {
-            Long head = new FetchHeadRevisionIdQuery(mongoConnection).execute();
+            long head = getHeadRevision(true);
             fromRevisionId = fromRevision == null? head : MongoUtil.toMongoRepresentation(fromRevision);
             toRevisionId = toRevision == null ? head : MongoUtil.toMongoRepresentation(toRevision);;
         } else {
@@ -94,7 +94,7 @@ public class NodeStoreMongo implements NodeStore {
             toRevisionId = MongoUtil.toMongoRepresentation(toRevision);;
         }
 
-        if (fromRevisionId.equals(toRevisionId)) {
+        if (fromRevisionId == toRevisionId) {
             return "";
         }
 
@@ -139,19 +139,17 @@ public class NodeStoreMongo implements NodeStore {
             throw new Exception("Can only merge a private branch commit");
         }
 
-        Long rootNodeId = commit.getRevisionId();
-        Long currentHead =  new FetchHeadRevisionIdQuery(mongoConnection).execute();
+        long rootNodeId = commit.getRevisionId();
+        long currentHead =  getHeadRevision(false);
 
         Node ourRoot = getNode("/", rootNodeId, branchId);
 
         // FIXME - branchRootId might need to be real branch root it, rather
         // than base revision id.
-        Long branchRootId = commit.getBaseRevId();
+        long branchRootId = commit.getBaseRevId();
 
         // Merge nodes from head to branch.
         ourRoot = mergeNodes(ourRoot, currentHead, branchRootId);
-
-        // FIXME - Handle the case when there are no changes.
 
         String diff = new DiffBuilder(wrap(getNode("/", currentHead)),
                 wrap(ourRoot), "/", -1,
@@ -186,14 +184,15 @@ public class NodeStoreMongo implements NodeStore {
     }
 
     @Override
-    public String getJournal(String fromRevisionId, String toRevisionId, String path) {
+    public String getJournal(String fromRevisionId, String toRevisionId, String path)
+            throws Exception {
         path = (path == null || "".equals(path)) ? "/" : path;
         boolean filtered = !"/".equals(path);
 
         // FIXME There's more work here.
 
-        Long fromRevision = MongoUtil.toMongoRepresentation(fromRevisionId);
-        Long toRevision = toRevisionId == null? new FetchHeadRevisionIdQuery(mongoConnection).execute()
+        long fromRevision = MongoUtil.toMongoRepresentation(fromRevisionId);
+        long toRevision = toRevisionId == null? getHeadRevision(true)
                 : MongoUtil.toMongoRepresentation(toRevisionId);
 
         List<CommitMongo> commits = new FetchCommitsQuery(mongoConnection,
@@ -270,9 +269,9 @@ public class NodeStoreMongo implements NodeStore {
     }
 
     @Override
-    public String waitForCommit(String oldHeadRevisionId, long timeout) throws InterruptedException {
+    public String waitForCommit(String oldHeadRevisionId, long timeout) throws Exception {
         long startTimestamp = System.currentTimeMillis();
-        long initialHeadRevisionId = new FetchHeadRevisionIdQuery(mongoConnection).execute();
+        long initialHeadRevisionId = getHeadRevision(true);
 
         if (timeout <= 0) {
             return MongoUtil.fromMongoRepresentation(initialHeadRevisionId);
@@ -285,7 +284,7 @@ public class NodeStoreMongo implements NodeStore {
 
         long waitForCommitPollMillis = Math.min(WAIT_FOR_COMMIT_POLL_MILLIS, timeout);
         while (true) {
-            long headRevisionId = new FetchHeadRevisionIdQuery(mongoConnection).execute();
+            long headRevisionId = getHeadRevision(true);
             long now = System.currentTimeMillis();
             if (headRevisionId != initialHeadRevisionId || now - startTimestamp >= timeout) {
                 return MongoUtil.fromMongoRepresentation(headRevisionId);
@@ -301,6 +300,12 @@ public class NodeStoreMongo implements NodeStore {
             }
         }
         return null;
+    }
+
+    private long getHeadRevision(boolean includeBranchCommits) throws Exception {
+        FetchHeadRevisionIdQuery query = new FetchHeadRevisionIdQuery(mongoConnection);
+        query.includeBranchCommits(includeBranchCommits);
+        return query.execute();
     }
 
     private Node getNode(String path, Long revisionId) throws Exception {

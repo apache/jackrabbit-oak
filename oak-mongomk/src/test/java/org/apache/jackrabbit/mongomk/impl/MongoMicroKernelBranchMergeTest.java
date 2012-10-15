@@ -1,5 +1,6 @@
 package org.apache.jackrabbit.mongomk.impl;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -91,6 +92,21 @@ public class MongoMicroKernelBranchMergeTest extends BaseMongoMicroKernelTest {
         assertTrue(mk.nodeExists("/branch1/child1", null));
         assertTrue(mk.nodeExists("/branch2", null));
         assertTrue(mk.nodeExists("/branch2/child2", null));
+    }
+
+    @Test
+    public void emptyMergeCausesNoChange() {
+        String rev1 = mk.commit("", "+\"/child1\":{}", null, "");
+
+        String branchRev = mk.branch(null);
+        branchRev = mk.commit("", "+\"/child2\":{}", branchRev, "");
+        branchRev = mk.commit("", "-\"/child2\"", branchRev, "");
+
+        String rev2 = mk.merge(branchRev, "");
+
+        assertTrue(mk.nodeExists("/child1", null));
+        assertFalse(mk.nodeExists("/child2", null));
+        assertEquals(rev1, rev2);
     }
 
     // FIXME - Add more complicated branch/merge tests with properties, conflicts etc.

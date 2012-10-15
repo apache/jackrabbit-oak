@@ -61,7 +61,8 @@ public interface NodeStore {
      * @return JSON diff representation of the changes
      * @throws MicroKernelException if any of the specified revisions doesn't exist or if another error occurs
      */
-    String diff(String fromRevisionId, String toRevisionId, String path, int depth) throws Exception;
+    String diff(String fromRevisionId, String toRevisionId, String path, int depth)
+            throws Exception;
 
     /**
      * @see MicroKernel#getHeadRevision()
@@ -80,8 +81,10 @@ public interface NodeStore {
      * @param path optional path filter; if {@code null} or {@code ""}
      * the default ({@code "/"}) will be assumed, i.e. no filter will be applied
      * @return a chronological list of revisions in JSON format
+     * @throws Exception if an error occurred while getting the journal.
      */
-    String getJournal(String fromRevisionId, String toRevisionId, String path);
+    String getJournal(String fromRevisionId, String toRevisionId, String path)
+            throws Exception;
 
     /**
      * @see MicroKernel#getRevisionHistory(long, int, String)
@@ -136,7 +139,7 @@ public interface NodeStore {
      * @param oldHeadRevisionId id of earlier head revision
      * @param timeout the maximum time to wait in milliseconds
      * @return the id of the head revision
-     * @throws InterruptedException if the thread was interrupted
+     * @throws Exception if an error occurred while waiting.
      */
-    String waitForCommit(String oldHeadRevisionId, long timeout) throws InterruptedException;
+    String waitForCommit(String oldHeadRevisionId, long timeout) throws Exception;
 }

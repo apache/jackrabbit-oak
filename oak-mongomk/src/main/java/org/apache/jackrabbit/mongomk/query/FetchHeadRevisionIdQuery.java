@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.mongomk.query;
 
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
+import org.apache.jackrabbit.mongomk.model.CommitMongo;
 import org.apache.jackrabbit.mongomk.model.HeadMongo;
 
 import com.mongodb.DBCollection;
@@ -27,6 +28,8 @@ import com.mongodb.DBCollection;
  */
 public class FetchHeadRevisionIdQuery extends AbstractQuery<Long> {
 
+    private boolean includeBranchCommits = true;
+
     /**
      * Constructs a new {@code FetchHeadRevisionQuery}.
      *
@@ -36,10 +39,33 @@ public class FetchHeadRevisionIdQuery extends AbstractQuery<Long> {
         super(mongoConnection);
     }
 
+    /**
+     * Sets whether the branch commits are included in the query.
+     *
+     * @param includeBranchCommits Whether the branch commits are included.
+     */
+    public void includeBranchCommits(boolean includeBranchCommits) {
+        this.includeBranchCommits = includeBranchCommits;
+    }
+
     @Override
-    public Long execute() {
+    public Long execute() throws Exception {
         DBCollection headCollection = mongoConnection.getHeadCollection();
         HeadMongo headMongo = (HeadMongo)headCollection.findOne();
-        return headMongo.getHeadRevisionId();
+        long headRevisionId = headMongo.getHeadRevisionId();
+        if (includeBranchCommits) {
+            return headRevisionId;
+        }
+
+        // Otherwise, find the first revision id that's not part of a branch.
+        long revisionId = headRevisionId;
+        while (true) {
+            FetchCommitQuery query = new FetchCommitQuery(mongoConnection, revisionId);
+            CommitMongo commitMongo = query.execute();
+            if (commitMongo.getBranchId() == null) {
+                return revisionId;
+            }
+            revisionId = commitMongo.getBaseRevId();
+        }
     }
 }

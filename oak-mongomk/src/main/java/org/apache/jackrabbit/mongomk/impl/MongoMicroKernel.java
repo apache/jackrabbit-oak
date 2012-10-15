@@ -127,7 +127,11 @@ public class MongoMicroKernel implements MicroKernel {
     @Override
     public String getJournal(String fromRevisionId, String toRevisionId,
             String path) throws MicroKernelException {
-        return nodeStore.getJournal(fromRevisionId, toRevisionId, path);
+        try {
+            return nodeStore.getJournal(fromRevisionId, toRevisionId, path);
+        } catch (Exception e) {
+            throw new MicroKernelException(e);
+        }
     }
 
     @Override
@@ -211,7 +215,11 @@ public class MongoMicroKernel implements MicroKernel {
     @Override
     public String waitForCommit(String oldHeadRevisionId, long timeout) throws MicroKernelException,
             InterruptedException {
-        return nodeStore.waitForCommit(oldHeadRevisionId, timeout);
+        try {
+            return nodeStore.waitForCommit(oldHeadRevisionId, timeout);
+        } catch (Exception e) {
+            throw new MicroKernelException(e);
+        }
     }
 
     @Override

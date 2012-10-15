@@ -22,7 +22,6 @@ import com.mongodb.DBObject;
 /**
  * The {@code MongoDB} representation of the head revision.
  */
-@SuppressWarnings("javadoc")
 public class HeadMongo extends BasicDBObject {
 
     public static final String KEY_HEAD_REVISION_ID = "headRevId";
