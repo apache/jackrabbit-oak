@@ -28,9 +28,7 @@ import org.apache.jackrabbit.mongomk.impl.builder.NodeBuilder;
 import org.apache.jackrabbit.mongomk.impl.model.CommitBuilder;
 import org.apache.jackrabbit.mongomk.scenario.SimpleNodeScenario;
 import org.apache.jackrabbit.mongomk.util.MongoUtil;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class CommitCommandMongoTest extends BaseMongoTest {
@@ -141,28 +139,6 @@ public class CommitCommandMongoTest extends BaseMongoTest {
 
         MongoAssert.assertCommitExists(commit);
         MongoAssert.assertCommitContainsAffectedPaths(commit.getRevisionId(), "/", "/a", "/a/b", "/a/c");
-    }
-
-    @Test
-    @Ignore
-    // FIXME - This currently fails due to some limit in property sizes in Mongo
-    // which affects path property.
-    public void bigCommit() throws Exception {
-        String path = "/";
-        String baseNodeName = "test";
-        int numberOfCommits = 1000;
-
-        for (int i = 0; i < numberOfCommits; i++) {
-            Commit commit = CommitBuilder.build(path, "+\"" + baseNodeName + i + "\" : {}",
-                    "Add node n" + i);
-            CommitCommandMongo command = new CommitCommandMongo(
-                    mongoConnection, commit);
-            command.execute();
-            if (!PathUtils.denotesRoot(path)) {
-                path += "/";
-            }
-            path += baseNodeName + i;
-        }
     }
 
     @Test

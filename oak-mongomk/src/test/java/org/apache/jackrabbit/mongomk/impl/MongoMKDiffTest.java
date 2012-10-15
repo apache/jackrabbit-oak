@@ -11,7 +11,7 @@ import org.junit.Test;
 /**
  * Tests for MicroKernel#diff
  */
-public class MongoMicroKernelDiffTest extends BaseMongoMicroKernelTest {
+public class MongoMKDiffTest extends BaseMongoMicroKernelTest {
 
     @Test
     public void addPathOneLevel() {
