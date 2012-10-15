@@ -41,8 +41,8 @@ import org.apache.jackrabbit.mongomk.impl.model.tree.MongoNodeState;
 import org.apache.jackrabbit.mongomk.impl.model.tree.MongoNodeStore;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
 import org.apache.jackrabbit.mongomk.query.FetchCommitQuery;
-import org.apache.jackrabbit.mongomk.query.FetchHeadRevisionIdQuery;
 import org.apache.jackrabbit.mongomk.query.FetchCommitsQuery;
+import org.apache.jackrabbit.mongomk.query.FetchHeadRevisionIdQuery;
 import org.apache.jackrabbit.mongomk.util.MongoUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -308,7 +308,6 @@ public class NodeStoreMongo implements NodeStore {
     }
 
     private Node getNode(String path, Long revisionId, String branchId) throws Exception {
-        // FIXME - Should this use FetchNodesByPath instead?
         GetNodesCommandMongo command = new GetNodesCommandMongo(mongoConnection,
                 path, revisionId);
         command.setBranchId(branchId);
@@ -346,13 +345,12 @@ public class NodeStoreMongo implements NodeStore {
 
         for (Map.Entry<String, NodeState> entry : ourChanges.getAddedChildNodes().entrySet()) {
             MongoNodeState nodeState = (MongoNodeState)entry.getValue();
-            stagedNode.addChild(nodeState.unwrap());
+            stagedNode.addChildNodeEntry(nodeState.unwrap());
             //stagedNode.addChild(new NodeImpl(entry.getKey()));
         }
         for (Map.Entry<String, Id> entry : ourChanges.getChangedChildNodes().entrySet()) {
-            stagedNode.addChild(new NodeImpl(entry.getKey()));
+            stagedNode.addChildNodeEntry(new NodeImpl(entry.getKey()));
         }
-        // FIXME
 //        for (String name : ourChanges.getRemovedChildNodes().keySet()) {
 //            stagedNode.remove(name);
 //        }

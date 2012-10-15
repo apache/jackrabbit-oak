@@ -33,10 +33,10 @@ public class NodeBuilderTest {
         NodeImpl node_c = new NodeImpl("/a/c");
         NodeImpl node_b = new NodeImpl("/a/b");
         NodeImpl node_a = new NodeImpl("/a");
-        node_a.addChild(node_b);
-        node_a.addChild(node_c);
+        node_a.addChildNodeEntry(node_b);
+        node_a.addChildNodeEntry(node_c);
         NodeImpl node_root = new NodeImpl("/");
-        node_root.addChild(node_a);
+        node_root.addChildNodeEntry(node_a);
 
         NodeAssert.assertDeepEquals(node, node_root);
     }
@@ -53,12 +53,12 @@ public class NodeBuilderTest {
         node_b.setRevisionId(2L);
 
         NodeImpl node_a = new NodeImpl("/a");
-        node_a.addChild(node_b);
-        node_a.addChild(node_c);
+        node_a.addChildNodeEntry(node_b);
+        node_a.addChildNodeEntry(node_c);
         node_a.setRevisionId(1L);
 
         NodeImpl node_root = new NodeImpl("/");
-        node_root.addChild(node_a);
+        node_root.addChildNodeEntry(node_a);
         node_root.setRevisionId(1L);
 
         NodeAssert.assertDeepEquals(node, node_root);

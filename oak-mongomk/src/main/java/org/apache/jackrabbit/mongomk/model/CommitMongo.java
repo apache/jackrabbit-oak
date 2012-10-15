@@ -30,8 +30,6 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import com.mongodb.BasicDBObject;
 
 /**
- * FIXME - Should look into merging this and {@code CommitImpl}
- *
  * The {@code MongoDB} representation of a commit.
  */
 public class CommitMongo extends BasicDBObject {

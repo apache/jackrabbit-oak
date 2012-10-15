@@ -133,7 +133,7 @@ public class GetNodesCommandMongo extends AbstractCommand<Node> {
             NodeMongo nodeMongoChild = pathAndNodeMap.get(child.getPath());
             if (nodeMongoChild != null) {
                 NodeImpl nodeChild = buildNodeStructure(nodeMongoChild);
-                node.addChild(nodeChild);
+                node.addChildNodeEntry(nodeChild);
             }
         }
 

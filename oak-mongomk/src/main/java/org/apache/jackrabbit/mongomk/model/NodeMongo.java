@@ -74,7 +74,7 @@ public class NodeMongo extends BasicDBObject {
             for (String childName : childNames) {
                 String childPath = PathUtils.concat(path, childName);
                 NodeImpl child = new NodeImpl(childPath);
-                nodeImpl.addChild(child);
+                nodeImpl.addChildNodeEntry(child);
             }
         }
 

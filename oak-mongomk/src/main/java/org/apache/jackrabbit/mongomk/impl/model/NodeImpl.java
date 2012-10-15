@@ -30,8 +30,6 @@ import org.apache.jackrabbit.mongomk.api.model.Node;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
 /**
- * FIXME - It'd be nice if this class is somewhat consolidated with Oak's AbstractNode.
- *
  * Implementation of {@link Node}.
  */
 public class NodeImpl implements Node {
@@ -59,12 +57,9 @@ public class NodeImpl implements Node {
      *
      * @param child The {@code node} to add.
      */
-    public void addChild(Node child) {
+    public void addChildNodeEntry(Node child) {
         childEntries.put(child.getName(), child);
     }
-
-    // FIXME - Need to decide whether the next three methods should return
-    // children or descendants.
 
     @Override
     public Node getChildNodeEntry(String name) {

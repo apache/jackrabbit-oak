@@ -106,7 +106,7 @@ public class NodeBuilder {
                 String childPath = PathUtils.concat(realPath, key);
 
                 Node childNode = parseNode(childPath, (JSONObject) value);
-                node.addChild(childNode);
+                node.addChildNodeEntry(childNode);
             } else {
                 if (properties == null) {
                     properties = new HashMap<String, Object>();
