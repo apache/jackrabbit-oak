@@ -93,7 +93,8 @@ public class RandomJsopGenerator {
         this.path = path;
         String all = String.format("{ \"%s\" : %s }", PathUtils.getName(path), json);
         Node node = NodeBuilder.build(all, path);
-        this.descendants = node.getDescendants(false).toArray(new Node[0]);
+        // FIXME - This needs to change to node.getChildNodeEntries(0, -1).
+        //this.descendants = node.getDescendants(false).toArray(new Node[0]);
         this.random = new Random();
     }
 
