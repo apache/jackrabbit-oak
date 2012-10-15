@@ -18,7 +18,6 @@ package org.apache.jackrabbit.mongomk.query;
 
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 
 import org.apache.jackrabbit.mongomk.BaseMongoTest;
 import org.apache.jackrabbit.mongomk.api.model.Commit;

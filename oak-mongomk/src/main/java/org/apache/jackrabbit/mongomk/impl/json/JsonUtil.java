@@ -24,6 +24,7 @@ import java.util.Map;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.mk.util.NodeFilter;
 import org.apache.jackrabbit.mongomk.api.model.Node;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -105,7 +106,8 @@ public class JsonUtil {
             if (maxChildNodes != -1 && ++numSiblings > maxChildNodes) {
                 break;
             }
-            builder.key(child.getName());
+            String childName = PathUtils.getName(child.getPath());
+            builder.key(childName);
             if ((depth == -1) || (currentDepth < depth)) {
                 toJson(builder, child, depth, currentDepth + 1, offset, maxChildNodes,
                         inclVirtualProps, filter);

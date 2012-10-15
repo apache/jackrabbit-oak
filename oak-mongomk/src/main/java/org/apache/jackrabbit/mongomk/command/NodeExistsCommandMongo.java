@@ -91,7 +91,8 @@ public class NodeExistsCommandMongo extends AbstractCommand<Boolean> {
 
         for (Iterator<Node> it = parentNode.getChildNodeEntries(0, -1); it.hasNext(); ) {
             Node child = it.next();
-            if (child.getName().equals(PathUtils.getName(path))) {
+            String childName = PathUtils.getName(child.getPath());
+            if (childName.equals(PathUtils.getName(path))) {
                 return true;
             }
         }

@@ -31,6 +31,7 @@ import org.apache.jackrabbit.mongomk.api.model.Commit;
 import org.apache.jackrabbit.mongomk.api.model.Node;
 import org.apache.jackrabbit.mongomk.impl.command.CommandExecutorImpl;
 import org.apache.jackrabbit.mongomk.impl.model.CommitBuilder;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -113,7 +114,8 @@ public class ConcurrentCommitCommandMongoTest extends BaseMongoTest {
                 boolean contained = false;
                 for (Iterator<Node> it = root.getChildNodeEntries(0, -1); it.hasNext(); ) {
                     Node childNode = it.next();
-                    if (childNode.getName().equals(lastChild)) {
+                    String childName = PathUtils.getName(childNode.getPath());
+                    if (childName.equals(lastChild)) {
                         contained = true;
                         break;
                     }
@@ -123,7 +125,8 @@ public class ConcurrentCommitCommandMongoTest extends BaseMongoTest {
             lastChildren.clear();
             for (Iterator<Node> it = root.getChildNodeEntries(0, -1); it.hasNext(); ) {
                 Node childNode = it.next();
-                lastChildren.add(childNode.getName());
+                String childName = PathUtils.getName(childNode.getPath());
+                lastChildren.add(childName);
             }
         }
 

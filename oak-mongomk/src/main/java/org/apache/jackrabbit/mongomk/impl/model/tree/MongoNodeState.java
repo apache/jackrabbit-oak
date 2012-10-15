@@ -11,6 +11,7 @@ import org.apache.jackrabbit.mk.model.tree.ChildNode;
 import org.apache.jackrabbit.mk.model.tree.NodeState;
 import org.apache.jackrabbit.mk.model.tree.PropertyState;
 import org.apache.jackrabbit.mongomk.api.model.Node;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 
 /**
  * This dummy NodeStore implementation is needed in order to be able to reuse
@@ -104,7 +105,7 @@ public class MongoNodeState extends AbstractNodeState {
         return new AbstractChildNode() {
             @Override
             public String getName() {
-                return entry.getName();
+                return PathUtils.getName(entry.getPath());
             }
             @Override
             public NodeState getNode() {

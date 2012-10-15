@@ -28,6 +28,7 @@ import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
 import org.apache.jackrabbit.mongomk.model.HeadMongo;
 import org.apache.jackrabbit.mongomk.model.NodeMongo;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.junit.Assert;
 
 import com.mongodb.DBCollection;
@@ -112,7 +113,8 @@ public class MongoAssert {
         for (Iterator<Node> it = expected.getChildNodeEntries(0, -1); it.hasNext(); ) {
             Node childNode = it.next();
             assertNodesExist(childNode);
-            Assert.assertTrue(nodeMongoChildren.contains(childNode.getName()));
+            String childName = PathUtils.getName(childNode.getPath());
+            Assert.assertTrue(nodeMongoChildren.contains(childName));
         }
     }
 

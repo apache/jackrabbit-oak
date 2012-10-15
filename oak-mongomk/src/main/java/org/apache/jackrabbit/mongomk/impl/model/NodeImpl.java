@@ -58,7 +58,8 @@ public class NodeImpl implements Node {
      * @param child The {@code node} to add.
      */
     public void addChildNodeEntry(Node child) {
-        childEntries.put(child.getName(), child);
+        String childName = PathUtils.getName(child.getPath());
+        childEntries.put(childName, child);
     }
 
     @Override
@@ -99,11 +100,6 @@ public class NodeImpl implements Node {
     @Override
     public Map<String, Object> getProperties() {
         return properties;
-    }
-
-    @Override
-    public String getName() {
-        return PathUtils.getName(path);
     }
 
     @Override
@@ -153,14 +149,15 @@ public class NodeImpl implements Node {
         // Compare child node entries
         for (Iterator<Node> it = getChildNodeEntries(0, -1); it.hasNext(); ) {
             Node child = it.next();
-            Node newChild = other.getChildNodeEntry(child.getName());
+            String childName = PathUtils.getName(child.getPath());
+            Node newChild = other.getChildNodeEntry(childName);
             if (newChild == null) {
-                handler.childNodeDeleted(new ChildNodeEntry(child.getName(), null));
+                handler.childNodeDeleted(new ChildNodeEntry(childName, null));
             } else {
                 // FIXME - Not so sure if this comparison is correct.
                 //if (child.getRevisionId() != newChild.getRevisionId()) {
                 if (!child.equals(newChild)) {
-                    handler.childNodeChanged(new ChildNodeEntry(child.getName(), null),
+                    handler.childNodeChanged(new ChildNodeEntry(childName, null),
                             null /*newId*/);
                 }
             }
@@ -168,8 +165,9 @@ public class NodeImpl implements Node {
 
         for (Iterator<Node> it = other.getChildNodeEntries(0, -1); it.hasNext(); ) {
             Node child = it.next();
-            if (getChildNodeEntry(child.getName()) == null) {
-                handler.childNodeAdded(new ChildNodeEntry(child.getName(), null));
+            String childName = PathUtils.getName(child.getPath());
+            if (getChildNodeEntry(childName) == null) {
+                handler.childNodeAdded(new ChildNodeEntry(childName, null));
             }
         }
     }

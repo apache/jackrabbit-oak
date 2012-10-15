@@ -23,6 +23,7 @@ import java.util.Map;
 import junit.framework.Assert;
 
 import org.apache.jackrabbit.mongomk.api.model.Node;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 
 public class NodeAssert {
 
@@ -35,10 +36,12 @@ public class NodeAssert {
 
         for (Iterator<Node> it = expected.getChildNodeEntries(0, -1); it.hasNext(); ) {
             Node expectedChild = it.next();
+            String expectedChildName = PathUtils.getName(expectedChild.getPath());
             boolean valid = false;
             for (Iterator<Node> it2 = actual.getChildNodeEntries(0, -1); it2.hasNext(); ) {
                 Node actualChild = it2.next();
-                if (expectedChild.getName().equals(actualChild.getName())) {
+                String actualChildName = PathUtils.getName(actualChild.getPath());
+                if (expectedChildName.equals(actualChildName)) {
                     assertDeepEquals(expectedChild, actualChild);
                     valid = true;
                     break;
@@ -84,7 +87,6 @@ public class NodeAssert {
     }
 
     public static void assertEquals(Node expected, Node actual) {
-        Assert.assertEquals(expected.getName(), actual.getName());
         Assert.assertEquals(expected.getPath(), actual.getPath());
 
         Long expectedRevisionId = expected.getRevisionId();

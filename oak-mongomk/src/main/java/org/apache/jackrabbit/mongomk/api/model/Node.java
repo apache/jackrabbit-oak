@@ -72,14 +72,6 @@ public interface Node {
      */
     void diff(Node otherNode, NodeDiffHandler nodeDiffHandler);
 
-    // FIXME - Rest are not in-line with Oak, see if we really need them.
-    /**
-     * Returns the name of this {@code Node}.
-     *
-     * @return The name.
-     */
-    String getName();
-
     /**
      * Returns the path of this {@code Node}.
      *
