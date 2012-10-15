@@ -22,7 +22,6 @@ import org.apache.jackrabbit.mongomk.impl.builder.NodeBuilder;
 import org.apache.jackrabbit.mongomk.impl.model.NodeImpl;
 import org.junit.Test;
 
-@SuppressWarnings("javadoc")
 public class NodeBuilderTest {
 
     @Test

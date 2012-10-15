@@ -24,8 +24,6 @@ import org.apache.jackrabbit.mongomk.command.GetHeadRevisionCommandMongo;
 import org.apache.jackrabbit.mongomk.scenario.SimpleNodeScenario;
 import org.junit.Test;
 
-
-@SuppressWarnings("javadoc")
 public class GetHeadRevisionCommandMongoTest extends BaseMongoTest {
 
     @Test
@@ -40,4 +38,5 @@ public class GetHeadRevisionCommandMongoTest extends BaseMongoTest {
         scenario.delete_A();
         Long revisionId3 = command.execute();
         assertFalse(revisionId3 == revisionId2);
-    }}
+    }
+}

@@ -26,7 +26,6 @@ import org.apache.jackrabbit.mongomk.impl.model.CommitBuilder;
 import org.apache.jackrabbit.mongomk.scenario.SimpleNodeScenario;
 import org.junit.Test;
 
-@SuppressWarnings("javadoc")
 public class NodeExistsCommandMongoTest extends BaseMongoTest {
 
     @Test

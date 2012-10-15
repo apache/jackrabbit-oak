@@ -25,7 +25,6 @@ import org.apache.jackrabbit.mongomk.impl.json.JsopParser;
 import org.junit.Assert;
 import org.junit.Test;
 
-@SuppressWarnings("javadoc")
 public class JsopParserTest {
 
     private static class CountingHandler extends DefaultJsopHandler {

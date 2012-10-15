@@ -38,7 +38,6 @@ import com.mongodb.QueryBuilder;
 /**
  * Assertion utilities for {@code MongoDB} tests.
  */
-@SuppressWarnings("javadoc")
 public class MongoAssert {
 
     private static MongoConnection mongoConnection;

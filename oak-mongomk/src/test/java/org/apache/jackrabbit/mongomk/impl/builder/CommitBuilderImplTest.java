@@ -36,7 +36,6 @@ import org.apache.jackrabbit.mongomk.impl.InstructionAssert;
 import org.apache.jackrabbit.mongomk.impl.model.CommitBuilder;
 import org.junit.Test;
 
-@SuppressWarnings("javadoc")
 public class CommitBuilderImplTest {
 
     private static final String MESSAGE = "This is a simple commit";
