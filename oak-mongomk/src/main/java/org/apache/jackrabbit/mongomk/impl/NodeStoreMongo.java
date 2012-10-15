@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.mongomk.impl;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -248,29 +249,44 @@ public class NodeStoreMongo implements NodeStore {
     public String getRevisionHistory(long since, int maxEntries, String path) {
       path = (path == null || "".equals(path)) ? "/" : path;
       boolean filtered = !"/".equals(path);
+
       maxEntries = maxEntries < 0 ? Integer.MAX_VALUE : maxEntries;
 
-      FetchCommitsQuery query = new FetchCommitsQuery(mongoConnection, 0L,
-              Long.MAX_VALUE);
+      FetchCommitsQuery query = new FetchCommitsQuery(mongoConnection, Long.MAX_VALUE);
       query.setMaxEntries(maxEntries);
       query.includeBranchCommits(false);
 
-      List<CommitMongo> history = query.execute();
-      JsopBuilder buff = new JsopBuilder().array();
-      for (int i = history.size() - 1; i >= 0; i--) {
-          CommitMongo commit = history.get(i);
+      List<CommitMongo> commits = query.execute();
+      List<CommitMongo> history = new ArrayList<CommitMongo>();
+      for (int i = commits.size() - 1; i >= 0; i--) {
+          CommitMongo commit = commits.get(i);
           if (commit.getTimestamp() >= since) {
-              // FIXME Check that filter really works.
-              if (!filtered || commit.getAffectedPaths().contains(path)) {
-                  buff.object()
-                  .key("id").value(MongoUtil.fromMongoRepresentation(commit.getRevisionId()))
-                  .key("ts").value(commit.getTimestamp())
-                  .key("msg").value(commit.getMessage())
-                  .endObject();
+              if (filtered) {
+                  try {
+                      String diff = new DiffBuilder(
+                              wrap(getNode("/", commit.getBaseRevId())),
+                              wrap(getNode("/", commit.getRevisionId())),
+                              "/", -1, new MongoNodeStore(), path).build();
+                      if (!diff.isEmpty()) {
+                          history.add(commit);
+                      }
+                  } catch (Exception e) {
+                      throw new MicroKernelException(e);
+                  }
+              } else {
+                  history.add(commit);
               }
           }
       }
 
+      JsopBuilder buff = new JsopBuilder().array();
+      for (CommitMongo commit : history) {
+          buff.object()
+          .key("id").value(MongoUtil.fromMongoRepresentation(commit.getRevisionId()))
+          .key("ts").value(commit.getTimestamp())
+          .key("msg").value(commit.getMessage())
+          .endObject();
+      }
       return buff.endArray().toString();
     }
 
