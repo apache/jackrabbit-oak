@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.mongomk.command;
 
-import java.util.Iterator;
-
 import org.apache.jackrabbit.mongomk.api.command.AbstractCommand;
 import org.apache.jackrabbit.mongomk.api.model.Node;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
@@ -67,7 +65,7 @@ public class NodeExistsCommandMongo extends AbstractCommand<Boolean> {
         // Check that all the paths up to the parent are valid.
         while (!PathUtils.denotesRoot(path)) {
             readParentNode();
-            if (!childExists()) {
+            if (parentNode == null || !childExists()) {
                 return false;
             }
             path = PathUtils.getParentPath(path);
@@ -85,18 +83,7 @@ public class NodeExistsCommandMongo extends AbstractCommand<Boolean> {
     }
 
     private boolean childExists() {
-        if (parentNode == null) {
-            return false;
-        }
-
-        for (Iterator<Node> it = parentNode.getChildNodeEntries(0, -1); it.hasNext(); ) {
-            Node child = it.next();
-            String childName = PathUtils.getName(child.getPath());
-            if (childName.equals(PathUtils.getName(path))) {
-                return true;
-            }
-        }
-
-        return false;
+        String childName = PathUtils.getName(path);
+        return parentNode.getChildNodeEntry(childName) != null;
     }
 }

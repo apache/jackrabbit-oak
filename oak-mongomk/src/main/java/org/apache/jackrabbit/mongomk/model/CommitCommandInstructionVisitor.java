@@ -223,6 +223,10 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
 
         // Add to destParent
         NodeMongo destParentNode = getStoredNode(destParentPath);
+        if (destParentNode == null) {
+            throw new RuntimeException("Dest parent node does not exist at path: "
+                    + destParentPath);
+        }
         if (destParentNode.childExists(destNodeName)) {
             throw new RuntimeException("Node already exists at move destination path: " + destPath);
         }
@@ -272,31 +276,32 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
 
     private NodeMongo getStoredNode(String path) {
         NodeMongo node = pathNodeMap.get(path);
-        if (node == null) {
-            // FIXME This is not efficient but needed for all MicroKernelIT
-            // tests to pass. Fix it later.
-            NodeExistsCommandMongo existCommand = new NodeExistsCommandMongo(mongoConnection,
-                    path, headRevisionId);
-            existCommand.setBranchId(branchId);
-            boolean exists = false;
-            try {
-                exists = existCommand.execute();
-            } catch (Exception ignore) {}
+        if (node != null) {
+            return node;
+        }
 
-            if (!exists) {
-                return null;
-            }
+        // First need to check that the path is indeed valid.
+        NodeExistsCommandMongo existCommand = new NodeExistsCommandMongo(mongoConnection,
+                path, headRevisionId);
+        existCommand.setBranchId(branchId);
+        boolean exists = false;
+        try {
+            exists = existCommand.execute();
+        } catch (Exception ignore) {}
 
-            FetchNodesQuery query = new FetchNodesQuery(mongoConnection,
-                    path, headRevisionId);
-            query.setBranchId(branchId);
-            query.setFetchDescendants(false);
-            List<NodeMongo> nodes = query.execute();
-            if (!nodes.isEmpty()) {
-                node = nodes.get(0);
-                node.removeField("_id");
-                pathNodeMap.put(path, node);
-            }
+        if (!exists) {
+            return null;
+        }
+
+        FetchNodesQuery query = new FetchNodesQuery(mongoConnection,
+                path, headRevisionId);
+        query.setBranchId(branchId);
+        query.setFetchDescendants(false);
+        List<NodeMongo> nodes = query.execute();
+        if (!nodes.isEmpty()) {
+            node = nodes.get(0);
+            node.removeField("_id");
+            pathNodeMap.put(path, node);
         }
         return node;
     }
