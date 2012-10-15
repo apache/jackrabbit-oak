@@ -74,17 +74,15 @@ public class JsonUtil {
         builder.object();
 
         Map<String, Object> properties = node.getProperties();
-        if (properties != null) {
-            for (Map.Entry<String, Object> entry : properties.entrySet()) {
-                String key = entry.getKey();
-                if (filter == null || filter.includeProperty(key)) {
-                    Object value = entry.getValue();
-                    builder.key(key);
-                    if (value instanceof String) {
-                        builder.value(value.toString());
-                    } else {
-                        builder.encodedValue(value.toString());
-                    }
+        for (Map.Entry<String, Object> entry : properties.entrySet()) {
+            String key = entry.getKey();
+            if (filter == null || filter.includeProperty(key)) {
+                Object value = entry.getValue();
+                builder.key(key);
+                if (value instanceof String) {
+                    builder.value(value.toString());
+                } else {
+                    builder.encodedValue(value.toString());
                 }
             }
         }
@@ -98,7 +96,8 @@ public class JsonUtil {
             }
         }
 
-        // FIXME There's still some more work here.
+        // FIXME Implement the optimization in MicroKernelImpl#toJson here.
+
         Iterator<Node> entries = node.getChildNodeEntries(offset, maxChildNodes);
         while (entries.hasNext()) {
             Node child = entries.next();

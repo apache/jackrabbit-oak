@@ -94,7 +94,6 @@ public class CommitCommandMongo extends AbstractCommand<Long> {
 
         if (!success) {
             markAsFailed();
-
             throw new ConflictingCommitException();
         }
 
@@ -116,23 +115,18 @@ public class CommitCommandMongo extends AbstractCommand<Long> {
     /**
      * This is protected for testing purposed only.
      *
-     * @return N/A
-     * @throws Exception
+     * @return True if the operation was successful.
+     * @throws Exception If an exception happens.
      */
     protected boolean saveAndSetHeadRevision() throws Exception {
-        boolean success = true;
-
         HeadMongo headMongo = new SaveAndSetHeadRevisionQuery(mongoConnection,
                 this.headMongo.getHeadRevisionId(), revisionId).execute();
         if (headMongo == null) {
-            // FIXME - Check for conflicts!
             logger.warn(String.format("Encounterd a conflicting update, thus can't commit"
                     + " revision %s and will be retried with new revision", revisionId));
-
-            success = false;
+            return false;
         }
-
-        return success;
+        return true;
     }
 
     private void addRevisionId() {
