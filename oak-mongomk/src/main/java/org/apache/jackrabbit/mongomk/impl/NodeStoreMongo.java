@@ -189,14 +189,13 @@ public class NodeStoreMongo implements NodeStore {
         path = (path == null || "".equals(path)) ? "/" : path;
         boolean filtered = !"/".equals(path);
 
-        // FIXME There's more work here.
-
         long fromRevision = MongoUtil.toMongoRepresentation(fromRevisionId);
         long toRevision = toRevisionId == null? getHeadRevision(true)
                 : MongoUtil.toMongoRepresentation(toRevisionId);
 
-        List<CommitMongo> commits = new FetchCommitsQuery(mongoConnection,
-                fromRevision, toRevision).execute();
+        FetchCommitsQuery query = new FetchCommitsQuery(mongoConnection, fromRevision,
+                toRevision);
+        List<CommitMongo> commits = query.execute();
 
         CommitMongo toCommit = getCommit(commits, toRevision);
         if (toCommit.getBranchId() != null) {
@@ -218,22 +217,29 @@ public class NodeStoreMongo implements NodeStore {
         }
 
         JsopBuilder commitBuff = new JsopBuilder().array();
-        // iterate over commits in chronological order,
-        // starting with oldest commit
+        // Iterate over commits in chronological order, starting with oldest commit
         for (int i = commits.size() - 1; i >= 0; i--) {
             CommitMongo commit = commits.get(i);
-            //if (commit.getParentId() == null) {
-            //   continue;
-            //}
+
             String diff = commit.getDiff();
-            // FIXME Check that filter really works.
-            if (!filtered || commit.getAffectedPaths().contains(path)) {
-                commitBuff.object()
-                .key("id").value(MongoUtil.fromMongoRepresentation(commit.getRevisionId()))
-                .key("ts").value(commit.getTimestamp())
-                .key("msg").value(commit.getMessage())
-                .key("changes").value(diff).endObject();
+            if (filtered) {
+                try {
+                    diff = new DiffBuilder(
+                            wrap(getNode("/", commit.getBaseRevId())),
+                            wrap(getNode("/", commit.getRevisionId())),
+                            "/", -1, new MongoNodeStore(), path).build();
+                    if (diff.isEmpty()) {
+                        continue;
+                    }
+                } catch (Exception e) {
+                    throw new MicroKernelException(e);
+                }
             }
+            commitBuff.object()
+            .key("id").value(MongoUtil.fromMongoRepresentation(commit.getRevisionId()))
+            .key("ts").value(commit.getTimestamp())
+            .key("msg").value(commit.getMessage())
+            .key("changes").value(diff).endObject();
         }
         return commitBuff.endArray().toString();
     }

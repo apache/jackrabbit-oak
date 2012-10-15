@@ -8,7 +8,7 @@ import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
 import org.junit.Test;
 
 /**
- * Tests for MicroKernel#diff
+ * Tests for {@code MicroKernel#branch}
  */
 public class MongoMicroKernelBranchMergeTest extends BaseMongoMicroKernelTest {
 
