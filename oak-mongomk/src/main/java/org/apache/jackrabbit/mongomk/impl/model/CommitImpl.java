@@ -50,7 +50,7 @@ public class CommitImpl implements Commit {
         this.path = path;
         this.diff = diff;
         this.message = message;
-        this.instructions = new LinkedList<Instruction>();
+        instructions = new LinkedList<Instruction>();
         timestamp = new Date().getTime();
     }
 
