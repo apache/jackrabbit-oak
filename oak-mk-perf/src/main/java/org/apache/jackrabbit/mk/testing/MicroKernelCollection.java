@@ -16,16 +16,41 @@
  */
 package org.apache.jackrabbit.mk.testing;
 
+import java.util.ArrayList;
+
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.util.Configuration;
 
 /**
- * Interface for microkernel initialization.
- * @author rogoz
- *
+ * Represents a collection of microkernels.
+ * 
+ * 
+ * 
  */
-public interface Initializator {
+public class MicroKernelCollection {
+    ArrayList<MicroKernel> mks;
 
-	public MicroKernel init(Configuration conf) throws Exception;
-	public String getType();
+    /**
+     * Initialize a collection of microkernels.All microkernels have the same
+     * configuration.
+     * 
+     * @param initializator
+     *            The initialization class of a particular microkernel type.
+     * @param conf
+     *            The microkernel configuration data.
+     * @throws Exception
+     */
+    public MicroKernelCollection(MicroKernelInitializer initializator,
+            Configuration conf, int size) throws Exception {
+        mks = initializator.init(conf, size);
+        }
+    
+    /**
+     * Returns a microkernel collection.
+     * 
+     * @return An array of initialized microkernels.
+     */
+    public ArrayList<MicroKernel> getMicroKernels() {
+        return mks;
+    }
 }

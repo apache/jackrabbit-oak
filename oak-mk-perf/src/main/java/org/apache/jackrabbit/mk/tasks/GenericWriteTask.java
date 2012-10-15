@@ -14,34 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.util;
+package org.apache.jackrabbit.mk.tasks;
 
-import java.io.File;
-import java.io.InputStream;
+import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.mk.util.Committer;
 
-import org.apache.jackrabbit.mongomk.api.BlobStore;
+public class GenericWriteTask implements Runnable {
 
-public class BlobStoreFS implements BlobStore {
+    MicroKernel mk;
+    Committer committer;
+    String diff;
+    int nodesPerCommit;
 
-    public BlobStoreFS(String rootPath) {
-        File rootDir = new File(rootPath);
-        if (!rootDir.isDirectory()) {
-            rootDir.mkdirs();
-        }
-
+    public GenericWriteTask(MicroKernel mk, String diff, int nodesPerCommit) {
+        this.mk = mk;
+        this.diff = diff;
+        this.nodesPerCommit = nodesPerCommit;
+        committer = new Committer();
     }
 
-    public long getBlobLength(String blobId) throws Exception {
-        return 0;
+    @Override
+    public void run() {
+        committer.addNodes(mk, diff, nodesPerCommit);
     }
-
-    public int readBlob(String blobId, long blobOffset, byte[] buffer,
-            int bufferOffset, int length) throws Exception {
-        return 0;
-    }
-
-    public String writeBlob(InputStream is) throws Exception {
-        return null;
-    }
-
 }

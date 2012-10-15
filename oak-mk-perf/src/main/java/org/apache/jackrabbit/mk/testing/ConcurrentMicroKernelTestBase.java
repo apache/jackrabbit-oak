@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.mk.testing;
 
+import java.util.ArrayList;
+
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.util.Chronometer;
 import org.apache.jackrabbit.mk.util.Configuration;
@@ -23,18 +25,13 @@ import org.apache.jackrabbit.mk.util.MicroKernelConfigProvider;
 import org.junit.Before;
 import org.junit.BeforeClass;
 
-/**
- * The test base class for tests that are using only one microkernel instance.
- * 
- * 
- * 
- */
-public class MicroKernelTestBase {
-
-    static MicroKernelInitializer initializator;
-    public MicroKernel mk;
-    public static Configuration conf;
+public class ConcurrentMicroKernelTestBase {
+    public static int mkNumber = 1;
+    public ArrayList<MicroKernel> mks;
     public Chronometer chronometer;
+    static MicroKernelInitializer initializator;
+    static Configuration conf;
+    
 
     /**
      * Loads the corresponding microkernel initialization class and the
@@ -62,9 +59,8 @@ public class MicroKernelTestBase {
      */
     @Before
     public void beforeTest() throws Exception {
-
-        mk = (new MicroKernelCollection(initializator, conf, 1))
-                .getMicroKernels().get(0);
+        mks = new MicroKernelCollection(initializator, conf, mkNumber)
+                .getMicroKernels();
         chronometer = new Chronometer();
     }
 

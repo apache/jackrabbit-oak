@@ -19,49 +19,35 @@ package org.apache.jackrabbit.mk.testing;
 import java.util.ArrayList;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.mk.core.MicroKernelImpl;
+import org.apache.jackrabbit.mk.core.Repository;
 import org.apache.jackrabbit.mk.util.Configuration;
 
 /**
- * Represents a collection of microkernels.
- * 
- * @author rogoz
- * 
+ * Initialize a {@code MicroKernelImpl}.A new {@code Repository} is created for
+ * each initialization.
  */
-public class MkCollection {
-	ArrayList<MicroKernel> mks;
+public class OakMicroKernelInitializer implements MicroKernelInitializer {
 
-	/**
-	 * Initialize a collection of mks.Each mk can have a particular
-	 * configuration.
-	 * 
-	 * @param initializator
-	 * @param conf
-	 * @throws Exception
-	 */
-	public MkCollection(Initializator initializator, Configuration conf[],
-			int size) throws Exception {
-		mks = new ArrayList<MicroKernel>();
-		for (int i = 0; i < size; i++) {
-			mks.add(initializator.init(conf[i]));
-		}
-	}
 
-	/**
-	 * Initialize a collection of mks.All mks have the same configuration.
-	 * 
-	 * @param initializator
-	 * @param conf
-	 * @throws Exception
-	 */
-	public MkCollection(Initializator initializator, Configuration conf,
-			int size) throws Exception {
-		mks = new ArrayList<MicroKernel>();
-		for (int i = 0; i < size; i++) {
-			mks.add(initializator.init(conf));
-		}
-	}
 
-	public ArrayList<MicroKernel> getMicroKernels() {
-		return mks;
-	}
+    @Override
+    public ArrayList<MicroKernel> init(Configuration conf, int mksNumber)
+            throws Exception {
+        ArrayList<MicroKernel> mks = new ArrayList<MicroKernel>();
+        Repository rep = new Repository(conf.getStoragePath()
+                + System.currentTimeMillis());
+        rep.init();
+        for (int i = 0; i < mksNumber; i++) {
+            mks.add(new MicroKernelImpl(rep));
+        }
+        return mks;
+    }
+    
+    public String getType() {
+        // TODO Auto-generated method stub
+        return "Oak Microkernel";
+    }
+
+
 }
