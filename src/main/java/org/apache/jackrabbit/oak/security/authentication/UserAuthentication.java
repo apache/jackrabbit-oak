@@ -36,7 +36,25 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * AuthenticationImpl...
+ * Implementation of the Authentication interface that validates credentials
+ * against user information stored in the repository. If no user exists with
+ * the specified userID or if the user has been disabled authentication will
+ * will fail irrespective of the specified credentials. Otherwise the following
+ * validation is performed:
+ *
+ * <ul>
+ *     <li>{@link SimpleCredentials}: Authentication succeeds if userID and
+ *     password match the information exposed by the {@link UserProvider}.</li>
+ *     <li>{@link ImpersonationCredentials}: Authentication succeeds if the
+ *     subject to be authenticated is allowed to impersonate the user identified
+ *     by the userID.</li>
+ *     <li>{@link GuestCredentials}: The authentication succeeds if an 'anonymous'
+ *     user exists in the repository.</li>
+ * </ul>
+ *
+ * For any other credentials {@link #authenticate(javax.jcr.Credentials)}
+ * will return {@code false} indicating that this implementation is not able
+ * to verify their validity.
  */
 public class UserAuthentication implements Authentication {
 
