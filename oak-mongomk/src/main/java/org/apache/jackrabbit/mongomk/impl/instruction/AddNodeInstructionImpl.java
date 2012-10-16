@@ -20,9 +20,8 @@ import org.apache.jackrabbit.mongomk.api.instruction.InstructionVisitor;
 import org.apache.jackrabbit.mongomk.api.instruction.Instruction.AddNodeInstruction;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
-
 /**
- * Implementation of {@link AddNodeInstruction}.
+ * Implementation of {@code AddNodeInstruction}.
  */
 public class AddNodeInstructionImpl implements AddNodeInstruction {
 
@@ -46,14 +45,5 @@ public class AddNodeInstructionImpl implements AddNodeInstruction {
     @Override
     public String getPath() {
         return path;
-    }
-
-    @Override
-    public String toString() {
-        StringBuilder builder = new StringBuilder();
-        builder.append("AddNodeInstructionImpl [path=");
-        builder.append(path);
-        builder.append("]");
-        return builder.toString();
     }
 }

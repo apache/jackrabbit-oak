@@ -20,7 +20,7 @@ import org.apache.jackrabbit.mongomk.api.instruction.InstructionVisitor;
 import org.apache.jackrabbit.mongomk.api.instruction.Instruction.AddPropertyInstruction;
 
 /**
- * Implementation of {@link AddPropertyInstruction}.
+ * Implementation of {@code AddPropertyInstruction}.
  */
 public class AddPropertyInstructionImpl implements AddPropertyInstruction {
 
@@ -59,18 +59,5 @@ public class AddPropertyInstructionImpl implements AddPropertyInstruction {
     @Override
     public Object getValue() {
         return value;
-    }
-
-    @Override
-    public String toString() {
-        StringBuilder builder = new StringBuilder();
-        builder.append("AddPropertyInstructionImpl [path=");
-        builder.append(path);
-        builder.append(", key=");
-        builder.append(key);
-        builder.append(", value=");
-        builder.append(value);
-        builder.append("]");
-        return builder.toString();
     }
 }

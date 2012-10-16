@@ -20,9 +20,10 @@ import org.apache.jackrabbit.mongomk.api.instruction.InstructionVisitor;
 import org.apache.jackrabbit.mongomk.api.instruction.Instruction.CopyNodeInstruction;
 
 /**
- * Implementation of {@link CopyNodeInstruction}.
+ * Implementation of {@code CopyNodeInstruction}.
  */
 public class CopyNodeInstructionImpl implements CopyNodeInstruction {
+
     private final String destPath;
     private final String path;
     private final String sourcePath;
