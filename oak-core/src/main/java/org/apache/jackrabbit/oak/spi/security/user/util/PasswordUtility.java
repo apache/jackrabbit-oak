@@ -14,15 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.security.user;
+package org.apache.jackrabbit.oak.spi.security.user.util;
 
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-
 import javax.annotation.Nullable;
 
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -100,13 +101,13 @@ public class PasswordUtility {
      * @throws NoSuchAlgorithmException If the specified algorithm is not supported.
      * @throws UnsupportedEncodingException If utf-8 is not supported.
      */
-    public static String buildPasswordHash(String password, UserConfig config) throws NoSuchAlgorithmException, UnsupportedEncodingException {
+    public static String buildPasswordHash(String password, ConfigurationParameters config) throws NoSuchAlgorithmException, UnsupportedEncodingException {
         if (config == null) {
             throw new IllegalArgumentException("UserConfig must not be null");
         }
-        String algorithm = config.getConfigValue(UserConfig.PARAM_PASSWORD_HASH_ALGORITHM, DEFAULT_ALGORITHM);
-        int iterations = config.getConfigValue(UserConfig.PARAM_PASSWORD_HASH_ITERATIONS, DEFAULT_ITERATIONS);
-        int saltSize = config.getConfigValue(UserConfig.PARAM_PASSWORD_SALT_SIZE, DEFAULT_SALT_SIZE);
+        String algorithm = config.getConfigValue(UserConstants.PARAM_PASSWORD_HASH_ALGORITHM, DEFAULT_ALGORITHM);
+        int iterations = config.getConfigValue(UserConstants.PARAM_PASSWORD_HASH_ITERATIONS, DEFAULT_ITERATIONS);
+        int saltSize = config.getConfigValue(UserConstants.PARAM_PASSWORD_SALT_SIZE, DEFAULT_SALT_SIZE);
 
         return buildPasswordHash(password, algorithm, saltSize, iterations);
     }

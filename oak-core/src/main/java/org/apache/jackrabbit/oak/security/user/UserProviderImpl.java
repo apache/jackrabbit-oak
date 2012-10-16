@@ -22,7 +22,6 @@ import java.security.Principal;
 import java.text.ParseException;
 import java.util.Collections;
 import java.util.Iterator;
-
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
@@ -38,13 +37,14 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.TreeBasedPrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
-import org.apache.jackrabbit.oak.spi.security.user.PasswordUtility;
-import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
+import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtility;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
+import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
@@ -64,10 +64,10 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
  * authorizable ID with the following behavior:
  * <ul>
  * <li>Users are created below /rep:security/rep:authorizables/rep:users or
- * the path configured in the {@link org.apache.jackrabbit.oak.spi.security.user.UserConfig#PARAM_USER_PATH}
+ * the path configured in the {@link org.apache.jackrabbit.oak.spi.security.user.UserConstants#PARAM_USER_PATH}
  * respectively.</li>
  * <li>Groups are created below /rep:security/rep:authorizables/rep:groups or
- * the path configured in the {@link org.apache.jackrabbit.oak.spi.security.user.UserConfig#PARAM_GROUP_PATH}
+ * the path configured in the {@link org.apache.jackrabbit.oak.spi.security.user.UserConstants#PARAM_GROUP_PATH}
  * respectively.</li>
  * <li>Below each category authorizables are created within a human readable
  * structure based on the defined intermediate path or some internal logic
@@ -115,13 +115,13 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
  *
  * <h3>Configuration Options</h3>
  * <ul>
- *     <li>{@link org.apache.jackrabbit.oak.spi.security.user.UserConfig#PARAM_USER_PATH}: Underneath this structure
+ *     <li>{@link org.apache.jackrabbit.oak.spi.security.user.UserConstants#PARAM_USER_PATH}: Underneath this structure
  *     all user nodes are created. Default value is
  *     "/rep:security/rep:authorizables/rep:users"</li>
- *     <li>{@link org.apache.jackrabbit.oak.spi.security.user.UserConfig#PARAM_GROUP_PATH}: Underneath this structure
+ *     <li>{@link org.apache.jackrabbit.oak.spi.security.user.UserConstants#PARAM_GROUP_PATH}: Underneath this structure
  *     all group nodes are created. Default value is
  *     "/rep:security/rep:authorizables/rep:groups"</li>
- *     <li>{@link org.apache.jackrabbit.oak.spi.security.user.UserConfig#PARAM_DEFAULT_DEPTH}: A positive {@code integer}
+ *     <li>{@link org.apache.jackrabbit.oak.spi.security.user.UserConstants#PARAM_DEFAULT_DEPTH}: A positive {@code integer}
  *     greater than zero defining the depth of the default structure that is
  *     always created. Default value: 2</li>
  * </ul>
@@ -161,13 +161,13 @@ class UserProviderImpl extends AuthorizableBaseProvider implements UserProvider 
     private final String groupPath;
     private final String userPath;
 
-    UserProviderImpl(Root root, UserConfig config) {
+    UserProviderImpl(Root root, ConfigurationParameters config) {
         super(root, config);
 
-        defaultDepth = config.getConfigValue(UserConfig.PARAM_DEFAULT_DEPTH, DEFAULT_DEPTH);
+        defaultDepth = config.getConfigValue(PARAM_DEFAULT_DEPTH, DEFAULT_DEPTH);
 
-        groupPath = config.getConfigValue(UserConfig.PARAM_GROUP_PATH, DEFAULT_GROUP_PATH);
-        userPath = config.getConfigValue(UserConfig.PARAM_USER_PATH, DEFAULT_USER_PATH);
+        groupPath = config.getConfigValue(PARAM_GROUP_PATH, DEFAULT_GROUP_PATH);
+        userPath = config.getConfigValue(PARAM_USER_PATH, DEFAULT_USER_PATH);
     }
 
     //-------------------------------------------------------< UserProvider >---
@@ -230,7 +230,7 @@ class UserProviderImpl extends AuthorizableBaseProvider implements UserProvider 
     @Override
     public String getAuthorizableId(Tree authorizableTree) {
         checkNotNull(authorizableTree);
-        if (isAuthorizableTree(authorizableTree, AuthorizableType.AUTHORIZABLE)) {
+        if (UserUtility.isAuthorizableTree(authorizableTree, AuthorizableType.AUTHORIZABLE)) {
             PropertyState idProp = authorizableTree.getProperty(UserConstants.REP_AUTHORIZABLE_ID);
             if (idProp != null) {
                 return idProp.getValue(STRING);
@@ -249,13 +249,13 @@ class UserProviderImpl extends AuthorizableBaseProvider implements UserProvider 
 
     @Override
     public boolean isAuthorizableType(Tree authorizableTree, AuthorizableType authorizableType) {
-        return isAuthorizableTree(authorizableTree, authorizableType);
+        return UserUtility.isAuthorizableTree(authorizableTree, authorizableType);
     }
 
     @Override
     public boolean isAdminUser(Tree userTree) {
         checkNotNull(userTree);
-        return isAuthorizableType(userTree, AuthorizableType.USER) && config.getAdminId().equals(getAuthorizableId(userTree));
+        return isAuthorizableType(userTree, AuthorizableType.USER) && UserUtility.getAdminId(config).equals(getAuthorizableId(userTree));
     }
 
     @Override

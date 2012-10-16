@@ -36,11 +36,11 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.security.principal.PrincipalManagerImpl;
 import org.apache.jackrabbit.oak.security.user.query.XPathQueryBuilder;
 import org.apache.jackrabbit.oak.security.user.query.XPathQueryEvaluator;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
-import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
-import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
+import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
@@ -59,11 +59,11 @@ public class UserManagerImpl implements UserManager {
 
     private final UserProvider userProvider;
     private final MembershipProvider membershipProvider;
-    private final UserConfig config;
+    private final ConfigurationParameters config;
 
     public UserManagerImpl(Session session, NamePathMapper namePathMapper,
                            UserProvider userProvider, MembershipProvider membershipProvider,
-                           UserConfig config) {
+                           ConfigurationParameters config) {
         this.session = session;
         this.namePathMapper = namePathMapper;
         this.userProvider = userProvider;
@@ -288,7 +288,7 @@ public class UserManagerImpl implements UserManager {
     }
 
     private AuthorizableAction[] getAuthorizableActions() {
-        return config.getAuthorizableActions();
+        return config.getConfigValue(UserConstants.PARAM_AUTHORIZABLE_ACTIONS, new AuthorizableAction[0]);
     }
 
     //--------------------------------------------------------------------------

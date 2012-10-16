@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user;
 
+import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtility;
 import org.junit.Test;
 
 import java.security.NoSuchAlgorithmException;

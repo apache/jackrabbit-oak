@@ -43,9 +43,9 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
-import org.apache.jackrabbit.oak.spi.security.user.PasswordUtility;
+import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtility;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
-import org.apache.jackrabbit.oak.spi.security.user.UserContext;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.util.ISO8601;
@@ -99,14 +99,14 @@ public class TokenProviderImpl implements TokenProvider {
     private final UserProvider userProvider;
     private final long tokenExpiration;
 
-    public TokenProviderImpl(Root root, ConfigurationParameters options, UserContext userContext) {
-        this(root, options.getConfigValue(PARAM_TOKEN_EXPIRATION, Long.valueOf(DEFAULT_TOKEN_EXPIRATION)), userContext);
+    public TokenProviderImpl(Root root, ConfigurationParameters options, UserConfiguration userConfiguration) {
+        this(root, options.getConfigValue(PARAM_TOKEN_EXPIRATION, Long.valueOf(DEFAULT_TOKEN_EXPIRATION)), userConfiguration);
     }
 
-    public TokenProviderImpl(Root root, long tokenExpiration, UserContext userContext) {
+    public TokenProviderImpl(Root root, long tokenExpiration, UserConfiguration userConfiguration) {
         this.root = root;
         this.tokenExpiration = tokenExpiration;
-        this.userProvider = userContext.getUserProvider(root);
+        this.userProvider = userConfiguration.getUserProvider(root);
     }
 
     //------------------------------------------------------< TokenProvider >---

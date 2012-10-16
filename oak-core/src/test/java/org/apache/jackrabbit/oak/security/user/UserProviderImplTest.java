@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.user;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,13 +30,13 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexHook;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
-import org.apache.jackrabbit.oak.spi.security.user.PasswordUtility;
-import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
+import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtility;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
-import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
+import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
 import org.apache.jackrabbit.util.Text;
 import org.junit.After;
 import org.junit.Before;
@@ -62,7 +61,7 @@ public class UserProviderImplTest extends AbstractOakTest {
     private ContentSession contentSession;
     private Root root;
 
-    private UserConfig defaultConfig;
+    private ConfigurationParameters defaultConfig;
     private String defaultUserPath;
     private String defaultGroupPath;
     
@@ -77,13 +76,13 @@ public class UserProviderImplTest extends AbstractOakTest {
         contentSession = createAdminSession();
         root = contentSession.getLatestRoot();
 
-        defaultConfig = new UserConfig();
-        defaultUserPath = defaultConfig.getConfigValue(UserConfig.PARAM_USER_PATH, UserConstants.DEFAULT_USER_PATH);
-        defaultGroupPath = defaultConfig.getConfigValue(UserConfig.PARAM_GROUP_PATH, UserConstants.DEFAULT_GROUP_PATH);
+        defaultConfig = new ConfigurationParameters();
+        defaultUserPath = defaultConfig.getConfigValue(UserConstants.PARAM_USER_PATH, UserConstants.DEFAULT_USER_PATH);
+        defaultGroupPath = defaultConfig.getConfigValue(UserConstants.PARAM_GROUP_PATH, UserConstants.DEFAULT_GROUP_PATH);
 
         customOptions = new HashMap<String, Object>();
-        customOptions.put(UserConfig.PARAM_GROUP_PATH, customGroupPath);
-        customOptions.put(UserConfig.PARAM_USER_PATH, customUserPath);
+        customOptions.put(UserConstants.PARAM_GROUP_PATH, customGroupPath);
+        customOptions.put(UserConstants.PARAM_USER_PATH, customUserPath);
 
         cleanupPaths.add(defaultUserPath);
         cleanupPaths.add(defaultGroupPath);
@@ -113,8 +112,8 @@ public class UserProviderImplTest extends AbstractOakTest {
 
     private UserProvider createUserProvider(int defaultDepth) {
         Map<String, Object> options = new HashMap<String, Object>(customOptions);
-        options.put(UserConfig.PARAM_DEFAULT_DEPTH, defaultDepth);
-        return new UserProviderImpl(root, new UserConfig(options, Collections.<AuthorizableAction>emptySet()));
+        options.put(UserConstants.PARAM_DEFAULT_DEPTH, defaultDepth);
+        return new UserProviderImpl(root, new ConfigurationParameters(options));
     }
 
     @Test
@@ -126,7 +125,7 @@ public class UserProviderImplTest extends AbstractOakTest {
 
         assertNotNull(userTree);
         assertTrue(Text.isDescendant(defaultUserPath, userTree.getPath()));
-        int level = defaultConfig.getConfigValue(UserConfig.PARAM_DEFAULT_DEPTH, UserConstants.DEFAULT_DEPTH) + 1;
+        int level = defaultConfig.getConfigValue(UserConstants.PARAM_DEFAULT_DEPTH, UserConstants.DEFAULT_DEPTH) + 1;
         assertEquals(defaultUserPath, Text.getRelativeParent(userTree.getPath(), level));
         
         // make sure all users are created in a structure with default depth
@@ -169,7 +168,7 @@ public class UserProviderImplTest extends AbstractOakTest {
         assertNotNull(groupTree);
         assertTrue(Text.isDescendant(defaultGroupPath, groupTree.getPath()));
 
-        int level = defaultConfig.getConfigValue(UserConfig.PARAM_DEFAULT_DEPTH, UserConstants.DEFAULT_DEPTH) + 1;
+        int level = defaultConfig.getConfigValue(UserConstants.PARAM_DEFAULT_DEPTH, UserConstants.DEFAULT_DEPTH) + 1;
         assertEquals(defaultGroupPath, Text.getRelativeParent(groupTree.getPath(), level));
     }
 
@@ -328,10 +327,10 @@ public class UserProviderImplTest extends AbstractOakTest {
     public void testIsAdminUser() throws Exception {
         UserProvider userProvider = createUserProvider();
 
-        String adminId = defaultConfig.getAdminId();
+        String adminId = UserUtility.getAdminId(defaultConfig);
         Tree adminTree = userProvider.getAuthorizable(adminId, AuthorizableType.USER);
         if (adminTree == null) {
-            adminTree = userProvider.createUser(defaultConfig.getAdminId(), null);
+            adminTree = userProvider.createUser(adminId, null);
         }
         assertTrue(userProvider.isAdminUser(adminTree));
 

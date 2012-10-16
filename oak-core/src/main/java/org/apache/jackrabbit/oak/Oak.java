@@ -143,7 +143,7 @@ public class Oak {
         this.securityProvider = securityProvider;
 
         validatorProviders.addAll(securityProvider.getAccessControlProvider().getValidatorProviders());
-        validatorProviders.addAll(securityProvider.getUserContext().getValidatorProviders());
+        validatorProviders.addAll(securityProvider.getUserConfiguration().getValidatorProviders());
         return this;
     }
 
