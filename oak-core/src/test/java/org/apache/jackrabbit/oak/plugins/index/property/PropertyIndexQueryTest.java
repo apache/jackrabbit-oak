@@ -39,7 +39,7 @@ public class PropertyIndexQueryTest extends AbstractQueryTest {
         CommitHook ch = new CompositeHook(new PropertyIndexHook());
         MicroKernel mk = new MicroKernelImpl();
         createDefaultKernelTracker().available(mk);
-        return new Oak(mk).with(qip).with(ch).createContentRepository();
+        return new Oak(mk).with(qip).with(ch).with(getSecurityProvider()).createContentRepository();
     }
 
 }

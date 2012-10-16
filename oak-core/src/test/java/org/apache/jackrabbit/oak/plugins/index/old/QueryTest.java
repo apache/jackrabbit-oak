@@ -17,7 +17,6 @@ import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.mk.index.IndexWrapper;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
@@ -45,7 +44,7 @@ public class QueryTest extends AbstractQueryTest {
         QueryIndexProvider qip = new CompositeQueryIndexProvider(pi);
         CompositeHook hook = new CompositeHook(pi);
         createDefaultKernelTracker().available(mk);
-        return new Oak(mk).with(qip).with(hook).createContentRepository();
+        return new Oak(mk).with(qip).with(hook).with(getSecurityProvider()).createContentRepository();
     }
 
     @Test
