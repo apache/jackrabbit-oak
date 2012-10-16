@@ -30,7 +30,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * RepositoryCallback... TODO
+ * Callback implementation used to access the repository. It allows to set and
+ * get the {@code NodeStore} and the name of the workspace for which the login
+ * applies. In addition it provides access to a {@link Root} object based on
+ * the given node store and workspace name.
  */
 public class RepositoryCallback implements Callback {
 

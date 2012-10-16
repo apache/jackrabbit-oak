@@ -22,7 +22,7 @@ import javax.security.auth.callback.Callback;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 
 /**
- * SecurityProviderCallback... TODO
+ * Callback implementation to set and get the {@link SecurityProvider}.
  */
 public class SecurityProviderCallback implements Callback {
 

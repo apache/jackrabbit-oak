@@ -16,15 +16,17 @@
  */
 package org.apache.jackrabbit.oak.security;
 
+import java.util.Collections;
 import javax.annotation.Nonnull;
 import javax.jcr.Session;
+import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.security.authentication.ConfigurationImpl;
 import org.apache.jackrabbit.oak.security.authentication.LoginContextProviderImpl;
+import org.apache.jackrabbit.oak.security.authentication.LoginModuleImpl;
 import org.apache.jackrabbit.oak.security.authentication.token.TokenProviderImpl;
 import org.apache.jackrabbit.oak.security.authorization.AccessControlProviderImpl;
 import org.apache.jackrabbit.oak.security.principal.PrincipalManagerImpl;
@@ -41,14 +43,24 @@ import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserContext;
 import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SecurityProviderImpl implements SecurityProvider {
+
+    private static final Logger log = LoggerFactory.getLogger(SecurityProviderImpl.class);
 
     @Nonnull
     @Override
     public LoginContextProvider getLoginContextProvider(NodeStore nodeStore) {
-        // TODO: use configurable authentication config
-        Configuration configuration = new ConfigurationImpl();
+        Configuration configuration;
+        try {
+            configuration = Configuration.getConfiguration();
+        } catch (SecurityException e) {
+            log.warn("Failed to read login configuration: using default.", e);
+            configuration = new OakConfiguration();
+            Configuration.setConfiguration(configuration);
+        }
         return new LoginContextProviderImpl(configuration, nodeStore, this);
     }
 
@@ -90,5 +102,18 @@ public class SecurityProviderImpl implements SecurityProvider {
                 return new PrincipalProviderImpl(userProvider, msProvider, namePathMapper);
             }
         };
+    }
+
+    //--------------------------------------------------------------------------
+    private class OakConfiguration extends Configuration {
+
+        @Override
+        public AppConfigurationEntry[] getAppConfigurationEntry(String s) {
+            AppConfigurationEntry entry = new AppConfigurationEntry(
+                    LoginModuleImpl.class.getName(),
+                    AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
+                    Collections.<String, Object>emptyMap());
+            return new AppConfigurationEntry[] {entry};
+        }
     }
 }

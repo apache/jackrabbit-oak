@@ -28,7 +28,6 @@ import javax.jcr.GuestCredentials;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.Subject;
 import javax.security.auth.callback.Callback;
-import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.callback.NameCallback;
 import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.auth.login.LoginException;
@@ -104,10 +103,6 @@ public final class LoginModuleImpl extends AbstractLoginModule {
     private String userId;
 
     //--------------------------------------------------------< LoginModule >---
-    @Override
-    public void initialize(Subject subject, CallbackHandler callbackHandler, Map<String, ?> sharedState, Map<String, ?> options) {
-        super.initialize(subject, callbackHandler, sharedState, options);
-    }
 
     @Override
     public boolean login() throws LoginException {
@@ -119,7 +114,7 @@ public final class LoginModuleImpl extends AbstractLoginModule {
             return false;
         }
 
-        Authentication authentication = new AuthenticationImpl(userId, getUserProvider(), getPrincipalProvider());
+        Authentication authentication = new UserAuthentication(userId, getUserProvider(), getPrincipalProvider());
         boolean success = authentication.authenticate(credentials);
         if (success) {
             principals = getPrincipals(userId);
