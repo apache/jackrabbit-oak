@@ -26,7 +26,7 @@ import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.security.authentication.LoginContextProviderImpl;
-import org.apache.jackrabbit.oak.security.authentication.LoginModuleImpl;
+import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
 import org.apache.jackrabbit.oak.security.authentication.token.TokenProviderImpl;
 import org.apache.jackrabbit.oak.security.authorization.AccessControlProviderImpl;
 import org.apache.jackrabbit.oak.security.principal.PrincipalManagerImpl;
@@ -50,18 +50,32 @@ public class SecurityProviderImpl implements SecurityProvider {
 
     private static final Logger log = LoggerFactory.getLogger(SecurityProviderImpl.class);
 
+    public static final String PARAM_APP_NAME = "org.apache.jackrabbit.oak.auth.appName";
+    private static final String DEFAULT_APP_NAME = "jackrabbit.oak";
+
+    private final ConfigurationParameters configuration;
+
+    public SecurityProviderImpl() {
+        this(new ConfigurationParameters());
+    }
+
+    public SecurityProviderImpl(ConfigurationParameters configuration) {
+        this.configuration = configuration;
+    }
+
     @Nonnull
     @Override
     public LoginContextProvider getLoginContextProvider(NodeStore nodeStore) {
-        Configuration configuration;
+        String appName = configuration.getConfigValue(PARAM_APP_NAME, DEFAULT_APP_NAME);
+        Configuration loginConfig;
         try {
-            configuration = Configuration.getConfiguration();
+            loginConfig = Configuration.getConfiguration();
         } catch (SecurityException e) {
             log.warn("Failed to read login configuration: using default.", e);
-            configuration = new OakConfiguration();
-            Configuration.setConfiguration(configuration);
+            loginConfig = new OakConfiguration();
+            Configuration.setConfiguration(loginConfig);
         }
-        return new LoginContextProviderImpl(configuration, nodeStore, this);
+        return new LoginContextProviderImpl(appName, loginConfig, nodeStore, this);
     }
 
     @Nonnull

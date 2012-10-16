@@ -25,7 +25,7 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 
 /**
- * AuthInfoImpl... TODO
+ * Default implementation of the AuthInfo interface.
  */
 public class AuthInfoImpl implements AuthInfo {
 
