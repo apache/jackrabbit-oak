@@ -88,7 +88,7 @@ import org.slf4j.LoggerFactory;
  *
  *
  */
-public class LoginModuleImpl extends AbstractLoginModule {
+public final class LoginModuleImpl extends AbstractLoginModule {
 
     private static final Logger log = LoggerFactory.getLogger(LoginModuleImpl.class);
 
@@ -101,7 +101,7 @@ public class LoginModuleImpl extends AbstractLoginModule {
 
     private Credentials credentials;
     private Set<? extends Principal> principals;
-    private String userID;
+    private String userId;
 
     //--------------------------------------------------------< LoginModule >---
     @Override
@@ -112,25 +112,32 @@ public class LoginModuleImpl extends AbstractLoginModule {
     @Override
     public boolean login() throws LoginException {
         credentials = getCredentials();
-        userID = getUserID();
+        userId = getUserId();
 
-        Authentication authentication = new AuthenticationImpl(userID, getUserProvider(), getPrincipalProvider());
+        if (credentials == null || userId == null) {
+            log.debug("Could not extract userId/credentials");
+            return false;
+        }
+
+        Authentication authentication = new AuthenticationImpl(userId, getUserProvider(), getPrincipalProvider());
         boolean success = authentication.authenticate(credentials);
         if (success) {
-            principals = getPrincipals(userID);
+            principals = getPrincipals(userId);
 
-            log.debug("Login: adding Credentials to shared state.");
+            log.debug("Adding Credentials to shared state.");
             sharedState.put(SHARED_KEY_CREDENTIALS, credentials);
 
-            log.debug("Login: adding login name to shared state.");
-            sharedState.put(SHARED_KEY_LOGIN_NAME, userID);
+            log.debug("Adding login name to shared state.");
+            sharedState.put(SHARED_KEY_LOGIN_NAME, userId);
         }
         return success;
     }
 
     @Override
-    public boolean commit() throws LoginException {
-        if (credentials == null || principals.isEmpty()) {
+    public boolean commit() {
+        if (credentials == null || principals == null) {
+            // login attempt in this login module was not successful
+            clearState();
             return false;
         } else {
             if (!subject.isReadOnly()) {
@@ -144,38 +151,40 @@ public class LoginModuleImpl extends AbstractLoginModule {
         }
     }
 
-    @Override
-    public boolean abort() throws LoginException {
-        credentials = null;
-        principals = null;
-        return true;
-    }
-
     //------------------------------------------------< AbstractLoginModule >---
     @Override
     protected Set<Class> getSupportedCredentials() {
         return SUPPORTED_CREDENTIALS;
     }
 
+    @Override
+    protected void clearState() {
+        super.clearState();
+
+        credentials = null;
+        principals = null;
+        userId = null;
+    }
+
     //--------------------------------------------------------------------------
     @CheckForNull
-    private String getUserID() {
-        String userID = null;
+    private String getUserId() {
+        String uid = null;
         if (credentials != null) {
             if (credentials instanceof SimpleCredentials) {
-                userID = ((SimpleCredentials) credentials).getUserID();
+                uid = ((SimpleCredentials) credentials).getUserID();
             } else if (credentials instanceof GuestCredentials) {
-                userID = getAnonymousID();
+                uid = getAnonymousId();
             } else if (credentials instanceof ImpersonationCredentials) {
                 Credentials bc = ((ImpersonationCredentials) credentials).getBaseCredentials();
                 if (bc instanceof SimpleCredentials) {
-                    userID = ((SimpleCredentials) bc).getUserID();
+                    uid = ((SimpleCredentials) bc).getUserID();
                 }
             } else {
                 try {
                     NameCallback callback = new NameCallback("User-ID: ");
                     callbackHandler.handle(new Callback[]{callback});
-                    userID = callback.getName();
+                    uid = callback.getName();
                 } catch (UnsupportedCallbackException e) {
                     log.warn("Credentials- or NameCallback must be supported");
                 } catch (IOException e) {
@@ -184,13 +193,13 @@ public class LoginModuleImpl extends AbstractLoginModule {
             }
         }
 
-        if (userID == null) {
-            userID = getSharedLoginName();
+        if (uid == null) {
+            uid = getSharedLoginName();
         }
-        return userID;
+        return uid;
     }
 
-    private String getAnonymousID() {
+    private String getAnonymousId() {
         SecurityProvider sp = getSecurityProvider();
         if (sp == null) {
             return null;
@@ -207,6 +216,6 @@ public class LoginModuleImpl extends AbstractLoginModule {
                 attributes.put(attrName, sc.getAttribute(attrName));
             }
         }
-        return new AuthInfoImpl(userID, attributes, principals);
+        return new AuthInfoImpl(userId, attributes, principals);
     }
 }

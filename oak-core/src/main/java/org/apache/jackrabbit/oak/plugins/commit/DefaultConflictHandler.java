@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.plugins.commit;
 
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
@@ -53,47 +53,47 @@ public class DefaultConflictHandler implements ConflictHandler {
     }
 
     @Override
-    public Resolution addExistingProperty(Tree parent, PropertyState ours, PropertyState theirs) {
+    public Resolution addExistingProperty(NodeBuilder parent, PropertyState ours, PropertyState theirs) {
         return resolution;
     }
 
     @Override
-    public Resolution changeDeletedProperty(Tree parent, PropertyState ours) {
+    public Resolution changeDeletedProperty(NodeBuilder parent, PropertyState ours) {
         return resolution;
     }
 
     @Override
-    public Resolution changeChangedProperty(Tree parent, PropertyState ours, PropertyState theirs) {
+    public Resolution changeChangedProperty(NodeBuilder parent, PropertyState ours, PropertyState theirs) {
         return resolution;
     }
 
     @Override
-    public Resolution deleteChangedProperty(Tree parent, PropertyState theirs) {
+    public Resolution deleteChangedProperty(NodeBuilder parent, PropertyState theirs) {
         return resolution;
     }
 
     @Override
-    public Resolution deleteDeletedProperty(Tree parent, PropertyState ours) {
+    public Resolution deleteDeletedProperty(NodeBuilder parent, PropertyState ours) {
         return resolution;
     }
 
     @Override
-    public Resolution addExistingNode(Tree parent, String name, NodeState ours, NodeState theirs) {
+    public Resolution addExistingNode(NodeBuilder parent, String name, NodeState ours, NodeState theirs) {
         return resolution;
     }
 
     @Override
-    public Resolution changeDeletedNode(Tree parent, String name, NodeState ours) {
+    public Resolution changeDeletedNode(NodeBuilder parent, String name, NodeState ours) {
         return resolution;
     }
 
     @Override
-    public Resolution deleteChangedNode(Tree parent, String name, NodeState theirs) {
+    public Resolution deleteChangedNode(NodeBuilder parent, String name, NodeState theirs) {
         return resolution;
     }
 
     @Override
-    public Resolution deleteDeletedNode(Tree parent, String name) {
+    public Resolution deleteDeletedNode(NodeBuilder parent, String name) {
         return resolution;
     }
 }

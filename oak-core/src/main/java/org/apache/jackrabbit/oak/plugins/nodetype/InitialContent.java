@@ -38,7 +38,7 @@ public class InitialContent extends DefaultMicroKernelTracker {
     @Override
     public void available(MicroKernel mk) {
         NodeStore nodeStore = new Oak(mk).createNodeStore();
-        // FIXME: depends on CoreValue's name mangling
+        // FIXME: depends on name mangling
         NodeState root = nodeStore.getRoot();
         if (root.hasChildNode("jcr:system")) {
             mk.commit("/", "^\"jcr:primaryType\":\"nam:rep:root\" ", null, null);

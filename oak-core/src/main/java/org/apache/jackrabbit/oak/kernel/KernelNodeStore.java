@@ -16,13 +16,17 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.concurrent.ExecutionException;
 
 import javax.annotation.Nonnull;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
-import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyObserver;
@@ -30,10 +34,6 @@ import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
-
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -122,9 +122,18 @@ public class KernelNodeStore implements NodeStore {
         return new KernelNodeStoreBranch(this, getRoot());
     }
 
+    /**
+     * @return An instance of {@link KernelBlob}
+     */
     @Override
-    public CoreValueFactory getValueFactory() {
-        return new CoreValueFactoryImpl(kernel);
+    public KernelBlob createBlob(InputStream inputStream) throws IOException {
+        try {
+            String blobId = kernel.write(inputStream);
+            return new KernelBlob(blobId, kernel);
+        }
+        catch (MicroKernelException e) {
+            throw new IOException(e);
+        }
     }
 
     //-----------------------------------------------------------< internal >---

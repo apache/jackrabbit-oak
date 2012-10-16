@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.slf4j.Logger;
@@ -40,15 +40,15 @@ class MergingNodeStateDiff implements NodeStateDiff {
      */
     private static final Logger log = LoggerFactory.getLogger(MergingNodeStateDiff.class);
 
-    private final TreeImpl target;
+    private final NodeBuilder target;
     private final ConflictHandler conflictHandler;
 
-    private MergingNodeStateDiff(TreeImpl target, ConflictHandler conflictHandler) {
+    private MergingNodeStateDiff(NodeBuilder target, ConflictHandler conflictHandler) {
         this.target = target;
         this.conflictHandler = conflictHandler;
     }
 
-    static void merge(NodeState fromState, NodeState toState, final TreeImpl target,
+    static void merge(NodeState fromState, NodeState toState, final NodeBuilder target,
             final ConflictHandler conflictHandler) {
         toState.compareAgainstBaseState(fromState, new MergingNodeStateDiff(
                 checkNotNull(target), conflictHandler));
@@ -133,12 +133,10 @@ class MergingNodeStateDiff implements NodeStateDiff {
     @Override
     public void childNodeAdded(String name, NodeState after) {
         ConflictHandler.Resolution resolution;
-        TreeImpl n = target.getChild(name);
-
-        if (n == null) {
+        if (!target.hasChildNode(name)) {
             resolution = OURS;
-        }
-        else {
+        } else {
+            NodeBuilder n = target.child(name);
             resolution = conflictHandler.addExistingNode(target, name, after, n.getNodeState());
         }
 
@@ -155,13 +153,10 @@ class MergingNodeStateDiff implements NodeStateDiff {
     @Override
     public void childNodeChanged(String name, NodeState before, NodeState after) {
         ConflictHandler.Resolution resolution;
-        TreeImpl n = target.getChild(name);
-
-        if (n == null) {
+        if (!target.hasChildNode(name)) {
             resolution = conflictHandler.changeDeletedNode(target, name, after);
-        }
-        else {
-            merge(before, after, n, conflictHandler);
+        } else {
+            merge(before, after, target.child(name), conflictHandler);
             resolution = MERGED;
         }
 
@@ -178,7 +173,7 @@ class MergingNodeStateDiff implements NodeStateDiff {
     @Override
     public void childNodeDeleted(String name, NodeState before) {
         ConflictHandler.Resolution resolution;
-        TreeImpl n = target.getChild(name);
+        NodeBuilder n = target.hasChildNode(name) ? target.child(name) : null;
 
         if (n == null) {
             resolution = conflictHandler.deleteDeletedNode(target, name);
@@ -193,7 +188,7 @@ class MergingNodeStateDiff implements NodeStateDiff {
         switch (resolution) {
             case OURS:
                 if (n != null) {
-                    n.remove();
+                    target.removeNode(name);
                 }
                 break;
             case THEIRS:
@@ -204,8 +199,8 @@ class MergingNodeStateDiff implements NodeStateDiff {
 
     //-------------------------------------------------------------<private >---
 
-    private static void addChild(Tree target, String name, NodeState state) {
-        Tree child = target.addChild(name);
+    private static void addChild(NodeBuilder target, String name, NodeState state) {
+        NodeBuilder child = target.child(name);
         for (PropertyState property : state.getProperties()) {
             child.setProperty(property);
         }

@@ -213,7 +213,7 @@ public class NodeUtil {
 
     public void setValues(String name, Value[] values) {
         try {
-            tree.setProperty(PropertyStates.createProperty(name, values));
+            tree.setProperty(PropertyStates.createProperty(name, Arrays.asList(values)));
         }
         catch (RepositoryException e) {
             log.warn("Unable to convert a default value", e);

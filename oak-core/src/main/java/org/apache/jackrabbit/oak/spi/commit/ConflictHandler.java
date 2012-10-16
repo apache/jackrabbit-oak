@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.spi.commit;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
@@ -66,7 +66,7 @@ public interface ConflictHandler {
      * @param theirs  their version of the property
      * @return  {@link Resolution} of the conflict
      */
-    Resolution addExistingProperty(Tree parent, PropertyState ours, PropertyState theirs);
+    Resolution addExistingProperty(NodeBuilder parent, PropertyState ours, PropertyState theirs);
 
     /**
      * The property {@code ours} has been changed in {@code parent} while it was
@@ -76,7 +76,7 @@ public interface ConflictHandler {
      * @param ours  our version of the property
      * @return  {@link Resolution} of the conflict
      */
-    Resolution changeDeletedProperty(Tree parent, PropertyState ours);
+    Resolution changeDeletedProperty(NodeBuilder parent, PropertyState ours);
 
     /**
      * The property {@code ours} has been changed in {@code parent} while it was
@@ -87,7 +87,7 @@ public interface ConflictHandler {
      * @param theirs  their version of the property
      * @return  {@link Resolution} of the conflict
      */
-    Resolution changeChangedProperty(Tree parent, PropertyState ours, PropertyState theirs);
+    Resolution changeChangedProperty(NodeBuilder parent, PropertyState ours, PropertyState theirs);
 
     /**
      * The property {@code ours} has been removed in {@code parent} while it was
@@ -97,7 +97,7 @@ public interface ConflictHandler {
      * @param ours  our version of the property
      * @return  {@link Resolution} of the conflict
      */
-    Resolution deleteDeletedProperty(Tree parent, PropertyState ours);
+    Resolution deleteDeletedProperty(NodeBuilder parent, PropertyState ours);
 
     /**
      * The property {@code theirs} changed in the persistence store while it has been
@@ -107,7 +107,7 @@ public interface ConflictHandler {
      * @param theirs  their version of the property
      * @return  {@link Resolution} of the conflict
      */
-    Resolution deleteChangedProperty(Tree parent, PropertyState theirs);
+    Resolution deleteChangedProperty(NodeBuilder parent, PropertyState theirs);
 
     /**
      * The node {@code ours} has been added to {@code parent} which conflicts
@@ -119,7 +119,7 @@ public interface ConflictHandler {
      * @param theirs  their version of the node
      * @return  {@link Resolution} of the conflict
      */
-    Resolution addExistingNode(Tree parent, String name, NodeState ours, NodeState theirs);
+    Resolution addExistingNode(NodeBuilder parent, String name, NodeState ours, NodeState theirs);
 
     /**
      * The node {@code ours} has been changed in {@code parent} while it was
@@ -130,7 +130,7 @@ public interface ConflictHandler {
      * @param ours  our version of the node
      * @return  {@link Resolution} of the conflict
      */
-    Resolution changeDeletedNode(Tree parent, String name, NodeState ours);
+    Resolution changeDeletedNode(NodeBuilder parent, String name, NodeState ours);
 
     /**
      * The node {@code theirs} changed in the persistence store while it has been
@@ -138,11 +138,10 @@ public interface ConflictHandler {
      *
      * @param parent  root of the conflict
      * @param name  name of the node
-     * @param theirs
      * @param theirs  their version of the node
      * @return  {@link Resolution} of the conflict
      */
-    Resolution deleteChangedNode(Tree parent, String name, NodeState theirs);
+    Resolution deleteChangedNode(NodeBuilder parent, String name, NodeState theirs);
 
     /**
      * The node {@code name} has been removed in {@code parent} while it was
@@ -152,5 +151,5 @@ public interface ConflictHandler {
      * @param name  name of the node
      * @return  {@link Resolution} of the conflict
      */
-    Resolution deleteDeletedNode(Tree parent, String name);
+    Resolution deleteDeletedNode(NodeBuilder parent, String name);
 }

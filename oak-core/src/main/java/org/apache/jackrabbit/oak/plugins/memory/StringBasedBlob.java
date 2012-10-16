@@ -24,6 +24,9 @@ import java.io.UnsupportedEncodingException;
 
 import javax.annotation.Nonnull;
 
+/**
+ * This {@code Blob} implementations is based on a string.
+ */
 public class StringBasedBlob extends AbstractBlob {
     private final String value;
 
@@ -31,6 +34,15 @@ public class StringBasedBlob extends AbstractBlob {
         this.value = value;
     }
 
+    @Override
+    public String toString() {
+        return value;
+    }
+
+    /**
+     * This implementation returns the bytes of the UTF-8 encoding
+     * of the underlying string.
+     */
     @Nonnull
     @Override
     public InputStream getNewStream() {
@@ -42,6 +54,10 @@ public class StringBasedBlob extends AbstractBlob {
         }
     }
 
+    /**
+     * This implementation returns the number of bytes in the UTF-8 encoding
+     * of the underlying string.
+     */
     @Override
     public long length() {
         try {

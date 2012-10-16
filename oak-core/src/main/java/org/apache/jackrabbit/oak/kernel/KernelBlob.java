@@ -24,10 +24,19 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.util.MicroKernelInputStream;
 import org.apache.jackrabbit.oak.plugins.memory.AbstractBlob;
 
+/**
+ * This {@code Blob} implementation is backed by a binary stored in
+ * a {@code MicroKernel}.
+ */
 public class KernelBlob extends AbstractBlob {
     private final String binaryID;
     private final MicroKernel kernel;
 
+    /**
+     * Create a new instance for a binary id and a Microkernel.
+     * @param binaryID  id of the binary
+     * @param kernel
+     */
     public KernelBlob(String binaryID, MicroKernel kernel) {
         this.binaryID = binaryID;
         this.kernel = kernel;
@@ -39,12 +48,19 @@ public class KernelBlob extends AbstractBlob {
         return new MicroKernelInputStream(kernel, binaryID);
     }
 
+    /**
+     * This implementation delegates the calculation of the length back
+     * to the underlying {@code MicroKernel}.
+     */
     @Override
     public long length() {
         return kernel.getLength(binaryID);
     }
 
-
+    /**
+     * This implementation delegates back to the underlying {@code Microkernel}
+     * if other is also of type {@code KernelBlob}.
+     */
     @Override
     public boolean equals(Object other) {
         if (this == other) {

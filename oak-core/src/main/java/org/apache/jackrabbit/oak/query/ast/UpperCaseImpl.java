@@ -18,10 +18,9 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
+import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 
@@ -51,19 +50,19 @@ public class UpperCaseImpl extends DynamicOperandImpl {
     }
 
     @Override
-    public PropertyState currentProperty() {
-        PropertyState p = operand.currentProperty();
+    public PropertyValue currentProperty() {
+        PropertyValue p = operand.currentProperty();
         if (p == null) {
             return null;
         }
         // TODO what is the expected result of UPPER(x) for an array property?
         // currently throws an exception
         String value = p.getValue(STRING);
-        return PropertyStates.stringProperty(p.getName(), value.toUpperCase());
+        return PropertyValues.newString(value.toUpperCase());
     }
 
     @Override
-    public void restrict(FilterImpl f, Operator operator, CoreValue v) {
+    public void restrict(FilterImpl f, Operator operator, PropertyValue v) {
         // UPPER(x) implies x is not null
         operand.restrict(f, Operator.NOT_EQUAL, null);
     }

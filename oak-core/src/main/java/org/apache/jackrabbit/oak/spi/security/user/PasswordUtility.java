@@ -108,7 +108,7 @@ public class PasswordUtility {
         int iterations = config.getConfigValue(UserConfig.PARAM_PASSWORD_HASH_ITERATIONS, DEFAULT_ITERATIONS);
         int saltSize = config.getConfigValue(UserConfig.PARAM_PASSWORD_SALT_SIZE, DEFAULT_SALT_SIZE);
 
-        return buildPasswordHash(password, algorithm, iterations, saltSize);
+        return buildPasswordHash(password, algorithm, saltSize, iterations);
     }
 
     /**

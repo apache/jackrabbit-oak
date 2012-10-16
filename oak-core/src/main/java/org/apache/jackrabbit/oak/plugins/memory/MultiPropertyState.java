@@ -29,17 +29,41 @@ import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Type;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
+/**
+ * Abstract base class for multi valued {@code PropertyState} implementations.
+ */
 abstract class MultiPropertyState<T> extends EmptyPropertyState {
     protected final List<T> values;
 
+    /**
+     * Create a new property state with the given {@code name}
+     * and {@code values}
+     * @param name  The name of the property state.
+     * @param values  The values of the property state.
+     */
     protected MultiPropertyState(String name, List<T> values) {
         super(name);
         this.values = values;
     }
 
+    /**
+     * @return  {@code Iterable} of the string representations of the values
+     * of the property state.
+     */
     protected abstract Iterable<String> getStrings();
+
+    /**
+     * @param index
+     * @return  String representation of the value at {@code index }of the
+     * property state.
+     */
     protected abstract String getString(int index);
 
+    /**
+     * @return  The values of this property state as {@link Blob}s
+     */
     protected Iterable<Blob> getBlobs() {
         return Iterables.transform(getStrings(), new Function<String, Blob>() {
             @Override
@@ -49,6 +73,9 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
         });
     }
 
+    /**
+     * @return  The values of this property state as {@code Long}s
+     */
     protected Iterable<Long> getLongs() {
         return Iterables.transform(getStrings(), new Function<String, Long>() {
             @Override
@@ -58,6 +85,9 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
         });
     }
 
+    /**
+     * @return  The values of this property state as {@code Double}s
+     */
     protected Iterable<Double> getDoubles() {
         return Iterables.transform(getStrings(), new Function<String, Double>() {
             @Override
@@ -67,10 +97,21 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
         });
     }
 
+    /**
+     * @return  The values of this property state as {@code Booleans}s
+     */
     protected Iterable<Boolean> getBooleans() {
-        throw new UnsupportedOperationException("Unsupported conversion.");
+        return Iterables.transform(getStrings(), new Function<String, Boolean>() {
+            @Override
+            public Boolean apply(String value) {
+                return StringPropertyState.getBoolean(value);
+            }
+        });
     }
 
+    /**
+     * @return  The values of this property state as {@code BigDecimal}s
+     */
     protected Iterable<BigDecimal> getDecimals() {
         return Iterables.transform(getStrings(), new Function<String, BigDecimal>() {
             @Override
@@ -80,34 +121,55 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
         });
     }
 
+    /**
+     * @param index
+     * @return  The value at the given {@code index} as {@link Blob}
+     */
     protected Blob getBlob(int index) {
         return new StringBasedBlob(getString(index));
     }
 
+    /**
+     * @param index
+     * @return  The value at the given {@code index} as {@code long}
+     */
     protected long getLong(int index) {
         return Long.parseLong(getString(index));
     }
 
+    /**
+     * @param index
+     * @return  The value at the given {@code index} as {@code double}
+     */
     protected double getDouble(int index) {
         return Double.parseDouble(getString(index));
     }
 
+    /**
+     * @param index
+     * @return  The value at the given {@code index} as {@code boolean}
+     */
     protected boolean getBoolean(int index) {
-        throw new UnsupportedOperationException("Unsupported conversion.");
+        return StringPropertyState.getBoolean(getString(index));
     }
 
+    /**
+     * @param index
+     * @return  The value at the given {@code index} as {@code BigDecimal}
+     */
     protected BigDecimal getDecimal(int index) {
         return new BigDecimal(getString(index));
     }
 
+    /**
+     * @throws IllegalArgumentException if {@code type} is not one of the
+     * values defined in {@link Type} or if {@code type.isArray()} is {@code false}.
+     */
     @SuppressWarnings("unchecked")
     @Nonnull
     @Override
     public <T> T getValue(Type<T> type) {
-        if (!type.isArray()) {
-            throw new IllegalStateException("Not a single valued property");
-        }
-
+        checkArgument(type.isArray(), "Type must not be an array type");
         switch (type.tag()) {
             case PropertyType.STRING: return (T) getStrings();
             case PropertyType.BINARY: return (T) getBlobs();
@@ -125,13 +187,16 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
         }
     }
 
+    /**
+     * @throws IllegalArgumentException if {@code type} is not one of the
+     * values defined in {@link Type} or if {@code type.isArray()} is {@code true}
+     * @throws IndexOutOfBoundsException if {@code index >= count()}.
+     */
     @SuppressWarnings("unchecked")
     @Nonnull
     @Override
     public <T> T getValue(Type<T> type, int index) {
-        if (type.isArray()) {
-            throw new IllegalArgumentException("Nested arrays not supported");
-        }
+        checkArgument(!type.isArray(), "Type must not be an array type");
         if (index >= count()) {
             throw new IndexOutOfBoundsException(String.valueOf(index));
         }

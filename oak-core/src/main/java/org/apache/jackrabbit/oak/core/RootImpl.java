@@ -26,9 +26,8 @@ import java.util.List;
 import javax.annotation.Nonnull;
 import javax.security.auth.Subject;
 
-import org.apache.jackrabbit.oak.api.ChangeExtractor;
+import org.apache.jackrabbit.oak.spi.observation.ChangeExtractor;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.SessionQueryEngine;
 import org.apache.jackrabbit.oak.api.TreeLocation;
@@ -181,7 +180,7 @@ public class RootImpl implements Root {
             NodeState base = getBaseState();
             NodeState head = rootTree.getNodeState();
             refresh();
-            MergingNodeStateDiff.merge(base, head, rootTree, conflictHandler);
+            MergingNodeStateDiff.merge(base, head, rootTree.getNodeBuilder(), conflictHandler);
         }
     }
 
@@ -234,7 +233,6 @@ public class RootImpl implements Root {
         return !getBaseState().equals(rootTree.getNodeState());
     }
 
-    @Override
     @Nonnull
     public ChangeExtractor getChangeExtractor() {
         return new ChangeExtractor() {
@@ -252,11 +250,6 @@ public class RootImpl implements Root {
     @Override
     public SessionQueryEngine getQueryEngine() {
         return new SessionQueryEngineImpl(store, indexProvider);
-    }
-
-    @Override
-    public CoreValueFactory getValueFactory() {
-        return store.getValueFactory();
     }
 
     //-----------------------------------------------------------< internal >---

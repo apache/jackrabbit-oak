@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.util;
 import org.apache.jackrabbit.oak.AbstractOakTest;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.query.JsopUtil;
@@ -35,7 +34,6 @@ public class JsopUtilTest extends AbstractOakTest {
 
     protected ContentSession session;
     protected Root root;
-    protected CoreValueFactory vf;
 
     @Override
     @Before
@@ -43,7 +41,6 @@ public class JsopUtilTest extends AbstractOakTest {
         super.before();
         session = createAdminSession();
         root = session.getLatestRoot();
-        vf = root.getValueFactory();
     }
 
     @Override
@@ -57,7 +54,7 @@ public class JsopUtilTest extends AbstractOakTest {
         assertFalse(t.hasChild("test"));
 
         String add = "/ + \"test\": { \"a\": { \"id\": \"123\" }, \"b\": {} }";
-        JsopUtil.apply(root, add, vf);
+        JsopUtil.apply(root, add);
         root.commit();
 
         t = root.getTree("/");
@@ -76,7 +73,7 @@ public class JsopUtilTest extends AbstractOakTest {
         assertEquals("123", t.getProperty("id").getValue(STRING));
 
         String rm = "/ - \"test\"";
-        JsopUtil.apply(root, rm, vf);
+        JsopUtil.apply(root, rm);
         root.commit();
 
         t = root.getTree("/");

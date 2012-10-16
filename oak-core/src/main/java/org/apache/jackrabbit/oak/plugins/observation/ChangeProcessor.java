@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.jcr.observation;
+package org.apache.jackrabbit.oak.plugins.observation;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -30,7 +30,7 @@ import javax.jcr.observation.EventListener;
 import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.commons.iterator.EventIteratorAdapter;
-import org.apache.jackrabbit.oak.api.ChangeExtractor;
+import org.apache.jackrabbit.oak.spi.observation.ChangeExtractor;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;

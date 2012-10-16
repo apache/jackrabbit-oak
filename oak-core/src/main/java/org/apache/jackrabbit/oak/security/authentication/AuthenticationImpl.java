@@ -22,6 +22,7 @@ import javax.jcr.GuestCredentials;
 import javax.jcr.RepositoryException;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.Subject;
+import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -52,32 +53,39 @@ public class AuthenticationImpl implements Authentication {
     }
 
     @Override
-    public boolean authenticate(Credentials credentials) {
-        Tree userTree = getUserTree();
-        if (userTree == null || userProvider.isDisabled(userTree)) {
+    public boolean authenticate(Credentials credentials) throws LoginException {
+        if (userId == null || userProvider == null) {
             return false;
+        }
+
+        Tree userTree = userProvider.getAuthorizable(userId, AuthorizableType.USER);
+        if (userTree == null) {
+            throw new LoginException("Unknown user " + userId);
+        }
+        if (userProvider.isDisabled(userTree)) {
+            throw new LoginException("User with ID " + userId + " has been disabled.");
         }
 
         boolean success;
         if (credentials instanceof SimpleCredentials) {
             SimpleCredentials creds = (SimpleCredentials) credentials;
             success = PasswordUtility.isSame(userProvider.getPasswordHash(userTree), creds.getPassword());
+            checkSuccess(success, "UserId/Password mismatch.");
         } else if (credentials instanceof ImpersonationCredentials) {
             AuthInfo info = ((ImpersonationCredentials) credentials).getImpersonatorInfo();
             success = impersonate(info, userTree);
+            checkSuccess(success, "Impersonation not allowed.");
         } else {
-            // guest login is allowed if an anonymous user exists in the content (see getUserTree above)
+            // guest login is allowed if an anonymous user exists in the content (see get user above)
             success = (credentials instanceof GuestCredentials);
         }
         return success;
     }
 
     //--------------------------------------------------------------------------
-    private Tree getUserTree() {
-        if (userProvider == null || userId == null) {
-            return null;
-        } else {
-            return userProvider.getAuthorizable(userId, AuthorizableType.USER);
+    private static void checkSuccess(boolean success, String msg) throws LoginException {
+        if (!success) {
+            throw new LoginException(msg);
         }
     }
 

@@ -31,31 +31,67 @@ import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
+/**
+ * {@code PropertyBuilder} for building in memory {@code PropertyState} instances.
+ * @param <T>
+ */
 public class MemoryPropertyBuilder<T> implements PropertyBuilder<T> {
     private final Type<T> type;
 
     private String name;
     private List<T> values = Lists.newArrayList();
 
+    /**
+     * Create a new instance for building {@code PropertyState} instances
+     * of the given {@code type}.
+     * @param type  type of the {@code PropertyState} instances to be built.
+     * @throws IllegalArgumentException if {@code type.isArray()} is {@code true}.
+     */
     public MemoryPropertyBuilder(Type<T> type) {
+        checkArgument(!type.isArray(), "type must not be array");
         this.type = type;
     }
 
+    /**
+     * Create a new instance for building {@code PropertyState} instances
+     * of the given {@code type}.
+     * @param type  type of the {@code PropertyState} instances to be built.
+     * @return {@code PropertyBuilder} for {@code type}
+     */
     public static <T> PropertyBuilder<T> create(Type<T> type) {
-        checkArgument(!type.isArray(), "type must not be array");
         return new MemoryPropertyBuilder<T>(type);
     }
 
+    /**
+     * Create a new instance for building {@code PropertyState} instances
+     * of the given {@code type}. The builder is initialised with the name and
+     * the values of {@code property}.
+     * Equivalent to
+     * <pre>
+     *     MemoryPropertyBuilder.create(type).assignFrom(property);
+     * </pre>
+     * @param type  type of the {@code PropertyState} instances to be built.
+     * @param property  initial name and values
+     * @return {@code PropertyBuilder} for {@code type}
+     */
     public static <T> PropertyBuilder<T> create(Type<T> type, PropertyState property) {
-        checkArgument(!type.isArray(), "type must not be array");
-        return new MemoryPropertyBuilder<T>(type)
-            .assignFrom(property);
+        return create(type).assignFrom(property);
     }
 
+    /**
+     * Create a new instance for building {@code PropertyState} instances
+     * of the given {@code type}. The builder is initialised with the
+     * given {@code name}.
+     * Equivalent to
+     * <pre>
+     *     MemoryPropertyBuilder.create(type).setName(name);
+     * </pre>
+     * @param type  type of the {@code PropertyState} instances to be built.
+     * @param name  initial name
+     * @return {@code PropertyBuilder} for {@code type}
+     */
     public static <T> PropertyBuilder<T> create(Type<T> type, String name) {
-        checkArgument(!type.isArray(), "type must not be array");
-        return new MemoryPropertyBuilder<T>(type)
-            .setName(name);
+        return create(type).setName(name);
     }
 
     @Override

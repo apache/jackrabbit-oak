@@ -18,8 +18,6 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
 /**
@@ -38,8 +36,7 @@ public class PropertyExistenceImpl extends ConstraintImpl {
 
     @Override
     public boolean evaluate() {
-        PropertyState p = selector.currentProperty(propertyName);
-        return p != null;
+        return selector.currentProperty(propertyName) != null;
     }
 
     @Override
@@ -59,7 +56,7 @@ public class PropertyExistenceImpl extends ConstraintImpl {
     @Override
     public void restrict(FilterImpl f) {
         if (f.getSelector() == selector) {
-            f.restrictProperty(propertyName, Operator.NOT_EQUAL, (CoreValue) null);
+            f.restrictProperty(propertyName, Operator.NOT_EQUAL, null);
         }
     }
 

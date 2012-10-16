@@ -18,12 +18,13 @@ package org.apache.jackrabbit.oak.plugins.commit;
 
 import java.util.List;
 
-import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+
+import com.google.common.collect.Lists;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
@@ -55,69 +56,69 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_O
 public class AnnotatingConflictHandler implements ConflictHandler {
 
     @Override
-    public Resolution addExistingProperty(Tree parent, PropertyState ours, PropertyState theirs) {
-        Tree marker = addConflictMarker(parent);
-        getOrCreateNode(marker, ADD_EXISTING).setProperty(ours);
+    public Resolution addExistingProperty(NodeBuilder parent, PropertyState ours, PropertyState theirs) {
+        NodeBuilder marker = addConflictMarker(parent);
+        marker.child(ADD_EXISTING).setProperty(ours);
         return Resolution.THEIRS;
     }
 
     @Override
-    public Resolution changeDeletedProperty(Tree parent, PropertyState ours) {
-        Tree marker = addConflictMarker(parent);
-        getOrCreateNode(marker, CHANGE_DELETED).setProperty(ours);
+    public Resolution changeDeletedProperty(NodeBuilder parent, PropertyState ours) {
+        NodeBuilder marker = addConflictMarker(parent);
+        marker.child(CHANGE_DELETED).setProperty(ours);
         return Resolution.THEIRS;
     }
 
     @Override
-    public Resolution changeChangedProperty(Tree parent, PropertyState ours, PropertyState theirs) {
-        Tree marker = addConflictMarker(parent);
-        getOrCreateNode(marker, CHANGE_CHANGED).setProperty(ours);
+    public Resolution changeChangedProperty(NodeBuilder parent, PropertyState ours, PropertyState theirs) {
+        NodeBuilder marker = addConflictMarker(parent);
+        marker.child(CHANGE_CHANGED).setProperty(ours);
         return Resolution.THEIRS;
     }
 
     @Override
-    public Resolution deleteChangedProperty(Tree parent, PropertyState theirs) {
-        Tree marker = addConflictMarker(parent);
-        getOrCreateNode(marker, DELETE_CHANGED).setProperty(theirs);
+    public Resolution deleteChangedProperty(NodeBuilder parent, PropertyState theirs) {
+        NodeBuilder marker = addConflictMarker(parent);
+        marker.child(DELETE_CHANGED).setProperty(theirs);
         return Resolution.THEIRS;
     }
 
     @Override
-    public Resolution deleteDeletedProperty(Tree parent, PropertyState ours) {
-        Tree marker = addConflictMarker(parent);
-        getOrCreateNode(marker, DELETE_DELETED).setProperty(ours);
+    public Resolution deleteDeletedProperty(NodeBuilder parent, PropertyState ours) {
+        NodeBuilder marker = addConflictMarker(parent);
+        marker.child(DELETE_DELETED).setProperty(ours);
         return Resolution.THEIRS;
     }
 
     @Override
-    public Resolution addExistingNode(Tree parent, String name, NodeState ours, NodeState theirs) {
-        Tree marker = addConflictMarker(parent);
-        addChild(getOrCreateNode(marker, ADD_EXISTING), name, ours);
+    public Resolution addExistingNode(NodeBuilder parent, String name, NodeState ours, NodeState theirs) {
+        NodeBuilder marker = addConflictMarker(parent);
+        addChild(marker.child(ADD_EXISTING), name, ours);
         return Resolution.THEIRS;
     }
 
     @Override
-    public Resolution changeDeletedNode(Tree parent, String name, NodeState ours) {
-        Tree marker = addConflictMarker(parent);
-        addChild(getOrCreateNode(marker, CHANGE_DELETED), name, ours);
+    public Resolution changeDeletedNode(NodeBuilder parent, String name, NodeState ours) {
+        NodeBuilder marker = addConflictMarker(parent);
+        addChild(marker.child(CHANGE_DELETED), name, ours);
         return Resolution.THEIRS;
     }
 
     @Override
-    public Resolution deleteChangedNode(Tree parent, String name, NodeState theirs) {
-        Tree marker = addConflictMarker(parent);
-        markChild(getOrCreateNode(marker, DELETE_CHANGED), name);
+    public Resolution deleteChangedNode(NodeBuilder parent, String name, NodeState theirs) {
+        NodeBuilder marker = addConflictMarker(parent);
+        markChild(marker.child(DELETE_CHANGED), name);
         return Resolution.THEIRS;
     }
 
     @Override
-    public Resolution deleteDeletedNode(Tree parent, String name) {
-        Tree marker = addConflictMarker(parent);
-        markChild(getOrCreateNode(marker, DELETE_DELETED), name);
+    public Resolution deleteDeletedNode(NodeBuilder parent, String name) {
+        NodeBuilder marker = addConflictMarker(parent);
+        markChild(marker.child(DELETE_DELETED), name);
         return Resolution.THEIRS;
     }
 
-    private static Tree addConflictMarker(Tree parent) {
+    private static NodeBuilder addConflictMarker(NodeBuilder parent) {
         PropertyState jcrMixin = parent.getProperty(JCR_MIXINTYPES);
         List<String> mixins;
         if (jcrMixin == null) {
@@ -131,19 +132,11 @@ public class AnnotatingConflictHandler implements ConflictHandler {
             parent.setProperty(JCR_MIXINTYPES, mixins, NAMES);
         }
 
-        return getOrCreateNode(parent, REP_OURS);
+        return parent.child(REP_OURS);
     }
 
-    private static Tree getOrCreateNode(Tree parent, String name) {
-        Tree child = parent.getChild(name);
-        if (child == null) {
-            child = parent.addChild(name);
-        }
-        return child;
-    }
-
-    private static void addChild(Tree parent, String name, NodeState state) {
-        Tree child = parent.addChild(name);
+    private static void addChild(NodeBuilder parent, String name, NodeState state) {
+        NodeBuilder child = parent.child(name);
         for (PropertyState property : state.getProperties()) {
             child.setProperty(property);
         }
@@ -152,8 +145,8 @@ public class AnnotatingConflictHandler implements ConflictHandler {
         }
     }
 
-    private static void markChild(Tree parent, String name) {
-        parent.addChild(name);
+    private static void markChild(NodeBuilder parent, String name) {
+        parent.child(name);
     }
 
 }

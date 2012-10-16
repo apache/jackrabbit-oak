@@ -61,7 +61,7 @@ public interface SessionQueryEngine {
      * @throws IllegalArgumentException if there was an error executing the query
      */
     Result executeQuery(String statement, String language,
-            long limit, long offset, Map<String, ? extends CoreValue> bindings,
+            long limit, long offset, Map<String, ? extends PropertyValue> bindings,
             Root root, NamePathMapper namePathMapper) throws ParseException;
 
     // TODO pass namespace mapping

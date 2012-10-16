@@ -26,11 +26,11 @@ import java.io.IOException;
 
 import javax.jcr.PropertyType;
 
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexDefinition;
-import org.apache.jackrabbit.oak.plugins.memory.CoreValues;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -220,28 +220,30 @@ class LuceneEditor implements CommitHook, LuceneIndexConstants {
             document.add(newPathField(path));
             for (PropertyState property : state.getProperties()) {
                 String pname = property.getName();
-                for (CoreValue value : CoreValues.getValues(property)) {
-                    document.add(newPropertyField(pname,
-                            parseStringValue(value)));
+                switch (property.getType().tag()) {
+                case PropertyType.BINARY:
+                    for (Blob v : property.getValue(Type.BINARIES)) {
+                        document.add(newPropertyField(pname,
+                                parseStringValue(v)));
+                    }
+                    break;
+                default:
+                    for (String v : property.getValue(Type.STRINGS)) {
+                        document.add(newPropertyField(pname, v));
+                    }
+                    break;
                 }
             }
             return document;
         }
 
-        private static String parseStringValue(CoreValue value) {
-            String string;
-            if (value.getType() != PropertyType.BINARY) {
-                string = value.getString();
-            } else {
-                try {
-                    string = TIKA.parseToString(value.getNewStream());
-                } catch (IOException e) {
-                    string = "";
-                } catch (TikaException e) {
-                    string = "";
-                }
+        private static String parseStringValue(Blob v) {
+            try {
+                return TIKA.parseToString(v.getNewStream());
+            } catch (IOException e) {
+            } catch (TikaException e) {
             }
-            return string;
+            return "";
         }
 
     }

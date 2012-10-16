@@ -23,15 +23,12 @@ import javax.jcr.UnsupportedRepositoryOperationException;
 
 import org.apache.jackrabbit.api.security.user.Impersonation;
 import org.apache.jackrabbit.api.security.user.User;
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.principal.TreeBasedPrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.PasswordUtility;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 /**
  * UserImpl...
@@ -104,6 +101,9 @@ class UserImpl extends AuthorizableImpl implements User {
      */
     @Override
     public void changePassword(String password) throws RepositoryException {
+        if (password == null) {
+            throw new RepositoryException("Attempt to set 'null' password for user " + getID());
+        }
         UserManagerImpl userManager = getUserManager();
         userManager.onPasswordChange(this, password);
         getUserProvider().setPassword(getTree(), password, true);
@@ -115,11 +115,7 @@ class UserImpl extends AuthorizableImpl implements User {
     @Override
     public void changePassword(String password, String oldPassword) throws RepositoryException {
         // make sure the old password matches.
-        String pwHash = null;
-        PropertyState pwProp = getTree().getProperty(REP_PASSWORD);
-        if (pwProp != null) {
-            pwHash = pwProp.getValue(STRING);
-        }
+        String pwHash = getUserProvider().getPasswordHash(getTree());
         if (!PasswordUtility.isSame(pwHash, oldPassword)) {
             throw new RepositoryException("Failed to change password: Old password does not match.");
         }

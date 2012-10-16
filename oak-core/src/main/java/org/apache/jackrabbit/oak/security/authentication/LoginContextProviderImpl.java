@@ -61,7 +61,7 @@ public class LoginContextProviderImpl implements LoginContextProvider {
         // TODO  - authentication against configurable spi-authentication
         // TODO  - validation of workspace name (including access rights for the given 'user')
         Subject subject = getSubject();
-        CallbackHandler handler = new CallbackHandlerImpl(credentials, workspaceName, nodeStore, securityProvider);
+        CallbackHandler handler = getCallbackHandler(credentials, workspaceName);
         return new JaasLoginContext(APP_NAME, subject, handler, configuration);
     }
 
@@ -77,5 +77,9 @@ public class LoginContextProviderImpl implements LoginContextProvider {
             subject = new Subject();
         }
         return subject;
+    }
+
+    private CallbackHandler getCallbackHandler(Credentials credentials, String workspaceName) {
+        return new CallbackHandlerImpl(credentials, workspaceName, nodeStore, securityProvider);
     }
 }

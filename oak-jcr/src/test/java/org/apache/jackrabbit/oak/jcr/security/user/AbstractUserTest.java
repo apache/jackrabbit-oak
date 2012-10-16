@@ -40,6 +40,8 @@ import org.junit.Before;
  */
 public abstract class AbstractUserTest extends AbstractJCRTest {
 
+    protected String testPw = "pw";
+
     protected UserManager userMgr;
     protected User user;
     protected Group group;
@@ -51,7 +53,7 @@ public abstract class AbstractUserTest extends AbstractJCRTest {
 
         userMgr = getUserManager(superuser);
 
-        user = userMgr.createUser(createUserId(), "pw");
+        user = userMgr.createUser(createUserId(), testPw);
         group = userMgr.createGroup(createGroupId());
         superuser.save();
     }

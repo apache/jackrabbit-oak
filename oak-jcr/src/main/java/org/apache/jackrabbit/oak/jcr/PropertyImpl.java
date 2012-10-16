@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.jcr;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
 
@@ -37,9 +38,9 @@ import javax.jcr.ValueFormatException;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.PropertyDefinition;
 
-import com.google.common.collect.Lists;
+import com.google.common.base.Predicates;
+import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Tree.Status;
-import org.apache.jackrabbit.oak.jcr.value.ValueConverter;
 import org.apache.jackrabbit.value.ValueHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -355,7 +356,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
                     throw new ValueFormatException(this + " is multi-valued.");
                 }
 
-                return ValueConverter.toValue(dlg.getValue(), sessionDelegate);
+                return dlg.getValue();
             }
         });
     }
@@ -372,7 +373,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
                     throw new ValueFormatException(this + " is not multi-valued.");
                 }
 
-                return ValueConverter.toValues(dlg.getValues(), sessionDelegate);
+                return Iterables.toArray(dlg.getValues(), Value.class);
             }
         });
     }
@@ -696,14 +697,11 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
             dlg.remove();
         } else {
             Value[] targetValues = ValueHelper.convert(values, requiredType, sessionDelegate.getValueFactory());
-            List<Value> vs = Lists.newArrayList();
-            for (Value value : targetValues) {
-                if (value != null) {
-                    vs.add(value);
-                }
-            }
+            Iterable<Value> nonNullValues = Iterables.filter(
+                    Arrays.asList(targetValues),
+                    Predicates.notNull());
 
-            dlg.setValues(vs.toArray(new Value[vs.size()]));
+            dlg.setValues(nonNullValues);
         }
     }
 

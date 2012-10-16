@@ -30,6 +30,12 @@ public class StringPropertyState extends SinglePropertyState {
         this.value = value;
     }
 
+    /**
+     * Utility method defining the conversion from {@code String}
+     * to {@code boolean}.
+     * @param value  The string to convert to a boolean
+     * @return  The boolean value parsed from {@code value}
+     */
     public static boolean getBoolean(String value) {
         return Boolean.parseBoolean(value);
     }
