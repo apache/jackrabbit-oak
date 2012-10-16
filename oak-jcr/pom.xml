@@ -276,10 +276,16 @@
       org.apache.jackrabbit.oak.jcr.security.user.AuthorizableTest#testSetSpecialPropertiesDirectly         <!-- OAK-250 -->
       org.apache.jackrabbit.oak.jcr.security.user.AuthorizableTest#testRemoveSpecialUserPropertiesDirectly  <!-- OAK-250 -->
       org.apache.jackrabbit.oak.jcr.security.user.AuthorizableTest#testRemoveSpecialGroupPropertiesDirectly <!-- OAK-250 -->
-      org.apache.jackrabbit.oak.jcr.security.user.UserManagerTest#testUnknownUserLogin             <!-- due to dummy login -->
-      org.apache.jackrabbit.oak.jcr.security.user.UserTest#testChangePassword2                     <!-- due to dummy login -->
-      org.apache.jackrabbit.oak.jcr.security.user.UserTest#testChangePasswordWithOldPassword2      <!-- due to dummy login -->
-      org.apache.jackrabbit.oak.jcr.security.user.UserTest#testDisable                             <!-- due to dummy login -->
+      org.apache.jackrabbit.oak.jcr.security.principal.PrincipalManagerTest#testGetPrincipals            <!-- principal search missing -->
+      org.apache.jackrabbit.oak.jcr.security.principal.PrincipalManagerTest#testGetGroupPrincipals       <!-- principal search missing -->
+      org.apache.jackrabbit.oak.jcr.security.principal.PrincipalManagerTest#testGetAllPrincipals         <!-- principal search missing -->
+      org.apache.jackrabbit.oak.jcr.security.principal.PrincipalManagerTest#testGroupMembers             <!-- principal search missing -->
+      org.apache.jackrabbit.oak.jcr.security.principal.PrincipalManagerTest#testGroupMembership          <!-- principal search missing -->
+      org.apache.jackrabbit.oak.jcr.security.principal.PrincipalManagerTest#testGetMembersConsistentWithMembership <!-- principal search missing -->
+      org.apache.jackrabbit.oak.jcr.security.principal.PrincipalManagerTest#testFindPrincipal            <!-- principal search missing -->
+      org.apache.jackrabbit.oak.jcr.security.principal.PrincipalManagerTest#testFindPrincipalByType      <!-- principal search missing -->
+      org.apache.jackrabbit.oak.jcr.security.principal.PrincipalManagerTest#testFindPrincipalByTypeAll   <!-- principal search missing -->
+      org.apache.jackrabbit.oak.jcr.security.principal.PrincipalManagerTest#testFindEveryone             <!-- principal search missing -->
     </known.issues>
   </properties>
 
