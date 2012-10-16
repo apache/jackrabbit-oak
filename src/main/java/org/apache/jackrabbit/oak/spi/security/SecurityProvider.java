@@ -23,6 +23,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvide
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
@@ -35,10 +36,13 @@ public interface SecurityProvider {
     LoginContextProvider getLoginContextProvider(NodeStore nodeStore);
 
     @Nonnull
+    TokenProvider getTokenProvider(Root root, ConfigurationParameters options);
+
+    @Nonnull
     AccessControlProvider getAccessControlProvider();
 
     @Nonnull
-    TokenProvider getTokenProvider(Root root, ConfigurationParameters options);
+    PrivilegeConfiguration getPrivilegeConfiguration();
 
     @Nonnull
     UserConfiguration getUserConfiguration();

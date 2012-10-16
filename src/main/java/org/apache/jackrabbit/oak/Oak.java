@@ -37,6 +37,8 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Builder class for constructing {@link ContentRepository} instances with
@@ -47,6 +49,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
  * @since Oak 0.6
  */
 public class Oak {
+
+    private static final Logger log = LoggerFactory.getLogger(Oak.class);
 
     private final MicroKernel kernel;
 
@@ -142,8 +146,13 @@ public class Oak {
     public Oak with(@Nonnull SecurityProvider securityProvider) {
         this.securityProvider = securityProvider;
 
-        validatorProviders.addAll(securityProvider.getAccessControlProvider().getValidatorProviders());
-        validatorProviders.addAll(securityProvider.getUserConfiguration().getValidatorProviders());
+        try {
+            validatorProviders.addAll(securityProvider.getAccessControlProvider().getValidatorProviders());
+            validatorProviders.addAll(securityProvider.getUserConfiguration().getValidatorProviders());
+            validatorProviders.addAll(securityProvider.getPrivilegeConfiguration().getValidatorProviders());
+        } catch (UnsupportedOperationException e) {
+            log.info(e.getMessage());
+        }
         return this;
     }
 

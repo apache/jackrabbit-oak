@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeProvider;
 import org.apache.jackrabbit.oak.util.NodeUtil;
@@ -37,8 +38,6 @@ import org.apache.jackrabbit.oak.util.NodeUtil;
  *
  * TODO: define if/how built-in privileges are reflected in the mk
  * TODO: define if custom privileges are read with editing content session (thus enforcing read permissions)
- *
- * FIXME: Privilege registation should result in Session#refresh in order to have the new privilege also exposed in the content.
  */
 public class PrivilegeRegistry implements PrivilegeProvider, PrivilegeConstants {
 
@@ -58,7 +57,7 @@ public class PrivilegeRegistry implements PrivilegeProvider, PrivilegeConstants 
     public PrivilegeRegistry(ContentSession contentSession, Root root) {
         this.contentSession = contentSession;
         this.root = root;
-        this.definitions = readDefinitions(root);
+        this.definitions = getAllDefinitions(new PrivilegeDefinitionReader(root));
     }
 
     static Map<String, PrivilegeDefinition> getAllDefinitions(PrivilegeDefinitionReader reader) {
@@ -73,14 +72,14 @@ public class PrivilegeRegistry implements PrivilegeProvider, PrivilegeConstants 
             definitions.put(privilegeName, def);
         }
 
-        // add custom definitions
-        definitions.putAll(reader.readDefinitions());
+        updateCustomDefinitions(reader, definitions);
         updateJcrAllPrivilege(definitions);
+
         return definitions;
     }
 
-    private Map<String, PrivilegeDefinition> readDefinitions(Root root) {
-        return getAllDefinitions(new PrivilegeDefinitionReader(root));
+    private static void updateCustomDefinitions(PrivilegeDefinitionReader reader, Map<String, PrivilegeDefinition> definitions) {
+        definitions.putAll(reader.readDefinitions());
     }
 
     private static void updateJcrAllPrivilege(Map<String, PrivilegeDefinition> definitions) {
@@ -93,7 +92,8 @@ public class PrivilegeRegistry implements PrivilegeProvider, PrivilegeConstants 
     @Override
     public void refresh() {
         // re-read the definitions (TODO: evaluate if it was better to always read privileges on demand only.)
-        definitions.putAll(readDefinitions(root));
+        updateCustomDefinitions(new PrivilegeDefinitionReader(root), definitions);
+        updateJcrAllPrivilege(definitions);
     }
 
     @Nonnull
@@ -144,7 +144,7 @@ public class PrivilegeRegistry implements PrivilegeProvider, PrivilegeConstants 
             }
         }
 
-        // TODO: should be covered by refresh instead
+        root.refresh();
         definitions.put(toRegister.getName(), toRegister);
         updateJcrAllPrivilege(definitions);
     }
