@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authentication;
+package org.apache.jackrabbit.oak.security.authentication.user;
 
 import java.util.Collections;
 import javax.jcr.Credentials;
@@ -56,7 +56,7 @@ import org.slf4j.LoggerFactory;
  * will return {@code false} indicating that this implementation is not able
  * to verify their validity.
  */
-public class UserAuthentication implements Authentication {
+class UserAuthentication implements Authentication {
 
     private static final Logger log = LoggerFactory.getLogger(UserAuthentication.class);
 
@@ -64,7 +64,7 @@ public class UserAuthentication implements Authentication {
     private final UserProvider userProvider;
     private final PrincipalProvider principalProvider;
 
-    public UserAuthentication(String userId, UserProvider userProvider, PrincipalProvider principalProvider) {
+    UserAuthentication(String userId, UserProvider userProvider, PrincipalProvider principalProvider) {
         this.userId = userId;
         this.userProvider = userProvider;
         this.principalProvider = principalProvider;
