@@ -38,15 +38,15 @@ import org.slf4j.LoggerFactory;
 /**
  * AuthenticationImpl...
  */
-public class AuthenticationImpl implements Authentication {
+public class UserAuthentication implements Authentication {
 
-    private static final Logger log = LoggerFactory.getLogger(AuthenticationImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(UserAuthentication.class);
 
     private final String userId;
     private final UserProvider userProvider;
     private final PrincipalProvider principalProvider;
 
-    public AuthenticationImpl(String userId, UserProvider userProvider, PrincipalProvider principalProvider) {
+    public UserAuthentication(String userId, UserProvider userProvider, PrincipalProvider principalProvider) {
         this.userId = userId;
         this.userProvider = userProvider;
         this.principalProvider = principalProvider;
