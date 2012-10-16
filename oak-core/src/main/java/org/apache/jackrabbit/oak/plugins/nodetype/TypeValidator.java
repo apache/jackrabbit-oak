@@ -31,15 +31,13 @@ import javax.jcr.nodetype.PropertyDefinition;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.memory.CoreValues;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.value.ValueImpl;
+import org.apache.jackrabbit.oak.value.ValueFactoryImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -247,29 +245,29 @@ class TypeValidator implements Validator {
                 return;
             }
             if (property.isArray()) {
-                checkSetProperty(property.getName(), CoreValues.getValues(property));
+                List<Value> values = ValueFactoryImpl.createValues(property, mapper);
+                checkSetProperty(property.getName(), values);
             }
             else {
-                checkSetProperty(property.getName(), CoreValues.getValue(property));
+                Value value = ValueFactoryImpl.createValue(property, mapper);
+                checkSetProperty(property.getName(), value);
             }
         }
 
-        private void checkSetProperty(final String propertyName, final List<CoreValue> values)
+        private void checkSetProperty(final String propertyName, List<Value> values)
                 throws ConstraintViolationException {
-            Value[] jcrValues = jcrValues(values);
+            Value[] valueArray = values.toArray(new Value[values.size()]);
             for (NodeType nodeType : allTypes) {
-                if (nodeType.canSetProperty(propertyName, jcrValues)) {
+                if (nodeType.canSetProperty(propertyName, valueArray)) {
                     return;
                 }
             }
             throw new ConstraintViolationException("Cannot set property '" + propertyName + "' to '" + values + '\'');
         }
 
-        private void checkSetProperty(final String propertyName, final CoreValue value)
-                throws ConstraintViolationException {
-            Value jcrValue = jcrValue(value);
+        private void checkSetProperty(final String propertyName, Value value) throws ConstraintViolationException {
             for (NodeType nodeType : allTypes) {
-                if (nodeType.canSetProperty(propertyName, jcrValue)) {
+                if (nodeType.canSetProperty(propertyName, value)) {
                     return;
                 }
             }
@@ -344,21 +342,6 @@ class TypeValidator implements Validator {
                 }
             }
             return false;
-        }
-
-        private Value[] jcrValues(List<CoreValue> values) {
-            Value[] jcrValues = new  Value[values.size()];
-
-            int k = 0;
-            for (CoreValue value : values) {
-                jcrValues[k++] = jcrValue(value);
-            }
-
-            return jcrValues;
-        }
-
-        private Value jcrValue(CoreValue value) {
-            return new ValueImpl(value, mapper);
         }
 
     }

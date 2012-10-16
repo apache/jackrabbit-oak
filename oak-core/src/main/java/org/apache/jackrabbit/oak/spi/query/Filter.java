@@ -19,9 +19,10 @@
 package org.apache.jackrabbit.oak.spi.query;
 
 import java.util.Collection;
+
 import javax.jcr.PropertyType;
 
-import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.PropertyValue;
 
 /**
  * The filter for an index lookup.
@@ -79,7 +80,7 @@ public interface Filter {
         /**
          * The first value to read, or null to read from the beginning.
          */
-        public CoreValue first;
+        public PropertyValue first;
 
         /**
          * Whether values that match the first should be returned.
@@ -89,7 +90,7 @@ public interface Filter {
         /**
          * The last value to read, or null to read until the end.
          */
-        public CoreValue last;
+        public PropertyValue last;
 
         /**
          * Whether values that match the last should be returned.

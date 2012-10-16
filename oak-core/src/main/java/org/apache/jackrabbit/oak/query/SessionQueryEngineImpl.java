@@ -20,7 +20,7 @@ import java.text.ParseException;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.SessionQueryEngine;
@@ -53,7 +53,7 @@ public class SessionQueryEngineImpl implements SessionQueryEngine {
 
     @Override
     public Result executeQuery(String statement, String language, long limit,
-            long offset, Map<String, ? extends CoreValue> bindings, Root root,
+            long offset, Map<String, ? extends PropertyValue> bindings, Root root,
             NamePathMapper namePathMapper) throws ParseException {
         return queryEngine.executeQuery(statement, language, limit, offset,
                 bindings, root, namePathMapper);

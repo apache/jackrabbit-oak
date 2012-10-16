@@ -17,14 +17,15 @@
 package org.apache.jackrabbit.oak.core;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
 import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.oak.api.AuthInfo;
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.CoreValueFactory;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandlerProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
@@ -82,6 +83,11 @@ class ContentSessionImpl implements ContentSession {
     }
 
     @Override
+    public Blob createBlob(InputStream inputStream) throws IOException {
+        return store.createBlob(inputStream);
+    }
+
+    @Override
     public synchronized void close() throws IOException {
         try {
             loginContext.logout();
@@ -95,9 +101,4 @@ class ContentSessionImpl implements ContentSession {
         return workspaceName;
     }
 
-    @Nonnull
-    @Override
-    public CoreValueFactory getCoreValueFactory() {
-        return store.getValueFactory();
-    }
 }

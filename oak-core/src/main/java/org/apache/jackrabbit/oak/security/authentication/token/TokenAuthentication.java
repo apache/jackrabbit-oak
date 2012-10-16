@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.security.authentication.token;
 import java.util.Date;
 import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
+import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
@@ -48,13 +49,15 @@ class TokenAuthentication implements Authentication {
 
     //-----------------------------------------------------< Authentication >---
     @Override
-    public boolean authenticate(Credentials credentials) {
-        boolean success = false;
-        if (credentials instanceof TokenCredentials) {
+    public boolean authenticate(Credentials credentials) throws LoginException {
+        if (tokenProvider != null && credentials instanceof TokenCredentials) {
             TokenCredentials tc = (TokenCredentials) credentials;
-            success = validateCredentials(tc);
+            if (!validateCredentials(tc)) {
+                throw new LoginException("Invalid token credentials.");
+            }
         }
-        return success;
+        // no tokenProvider or other credentials implementation -> not handled here.
+        return false;
     }
 
     //-----------------------------------------------------------< internal >---
@@ -74,7 +77,7 @@ class TokenAuthentication implements Authentication {
 
         tokenInfo = tokenProvider.getTokenInfo(token);
         if (tokenInfo == null) {
-            log.debug("Invalid token credentials");
+            log.debug("No valid TokenInfo for token.");
             return false;
         }
 

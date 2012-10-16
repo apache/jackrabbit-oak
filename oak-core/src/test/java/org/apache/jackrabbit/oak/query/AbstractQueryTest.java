@@ -16,10 +16,6 @@
  */
 package org.apache.jackrabbit.oak.query;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -33,22 +29,28 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.AbstractOakTest;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.CoreValueFactory;
+import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.SessionQueryEngine;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * AbstractQueryTest...
@@ -60,7 +62,6 @@ public abstract class AbstractQueryTest extends AbstractOakTest implements
     protected static final String TEST_INDEX_HOME = DEFAULT_INDEX_HOME;
     protected static final String INDEX_DEFINITION_NODE_TYPE = "nam:oak:queryIndexDefinition";
 
-    protected CoreValueFactory vf;
     protected SessionQueryEngine qe;
     protected ContentSession session;
     protected Root root;
@@ -72,7 +73,6 @@ public abstract class AbstractQueryTest extends AbstractOakTest implements
         session = createAdminSession();
         root = session.getLatestRoot();
         qe = root.getQueryEngine();
-        vf = root.getValueFactory();
         createTestIndexNode();
     }
 
@@ -107,7 +107,7 @@ public abstract class AbstractQueryTest extends AbstractOakTest implements
     }
 
     protected Result executeQuery(String statement, String language,
-            HashMap<String, CoreValue> sv) throws ParseException {
+            Map<String, PropertyValue> sv) throws ParseException {
         return qe.executeQuery(statement, language, Long.MAX_VALUE, 0, sv,
                 session.getLatestRoot(), null);
     }
@@ -137,19 +137,18 @@ public abstract class AbstractQueryTest extends AbstractOakTest implements
     public void bindVariableTest() throws Exception {
         JsopUtil.apply(
                 root,
-                "/ + \"test\": { \"hello\": {\"id\": \"1\"}, \"world\": {\"id\": \"2\"}}",
-                vf);
+                "/ + \"test\": { \"hello\": {\"id\": \"1\"}, \"world\": {\"id\": \"2\"}}");
         root.commit();
 
-        HashMap<String, CoreValue> sv = new HashMap<String, CoreValue>();
-        sv.put("id", vf.createValue("1"));
+        Map<String, PropertyValue> sv = new HashMap<String, PropertyValue>();
+        sv.put("id", PropertyValues.newString("1"));
         Iterator<? extends ResultRow> result;
         result = executeQuery("select * from [nt:base] where id = $id",
                 QueryEngineImpl.SQL2, sv).getRows().iterator();
         assertTrue(result.hasNext());
         assertEquals("/test/hello", result.next().getPath());
 
-        sv.put("id", vf.createValue("2"));
+        sv.put("id", PropertyValues.newString("2"));
         result = executeQuery("select * from [nt:base] where id = $id",
                 QueryEngineImpl.SQL2, sv).getRows().iterator();
         assertTrue(result.hasNext());
@@ -246,7 +245,7 @@ public abstract class AbstractQueryTest extends AbstractOakTest implements
                 } else if (line.startsWith("commit")) {
                     w.println(line);
                     line = line.substring("commit".length()).trim();
-                    JsopUtil.apply(root, line, vf);
+                    JsopUtil.apply(root, line);
                     root.commit();
                 }
                 w.flush();
@@ -288,13 +287,13 @@ public abstract class AbstractQueryTest extends AbstractOakTest implements
 
     protected static String readRow(ResultRow row) {
         StringBuilder buff = new StringBuilder();
-        CoreValue[] values = row.getValues();
+        PropertyValue[] values = row.getValues();
         for (int i = 0; i < values.length; i++) {
             if (i > 0) {
                 buff.append(", ");
             }
-            CoreValue v = values[i];
-            buff.append(v == null ? "null" : v.getString());
+            PropertyValue v = values[i];
+            buff.append(v == null ? "null" : v.getValue(Type.STRING));
         }
         return buff.toString();
     }

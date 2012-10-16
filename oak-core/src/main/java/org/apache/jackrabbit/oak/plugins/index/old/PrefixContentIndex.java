@@ -22,6 +22,7 @@ import java.util.Iterator;
 
 import javax.jcr.PropertyType;
 
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.kernel.TypeCodes;
 import org.apache.jackrabbit.oak.query.index.IndexRowImpl;
@@ -80,7 +81,7 @@ public class PrefixContentIndex implements QueryIndex {
             throw new IllegalArgumentException("No restriction for *");
         }
         // TODO need to use correct json representation
-        String v = restriction.first.getString();
+        String v = restriction.first.getValue(Type.STRING);
         v = index.getPrefix() + v;
         return "prefixIndex \"" + v + '"';
     }
@@ -92,7 +93,7 @@ public class PrefixContentIndex implements QueryIndex {
             throw new IllegalArgumentException("No restriction for *");
         }
         // TODO need to use correct json representation
-        String v = restriction.first.getString();
+        String v = restriction.first.getValue(Type.STRING);
         v = index.getPrefix() + v;
         // TODO revisit code after the removal of revisionId
         String revisionId = "";

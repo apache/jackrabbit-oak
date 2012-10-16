@@ -21,11 +21,13 @@ package org.apache.jackrabbit.oak.query.ast;
 import java.text.ParseException;
 import java.util.ArrayList;
 
-import org.apache.jackrabbit.oak.api.CoreValue;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.query.ast.ComparisonImpl.LikePattern;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
+import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
@@ -77,7 +79,7 @@ public class FullTextSearchImpl extends ConstraintImpl {
     public boolean evaluate() {
         StringBuilder buff = new StringBuilder();
         if (propertyName != null) {
-            PropertyState p = selector.currentProperty(propertyName);
+            PropertyValue p = selector.currentProperty(propertyName);
             if (p == null) {
                 return false;
             }
@@ -88,23 +90,23 @@ public class FullTextSearchImpl extends ConstraintImpl {
                 return false;
             }
             for (PropertyState p : tree.getProperties()) {
-                appendString(buff, p);
+                appendString(buff, PropertyValues.create(p));
             }
         }
         // TODO fulltext conditions: need a way to disable evaluation
         // if a fulltext index is used, to avoid filtering too much
         // (we don't know what exact options are used in the fulltext index)
         // (stop word, special characters,...)
-        CoreValue v = fullTextSearchExpression.currentValue();
+        PropertyValue v = fullTextSearchExpression.currentValue();
         try {
-            FullTextExpression expr = FullTextParser.parse(v.getString());
+            FullTextExpression expr = FullTextParser.parse(v.getValue(Type.STRING));
             return expr.evaluate(buff.toString());
         } catch (ParseException e) {
             throw new IllegalArgumentException("Invalid expression: " + fullTextSearchExpression, e);
         }
     }
 
-    private static void appendString(StringBuilder buff, PropertyState p) {
+    private static void appendString(StringBuilder buff, PropertyValue p) {
         if (p.isArray()) {
             for (String v : p.getValue(STRINGS)) {
                 buff.append(v).append(' ');
@@ -122,10 +124,10 @@ public class FullTextSearchImpl extends ConstraintImpl {
     public void restrict(FilterImpl f) {
         if (propertyName != null) {
             if (f.getSelector() == selector) {
-                f.restrictProperty(propertyName, Operator.NOT_EQUAL, (CoreValue) null);
+                f.restrictProperty(propertyName, Operator.NOT_EQUAL, null);
             }
         }
-        f.restrictFulltextCondition(fullTextSearchExpression.currentValue().getString());
+        f.restrictFulltextCondition(fullTextSearchExpression.currentValue().getValue(Type.STRING));
     }
 
     @Override

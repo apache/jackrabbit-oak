@@ -19,25 +19,11 @@ package org.apache.jackrabbit.oak.api;
 import javax.annotation.Nonnull;
 
 /**
- * Immutable property state. A property consists of a name and a value.
+ * Immutable property value.
  * A value is either an atom or an array of atoms.
  *
- * <h2>Equality and hash codes</h2>
- * <p>
- * Two property states are considered equal if and only if their names and
- * values match. The {@link Object#equals(Object)} method needs to
- * be implemented so that it complies with this definition. And while
- * property states are not meant for use as hash keys, the
- * {@link Object#hashCode()} method should still be implemented according
- * to this equality contract.
  */
-public interface PropertyState {
-
-    /**
-     * @return the name of this property state
-     */
-    @Nonnull
-    String getName();
+public interface PropertyValue extends Comparable<PropertyValue> {
 
     /**
      * Determine whether the value is an array of atoms
@@ -46,13 +32,13 @@ public interface PropertyState {
     boolean isArray();
 
     /**
-     * Determine the type of this property
-     * @return the type of this property
+     * Determine the type of this value
+     * @return the type of this value
      */
     Type<?> getType();
 
     /**
-     * Value of this property.
+     * Value of this object.
      * The type of the return value is determined by the target {@code type}
      * argument. If {@code type.isArray()} is true, this method returns an
      * {@code Iterable} of the {@link Type#getBaseType() base type} of
@@ -83,7 +69,7 @@ public interface PropertyState {
      * @param type target type
      * @param index
      * @param <T>
-     * @return the value of this property at the given {@code index}
+     * @return the value of this object at the given {@code index}
      * @throws IndexOutOfBoundsException  if {@code index} is less than {@code 0} or
      *         greater or equals {@code count()}.
      * @throws IllegalArgumentException  if {@code type} refers to an unknown type or if
@@ -93,7 +79,7 @@ public interface PropertyState {
     <T> T getValue(Type<T> type, int index);
 
     /**
-     * The size of the value of this property.
+     * The size of the value of this object.
      * @return size of the value of this property
      * @throws IllegalStateException  if the value is an array
      */
@@ -109,7 +95,7 @@ public interface PropertyState {
     long size(int index);
 
     /**
-     * The number of values of this property. {@code 1} for atoms.
+     * The number of values of this object. {@code 1} for atoms.
      * @return number of values
      */
     int count();

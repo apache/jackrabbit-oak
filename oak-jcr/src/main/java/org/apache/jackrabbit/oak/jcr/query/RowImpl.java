@@ -22,7 +22,8 @@ import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.query.Row;
-import org.apache.jackrabbit.oak.api.CoreValue;
+
+import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.ResultRow;
 
 /**
@@ -89,7 +90,7 @@ public class RowImpl implements Row {
 
     @Override
     public Value[] getValues() throws RepositoryException {
-        CoreValue[] values = row.getValues();
+        PropertyValue[] values = row.getValues();
         int len = values.length;
         Value[] v2 = new Value[values.length];
         for (int i = 0; i < len; i++) {

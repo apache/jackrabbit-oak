@@ -18,7 +18,8 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.PropertyValue;
+
 
 /**
  * A bind variable.
@@ -46,7 +47,7 @@ public class BindVariableValueImpl extends StaticOperandImpl {
     }
 
     @Override
-    CoreValue currentValue() {
+    PropertyValue currentValue() {
         return query.getBindVariableValue(bindVariableName);
     }
 

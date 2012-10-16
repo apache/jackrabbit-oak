@@ -22,7 +22,6 @@ import java.util.Map;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.CoreValues;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -109,22 +108,22 @@ class PropertyIndexDiff implements NodeStateDiff {
     @Override
     public void propertyAdded(PropertyState after) {
         for (PropertyIndexUpdate update : getIndexes(after.getName())) {
-            update.insert(getPath(), CoreValues.getValues(after));
+            update.insert(getPath(), after);
         }
     }
 
     @Override
     public void propertyChanged(PropertyState before, PropertyState after) {
         for (PropertyIndexUpdate update : getIndexes(after.getName())) {
-            update.remove(getPath(), CoreValues.getValues(before));
-            update.insert(getPath(), CoreValues.getValues(after));
+            update.remove(getPath(), before);
+            update.insert(getPath(), after);
         }
     }
 
     @Override
     public void propertyDeleted(PropertyState before) {
         for (PropertyIndexUpdate update : getIndexes(before.getName())) {
-            update.remove(getPath(), CoreValues.getValues(before));
+            update.remove(getPath(), before);
         }
     }
 

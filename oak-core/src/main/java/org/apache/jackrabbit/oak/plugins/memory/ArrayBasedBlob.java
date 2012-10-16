@@ -20,14 +20,27 @@ package org.apache.jackrabbit.oak.plugins.memory;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 
 import javax.annotation.Nonnull;
 
+/**
+ * This {@code Blob} implementations is based on an array of bytes.
+ */
 public class ArrayBasedBlob extends AbstractBlob {
     private final byte[] value;
 
     public ArrayBasedBlob(byte[] value) {
         this.value = value;
+    }
+
+    @Override
+    public String toString() {
+        try {
+            return new String(value, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            return "<blob>";
+        }
     }
 
     @Nonnull

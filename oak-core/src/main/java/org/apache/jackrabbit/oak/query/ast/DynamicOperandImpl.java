@@ -16,8 +16,7 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import org.apache.jackrabbit.oak.api.CoreValue;
-import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
 /**
@@ -25,9 +24,9 @@ import org.apache.jackrabbit.oak.query.index.FilterImpl;
  */
 public abstract class DynamicOperandImpl extends AstElement {
 
-    public abstract PropertyState currentProperty();
+    public abstract PropertyValue currentProperty();
 
-    public abstract void restrict(FilterImpl f, Operator operator, CoreValue v);
+    public abstract void restrict(FilterImpl f, Operator operator, PropertyValue v);
 
     /**
      * Check whether the condition can be applied to a selector (to restrict the

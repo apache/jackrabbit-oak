@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.jcr.observation;
+package org.apache.jackrabbit.oak.plugins.observation;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -28,24 +28,24 @@ import javax.jcr.observation.EventListener;
 import javax.jcr.observation.EventListenerIterator;
 import javax.jcr.observation.ObservationManager;
 
+import com.google.common.base.Preconditions;
 import org.apache.jackrabbit.commons.iterator.EventListenerIteratorAdapter;
-import org.apache.jackrabbit.oak.api.ChangeExtractor;
-import org.apache.jackrabbit.oak.jcr.SessionDelegate;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.core.RootImpl;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.spi.observation.ChangeExtractor;
 
 public class ObservationManagerImpl implements ObservationManager {
-
-    private final SessionDelegate sessionDelegate;
-
+    private final RootImpl root;
+    private final NamePathMapper namePathMapper;
     private final ScheduledExecutorService executor;
-
-    private final Map<EventListener, ChangeProcessor> processors =
-            new HashMap<EventListener, ChangeProcessor>();
-
+    private final Map<EventListener, ChangeProcessor> processors = new HashMap<EventListener, ChangeProcessor>();
     private final AtomicBoolean hasEvents = new AtomicBoolean(false);
 
-    public ObservationManagerImpl(SessionDelegate sessionDelegate, ScheduledExecutorService executor) {
-        this.sessionDelegate = sessionDelegate;
+    public ObservationManagerImpl(Root root, NamePathMapper namePathMapper, ScheduledExecutorService executor) {
+        Preconditions.checkArgument(root instanceof RootImpl, "root must be of actual type RootImpl");
+        this.root = ((RootImpl) root);
+        this.namePathMapper = namePathMapper;
         this.executor = executor;
     }
 
@@ -112,11 +112,11 @@ public class ObservationManagerImpl implements ObservationManager {
     //------------------------------------------------------------< internal >---
 
     NamePathMapper getNamePathMapper() {
-        return sessionDelegate.getNamePathMapper();
+        return namePathMapper;
     }
 
     ChangeExtractor getChangeExtractor() {
-        return sessionDelegate.getChangeExtractor();
+        return root.getChangeExtractor();
     }
 
     void setHasEvents() {

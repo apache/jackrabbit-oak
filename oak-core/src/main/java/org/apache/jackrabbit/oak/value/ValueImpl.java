@@ -32,49 +32,66 @@ import javax.jcr.ValueFormatException;
 import com.google.common.base.Charsets;
 import com.google.common.io.CharStreams;
 import com.google.common.io.InputSupplier;
-import org.apache.jackrabbit.oak.api.CoreValue;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 /**
- * ValueImpl...
+ * Implementation of {@link Value} based on {@code PropertyState}.
  */
 public class ValueImpl implements Value {
-
-    /**
-     * logger instance
-     */
     private static final Logger log = LoggerFactory.getLogger(ValueImpl.class);
 
-    private final CoreValue value;
+    private final PropertyState propertyState;
+    private final int index;
     private final NamePathMapper namePathMapper;
 
     private InputStream stream = null;
 
     /**
-     * Constructs a {@code ValueImpl} object based on a {@code CoreValue}
-     *
-     * @param value the value object this {@code ValueImpl} should represent
-     * @param namePathMapper
+     * Create a new {@code Value} instance
+     * @param property  The property state this instance is based on
+     * @param index  The index
+     * @param namePathMapper The name/path mapping used for converting JCR names/paths to
+     * the internal representation.
+     * @throws IllegalArgumentException if {@code index < propertyState.count()}
      */
-    public ValueImpl(CoreValue value, NamePathMapper namePathMapper) {
-        this.value = value;
+    ValueImpl(PropertyState property, int index, NamePathMapper namePathMapper) {
+        checkArgument(index < property.count());
+        this.propertyState = property;
+        this.index = index;
         this.namePathMapper = namePathMapper;
     }
 
-    CoreValue unwrap() {
-        return value;
+    /**
+     * Create a new {@code Value} instance
+     * @param property  The property state this instance is based on
+     * @param namePathMapper The name/path mapping used for converting JCR names/paths to
+     * the internal representation.
+     * @throws IllegalArgumentException if {@code property.isArray()} is {@code true}.
+     */
+    ValueImpl(PropertyState property, NamePathMapper namePathMapper) {
+        this(checkSingleValued(property), 0, namePathMapper);
+    }
+
+    private static PropertyState checkSingleValued(PropertyState property) {
+        checkArgument(!property.isArray());
+        return property;
     }
 
     //--------------------------------------------------------------< Value >---
+
     /**
      * @see javax.jcr.Value#getType()
      */
     @Override
     public int getType() {
-        return value.getType();
+        return propertyState.getType().tag();
     }
 
     /**
@@ -83,7 +100,7 @@ public class ValueImpl implements Value {
     @Override
     public boolean getBoolean() throws RepositoryException {
         if (getType() == PropertyType.STRING || getType() == PropertyType.BINARY || getType() == PropertyType.BOOLEAN) {
-            return value.getBoolean();
+            return propertyState.getValue(Type.BOOLEAN, index);
         } else {
             throw new ValueFormatException("Incompatible type " + PropertyType.nameFromValue(getType()));
         }
@@ -122,7 +139,7 @@ public class ValueImpl implements Value {
                     Calendar cal = getDate();
                     return BigDecimal.valueOf(cal.getTimeInMillis());
                 default:
-                    return value.getDecimal();
+                    return propertyState.getValue(Type.DECIMAL, index);
             }
         } catch (NumberFormatException e) {
             throw new ValueFormatException("Incompatible type " + PropertyType.nameFromValue(getType()));
@@ -140,7 +157,7 @@ public class ValueImpl implements Value {
                     Calendar cal = getDate();
                     return cal.getTimeInMillis();
                 default:
-                    return value.getDouble();
+                    return propertyState.getValue(Type.DOUBLE, index);
             }
         } catch (NumberFormatException e) {
             throw new ValueFormatException("Incompatible type " + PropertyType.nameFromValue(getType()));
@@ -158,7 +175,7 @@ public class ValueImpl implements Value {
                     Calendar cal = getDate();
                     return cal.getTimeInMillis();
                 default:
-                    return value.getLong();
+                    return propertyState.getValue(Type.LONG, index);
             }
         } catch (NumberFormatException e) {
             throw new ValueFormatException("Incompatible type " + PropertyType.nameFromValue(getType()));
@@ -172,14 +189,14 @@ public class ValueImpl implements Value {
     public String getString() throws RepositoryException {
         switch (getType()) {
             case PropertyType.NAME:
-                return namePathMapper.getJcrName(value.toString());
+                return namePathMapper.getJcrName(propertyState.getValue(Type.STRING, index));
             case PropertyType.PATH:
-                String s = value.toString();
+                String s = propertyState.getValue(Type.STRING, index);
                 if (s.startsWith("[") && s.endsWith("]")) {
                     // identifier paths are returned as-is (JCR 2.0, 3.4.3.1)
                     return s;
                 } else {
-                    return namePathMapper.getJcrPath(value.toString());
+                    return namePathMapper.getJcrPath(s);
                 }
             case PropertyType.BINARY:
                 if (stream != null) {
@@ -187,18 +204,23 @@ public class ValueImpl implements Value {
                             "In this case a new Value instance must be acquired in order to successfully call this method.");
                 }
                 try {
-                    return CharStreams.toString(CharStreams.newReaderSupplier(
-                            new InputSupplier<InputStream>() {
-                                @Override
-                                public InputStream getInput() {
-                                    return value.getNewStream();
-                                }
-                            }, Charsets.UTF_8));
+                    final InputStream is = propertyState.getValue(Type.BINARY, index).getNewStream();
+                    try {
+                        return CharStreams.toString(CharStreams.newReaderSupplier(
+                                new InputSupplier<InputStream>() {
+                                    @Override
+                                    public InputStream getInput() {
+                                        return is;
+                                    }
+                                }, Charsets.UTF_8));
+                    } finally {
+                        is.close();
+                    }
                 } catch (IOException e) {
                     throw new RepositoryException("conversion from stream to string failed", e);
                 }
             default:
-                return value.toString();
+                return propertyState.getValue(Type.STRING, index);
         }
     }
 
@@ -213,14 +235,18 @@ public class ValueImpl implements Value {
         return stream;
     }
 
-    private InputStream getNewStream() throws RepositoryException {
+    InputStream getNewStream() throws RepositoryException {
         switch (getType()) {
-        case PropertyType.NAME:
-        case PropertyType.PATH:
-            return new ByteArrayInputStream(
-                    getString().getBytes(Charsets.UTF_8));
+            case PropertyType.NAME:
+            case PropertyType.PATH:
+                return new ByteArrayInputStream(
+                        getString().getBytes(Charsets.UTF_8));
         }
-        return value.getNewStream();
+        return propertyState.getValue(Type.BINARY, index).getNewStream();
+    }
+
+    long getStreamLength() {
+        return propertyState.getValue(Type.BINARY, index).length();
     }
 
     /**
@@ -237,9 +263,10 @@ public class ValueImpl implements Value {
      * @see Object#equals(Object)
      */
     @Override
-    public boolean equals(Object obj) {
-        if (obj instanceof ValueImpl) {
-            return value.equals(((ValueImpl) obj).value);
+    public boolean equals(Object other) {
+        if (other instanceof ValueImpl) {
+            ValueImpl that = (ValueImpl) other;
+            return compare(propertyState, index, that.propertyState, that.index) == 0;
         } else {
             return false;
         }
@@ -250,12 +277,45 @@ public class ValueImpl implements Value {
      */
     @Override
     public int hashCode() {
-        return value.hashCode();
+        if (getType() == PropertyType.BINARY) {
+            return propertyState.getValue(Type.BINARY, index).hashCode();
+        }
+        else {
+            return propertyState.getValue(Type.STRING, index).hashCode();
+        }
     }
 
     @Override
     public String toString() {
-        return value.toString();
+        return propertyState.getValue(Type.STRING, index);
+    }
+
+    private static int compare(PropertyState p1, int i1, PropertyState p2, int i2) {
+        if (p1.getType().tag() != p2.getType().tag()) {
+            return Integer.signum(p1.getType().tag() - p2.getType().tag());
+        }
+        switch (p1.getType().tag()) {
+            case PropertyType.BINARY:
+                return compare(p1.getValue(Type.BINARY, i1), p2.getValue(Type.BINARY, i2));
+            case PropertyType.DOUBLE:
+                return compare(p1.getValue(Type.DOUBLE, i1), p2.getValue(Type.DOUBLE, i2));
+            case PropertyType.DATE:
+                return compareAsDate(p1.getValue(Type.STRING, i1), p2.getValue(Type.STRING, i2));
+            default:
+                return compare(p1.getValue(Type.STRING, i1), p2.getValue(Type.STRING, i2));
+        }
+    }
+
+    private static <T extends Comparable<T>> int compare(T p1, T p2) {
+        return p1.compareTo(p2);
+    }
+
+    private static int compareAsDate(String p1, String p2) {
+        Calendar c1 = ISO8601.parse(p1);
+        Calendar c2 = ISO8601.parse(p2);
+        return c1 != null && c2 != null
+                ? c1.compareTo(c2)
+                : p1.compareTo(p2);
     }
 
 }

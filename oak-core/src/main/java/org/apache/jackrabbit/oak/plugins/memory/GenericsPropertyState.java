@@ -27,6 +27,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 public class GenericsPropertyState extends MultiPropertyState<String> {
     private final Type<?> type;
 
+    /**
+     * @throws IllegalArgumentException if {@code type.isArray()} is {@code false}
+     */
     protected GenericsPropertyState(String name, List<String> values, Type<?> type) {
         super(name, values);
         checkArgument(type.isArray());
