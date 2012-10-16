@@ -118,6 +118,23 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
     }
 
     @Override
+    public void visit(RemoveNodeInstruction instruction) {
+        String nodePath = instruction.getPath();
+        if (!PathUtils.isAbsolute(nodePath)) {
+            throw new RuntimeException("Absolute path expected: " + nodePath);
+        }
+
+        String parentPath = PathUtils.getParentPath(nodePath);
+        String nodeName = PathUtils.getName(nodePath);
+        NodeMongo parent = getStoredNode(parentPath);
+        if (!parent.childExists(nodeName)) {
+            throw new RuntimeException("Node " + nodeName
+                    + " does not exists at parent path: " + parentPath);
+        }
+        parent.removeChild(PathUtils.getName(nodePath));
+    }
+
+    @Override
     public void visit(CopyNodeInstruction instruction) {
         String srcPath = instruction.getSourcePath();
         String destPath = instruction.getDestPath();
@@ -257,19 +274,6 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         destParentNode.addChild(destNodeName);
 
         // [Mete] Siblings?
-    }
-
-    @Override
-    public void visit(RemoveNodeInstruction instruction) {
-        String path = instruction.getPath();
-        String parentPath = PathUtils.getParentPath(path);
-        NodeMongo parentNode = getStoredNode(parentPath);
-        String childName = PathUtils.getName(path);
-        if (!parentNode.childExists(childName)) {
-            throw new RuntimeException("Node " + childName
-                    + " does not exists at parent path: " + parentPath);
-        }
-        parentNode.removeChild(PathUtils.getName(path));
     }
 
     // FIXME - I think we need a way to distinguish between Staged
