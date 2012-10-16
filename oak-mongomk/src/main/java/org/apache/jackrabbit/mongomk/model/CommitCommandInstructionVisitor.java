@@ -59,26 +59,21 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
 
     @Override
     public void visit(AddNodeInstruction instruction) {
-        String path = instruction.getPath();
-        getStagedNode(path);
+        String nodePath = instruction.getPath();
+        if (!PathUtils.isAbsolute(nodePath)) {
+            throw new RuntimeException("Absolute path expected: " + nodePath);
+        }
+        getStagedNode(nodePath);
 
-        String nodeName = PathUtils.getName(path);
-        if (nodeName.isEmpty()) {
+        String nodeName = PathUtils.getName(nodePath);
+        if (nodeName.isEmpty()) { // This happens in initial commit.
             return;
         }
 
-        String parentNodePath = PathUtils.getParentPath(path);
-        NodeMongo parent = null;
-        if (!PathUtils.denotesRoot(parentNodePath)) {
-            parent = getStoredNode(parentNodePath);
-            if (parent == null) {
-                throw new RuntimeException("No such parent: " + PathUtils.getName(parentNodePath));
-            }
-            if (parent.childExists(nodeName)) {
-                throw new RuntimeException("There's already a child node with name '" + nodeName + "'");
-            }
-        } else {
-            parent = getStagedNode(parentNodePath);
+        String parentNodePath = PathUtils.getParentPath(nodePath);
+        NodeMongo parent = getStoredNode(parentNodePath);
+        if (parent.childExists(nodeName)) {
+            throw new RuntimeException("There's already a child node with name '" + nodeName + "'");
         }
         parent.addChild(nodeName);
     }
