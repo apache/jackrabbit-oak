@@ -20,7 +20,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
-
 import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 
@@ -34,9 +33,10 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryPropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
-import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
+import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
 import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.slf4j.Logger;
@@ -57,26 +57,26 @@ import static org.apache.jackrabbit.oak.api.Type.WEAKREFERENCE;
  * <ul>
  *     <li>Multivalued property {@link #REP_MEMBERS}</li>
  *     <li>Property type: {@link PropertyType#WEAKREFERENCE}</li>
- *     <li>Used if the config option {@link UserConfig#PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE} is missing or &lt;4</li>
+ *     <li>Used if the config option {@link org.apache.jackrabbit.oak.spi.security.user.UserConstants#PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE} is missing or &lt;4</li>
  * </ul>
  *
  * <h3>Membership stored in individual properties</h3>
  * Variant to store group membership based on the
- * {@link UserConfig#PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE} configuration parameter:
+ * {@link org.apache.jackrabbit.oak.spi.security.user.UserConstants#PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE} configuration parameter:
  *
  * <ul>
  *     <li>Membership information stored underneath a {@link #REP_MEMBERS} node hierarchy</li>
  *     <li>Individual member information is stored each in a {@link PropertyType#WEAKREFERENCE}
  *     property</li>
- *     <li>Node hierarchy is split based on the {@link UserConfig#PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE}
+ *     <li>Node hierarchy is split based on the {@link org.apache.jackrabbit.oak.spi.security.user.UserConstants#PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE}
  *     configuration parameter.</li>
- *     <li>{@link UserConfig#PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE} must be greater than 4
+ *     <li>{@link org.apache.jackrabbit.oak.spi.security.user.UserConstants#PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE} must be greater than 4
  *     in order to turn on this behavior</li>
  * </ul>
  *
  * <h3>Compatibility</h3>
  * This membership provider is able to deal with both options being present in
- * the content. If the {@link UserConfig#PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE} configuration
+ * the content. If the {@link org.apache.jackrabbit.oak.spi.security.user.UserConstants#PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE} configuration
  * parameter is modified later on, existing membership information is not
  * modified or converted to the new structure.
  */
@@ -86,12 +86,12 @@ public class MembershipProviderImpl extends AuthorizableBaseProvider implements 
 
     private final int splitSize;
 
-    MembershipProviderImpl(Root root, UserConfig config) {
+    MembershipProviderImpl(Root root, ConfigurationParameters config) {
         super(root, config);
 
-        int splitValue = config.getConfigValue(UserConfig.PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE, 0);
+        int splitValue = config.getConfigValue(PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE, 0);
         if (splitValue != 0 && splitValue < 4) {
-            log.warn("Invalid value {} for {}. Expected integer >= 4 or 0", splitValue, UserConfig.PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE);
+            log.warn("Invalid value {} for {}. Expected integer >= 4 or 0", splitValue, PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE);
             splitValue = 0;
         }
         this.splitSize = splitValue;
@@ -291,7 +291,7 @@ public class MembershipProviderImpl extends AuthorizableBaseProvider implements 
 
             private Iterator<String> inherited(String authorizablePath) {
                 Tree group = getByPath(authorizablePath);
-                if (isAuthorizableTree(group, AuthorizableType.GROUP)) {
+                if (UserUtility.isAuthorizableTree(group, AuthorizableType.GROUP)) {
                     return getMembers(group, authorizableType, true);
                 } else {
                     return Iterators.emptyIterator();
@@ -321,7 +321,7 @@ public class MembershipProviderImpl extends AuthorizableBaseProvider implements 
 
             private Iterator<String> inherited(String authorizablePath) {
                 Tree group = getByPath(authorizablePath);
-                if (isAuthorizableTree(group, AuthorizableType.GROUP)) {
+                if (UserUtility.isAuthorizableTree(group, AuthorizableType.GROUP)) {
                     return getMembership(group, true);
                 } else {
                     return Iterators.emptyIterator();

@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -49,6 +50,23 @@ public class ConfigurationParametersTest {
         assertNull(options.getConfigValue("some", null));
         assertEquals(testObject, options.getConfigValue("some", testObject));
         assertEquals(int1000, options.getConfigValue("some", int1000));
+    }
+
+    @Test
+    public void testArrayDefaultValue() {
+        TestObject[] testArray = new TestObject[] {new TestObject("t")};
+
+        ConfigurationParameters options = new ConfigurationParameters();
+        TestObject[] result = options.getConfigValue("test", new TestObject[0]);
+        assertNotNull(result);
+        assertEquals(0, result.length);
+
+        result = options.getConfigValue("test", testArray);
+        assertEquals(result, testArray);
+
+        options = new ConfigurationParameters(Collections.singletonMap("test", testArray));
+        result = options.getConfigValue("test", null);
+        assertEquals(result, testArray);
     }
 
     @Test

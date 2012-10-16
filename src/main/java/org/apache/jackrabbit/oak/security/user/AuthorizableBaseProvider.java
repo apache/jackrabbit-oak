@@ -16,33 +16,24 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
-import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.oak.api.Type.STRING;
+import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
 
 /**
  * AuthorizableBaseProvider... TODO
  */
 abstract class AuthorizableBaseProvider implements UserConstants {
 
-    /**
-     * logger instance
-     */
-    private static final Logger log = LoggerFactory.getLogger(AuthorizableBaseProvider.class);
-
-    final UserConfig config;
+    final ConfigurationParameters config;
     final Root root;
     final IdentifierManager identifierManager;
 
-    AuthorizableBaseProvider(Root root, UserConfig config) {
+    AuthorizableBaseProvider(Root root, ConfigurationParameters config) {
         this.root = root;
         this.config = config;
         this.identifierManager = new IdentifierManager(root);
@@ -50,7 +41,7 @@ abstract class AuthorizableBaseProvider implements UserConstants {
 
     Tree getByID(String authorizableId, AuthorizableType authorizableType) {
         Tree tree = identifierManager.getTree(getContentID(authorizableId));
-        if (isAuthorizableTree(tree, authorizableType)) {
+        if (UserUtility.isAuthorizableTree(tree, authorizableType)) {
             return tree;
         } else {
             return null;
@@ -59,7 +50,7 @@ abstract class AuthorizableBaseProvider implements UserConstants {
 
     Tree getByPath(String authorizableOakPath) {
         Tree tree = root.getTree(authorizableOakPath);
-        if (isAuthorizableTree(tree, AuthorizableType.AUTHORIZABLE)) {
+        if (UserUtility.isAuthorizableTree(tree, AuthorizableType.AUTHORIZABLE)) {
             return tree;
         } else {
             return null;
@@ -72,21 +63,5 @@ abstract class AuthorizableBaseProvider implements UserConstants {
 
     String getContentID(Tree authorizableTree) {
         return identifierManager.getIdentifier(authorizableTree);
-    }
-
-    boolean isAuthorizableTree(Tree tree, AuthorizableType authorizableType) {
-        // FIXME: check for node type according to the specified type constraint
-        if (tree != null && tree.hasProperty(JcrConstants.JCR_PRIMARYTYPE)) {
-            String ntName = tree.getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue(STRING);
-            switch (authorizableType) {
-                case GROUP:
-                    return NT_REP_GROUP.equals(ntName);
-                case USER:
-                    return NT_REP_USER.equals(ntName);
-                default:
-                    return NT_REP_USER.equals(ntName) || NT_REP_GROUP.equals(ntName);
-            }
-        }
-        return false;
     }
 }

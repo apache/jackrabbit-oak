@@ -35,8 +35,7 @@ import org.apache.jackrabbit.oak.spi.security.principal.OpenPrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
-import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
-import org.apache.jackrabbit.oak.spi.security.user.UserContext;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
@@ -59,19 +58,18 @@ public class OpenSecurityProvider implements SecurityProvider {
 
     @Nonnull
     @Override
-    public TokenProvider getTokenProvider(Root root, ConfigurationParameters options) {
+    public TokenProvider getTokenProvider(Root root, org.apache.jackrabbit.oak.spi.security.ConfigurationParameters options) {
         throw new UnsupportedOperationException();
     }
 
     @Nonnull
     @Override
-    public UserContext getUserContext() {
-        // TODO
-        return new UserContext() {
+    public UserConfiguration getUserConfiguration() {
+        return new UserConfiguration() {
             @Nonnull
             @Override
-            public UserConfig getUserConfig() {
-                return new UserConfig();
+            public ConfigurationParameters getConfigurationParameters() {
+                return new ConfigurationParameters();
             }
 
             @Nonnull

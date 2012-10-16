@@ -25,30 +25,30 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
-import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
-import org.apache.jackrabbit.oak.spi.security.user.UserContext;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
 
 /**
  * UserContextImpl... TODO
  */
-public class UserContextImpl implements UserContext {
+public class UserConfigurationImpl implements UserConfiguration {
 
-    private final UserConfig config;
+    private final ConfigurationParameters config;
 
     // TODO add proper configuration
-    public UserContextImpl() {
-        this(new UserConfig());
+    public UserConfigurationImpl() {
+        this(new ConfigurationParameters());
     }
 
-    public UserContextImpl(UserConfig config) {
+    public UserConfigurationImpl(ConfigurationParameters config) {
         this.config = config;
     }
 
     @Nonnull
     @Override
-    public UserConfig getUserConfig() {
+    public ConfigurationParameters getConfigurationParameters() {
         return config;
     }
 
@@ -64,7 +64,7 @@ public class UserContextImpl implements UserContext {
 
     @Override
     public List<ValidatorProvider> getValidatorProviders() {
-        ValidatorProvider vp = new UserValidatorProvider(config);
+        ValidatorProvider vp = new UserValidatorProvider(getConfigurationParameters());
         return Collections.singletonList(vp);
     }
 

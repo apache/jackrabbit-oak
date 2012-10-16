@@ -39,6 +39,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule
 import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
+import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -200,7 +201,7 @@ public final class LoginModuleImpl extends AbstractLoginModule {
         if (sp == null) {
             return null;
         } else {
-            return sp.getUserContext().getUserConfig().getAnonymousId();
+            return UserUtility.getAnonymousId(sp.getUserConfiguration().getConfigurationParameters());
         }
     }
 

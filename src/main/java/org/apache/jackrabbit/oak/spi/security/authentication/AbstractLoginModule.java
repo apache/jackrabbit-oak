@@ -322,7 +322,7 @@ public abstract class AbstractLoginModule implements LoginModule {
         SecurityProvider sp = getSecurityProvider();
         Root root = getRoot();
         if (root != null && sp != null) {
-            userProvider = sp.getUserContext().getUserProvider(root);
+            userProvider = sp.getUserConfiguration().getUserProvider(root);
         }
 
         if (userProvider == null && callbackHandler != null) {
