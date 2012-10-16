@@ -31,14 +31,15 @@ import static com.google.common.base.Preconditions.checkNotNull;
 /**
  * Provides a validator for user and group management.
  */
-public class UserValidatorProvider implements ValidatorProvider {
+class UserValidatorProvider implements ValidatorProvider {
 
     private final ConfigurationParameters config;
     private UserProvider userProvider;
 
-    public UserValidatorProvider(ConfigurationParameters config) {
+    UserValidatorProvider(ConfigurationParameters config) {
         this.config = checkNotNull(config);
     }
+
     //--------------------------------------------------< ValidatorProvider >---
     @Nonnull
     @Override
