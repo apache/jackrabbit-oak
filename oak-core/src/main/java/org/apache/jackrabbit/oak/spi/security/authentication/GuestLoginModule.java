@@ -64,7 +64,7 @@ import org.slf4j.LoggerFactory;
  *
  *    jackrabbit.oak {
  *            org.apache.jackrabbit.oak.spi.security.authentication.GuestLoginModule  optional;
- *            org.apache.jackrabbit.oak.security.authentication.LoginModuleImpl required;
+ *            org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl required;
  *    };
  *
  * </pre>
