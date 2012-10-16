@@ -33,10 +33,93 @@ public interface UserConstants {
     String REP_MEMBERS = "rep:members";
     String REP_IMPERSONATORS = "rep:impersonators";
 
+    /**
+     * Configuration option defining the ID of the administrator user.
+     */
+    String PARAM_ADMIN_ID = "adminId";
+
+    /**
+     * Default value for {@link #PARAM_ADMIN_ID}
+     */
+    String DEFAULT_ADMIN_ID = "admin";
+
+    /**
+     * Configuration option defining the ID of the anonymous user. The ID
+     * might be {@code null} of no anonymous user exists. In this case
+     * Session#getUserID() may return {@code null} if it has been obtained
+     * using {@link javax.jcr.GuestCredentials}.
+     */
+    String PARAM_ANONYMOUS_ID = "anonymousId";
+
+    /**
+     * Default value for {@link #PARAM_ANONYMOUS_ID}
+     */
+    String DEFAULT_ANONYMOUS_ID = "anonymous";
+
+    /**
+     * Configuration option to define the path underneath which user nodes
+     * are being created.
+     */
+    String PARAM_USER_PATH = "usersPath";
+
+    /**
+     * Default value for {@link #PARAM_USER_PATH}
+     */
     String DEFAULT_USER_PATH = "/rep:security/rep:authorizables/rep:users";
+
+    /**
+     * Configuration option to define the path underneath which group nodes
+     * are being created.
+     */
+    String PARAM_GROUP_PATH = "groupsPath";
+
+    /**
+     * Default value for {@link #PARAM_GROUP_PATH}
+     */
     String DEFAULT_GROUP_PATH = "/rep:security/rep:authorizables/rep:groups";
+
+    /**
+     * Parameter used to change the number of levels that are used by default
+     * store authorizable nodes.<br>The default number of levels is 2.
+     */
+    String PARAM_DEFAULT_DEPTH = "defaultDepth";
+
+    /**
+     * Default value for {@link #PARAM_DEFAULT_DEPTH}
+     */
     int DEFAULT_DEPTH = 2;
 
-    String DEFAULT_ADMIN_ID = "admin";
-    String DEFAULT_ANONYMOUS_ID = "anonymous";
+    /**
+     * Its value determines the maximum number of members within a given
+     * content structure until additional intermediate structuring is being
+     * added. This may for example be used to
+     * <ul>
+     *     <li>switch storing group members in JCR properties or nodes</li>
+     *     <li>define maximum number of members is a multivalued property</li>
+     *     <li>define maximum number of member properties within a given
+     *     node structure</li>
+     * </ul>
+     */
+    String PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE = "groupMembershipSplitSize";
+    /**
+     * Configuration parameter to change the default algorithm used to generate
+     * password hashes.
+     */
+    String PARAM_PASSWORD_HASH_ALGORITHM = "passwordHashAlgorithm";
+    /**
+     * Configuration parameter to change the number of iterations used for
+     * password hash generation.
+     */
+    String PARAM_PASSWORD_HASH_ITERATIONS = "passwordHashIterations";
+    /**
+     * Configuration parameter to change the number of iterations used for
+     * password hash generation.
+     */
+    String PARAM_PASSWORD_SALT_SIZE = "passwordSaltSize";
+    /**
+     * Configuration parameter to set the authorizable actions.
+     *
+     * @see org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction
+     */
+    String PARAM_AUTHORIZABLE_ACTIONS = "authorizableActions";
 }

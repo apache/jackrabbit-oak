@@ -28,10 +28,8 @@ import javax.annotation.Nonnull;
 import com.google.common.base.Function;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterators;
-import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.PathMapper;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
@@ -43,9 +41,6 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
 
 /**
  * The {@code PrincipalProviderImpl} is a principal provider implementation
@@ -158,11 +153,7 @@ public class PrincipalProviderImpl implements PrincipalProvider {
     }
 
     private boolean isGroup(Tree authorizableTree) {
-        checkNotNull(authorizableTree);
-        checkState(authorizableTree.hasProperty(JcrConstants.JCR_PRIMARYTYPE));
-
-        String ntName = authorizableTree.getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue(Type.STRING);
-        return UserConstants.NT_REP_GROUP.equals(ntName);
+        return userProvider.isAuthorizableType(authorizableTree, AuthorizableType.GROUP);
     }
 
     //--------------------------------------------------------------------------

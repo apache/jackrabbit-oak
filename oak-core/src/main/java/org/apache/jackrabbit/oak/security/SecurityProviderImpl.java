@@ -31,7 +31,7 @@ import org.apache.jackrabbit.oak.security.authentication.token.TokenProviderImpl
 import org.apache.jackrabbit.oak.security.authorization.AccessControlProviderImpl;
 import org.apache.jackrabbit.oak.security.principal.PrincipalManagerImpl;
 import org.apache.jackrabbit.oak.security.principal.PrincipalProviderImpl;
-import org.apache.jackrabbit.oak.security.user.UserContextImpl;
+import org.apache.jackrabbit.oak.security.user.UserConfigurationImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
@@ -40,7 +40,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlProvide
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
-import org.apache.jackrabbit.oak.spi.security.user.UserContext;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
@@ -71,7 +71,7 @@ public class SecurityProviderImpl implements SecurityProvider {
         try {
             loginConfig = Configuration.getConfiguration();
         } catch (SecurityException e) {
-            log.warn("Failed to read login configuration: using default.", e);
+            log.warn("Failed to retrieve login configuration: using default.", e);
             loginConfig = new OakConfiguration();
             Configuration.setConfiguration(loginConfig);
         }
@@ -87,13 +87,13 @@ public class SecurityProviderImpl implements SecurityProvider {
     @Nonnull
     @Override
     public TokenProvider getTokenProvider(Root root, ConfigurationParameters options) {
-        return new TokenProviderImpl(root, options, getUserContext());
+        return new TokenProviderImpl(root, options, getUserConfiguration());
     }
 
     @Nonnull
     @Override
-    public UserContext getUserContext() {
-        return new UserContextImpl();
+    public UserConfiguration getUserConfiguration() {
+        return new UserConfigurationImpl();
     }
 
     @Nonnull
@@ -110,9 +110,9 @@ public class SecurityProviderImpl implements SecurityProvider {
             @Nonnull
             @Override
             public PrincipalProvider getPrincipalProvider(Root root, NamePathMapper namePathMapper) {
-                UserContext userContext = getUserContext();
-                UserProvider userProvider = userContext.getUserProvider(root);
-                MembershipProvider msProvider = userContext.getMembershipProvider(root);
+                UserConfiguration userConfiguration = getUserConfiguration();
+                UserProvider userProvider = userConfiguration.getUserProvider(root);
+                MembershipProvider msProvider = userConfiguration.getMembershipProvider(root);
                 return new PrincipalProviderImpl(userProvider, msProvider, namePathMapper);
             }
         };

@@ -23,15 +23,16 @@ import javax.jcr.Session;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 
 /**
  * UserContext... TODO
  */
-public interface UserContext {
+public interface UserConfiguration {
 
     @Nonnull
-    UserConfig getUserConfig();
+    ConfigurationParameters getConfigurationParameters();
 
     @Nonnull
     UserProvider getUserProvider(Root root);

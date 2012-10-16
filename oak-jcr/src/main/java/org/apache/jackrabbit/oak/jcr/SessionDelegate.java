@@ -487,7 +487,7 @@ public class SessionDelegate {
     @Nonnull
     UserManager getUserManager() throws UnsupportedRepositoryOperationException {
         if (securityProvider != null) {
-            return securityProvider.getUserContext().getUserManager(session, root, getNamePathMapper());
+            return securityProvider.getUserConfiguration().getUserManager(session, root, getNamePathMapper());
         } else {
             throw new UnsupportedRepositoryOperationException("User management not supported.");
         }

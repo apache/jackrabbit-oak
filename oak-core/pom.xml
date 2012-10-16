@@ -62,6 +62,7 @@
               org.apache.jackrabbit.oak.spi.security.privilege,
               org.apache.jackrabbit.oak.spi.security.user,
               org.apache.jackrabbit.oak.spi.security.user.action,
+              org.apache.jackrabbit.oak.spi.security.user.util,
               org.apache.jackrabbit.oak.security,
               org.apache.jackrabbit.oak.security.privilege,
             </Export-Package>
