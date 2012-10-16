@@ -50,7 +50,7 @@ public class LuceneIndexQueryTest extends AbstractQueryTest implements
                         TEST_INDEX_HOME));
         MicroKernel mk = new MicroKernelImpl();
         createDefaultKernelTracker().available(mk);
-        return new Oak(mk).with(qip).with(ch).createContentRepository();
+        return new Oak(mk).with(qip).with(ch).with(getSecurityProvider()).createContentRepository();
     }
 
 }

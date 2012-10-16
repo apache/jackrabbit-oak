@@ -35,6 +35,7 @@ import javax.jcr.security.Privilege;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.jcr.RepositoryImpl;
+import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants;
 import org.junit.After;
 import org.junit.Before;
@@ -57,7 +58,9 @@ public class CustomPrivilegeTest extends AbstractPrivilegeTest {
 
         // create a separate repository in order to be able to remove registered privileges.
         String dir = "target/mk-tck-" + System.currentTimeMillis();
-        repository = new RepositoryImpl(new MicroKernelImpl(dir), Executors.newScheduledThreadPool(1));
+        repository = new RepositoryImpl(new MicroKernelImpl(dir),
+                Executors.newScheduledThreadPool(1),
+                new SecurityProviderImpl());
         session = getAdminSession();
         privilegeManager = getPrivilegeManager(session);
 

@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
 import javax.jcr.GuestCredentials;
@@ -24,7 +25,10 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 
+import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
+import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.junit.After;
 
 /**
@@ -59,13 +63,16 @@ public abstract class AbstractRepositoryTest {
 
     protected Repository getRepository() throws RepositoryException {
         if (repository == null) {
-            if (executor != null) {
-                repository = new RepositoryImpl(new MicroKernelImpl(), executor);
-            } else {
-                repository = new RepositoryImpl();
-            }
+            MicroKernel mk = new MicroKernelImpl();
+            ScheduledExecutorService executorService = getExecutor();
+            SecurityProvider securityProvider = new SecurityProviderImpl();
+            repository  = new RepositoryImpl(mk, executorService, securityProvider);
         }
         return repository;
+    }
+
+    private ScheduledExecutorService getExecutor() {
+        return (executor == null) ? Executors.newScheduledThreadPool(0) : executor;
     }
 
     protected Session getAdminSession() throws RepositoryException {

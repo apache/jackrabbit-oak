@@ -28,6 +28,7 @@ import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
 
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
+import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.apache.jackrabbit.test.RepositoryStub;
 
@@ -47,7 +48,8 @@ public class OakRepositoryStub extends RepositoryStub {
         String dir = "target/mk-tck-" + System.currentTimeMillis();
         repository = new RepositoryImpl(
                 new MicroKernelImpl(dir),
-                Executors.newScheduledThreadPool(1));
+                Executors.newScheduledThreadPool(1),
+                new SecurityProviderImpl());
 
         Session session = repository.login(superuser);
         try {

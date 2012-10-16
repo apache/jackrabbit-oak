@@ -29,7 +29,7 @@ public class TraversingIndexQueryTest extends AbstractQueryTest {
     protected ContentRepository createRepository() {
         MicroKernel mk = new MicroKernelImpl();
         createDefaultKernelTracker().available(mk);
-        return new Oak(mk).createContentRepository();
+        return new Oak(mk).with(getSecurityProvider()).createContentRepository();
     }
 
 }

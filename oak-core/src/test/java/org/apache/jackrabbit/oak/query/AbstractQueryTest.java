@@ -43,7 +43,9 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -110,6 +112,10 @@ public abstract class AbstractQueryTest extends AbstractOakTest implements
             Map<String, PropertyValue> sv) throws ParseException {
         return qe.executeQuery(statement, language, Long.MAX_VALUE, 0, sv,
                 session.getLatestRoot(), null);
+    }
+
+    protected SecurityProvider getSecurityProvider() {
+        return new SecurityProviderImpl();
     }
 
     @Test
