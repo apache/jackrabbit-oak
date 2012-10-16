@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import javax.jcr.AccessDeniedException;
+import javax.jcr.InvalidItemStateException;
 import javax.jcr.NamespaceException;
 import javax.jcr.Node;
 import javax.jcr.Repository;
@@ -36,7 +37,7 @@ import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.jcr.RepositoryImpl;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
-import org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -111,12 +112,12 @@ public class CustomPrivilegeTest extends AbstractPrivilegeTest {
     public void testCustomEquivalentDefinitions() throws RepositoryException {
         privilegeManager.registerPrivilege("custom4", false, new String[0]);
         privilegeManager.registerPrivilege("custom5", false, new String[0]);
-        privilegeManager.registerPrivilege("custom2", false, new String[] {"custom4", "custom5"});
+        privilegeManager.registerPrivilege("custom2", false, new String[]{"custom4", "custom5"});
 
         List<String[]> equivalent = new ArrayList<String[]>();
-        equivalent.add(new String[] {"custom4", "custom5"});
+        equivalent.add(new String[]{"custom4", "custom5"});
         equivalent.add(new String[] {"custom2", "custom4"});
-        equivalent.add(new String[] {"custom2", "custom5"});
+        equivalent.add(new String[]{"custom2", "custom5"});
         int cnt = 6;
         for (String[] aggrNames : equivalent) {
             try {
@@ -371,6 +372,20 @@ public class CustomPrivilegeTest extends AbstractPrivilegeTest {
             assertFalse(priv.isAggregate());
         } finally {
             s2.logout();
+        }
+    }
+
+    @Test
+    public void testRegisterPrivilegeWithPendingChanges() throws RepositoryException {
+        try {
+            session.getRootNode().addNode("test");
+            assertTrue(session.hasPendingChanges());
+            privilegeManager.registerPrivilege("new", true, new String[0]);
+            fail("Privileges may not be registered while there are pending changes.");
+        } catch (InvalidItemStateException e) {
+            // success
+        } finally {
+            superuser.refresh(false);
         }
     }
 }

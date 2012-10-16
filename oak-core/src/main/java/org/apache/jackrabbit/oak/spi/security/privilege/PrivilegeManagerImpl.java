@@ -14,22 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.jcr.security.privilege;
+package org.apache.jackrabbit.oak.spi.security.privilege;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import javax.jcr.InvalidItemStateException;
 import javax.jcr.NamespaceException;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
-import org.apache.jackrabbit.oak.jcr.SessionDelegate;
-import org.apache.jackrabbit.oak.security.privilege.PrivilegeRegistry;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeProvider;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,14 +42,18 @@ public class PrivilegeManagerImpl implements PrivilegeManager {
      */
     private static final Logger log = LoggerFactory.getLogger(PrivilegeManagerImpl.class);
 
-    private final PrivilegeProvider provider;
-    private final SessionDelegate sessionDelegate;
+    private final Root root;
+    private final NamePathMapper namePathMapper;
 
-    public PrivilegeManagerImpl(SessionDelegate sessionDelegate) {
-        this.provider = new PrivilegeRegistry(sessionDelegate.getContentSession(), sessionDelegate.getRoot());
-        this.sessionDelegate = sessionDelegate;
+    private final PrivilegeProvider provider;
+
+    public PrivilegeManagerImpl(Root root, PrivilegeProvider provider, NamePathMapper namePathMapper) {
+        this.root = root;
+        this.namePathMapper = namePathMapper;
+        this.provider = provider;
     }
 
+    // TODO: review
     public void refresh() {
         provider.refresh();
     }
@@ -77,6 +80,9 @@ public class PrivilegeManagerImpl implements PrivilegeManager {
     @Override
     public Privilege registerPrivilege(String privilegeName, boolean isAbstract,
                                        String[] declaredAggregateNames) throws RepositoryException {
+        if (root.hasPendingChanges()) {
+            throw new InvalidItemStateException("Session has pending changes.");
+        }
         if (privilegeName == null || privilegeName.isEmpty()) {
             throw new RepositoryException("Invalid privilege name " + privilegeName);
         }
@@ -86,15 +92,13 @@ public class PrivilegeManagerImpl implements PrivilegeManager {
         }
 
         PrivilegeDefinition def = provider.registerDefinition(oakName, isAbstract, getOakNames(declaredAggregateNames));
-        // TODO: should be called by provider
-        sessionDelegate.refresh(true);
         return new PrivilegeImpl(def);
     }
 
     //------------------------------------------------------------< private >---
 
     private String getOakName(String jcrName) {
-        return sessionDelegate.getNamePathMapper().getOakName(jcrName);
+        return namePathMapper.getOakName(jcrName);
     }
 
     private Set<String> getOakNames(String[] jcrNames) throws RepositoryException {

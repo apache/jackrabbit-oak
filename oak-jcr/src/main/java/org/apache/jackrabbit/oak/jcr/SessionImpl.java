@@ -391,11 +391,11 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
         return TODO.dummyImplementation().returnValue(new AccessControlManager() {
             @Override
             public void setPolicy(String absPath, AccessControlPolicy policy) {
-                // do nothing
+                throw new AccessControlException(policy.toString());
             }
             @Override
             public void removePolicy(String absPath, AccessControlPolicy policy) {
-                // do nothing
+                throw new AccessControlException(policy.toString());
             }
             @Override
             public Privilege privilegeFromName(String privilegeName)

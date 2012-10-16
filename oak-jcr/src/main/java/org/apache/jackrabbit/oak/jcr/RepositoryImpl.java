@@ -35,7 +35,6 @@ import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.InitialContent;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeValidatorProvider;
-import org.apache.jackrabbit.oak.security.privilege.PrivilegeValidatorProvider;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
 import org.apache.jackrabbit.oak.spi.commit.ValidatingHook;
@@ -59,8 +58,7 @@ public class RepositoryImpl implements Repository {
                     new NameValidatorProvider(),
                     new NamespaceValidatorProvider(),
                     new TypeValidatorProvider(),
-                    new ConflictValidatorProvider(),
-                    new PrivilegeValidatorProvider());
+                    new ConflictValidatorProvider());
 
     private static final CompositeHook DEFAULT_COMMIT_HOOK =
             new CompositeHook(
