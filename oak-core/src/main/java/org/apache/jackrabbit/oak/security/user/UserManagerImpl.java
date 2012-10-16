@@ -153,7 +153,9 @@ public class UserManagerImpl implements UserManager {
         }
         Tree userTree = userProvider.createUser(userID, intermediatePath);
         setPrincipal(userTree, principal);
-        userProvider.setPassword(userTree, password, true);
+        if (password != null) {
+            userProvider.setPassword(userTree, password, true);
+        }
 
         User user = new UserImpl(userID, userTree, this);
         onCreate(user, password);
