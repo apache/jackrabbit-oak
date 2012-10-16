@@ -22,18 +22,13 @@ import javax.jcr.NoSuchWorkspaceException;
 import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandlerProvider;
-import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandlerProvider;
-import org.apache.jackrabbit.oak.spi.commit.DefaultValidatorProvider;
-import org.apache.jackrabbit.oak.spi.commit.ValidatingHook;
-import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -62,44 +57,6 @@ public class ContentRepositoryImpl implements ContentRepository {
     private final SecurityProvider securityProvider;
     private final QueryIndexProvider indexProvider;
     private final NodeStore nodeStore;
-
-    /**
-     * Utility constructor that creates a new in-memory repository with default
-     * query index provider. This constructor is intended to be used within
-     * test cases only.
-     */
-    public ContentRepositoryImpl() {
-        this(new CompositeHook());
-    }
-
-    public ContentRepositoryImpl(CommitHook hook) {
-        this(new MicroKernelImpl(), new CompositeQueryIndexProvider(), hook, null);
-    }
-
-    /**
-     * Utility constructor, intended to be used within test cases only.
-     *
-     * Creates an Oak repository instance based on the given, already
-     * initialized components.
-     *
-     * @param microKernel
-     *            underlying kernel instance
-     * @param indexProvider
-     *            index provider
-     * @param validatorProvider
-     *            the validation provider
-     */
-    public ContentRepositoryImpl(
-            MicroKernel microKernel, QueryIndexProvider indexProvider,
-            ValidatorProvider validatorProvider) {
-        this(microKernel, indexProvider,
-                new ValidatingHook(validatorProvider != null ? validatorProvider : DefaultValidatorProvider.INSTANCE),
-                null);
-    }
-
-    public ContentRepositoryImpl(MicroKernel microKernel, ValidatorProvider validatorProvider) {
-        this(microKernel, null, validatorProvider);
-    }
 
     /**
      * Creates an content repository instance based on the given, already
@@ -132,11 +89,7 @@ public class ContentRepositoryImpl implements ContentRepository {
                                  SecurityProvider securityProvider) {
         this.nodeStore = nodeStore;
         this.indexProvider = indexProvider != null ? indexProvider : new CompositeQueryIndexProvider();
-
-        // TODO: in order not to having failing tests we use SecurityProviderImpl as default
-        //       - review if passing a security provider should be mandatory
-        //       - review if another default (not enforcing any security constraint) was more appropriate.
-        this.securityProvider = (securityProvider == null) ? new SecurityProviderImpl() : securityProvider;
+        this.securityProvider = securityProvider;
     }
 
     @Nonnull
