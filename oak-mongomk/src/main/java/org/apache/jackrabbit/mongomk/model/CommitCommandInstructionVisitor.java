@@ -34,6 +34,10 @@ import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.query.FetchNodesQuery;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
+/**
+ * This class reads in the instructions generated from JSON, applies basic checks
+ * and creates a node map for {@code CommitCommandMongo} to work on later.
+ */
 public class CommitCommandInstructionVisitor implements InstructionVisitor {
 
     private final long headRevisionId;
@@ -42,6 +46,12 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
 
     private String branchId;
 
+    /**
+     * Creates {@code CommitCommandInstructionVisitor}
+     *
+     * @param mongoConnection Mongo connection.
+     * @param headRevisionId Head revision.
+     */
     public CommitCommandInstructionVisitor(MongoConnection mongoConnection,
             long headRevisionId) {
         this.mongoConnection = mongoConnection;
@@ -49,10 +59,20 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         pathNodeMap = new HashMap<String, NodeMongo>();
     }
 
+    /**
+     * Sets the branch id associated with the commit. It can be null.
+     *
+     * @param branchId Branch id or null.
+     */
     public void setBranchId(String branchId) {
         this.branchId = branchId;
     }
 
+    /**
+     * Returns the generated node map after visit methods are called.
+     *
+     * @return Node map.
+     */
     public Map<String, NodeMongo> getPathNodeMap() {
         return pathNodeMap;
     }
@@ -80,8 +100,21 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
 
     @Override
     public void visit(AddPropertyInstruction instruction) {
-        NodeMongo node = getStagedNode(instruction.getPath());
+        String nodePath = instruction.getPath();
+        NodeMongo node = getStoredNode(nodePath);
         node.addProperty(instruction.getKey(), instruction.getValue());
+    }
+
+    @Override
+    public void visit(SetPropertyInstruction instruction) {
+        String key = instruction.getKey();
+        Object value = instruction.getValue();
+        NodeMongo node = getStoredNode(instruction.getPath());
+        if (value == null) {
+            node.removeProp(key);
+        } else {
+            node.addProperty(key, value);
+        }
     }
 
     @Override
@@ -218,10 +251,6 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
 
         // Add to destParent
         NodeMongo destParentNode = getStoredNode(destParentPath);
-        if (destParentNode == null) {
-            throw new RuntimeException("Dest parent node does not exist at path: "
-                    + destParentPath);
-        }
         if (destParentNode.childExists(destNodeName)) {
             throw new RuntimeException("Node already exists at move destination path: " + destPath);
         }
@@ -241,19 +270,6 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
                     + " does not exists at parent path: " + parentPath);
         }
         parentNode.removeChild(PathUtils.getName(path));
-    }
-
-    @Override
-    public void visit(SetPropertyInstruction instruction) {
-        String path = instruction.getPath();
-        String key = instruction.getKey();
-        Object value = instruction.getValue();
-        NodeMongo node = getStagedNode(path);
-        if (value == null) {
-            node.removeProp(key);
-        } else {
-            node.addProperty(key, value);
-        }
     }
 
     // FIXME - I think we need a way to distinguish between Staged
@@ -285,7 +301,7 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         } catch (Exception ignore) {}
 
         if (!exists) {
-            return null;
+            throw new RuntimeException("Node not found at path: " + path);
         }
 
         FetchNodesQuery query = new FetchNodesQuery(mongoConnection,
