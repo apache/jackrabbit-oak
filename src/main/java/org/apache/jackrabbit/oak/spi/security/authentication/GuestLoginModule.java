@@ -24,7 +24,6 @@ import javax.security.auth.Subject;
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.callback.UnsupportedCallbackException;
-import javax.security.auth.login.LoginException;
 import javax.security.auth.spi.LoginModule;
 
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.CredentialsCallback;
@@ -73,7 +72,7 @@ import org.slf4j.LoggerFactory;
  * In this case calling {@link javax.jcr.Repository#login()} would be equivalent
  * to {@link javax.jcr.Repository#login(javax.jcr.Credentials) repository.login(new GuestCredentials()}.
  */
-public class GuestLoginModule implements LoginModule {
+public final class GuestLoginModule implements LoginModule {
 
     private static final Logger log = LoggerFactory.getLogger(GuestLoginModule.class);
 
@@ -92,7 +91,7 @@ public class GuestLoginModule implements LoginModule {
     }
 
     @Override
-    public boolean login() throws LoginException {
+    public boolean login() {
         if (callbackHandler != null) {
             CredentialsCallback ccb = new CredentialsCallback();
             try {
@@ -115,7 +114,7 @@ public class GuestLoginModule implements LoginModule {
     }
 
     @Override
-    public boolean commit() throws LoginException {
+    public boolean commit() {
         if (guestCredentials != null && !subject.isReadOnly()) {
             subject.getPublicCredentials().add(guestCredentials);
             subject.getPrincipals().add(EveryonePrincipal.getInstance());
@@ -124,13 +123,13 @@ public class GuestLoginModule implements LoginModule {
     }
 
     @Override
-    public boolean abort() throws LoginException {
-        // nothing to do
+    public boolean abort() {
+        guestCredentials = null;
         return true;
     }
 
     @Override
-    public boolean logout() throws LoginException {
+    public boolean logout() {
         // nothing to do.
         return true;
     }
