@@ -79,7 +79,7 @@ public class PrincipalProviderImpl implements PrincipalProvider {
         if (tree != null) {
             return (isGroup(tree)) ? new TreeBasedGroup(tree) : new TreeBasedPrincipal(tree, pathMapper);
         } else {
-            return null;
+            return (EveryonePrincipal.NAME.equals(principalName)) ? EveryonePrincipal.getInstance() : null;
         }
     }
 
